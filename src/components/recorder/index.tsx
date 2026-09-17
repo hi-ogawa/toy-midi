@@ -186,6 +186,10 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    if (midiInteraction.handleTabAnnotationShortcut(event)) {
+      event.preventDefault();
+      return;
+    }
     if (matchKeyboardEvent(event, "<") || matchKeyboardEvent(event, ">")) {
       if (flags.isRecording) {
         return;

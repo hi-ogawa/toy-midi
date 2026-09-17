@@ -4,6 +4,7 @@ import {
   createDefaultMultibandEq,
 } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
+import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { createAudioClip } from "./audio-clip.ts";
 import {
   type PersistableRecorderRuntimeState,
@@ -22,7 +23,13 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
   // Optional for recorder projects saved before MIDI track support.
-  midiTracks?: MidiTrackState[];
+  midiTracks?: (Omit<
+    MidiTrackState,
+    "tabAnnotationEnabled" | "tabOpenStringPitches"
+  > & {
+    tabAnnotationEnabled?: boolean;
+    tabOpenStringPitches?: number[];
+  })[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
@@ -203,6 +210,10 @@ export function deserializeRecorderRuntimeState({
     }),
     midiTracks: (project.midiTracks ?? []).map((track) => ({
       ...track,
+      tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
+      tabOpenStringPitches: track.tabOpenStringPitches ?? [
+        ...DEFAULT_TAB_OPEN_STRING_PITCHES,
+      ],
       eq: deserializeEq(track.eq),
     })),
     recordingTrack: {

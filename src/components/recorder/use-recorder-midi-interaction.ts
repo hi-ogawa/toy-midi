@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { matchKeyboardEvent } from "../../lib/keyboard";
 import { clamp, clampPitch, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
+import { moveTabString } from "../../lib/tab-annotation";
 import type { Note } from "../../types";
 
 type MidiNoteEdit = {
@@ -210,6 +212,37 @@ export function useRecorderMidiInteraction({
     setSelection(undefined);
   }
 
+  function handleTabAnnotationShortcut(event: KeyboardEvent): boolean {
+    if (!selectedTrack?.tabAnnotationEnabled || !selectedNote) {
+      return false;
+    }
+    const tabString = ([1, 2, 3, 4, 5] as const).find((string) =>
+      matchKeyboardEvent(event, String(string)),
+    );
+    const target = { trackId: selectedTrack.id, noteId: selectedNote.id };
+    if (tabString) {
+      runtime.setMidiNoteTabString({ ...target, tabString });
+    } else if (matchKeyboardEvent(event, "0")) {
+      runtime.setMidiNoteTabString(target);
+    } else if (
+      matchKeyboardEvent(event, "ArrowUp") ||
+      matchKeyboardEvent(event, "ArrowDown")
+    ) {
+      const move = moveTabString({
+        pitch: selectedNote.pitch,
+        tabString: selectedNote.tabString,
+        openStringPitches: selectedTrack.tabOpenStringPitches,
+        direction: matchKeyboardEvent(event, "ArrowUp") ? "up" : "down",
+      });
+      if (move && move.after !== move.before) {
+        runtime.setMidiNoteTabString({ ...target, tabString: move.after });
+      }
+    } else {
+      return false;
+    }
+    return true;
+  }
+
   return {
     activate: onSelect,
     clear,
@@ -222,5 +255,6 @@ export function useRecorderMidiInteraction({
     getEditPreview,
     create,
     removeSelected,
+    handleTabAnnotationShortcut,
   };
 }
