@@ -21,6 +21,7 @@ export type MidiBoxSelection = {
   current: EditPosition;
 };
 
+// Continuous grid coordinates, with integer pitches at the top of each row.
 type EditPosition = { beat: number; pitch: number };
 type GetNote = (position: EditPosition) => Note;
 type EditMode = "move" | "resize-start" | "resize-end";
@@ -144,8 +145,9 @@ export function useRecorderMidiInteraction({
     }
     const minBeat = Math.min(start.beat, end.beat);
     const maxBeat = Math.max(start.beat, end.beat);
-    const minPitch = Math.min(start.pitch, end.pitch);
-    const maxPitch = Math.max(start.pitch, end.pitch);
+    // Include both endpoint rows when resolving the continuous selection box.
+    const minPitch = Math.ceil(Math.min(start.pitch, end.pitch));
+    const maxPitch = Math.ceil(Math.max(start.pitch, end.pitch));
     const noteIds = new Set(
       track.notes
         .filter(
@@ -195,7 +197,7 @@ export function useRecorderMidiInteraction({
             return {
               ...original,
               start: Math.max(0, cellStart - grabOffset),
-              pitch: clampPitch(pitch),
+              pitch: clampPitch(Math.ceil(pitch)),
             };
           }
           case "resize-start": {
@@ -276,7 +278,7 @@ export function useRecorderMidiInteraction({
     }
     const note = {
       id: crypto.randomUUID(),
-      pitch,
+      pitch: clampPitch(Math.ceil(pitch)),
       start: Math.max(
         0,
         snapToGrid(beat, 1 / subdivisionsPerBeat, { floor: true }),
@@ -286,6 +288,7 @@ export function useRecorderMidiInteraction({
     };
     runtime.setMidiTrackNotes(trackId, [...track.notes, note]);
     select({ trackId, noteId: note.id });
+    return note;
   }
 
   function removeSelected() {

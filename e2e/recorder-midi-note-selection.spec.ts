@@ -93,7 +93,22 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await page.mouse.move(c4Box.x + 1, c4Box.y + c4Box.height / 2, {
     steps: 4,
   });
-  await expect(grid.getByTestId("recorder-midi-box-selection")).toBeVisible();
+  const boxPreview = grid.getByTestId("recorder-midi-box-selection");
+  const startY = d4Box.y + d4Box.height / 2;
+  const endY = c4Box.y + c4Box.height / 2;
+  await expect(boxPreview).toBeVisible();
+  await expect
+    .poll(async () => (await boxPreview.boundingBox())?.y)
+    .toBeCloseTo(startY, 0);
+  await expect
+    .poll(async () => (await boxPreview.boundingBox())?.height)
+    .toBeCloseTo(endY - startY, 0);
+
+  // Move within the same pitch row and keep the rectangle aligned with the pointer.
+  await page.mouse.move(c4Box.x + 1, endY + 3);
+  await expect
+    .poll(async () => (await boxPreview.boundingBox())?.height)
+    .toBeCloseTo(endY + 3 - startY, 0);
   await page.mouse.up();
   await page.keyboard.up("Shift");
   await expect(notes).toHaveCount(3);

@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { useWindowEvent } from "../../hooks/use-window-event";
-import { isBlackKey, clampPitch } from "../../lib/music";
+import { isBlackKey } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -225,9 +225,7 @@ function MidiTrackEditor({
   function getPointerPosition(event: PointerEvent) {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     return {
-      pitch: clampPitch(
-        127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
-      ),
+      pitch: 127 - (event.clientY - rect.top) / KEY_HEIGHT,
       beat: viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat,
     };
   }
@@ -277,8 +275,10 @@ function MidiTrackEditor({
         midiInteraction.startBoxSelection({ trackId: track.id, position });
         return { type: "box-select" };
       }
-      midiInteraction.create({ trackId: track.id, ...position });
-      preview.start(position.pitch);
+      const note = midiInteraction.create({ trackId: track.id, ...position });
+      if (note) {
+        preview.start(note.pitch);
+      }
       return { type: "create" };
     },
     onClick: (event, gesture) => {
@@ -432,12 +432,12 @@ function getMidiBoxSelectionRect({
   const lowestPitch = Math.min(start.pitch, current.pitch);
   const highestPitch = Math.max(start.pitch, current.pitch);
 
-  // Pitch rows run downward from 127, and both endpoint rows are included.
+  // Continuous pitch coordinates run downward from 127.
   return {
     left: (firstBeat - viewportStartBeat) * pixelsPerBeat,
     top: (127 - highestPitch) * KEY_HEIGHT,
     width: (lastBeat - firstBeat) * pixelsPerBeat,
-    height: (highestPitch - lowestPitch + 1) * KEY_HEIGHT,
+    height: (highestPitch - lowestPitch) * KEY_HEIGHT,
   };
 }
 
