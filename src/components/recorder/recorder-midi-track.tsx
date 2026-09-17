@@ -295,14 +295,11 @@ function MidiTrackEditor({
     onDragMove: (event, gesture) => {
       if (gesture.data.type === "box-select") {
         midiInteraction.updateBoxSelection(getPointerPosition(event));
-        return;
-      }
-      if (gesture.data.type !== "edit") {
-        return;
-      }
-      const note = midiInteraction.updateEdit(getPointerPosition(event));
-      if (note) {
-        preview.start(note.pitch);
+      } else if (gesture.data.type === "edit") {
+        const note = midiInteraction.updateEdit(getPointerPosition(event));
+        if (note) {
+          preview.start(note.pitch);
+        }
       }
     },
     onDragEnd: (event, gesture) => {
