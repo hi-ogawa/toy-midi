@@ -11,6 +11,7 @@ import type {
 } from "../../lib/recorder/runtime";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
+  type ScoreViewerClock,
   ScoreViewerRuntime,
 } from "../score-viewer-runtime";
 import { RecorderPanel } from "./recorder-panel";
@@ -97,18 +98,7 @@ function RecorderScorePreview({
   const [runtime] = useState(
     () =>
       new ScoreViewerRuntime({
-        clock: {
-          getSnapshot: () => {
-            const state = recorder.store.get();
-            return { currentTime: state.position, isPlaying: state.isPlaying };
-          },
-          subscribe: recorder.store.subscribe,
-          seek: (position) => recorder.seek(position),
-          play: () => {
-            recorder.play().catch((error) => toast.error(String(error)));
-          },
-          pause: () => recorder.pause(),
-        },
+        clock: createRecorderScoreClock(recorder),
         presentation: { scale: 1, viewportPadding: 12 },
       }),
   );
@@ -202,4 +192,19 @@ function RecorderScorePreview({
       className="score-preview-runtime h-full w-full overflow-hidden bg-neutral-300 text-neutral-950"
     />
   );
+}
+
+function createRecorderScoreClock(recorder: RecorderRuntime): ScoreViewerClock {
+  return {
+    getSnapshot: () => {
+      const state = recorder.store.get();
+      return { currentTime: state.position, isPlaying: state.isPlaying };
+    },
+    subscribe: recorder.store.subscribe,
+    seek: (position) => recorder.seek(position),
+    play: () => {
+      recorder.play().catch((error) => toast.error(String(error)));
+    },
+    pause: () => recorder.pause(),
+  };
 }
