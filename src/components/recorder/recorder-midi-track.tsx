@@ -166,6 +166,12 @@ function MidiTrackActions({
   );
 }
 
+type MidiGridGesture =
+  | { type: "select"; noteId: string }
+  | { type: "edit" }
+  | { type: "box-select"; start: { beat: number; pitch: number } }
+  | { type: "create" };
+
 function MidiTrackEditor({
   track,
   runtime,
@@ -232,7 +238,7 @@ function MidiTrackEditor({
     };
   }
 
-  const gridRef = usePointerGesture({
+  const gridRef = usePointerGesture<MidiGridGesture>({
     onStart: (event) => {
       // Focus the grid and select an existing note, or create one in an empty cell.
       event.preventDefault();
@@ -247,7 +253,7 @@ function MidiTrackEditor({
       if (existing) {
         if (event.ctrlKey || event.metaKey) {
           preview.start(existing.pitch);
-          return { type: "select" as const, noteId: existing.id };
+          return { type: "select", noteId: existing.id };
         }
         const edge = (event.target as HTMLElement).closest<HTMLElement>(
           "[data-note-edge]",
@@ -265,15 +271,15 @@ function MidiTrackEditor({
           beat: position.beat,
         });
         preview.start(existing.pitch);
-        return { type: "edit" as const };
+        return { type: "edit" };
       }
       if (event.shiftKey) {
         midiInteraction.activate();
-        return { type: "box-select" as const, start: position };
+        return { type: "box-select", start: position };
       }
       midiInteraction.create({ trackId: track.id, ...position });
       preview.start(position.pitch);
-      return { type: "create" as const };
+      return { type: "create" };
     },
     onClick: (_event, gesture) => {
       if (gesture.data.type === "select") {
