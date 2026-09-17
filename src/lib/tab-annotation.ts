@@ -80,13 +80,12 @@ export function getTabAnnotationDisplay({
     tabString: note.tabString,
     openStringPitches,
   });
-  if (!position) {
-    return undefined;
+  if (position) {
+    return {
+      label: formatTabPosition({ position, openStringPitches }),
+      color: getTabStringColor(position.tabString),
+    };
   }
-  return {
-    label: formatTabPosition({ position, openStringPitches }),
-    color: getTabStringColor(position.tabString),
-  };
 }
 
 export function getTabStringColor(tabString: TabString) {
