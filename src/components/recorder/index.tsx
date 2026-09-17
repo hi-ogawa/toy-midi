@@ -88,7 +88,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const { clipInteraction, locatorInteraction, midiInteraction } =
     recorderInteraction;
   const transcriptions = useRecorderAudioToMidiUi();
-  const scores = useRecorderScorePanelUi();
+  const scoresUi = useRecorderScorePanelUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -476,11 +476,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                   runtime.removeMidiTrack(track.id);
                   effects.closeEffects(track.id);
                   transcriptions.closeTranscription(track.id);
-                  scores.close(track.id);
+                  scoresUi.close(track.id);
                 }}
                 midiInteraction={midiInteraction}
                 onTranscribe={() => transcriptions.openTranscription(track.id)}
-                onScorePreview={() => scores.open(track.id)}
+                onScorePreview={() => scoresUi.open(track.id)}
               />
             ))}
 
@@ -724,13 +724,13 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {state.midiTracks.map(
           (track) =>
-            scores.openTracks.has(track.id) && (
+            scoresUi.openTracks.has(track.id) && (
               <RecorderScorePanel
                 key={track.id}
                 runtime={runtime}
                 state={state}
                 track={track}
-                onClose={() => scores.close(track.id)}
+                onClose={() => scoresUi.close(track.id)}
               />
             ),
         )}
