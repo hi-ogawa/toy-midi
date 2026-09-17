@@ -95,24 +95,24 @@ export function useRecorderMidiInteraction({
     });
     const toleranceBeats =
       clamp(gridStep * pixelsPerBeat * 0.15, 2, 8) / pixelsPerBeat;
-    // Resize handles track the first or last occupied grid cell.
-    let edgeCellStart =
-      mode === "resize-end"
-        ? original.start + original.duration - gridStep
-        : original.start;
+    const originalEnd = original.start + original.duration;
+    const snapEdgeCellStart = createDraggedCellSnapper({
+      // Resize handles track the first or last occupied grid cell.
+      initialCellStart:
+        mode === "resize-end" ? originalEnd - gridStep : original.start,
+      gridStep,
+      toleranceBeats,
+      minimumCellStart: mode === "resize-end" ? original.start : 0,
+      maximumCellStart:
+        mode === "resize-start"
+          ? Math.max(0, originalEnd - gridStep)
+          : Number.POSITIVE_INFINITY,
+    });
     setEdit({
       trackId,
       original,
       note: original,
       getNote: ({ beat, pitch }) => {
-        if (mode !== "move") {
-          edgeCellStart = snapDraggedCellStart({
-            pointerBeat: beat,
-            currentCellStart: edgeCellStart,
-            gridStep,
-            toleranceBeats,
-          });
-        }
         switch (mode) {
           case "move": {
             const cellStart = snapToGrid(beat, gridStep, { floor: true });
@@ -123,21 +123,17 @@ export function useRecorderMidiInteraction({
             };
           }
           case "resize-start": {
-            const end = original.start + original.duration;
             // A coarser grid may leave no room for a whole cell before the fixed end.
-            if (end < gridStep) {
+            if (originalEnd < gridStep) {
               return original;
             }
-            const start = clamp(edgeCellStart, 0, end - gridStep);
-            edgeCellStart = start;
-            return { ...original, start, duration: end - start };
+            const start = snapEdgeCellStart(beat);
+            return { ...original, start, duration: originalEnd - start };
           }
           case "resize-end": {
+            const edgeCellStart = snapEdgeCellStart(beat);
             const end = edgeCellStart + gridStep;
-            const duration = Math.max(gridStep, end - original.start);
-            // Keep the tracked cell aligned if minimum duration clamps the result.
-            edgeCellStart = original.start + duration - gridStep;
-            return { ...original, duration };
+            return { ...original, duration: end - original.start };
           }
         }
       },
@@ -242,23 +238,38 @@ export function useRecorderMidiInteraction({
   };
 }
 
-function snapDraggedCellStart({
-  pointerBeat,
-  currentCellStart,
+function createDraggedCellSnapper({
+  initialCellStart,
   gridStep,
   toleranceBeats,
+  minimumCellStart,
+  maximumCellStart,
 }: {
-  pointerBeat: number;
-  currentCellStart: number;
+  initialCellStart: number;
   gridStep: number;
   toleranceBeats: number;
+  minimumCellStart: number;
+  maximumCellStart: number;
 }) {
-  // Retain the current cell inside the tolerance band, including when reversing direction.
-  if (pointerBeat < currentCellStart - toleranceBeats) {
-    return snapToGrid(pointerBeat + toleranceBeats, gridStep, { floor: true });
-  }
-  if (pointerBeat > currentCellStart + gridStep + toleranceBeats) {
-    return snapToGrid(pointerBeat - toleranceBeats, gridStep, { floor: true });
-  }
-  return currentCellStart;
+  let currentCellStart = initialCellStart;
+
+  return (pointerBeat: number) => {
+    // Retain the current cell inside the tolerance band, including when reversing direction.
+    if (pointerBeat < currentCellStart - toleranceBeats) {
+      currentCellStart = snapToGrid(pointerBeat + toleranceBeats, gridStep, {
+        floor: true,
+      });
+    } else if (pointerBeat > currentCellStart + gridStep + toleranceBeats) {
+      currentCellStart = snapToGrid(pointerBeat - toleranceBeats, gridStep, {
+        floor: true,
+      });
+    }
+
+    currentCellStart = clamp(
+      currentCellStart,
+      minimumCellStart,
+      maximumCellStart,
+    );
+    return currentCellStart;
+  };
 }
