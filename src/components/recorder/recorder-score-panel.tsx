@@ -14,7 +14,7 @@ import {
 } from "../score-viewer-runtime";
 import { RecorderPanel } from "./recorder-panel";
 
-export function useRecorderScorePreviewUi() {
+export function useRecorderScorePanelUi() {
   const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
   function open(id: string) {
     setOpenTracks((current) => new Set([...current, id]));
@@ -29,7 +29,7 @@ export function useRecorderScorePreviewUi() {
   return { openTracks, open, close };
 }
 
-export function RecorderScorePreview({
+export function RecorderScorePanel({
   runtime,
   state,
   track,

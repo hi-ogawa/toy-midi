@@ -31,9 +31,9 @@ import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
-  RecorderScorePreview,
-  useRecorderScorePreviewUi,
-} from "./recorder-score-preview";
+  RecorderScorePanel,
+  useRecorderScorePanelUi,
+} from "./recorder-score-panel";
 import {
   TakeTimelineLane,
   ReferenceTimelineRow,
@@ -88,7 +88,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const { clipInteraction, locatorInteraction, midiInteraction } =
     recorderInteraction;
   const transcriptions = useRecorderAudioToMidiUi();
-  const scores = useRecorderScorePreviewUi();
+  const scores = useRecorderScorePanelUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -727,7 +727,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             {state.midiTracks.map(
               (track) =>
                 scores.openTracks.has(track.id) && (
-                  <RecorderScorePreview
+                  <RecorderScorePanel
                     key={track.id}
                     runtime={runtime}
                     state={state}
