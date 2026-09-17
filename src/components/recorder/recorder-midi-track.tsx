@@ -22,8 +22,8 @@ import type {
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
 import {
-  getNoteTabAnnotation,
-  type NoteTabAnnotation,
+  getTabAnnotationDisplay,
+  type TabAnnotationDisplay,
 } from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { Button } from "../ui/button";
@@ -334,7 +334,7 @@ function MidiTrackEditor({
                 noteId: note.id,
               }) ?? note;
             const annotation = track.tabAnnotationEnabled
-              ? getNoteTabAnnotation({
+              ? getTabAnnotationDisplay({
                   note: displayedNote,
                   openStringPitches: track.tabOpenStringPitches,
                 })
@@ -471,7 +471,7 @@ function MidiNote({
 }: {
   note: MidiTrackState["notes"][number];
   selected: boolean;
-  annotation?: NoteTabAnnotation;
+  annotation?: TabAnnotationDisplay;
   pixelsPerBeat: number;
   viewportStartBeat: number;
 }) {
