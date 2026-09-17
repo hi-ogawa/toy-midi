@@ -236,9 +236,19 @@ function MidiTrackEditor({
       );
       const position = getPointerPosition(event);
       if (existing) {
+        const edge = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-note-edge]",
+        )?.dataset.noteEdge;
+        const mode =
+          edge === "start"
+            ? "resize-start"
+            : edge === "end"
+              ? "resize-end"
+              : "move";
         midiInteraction.startEdit({
           trackId: track.id,
           noteId: existing.id,
+          mode,
           beat: position.beat,
         });
         preview.start(existing.pitch);
@@ -475,6 +485,17 @@ function MidiNote({
         width: Math.max(2, note.duration * pixelsPerBeat),
         height: KEY_HEIGHT - 2,
       }}
-    />
+    >
+      <div
+        data-note-edge="start"
+        className="absolute inset-y-0 left-0 w-1/4 max-w-1.5 cursor-ew-resize"
+        title="Resize note start"
+      />
+      <div
+        data-note-edge="end"
+        className="absolute inset-y-0 right-0 w-1/4 max-w-1.5 cursor-ew-resize"
+        title="Resize note end"
+      />
+    </div>
   );
 }

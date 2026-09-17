@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { clampPitch, snapToGrid } from "../../lib/music";
+import { clamp, clampPitch, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -10,8 +10,12 @@ type MidiNoteEdit = {
   trackId: string;
   original: Note;
   note: Note;
-  getNote: (position: { beat: number; pitch: number }) => Note;
+  getNote: GetNote;
 };
+
+type EditPosition = { beat: number; pitch: number };
+type GetNote = (position: EditPosition) => Note;
+type EditMode = "move" | "resize-start" | "resize-end";
 
 export function useRecorderMidiInteraction({
   runtime,
@@ -72,10 +76,12 @@ export function useRecorderMidiInteraction({
     trackId,
     noteId,
     beat,
+    mode,
   }: {
     trackId: string;
     noteId: string;
     beat: number;
+    mode: EditMode;
   }) {
     select({ trackId, noteId });
     const original = state.midiTracks
@@ -85,24 +91,43 @@ export function useRecorderMidiInteraction({
       return;
     }
     const step = 1 / subdivisionsPerBeat;
-    // Keep the grabbed grid cell under the pointer instead of snapping the note start to it.
-    const grabOffset = snapToGrid(beat - original.start, step, { floor: true });
+    // Preserve the grabbed cell's offset from the note start while moving.
+    const grabOffset = snapToGrid(beat - original.start, step, {
+      floor: true,
+    });
+    const originalEnd = original.start + original.duration;
     setEdit({
       trackId,
       original,
       note: original,
       getNote: ({ beat, pitch }) => {
-        const cellStart = snapToGrid(beat, step, { floor: true });
-        return {
-          ...original,
-          start: Math.max(0, cellStart - grabOffset),
-          pitch: clampPitch(pitch),
-        };
+        switch (mode) {
+          case "move": {
+            const cellStart = snapToGrid(beat, step, { floor: true });
+            return {
+              ...original,
+              start: Math.max(0, cellStart - grabOffset),
+              pitch: clampPitch(pitch),
+            };
+          }
+          case "resize-start": {
+            const start = clamp(
+              snapToGrid(beat, step),
+              0,
+              Math.max(0, originalEnd - step),
+            );
+            return { ...original, start, duration: originalEnd - start };
+          }
+          case "resize-end": {
+            const end = Math.max(snapToGrid(beat, step), original.start + step);
+            return { ...original, duration: end - original.start };
+          }
+        }
       },
     });
   }
 
-  function updateEdit(position: { beat: number; pitch: number }) {
+  function updateEdit(position: EditPosition) {
     const note = edit?.getNote(position);
     if (
       edit &&
@@ -116,7 +141,7 @@ export function useRecorderMidiInteraction({
     return note;
   }
 
-  function finishEdit(position: { beat: number; pitch: number }) {
+  function finishEdit(position: EditPosition) {
     // Calculate from the release position rather than waiting for a preview render.
     const note = edit?.getNote(position);
     if (!edit || !note) {
