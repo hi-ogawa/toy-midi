@@ -186,7 +186,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (midiInteraction.handleTabShortcut(event)) {
+    if (midiInteraction.handleTabAnnotationShortcut(event)) {
       event.preventDefault();
       return;
     }
