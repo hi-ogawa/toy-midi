@@ -641,8 +641,7 @@ export class RecorderRuntime {
     ) {
       return;
     }
-    const { tabString: _previous, ...rest } = note;
-    const updated = tabString === undefined ? rest : { ...rest, tabString };
+    const updated = { ...note, tabString };
     this.updateMidiTrack(trackId, (track) => ({
       ...track,
       notes: track.notes.map((note) => (note.id === noteId ? updated : note)),
