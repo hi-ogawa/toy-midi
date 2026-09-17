@@ -253,7 +253,6 @@ function createNoteResizeStart({
     initial: original.start,
     step: gridStep,
     tolerance: getResizeTolerance(gridStep, pixelsPerBeat),
-    min: 0,
     max: Math.max(0, originalEnd - gridStep),
   });
 
@@ -294,7 +293,7 @@ function createDraggedGridCellSnapper({
   initial,
   step,
   tolerance,
-  min = Number.NEGATIVE_INFINITY,
+  min = 0,
   max = Number.POSITIVE_INFINITY,
 }: {
   initial: number;
