@@ -73,7 +73,6 @@ export interface AudioTrackState {
 }
 
 export interface MidiTrackState {
-  keySignature: KeySignature;
   id: string;
   name: string;
   notes: Note[];
@@ -85,6 +84,7 @@ export interface MidiTrackState {
   soloed: boolean;
   tabAnnotationEnabled: boolean;
   tabOpenStringPitches: number[];
+  keySignature: KeySignature;
 }
 
 export interface RecorderLoopRange {
@@ -1356,7 +1356,6 @@ function createRecordingTrackState(): AudioTrackState {
 
 function createMidiTrackState(number: number): MidiTrackState {
   return {
-    keySignature: { ...DEFAULT_KEY_SIGNATURE },
     id: crypto.randomUUID(),
     name: `MIDI ${number}`,
     notes: [],
@@ -1368,6 +1367,7 @@ function createMidiTrackState(number: number): MidiTrackState {
     soloed: false,
     tabAnnotationEnabled: false,
     tabOpenStringPitches: [...DEFAULT_TAB_OPEN_STRING_PITCHES],
+    keySignature: { ...DEFAULT_KEY_SIGNATURE },
   };
 }
 
