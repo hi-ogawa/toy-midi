@@ -26,8 +26,10 @@ test("renders a MIDI note in the score panel", async ({ page }) => {
     .click();
   const score = page.getByTestId("recorder-score-preview");
   await expect(score).toHaveCount(1);
-  await expect(score.locator("svg .vf-stavenote").first()).toBeVisible();
-  await expect(score.getByRole("status")).toHaveCount(0);
+  await expect(
+    score.getByTestId("score-viewer-renderer").locator("svg"),
+  ).toBeVisible();
+  await expect(score.getByText("Loading score…", { exact: true })).toBeHidden();
 
   // Close the score preview and verify the panel disappears.
   await page
