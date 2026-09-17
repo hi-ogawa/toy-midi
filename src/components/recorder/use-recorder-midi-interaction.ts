@@ -88,35 +88,34 @@ export function useRecorderMidiInteraction({
     if (!original) {
       return;
     }
-    const step = 1 / subdivisionsPerBeat;
+    const gridStep = 1 / subdivisionsPerBeat;
     // Keep the grabbed grid cell under the pointer instead of snapping the note start to it.
-    const grabOffset = snapToGrid(beat - original.start, step, { floor: true });
-    const tolerance = clamp(step * pixelsPerBeat * 0.15, 2, 8) / pixelsPerBeat;
-    let resizeCellStart =
-      mode === "resize-start"
-        ? original.start
-        : original.start + original.duration - step;
+    const grabOffset = snapToGrid(beat - original.start, gridStep, {
+      floor: true,
+    });
+    const toleranceBeats =
+      clamp(gridStep * pixelsPerBeat * 0.15, 2, 8) / pixelsPerBeat;
+    // Resize handles track the first or last occupied grid cell.
+    let edgeCellStart =
+      mode === "resize-end"
+        ? original.start + original.duration - gridStep
+        : original.start;
     setEdit({
       trackId,
       original,
       note: original,
       getNote: ({ beat, pitch }) => {
-        // Cross the grid boundary by 15% of a cell (2–8px) before resizing.
-        // Retain the current cell inside that band, including when reversing direction.
         if (mode !== "move") {
-          if (beat < resizeCellStart - tolerance) {
-            resizeCellStart = snapToGrid(beat + tolerance, step, {
-              floor: true,
-            });
-          } else if (beat > resizeCellStart + step + tolerance) {
-            resizeCellStart = snapToGrid(beat - tolerance, step, {
-              floor: true,
-            });
-          }
+          edgeCellStart = snapDraggedCellStart({
+            pointerBeat: beat,
+            currentCellStart: edgeCellStart,
+            gridStep,
+            toleranceBeats,
+          });
         }
         switch (mode) {
           case "move": {
-            const cellStart = snapToGrid(beat, step, { floor: true });
+            const cellStart = snapToGrid(beat, gridStep, { floor: true });
             return {
               ...original,
               start: Math.max(0, cellStart - grabOffset),
@@ -126,19 +125,18 @@ export function useRecorderMidiInteraction({
           case "resize-start": {
             const end = original.start + original.duration;
             // A coarser grid may leave no room for a whole cell before the fixed end.
-            if (end < step) {
+            if (end < gridStep) {
               return original;
             }
-            const start = clamp(resizeCellStart, 0, end - step);
-            resizeCellStart = start;
+            const start = clamp(edgeCellStart, 0, end - gridStep);
+            edgeCellStart = start;
             return { ...original, start, duration: end - start };
           }
           case "resize-end": {
-            const duration = Math.max(
-              step,
-              resizeCellStart + step - original.start,
-            );
-            resizeCellStart = original.start + duration - step;
+            const end = edgeCellStart + gridStep;
+            const duration = Math.max(gridStep, end - original.start);
+            // Keep the tracked cell aligned if minimum duration clamps the result.
+            edgeCellStart = original.start + duration - gridStep;
             return { ...original, duration };
           }
         }
@@ -242,4 +240,25 @@ export function useRecorderMidiInteraction({
     create,
     removeSelected,
   };
+}
+
+function snapDraggedCellStart({
+  pointerBeat,
+  currentCellStart,
+  gridStep,
+  toleranceBeats,
+}: {
+  pointerBeat: number;
+  currentCellStart: number;
+  gridStep: number;
+  toleranceBeats: number;
+}) {
+  // Retain the current cell inside the tolerance band, including when reversing direction.
+  if (pointerBeat < currentCellStart - toleranceBeats) {
+    return snapToGrid(pointerBeat + toleranceBeats, gridStep, { floor: true });
+  }
+  if (pointerBeat > currentCellStart + gridStep + toleranceBeats) {
+    return snapToGrid(pointerBeat - toleranceBeats, gridStep, { floor: true });
+  }
+  return currentCellStart;
 }
