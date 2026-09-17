@@ -96,14 +96,13 @@ export function useRecorderMidiInteraction({
     const toleranceBeats =
       clamp(gridStep * pixelsPerBeat * 0.15, 2, 8) / pixelsPerBeat;
     const originalEnd = original.start + original.duration;
-    const snapEdgeCellStart = createDraggedCellSnapper({
+    const snapEdgeCell = createDraggedGridCellSnapper({
       // Resize handles track the first or last occupied grid cell.
-      initialCellStart:
-        mode === "resize-end" ? originalEnd - gridStep : original.start,
-      gridStep,
-      toleranceBeats,
-      minimumCellStart: mode === "resize-end" ? original.start : 0,
-      maximumCellStart:
+      initial: mode === "resize-end" ? originalEnd - gridStep : original.start,
+      step: gridStep,
+      tolerance: toleranceBeats,
+      min: mode === "resize-end" ? original.start : 0,
+      max:
         mode === "resize-start"
           ? Math.max(0, originalEnd - gridStep)
           : Number.POSITIVE_INFINITY,
@@ -127,11 +126,11 @@ export function useRecorderMidiInteraction({
             if (originalEnd < gridStep) {
               return original;
             }
-            const start = snapEdgeCellStart(beat);
+            const start = snapEdgeCell(beat);
             return { ...original, start, duration: originalEnd - start };
           }
           case "resize-end": {
-            const edgeCellStart = snapEdgeCellStart(beat);
+            const edgeCellStart = snapEdgeCell(beat);
             const end = edgeCellStart + gridStep;
             return { ...original, duration: end - original.start };
           }
@@ -238,38 +237,35 @@ export function useRecorderMidiInteraction({
   };
 }
 
-function createDraggedCellSnapper({
-  initialCellStart,
-  gridStep,
-  toleranceBeats,
-  minimumCellStart,
-  maximumCellStart,
+// Return the active grid cell's start as the pointer crosses cell boundaries.
+function createDraggedGridCellSnapper({
+  initial,
+  step,
+  tolerance,
+  min,
+  max,
 }: {
-  initialCellStart: number;
-  gridStep: number;
-  toleranceBeats: number;
-  minimumCellStart: number;
-  maximumCellStart: number;
+  initial: number;
+  step: number;
+  tolerance: number;
+  min: number;
+  max: number;
 }) {
-  let currentCellStart = initialCellStart;
+  let current = initial;
 
-  return (pointerBeat: number) => {
+  return (position: number) => {
     // Retain the current cell inside the tolerance band, including when reversing direction.
-    if (pointerBeat < currentCellStart - toleranceBeats) {
-      currentCellStart = snapToGrid(pointerBeat + toleranceBeats, gridStep, {
+    if (position < current - tolerance) {
+      current = snapToGrid(position + tolerance, step, {
         floor: true,
       });
-    } else if (pointerBeat > currentCellStart + gridStep + toleranceBeats) {
-      currentCellStart = snapToGrid(pointerBeat - toleranceBeats, gridStep, {
+    } else if (position > current + step + tolerance) {
+      current = snapToGrid(position - tolerance, step, {
         floor: true,
       });
     }
 
-    currentCellStart = clamp(
-      currentCellStart,
-      minimumCellStart,
-      maximumCellStart,
-    );
-    return currentCellStart;
+    current = clamp(current, min, max);
+    return current;
   };
 }
