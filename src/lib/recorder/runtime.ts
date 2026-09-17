@@ -1,6 +1,7 @@
 import {
   DEFAULT_TIME_SIGNATURE,
   type Note,
+  type TabString,
   type TimeSignature,
 } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
@@ -11,6 +12,8 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
+import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "../pitch-spelling.ts";
+import { getFret, DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import {
@@ -79,6 +82,9 @@ export interface MidiTrackState {
   gain: number;
   muted: boolean;
   soloed: boolean;
+  tabAnnotationEnabled: boolean;
+  tabOpenStringPitches: number[];
+  keySignature: KeySignature;
 }
 
 export interface RecorderLoopRange {
@@ -600,6 +606,53 @@ export class RecorderRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({ ...track, program }));
     }
+  }
+
+  setMidiTrackNotationSettings(
+    id: string,
+    settings: Partial<
+      Pick<
+        MidiTrackState,
+        "keySignature" | "tabAnnotationEnabled" | "tabOpenStringPitches"
+      >
+    >,
+  ): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
+  }
+
+  setMidiNoteTabString({
+    trackId,
+    noteId,
+    tabString,
+  }: {
+    trackId: string;
+    noteId: string;
+    tabString?: TabString;
+  }): void {
+    const track = this.store
+      .get()
+      .midiTracks.find((track) => track.id === trackId);
+    const note = track?.notes.find((note) => note.id === noteId);
+    if (!track || !note || note.tabString === tabString) {
+      return;
+    }
+
+    if (tabString !== undefined) {
+      const fret = getFret({
+        pitch: note.pitch,
+        tabString,
+        openStringPitches: track.tabOpenStringPitches,
+      });
+      if (fret === undefined) {
+        return;
+      }
+    }
+
+    const updated = { ...note, tabString };
+    this.updateMidiTrack(trackId, (track) => ({
+      ...track,
+      notes: track.notes.map((note) => (note.id === noteId ? updated : note)),
+    }));
   }
 
   async startMidiNotePreview({
@@ -1312,6 +1365,9 @@ function createMidiTrackState(number: number): MidiTrackState {
     gain: 1,
     muted: false,
     soloed: false,
+    tabAnnotationEnabled: false,
+    tabOpenStringPitches: [...DEFAULT_TAB_OPEN_STRING_PITCHES],
+    keySignature: { ...DEFAULT_KEY_SIGNATURE },
   };
 }
 
