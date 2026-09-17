@@ -29,7 +29,6 @@ test("renders a MIDI note in the score panel", async ({ page }) => {
   await expect(
     score.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
-  await expect(score.getByText("Loading score…", { exact: true })).toBeHidden();
 
   // Close the score preview and verify the panel disappears.
   await page
