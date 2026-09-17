@@ -15,6 +15,12 @@ type MidiNoteEdit = {
   getNote: GetNote;
 };
 
+export type MidiBoxSelection = {
+  trackId: string;
+  start: EditPosition;
+  current: EditPosition;
+};
+
 type EditPosition = { beat: number; pitch: number };
 type GetNote = (position: EditPosition) => Note;
 type EditMode = "move" | "resize-start" | "resize-end";
@@ -36,11 +42,7 @@ export function useRecorderMidiInteraction({
     noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
-  const [boxSelection, setBoxSelection] = useState<{
-    trackId: string;
-    start: EditPosition;
-    current: EditPosition;
-  }>();
+  const [boxSelection, setBoxSelection] = useState<MidiBoxSelection>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );

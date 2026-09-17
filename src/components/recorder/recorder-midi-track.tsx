@@ -39,7 +39,10 @@ import {
 import { cn } from "../ui/utils";
 import { MidiInstrument } from "./recorder-midi-instrument";
 import { TrackRow } from "./recorder-tracks";
-import { useRecorderMidiInteraction } from "./use-recorder-midi-interaction";
+import {
+  useRecorderMidiInteraction,
+  type MidiBoxSelection,
+} from "./use-recorder-midi-interaction";
 
 const KEY_HEIGHT = 18;
 const PITCHES = Array.from({ length: 128 }, (_, index) => 127 - index);
@@ -420,10 +423,7 @@ function getMidiBoxSelectionRect({
   viewportStartBeat,
   pixelsPerBeat,
 }: {
-  selection: {
-    start: { beat: number; pitch: number };
-    current: { beat: number; pitch: number };
-  };
+  selection: MidiBoxSelection;
   viewportStartBeat: number;
   pixelsPerBeat: number;
 }) {
