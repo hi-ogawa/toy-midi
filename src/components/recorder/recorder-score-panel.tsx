@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { clamp } from "../../lib/music";
 import { exportMusicXml } from "../../lib/musicxml/render";
 import type {
@@ -7,7 +8,6 @@ import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-import { listenPointerDrag } from "../../utils/pointer-drag";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
   ScoreViewerRuntime,
@@ -41,33 +41,22 @@ export function RecorderScorePanel({
   onClose: () => void;
 }) {
   const [size, setSize] = useState({ width: 640, height: 448 });
-  const resizeRef = useCallback((handle: HTMLButtonElement | null) => {
-    if (!handle) {
-      return;
-    }
-    return listenPointerDrag({
-      element: handle,
-      onStart: (event) => ({
-        x: event.clientX,
-        y: event.clientY,
-        width: handle.parentElement!.offsetWidth,
-        height: handle.parentElement!.offsetHeight,
+  const resizeRef = usePointerDrag({
+    onStart: (event) => ({ x: event.clientX, y: event.clientY, size }),
+    onMove: (event, start) =>
+      setSize({
+        width: clamp(
+          start.size.width + start.x - event.clientX,
+          480,
+          window.innerWidth - 32,
+        ),
+        height: clamp(
+          start.size.height + start.y - event.clientY,
+          288,
+          window.innerHeight - 32,
+        ),
       }),
-      onMove: (event, start) =>
-        setSize({
-          width: clamp(
-            start.width + start.x - event.clientX,
-            480,
-            window.innerWidth - 32,
-          ),
-          height: clamp(
-            start.height + start.y - event.clientY,
-            288,
-            window.innerHeight - 32,
-          ),
-        }),
-    });
-  }, []);
+  });
 
   // Score inputs exclude transport position and mix state, so playback never re-engraves notes.
   const source = useMemo(() => {
