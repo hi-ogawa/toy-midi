@@ -34,6 +34,10 @@ export function useRecorderMidiInteraction({
     noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
+  const [clipboard, setClipboard] = useState<{
+    trackId: string;
+    notes: Note[];
+  }>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -272,6 +276,50 @@ export function useRecorderMidiInteraction({
     setSelection(undefined);
   }
 
+  function copySelected() {
+    if (!selectedTrack || !selectedNoteIds) {
+      return false;
+    }
+    const notes = selectedTrack.notes.filter((note) =>
+      selectedNoteIds.has(note.id),
+    );
+    if (notes.length === 0) {
+      return false;
+    }
+    setClipboard({
+      trackId: selectedTrack.id,
+      notes: notes.map((note) => ({ ...note })),
+    });
+    return true;
+  }
+
+  function paste(insertBeat: number) {
+    if (!clipboard) {
+      return false;
+    }
+    const track = state.midiTracks.find(
+      (entry) => entry.id === clipboard.trackId,
+    );
+    if (!track) {
+      return false;
+    }
+    cancelEdit();
+    onSelect();
+    const offset =
+      insertBeat - Math.min(...clipboard.notes.map((note) => note.start));
+    const notes = clipboard.notes.map((note) => ({
+      ...note,
+      id: crypto.randomUUID(),
+      start: note.start + offset,
+    }));
+    runtime.setMidiTrackNotes(track.id, [...track.notes, ...notes]);
+    setSelection({
+      trackId: track.id,
+      noteIds: new Set(notes.map((note) => note.id)),
+    });
+    return true;
+  }
+
   return {
     activate: onSelect,
     clear,
@@ -287,5 +335,7 @@ export function useRecorderMidiInteraction({
     getEditPreview,
     create,
     removeSelected,
+    copySelected,
+    paste,
   };
 }
