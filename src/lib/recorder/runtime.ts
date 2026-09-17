@@ -72,8 +72,6 @@ export interface AudioTrackState {
 }
 
 export interface MidiTrackState {
-  tabAnnotationEnabled: boolean;
-  tabOpenStringPitches: number[];
   id: string;
   name: string;
   notes: Note[];
@@ -83,6 +81,8 @@ export interface MidiTrackState {
   gain: number;
   muted: boolean;
   soloed: boolean;
+  tabAnnotationEnabled: boolean;
+  tabOpenStringPitches: number[];
 }
 
 export interface RecorderLoopRange {
