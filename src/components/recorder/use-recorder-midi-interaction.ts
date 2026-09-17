@@ -10,8 +10,12 @@ type MidiNoteEdit = {
   trackId: string;
   original: Note;
   note: Note;
-  getNote: (position: { beat: number; pitch: number }) => Note;
+  getNote: GetNote;
 };
+
+type EditPosition = { beat: number; pitch: number };
+type GetNote = (position: EditPosition) => Note;
+type EditMode = "move" | "resize-start" | "resize-end";
 
 export function useRecorderMidiInteraction({
   runtime,
@@ -78,7 +82,7 @@ export function useRecorderMidiInteraction({
     trackId: string;
     noteId: string;
     beat: number;
-    mode: "move" | "resize-start" | "resize-end";
+    mode: EditMode;
     pixelsPerBeat: number;
   }) {
     select({ trackId, noteId });
@@ -89,57 +93,21 @@ export function useRecorderMidiInteraction({
       return;
     }
     const gridStep = 1 / subdivisionsPerBeat;
-    // Keep the grabbed grid cell under the pointer instead of snapping the note start to it.
-    const grabOffset = snapToGrid(beat - original.start, gridStep, {
-      floor: true,
-    });
-    const toleranceBeats =
-      clamp(gridStep * pixelsPerBeat * 0.15, 2, 8) / pixelsPerBeat;
-    const originalEnd = original.start + original.duration;
-    const snapEdgeCell = createDraggedGridCellSnapper({
-      // Resize handles track the first or last occupied grid cell.
-      initial: mode === "resize-end" ? originalEnd - gridStep : original.start,
-      step: gridStep,
-      tolerance: toleranceBeats,
-      min: mode === "resize-end" ? original.start : 0,
-      max:
-        mode === "resize-start"
-          ? Math.max(0, originalEnd - gridStep)
-          : Number.POSITIVE_INFINITY,
-    });
     setEdit({
       trackId,
       original,
       note: original,
-      getNote: ({ beat, pitch }) => {
-        switch (mode) {
-          case "move": {
-            const cellStart = snapToGrid(beat, gridStep, { floor: true });
-            return {
-              ...original,
-              start: Math.max(0, cellStart - grabOffset),
-              pitch: clampPitch(pitch),
-            };
-          }
-          case "resize-start": {
-            // A coarser grid may leave no room for a whole cell before the fixed end.
-            if (originalEnd < gridStep) {
-              return original;
-            }
-            const start = snapEdgeCell(beat);
-            return { ...original, start, duration: originalEnd - start };
-          }
-          case "resize-end": {
-            const edgeCellStart = snapEdgeCell(beat);
-            const end = edgeCellStart + gridStep;
-            return { ...original, duration: end - original.start };
-          }
-        }
-      },
+      getNote: createNoteEdit({
+        mode,
+        original,
+        initialBeat: beat,
+        gridStep,
+        pixelsPerBeat,
+      }),
     });
   }
 
-  function updateEdit(position: { beat: number; pitch: number }) {
+  function updateEdit(position: EditPosition) {
     const note = edit?.getNote(position);
     if (
       edit &&
@@ -153,7 +121,7 @@ export function useRecorderMidiInteraction({
     return note;
   }
 
-  function finishEdit(position: { beat: number; pitch: number }) {
+  function finishEdit(position: EditPosition) {
     // Calculate from the release position rather than waiting for a preview render.
     const note = edit?.getNote(position);
     if (!edit || !note) {
@@ -235,6 +203,108 @@ export function useRecorderMidiInteraction({
     create,
     removeSelected,
   };
+}
+
+function createNoteEdit({
+  mode,
+  original,
+  initialBeat,
+  gridStep,
+  pixelsPerBeat,
+}: {
+  mode: EditMode;
+  original: Note;
+  initialBeat: number;
+  gridStep: number;
+  pixelsPerBeat: number;
+}): GetNote {
+  switch (mode) {
+    case "move":
+      return createNoteMove({ original, initialBeat, gridStep });
+    case "resize-start":
+      return createNoteResizeStart({ original, gridStep, pixelsPerBeat });
+    case "resize-end":
+      return createNoteResizeEnd({ original, gridStep, pixelsPerBeat });
+  }
+}
+
+function createNoteMove({
+  original,
+  initialBeat,
+  gridStep,
+}: {
+  original: Note;
+  initialBeat: number;
+  gridStep: number;
+}): GetNote {
+  // Keep the grabbed grid cell under the pointer instead of snapping the note start to it.
+  const grabOffset = snapToGrid(initialBeat - original.start, gridStep, {
+    floor: true,
+  });
+
+  return ({ beat, pitch }) => {
+    const cellStart = snapToGrid(beat, gridStep, { floor: true });
+    return {
+      ...original,
+      start: Math.max(0, cellStart - grabOffset),
+      pitch: clampPitch(pitch),
+    };
+  };
+}
+
+function createNoteResizeStart({
+  original,
+  gridStep,
+  pixelsPerBeat,
+}: {
+  original: Note;
+  gridStep: number;
+  pixelsPerBeat: number;
+}): GetNote {
+  const originalEnd = original.start + original.duration;
+  // A coarser grid may leave no room for a whole cell before the fixed end.
+  if (originalEnd < gridStep) {
+    return () => original;
+  }
+  const snapEdgeCell = createDraggedGridCellSnapper({
+    initial: original.start,
+    step: gridStep,
+    tolerance: getResizeTolerance(gridStep, pixelsPerBeat),
+    min: 0,
+    max: Math.max(0, originalEnd - gridStep),
+  });
+
+  return ({ beat }) => {
+    const start = snapEdgeCell(beat);
+    return { ...original, start, duration: originalEnd - start };
+  };
+}
+
+function createNoteResizeEnd({
+  original,
+  gridStep,
+  pixelsPerBeat,
+}: {
+  original: Note;
+  gridStep: number;
+  pixelsPerBeat: number;
+}): GetNote {
+  const snapEdgeCell = createDraggedGridCellSnapper({
+    initial: original.start + original.duration - gridStep,
+    step: gridStep,
+    tolerance: getResizeTolerance(gridStep, pixelsPerBeat),
+    min: original.start,
+    max: Number.POSITIVE_INFINITY,
+  });
+
+  return ({ beat }) => {
+    const end = snapEdgeCell(beat) + gridStep;
+    return { ...original, duration: end - original.start };
+  };
+}
+
+function getResizeTolerance(gridStep: number, pixelsPerBeat: number) {
+  return clamp(gridStep * pixelsPerBeat * 0.15, 2, 8) / pixelsPerBeat;
 }
 
 // Return the active grid cell's start as the pointer crosses cell boundaries.
