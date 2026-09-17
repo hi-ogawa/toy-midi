@@ -402,38 +402,43 @@ function MidiTrackEditor({
             <div
               data-testid="recorder-midi-box-selection"
               className="pointer-events-none absolute border border-blue-300 bg-blue-400/20"
-              style={{
-                left:
-                  (Math.min(
-                    boxSelection.start.beat,
-                    boxSelection.current.beat,
-                  ) -
-                    viewportStartBeat) *
-                  pixelsPerBeat,
-                top:
-                  (127 -
-                    Math.max(
-                      boxSelection.start.pitch,
-                      boxSelection.current.pitch,
-                    )) *
-                  KEY_HEIGHT,
-                width:
-                  Math.abs(
-                    boxSelection.current.beat - boxSelection.start.beat,
-                  ) * pixelsPerBeat,
-                height:
-                  (Math.abs(
-                    boxSelection.current.pitch - boxSelection.start.pitch,
-                  ) +
-                    1) *
-                  KEY_HEIGHT,
-              }}
+              style={getMidiBoxSelectionRect({
+                selection: boxSelection,
+                viewportStartBeat,
+                pixelsPerBeat,
+              })}
             />
           )}
         </div>
       </div>
     </div>
   );
+}
+
+function getMidiBoxSelectionRect({
+  selection: { start, current },
+  viewportStartBeat,
+  pixelsPerBeat,
+}: {
+  selection: {
+    start: { beat: number; pitch: number };
+    current: { beat: number; pitch: number };
+  };
+  viewportStartBeat: number;
+  pixelsPerBeat: number;
+}) {
+  const firstBeat = Math.min(start.beat, current.beat);
+  const lastBeat = Math.max(start.beat, current.beat);
+  const lowestPitch = Math.min(start.pitch, current.pitch);
+  const highestPitch = Math.max(start.pitch, current.pitch);
+
+  // Pitch rows run downward from 127, and both endpoint rows are included.
+  return {
+    left: (firstBeat - viewportStartBeat) * pixelsPerBeat,
+    top: (127 - highestPitch) * KEY_HEIGHT,
+    width: (lastBeat - firstBeat) * pixelsPerBeat,
+    height: (highestPitch - lowestPitch + 1) * KEY_HEIGHT,
+  };
 }
 
 function useMidiNotePreview({
