@@ -608,20 +608,13 @@ export class RecorderRuntime {
     }
   }
 
-  setMidiTrackKeySignature({
-    id,
-    keySignature,
-  }: {
-    id: string;
-    keySignature: KeySignature;
-  }): void {
-    this.updateMidiTrack(id, (track) => ({ ...track, keySignature }));
-  }
-
-  setMidiTrackTabSettings(
+  setMidiTrackNotationSettings(
     id: string,
     settings: Partial<
-      Pick<MidiTrackState, "tabAnnotationEnabled" | "tabOpenStringPitches">
+      Pick<
+        MidiTrackState,
+        "keySignature" | "tabAnnotationEnabled" | "tabOpenStringPitches"
+      >
     >,
   ): void {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
