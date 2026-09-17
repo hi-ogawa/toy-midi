@@ -89,7 +89,8 @@ export function useRecorderMidiInteraction({
       return;
     }
     const step = 1 / subdivisionsPerBeat;
-    const cellOffset = Math.floor((beat - original.start) / step);
+    // Keep the grabbed grid cell under the pointer instead of snapping the note start to it.
+    const grabOffset = snapToGrid(beat - original.start, step, { floor: true });
     const tolerance = clamp(step * pixelsPerBeat * 0.15, 2, 8) / pixelsPerBeat;
     let resizeCellStart =
       mode === "resize-start"
@@ -118,7 +119,7 @@ export function useRecorderMidiInteraction({
             const cellStart = snapToGrid(beat, step, { floor: true });
             return {
               ...original,
-              start: Math.max(0, cellStart - cellOffset * step),
+              start: Math.max(0, cellStart - grabOffset),
               pitch: clampPitch(pitch),
             };
           }
