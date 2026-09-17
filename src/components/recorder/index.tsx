@@ -700,30 +700,16 @@ export function Recorder({ projectId }: { projectId: string }) {
             )}
             {state.midiTracks.map(
               (track) =>
-                effects.openEffects.has(track.id) && (
-                  <RecorderEffects
+                scores.openTracks.has(track.id) && (
+                  <RecorderScorePanel
                     key={track.id}
-                    label={track.name}
-                    eq={track.eq}
-                    onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
-                    onClose={() => effects.closeEffects(track.id)}
+                    runtime={runtime}
+                    state={state}
+                    track={track}
+                    onClose={() => scores.close(track.id)}
                   />
                 ),
             )}
-            {effects.openEffects.has("capture") && (
-              <RecorderEffects
-                label="Capture"
-                eq={state.recordingTrack.eq}
-                onChange={(eq) =>
-                  runtime.setTrackEq({ id: state.recordingTrack.id, eq })
-                }
-                onClose={() => effects.closeEffects("capture")}
-              />
-            )}
-          </div>
-        )}
-        {scores.openTracks.size > 0 && (
-          <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
             {state.midiTracks.map(
               (track) =>
                 scores.openTracks.has(track.id) && (
