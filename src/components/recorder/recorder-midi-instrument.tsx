@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { KEY_SIGNATURE_OPTION_GROUPS } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
   RecorderRuntime,
@@ -33,6 +34,36 @@ export function MidiInstrument({
         />
       </div>
       <label className="contents">
+        <span className="text-sm text-neutral-300">Key signature</span>
+        <select
+          aria-label="Key signature"
+          value={`${track.keySignature.fifths}:${track.keySignature.mode}`}
+          onChange={(event) => {
+            const [fifths, mode] = event.target.value.split(":");
+            runtime.setMidiTrackNotationSettings(track.id, {
+              keySignature: {
+                fifths: Number(fifths),
+                mode: mode as "major" | "minor",
+              },
+            });
+          }}
+          className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
+        >
+          {KEY_SIGNATURE_OPTION_GROUPS.map((group) => (
+            <optgroup key={group.mode} label={group.label}>
+              {group.options.map((key) => (
+                <option
+                  key={`${key.fifths}:${group.mode}`}
+                  value={`${key.fifths}:${group.mode}`}
+                >
+                  {key.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      <label className="contents">
         <span className="text-sm text-neutral-300">Tuning</span>
         <select
           aria-label="Tuning"
@@ -41,7 +72,7 @@ export function MidiInstrument({
             const preset = TAB_STRING_PRESETS.find(
               ({ id }) => id === event.target.value,
             )!;
-            runtime.setMidiTrackTabSettings(track.id, {
+            runtime.setMidiTrackNotationSettings(track.id, {
               tabOpenStringPitches: [...preset.openStringPitches],
             });
           }}
@@ -60,7 +91,7 @@ export function MidiInstrument({
             type="checkbox"
             checked={track.tabAnnotationEnabled}
             onChange={(event) =>
-              runtime.setMidiTrackTabSettings(track.id, {
+              runtime.setMidiTrackNotationSettings(track.id, {
                 tabAnnotationEnabled: event.target.checked,
               })
             }

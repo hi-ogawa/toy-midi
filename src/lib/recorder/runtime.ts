@@ -12,6 +12,7 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
+import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "../pitch-spelling.ts";
 import { getFret, DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
@@ -83,6 +84,7 @@ export interface MidiTrackState {
   soloed: boolean;
   tabAnnotationEnabled: boolean;
   tabOpenStringPitches: number[];
+  keySignature: KeySignature;
 }
 
 export interface RecorderLoopRange {
@@ -606,10 +608,13 @@ export class RecorderRuntime {
     }
   }
 
-  setMidiTrackTabSettings(
+  setMidiTrackNotationSettings(
     id: string,
     settings: Partial<
-      Pick<MidiTrackState, "tabAnnotationEnabled" | "tabOpenStringPitches">
+      Pick<
+        MidiTrackState,
+        "keySignature" | "tabAnnotationEnabled" | "tabOpenStringPitches"
+      >
     >,
   ): void {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
@@ -1362,6 +1367,7 @@ function createMidiTrackState(number: number): MidiTrackState {
     soloed: false,
     tabAnnotationEnabled: false,
     tabOpenStringPitches: [...DEFAULT_TAB_OPEN_STRING_PITCHES],
+    keySignature: { ...DEFAULT_KEY_SIGNATURE },
   };
 }
 

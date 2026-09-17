@@ -4,6 +4,7 @@ import {
   createDefaultMultibandEq,
 } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
+import { DEFAULT_KEY_SIGNATURE } from "../pitch-spelling.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { createAudioClip } from "./audio-clip.ts";
 import {
@@ -25,10 +26,11 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   // Optional for recorder projects saved before MIDI track support.
   midiTracks?: (Omit<
     MidiTrackState,
-    "tabAnnotationEnabled" | "tabOpenStringPitches"
+    "tabAnnotationEnabled" | "tabOpenStringPitches" | "keySignature"
   > & {
     tabAnnotationEnabled?: boolean;
     tabOpenStringPitches?: number[];
+    keySignature?: MidiTrackState["keySignature"];
   })[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
@@ -214,6 +216,7 @@ export function deserializeRecorderRuntimeState({
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,
       ],
+      keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       eq: deserializeEq(track.eq),
     })),
     recordingTrack: {
