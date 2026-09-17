@@ -111,14 +111,10 @@ export function useRecorderMidiInteraction({
             };
           }
           case "resize-start": {
-            // A coarser grid may leave no room for a whole cell before the fixed end.
-            if (originalEnd < gridStep) {
-              return original;
-            }
             const start = clamp(
               snapToGrid(beat, gridStep),
               0,
-              originalEnd - gridStep,
+              Math.max(0, originalEnd - gridStep),
             );
             return { ...original, start, duration: originalEnd - start };
           }
