@@ -12,7 +12,7 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
-import type { KeySignature } from "../pitch-spelling.ts";
+import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "../pitch-spelling.ts";
 import { getFret, DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
@@ -1356,7 +1356,7 @@ function createRecordingTrackState(): AudioTrackState {
 
 function createMidiTrackState(number: number): MidiTrackState {
   return {
-    keySignature: { fifths: 0, mode: "major" },
+    keySignature: { ...DEFAULT_KEY_SIGNATURE },
     id: crypto.randomUUID(),
     name: `MIDI ${number}`,
     notes: [],
