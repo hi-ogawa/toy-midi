@@ -21,11 +21,7 @@ import type {
   MidiTrackState,
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
-import {
-  formatTabPosition,
-  getTabStringColor,
-  resolveTabPosition,
-} from "../../lib/tab-annotation";
+import { getNoteTabAnnotation } from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { Button } from "../ui/button";
 import { PortalDialog } from "../ui/dialog";
@@ -472,14 +468,10 @@ function MidiNote({
   viewportStartBeat: number;
 }) {
   const annotation = tabAnnotationEnabled
-    ? resolveTabPosition({
-        pitch: note.pitch,
-        tabString: note.tabString,
+    ? getNoteTabAnnotation({
+        note,
         openStringPitches: tabOpenStringPitches,
       })
-    : undefined;
-  const color = annotation
-    ? getTabStringColor(annotation.tabString)
     : undefined;
   return (
     <div
@@ -492,8 +484,8 @@ function MidiNote({
           : "bg-[#3b82f6]",
       )}
       style={{
-        backgroundColor: color?.background,
-        borderColor: color?.border,
+        backgroundColor: annotation?.color.background,
+        borderColor: annotation?.color.border,
         left: (note.start - viewportStartBeat) * pixelsPerBeat,
         top: (127 - note.pitch) * KEY_HEIGHT + 1,
         width: Math.max(2, note.duration * pixelsPerBeat),
@@ -506,13 +498,10 @@ function MidiNote({
           className="absolute inset-0 flex items-center justify-center overflow-hidden font-mono font-semibold leading-none pointer-events-none"
           style={{
             fontSize: Math.max(7, Math.min(14, KEY_HEIGHT * 0.55)),
-            color: color?.text,
+            color: annotation.color.text,
           }}
         >
-          {formatTabPosition({
-            position: annotation,
-            openStringPitches: tabOpenStringPitches,
-          })}
+          {annotation.label}
         </span>
       )}
       <div

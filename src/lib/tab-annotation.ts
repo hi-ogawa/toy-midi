@@ -1,4 +1,4 @@
-import type { TabString } from "../types";
+import type { Note, TabString } from "../types";
 
 export const TAB_STRING_PRESETS = [
   {
@@ -57,6 +57,27 @@ export function resolveTabStringPreset(openStringPitches: readonly number[]) {
         (pitch, index) => pitch === openStringPitches[index],
       ),
   );
+}
+
+export function getNoteTabAnnotation({
+  note,
+  openStringPitches,
+}: {
+  note: Pick<Note, "pitch" | "tabString">;
+  openStringPitches: readonly number[];
+}) {
+  const position = resolveTabPosition({
+    pitch: note.pitch,
+    tabString: note.tabString,
+    openStringPitches,
+  });
+  if (!position) {
+    return undefined;
+  }
+  return {
+    label: formatTabPosition({ position, openStringPitches }),
+    color: getTabStringColor(position.tabString),
+  };
 }
 
 export function getTabStringColor(tabString: TabString) {
