@@ -21,7 +21,10 @@ import type {
   MidiTrackState,
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
-import { getNoteTabAnnotation } from "../../lib/tab-annotation";
+import {
+  getNoteTabAnnotation,
+  type NoteTabAnnotation,
+} from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { Button } from "../ui/button";
 import { PortalDialog } from "../ui/dialog";
@@ -468,7 +471,7 @@ function MidiNote({
 }: {
   note: MidiTrackState["notes"][number];
   selected: boolean;
-  annotation: ReturnType<typeof getNoteTabAnnotation>;
+  annotation?: NoteTabAnnotation;
   pixelsPerBeat: number;
   viewportStartBeat: number;
 }) {

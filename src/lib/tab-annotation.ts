@@ -39,6 +39,15 @@ const PITCH_CLASS_NAMES = [
   "B",
 ];
 
+export type NoteTabAnnotation = {
+  label: string;
+  color: {
+    background: string;
+    border: string;
+    text: string;
+  };
+};
+
 export type TabPosition = {
   tabString: TabString;
   fret: number;
@@ -65,7 +74,7 @@ export function getNoteTabAnnotation({
 }: {
   note: Pick<Note, "pitch" | "tabString">;
   openStringPitches: readonly number[];
-}) {
+}): NoteTabAnnotation | undefined {
   const position = resolveTabPosition({
     pitch: note.pitch,
     tabString: note.tabString,
