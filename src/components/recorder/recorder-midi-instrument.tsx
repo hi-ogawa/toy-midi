@@ -18,7 +18,7 @@ export function MidiInstrument({
 }) {
   const programMutation = useMutation({
     mutationFn: (program: number) =>
-      runtime.setMidiTrackProgram({ id: track.id, program }),
+      runtime.setMidiTrackProgram(track.id, program),
   });
   return (
     <div className="w-96 space-y-5">
@@ -38,8 +38,7 @@ export function MidiInstrument({
             type="checkbox"
             checked={track.tabAnnotationEnabled}
             onChange={(event) =>
-              runtime.setMidiTrackTabSettings({
-                id: track.id,
+              runtime.setMidiTrackTabSettings(track.id, {
                 tabAnnotationEnabled: event.target.checked,
               })
             }
@@ -56,8 +55,7 @@ export function MidiInstrument({
               const preset = TAB_STRING_PRESETS.find(
                 ({ id }) => id === event.target.value,
               )!;
-              runtime.setMidiTrackTabSettings({
-                id: track.id,
+              runtime.setMidiTrackTabSettings(track.id, {
                 tabOpenStringPitches: [...preset.openStringPitches],
               });
             }}

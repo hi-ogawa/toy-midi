@@ -599,25 +599,19 @@ export class RecorderRuntime {
     }
   }
 
-  async setMidiTrackProgram({
-    id,
-    program,
-  }: {
-    id: string;
-    program: number;
-  }): Promise<void> {
+  async setMidiTrackProgram(id: string, program: number): Promise<void> {
     await this.midiTrackPlaybacks.get(id)?.setProgram(program);
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({ ...track, program }));
     }
   }
 
-  setMidiTrackTabSettings({
-    id,
-    ...settings
-  }: { id: string } & Partial<
-    Pick<MidiTrackState, "tabAnnotationEnabled" | "tabOpenStringPitches">
-  >): void {
+  setMidiTrackTabSettings(
+    id: string,
+    settings: Partial<
+      Pick<MidiTrackState, "tabAnnotationEnabled" | "tabOpenStringPitches">
+    >,
+  ): void {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
   }
 
