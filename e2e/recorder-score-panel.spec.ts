@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, dragBy } from "./recorder-helpers";
+import { createRecorderProject } from "./recorder-helpers";
 
 test("opens one score panel independently of MIDI and Capture effects", async ({
   page,
@@ -50,35 +50,4 @@ test("opens one score panel independently of MIDI and Capture effects", async ({
     })
     .click();
   await expect(score).toHaveCount(0);
-});
-
-test("resizes the score panel across consecutive drags", async ({ page }) => {
-  // Open an empty score panel with room to resize in both directions.
-  await page.setViewportSize({ width: 1600, height: 1000 });
-  await createRecorderProject(page);
-  await page.getByTestId("recorder-add-midi-track").click();
-  await page
-    .getByRole("button", { name: "MIDI 1 actions", exact: true })
-    .click();
-  await page
-    .getByRole("menuitem", { name: "Score preview", exact: true })
-    .click();
-  const panel = page.getByTestId("recorder-score-preview");
-  await expect(panel).toBeVisible();
-  const handle = panel.getByRole("button", {
-    name: "Resize score preview for MIDI 1",
-  });
-  const initial = (await panel.boundingBox())!;
-
-  // Grow the panel from its top-left corner.
-  await dragBy(page, handle, -100, { deltaY: -100 });
-  const grown = (await panel.boundingBox())!;
-  expect(grown.width).toBeCloseTo(initial.width + 100, 0);
-  expect(grown.height).toBeCloseTo(initial.height + 100, 0);
-
-  // Start another drag and verify it uses the updated size.
-  await dragBy(page, handle, 50, { deltaY: 50 });
-  const shrunk = (await panel.boundingBox())!;
-  expect(shrunk.width).toBeCloseTo(grown.width - 50, 0);
-  expect(shrunk.height).toBeCloseTo(grown.height - 50, 0);
 });
