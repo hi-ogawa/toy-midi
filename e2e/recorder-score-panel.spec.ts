@@ -4,7 +4,7 @@ import { createRecorderProject } from "./recorder-helpers";
 test("opens one score panel independently of MIDI and Capture effects", async ({
   page,
 }) => {
-  // Open a MIDI score without any effects panels and verify its empty state.
+  // Open a MIDI score and verify its empty state.
   await createRecorderProject(page);
   await page.getByTestId("recorder-add-midi-track").click();
   await page
