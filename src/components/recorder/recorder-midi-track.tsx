@@ -324,22 +324,29 @@ function MidiTrackEditor({
               },
             })}
           />
-          {track.notes.map((note) => (
-            <MidiNote
-              key={note.id}
-              note={
-                midiInteraction.getEditPreview({
-                  trackId: track.id,
-                  noteId: note.id,
-                }) ?? note
-              }
-              tabAnnotationEnabled={track.tabAnnotationEnabled}
-              tabOpenStringPitches={track.tabOpenStringPitches}
-              selected={selectedId === note.id}
-              pixelsPerBeat={pixelsPerBeat}
-              viewportStartBeat={viewportStartBeat}
-            />
-          ))}
+          {track.notes.map((note) => {
+            const displayedNote =
+              midiInteraction.getEditPreview({
+                trackId: track.id,
+                noteId: note.id,
+              }) ?? note;
+            const annotation = track.tabAnnotationEnabled
+              ? getNoteTabAnnotation({
+                  note: displayedNote,
+                  openStringPitches: track.tabOpenStringPitches,
+                })
+              : undefined;
+            return (
+              <MidiNote
+                key={note.id}
+                note={displayedNote}
+                annotation={annotation}
+                selected={selectedId === note.id}
+                pixelsPerBeat={pixelsPerBeat}
+                viewportStartBeat={viewportStartBeat}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -454,25 +461,17 @@ function MidiGridRow({ pitch }: { pitch: number }) {
 
 function MidiNote({
   note,
-  tabAnnotationEnabled,
-  tabOpenStringPitches,
+  annotation,
   selected,
   pixelsPerBeat,
   viewportStartBeat,
 }: {
   note: MidiTrackState["notes"][number];
   selected: boolean;
-  tabAnnotationEnabled: boolean;
-  tabOpenStringPitches: number[];
+  annotation: ReturnType<typeof getNoteTabAnnotation>;
   pixelsPerBeat: number;
   viewportStartBeat: number;
 }) {
-  const annotation = tabAnnotationEnabled
-    ? getNoteTabAnnotation({
-        note,
-        openStringPitches: tabOpenStringPitches,
-      })
-    : undefined;
   return (
     <div
       data-note-id={note.id}
