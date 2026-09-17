@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
-import { snapToGrid } from "../../lib/music";
+import { clampPitch, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
+import type { Note } from "../../types";
+
+type MidiNoteEdit = {
+  trackId: string;
+  original: Note;
+  note: Note;
+  getNote: (position: { beat: number; pitch: number }) => Note;
+};
 
 export function useRecorderMidiInteraction({
   runtime,
@@ -21,6 +29,7 @@ export function useRecorderMidiInteraction({
     trackId: string;
     noteId: string;
   }>();
+  const [edit, setEdit] = useState<MidiNoteEdit>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -30,6 +39,7 @@ export function useRecorderMidiInteraction({
 
   useEffect(() => {
     if (!selectedNote) {
+      cancelEdit();
       setSelection(undefined);
     }
   }, [selectedNote]);
@@ -40,9 +50,101 @@ export function useRecorderMidiInteraction({
       : undefined;
   }
 
+  function getEditPreview({
+    trackId,
+    noteId,
+  }: {
+    trackId: string;
+    noteId: string;
+  }) {
+    return edit?.trackId === trackId && edit.note.id === noteId
+      ? edit.note
+      : undefined;
+  }
+
   function select(selection: { trackId: string; noteId: string }) {
+    cancelEdit();
     onSelect();
     setSelection(selection);
+  }
+
+  function startEdit({
+    trackId,
+    noteId,
+    beat,
+  }: {
+    trackId: string;
+    noteId: string;
+    beat: number;
+  }) {
+    select({ trackId, noteId });
+    const original = state.midiTracks
+      .find((track) => track.id === trackId)
+      ?.notes.find((note) => note.id === noteId);
+    if (!original) {
+      return;
+    }
+    const step = 1 / subdivisionsPerBeat;
+    // Keep the grabbed grid cell under the pointer instead of snapping the note start to it.
+    const grabOffset = snapToGrid(beat - original.start, step, { floor: true });
+    setEdit({
+      trackId,
+      original,
+      note: original,
+      getNote: ({ beat, pitch }) => {
+        const cellStart = snapToGrid(beat, step, { floor: true });
+        return {
+          ...original,
+          start: Math.max(0, cellStart - grabOffset),
+          pitch: clampPitch(pitch),
+        };
+      },
+    });
+  }
+
+  function updateEdit(position: { beat: number; pitch: number }) {
+    const note = edit?.getNote(position);
+    if (
+      edit &&
+      note &&
+      (note.start !== edit.note.start ||
+        note.pitch !== edit.note.pitch ||
+        note.duration !== edit.note.duration)
+    ) {
+      setEdit({ ...edit, note });
+    }
+    return note;
+  }
+
+  function finishEdit(position: { beat: number; pitch: number }) {
+    // Calculate from the release position rather than waiting for a preview render.
+    const note = edit?.getNote(position);
+    if (!edit || !note) {
+      return;
+    }
+    cancelEdit();
+    const { trackId, original } = edit;
+    const track = state.midiTracks.find((track) => track.id === trackId);
+    if (
+      track &&
+      (note.start !== original.start ||
+        note.pitch !== original.pitch ||
+        note.duration !== original.duration)
+    ) {
+      runtime.setMidiTrackNotes(
+        trackId,
+        track.notes.map((entry) => (entry.id === note.id ? note : entry)),
+      );
+    }
+  }
+
+  function cancelEdit() {
+    setEdit(undefined);
+  }
+
+  function clear() {
+    cancelEdit();
+    setSelection(undefined);
   }
 
   function create({
@@ -54,9 +156,7 @@ export function useRecorderMidiInteraction({
     pitch: number;
     beat: number;
   }) {
-    const track = runtime.store
-      .get()
-      .midiTracks.find((track) => track.id === trackId);
+    const track = state.midiTracks.find((track) => track.id === trackId);
     if (!track) {
       return;
     }
@@ -75,6 +175,7 @@ export function useRecorderMidiInteraction({
   }
 
   function removeSelected() {
+    cancelEdit();
     if (selectedTrack && selectedNote) {
       runtime.setMidiTrackNotes(
         selectedTrack.id,
@@ -86,10 +187,14 @@ export function useRecorderMidiInteraction({
 
   return {
     activate: onSelect,
-    clear: () => setSelection(undefined),
+    clear,
     hasSelection: selectedNote !== undefined,
     getSelectedNoteId,
-    select,
+    startEdit,
+    updateEdit,
+    finishEdit,
+    cancelEdit,
+    getEditPreview,
     create,
     removeSelected,
   };
