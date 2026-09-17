@@ -4,7 +4,7 @@ import {
   createDefaultMultibandEq,
 } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
-import { TAB_STRING_PRESETS } from "../tab-annotation.ts";
+import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { createAudioClip } from "./audio-clip.ts";
 import {
   type PersistableRecorderRuntimeState,
@@ -214,7 +214,7 @@ export function deserializeRecorderRuntimeState({
       keySignature: track.keySignature ?? { fifths: 0, mode: "major" },
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
-        ...TAB_STRING_PRESETS[0].openStringPitches,
+        ...DEFAULT_TAB_OPEN_STRING_PITCHES,
       ],
       eq: deserializeEq(track.eq),
     })),

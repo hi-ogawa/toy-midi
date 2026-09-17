@@ -212,7 +212,7 @@ export function useRecorderMidiInteraction({
     setSelection(undefined);
   }
 
-  function handleTabShortcut(event: KeyboardEvent): boolean {
+  function handleTabAnnotationShortcut(event: KeyboardEvent): boolean {
     if (!selectedTrack?.tabAnnotationEnabled || !selectedNote) {
       return false;
     }
@@ -244,7 +244,6 @@ export function useRecorderMidiInteraction({
   }
 
   return {
-    handleTabShortcut,
     activate: onSelect,
     clear,
     hasSelection: selectedNote !== undefined,
@@ -256,5 +255,6 @@ export function useRecorderMidiInteraction({
     getEditPreview,
     create,
     removeSelected,
+    handleTabAnnotationShortcut,
   };
 }

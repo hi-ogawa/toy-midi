@@ -23,9 +23,8 @@ import type {
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
 import {
-  formatTabPosition,
-  getTabStringColor,
-  resolveTabPosition,
+  getTabAnnotationDisplay,
+  type TabAnnotationDisplay,
 } from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { Button } from "../ui/button";
@@ -338,22 +337,29 @@ function MidiTrackEditor({
               },
             })}
           />
-          {track.notes.map((note) => (
-            <MidiNote
-              key={note.id}
-              note={
-                midiInteraction.getEditPreview({
-                  trackId: track.id,
-                  noteId: note.id,
-                }) ?? note
-              }
-              tabAnnotationEnabled={track.tabAnnotationEnabled}
-              tabOpenStringPitches={track.tabOpenStringPitches}
-              selected={selectedId === note.id}
-              pixelsPerBeat={pixelsPerBeat}
-              viewportStartBeat={viewportStartBeat}
-            />
-          ))}
+          {track.notes.map((note) => {
+            const displayedNote =
+              midiInteraction.getEditPreview({
+                trackId: track.id,
+                noteId: note.id,
+              }) ?? note;
+            const annotation = track.tabAnnotationEnabled
+              ? getTabAnnotationDisplay({
+                  note: displayedNote,
+                  openStringPitches: track.tabOpenStringPitches,
+                })
+              : undefined;
+            return (
+              <MidiNote
+                key={note.id}
+                note={displayedNote}
+                annotation={annotation}
+                selected={selectedId === note.id}
+                pixelsPerBeat={pixelsPerBeat}
+                viewportStartBeat={viewportStartBeat}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -468,29 +474,17 @@ function MidiGridRow({ pitch }: { pitch: number }) {
 
 function MidiNote({
   note,
-  tabAnnotationEnabled,
-  tabOpenStringPitches,
+  annotation,
   selected,
   pixelsPerBeat,
   viewportStartBeat,
 }: {
   note: MidiTrackState["notes"][number];
   selected: boolean;
-  tabAnnotationEnabled: boolean;
-  tabOpenStringPitches: number[];
+  annotation?: TabAnnotationDisplay;
   pixelsPerBeat: number;
   viewportStartBeat: number;
 }) {
-  const annotation = tabAnnotationEnabled
-    ? resolveTabPosition({
-        pitch: note.pitch,
-        tabString: note.tabString,
-        openStringPitches: tabOpenStringPitches,
-      })
-    : undefined;
-  const color = annotation
-    ? getTabStringColor(annotation.tabString)
-    : undefined;
   return (
     <div
       data-note-id={note.id}
@@ -502,8 +496,8 @@ function MidiNote({
           : "bg-[#3b82f6]",
       )}
       style={{
-        backgroundColor: color?.background,
-        borderColor: color?.border,
+        backgroundColor: annotation?.color.background,
+        borderColor: annotation?.color.border,
         left: (note.start - viewportStartBeat) * pixelsPerBeat,
         top: (127 - note.pitch) * KEY_HEIGHT + 1,
         width: Math.max(2, note.duration * pixelsPerBeat),
@@ -516,13 +510,10 @@ function MidiNote({
           className="absolute inset-0 flex items-center justify-center overflow-hidden font-mono font-semibold leading-none pointer-events-none"
           style={{
             fontSize: Math.max(7, Math.min(14, KEY_HEIGHT * 0.55)),
-            color: color?.text,
+            color: annotation.color.text,
           }}
         >
-          {formatTabPosition({
-            position: annotation,
-            openStringPitches: tabOpenStringPitches,
-          })}
+          {annotation.label}
         </span>
       )}
       <div

@@ -13,7 +13,7 @@ import {
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import type { KeySignature } from "../pitch-spelling.ts";
-import { getFret, TAB_STRING_PRESETS } from "../tab-annotation.ts";
+import { getFret, DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import {
@@ -74,8 +74,6 @@ export interface AudioTrackState {
 
 export interface MidiTrackState {
   keySignature: KeySignature;
-  tabAnnotationEnabled: boolean;
-  tabOpenStringPitches: number[];
   id: string;
   name: string;
   notes: Note[];
@@ -85,6 +83,8 @@ export interface MidiTrackState {
   gain: number;
   muted: boolean;
   soloed: boolean;
+  tabAnnotationEnabled: boolean;
+  tabOpenStringPitches: number[];
 }
 
 export interface RecorderLoopRange {
@@ -618,12 +618,12 @@ export class RecorderRuntime {
     this.updateMidiTrack(id, (track) => ({ ...track, keySignature }));
   }
 
-  setMidiTrackTabSettings({
-    id,
-    ...settings
-  }: { id: string } & Partial<
-    Pick<MidiTrackState, "tabAnnotationEnabled" | "tabOpenStringPitches">
-  >): void {
+  setMidiTrackTabSettings(
+    id: string,
+    settings: Partial<
+      Pick<MidiTrackState, "tabAnnotationEnabled" | "tabOpenStringPitches">
+    >,
+  ): void {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
   }
 
@@ -640,22 +640,22 @@ export class RecorderRuntime {
       .get()
       .midiTracks.find((track) => track.id === trackId);
     const note = track?.notes.find((note) => note.id === noteId);
-    if (
-      !track ||
-      !note ||
-      note.tabString === tabString ||
-      (tabString !== undefined &&
-        getFret({
-          pitch: note.pitch,
-          tabString,
-          openStringPitches: track.tabOpenStringPitches,
-        }) === undefined)
-    ) {
+    if (!track || !note || note.tabString === tabString) {
       return;
     }
-    // String assignments change notation only, so keep the playback schedule intact.
-    const { tabString: _previous, ...rest } = note;
-    const updated = tabString === undefined ? rest : { ...rest, tabString };
+
+    if (tabString !== undefined) {
+      const fret = getFret({
+        pitch: note.pitch,
+        tabString,
+        openStringPitches: track.tabOpenStringPitches,
+      });
+      if (fret === undefined) {
+        return;
+      }
+    }
+
+    const updated = { ...note, tabString };
     this.updateMidiTrack(trackId, (track) => ({
       ...track,
       notes: track.notes.map((note) => (note.id === noteId ? updated : note)),
@@ -1364,8 +1364,6 @@ function createRecordingTrackState(): AudioTrackState {
 function createMidiTrackState(number: number): MidiTrackState {
   return {
     keySignature: { fifths: 0, mode: "major" },
-    tabAnnotationEnabled: false,
-    tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
     id: crypto.randomUUID(),
     name: `MIDI ${number}`,
     notes: [],
@@ -1375,6 +1373,8 @@ function createMidiTrackState(number: number): MidiTrackState {
     gain: 1,
     muted: false,
     soloed: false,
+    tabAnnotationEnabled: false,
+    tabOpenStringPitches: [...DEFAULT_TAB_OPEN_STRING_PITCHES],
   };
 }
 
