@@ -1351,8 +1351,6 @@ function createRecordingTrackState(): AudioTrackState {
 
 function createMidiTrackState(number: number): MidiTrackState {
   return {
-    tabAnnotationEnabled: false,
-    tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
     id: crypto.randomUUID(),
     name: `MIDI ${number}`,
     notes: [],
@@ -1362,6 +1360,8 @@ function createMidiTrackState(number: number): MidiTrackState {
     gain: 1,
     muted: false,
     soloed: false,
+    tabAnnotationEnabled: false,
+    tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
   };
 }
 
