@@ -166,12 +166,6 @@ function MidiTrackActions({
   );
 }
 
-type MidiGridGesture =
-  | { type: "select"; noteId: string }
-  | { type: "edit" }
-  | { type: "box-select" }
-  | { type: "create" };
-
 function MidiTrackEditor({
   track,
   runtime,
@@ -234,6 +228,12 @@ function MidiTrackEditor({
       beat: viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat,
     };
   }
+
+  type MidiGridGesture =
+    | { type: "select"; noteId: string }
+    | { type: "edit" }
+    | { type: "box-select" }
+    | { type: "create" };
 
   const gridRef = usePointerGesture<MidiGridGesture>({
     onStart: (event) => {
