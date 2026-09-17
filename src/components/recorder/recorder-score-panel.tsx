@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { clamp } from "../../lib/music";
@@ -58,41 +59,6 @@ export function RecorderScorePanel({
       }),
   });
 
-  // Score inputs exclude transport position and mix state, so playback never re-engraves notes.
-  const source = useMemo(() => {
-    if (track.notes.length === 0) {
-      return { empty: true };
-    }
-    try {
-      return {
-        xml: exportMusicXml({
-          notes: track.notes,
-          openStringPitches: track.tabOpenStringPitches,
-          keySignature: track.keySignature,
-          title: state.title,
-          tempo: state.tempo,
-          timeSignature: state.timeSignature,
-          locators: state.locators.map(({ id, beat, label }) => ({
-            id,
-            position: beat,
-            label,
-          })),
-          trimLeadingEmptyMeasures: false,
-        }),
-      };
-    } catch (error) {
-      return { error: error instanceof Error ? error.message : String(error) };
-    }
-  }, [
-    track.notes,
-    track.tabOpenStringPitches,
-    track.keySignature,
-    state.title,
-    state.tempo,
-    state.timeSignature,
-    state.locators,
-  ]);
-
   return (
     <RecorderPanel
       title={`Score preview · ${track.name}`}
@@ -111,117 +77,129 @@ export function RecorderScorePanel({
       >
         <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500" />
       </button>
-      {source.empty ? (
-        <p className="p-6 text-sm text-neutral-400">
-          Add a note to preview the score.
-        </p>
-      ) : source.error ? (
-        <p role="alert" className="p-6 text-sm text-red-300">
-          {source.error}
-        </p>
-      ) : (
-        source.xml !== undefined && (
-          <RecorderScoreRenderer runtime={runtime} xml={source.xml} />
-        )
-      )}
+      <RecorderScorePreview runtime={runtime} state={state} track={track} />
     </RecorderPanel>
   );
 }
 
-function RecorderScoreRenderer({
-  runtime,
-  xml,
+function RecorderScorePreview({
+  runtime: recorder,
+  state,
+  track,
 }: {
   runtime: RecorderRuntime;
-  xml: string;
+  state: RecorderRuntimeState;
+  track: MidiTrackState;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<ScoreViewerRuntime>(undefined);
-  const pendingLoad = useRef(Promise.resolve());
-  const [status, setStatus] = useState<{ loading: boolean; error?: string }>({
-    loading: true,
-  });
+  const { notes, keySignature, tabOpenStringPitches } = track;
+  const { title, tempo, timeSignature, locators } = state;
+  const [runtime] = useState(
+    () =>
+      new ScoreViewerRuntime({
+        clock: {
+          getSnapshot: () => {
+            const state = recorder.store.get();
+            return { currentTime: state.position, isPlaying: state.isPlaying };
+          },
+          subscribe: recorder.store.subscribe,
+          seek: (position) => recorder.seek(position),
+          play: () => {
+            recorder.play().catch((error) => toast.error(String(error)));
+          },
+          pause: () => recorder.pause(),
+        },
+        presentation: { scale: 1, viewportPadding: 12 },
+      }),
+  );
+  const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
-  // The viewer uses the shared recorder clock and owns only its rendering resources.
   useEffect(() => {
-    const root = rootRef.current!;
-    const viewer = new ScoreViewerRuntime({
-      clock: {
-        getSnapshot: () => {
-          const state = runtime.store.get();
-          return { currentTime: state.position, isPlaying: state.isPlaying };
-        },
-        subscribe: runtime.store.subscribe,
-        seek: (position) => runtime.seek(position),
-        play: () => {
-          runtime.play().catch((error) => toast.error(String(error)));
-        },
-        pause: () => runtime.pause(),
-      },
-      presentation: { scale: 1, viewportPadding: 12 },
-    });
-    viewer.attach(root);
-    viewerRef.current = viewer;
-    const observer = new ResizeObserver(() => viewer.setScaleToFitViewport());
-    observer.observe(root);
-    return () => {
-      observer.disconnect();
-      viewerRef.current = undefined;
-      viewer.dispose();
-    };
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    runtime.attach(root);
+    setIsRuntimeAttached(true);
+    return () => runtime.dispose();
   }, [runtime]);
 
-  // Serialize OSMD loads and skip obsolete queued edits before touching the renderer.
-  useEffect(() => {
-    const viewer = viewerRef.current!;
-    let cancelled = false;
-    setStatus({ loading: true });
-    pendingLoad.current = pendingLoad.current.then(async () => {
-      if (cancelled) {
-        return;
-      }
-      try {
-        await viewer.load({
-          score: { name: "Score preview", xml },
-          settings: {
-            ...INITIAL_SCORE_VIEWER_SETTINGS,
-            showTitle: false,
-            showSectionLabels: true,
-          },
-        });
-        if (!cancelled) {
-          viewer.setScaleToFitViewport();
-          setStatus({ loading: false });
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setStatus({
-            loading: false,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-      }
-    });
-    return () => {
-      cancelled = true;
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || !isRuntimeAttached) {
+      return;
+    }
+    const updateScale = () => {
+      runtime.setScaleToFitViewport();
     };
-  }, [runtime, xml]);
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(root);
+    updateScale();
+    return () => observer.disconnect();
+  }, [isRuntimeAttached, runtime]);
+
+  const loadMutation = useMutation({
+    mutationFn: async () => {
+      await runtime.load({
+        score: {
+          name: title,
+          xml: exportMusicXml({
+            notes,
+            tempo,
+            title,
+            timeSignature,
+            keySignature,
+            openStringPitches: tabOpenStringPitches,
+            locators: locators.map(({ id, beat, label }) => ({
+              id,
+              position: beat,
+              label,
+            })),
+            trimLeadingEmptyMeasures: false,
+          }),
+        },
+        settings: {
+          ...INITIAL_SCORE_VIEWER_SETTINGS,
+          showTitle: false,
+          showSectionLabels: true,
+        },
+      });
+      runtime.setScaleToFitViewport();
+    },
+  });
+
+  useQuery({
+    queryKey: [
+      "recorder-score-preview",
+      track.id,
+      notes,
+      tempo,
+      title,
+      timeSignature,
+      keySignature,
+      tabOpenStringPitches,
+      locators,
+    ],
+    enabled: isRuntimeAttached && notes.length > 0,
+    queryFn: async () => {
+      await loadMutation.mutateAsync();
+      return true;
+    },
+  });
+
+  if (notes.length === 0) {
+    return (
+      <p className="p-6 text-sm text-neutral-400">
+        Add a note to preview the score.
+      </p>
+    );
+  }
 
   return (
-    <div className="relative h-full">
-      <div
-        ref={rootRef}
-        data-testid="recorder-score-renderer"
-        className="h-full w-full overflow-hidden bg-neutral-300 text-neutral-950"
-      />
-      {(status.loading || status.error) && (
-        <p
-          role={status.error ? "alert" : "status"}
-          className="absolute inset-0 bg-neutral-800 p-6 text-sm text-neutral-300"
-        >
-          {status.error ?? "Loading score…"}
-        </p>
-      )}
-    </div>
+    <div
+      ref={rootRef}
+      data-testid="recorder-score-renderer"
+      className="score-preview-runtime h-full w-full overflow-hidden bg-neutral-300 text-neutral-950"
+    />
   );
 }
