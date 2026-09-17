@@ -91,7 +91,7 @@ export function useRecorderMidiInteraction({
       return;
     }
     const step = 1 / subdivisionsPerBeat;
-    // Keep the grabbed grid cell under the pointer instead of snapping the note start to it.
+    // Preserve the grabbed cell's offset from the note start while moving.
     const grabOffset = snapToGrid(beat - original.start, step, {
       floor: true,
     });
