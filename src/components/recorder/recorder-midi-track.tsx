@@ -242,7 +242,13 @@ function MidiTrackEditor({
       if (existing) {
         if (event.ctrlKey || event.metaKey) {
           preview.start(existing.pitch);
-          return { type: "select" as const, noteId: existing.id };
+          return {
+            type: midiInteraction.isSelected(track.id, existing.id)
+              ? ("duplicate" as const)
+              : ("select" as const),
+            noteId: existing.id,
+            beat: position.beat,
+          };
         }
         const edge = (event.target as HTMLElement).closest<HTMLElement>(
           "[data-note-edge]",
@@ -271,7 +277,7 @@ function MidiTrackEditor({
       return { type: "create" as const };
     },
     onClick: (_event, gesture) => {
-      if (gesture.data.type === "select") {
+      if (gesture.data.type === "select" || gesture.data.type === "duplicate") {
         midiInteraction.select({
           trackId: track.id,
           noteId: gesture.data.noteId,
@@ -295,6 +301,16 @@ function MidiTrackEditor({
           start: gesture.data.start,
           current: getPointerPosition(event),
         });
+      } else if (gesture.data.type === "duplicate") {
+        const note = midiInteraction.startDuplicate({
+          trackId: track.id,
+          noteId: gesture.data.noteId,
+          initialBeat: gesture.data.beat,
+          position: getPointerPosition(event),
+        });
+        if (note) {
+          preview.start(note.pitch);
+        }
       }
     },
     onDragMove: (event, gesture) => {
@@ -306,6 +322,14 @@ function MidiTrackEditor({
         return;
       }
       if (gesture.data.type !== "edit") {
+        if (gesture.data.type === "duplicate") {
+          const note = midiInteraction.updateDuplicate(
+            getPointerPosition(event),
+          );
+          if (note) {
+            preview.start(note.pitch);
+          }
+        }
         return;
       }
       const note = midiInteraction.updateEdit(getPointerPosition(event));
@@ -324,6 +348,8 @@ function MidiTrackEditor({
         setBoxSelection(undefined);
       } else if (gesture.data.type === "edit") {
         midiInteraction.finishEdit(position);
+      } else if (gesture.data.type === "duplicate") {
+        midiInteraction.finishDuplicate(position);
       }
       preview.stop();
     },
@@ -404,6 +430,15 @@ function MidiTrackEditor({
                 }) ?? note
               }
               selected={midiInteraction.isSelected(track.id, note.id)}
+              pixelsPerBeat={pixelsPerBeat}
+              viewportStartBeat={viewportStartBeat}
+            />
+          ))}
+          {midiInteraction.getDuplicatePreviews(track.id).map((note) => (
+            <MidiNote
+              key={note.id}
+              note={note}
+              selected
               pixelsPerBeat={pixelsPerBeat}
               viewportStartBeat={viewportStartBeat}
             />

@@ -59,6 +59,10 @@ const sections: HelpSectionData[] = [
       { action: "Cancel note drag", keys: "Esc" },
       { action: "Copy selected notes", keys: "Ctrl / Cmd + C" },
       { action: "Paste notes at playhead", keys: "Ctrl / Cmd + V" },
+      {
+        action: "Duplicate selected notes",
+        gesture: "Ctrl / Cmd + drag note",
+      },
       { action: "Preview a pitch", gesture: "Hold piano key" },
       { action: "Delete selected notes", keys: "Delete / Backspace" },
       { action: "Scroll pitches", gesture: "Wheel over MIDI grid" },

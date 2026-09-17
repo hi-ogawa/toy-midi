@@ -13,6 +13,13 @@ type MidiNoteEdit = {
   getNote: GetNote;
 };
 
+type MidiNoteDuplicate = {
+  trackId: string;
+  primaryId: string;
+  notes: Note[];
+  getNotes: (position: EditPosition) => Note[];
+};
+
 type EditPosition = { beat: number; pitch: number };
 type GetNote = (position: EditPosition) => Note;
 type EditMode = "move" | "resize-start" | "resize-end";
@@ -34,6 +41,7 @@ export function useRecorderMidiInteraction({
     noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
+  const [duplicate, setDuplicate] = useState<MidiNoteDuplicate>();
   const [clipboard, setClipboard] = useState<{
     trackId: string;
     notes: Note[];
@@ -78,6 +86,10 @@ export function useRecorderMidiInteraction({
     return edit?.trackId === trackId && edit.note.id === noteId
       ? edit.note
       : undefined;
+  }
+
+  function getDuplicatePreviews(trackId: string) {
+    return duplicate?.trackId === trackId ? duplicate.notes : [];
   }
 
   function select({
@@ -207,6 +219,92 @@ export function useRecorderMidiInteraction({
     return note;
   }
 
+  function startDuplicate({
+    trackId,
+    noteId,
+    initialBeat,
+    position,
+  }: {
+    trackId: string;
+    noteId: string;
+    initialBeat: number;
+    position: EditPosition;
+  }) {
+    cancelEdit();
+    onSelect();
+    const track = state.midiTracks.find((entry) => entry.id === trackId);
+    const originals = track?.notes.filter((note) =>
+      selectedNoteIds?.has(note.id),
+    );
+    const primary = originals?.find((note) => note.id === noteId);
+    if (!track || !originals || originals.length === 0 || !primary) {
+      return;
+    }
+    const step = 1 / subdivisionsPerBeat;
+    const grabOffset = snapToGrid(initialBeat - primary.start, step, {
+      floor: true,
+    });
+    const ids = originals.map(() => crypto.randomUUID());
+    const minimumStart = Math.min(...originals.map((note) => note.start));
+    const minimumPitch = Math.min(...originals.map((note) => note.pitch));
+    const maximumPitch = Math.max(...originals.map((note) => note.pitch));
+    const getNotes = ({ beat, pitch }: EditPosition) => {
+      const cellStart = snapToGrid(beat, step, { floor: true });
+      const deltaStart = Math.max(
+        cellStart - grabOffset - primary.start,
+        -minimumStart,
+      );
+      const deltaPitch = clamp(
+        pitch - primary.pitch,
+        -minimumPitch,
+        127 - maximumPitch,
+      );
+      return originals.map((note, index) => ({
+        ...note,
+        id: ids[index],
+        start: note.start + deltaStart,
+        pitch: note.pitch + deltaPitch,
+      }));
+    };
+    const notes = getNotes(position);
+    const next = {
+      trackId,
+      primaryId: ids[originals.indexOf(primary)],
+      notes,
+      getNotes,
+    };
+    setDuplicate(next);
+    return notes.find((note) => note.id === next.primaryId);
+  }
+
+  function updateDuplicate(position: EditPosition) {
+    if (!duplicate) {
+      return;
+    }
+    const notes = duplicate.getNotes(position);
+    setDuplicate({ ...duplicate, notes });
+    return notes.find((note) => note.id === duplicate.primaryId);
+  }
+
+  function finishDuplicate(position: EditPosition) {
+    if (!duplicate) {
+      return;
+    }
+    const notes = duplicate.getNotes(position);
+    const track = state.midiTracks.find(
+      (entry) => entry.id === duplicate.trackId,
+    );
+    cancelEdit();
+    if (!track) {
+      return;
+    }
+    runtime.setMidiTrackNotes(track.id, [...track.notes, ...notes]);
+    setSelection({
+      trackId: track.id,
+      noteIds: new Set(notes.map((note) => note.id)),
+    });
+  }
+
   function finishEdit(position: EditPosition) {
     // Calculate from the release position rather than waiting for a preview render.
     const note = edit?.getNote(position);
@@ -231,6 +329,7 @@ export function useRecorderMidiInteraction({
 
   function cancelEdit() {
     setEdit(undefined);
+    setDuplicate(undefined);
   }
 
   function clear() {
@@ -331,8 +430,12 @@ export function useRecorderMidiInteraction({
     startEdit,
     updateEdit,
     finishEdit,
+    startDuplicate,
+    updateDuplicate,
+    finishDuplicate,
     cancelEdit,
     getEditPreview,
+    getDuplicatePreviews,
     create,
     removeSelected,
     copySelected,
