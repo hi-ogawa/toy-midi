@@ -628,19 +628,21 @@ export class RecorderRuntime {
       .get()
       .midiTracks.find((track) => track.id === trackId);
     const note = track?.notes.find((note) => note.id === noteId);
-    if (
-      !track ||
-      !note ||
-      note.tabString === tabString ||
-      (tabString !== undefined &&
-        getFret({
-          pitch: note.pitch,
-          tabString,
-          openStringPitches: track.tabOpenStringPitches,
-        }) === undefined)
-    ) {
+    if (!track || !note || note.tabString === tabString) {
       return;
     }
+
+    if (tabString !== undefined) {
+      const fret = getFret({
+        pitch: note.pitch,
+        tabString,
+        openStringPitches: track.tabOpenStringPitches,
+      });
+      if (fret === undefined) {
+        return;
+      }
+    }
+
     const updated = { ...note, tabString };
     this.updateMidiTrack(trackId, (track) => ({
       ...track,
