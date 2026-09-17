@@ -28,9 +28,9 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     MidiTrackState,
     "tabAnnotationEnabled" | "tabOpenStringPitches" | "keySignature"
   > & {
-    keySignature?: MidiTrackState["keySignature"];
     tabAnnotationEnabled?: boolean;
     tabOpenStringPitches?: number[];
+    keySignature?: MidiTrackState["keySignature"];
   })[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
@@ -212,11 +212,11 @@ export function deserializeRecorderRuntimeState({
     }),
     midiTracks: (project.midiTracks ?? []).map((track) => ({
       ...track,
-      keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,
       ],
+      keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       eq: deserializeEq(track.eq),
     })),
     recordingTrack: {
