@@ -31,27 +31,37 @@ export function useRecorderMidiInteraction({
 }) {
   const [selection, setSelection] = useState<{
     trackId: string;
-    noteId: string;
+    noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
-  const selectedNote = selectedTrack?.notes.find(
-    (note) => note.id === selection?.noteId,
-  );
+  const selectedNoteIds = selection?.noteIds;
 
   useEffect(() => {
-    if (!selectedNote) {
-      cancelEdit();
-      setSelection(undefined);
+    if (!selection) {
+      return;
     }
-  }, [selectedNote]);
+    const track = state.midiTracks.find(
+      (entry) => entry.id === selection.trackId,
+    );
+    const availableIds = new Set(track?.notes.map((note) => note.id));
+    const noteIds = new Set(
+      [...selection.noteIds].filter((noteId) => availableIds.has(noteId)),
+    );
+    if (noteIds.size !== selection.noteIds.size) {
+      cancelEdit();
+      setSelection(noteIds.size > 0 ? { ...selection, noteIds } : undefined);
+    }
+  }, [state.midiTracks, selection]);
 
-  function getSelectedNoteId(trackId: string) {
-    return selectedNote && selection?.trackId === trackId
-      ? selection.noteId
-      : undefined;
+  function isSelected(trackId: string, noteId: string) {
+    return selection?.trackId === trackId && selection.noteIds.has(noteId);
+  }
+
+  function hasTrackSelection(trackId: string) {
+    return selection?.trackId === trackId && selection.noteIds.size > 0;
   }
 
   function getEditPreview({
@@ -66,10 +76,62 @@ export function useRecorderMidiInteraction({
       : undefined;
   }
 
-  function select(selection: { trackId: string; noteId: string }) {
+  function select({
+    trackId,
+    noteId,
+    additive = false,
+  }: {
+    trackId: string;
+    noteId: string;
+    additive?: boolean;
+  }) {
     cancelEdit();
     onSelect();
-    setSelection(selection);
+    setSelection((current) => {
+      if (!additive || current?.trackId !== trackId) {
+        return { trackId, noteIds: new Set([noteId]) };
+      }
+      const noteIds = new Set(current.noteIds);
+      if (noteIds.has(noteId)) {
+        noteIds.delete(noteId);
+      } else {
+        noteIds.add(noteId);
+      }
+      return noteIds.size > 0 ? { trackId, noteIds } : undefined;
+    });
+  }
+
+  function selectBox({
+    trackId,
+    start,
+    end,
+  }: {
+    trackId: string;
+    start: EditPosition;
+    end: EditPosition;
+  }) {
+    cancelEdit();
+    onSelect();
+    const track = state.midiTracks.find((entry) => entry.id === trackId);
+    if (!track) {
+      return;
+    }
+    const minBeat = Math.min(start.beat, end.beat);
+    const maxBeat = Math.max(start.beat, end.beat);
+    const minPitch = Math.min(start.pitch, end.pitch);
+    const maxPitch = Math.max(start.pitch, end.pitch);
+    const noteIds = new Set(
+      track.notes
+        .filter(
+          (note) =>
+            note.start < maxBeat &&
+            note.start + note.duration > minBeat &&
+            note.pitch >= minPitch &&
+            note.pitch <= maxPitch,
+        )
+        .map((note) => note.id),
+    );
+    setSelection(noteIds.size > 0 ? { trackId, noteIds } : undefined);
   }
 
   function startEdit({
@@ -201,10 +263,10 @@ export function useRecorderMidiInteraction({
 
   function removeSelected() {
     cancelEdit();
-    if (selectedTrack && selectedNote) {
+    if (selectedTrack && selectedNoteIds) {
       runtime.setMidiTrackNotes(
         selectedTrack.id,
-        selectedTrack.notes.filter((note) => note.id !== selectedNote.id),
+        selectedTrack.notes.filter((note) => !selectedNoteIds.has(note.id)),
       );
     }
     setSelection(undefined);
@@ -213,8 +275,11 @@ export function useRecorderMidiInteraction({
   return {
     activate: onSelect,
     clear,
-    hasSelection: selectedNote !== undefined,
-    getSelectedNoteId,
+    hasSelection: selectedNoteIds !== undefined && selectedNoteIds.size > 0,
+    hasTrackSelection,
+    isSelected,
+    select,
+    selectBox,
     startEdit,
     updateEdit,
     finishEdit,

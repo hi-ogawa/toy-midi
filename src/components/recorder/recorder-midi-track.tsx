@@ -180,16 +180,20 @@ function MidiTrackEditor({
 }) {
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
-  const selectedId = midiInteraction.getSelectedNoteId(track.id);
+  const [boxSelection, setBoxSelection] = useState<{
+    start: { beat: number; pitch: number };
+    current: { beat: number; pitch: number };
+  }>();
+  const hasSelection = midiInteraction.hasTrackSelection(track.id);
 
   useWindowEvent("blur", midiInteraction.cancelEdit);
 
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
-    if (selectedId === undefined) {
+    if (!hasSelection) {
       preview.stop();
     }
-  }, [selectedId]);
+  }, [hasSelection]);
 
   const scrollRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -236,6 +240,10 @@ function MidiTrackEditor({
       );
       const position = getPointerPosition(event);
       if (existing) {
+        if (event.ctrlKey || event.metaKey) {
+          preview.start(existing.pitch);
+          return { type: "select" as const, noteId: existing.id };
+        }
         const edge = (event.target as HTMLElement).closest<HTMLElement>(
           "[data-note-edge]",
         )?.dataset.noteEdge;
@@ -252,23 +260,77 @@ function MidiTrackEditor({
           beat: position.beat,
         });
         preview.start(existing.pitch);
-        return;
+        return { type: "edit" as const };
+      }
+      if (event.shiftKey) {
+        midiInteraction.activate();
+        return { type: "box-select" as const, start: position };
       }
       midiInteraction.create({ trackId: track.id, ...position });
       preview.start(position.pitch);
+      return { type: "create" as const };
     },
-    onClick: cancelEdit,
-    onDragMove: (event) => {
+    onClick: (_event, gesture) => {
+      if (gesture.data.type === "select") {
+        midiInteraction.select({
+          trackId: track.id,
+          noteId: gesture.data.noteId,
+          additive: true,
+        });
+      } else if (gesture.data.type === "box-select") {
+        midiInteraction.selectBox({
+          trackId: track.id,
+          start: gesture.data.start,
+          end: gesture.data.start,
+        });
+      } else {
+        midiInteraction.cancelEdit();
+      }
+      setBoxSelection(undefined);
+      preview.stop();
+    },
+    onDragStart: (event, gesture) => {
+      if (gesture.data.type === "box-select") {
+        setBoxSelection({
+          start: gesture.data.start,
+          current: getPointerPosition(event),
+        });
+      }
+    },
+    onDragMove: (event, gesture) => {
+      if (gesture.data.type === "box-select") {
+        setBoxSelection({
+          start: gesture.data.start,
+          current: getPointerPosition(event),
+        });
+        return;
+      }
+      if (gesture.data.type !== "edit") {
+        return;
+      }
       const note = midiInteraction.updateEdit(getPointerPosition(event));
       if (note) {
         preview.start(note.pitch);
       }
     },
-    onDragEnd: (event) => {
-      midiInteraction.finishEdit(getPointerPosition(event));
+    onDragEnd: (event, gesture) => {
+      const position = getPointerPosition(event);
+      if (gesture.data.type === "box-select") {
+        midiInteraction.selectBox({
+          trackId: track.id,
+          start: gesture.data.start,
+          end: position,
+        });
+        setBoxSelection(undefined);
+      } else if (gesture.data.type === "edit") {
+        midiInteraction.finishEdit(position);
+      }
       preview.stop();
     },
-    onCancel: cancelEdit,
+    onCancel: () => {
+      setBoxSelection(undefined);
+      cancelEdit();
+    },
   });
 
   function cancelEdit() {
@@ -279,7 +341,7 @@ function MidiTrackEditor({
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       cancelEdit();
-      if (selectedId !== undefined) {
+      if (hasSelection) {
         midiInteraction.clear();
       }
     }
@@ -341,11 +403,43 @@ function MidiTrackEditor({
                   noteId: note.id,
                 }) ?? note
               }
-              selected={selectedId === note.id}
+              selected={midiInteraction.isSelected(track.id, note.id)}
               pixelsPerBeat={pixelsPerBeat}
               viewportStartBeat={viewportStartBeat}
             />
           ))}
+          {boxSelection && (
+            <div
+              data-testid="recorder-midi-box-selection"
+              className="pointer-events-none absolute border border-blue-300 bg-blue-400/20"
+              style={{
+                left:
+                  (Math.min(
+                    boxSelection.start.beat,
+                    boxSelection.current.beat,
+                  ) -
+                    viewportStartBeat) *
+                  pixelsPerBeat,
+                top:
+                  (127 -
+                    Math.max(
+                      boxSelection.start.pitch,
+                      boxSelection.current.pitch,
+                    )) *
+                  KEY_HEIGHT,
+                width:
+                  Math.abs(
+                    boxSelection.current.beat - boxSelection.start.beat,
+                  ) * pixelsPerBeat,
+                height:
+                  (Math.abs(
+                    boxSelection.current.pitch - boxSelection.start.pitch,
+                  ) +
+                    1) *
+                  KEY_HEIGHT,
+              }}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -472,6 +566,7 @@ function MidiNote({
   return (
     <div
       data-note-id={note.id}
+      data-selected={selected}
       aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
       className={cn(
         "absolute cursor-grab active:cursor-grabbing rounded-sm border border-[#2563eb]",
