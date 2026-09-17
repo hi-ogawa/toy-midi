@@ -90,9 +90,9 @@ export function useRecorderMidiInteraction({
     if (!original) {
       return;
     }
-    const gridStep = 1 / subdivisionsPerBeat;
+    const step = 1 / subdivisionsPerBeat;
     // Keep the grabbed grid cell under the pointer instead of snapping the note start to it.
-    const grabOffset = snapToGrid(beat - original.start, gridStep, {
+    const grabOffset = snapToGrid(beat - original.start, step, {
       floor: true,
     });
     const originalEnd = original.start + original.duration;
@@ -103,7 +103,7 @@ export function useRecorderMidiInteraction({
       getNote: ({ beat, pitch }) => {
         switch (mode) {
           case "move": {
-            const cellStart = snapToGrid(beat, gridStep, { floor: true });
+            const cellStart = snapToGrid(beat, step, { floor: true });
             return {
               ...original,
               start: Math.max(0, cellStart - grabOffset),
@@ -112,17 +112,14 @@ export function useRecorderMidiInteraction({
           }
           case "resize-start": {
             const start = clamp(
-              snapToGrid(beat, gridStep),
+              snapToGrid(beat, step),
               0,
-              Math.max(0, originalEnd - gridStep),
+              Math.max(0, originalEnd - step),
             );
             return { ...original, start, duration: originalEnd - start };
           }
           case "resize-end": {
-            const end = Math.max(
-              snapToGrid(beat, gridStep),
-              original.start + gridStep,
-            );
+            const end = Math.max(snapToGrid(beat, step), original.start + step);
             return { ...original, duration: end - original.start };
           }
         }
