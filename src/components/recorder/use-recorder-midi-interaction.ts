@@ -249,13 +249,11 @@ export function useRecorderMidiInteraction({
     if (!track || !primary) {
       return;
     }
-    const preserveSelection = isSelected(trackId, noteId);
-    const originals = preserveSelection
-      ? track.notes.filter((note) => selectedNoteIds?.has(note.id))
-      : [primary];
+    let originals = track.notes.filter((note) => selectedNoteIds?.has(note.id));
     cancelEdit();
     onSelect();
-    if (!preserveSelection) {
+    if (!isSelected(trackId, noteId)) {
+      originals = [primary];
       setSelection({ trackId, noteIds: new Set([noteId]) });
     }
     const step = 1 / subdivisionsPerBeat;
