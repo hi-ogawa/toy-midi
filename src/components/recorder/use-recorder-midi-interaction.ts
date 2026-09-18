@@ -384,12 +384,10 @@ function createEditGetNotes({
         break;
       }
       case "resize-start": {
-        const minDelta = -minStart;
-        const maxDelta = Math.max(minDelta, minDuration - step);
         deltaStart = clamp(
           snapToGrid(beat, step) - primary.start,
-          minDelta,
-          maxDelta,
+          -minStart,
+          Math.max(-minStart, minDuration - step),
         );
         deltaDuration = -deltaStart;
         break;
