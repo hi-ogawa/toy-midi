@@ -647,7 +647,6 @@ export class RecorderRuntime {
     if (!track) {
       throw new Error("MIDI track state is missing.");
     }
-    // Snapshot only committed notes so previews never enter history.
     const before = track.notes;
     const after = notes;
     this.applyMidiTrackNotes({ trackId: id, notes: after });
