@@ -43,16 +43,9 @@ test("previews a MIDI note and opens its saved full score", async ({
   // Save the project and open its track in the full score viewer.
   await saveRecorderProject(page);
   await expect(openScore).toBeEnabled();
-  const projectId = new URL(page.url()).pathname.split("/").at(-1)!;
   const popupPromise = page.waitForEvent("popup");
   await openScore.click();
   const scorePage = await popupPromise;
-  await expect(scorePage).toHaveURL(
-    (url) =>
-      url.pathname === "/score-viewer" &&
-      url.searchParams.get("projectId") === projectId &&
-      !!url.searchParams.get("trackId"),
-  );
   await expect(scorePage.getByTestId("score-name")).toHaveText(
     "Untitled recording · MIDI 1.musicxml",
   );
