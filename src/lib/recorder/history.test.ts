@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Note } from "../../types.ts";
-import { RecorderMidiHistory } from "./history.ts";
+import { RecorderHistory } from "./history.ts";
 
-describe(RecorderMidiHistory, () => {
+describe(RecorderHistory, () => {
   it("replays note groups in chronological order across tracks", () => {
-    const history = new RecorderMidiHistory();
+    const history = new RecorderHistory();
     const first = [note("a"), note("b")];
     const moved = first.map((note) => ({ ...note, start: note.start + 2 }));
     const second = [note("c")];
@@ -36,7 +36,7 @@ describe(RecorderMidiHistory, () => {
   });
 
   it("discards redo after a new edit", () => {
-    const history = new RecorderMidiHistory();
+    const history = new RecorderHistory();
     const apply = vi.fn();
     history.push({ trackId: "track", before: [], after: [note("a")] });
     history.undo(apply);
@@ -53,7 +53,7 @@ describe(RecorderMidiHistory, () => {
   });
 
   it("prunes a deleted track from both stacks while keeping other tracks", () => {
-    const history = new RecorderMidiHistory();
+    const history = new RecorderHistory();
     const apply = vi.fn();
     for (const trackId of ["keep", "remove", "keep", "remove"]) {
       history.push({ trackId, before: [], after: [note(trackId)] });
@@ -72,7 +72,7 @@ describe(RecorderMidiHistory, () => {
   });
 
   it("keeps the most recent 50 edits", () => {
-    const history = new RecorderMidiHistory();
+    const history = new RecorderHistory();
     const apply = vi.fn();
     for (let index = 0; index < 51; index++) {
       history.push({
@@ -92,7 +92,7 @@ describe(RecorderMidiHistory, () => {
   });
 
   it("clears both stacks on project replacement", () => {
-    const history = new RecorderMidiHistory();
+    const history = new RecorderHistory();
     const apply = vi.fn();
     history.push({ trackId: "track", before: [], after: [note("a")] });
     history.push({ trackId: "track", before: [note("a")], after: [] });
@@ -105,7 +105,7 @@ describe(RecorderMidiHistory, () => {
   });
 
   it("keeps the entry available when replay fails", () => {
-    const history = new RecorderMidiHistory();
+    const history = new RecorderHistory();
     history.push({ trackId: "track", before: [], after: [note("a")] });
     const fail = () => {
       throw new Error("replay failed");

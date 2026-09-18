@@ -15,7 +15,9 @@ type ApplyNotes = (change: { trackId: string; notes: Note[] }) => void;
 
 const MAX_HISTORY = 50;
 
-export class RecorderMidiHistory {
+// Keep one chronological stack per recorder project as more edit domains are added.
+// MIDI note edits are the first supported domain.
+export class RecorderHistory {
   private undoStack: MidiHistoryEntry[] = [];
   private redoStack: MidiHistoryEntry[] = [];
 

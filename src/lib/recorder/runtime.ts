@@ -25,7 +25,7 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
-import { RecorderMidiHistory } from "./history.ts";
+import { RecorderHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -228,7 +228,7 @@ export class RecorderRuntime {
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
-  private readonly midiHistory = new RecorderMidiHistory();
+  private readonly history = new RecorderHistory();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
   private attachedYouTubePlayer?: {
     videoId: string;
@@ -582,7 +582,7 @@ export class RecorderRuntime {
   }
 
   removeMidiTrack(id: string): void {
-    this.midiHistory.removeTrack(id);
+    this.history.removeTrack(id);
     this.midiTrackPlaybacks.get(id)?.dispose();
     this.midiTrackPlaybacks.delete(id);
     this.store.update({
@@ -652,15 +652,15 @@ export class RecorderRuntime {
     const before = track.notes.map((note) => ({ ...note }));
     const after = notes.map((note) => ({ ...note }));
     this.applyMidiTrackNotes({ trackId: id, notes: after });
-    this.midiHistory.push({ trackId: id, before, after });
+    this.history.push({ trackId: id, before, after });
   }
 
   undo(): void {
-    this.midiHistory.undo((change) => this.applyMidiTrackNotes(change));
+    this.history.undo((change) => this.applyMidiTrackNotes(change));
   }
 
   redo(): void {
-    this.midiHistory.redo((change) => this.applyMidiTrackNotes(change));
+    this.history.redo((change) => this.applyMidiTrackNotes(change));
   }
 
   private applyMidiTrackNotes({
@@ -1034,7 +1034,7 @@ export class RecorderRuntime {
     ) {
       throw new Error("Cannot load a project while recording.");
     }
-    this.midiHistory.clear();
+    this.history.clear();
     this.pause();
     for (const playback of this.trackPlaybacks.values()) {
       playback.dispose();
