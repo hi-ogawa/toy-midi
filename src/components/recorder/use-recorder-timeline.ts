@@ -25,7 +25,9 @@ export function useRecorderTimeline({
   const [gridDivision, setGridDivision] = useState<GridDivision>(
     DEFAULT_GRID_DIVISION,
   );
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+  const [autoScrollEnabled, setAutoScrollEnabledState] = useState(
+    () => recorderStorage.readPreferences().autoScrollEnabled,
+  );
   const [pixelsPerBeat, setPixelsPerBeat] = useState(
     () => recorderStorage.readPreferences().timelinePixelsPerBeat,
   );
@@ -58,6 +60,11 @@ export function useRecorderTimeline({
     viewportStartBeat,
     viewportWidth,
   ]);
+
+  function setAutoScrollEnabled(enabled: boolean) {
+    setAutoScrollEnabledState(enabled);
+    recorderStorage.updatePreferences({ autoScrollEnabled: enabled });
+  }
 
   function zoom(nextPixelsPerBeat: number, anchorX: number) {
     const beatAtAnchor = anchorX / pixelsPerBeat + viewportStartBeat;
