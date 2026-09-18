@@ -5,7 +5,7 @@ import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-import { moveTabString } from "../../lib/tab-annotation";
+import { getFret, moveTabString } from "../../lib/tab-annotation";
 import type { Note } from "../../types";
 
 type MidiNoteEdit = {
@@ -288,37 +288,61 @@ export function useRecorderMidiInteraction({
   }
 
   function handleTabAnnotationShortcut(event: KeyboardEvent): boolean {
-    // TODO: Apply tab string assignment, changes, and reset to the whole selection.
-    const selectedNote =
-      selectedNoteIds?.size === 1
-        ? selectedTrack?.notes.find((note) => selectedNoteIds.has(note.id))
-        : undefined;
-    if (!selectedTrack?.tabAnnotationEnabled || !selectedNote) {
+    if (
+      !selectedTrack?.tabAnnotationEnabled ||
+      !selectedNoteIds ||
+      selectedNoteIds.size === 0
+    ) {
       return false;
     }
     const tabString = ([1, 2, 3, 4, 5] as const).find((string) =>
       matchKeyboardEvent(event, String(string)),
     );
-    const target = { trackId: selectedTrack.id, noteId: selectedNote.id };
-    if (tabString) {
-      runtime.setMidiNoteTabString({ ...target, tabString });
-    } else if (matchKeyboardEvent(event, "0")) {
-      runtime.setMidiNoteTabString(target);
-    } else if (
-      matchKeyboardEvent(event, "ArrowUp") ||
-      matchKeyboardEvent(event, "ArrowDown")
-    ) {
-      const move = moveTabString({
-        pitch: selectedNote.pitch,
-        tabString: selectedNote.tabString,
-        openStringPitches: selectedTrack.tabOpenStringPitches,
-        direction: matchKeyboardEvent(event, "ArrowUp") ? "up" : "down",
-      });
-      if (move && move.after !== move.before) {
-        runtime.setMidiNoteTabString({ ...target, tabString: move.after });
-      }
-    } else {
+    const reset = matchKeyboardEvent(event, "0");
+    const direction = matchKeyboardEvent(event, "ArrowUp")
+      ? "up"
+      : matchKeyboardEvent(event, "ArrowDown")
+        ? "down"
+        : undefined;
+    if (!tabString && !reset && !direction) {
       return false;
+    }
+    let changed = false;
+    const notes = selectedTrack.notes.map((note) => {
+      if (!selectedNoteIds.has(note.id)) {
+        return note;
+      }
+      let next = note.tabString;
+      if (tabString) {
+        const fret = getFret({
+          pitch: note.pitch,
+          tabString,
+          openStringPitches: selectedTrack.tabOpenStringPitches,
+        });
+        if (fret !== undefined) {
+          next = tabString;
+        }
+      } else if (reset) {
+        next = undefined;
+      } else if (direction) {
+        const move = moveTabString({
+          pitch: note.pitch,
+          tabString: note.tabString,
+          openStringPitches: selectedTrack.tabOpenStringPitches,
+          direction,
+        });
+        if (move && move.after !== move.before) {
+          next = move.after;
+        }
+      }
+      if (next === note.tabString) {
+        return note;
+      }
+      changed = true;
+      return { ...note, tabString: next };
+    });
+    if (changed) {
+      runtime.setMidiTrackNotes(selectedTrack.id, notes);
     }
     return true;
   }
