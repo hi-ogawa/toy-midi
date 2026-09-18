@@ -602,7 +602,7 @@ export class RecorderRuntime {
     if (index === -1) {
       return;
     }
-    const track = structuredClone(this.store.get().midiTracks[index]);
+    const track = this.store.get().midiTracks[index];
     this.deleteMidiTrack(id);
     this.history.pushMidiTrackRemove({ track, index });
   }
@@ -1282,7 +1282,7 @@ class RecorderHistory {
       after: {
         type: "midi-track",
         trackId: track.id,
-        snapshot: { track: structuredClone(track), index },
+        snapshot: { track, index },
       },
     });
   }
@@ -1312,7 +1312,7 @@ class RecorderHistory {
       }
       case "midi-track": {
         if (change.snapshot) {
-          await this.runtime.insertMidiTrack(structuredClone(change.snapshot));
+          await this.runtime.insertMidiTrack(change.snapshot);
         } else {
           this.runtime.deleteMidiTrack(change.trackId);
         }
