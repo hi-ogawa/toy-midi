@@ -1,3 +1,4 @@
+import { matchKeyboardEvent } from "../../lib/keyboard";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -68,11 +69,30 @@ export function useRecorderInteraction({
     return true;
   }
 
+  function handleUndoRedoShortcut(event: KeyboardEvent): boolean {
+    const undo = matchKeyboardEvent(event, "Ctrl+Z");
+    const redo =
+      matchKeyboardEvent(event, "Ctrl+Shift+Z") ||
+      matchKeyboardEvent(event, "Ctrl+Y");
+    if (!undo && !redo) {
+      return false;
+    }
+    // Clear selection and previews so an active gesture cannot overwrite replay.
+    midiInteraction.clear();
+    if (undo) {
+      runtime.undo();
+    } else {
+      runtime.redo();
+    }
+    return true;
+  }
+
   return {
     clipInteraction,
     locatorInteraction,
     midiInteraction,
     clearSelection,
     deleteSelection,
+    handleUndoRedoShortcut,
   };
 }
