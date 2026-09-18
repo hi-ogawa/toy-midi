@@ -6,8 +6,6 @@ import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import { matchKeyboardEvent } from "../lib/keyboard";
 import { parseProjectFile } from "../lib/project-file";
 import { type ProjectMetadata, projectStorage } from "../lib/project-storage";
-import { convertLegacyProject } from "../lib/recorder/legacy-project";
-import { recorderProjectStorage } from "../lib/recorder/project-storage";
 import { routes } from "../lib/routes";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
@@ -39,23 +37,7 @@ export function MidiProjectList() {
       toast.error("Failed to import project");
     },
   });
-  const convertProject = useMutation({
-    mutationFn: async (metadata: ProjectMetadata) => {
-      const project = projectStorage.load(metadata.id);
-      const content = await convertLegacyProject({
-        name: metadata.name,
-        project,
-        loadAudio: async (track) =>
-          (await projectStorage.loadAsset(track.assetKey))?.blob,
-      });
-      return recorderProjectStorage.createWithContent(content);
-    },
-    onSuccess: (projectId) => {
-      window.location.href = routes.recorderProject.href({ projectId });
-    },
-    onError: (error) => toast.error(error.message),
-  });
-  const isLoading = importProjectMutation.isPending || convertProject.isPending;
+  const isLoading = importProjectMutation.isPending;
 
   const handleRenameStart = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
@@ -95,12 +77,6 @@ export function MidiProjectList() {
                 handleRenameSubmit(project.id, nextName)
               }
               onRenameCancel={handleRenameCancel}
-              disabled={isLoading}
-              isConverting={
-                convertProject.isPending &&
-                convertProject.variables.id === project.id
-              }
-              onConvert={() => convertProject.mutate(project)}
               onDelete={(e) => handleDelete(e, project.id)}
             />
           ))}
@@ -143,9 +119,7 @@ export function MidiProjectList() {
           disabled={isLoading}
           className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
         >
-          {importProjectMutation.isPending
-            ? "Importing..."
-            : "Import MIDI project"}
+          {isLoading ? "Importing..." : "Import MIDI project"}
         </FileDropInput>
       </div>
     </section>
@@ -160,9 +134,6 @@ type ProjectListItemProps = {
   onRenameSubmit: (name: string) => void;
   onRenameCancel: () => void;
   onDelete: (e: React.MouseEvent) => void;
-  disabled: boolean;
-  isConverting: boolean;
-  onConvert: () => void;
 };
 
 function ProjectListItem({
@@ -173,9 +144,6 @@ function ProjectListItem({
   onRenameSubmit,
   onRenameCancel,
   onDelete,
-  disabled,
-  isConverting,
-  onConvert,
 }: ProjectListItemProps) {
   return (
     <div
@@ -210,18 +178,9 @@ function ProjectListItem({
             </div>
           </a>
           <div className="flex items-center gap-1">
-            <Button
-              disabled={disabled}
-              onClick={onConvert}
-              title="Create a recorder copy and keep this MIDI project"
-              className="px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-600/50"
-            >
-              {isConverting ? "Converting..." : "Convert to recorder"}
-            </Button>
             <button
               type="button"
               data-testid={`rename-button-${project.id}`}
-              disabled={disabled}
               onClick={onRenameStart}
               className="p-2 hover:bg-neutral-600/50 rounded-lg transition-colors"
               title="Rename"
@@ -231,7 +190,6 @@ function ProjectListItem({
             <button
               type="button"
               data-testid={`delete-button-${project.id}`}
-              disabled={disabled}
               onClick={onDelete}
               className="p-2 hover:bg-red-600/30 rounded-lg transition-colors"
               title="Delete"
