@@ -1,8 +1,5 @@
 import { createDefaultMultibandEq } from "../dsp/biquad-eq-node";
-import {
-  type AnySavedProject,
-  normalizeLegacyProject,
-} from "../legacy-project";
+import { type AnySavedProject, fromSavedProject } from "../project-store";
 import {
   serializeRecorderRuntimeState,
   type SerializedRecorderRuntimeState,
@@ -24,7 +21,7 @@ export async function convertLegacyProject({
   if (project.version !== 1 && project.version !== 2) {
     throw new Error("Unsupported legacy project version");
   }
-  const legacy = normalizeLegacyProject(project);
+  const legacy = fromSavedProject(project);
   const content = serializeRecorderRuntimeState(
     createDefaultRecorderRuntimeState(),
   );

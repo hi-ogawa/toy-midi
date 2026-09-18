@@ -1,10 +1,10 @@
 import JSZip from "jszip";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readLegacyProjectArchive } from "../project-file";
 import {
   createDefaultSavedProject,
   type SavedProjectV1,
-} from "../legacy-project";
-import { readLegacyProjectArchive } from "../project-file";
+} from "../project-store";
 import { convertLegacyProject } from "./legacy-project";
 import { importRecorderProject } from "./project-import";
 
