@@ -1,32 +1,31 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "./recorder-helpers";
+import {
+  createRecorderProject,
+  addRecorderMidiTrack,
+  createRecorderMidiNote,
+  saveRecorderProject,
+  getRecorderMidiNote,
+} from "./recorder-helpers";
 
 test("duplicates selected MIDI notes by modifier-dragging", async ({
   page,
 }) => {
   // Create two notes and save the project before duplicating them.
   await createRecorderProject(page);
-  await page.getByTestId("recorder-add-midi-track").click();
-  const row = page.getByTestId("recorder-midi-track-row");
+  const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
-  const gridBox = (await grid.boundingBox())!;
-  const c4Key = row.getByRole("button", { name: "Preview C4", exact: true });
-  const e4Key = row.getByRole("button", { name: "Preview E4", exact: true });
-  const c4KeyBox = (await c4Key.boundingBox())!;
-
-  await page.mouse.click(gridBox.x + 5, c4KeyBox.y + c4KeyBox.height / 2);
-  const cellWidth = (await notes.first().boundingBox())!.width;
-  const e4KeyBox = (await e4Key.boundingBox())!;
-  await page.mouse.click(
-    gridBox.x + cellWidth * 2 + 5,
-    e4KeyBox.y + e4KeyBox.height / 2,
-  );
-  const originalC4 = grid.locator('[aria-label="C4, beat 1"]');
-  const originalE4 = grid.locator('[aria-label="E4, beat 1.5"]');
+  const originalC4 = await createRecorderMidiNote(page, row, {
+    beat: 0,
+    pitch: "C4",
+  });
+  const originalE4 = await createRecorderMidiNote(page, row, {
+    beat: 0.5,
+    pitch: "E4",
+  });
+  const cellWidth = (await originalC4.boundingBox())!.width;
   const save = page.getByTestId("recorder-save-button");
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject(page);
 
   async function selectOriginals() {
     await originalC4.click({ modifiers: ["Control"] });
@@ -64,8 +63,8 @@ test("duplicates selected MIDI notes by modifier-dragging", async ({
   await page.mouse.up();
   await page.keyboard.up("Control");
   await expect(notes).toHaveCount(4);
-  const duplicateC4 = grid.locator('[aria-label="C4, beat 1.5"]');
-  const duplicateE4 = grid.locator('[aria-label="E4, beat 2"]');
+  const duplicateC4 = getRecorderMidiNote(row, { pitch: "C4", beat: 0.5 });
+  const duplicateE4 = getRecorderMidiNote(row, { pitch: "E4", beat: 1 });
   await expect(duplicateC4).toHaveAttribute("data-selected", "true");
   await expect(duplicateE4).toHaveAttribute("data-selected", "true");
   await expect(originalC4).toHaveAttribute("data-selected", "false");
@@ -73,8 +72,7 @@ test("duplicates selected MIDI notes by modifier-dragging", async ({
   await expect(save).toHaveAttribute("data-status", "unsaved");
 
   // Save and reload the project to preserve the duplicated notes.
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject(page);
   await page.reload();
   await expect(notes).toHaveCount(4);
   await expect(duplicateC4).toBeVisible();

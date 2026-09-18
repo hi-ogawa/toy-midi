@@ -3,18 +3,20 @@ import { createCheckpoint } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
+  addRecorderMidiTrack,
+  createRecorderMidiNote,
+  saveRecorderProject,
   getRecorderPosition,
 } from "./recorder-helpers";
 
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Add two MIDI tracks and verify each has its own timeline row.
   await createRecorderProject(page);
-  const addMidi = page.getByTestId("recorder-add-midi-track");
   const rows = page.getByTestId("recorder-midi-track-row");
-  await addMidi.click();
+  await addRecorderMidiTrack(page);
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText("MIDI 1");
-  await addMidi.click();
+  await addRecorderMidiTrack(page);
   await expect(rows).toHaveCount(2);
   await expect(rows.nth(1)).toContainText("MIDI 2");
 
@@ -43,8 +45,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Save and reload both tracks with their independent mix settings.
   const save = page.getByTestId("recorder-save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject(page);
   await page.reload();
   await expect(rows).toHaveCount(2);
   await expect(
@@ -79,8 +80,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await expect(rows.nth(0)).toContainText("MIDI 1");
 
   // Save the removal and verify the deleted track stays absent after reload.
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject(page);
   await page.reload();
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText("MIDI 1");
@@ -91,8 +91,7 @@ test("creates and deletes a note and persists its instrument", async ({
 }) => {
   // Add an empty MIDI track and preview C4 on its piano keyboard.
   await createRecorderProject(page);
-  await page.getByTestId("recorder-add-midi-track").click();
-  const row = page.getByTestId("recorder-midi-track-row");
+  const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
   await expect(grid).toBeVisible();
@@ -101,9 +100,7 @@ test("creates and deletes a note and persists its instrument", async ({
   await key.click();
 
   // Create a C4 note at the first grid cell and verify its pitch and snapped start.
-  const gridBox = await grid.boundingBox();
-  const keyBox = await key.boundingBox();
-  await page.mouse.click(gridBox!.x + 5, keyBox!.y + keyBox!.height / 2);
+  await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
   await expect(notes).toHaveCount(1);
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
 
@@ -122,9 +119,7 @@ test("creates and deletes a note and persists its instrument", async ({
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
   // Save and reload the note and instrument, then reopen the program selector.
-  const save = page.getByTestId("recorder-save-button");
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject(page);
   await page.reload();
   await expect(notes).toHaveCount(1);
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
@@ -140,8 +135,7 @@ test("creates and deletes a note and persists its instrument", async ({
   await page.keyboard.press("Delete");
   await expect(notes).toHaveCount(0);
   await expect(row).toBeVisible();
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject(page);
   await page.reload();
   await expect(grid).toBeVisible();
   await expect(notes).toHaveCount(0);
@@ -153,8 +147,7 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
   // Load the known four-note audio fixture and add an empty destination MIDI track.
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-tones.wav");
-  await page.getByTestId("recorder-add-midi-track").click();
-  const row = page.getByTestId("recorder-midi-track-row");
+  const row = await addRecorderMidiTrack(page);
   const notes = row.locator("[data-note-id]");
   await expect(row).toBeVisible();
   await expect(notes).toHaveCount(0);
@@ -198,9 +191,7 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
   await panel.getByRole("button", { name: "Close Audio to MIDI" }).click();
 
   // Save and reload the generated notes alongside their source audio.
-  const save = page.getByTestId("recorder-save-button");
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject(page);
   await page.reload();
   await expect(notes).toHaveCount(createdCount);
   expect(
