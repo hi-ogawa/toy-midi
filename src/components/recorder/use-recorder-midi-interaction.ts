@@ -13,12 +13,12 @@ type MidiNoteEdit = {
   primaryId: string;
   originals: Note[];
   notes: Note[];
-  getNotes: GetNotes;
+  getNotes: EditGetNotes;
 };
 
 // The pitch axis spans [0, MAX_PITCH + 1] upward. Note p occupies [p, p + 1).
 type MidiGridPosition = { beat: number; pitch: number };
-type GetNotes = (position: MidiGridPosition) => Note[];
+type EditGetNotes = (position: MidiGridPosition) => Note[];
 type EditMode = "move" | "resize-start" | "resize-end";
 
 type MidiBoxSelection = {
@@ -193,7 +193,7 @@ export function useRecorderMidiInteraction({
       primaryId: noteId,
       originals,
       notes: originals,
-      getNotes: createGetNotes({
+      getNotes: createEditGetNotes({
         mode,
         primary,
         originals,
@@ -345,7 +345,7 @@ export function useRecorderMidiInteraction({
   };
 }
 
-function createGetNotes({
+function createEditGetNotes({
   mode,
   primary,
   originals,
@@ -357,7 +357,7 @@ function createGetNotes({
   originals: Note[];
   grabBeat: number;
   step: number;
-}): GetNotes {
+}): EditGetNotes {
   // Preserve the grabbed cell's offset from the note start while moving.
   const grabOffset = snapToGrid(grabBeat - primary.start, step, {
     floor: true,
