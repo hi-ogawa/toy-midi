@@ -668,23 +668,6 @@ export class RecorderRuntime {
     });
   }
 
-  undo(): void {
-    this.history.undo((change) => this.applyHistoryChange(change));
-  }
-
-  redo(): void {
-    this.history.redo((change) => this.applyHistoryChange(change));
-  }
-
-  private applyHistoryChange(change: RecorderChange): void {
-    switch (change.type) {
-      case "midi-notes": {
-        this.applyMidiTrackNotes(change.trackId, change.notes);
-        break;
-      }
-    }
-  }
-
   private applyMidiTrackNotes(trackId: string, notes: Note[]): void {
     this.updateMidiTrack(trackId, (track) => ({ ...track, notes }));
     this.midiTrackPlaybacks.get(trackId)?.setNotes(notes);
@@ -1249,6 +1232,27 @@ export class RecorderRuntime {
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
+  }
+
+  //
+  // undo/redo support
+  //
+
+  undo(): void {
+    this.history.undo((change) => this.applyHistoryChange(change));
+  }
+
+  redo(): void {
+    this.history.redo((change) => this.applyHistoryChange(change));
+  }
+
+  private applyHistoryChange(change: RecorderChange): void {
+    switch (change.type) {
+      case "midi-notes": {
+        this.applyMidiTrackNotes(change.trackId, change.notes);
+        break;
+      }
+    }
   }
 }
 
