@@ -11,21 +11,34 @@ export type RecorderChange = {
   notes: Note[];
 };
 
+/** One committed edit, with changes that restore its previous and resulting state. */
 type HistoryEntry = {
   before: RecorderChange;
   after: RecorderChange;
 };
 
+/**
+ * Synchronously restore the described state and its runtime effects without recording
+ * another history entry. If this throws, history keeps the entry on its original
+ * stack, but cannot roll back any state the callback already changed.
+ */
 type ApplyChange = (change: RecorderChange) => void;
 
 const MAX_HISTORY = 50;
 
-// Keep one chronological stack per recorder project as more edit domains are added.
-// MIDI note edits are the first supported domain.
+/**
+ * One chronological undo/redo history per recorder project.
+ * The caller owns applying changes. History only retains and replays descriptors,
+ * so entries and their referenced data must not be mutated after push or replay.
+ */
 export class RecorderHistory {
   private undoStack: HistoryEntry[] = [];
   private redoStack: HistoryEntry[] = [];
 
+  /**
+   * Record one edit after the caller has successfully applied it. Does not apply
+   * either descriptor or detect no-ops. Clears redo and retains the latest 50 edits.
+   */
   push(entry: HistoryEntry): void {
     this.undoStack.push(entry);
     if (this.undoStack.length > MAX_HISTORY) {
@@ -34,6 +47,10 @@ export class RecorderHistory {
     this.redoStack = [];
   }
 
+  /**
+   * Apply the latest edit's before descriptor, then move the entry to redo.
+   * An empty stack is a no-op. A thrown error propagates without moving the entry.
+   */
   undo(apply: ApplyChange): void {
     const entry = this.undoStack.at(-1);
     if (!entry) {
@@ -44,6 +61,10 @@ export class RecorderHistory {
     this.redoStack.push(entry);
   }
 
+  /**
+   * Apply the latest undone edit's after descriptor, then move the entry to undo.
+   * An empty stack is a no-op. A thrown error propagates without moving the entry.
+   */
   redo(apply: ApplyChange): void {
     const entry = this.redoStack.at(-1);
     if (!entry) {
@@ -54,11 +75,13 @@ export class RecorderHistory {
     this.undoStack.push(entry);
   }
 
+  /** Remove matching entries from both stacks without applying any changes. */
   prune(matches: (entry: HistoryEntry) => boolean): void {
     this.undoStack = this.undoStack.filter((entry) => !matches(entry));
     this.redoStack = this.redoStack.filter((entry) => !matches(entry));
   }
 
+  /** Forget both stacks without changing recorder state, for example on project load. */
   clear(): void {
     this.undoStack = [];
     this.redoStack = [];
