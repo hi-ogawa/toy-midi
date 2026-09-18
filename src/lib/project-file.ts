@@ -44,6 +44,7 @@ export async function exportProjectFile(
   {
     loadAsset = (assetKey) => projectStorage.loadAsset(assetKey),
   }: {
+    // Node E2E fixtures use Uint8Array because JSZip reads Blob via browser FileReader.
     loadAsset?: (
       assetKey: string,
     ) => Promise<{ blob: Blob | Uint8Array } | undefined>;
