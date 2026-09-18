@@ -1247,14 +1247,6 @@ class RecorderHistory {
     });
   }
 
-  undo(): void {
-    this.history.undo((change) => this.apply(change));
-  }
-
-  redo(): void {
-    this.history.redo((change) => this.apply(change));
-  }
-
   removeMidiTrack(id: string): void {
     // Track deletion is not undoable yet, so discard changes that require it.
     this.history.prune((entry) =>
@@ -1262,10 +1254,6 @@ class RecorderHistory {
         (change) => change.type === "midi-notes" && change.trackId === id,
       ),
     );
-  }
-
-  clear(): void {
-    this.history.clear();
   }
 
   private apply(change: RecorderChange): void {
@@ -1276,6 +1264,10 @@ class RecorderHistory {
       }
     }
   }
+
+  clear = () => this.history.clear();
+  undo = () => this.history.undo((change) => this.apply(change));
+  redo = () => this.history.redo((change) => this.apply(change));
 }
 
 /**
