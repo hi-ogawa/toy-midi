@@ -3,9 +3,12 @@ import {
   createRecorderProject,
   addRecorderMidiTrack,
   createRecorderMidiNote,
+  saveRecorderProject,
 } from "./recorder-helpers";
 
-test("renders a MIDI note in the score panel", async ({ page }) => {
+test("previews a MIDI note and opens its saved score in the viewer", async ({
+  page,
+}) => {
   // Create a MIDI track and add a C4 note at the first beat.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
@@ -27,6 +30,29 @@ test("renders a MIDI note in the score panel", async ({ page }) => {
   await expect(
     score.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
+
+  // Keep the score viewer link disabled until the project is saved.
+  const openScore = score.getByRole("link", { name: "Open score viewer" });
+  await expect(openScore).toBeDisabled();
+  await openScore.hover();
+  const tooltip = score.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toHaveCSS("opacity", "1");
+  await expect(tooltip).toHaveText("Please save before opening score view");
+
+  // Save the project and open its track in the score viewer.
+  await saveRecorderProject(page);
+  await expect(openScore).toBeEnabled();
+  const popupPromise = page.waitForEvent("popup");
+  await openScore.click();
+  const scorePage = await popupPromise;
+  await expect(scorePage.getByTestId("score-name")).toHaveText(
+    "Untitled recording · MIDI 1.musicxml",
+  );
+  await expect(
+    scorePage.getByTestId("score-viewer-renderer").locator("svg"),
+  ).toBeVisible();
+  await scorePage.close();
 
   // Close the score preview and verify the panel disappears.
   await page
