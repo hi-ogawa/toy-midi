@@ -16,12 +16,6 @@ type MidiBoxSelection = {
   current: MidiGridPosition;
 };
 
-type MidiGridScale = {
-  viewportStartBeat: number;
-  pixelsPerBeat: number;
-  pixelsPerKey: number;
-};
-
 type MidiNoteEdit = {
   trackId: string;
   original: Note;
@@ -373,7 +367,13 @@ export function getMidiGridPosition({
   viewportStartBeat,
   pixelsPerBeat,
   pixelsPerKey,
-}: MidiGridScale & { x: number; y: number }): MidiGridPosition {
+}: {
+  x: number;
+  y: number;
+  viewportStartBeat: number;
+  pixelsPerBeat: number;
+  pixelsPerKey: number;
+}): MidiGridPosition {
   return {
     beat: viewportStartBeat + x / pixelsPerBeat,
     pitch: 128 - y / pixelsPerKey,
@@ -385,8 +385,11 @@ export function getMidiBoxSelectionRect({
   viewportStartBeat,
   pixelsPerBeat,
   pixelsPerKey,
-}: MidiGridScale & {
+}: {
   selection: MidiBoxSelection;
+  viewportStartBeat: number;
+  pixelsPerBeat: number;
+  pixelsPerKey: number;
 }) {
   const firstBeat = Math.min(start.beat, current.beat);
   const lastBeat = Math.max(start.beat, current.beat);
