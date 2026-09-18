@@ -26,6 +26,75 @@ type MidiBoxSelection = {
   current: MidiGridPosition;
 };
 
+function createGetNotes({
+  mode,
+  primary,
+  originals,
+  grabBeat,
+  step,
+}: {
+  mode: EditMode;
+  primary: Note;
+  originals: Note[];
+  grabBeat: number;
+  step: number;
+}): GetNotes {
+  // Preserve the grabbed cell's offset from the note start while moving.
+  const grabOffset = snapToGrid(grabBeat - primary.start, step, {
+    floor: true,
+  });
+  const minimumStart = Math.min(...originals.map((note) => note.start));
+  const minimumDuration = Math.min(...originals.map((note) => note.duration));
+  const minimumPitch = Math.min(...originals.map((note) => note.pitch));
+  const maximumPitch = Math.max(...originals.map((note) => note.pitch));
+  const primaryEnd = primary.start + primary.duration;
+
+  return ({ beat, pitch }) => {
+    let deltaStart = 0;
+    let deltaPitch = 0;
+    let deltaDuration = 0;
+    switch (mode) {
+      case "move": {
+        const cellStart = snapToGrid(beat, step, { floor: true });
+        deltaStart = Math.max(
+          cellStart - grabOffset - primary.start,
+          -minimumStart,
+        );
+        deltaPitch = clamp(
+          Math.floor(pitch) - primary.pitch,
+          -minimumPitch,
+          MAX_PITCH - maximumPitch,
+        );
+        break;
+      }
+      case "resize-start": {
+        const minimumDelta = -minimumStart;
+        const maximumDelta = Math.max(minimumDelta, minimumDuration - step);
+        deltaStart = clamp(
+          snapToGrid(beat, step) - primary.start,
+          minimumDelta,
+          maximumDelta,
+        );
+        deltaDuration = -deltaStart;
+        break;
+      }
+      case "resize-end": {
+        deltaDuration = Math.max(
+          snapToGrid(beat, step) - primaryEnd,
+          step - minimumDuration,
+        );
+        break;
+      }
+    }
+    return originals.map((note) => ({
+      ...note,
+      start: note.start + deltaStart,
+      pitch: note.pitch + deltaPitch,
+      duration: note.duration + deltaDuration,
+    }));
+  };
+}
+
 export function useRecorderMidiInteraction({
   runtime,
   state,
@@ -194,59 +263,13 @@ export function useRecorderMidiInteraction({
       setSelection({ trackId, noteIds: new Set([noteId]) });
     }
     const step = 1 / subdivisionsPerBeat;
-    // Preserve the grabbed cell's offset from the note start while moving.
-    const grabOffset = snapToGrid(beat - primary.start, step, {
-      floor: true,
+    const getNotes = createGetNotes({
+      mode,
+      primary,
+      originals,
+      grabBeat: beat,
+      step,
     });
-    const minimumStart = Math.min(...originals.map((note) => note.start));
-    const minimumDuration = Math.min(...originals.map((note) => note.duration));
-    const minimumPitch = Math.min(...originals.map((note) => note.pitch));
-    const maximumPitch = Math.max(...originals.map((note) => note.pitch));
-    const primaryEnd = primary.start + primary.duration;
-    const getNotes = ({ beat, pitch }: MidiGridPosition) => {
-      let deltaStart = 0;
-      let deltaPitch = 0;
-      let deltaDuration = 0;
-      switch (mode) {
-        case "move": {
-          const cellStart = snapToGrid(beat, step, { floor: true });
-          deltaStart = Math.max(
-            cellStart - grabOffset - primary.start,
-            -minimumStart,
-          );
-          deltaPitch = clamp(
-            Math.floor(pitch) - primary.pitch,
-            -minimumPitch,
-            MAX_PITCH - maximumPitch,
-          );
-          break;
-        }
-        case "resize-start": {
-          const minimumDelta = -minimumStart;
-          const maximumDelta = Math.max(minimumDelta, minimumDuration - step);
-          deltaStart = clamp(
-            snapToGrid(beat, step) - primary.start,
-            minimumDelta,
-            maximumDelta,
-          );
-          deltaDuration = -deltaStart;
-          break;
-        }
-        case "resize-end": {
-          deltaDuration = Math.max(
-            snapToGrid(beat, step) - primaryEnd,
-            step - minimumDuration,
-          );
-          break;
-        }
-      }
-      return originals.map((note) => ({
-        ...note,
-        start: note.start + deltaStart,
-        pitch: note.pitch + deltaPitch,
-        duration: note.duration + deltaDuration,
-      }));
-    };
     setEdit({
       trackId,
       primaryId: noteId,
