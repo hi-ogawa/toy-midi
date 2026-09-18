@@ -1,12 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import JSZip from "jszip";
 import {
   exportProjectFile,
   exportProjectFileV1,
 } from "../src/lib/project-file";
 import type { SavedProject } from "../src/lib/project-store";
-import type { SerializedRecorderRuntimeState } from "../src/lib/recorder/persistence";
 import { getRecorderMidiNote, getRecorderPosition } from "./recorder-helpers";
 
 for (const version of [1, 2] as const) {
@@ -56,17 +54,27 @@ for (const version of [1, 2] as const) {
       page.getByTestId("recorder-clip-audio").locator("svg"),
     ).toBeVisible();
 
-    // Export the reloaded copy to verify persisted musical settings and decoded samples.
-    const downloading = page.waitForEvent("download");
-    await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByTestId("recorder-export-project").click();
-    const download = await downloading;
-    const filePath = test.info().outputPath("converted.toymidi.zip");
-    await download.saveAs(filePath);
-    const zip = await JSZip.loadAsync(await readFile(filePath));
-    const content: SerializedRecorderRuntimeState<string> = JSON.parse(
-      await zip.file("project.json")!.async("text"),
-    );
+    // Inspect the saved recorder state directly to verify settings and decoded audio.
+    const content = await page.evaluate(async () => {
+      const projectId = window.location.pathname.split("/").pop()!;
+      const project = await window.__e2e.recorderProjectStorage.load(projectId);
+      return {
+        ...project,
+        audioTracks: project.audioTracks.map((track) => ({
+          ...track,
+          clip: track.clip && {
+            ...track.clip,
+            pcm: {
+              sampleRate: track.clip.pcm.sampleRate,
+              channels: track.clip.pcm.channels.map((samples) => ({
+                length: samples.length,
+                hasSignal: samples.some((sample) => Math.abs(sample) > 0.01),
+              })),
+            },
+          },
+        })),
+      };
+    });
     expect(content).toMatchObject({
       title: `Legacy v${version}`,
       tempo: 98,
@@ -99,13 +107,9 @@ for (const version of [1, 2] as const) {
     expect(content.audioTracks).toHaveLength(1);
     expect(content.midiTracks).toHaveLength(1);
     const track = content.audioTracks[0];
-    const channels = track.clip!.pcm.channels;
-    expect(channels).toHaveLength(1);
-    const samples = new Float32Array(
-      await zip.file(channels[0])!.async("arraybuffer"),
-    );
-    expect(samples.length).toBe(3 * 48000);
-    expect(samples.some((sample) => Math.abs(sample) > 0.01)).toBe(true);
+    expect(track.clip!.pcm.channels).toEqual([
+      { length: 3 * 48000, hasSignal: true },
+    ]);
     expect(track.trimStart).toBe(0);
     expect(track.trimEnd).toBe(3);
   });

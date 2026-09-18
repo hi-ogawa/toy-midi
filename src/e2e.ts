@@ -5,10 +5,12 @@ import {
   seedProjectV1,
 } from "./lib/project-storage";
 import { useProjectStore } from "./lib/project-store";
+import { recorderProjectStorage } from "./lib/recorder/project-storage";
 
 const utils = {
   useProjectStore,
   projectStorage,
+  recorderProjectStorage,
   seedProjectV1,
   seedLayoutV1Project,
   flushAutoSave,
