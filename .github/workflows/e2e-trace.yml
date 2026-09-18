@@ -22,11 +22,14 @@ permissions:
   contents: read
 
 jobs:
-  resolve:
+  trace:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     outputs:
       sha: ${{ steps.branch.outputs.sha }}
+      artifact-url: ${{ steps.upload.outputs.artifact-url }}
     steps:
+      # Pin the mutable branch ref so the report identifies the tested commit.
       - uses: actions/github-script@v9
         id: branch
         env:
@@ -38,17 +41,9 @@ jobs:
               ref: `heads/${process.env.TEST_REF}`,
             });
             core.setOutput("sha", branch.object.sha);
-
-  trace:
-    needs: resolve
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    outputs:
-      artifact-url: ${{ steps.upload.outputs.artifact-url }}
-    steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.resolve.outputs.sha }}
+          ref: ${{ steps.branch.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -77,9 +72,10 @@ jobs:
           archive: false
           retention-days: 7
 
+  # Keep PR write permission isolated from branch-controlled install and test code.
   report:
-    needs: [resolve, trace]
-    if: always() && needs.resolve.result == 'success'
+    needs: trace
+    if: always() && needs.trace.outputs.sha != ''
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -89,7 +85,7 @@ jobs:
           TEST_REF: ${{ inputs.ref }}
           TEST_FILTER: ${{ inputs.tests }}
           TEST_GREP: ${{ inputs.grep }}
-          TEST_SHA: ${{ needs.resolve.outputs.sha }}
+          TEST_SHA: ${{ needs.trace.outputs.sha }}
           TEST_RESULT: ${{ needs.trace.result }}
           ARTIFACT_URL: ${{ needs.trace.outputs.artifact-url }}
         with:
