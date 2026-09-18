@@ -154,8 +154,8 @@ export function useRecorderMidiInteraction({
     const minBeat = Math.min(start.beat, end.beat);
     const maxBeat = Math.max(start.beat, end.beat);
     // Include both endpoint rows when resolving the continuous selection box.
-    const minPitch = resolveMidiGridPitch(Math.min(start.pitch, end.pitch));
-    const maxPitch = resolveMidiGridPitch(Math.max(start.pitch, end.pitch));
+    const minPitch = Math.floor(Math.min(start.pitch, end.pitch));
+    const maxPitch = Math.floor(Math.max(start.pitch, end.pitch));
     const noteIds = new Set(
       track.notes
         .filter(
@@ -205,7 +205,7 @@ export function useRecorderMidiInteraction({
             return {
               ...original,
               start: Math.max(0, cellStart - grabOffset),
-              pitch: clampPitch(resolveMidiGridPitch(pitch)),
+              pitch: clampPitch(Math.floor(pitch)),
             };
           }
           case "resize-start": {
@@ -286,7 +286,7 @@ export function useRecorderMidiInteraction({
     }
     const note = {
       id: crypto.randomUUID(),
-      pitch: clampPitch(resolveMidiGridPitch(pitch)),
+      pitch: clampPitch(Math.floor(pitch)),
       start: Math.max(
         0,
         snapToGrid(beat, 1 / subdivisionsPerBeat, { floor: true }),
@@ -399,10 +399,4 @@ export function getMidiBoxSelectionRect({
     width: (lastBeat - firstBeat) * pixelsPerBeat,
     height: (highestPitch - lowestPitch) * pixelsPerKey,
   };
-}
-
-// Resolve the containing row. Leave out-of-grid values intact for selection
-// bounds; note creation and movement clamp the result to the MIDI range.
-function resolveMidiGridPitch(pitch: number): number {
-  return Math.floor(pitch);
 }
