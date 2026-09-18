@@ -64,6 +64,7 @@ export function useRecorderMidiInteraction({
   );
   const selectedNoteIds = selection?.noteIds;
 
+  // Reconcile selection when notes are removed outside this interaction.
   useEffect(() => {
     if (!selection) {
       return;
