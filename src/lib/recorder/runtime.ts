@@ -654,8 +654,8 @@ export class RecorderRuntime {
       return;
     }
     // Snapshot only committed notes so previews never enter history.
-    const before = track.notes.map((note) => ({ ...note }));
-    const after = notes.map((note) => ({ ...note }));
+    const before = track.notes;
+    const after = notes;
     this.applyMidiTrackNotes({ trackId: id, notes: after });
     this.history.push({
       before: { type: "midi-notes", trackId: id, notes: before },
