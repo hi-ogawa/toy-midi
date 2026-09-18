@@ -8,6 +8,10 @@ const port = process.env.E2E_PORT
   : await getFreePort(5183);
 process.env.E2E_PORT = String(port);
 
+const traceEnabled =
+  process.env.E2E_TRACE === "1" ||
+  (!process.env.CI && process.env.E2E_TRACE !== "0");
+
 export default defineConfig({
   testDir: "./e2e",
   webServer: {
@@ -20,10 +24,7 @@ export default defineConfig({
   },
   use: {
     baseURL: `http://localhost:${port}`,
-    trace:
-      process.env.E2E_TRACE === "1"
-        ? { mode: "on", screenshots: false }
-        : "off",
+    trace: traceEnabled ? { mode: "on", screenshots: false } : "off",
   },
   forbidOnly: !!process.env.CI,
   reporter: [
