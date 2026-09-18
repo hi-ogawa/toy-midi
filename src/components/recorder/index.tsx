@@ -9,11 +9,12 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { snapToGrid } from "../../lib/music";
 import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
-import { beatsToSeconds } from "../../lib/timeline";
+import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
@@ -190,6 +191,26 @@ export function Recorder({ projectId }: { projectId: string }) {
     }
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
+    }
+    if (matchKeyboardEvent(event, "Ctrl+C")) {
+      // Preserve normal browser copy when the user selected rendered text.
+      if (window.getSelection()?.isCollapsed === false) {
+        return;
+      }
+      if (midiInteraction.copySelected()) {
+        event.preventDefault();
+        return;
+      }
+    }
+    if (matchKeyboardEvent(event, "Ctrl+V")) {
+      const beat = snapToGrid(
+        secondsToBeats(state.position, state.tempo),
+        1 / timeline.subdivisionsPerBeat,
+      );
+      if (midiInteraction.paste(beat)) {
+        event.preventDefault();
+        return;
+      }
     }
     if (midiInteraction.handleTabAnnotationShortcut(event)) {
       event.preventDefault();

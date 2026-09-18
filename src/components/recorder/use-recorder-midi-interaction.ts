@@ -44,6 +44,10 @@ export function useRecorderMidiInteraction({
     noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
+  const [clipboard, setClipboard] = useState<{
+    trackId: string;
+    notes: Note[];
+  }>();
   const [boxSelection, setBoxSelection] = useState<
     MidiBoxSelection & { trackId: string }
   >();
@@ -287,6 +291,50 @@ export function useRecorderMidiInteraction({
     setSelection(undefined);
   }
 
+  function copySelected() {
+    if (!selectedTrack || !selectedNoteIds) {
+      return false;
+    }
+    const notes = selectedTrack.notes.filter((note) =>
+      selectedNoteIds.has(note.id),
+    );
+    if (notes.length === 0) {
+      return false;
+    }
+    setClipboard({
+      trackId: selectedTrack.id,
+      notes: notes.map((note) => ({ ...note })),
+    });
+    return true;
+  }
+
+  function paste(insertBeat: number) {
+    if (!clipboard) {
+      return false;
+    }
+    const track = state.midiTracks.find(
+      (entry) => entry.id === clipboard.trackId,
+    );
+    if (!track) {
+      return false;
+    }
+    cancelEdit();
+    onSelect();
+    const minStart = Math.min(...clipboard.notes.map((note) => note.start));
+    const deltaStart = insertBeat - minStart;
+    const notes = clipboard.notes.map((note) => ({
+      ...note,
+      id: crypto.randomUUID(),
+      start: note.start + deltaStart,
+    }));
+    runtime.setMidiTrackNotes(track.id, [...track.notes, ...notes]);
+    setSelection({
+      trackId: track.id,
+      noteIds: new Set(notes.map((note) => note.id)),
+    });
+    return true;
+  }
+
   function handleTabAnnotationShortcut(event: KeyboardEvent): boolean {
     if (
       !selectedTrack?.tabAnnotationEnabled ||
@@ -365,6 +413,8 @@ export function useRecorderMidiInteraction({
     getEditPreview,
     create,
     removeSelected,
+    copySelected,
+    paste,
     handleTabAnnotationShortcut,
   };
 }
