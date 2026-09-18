@@ -448,25 +448,26 @@ export function useRecorderMidiInteraction({
       }
       let next = note.tabString;
       if (tabString) {
-        if (
-          getFret({
-            pitch: note.pitch,
-            tabString,
-            openStringPitches: selectedTrack.tabOpenStringPitches,
-          }) !== undefined
-        ) {
+        const fret = getFret({
+          pitch: note.pitch,
+          tabString,
+          openStringPitches: selectedTrack.tabOpenStringPitches,
+        });
+        if (fret !== undefined) {
           next = tabString;
         }
       } else if (reset) {
         next = undefined;
       } else if (direction) {
-        next =
-          moveTabString({
-            pitch: note.pitch,
-            tabString: note.tabString,
-            openStringPitches: selectedTrack.tabOpenStringPitches,
-            direction,
-          })?.after ?? note.tabString;
+        const move = moveTabString({
+          pitch: note.pitch,
+          tabString: note.tabString,
+          openStringPitches: selectedTrack.tabOpenStringPitches,
+          direction,
+        });
+        if (move && move.after !== move.before) {
+          next = move.after;
+        }
       }
       if (next === note.tabString) {
         return note;
