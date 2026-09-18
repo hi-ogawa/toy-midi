@@ -16,10 +16,17 @@ export async function importRecorderProject(file: File) {
   if (manifest.projectType !== undefined) {
     throw new Error("Unsupported project type");
   }
-  const parsed = await parseProjectFile(file, { persistAssets: false });
+  const assets = new Map<string, File>();
+  const parsed = await parseProjectFile(file, {
+    saveAsset: async (audio) => {
+      const assetKey = crypto.randomUUID();
+      assets.set(assetKey, audio);
+      return assetKey;
+    },
+  });
   return convertLegacyProject({
     name: parsed.name,
     project: parsed.project,
-    loadAudio: async (track) => parsed.assets.get(track.id),
+    loadAudio: async (track) => assets.get(track.assetKey),
   });
 }

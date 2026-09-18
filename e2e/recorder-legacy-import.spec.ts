@@ -122,7 +122,7 @@ async function createLegacyArchive(version: 1 | 2) {
               },
             ],
           },
-          async () => audio,
+          { loadAsset: async () => audio },
         );
   return Buffer.from(await blob.arrayBuffer());
 }

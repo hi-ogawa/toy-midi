@@ -33,7 +33,6 @@ const CURRENT_FORMAT_VERSION: ProjectManifest["formatVersion"] = 2;
 interface ParsedProjectFile {
   name: string;
   project: SavedProject;
-  assets: Map<string, File>; // Extracted audio keyed by track id
 }
 
 /**
@@ -42,11 +41,12 @@ interface ParsedProjectFile {
 export async function exportProjectFile(
   projectName: string,
   projectData: SavedProject,
-  // Tests can provide encoded audio without browser asset storage.
-  loadAudio: (
-    assetKey: string,
-  ) => Promise<Blob | Uint8Array | undefined> = async (assetKey) =>
-    (await projectStorage.loadAsset(assetKey))?.blob,
+  {
+    loadAsset = async (assetKey) =>
+      (await projectStorage.loadAsset(assetKey))?.blob,
+  }: {
+    loadAsset?: (assetKey: string) => Promise<Blob | Uint8Array | undefined>;
+  } = {},
 ): Promise<Blob> {
   const zip = new JSZip();
 
@@ -55,7 +55,7 @@ export async function exportProjectFile(
   // Bundle each track's audio asset and record its path in the manifest
   const tracks = projectData.audioTracks;
   for (const track of tracks) {
-    const audio = await loadAudio(track.assetKey);
+    const audio = await loadAsset(track.assetKey);
     if (!audio) {
       throw new Error(`Missing audio asset for "${track.fileName}"`);
     }
@@ -128,10 +128,13 @@ export async function exportProjectFileV1(
  */
 export async function parseProjectFile(
   file: File,
-  { persistAssets = true }: { persistAssets?: boolean } = {},
+  {
+    saveAsset = (file) => projectStorage.saveAsset(file),
+  }: {
+    saveAsset?: (file: File) => Promise<string>;
+  } = {},
 ): Promise<ParsedProjectFile> {
   const zip = await JSZip.loadAsync(file);
-  const assets = new Map<string, File>();
 
   // Read manifest
   const manifestFile = zip.file("manifest.json");
@@ -173,18 +176,12 @@ export async function parseProjectFile(
       const blob = await audioZipFile.async("blob");
       const fileName =
         project.audioFileName || audioPath.split("/").pop() || "audio.wav";
-      const audioFile = fileFromBlob(blob, fileName);
-      assets.set("audio-1", audioFile);
-      // v1 migration requires an asset key even when audio stays in memory.
-      project.audioAssetKey = persistAssets
-        ? await projectStorage.saveAsset(audioFile)
-        : audioPath;
+      project.audioAssetKey = await saveAsset(fileFromBlob(blob, fileName));
     }
 
     return {
       name: manifest.name,
       project: migrateSavedProject(project),
-      assets,
     };
   }
 
@@ -212,11 +209,7 @@ export async function parseProjectFile(
       throw new Error(`Invalid project file: missing ${entry.path}`);
     }
     const blob = await audioZipFile.async("blob");
-    const audioFile = fileFromBlob(blob, track.fileName);
-    assets.set(track.id, audioFile);
-    const assetKey = persistAssets
-      ? await projectStorage.saveAsset(audioFile)
-      : track.assetKey;
+    const assetKey = await saveAsset(fileFromBlob(blob, track.fileName));
     newAudioTracks.push({ ...track, assetKey });
   }
   project.audioTracks = newAudioTracks;
@@ -224,7 +217,6 @@ export async function parseProjectFile(
   return {
     name: manifest.name,
     project,
-    assets,
   };
 }
 
