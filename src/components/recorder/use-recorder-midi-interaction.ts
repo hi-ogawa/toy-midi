@@ -59,9 +59,7 @@ export function useRecorderMidiInteraction({
       (entry) => entry.id === selection.trackId,
     );
     const availableIds = new Set(track?.notes.map((note) => note.id));
-    const noteIds = new Set(
-      [...selection.noteIds].filter((noteId) => availableIds.has(noteId)),
-    );
+    const noteIds = selection.noteIds.intersection(availableIds);
     if (noteIds.size !== selection.noteIds.size) {
       cancelEdit();
       setSelection(noteIds.size > 0 ? { ...selection, noteIds } : undefined);
