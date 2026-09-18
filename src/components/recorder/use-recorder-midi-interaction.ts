@@ -9,17 +9,11 @@ import { moveTabString } from "../../lib/tab-annotation";
 import type { Note } from "../../types";
 
 // The pitch axis spans [0, 128] upward. Note p occupies [p, p + 1).
-type MidiGridPosition = { beat: number; pitch: number };
+export type MidiGridPosition = { beat: number; pitch: number };
 
-type MidiBoxSelection = {
+export type MidiBoxSelection = {
   start: MidiGridPosition;
   current: MidiGridPosition;
-};
-
-type MidiGridScale = {
-  viewportStartBeat: number;
-  pixelsPerBeat: number;
-  pixelsPerKey: number;
 };
 
 type MidiNoteEdit = {
@@ -364,39 +358,5 @@ export function useRecorderMidiInteraction({
     create,
     removeSelected,
     handleTabAnnotationShortcut,
-  };
-}
-
-export function getMidiGridPosition({
-  x,
-  y,
-  viewportStartBeat,
-  pixelsPerBeat,
-  pixelsPerKey,
-}: MidiGridScale & { x: number; y: number }): MidiGridPosition {
-  return {
-    beat: viewportStartBeat + x / pixelsPerBeat,
-    pitch: 128 - y / pixelsPerKey,
-  };
-}
-
-export function getMidiBoxSelectionRect({
-  selection: { start, current },
-  viewportStartBeat,
-  pixelsPerBeat,
-  pixelsPerKey,
-}: MidiGridScale & {
-  selection: MidiBoxSelection;
-}) {
-  const firstBeat = Math.min(start.beat, current.beat);
-  const lastBeat = Math.max(start.beat, current.beat);
-  const lowestPitch = Math.min(start.pitch, current.pitch);
-  const highestPitch = Math.max(start.pitch, current.pitch);
-
-  return {
-    left: (firstBeat - viewportStartBeat) * pixelsPerBeat,
-    top: (128 - highestPitch) * pixelsPerKey,
-    width: (lastBeat - firstBeat) * pixelsPerBeat,
-    height: (highestPitch - lowestPitch) * pixelsPerKey,
   };
 }
