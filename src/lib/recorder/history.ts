@@ -1,35 +1,33 @@
-import type { Note } from "../../types.ts";
-import type { MidiTrackState } from "./runtime.ts";
-
-// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
-// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
-// Capture complete before/after notes for those IDs and migrate callers incrementally.
-// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
-// preserve array ordering when undo restores deleted notes.
-export type RecorderHistoryChange =
-  | { type: "midi-notes"; trackId: string; notes: Note[] }
-  | {
-      type: "midi-track";
-      trackId: string;
-      snapshot?: { track: MidiTrackState; index: number };
-    };
-
-type RecorderHistoryEntry = {
-  before: RecorderHistoryChange;
-  after: RecorderHistoryChange;
+/** One committed edit, with changes that restore its previous and resulting state. */
+type HistoryEntry<T> = {
+  before: T;
+  after: T;
 };
 
-type ApplyChange = (change: RecorderHistoryChange) => void | Promise<void>;
+/**
+ * Restore the described state and its runtime effects without recording
+ * another history entry. If this throws or rejects, history keeps the entry on its original
+ * stack, but cannot roll back any state the callback already changed.
+ */
+type ApplyChange<T> = (change: T) => void | Promise<void>;
 
 const MAX_HISTORY = 50;
 
-// Keep one chronological stack per recorder project as more edit domains are added.
+/**
+ * A chronological undo/redo history of caller-defined changes.
+ * The caller owns applying changes. History stores values of T and passes them to the apply callback,
+ * so entries and their referenced data must not be mutated after push or replay.
+ */
 // TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
-export class RecorderHistory {
-  private undoStack: RecorderHistoryEntry[] = [];
-  private redoStack: RecorderHistoryEntry[] = [];
+export class UndoRedoHistory<T> {
+  private undoStack: HistoryEntry<T>[] = [];
+  private redoStack: HistoryEntry<T>[] = [];
 
-  push(entry: RecorderHistoryEntry): void {
+  /**
+   * Record one edit after the caller has successfully applied it. Does not apply
+   * either change or detect no-ops. Clears redo and retains the latest 50 edits.
+   */
+  push(entry: HistoryEntry<T>): void {
     this.undoStack.push(entry);
     if (this.undoStack.length > MAX_HISTORY) {
       this.undoStack.shift();
@@ -37,7 +35,11 @@ export class RecorderHistory {
     this.redoStack = [];
   }
 
-  async undo(apply: ApplyChange): Promise<void> {
+  /**
+   * Await apply(entry.before) for the latest edit, then move the entry to redo.
+   * An empty stack is a no-op. A thrown error or rejection propagates without moving the entry.
+   */
+  async undo(apply: ApplyChange<T>): Promise<void> {
     const entry = this.undoStack.at(-1);
     if (!entry) {
       return;
@@ -47,7 +49,11 @@ export class RecorderHistory {
     this.redoStack.push(entry);
   }
 
-  async redo(apply: ApplyChange): Promise<void> {
+  /**
+   * Await apply(entry.after) for the latest undone edit, then move the entry to undo.
+   * An empty stack is a no-op. A thrown error or rejection propagates without moving the entry.
+   */
+  async redo(apply: ApplyChange<T>): Promise<void> {
     const entry = this.redoStack.at(-1);
     if (!entry) {
       return;
@@ -57,6 +63,7 @@ export class RecorderHistory {
     this.undoStack.push(entry);
   }
 
+  /** Forget both stacks without changing application state, for example on project load. */
   clear(): void {
     this.undoStack = [];
     this.redoStack = [];

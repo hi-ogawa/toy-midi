@@ -25,7 +25,7 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
-import { RecorderHistory, type RecorderHistoryChange } from "./history.ts";
+import { UndoRedoHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -220,6 +220,20 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   };
 }
 
+// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
+// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
+// Capture complete before/after notes for those IDs and migrate callers incrementally.
+// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
+// preserve array ordering when undo restores deleted notes.
+/** A state change that runtime can apply directly, including during undo and redo. */
+type RecorderChange =
+  | { type: "midi-notes"; trackId: string; notes: Note[] }
+  | {
+      type: "midi-track";
+      trackId: string;
+      snapshot?: { track: MidiTrackState; index: number };
+    };
+
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
@@ -228,7 +242,6 @@ export class RecorderRuntime {
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
-  private readonly history = new RecorderHistory();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
   private attachedYouTubePlayer?: {
     videoId: string;
@@ -236,6 +249,7 @@ export class RecorderRuntime {
     playback: YouTubePlayerPlayback;
   };
   private readonly metronome: RecorderMetronome;
+  private readonly history = new UndoRedoHistory<RecorderChange>();
 
   constructor() {
     this.masterOutput = this.context.createGain();
@@ -676,56 +690,16 @@ export class RecorderRuntime {
     if (!track) {
       throw new Error("MIDI track state is missing.");
     }
-    if (
-      track.notes.length === notes.length &&
-      track.notes.every((note, index) => shallowEqual(note, notes[index]))
-    ) {
-      return;
-    }
-    // Snapshot only committed notes so previews never enter history.
-    const before = track.notes.map((note) => ({ ...note }));
-    const after = notes.map((note) => ({ ...note }));
-    this.applyMidiTrackNotes({ trackId: id, notes: after });
+    const before = track.notes;
+    const after = notes;
+    this.applyMidiTrackNotes(id, after);
     this.history.push({
       before: { type: "midi-notes", trackId: id, notes: before },
       after: { type: "midi-notes", trackId: id, notes: after },
     });
   }
 
-  async undo(): Promise<void> {
-    await this.history.undo((change) => this.applyHistoryChange(change));
-  }
-
-  async redo(): Promise<void> {
-    await this.history.redo((change) => this.applyHistoryChange(change));
-  }
-
-  private async applyHistoryChange(
-    change: RecorderHistoryChange,
-  ): Promise<void> {
-    switch (change.type) {
-      case "midi-notes": {
-        this.applyMidiTrackNotes(change);
-        break;
-      }
-      case "midi-track": {
-        if (change.snapshot) {
-          await this.insertMidiTrack(structuredClone(change.snapshot));
-        } else {
-          this.deleteMidiTrack(change.trackId);
-        }
-        break;
-      }
-    }
-  }
-
-  private applyMidiTrackNotes({
-    trackId,
-    notes,
-  }: {
-    trackId: string;
-    notes: Note[];
-  }): void {
+  private applyMidiTrackNotes(trackId: string, notes: Note[]): void {
     this.updateMidiTrack(trackId, (track) => ({ ...track, notes }));
     this.midiTrackPlaybacks.get(trackId)?.setNotes(notes);
   }
@@ -1289,6 +1263,35 @@ export class RecorderRuntime {
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
+  }
+
+  //
+  // undo/redo support
+  //
+
+  async undo(): Promise<void> {
+    await this.history.undo((change) => this.applyHistoryChange(change));
+  }
+
+  async redo(): Promise<void> {
+    await this.history.redo((change) => this.applyHistoryChange(change));
+  }
+
+  private async applyHistoryChange(change: RecorderChange): Promise<void> {
+    switch (change.type) {
+      case "midi-notes": {
+        this.applyMidiTrackNotes(change.trackId, change.notes);
+        break;
+      }
+      case "midi-track": {
+        if (change.snapshot) {
+          await this.insertMidiTrack(structuredClone(change.snapshot));
+        } else {
+          this.deleteMidiTrack(change.trackId);
+        }
+        break;
+      }
+    }
   }
 }
 
