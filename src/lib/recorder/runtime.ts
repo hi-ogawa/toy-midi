@@ -647,7 +647,7 @@ export class RecorderRuntime {
     this.history.pushMidiNotes(id, before, notes);
   }
 
-  /** Apply notes without recording history, including during undo and redo. */
+  /** @internal for undo */
   applyMidiTrackNotes(trackId: string, notes: Note[]): void {
     this.updateMidiTrack(trackId, (track) => ({ ...track, notes }));
     this.midiTrackPlaybacks.get(trackId)?.setNotes(notes);
