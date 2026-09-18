@@ -1,13 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { Editor } from "./components/editor";
 import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
 import { Preview } from "./components/preview";
 import { Recorder } from "./components/recorder";
+import { RecorderScorePage } from "./components/recorder/recorder-score-page";
+import { RouteError } from "./components/route-error";
 import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
-import { getRecorderProjectScoreSource } from "./lib/recorder/project-score";
 import { matchRoute, routes } from "./lib/routes";
 
 export function App() {
@@ -21,7 +21,7 @@ export function App() {
       return <Recorder projectId={match.params.projectId} />;
     }
     case "recorderProjectScore": {
-      return <RecorderProjectScoreRoute {...match.params} />;
+      return <RecorderScorePage {...match.params} />;
     }
     case "latencyChecker": {
       return <LatencyChecker />;
@@ -40,36 +40,6 @@ export function App() {
       return <Home />;
     }
   }
-}
-
-function RecorderProjectScoreRoute({
-  projectId,
-  trackId,
-}: {
-  projectId: string;
-  trackId: string;
-}) {
-  // Keep a saved snapshot for this page, as with the legacy score route.
-  const score = useQuery({
-    queryKey: ["recorder-project-score", projectId, trackId],
-    queryFn: () => getRecorderProjectScoreSource({ projectId, trackId }),
-    staleTime: Infinity,
-    retry: false,
-  });
-
-  if (score.isError) {
-    return (
-      <RouteError
-        error={score.error}
-        backHref={routes.recorderProject.href({ projectId })}
-        backLabel="Back to project"
-      />
-    );
-  }
-  if (score.isPending) {
-    return <div className="p-6 text-neutral-400">Loading score…</div>;
-  }
-  return <ScoreViewer initialSource={score.data} />;
 }
 
 function ProjectScoreRoute({ projectId }: { projectId: string }) {
@@ -117,24 +87,5 @@ function ProjectRoute({ projectId }: { projectId: string }) {
       projectId={session.value.projectId}
       initialProjectName={session.value.projectName}
     />
-  );
-}
-
-function RouteError({
-  error,
-  backHref,
-  backLabel,
-}: {
-  error: unknown;
-  backHref: string;
-  backLabel: string;
-}) {
-  return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center gap-4 bg-neutral-900 text-neutral-400">
-      {String(error)}
-      <a href={backHref} className="text-emerald-400 hover:text-emerald-300">
-        {backLabel}
-      </a>
-    </div>
   );
 }
