@@ -1,27 +1,35 @@
 import type { Note } from "../../types.ts";
+import type { MidiTrackState } from "./runtime.ts";
 
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
 // editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
 // Capture complete before/after notes for those IDs and migrate callers incrementally.
 // Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
 // preserve array ordering when undo restores deleted notes.
-type MidiHistoryEntry = {
-  trackId: string;
-  before: Note[];
-  after: Note[];
+export type RecorderHistoryChange =
+  | { type: "midi-notes"; trackId: string; notes: Note[] }
+  | {
+      type: "midi-track";
+      trackId: string;
+      snapshot?: { track: MidiTrackState; index: number };
+    };
+
+type RecorderHistoryEntry = {
+  before: RecorderHistoryChange;
+  after: RecorderHistoryChange;
 };
 
-type ApplyNotes = (change: { trackId: string; notes: Note[] }) => void;
+type ApplyChange = (change: RecorderHistoryChange) => void | Promise<void>;
 
 const MAX_HISTORY = 50;
 
 // Keep one chronological stack per recorder project as more edit domains are added.
-// MIDI note edits are the first supported domain.
+// TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 export class RecorderHistory {
-  private undoStack: MidiHistoryEntry[] = [];
-  private redoStack: MidiHistoryEntry[] = [];
+  private undoStack: RecorderHistoryEntry[] = [];
+  private redoStack: RecorderHistoryEntry[] = [];
 
-  push(entry: MidiHistoryEntry): void {
+  push(entry: RecorderHistoryEntry): void {
     this.undoStack.push(entry);
     if (this.undoStack.length > MAX_HISTORY) {
       this.undoStack.shift();
@@ -29,33 +37,24 @@ export class RecorderHistory {
     this.redoStack = [];
   }
 
-  undo(apply: ApplyNotes): void {
+  async undo(apply: ApplyChange): Promise<void> {
     const entry = this.undoStack.at(-1);
     if (!entry) {
       return;
     }
-    apply({ trackId: entry.trackId, notes: entry.before });
+    await apply(entry.before);
     this.undoStack.pop();
     this.redoStack.push(entry);
   }
 
-  redo(apply: ApplyNotes): void {
+  async redo(apply: ApplyChange): Promise<void> {
     const entry = this.redoStack.at(-1);
     if (!entry) {
       return;
     }
-    apply({ trackId: entry.trackId, notes: entry.after });
+    await apply(entry.after);
     this.redoStack.pop();
     this.undoStack.push(entry);
-  }
-
-  removeTrack(trackId: string): void {
-    this.undoStack = this.undoStack.filter(
-      (entry) => entry.trackId !== trackId,
-    );
-    this.redoStack = this.redoStack.filter(
-      (entry) => entry.trackId !== trackId,
-    );
   }
 
   clear(): void {

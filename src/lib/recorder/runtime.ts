@@ -25,7 +25,7 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
-import { RecorderHistory } from "./history.ts";
+import { RecorderHistory, type RecorderHistoryChange } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -374,19 +374,39 @@ export class RecorderRuntime {
       number += 1;
     }
     const track = createMidiTrackState(number);
+    const index = await this.insertMidiTrack({ track });
+    this.history.push({
+      before: { type: "midi-track", trackId: track.id },
+      after: {
+        type: "midi-track",
+        trackId: track.id,
+        snapshot: { track: structuredClone(track), index },
+      },
+    });
+    return track.id;
+  }
+
+  private async insertMidiTrack({
+    track,
+    index,
+  }: {
+    track: MidiTrackState;
+    index?: number;
+  }): Promise<number> {
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
       output: this.masterOutput,
       track,
-      tempo: state.tempo,
+      tempo: this.store.get().tempo,
     });
+    const midiTracks = [...this.store.get().midiTracks];
+    index ??= midiTracks.length;
+    midiTracks.splice(index, 0, track);
     this.midiTrackPlaybacks.set(track.id, playback);
-    this.store.update({
-      midiTracks: [...this.store.get().midiTracks, track],
-    });
+    this.store.update({ midiTracks });
     this.syncTrackMix();
     playback.setTempo(this.store.get().tempo);
-    return track.id;
+    return index;
   }
 
   setTrackMix(
@@ -582,7 +602,21 @@ export class RecorderRuntime {
   }
 
   removeMidiTrack(id: string): void {
-    this.history.removeTrack(id);
+    const index = this.store
+      .get()
+      .midiTracks.findIndex((track) => track.id === id);
+    if (index === -1) {
+      return;
+    }
+    const track = structuredClone(this.store.get().midiTracks[index]);
+    this.deleteMidiTrack(id);
+    this.history.push({
+      before: { type: "midi-track", trackId: id, snapshot: { track, index } },
+      after: { type: "midi-track", trackId: id },
+    });
+  }
+
+  private deleteMidiTrack(id: string): void {
     this.midiTrackPlaybacks.get(id)?.dispose();
     this.midiTrackPlaybacks.delete(id);
     this.store.update({
@@ -652,15 +686,37 @@ export class RecorderRuntime {
     const before = track.notes.map((note) => ({ ...note }));
     const after = notes.map((note) => ({ ...note }));
     this.applyMidiTrackNotes({ trackId: id, notes: after });
-    this.history.push({ trackId: id, before, after });
+    this.history.push({
+      before: { type: "midi-notes", trackId: id, notes: before },
+      after: { type: "midi-notes", trackId: id, notes: after },
+    });
   }
 
-  undo(): void {
-    this.history.undo((change) => this.applyMidiTrackNotes(change));
+  async undo(): Promise<void> {
+    await this.history.undo((change) => this.applyHistoryChange(change));
   }
 
-  redo(): void {
-    this.history.redo((change) => this.applyMidiTrackNotes(change));
+  async redo(): Promise<void> {
+    await this.history.redo((change) => this.applyHistoryChange(change));
+  }
+
+  private async applyHistoryChange(
+    change: RecorderHistoryChange,
+  ): Promise<void> {
+    switch (change.type) {
+      case "midi-notes": {
+        this.applyMidiTrackNotes(change);
+        break;
+      }
+      case "midi-track": {
+        if (change.snapshot) {
+          await this.insertMidiTrack(structuredClone(change.snapshot));
+        } else {
+          this.deleteMidiTrack(change.trackId);
+        }
+        break;
+      }
+    }
   }
 
   private applyMidiTrackNotes({
