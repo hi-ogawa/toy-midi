@@ -293,6 +293,8 @@ function MidiTrackEditor({
     },
     onClick: (event, gesture) => {
       if (gesture.data.type === "select" || gesture.data.type === "duplicate") {
+        // Ctrl/Cmd-click toggles selection even on a selected note because
+        // duplication starts only after crossing the drag threshold.
         midiInteraction.select({
           trackId: track.id,
           noteId: gesture.data.noteId,
@@ -408,46 +410,34 @@ function MidiTrackEditor({
               },
             })}
           />
-          {track.notes.map((note) => {
-            const displayedNote =
-              midiInteraction.getEditPreview({
-                trackId: track.id,
-                noteId: note.id,
-              }) ?? note;
-            const annotation = track.tabAnnotationEnabled
-              ? getTabAnnotationDisplay({
-                  note: displayedNote,
-                  openStringPitches: track.tabOpenStringPitches,
-                })
-              : undefined;
-            return (
-              <MidiNote
-                key={note.id}
-                note={displayedNote}
-                annotation={annotation}
-                selected={midiInteraction.isSelected(track.id, note.id)}
-                pixelsPerBeat={pixelsPerBeat}
-                viewportStartBeat={viewportStartBeat}
-              />
-            );
-          })}
-          {midiInteraction.getDuplicatePreviews(track.id).map((note) => (
-            <MidiNote
-              key={note.id}
-              note={note}
-              annotation={
-                track.tabAnnotationEnabled
-                  ? getTabAnnotationDisplay({
-                      note,
-                      openStringPitches: track.tabOpenStringPitches,
-                    })
-                  : undefined
-              }
-              selected
-              pixelsPerBeat={pixelsPerBeat}
-              viewportStartBeat={viewportStartBeat}
-            />
-          ))}
+          {track.notes
+            .concat(midiInteraction.getDuplicatePreviews(track.id))
+            .map((note, index) => {
+              const isDuplicate = index >= track.notes.length;
+              const displayedNote =
+                midiInteraction.getEditPreview({
+                  trackId: track.id,
+                  noteId: note.id,
+                }) ?? note;
+              const annotation = track.tabAnnotationEnabled
+                ? getTabAnnotationDisplay({
+                    note: displayedNote,
+                    openStringPitches: track.tabOpenStringPitches,
+                  })
+                : undefined;
+              return (
+                <MidiNote
+                  key={note.id}
+                  note={displayedNote}
+                  annotation={annotation}
+                  selected={
+                    isDuplicate || midiInteraction.isSelected(track.id, note.id)
+                  }
+                  pixelsPerBeat={pixelsPerBeat}
+                  viewportStartBeat={viewportStartBeat}
+                />
+              );
+            })}
           {boxSelection && (
             <div
               data-testid="recorder-midi-box-selection"

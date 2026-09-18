@@ -51,7 +51,6 @@ export function useRecorderMidiInteraction({
     noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
-  const [duplicate, setDuplicate] = useState<MidiNoteDuplicate>();
   const [clipboard, setClipboard] = useState<{
     trackId: string;
     notes: Note[];
@@ -59,6 +58,7 @@ export function useRecorderMidiInteraction({
   const [boxSelection, setBoxSelection] = useState<
     MidiBoxSelection & { trackId: string }
   >();
+  const [duplicate, setDuplicate] = useState<MidiNoteDuplicate>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -228,6 +228,32 @@ export function useRecorderMidiInteraction({
     return notes.find((note) => note.id === edit.primaryId);
   }
 
+  function finishEdit(position: MidiGridPosition) {
+    // Calculate from the release position rather than waiting for a preview render.
+    if (!edit) {
+      return;
+    }
+    const notes = edit.getNotes(position);
+    cancelEdit();
+    const { trackId, originals } = edit;
+    const track = state.midiTracks.find((track) => track.id === trackId);
+    const changed = notes.some((note, index) => {
+      const original = originals[index];
+      return (
+        note.start !== original.start ||
+        note.pitch !== original.pitch ||
+        note.duration !== original.duration
+      );
+    });
+    if (track && changed) {
+      const updates = new Map(notes.map((note) => [note.id, note]));
+      runtime.setMidiTrackNotes(
+        trackId,
+        track.notes.map((note) => updates.get(note.id) ?? note),
+      );
+    }
+  }
+
   function startDuplicate({
     trackId,
     noteId,
@@ -301,36 +327,10 @@ export function useRecorderMidiInteraction({
     });
   }
 
-  function finishEdit(position: MidiGridPosition) {
-    // Calculate from the release position rather than waiting for a preview render.
-    if (!edit) {
-      return;
-    }
-    const notes = edit.getNotes(position);
-    cancelEdit();
-    const { trackId, originals } = edit;
-    const track = state.midiTracks.find((track) => track.id === trackId);
-    const changed = notes.some((note, index) => {
-      const original = originals[index];
-      return (
-        note.start !== original.start ||
-        note.pitch !== original.pitch ||
-        note.duration !== original.duration
-      );
-    });
-    if (track && changed) {
-      const updates = new Map(notes.map((note) => [note.id, note]));
-      runtime.setMidiTrackNotes(
-        trackId,
-        track.notes.map((note) => updates.get(note.id) ?? note),
-      );
-    }
-  }
-
   function cancelEdit() {
     setEdit(undefined);
-    setDuplicate(undefined);
     setBoxSelection(undefined);
+    setDuplicate(undefined);
   }
 
   function clear() {
