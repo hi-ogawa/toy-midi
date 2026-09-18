@@ -192,6 +192,21 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    const undo = matchKeyboardEvent(event, "Ctrl+Z");
+    const redo =
+      matchKeyboardEvent(event, "Ctrl+Shift+Z") ||
+      matchKeyboardEvent(event, "Ctrl+Y");
+    if (undo || redo) {
+      event.preventDefault();
+      // Clear selection and previews so an active gesture cannot overwrite replay.
+      midiInteraction.clear();
+      if (undo) {
+        runtime.undo();
+      } else {
+        runtime.redo();
+      }
+      return;
+    }
     if (matchKeyboardEvent(event, "Ctrl+C")) {
       // Preserve normal browser copy when the user selected rendered text.
       if (window.getSelection()?.isCollapsed === false) {
