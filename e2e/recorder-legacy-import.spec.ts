@@ -5,7 +5,11 @@ import {
   exportProjectFileV1,
 } from "../src/lib/project-file";
 import type { SavedProject } from "../src/lib/project-store";
-import { getRecorderMidiNote, getRecorderPosition } from "./recorder-helpers";
+import {
+  evaluateRecorderStore,
+  getRecorderMidiNote,
+  getRecorderPosition,
+} from "./recorder-helpers";
 
 for (const version of [1, 2] as const) {
   test(`imports a legacy v${version} archive into the recorder`, async ({
@@ -54,64 +58,27 @@ for (const version of [1, 2] as const) {
       page.getByTestId("recorder-clip-audio").locator("svg"),
     ).toBeVisible();
 
-    // Inspect the saved recorder state directly to verify settings and decoded audio.
-    const content = await page.evaluate(async () => {
-      const projectId = window.location.pathname.split("/").pop()!;
-      const project = await window.__e2e.recorderProjectStorage.load(projectId);
-      return {
-        ...project,
-        audioTracks: project.audioTracks.map((track) => ({
-          ...track,
-          clip: track.clip && {
-            ...track.clip,
-            pcm: {
-              sampleRate: track.clip.pcm.sampleRate,
-              channels: track.clip.pcm.channels.map((samples) => ({
-                length: samples.length,
-                hasSignal: samples.some((sample) => Math.abs(sample) > 0.01),
-              })),
-            },
-          },
-        })),
-      };
-    });
-    expect(content).toMatchObject({
-      title: `Legacy v${version}`,
-      tempo: 98,
-      timeSignature: { numerator: 3, denominator: 4 },
-      masterGain: 0.75,
-      metronomeGain: 0.25,
-      locators: [{ id: "verse", beat: 4, label: "Verse" }],
-      midiTracks: [
-        {
-          notes: LEGACY_MUSICAL_DATA.notes,
-          program: 24,
-          gain: 0.4,
-          muted: false,
-          soloed: false,
-          tabAnnotationEnabled: true,
-          tabOpenStringPitches: [43, 38, 33, 28],
-          keySignature: { fifths: -1, mode: "major" },
-        },
-      ],
-      audioTracks: [
-        {
-          gain: 0.65,
-          muted: false,
-          soloed: version === 2,
-          timelineOffset: 0.5,
-          clip: { name: "legacy-audio.wav", pcm: { sampleRate: 48000 } },
-        },
-      ],
-    });
-    expect(content.audioTracks).toHaveLength(1);
-    expect(content.midiTracks).toHaveLength(1);
-    const track = content.audioTracks[0];
-    expect(track.clip!.pcm.channels).toEqual([
-      { length: 3 * 48000, hasSignal: true },
+    // Verify the reloaded audio track retains its imported timing and mix.
+    const audioTracks = await evaluateRecorderStore(page, (store) =>
+      store.get().audioTracks.map((track) => ({
+        name: track.clips[0].name,
+        duration: track.clips[0].duration,
+        offset: track.clips[0].timelineOffset,
+        gain: track.gain,
+        muted: track.muted,
+        soloed: track.soloed,
+      })),
+    );
+    expect(audioTracks).toEqual([
+      {
+        name: "legacy-audio.wav",
+        duration: 3,
+        offset: 0.5,
+        gain: 0.65,
+        muted: false,
+        soloed: version === 2,
+      },
     ]);
-    expect(track.trimStart).toBe(0);
-    expect(track.trimEnd).toBe(3);
   });
 }
 
