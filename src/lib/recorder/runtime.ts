@@ -375,7 +375,7 @@ export class RecorderRuntime {
     }
     const track = createMidiTrackState(number);
     const index = await this.insertMidiTrack({ track });
-    this.history.pushMidiTrackAdd({ track, index });
+    this.history.pushMidiTrack({ track, index });
     return track.id;
   }
 
@@ -604,7 +604,7 @@ export class RecorderRuntime {
     }
     const track = this.store.get().midiTracks[index];
     this.deleteMidiTrack(id);
-    this.history.pushMidiTrackRemove({ track, index });
+    this.history.pushMidiTrack({ track, index, reverse: true });
   }
 
   /** @internal for undo */
@@ -1270,38 +1270,28 @@ class RecorderHistory {
     });
   }
 
-  pushMidiTrackAdd({
+  pushMidiTrack({
     track,
     index,
+    reverse = false,
   }: {
     track: MidiTrackState;
     index: number;
+    reverse?: boolean;
   }): void {
-    this.history.push({
-      before: { type: "midi-track", trackId: track.id },
-      after: {
-        type: "midi-track",
-        trackId: track.id,
-        snapshot: { track, index },
-      },
-    });
-  }
-
-  pushMidiTrackRemove({
-    track,
-    index,
-  }: {
-    track: MidiTrackState;
-    index: number;
-  }): void {
-    this.history.push({
-      before: {
-        type: "midi-track",
-        trackId: track.id,
-        snapshot: { track, index },
-      },
-      after: { type: "midi-track", trackId: track.id },
-    });
+    const absent: RecorderChange = {
+      type: "midi-track",
+      trackId: track.id,
+    };
+    const present: RecorderChange = {
+      ...absent,
+      snapshot: { track, index },
+    };
+    this.history.push(
+      reverse
+        ? { before: present, after: absent }
+        : { before: absent, after: present },
+    );
   }
 
   private async apply(change: RecorderChange): Promise<void> {
