@@ -239,6 +239,7 @@ function MidiTrackEditor({
 
   type MidiGridGesture =
     | { type: "select"; noteId: string }
+    | { type: "duplicate"; noteId: string; beat: number }
     | { type: "edit" }
     | { type: "box-select" }
     | { type: "create" };
@@ -258,7 +259,9 @@ function MidiTrackEditor({
       if (existing) {
         if (event.ctrlKey || event.metaKey) {
           preview.start(existing.pitch);
-          return { type: "select", noteId: existing.id };
+          return midiInteraction.isSelected(track.id, existing.id)
+            ? { type: "duplicate", noteId: existing.id, beat: position.beat }
+            : { type: "select", noteId: existing.id };
         }
         const edge = (event.target as HTMLElement).closest<HTMLElement>(
           "[data-note-edge]",
@@ -289,7 +292,9 @@ function MidiTrackEditor({
       return { type: "create" };
     },
     onClick: (event, gesture) => {
-      if (gesture.data.type === "select") {
+      if (gesture.data.type === "select" || gesture.data.type === "duplicate") {
+        // Ctrl/Cmd-click toggles selection even on a selected note because
+        // duplication starts only after crossing the drag threshold.
         midiInteraction.select({
           trackId: track.id,
           noteId: gesture.data.noteId,
@@ -302,11 +307,29 @@ function MidiTrackEditor({
       }
       preview.stop();
     },
+    onDragStart: (event, gesture) => {
+      if (gesture.data.type === "duplicate") {
+        const note = midiInteraction.startDuplicate({
+          trackId: track.id,
+          noteId: gesture.data.noteId,
+          initialBeat: gesture.data.beat,
+          position: getPointerPosition(event),
+        });
+        if (note) {
+          preview.start(note.pitch);
+        }
+      }
+    },
     onDragMove: (event, gesture) => {
       if (gesture.data.type === "box-select") {
         midiInteraction.updateBoxSelection(getPointerPosition(event));
       } else if (gesture.data.type === "edit") {
         const note = midiInteraction.updateEdit(getPointerPosition(event));
+        if (note) {
+          preview.start(note.pitch);
+        }
+      } else if (gesture.data.type === "duplicate") {
+        const note = midiInteraction.updateDuplicate(getPointerPosition(event));
         if (note) {
           preview.start(note.pitch);
         }
@@ -318,6 +341,8 @@ function MidiTrackEditor({
         midiInteraction.finishBoxSelection(position);
       } else if (gesture.data.type === "edit") {
         midiInteraction.finishEdit(position);
+      } else if (gesture.data.type === "duplicate") {
+        midiInteraction.finishDuplicate(position);
       }
       preview.stop();
     },
@@ -385,29 +410,34 @@ function MidiTrackEditor({
               },
             })}
           />
-          {track.notes.map((note) => {
-            const displayedNote =
-              midiInteraction.getEditPreview({
-                trackId: track.id,
-                noteId: note.id,
-              }) ?? note;
-            const annotation = track.tabAnnotationEnabled
-              ? getTabAnnotationDisplay({
-                  note: displayedNote,
-                  openStringPitches: track.tabOpenStringPitches,
-                })
-              : undefined;
-            return (
-              <MidiNote
-                key={note.id}
-                note={displayedNote}
-                annotation={annotation}
-                selected={midiInteraction.isSelected(track.id, note.id)}
-                pixelsPerBeat={pixelsPerBeat}
-                viewportStartBeat={viewportStartBeat}
-              />
-            );
-          })}
+          {track.notes
+            .concat(midiInteraction.getDuplicatePreviews(track.id))
+            .map((note, index) => {
+              const isDuplicate = index >= track.notes.length;
+              const displayedNote =
+                midiInteraction.getEditPreview({
+                  trackId: track.id,
+                  noteId: note.id,
+                }) ?? note;
+              const annotation = track.tabAnnotationEnabled
+                ? getTabAnnotationDisplay({
+                    note: displayedNote,
+                    openStringPitches: track.tabOpenStringPitches,
+                  })
+                : undefined;
+              return (
+                <MidiNote
+                  key={note.id}
+                  note={displayedNote}
+                  annotation={annotation}
+                  selected={
+                    isDuplicate || midiInteraction.isSelected(track.id, note.id)
+                  }
+                  pixelsPerBeat={pixelsPerBeat}
+                  viewportStartBeat={viewportStartBeat}
+                />
+              );
+            })}
           {boxSelection && (
             <div
               data-testid="recorder-midi-box-selection"

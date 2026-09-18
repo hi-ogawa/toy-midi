@@ -16,6 +16,13 @@ type MidiNoteEdit = {
   getNotes: EditGetNotes;
 };
 
+type MidiNoteDuplicate = {
+  trackId: string;
+  primaryId: string;
+  notes: Note[];
+  getNotes: EditGetNotes;
+};
+
 // The pitch axis spans [0, MAX_PITCH + 1] upward. Note p occupies [p, p + 1).
 type MidiGridPosition = { beat: number; pitch: number };
 type EditGetNotes = (position: MidiGridPosition) => Note[];
@@ -51,6 +58,7 @@ export function useRecorderMidiInteraction({
   const [boxSelection, setBoxSelection] = useState<
     MidiBoxSelection & { trackId: string }
   >();
+  const [duplicate, setDuplicate] = useState<MidiNoteDuplicate>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -90,6 +98,10 @@ export function useRecorderMidiInteraction({
     return edit?.trackId === trackId
       ? edit.notes.find((note) => note.id === noteId)
       : undefined;
+  }
+
+  function getDuplicatePreviews(trackId: string) {
+    return duplicate?.trackId === trackId ? duplicate.notes : [];
   }
 
   function select({
@@ -242,9 +254,83 @@ export function useRecorderMidiInteraction({
     }
   }
 
+  function startDuplicate({
+    trackId,
+    noteId,
+    initialBeat,
+    position,
+  }: {
+    trackId: string;
+    noteId: string;
+    initialBeat: number;
+    position: MidiGridPosition;
+  }) {
+    cancelEdit();
+    onSelect();
+    const track = state.midiTracks.find((entry) => entry.id === trackId);
+    const originals = track?.notes.filter((note) =>
+      selectedNoteIds?.has(note.id),
+    );
+    const primary = originals?.find((note) => note.id === noteId);
+    if (!track || !originals || originals.length === 0 || !primary) {
+      return;
+    }
+    const step = 1 / subdivisionsPerBeat;
+    const copies = originals.map((note) => ({
+      ...note,
+      id: crypto.randomUUID(),
+    }));
+    const primaryCopy = copies[originals.indexOf(primary)];
+    const getNotes = createEditGetNotes({
+      mode: "move",
+      primary: primaryCopy,
+      originals: copies,
+      grabBeat: initialBeat,
+      step,
+    });
+    const notes = getNotes(position);
+    const next = {
+      trackId,
+      primaryId: primaryCopy.id,
+      notes,
+      getNotes,
+    };
+    setDuplicate(next);
+    return notes.find((note) => note.id === next.primaryId);
+  }
+
+  function updateDuplicate(position: MidiGridPosition) {
+    if (!duplicate) {
+      return;
+    }
+    const notes = duplicate.getNotes(position);
+    setDuplicate({ ...duplicate, notes });
+    return notes.find((note) => note.id === duplicate.primaryId);
+  }
+
+  function finishDuplicate(position: MidiGridPosition) {
+    if (!duplicate) {
+      return;
+    }
+    const notes = duplicate.getNotes(position);
+    const track = state.midiTracks.find(
+      (entry) => entry.id === duplicate.trackId,
+    );
+    cancelEdit();
+    if (!track) {
+      return;
+    }
+    runtime.setMidiTrackNotes(track.id, [...track.notes, ...notes]);
+    setSelection({
+      trackId: track.id,
+      noteIds: new Set(notes.map((note) => note.id)),
+    });
+  }
+
   function cancelEdit() {
     setEdit(undefined);
     setBoxSelection(undefined);
+    setDuplicate(undefined);
   }
 
   function clear() {
@@ -409,8 +495,12 @@ export function useRecorderMidiInteraction({
     startEdit,
     updateEdit,
     finishEdit,
+    startDuplicate,
+    updateDuplicate,
+    finishDuplicate,
     cancelEdit,
     getEditPreview,
+    getDuplicatePreviews,
     create,
     removeSelected,
     copySelected,
