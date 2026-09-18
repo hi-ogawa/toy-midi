@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { useWindowEvent } from "../../hooks/use-window-event";
-import { isBlackKey, MAX_PITCH, PITCH_COUNT } from "../../lib/music";
+import { isBlackKey, MAX_PITCH } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -47,7 +47,7 @@ import {
 
 const KEY_HEIGHT = 18;
 const PITCHES = Array.from(
-  { length: PITCH_COUNT },
+  { length: MAX_PITCH + 1 },
   (_, index) => MAX_PITCH - index,
 );
 
@@ -347,7 +347,7 @@ function MidiTrackEditor({
     >
       <div
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
-        style={{ height: PITCH_COUNT * KEY_HEIGHT }}
+        style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
         <div className="relative border-r border-neutral-700 bg-neutral-900">
           {PITCHES.map((pitch) => (
