@@ -1214,13 +1214,8 @@ export class RecorderRuntime {
     this.store.update({ pendingRecording, previewClipRegions });
   }
 
-  undo(): void {
-    this.history.undo();
-  }
-
-  redo(): void {
-    this.history.redo();
-  }
+  undo = () => this.history.undo();
+  redo = () => this.history.redo();
 }
 
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
