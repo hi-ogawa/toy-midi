@@ -374,11 +374,8 @@ function createEditGetNotes({
     let deltaDuration = 0;
     switch (mode) {
       case "move": {
-        const cellStart = snapToGrid(beat, step, { floor: true });
-        deltaStart = Math.max(
-          cellStart - grabOffset - primary.start,
-          -minStart,
-        );
+        const nextStart = snapToGrid(beat, step, { floor: true }) - grabOffset;
+        deltaStart = Math.max(nextStart - primary.start, -minStart);
         deltaPitch = clamp(
           Math.floor(pitch) - primary.pitch,
           -minPitch,
