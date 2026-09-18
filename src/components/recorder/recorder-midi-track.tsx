@@ -41,8 +41,8 @@ import { MidiInstrument } from "./recorder-midi-instrument";
 import { TrackRow } from "./recorder-tracks";
 import {
   useRecorderMidiInteraction,
-  type MidiGridPosition,
-  type MidiBoxSelection,
+  getMidiGridPosition,
+  getMidiBoxSelectionRect,
 } from "./use-recorder-midi-interaction";
 
 const KEY_HEIGHT = 18;
@@ -421,46 +421,6 @@ function MidiTrackEditor({
       </div>
     </div>
   );
-}
-
-type MidiGridScale = {
-  viewportStartBeat: number;
-  pixelsPerBeat: number;
-  pixelsPerKey: number;
-};
-
-function getMidiGridPosition({
-  x,
-  y,
-  viewportStartBeat,
-  pixelsPerBeat,
-  pixelsPerKey,
-}: MidiGridScale & { x: number; y: number }): MidiGridPosition {
-  return {
-    beat: viewportStartBeat + x / pixelsPerBeat,
-    pitch: 128 - y / pixelsPerKey,
-  };
-}
-
-function getMidiBoxSelectionRect({
-  selection: { start, current },
-  viewportStartBeat,
-  pixelsPerBeat,
-  pixelsPerKey,
-}: MidiGridScale & {
-  selection: MidiBoxSelection;
-}) {
-  const firstBeat = Math.min(start.beat, current.beat);
-  const lastBeat = Math.max(start.beat, current.beat);
-  const lowestPitch = Math.min(start.pitch, current.pitch);
-  const highestPitch = Math.max(start.pitch, current.pitch);
-
-  return {
-    left: (firstBeat - viewportStartBeat) * pixelsPerBeat,
-    top: (128 - highestPitch) * pixelsPerKey,
-    width: (lastBeat - firstBeat) * pixelsPerBeat,
-    height: (highestPitch - lowestPitch) * pixelsPerKey,
-  };
 }
 
 function useMidiNotePreview({
