@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { matchKeyboardEvent } from "../../lib/keyboard";
-import { clamp, clampPitch, snapToGrid } from "../../lib/music";
+import { clamp, clampPitch, PITCH_COUNT, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -8,7 +8,7 @@ import type {
 import { moveTabString } from "../../lib/tab-annotation";
 import type { Note } from "../../types";
 
-// The pitch axis spans [0, 128] upward. Note p occupies [p, p + 1).
+// The pitch axis spans [0, PITCH_COUNT] upward. Note p occupies [p, p + 1).
 type MidiGridPosition = { beat: number; pitch: number };
 
 type MidiBoxSelection = {
@@ -376,7 +376,7 @@ export function getMidiGridPosition({
 }): MidiGridPosition {
   return {
     beat: viewportStartBeat + x / pixelsPerBeat,
-    pitch: 128 - y / pixelsPerKey,
+    pitch: PITCH_COUNT - y / pixelsPerKey,
   };
 }
 
@@ -398,7 +398,7 @@ export function getMidiBoxSelectionRect({
 
   return {
     left: (firstBeat - viewportStartBeat) * pixelsPerBeat,
-    top: (128 - highestPitch) * pixelsPerKey,
+    top: (PITCH_COUNT - highestPitch) * pixelsPerKey,
     width: (lastBeat - firstBeat) * pixelsPerBeat,
     height: (highestPitch - lowestPitch) * pixelsPerKey,
   };

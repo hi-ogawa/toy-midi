@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { useWindowEvent } from "../../hooks/use-window-event";
-import { isBlackKey } from "../../lib/music";
+import { isBlackKey, MAX_PITCH, PITCH_COUNT } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -46,7 +46,10 @@ import {
 } from "./use-recorder-midi-interaction";
 
 const KEY_HEIGHT = 18;
-const PITCHES = Array.from({ length: 128 }, (_, index) => 127 - index);
+const PITCHES = Array.from(
+  { length: PITCH_COUNT },
+  (_, index) => MAX_PITCH - index,
+);
 
 export function MidiTrackRow({
   track,
@@ -208,7 +211,7 @@ function MidiTrackEditor({
       }
       // Center the initial pitch when the scroll container mounts.
       element.scrollTop =
-        (127 - initialPitch) * KEY_HEIGHT - element.clientHeight / 2;
+        (MAX_PITCH - initialPitch) * KEY_HEIGHT - element.clientHeight / 2;
 
       // Keep native vertical pitch scrolling local. Let horizontal gestures,
       // Shift+wheel, and Ctrl+wheel reach the timeline for navigation and zoom.
@@ -344,7 +347,7 @@ function MidiTrackEditor({
     >
       <div
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
-        style={{ height: 128 * KEY_HEIGHT }}
+        style={{ height: PITCH_COUNT * KEY_HEIGHT }}
       >
         <div className="relative border-r border-neutral-700 bg-neutral-900">
           {PITCHES.map((pitch) => (
@@ -497,7 +500,7 @@ function MidiPianoKey({
             ),
       )}
       style={{
-        top: (127 - pitch) * KEY_HEIGHT,
+        top: (MAX_PITCH - pitch) * KEY_HEIGHT,
         height: KEY_HEIGHT,
       }}
       onPointerDown={(event) => {
@@ -522,7 +525,7 @@ function MidiGridRow({ pitch }: { pitch: number }) {
         isBlackKey(pitch) ? "bg-[#111111]" : "bg-[#1a1a1a]",
       )}
       style={{
-        top: (127 - pitch) * KEY_HEIGHT,
+        top: (MAX_PITCH - pitch) * KEY_HEIGHT,
         height: KEY_HEIGHT,
       }}
     />
@@ -557,7 +560,7 @@ function MidiNote({
         backgroundColor: annotation?.color.background,
         borderColor: annotation?.color.border,
         left: (note.start - viewportStartBeat) * pixelsPerBeat,
-        top: (127 - note.pitch) * KEY_HEIGHT + 1,
+        top: (MAX_PITCH - note.pitch) * KEY_HEIGHT + 1,
         width: Math.max(2, note.duration * pixelsPerBeat),
         height: KEY_HEIGHT - 2,
       }}
