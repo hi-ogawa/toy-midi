@@ -13,7 +13,7 @@ import { snapToGrid } from "../../lib/music";
 import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
-import { routes } from "../../lib/routes";
+import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -756,10 +756,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   project.ready &&
                   project.saveStatus === "saved" &&
                   !flags.isRecording
-                    ? `${routes.scoreViewer.href()}?${new URLSearchParams({
+                    ? getRecorderScoreHref({
                         projectId,
                         trackId: track.id,
-                      })}`
+                      })
                     : undefined
                 }
               />
