@@ -4,6 +4,7 @@ import { createRecorderProject } from "./recorder-helpers";
 test("updates tab strings for selected MIDI notes together", async ({
   page,
 }) => {
+  // Create two notes and enable five-string bass annotations.
   await createRecorderProject(page);
   await page.getByTestId("recorder-add-midi-track").click();
   const row = page.getByTestId("recorder-midi-track-row");
@@ -36,20 +37,24 @@ test("updates tab strings for selected MIDI notes together", async ({
   await expect(c4.getByTestId("tab-annotation")).toHaveText("G17");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");
 
+  // Select both notes and assign them to the fifth string together.
   await c4.click({ modifiers: ["Control"] });
   await e4.click({ modifiers: ["Control"] });
   await page.keyboard.press("5");
   await expect(c4.getByTestId("tab-annotation")).toHaveText("B37");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("B41");
 
+  // Move both annotations to the adjacent string.
   await page.keyboard.press("ArrowUp");
   await expect(c4.getByTestId("tab-annotation")).toHaveText("E32");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("E36");
 
+  // Reset both annotations to their automatic strings.
   await page.keyboard.press("0");
   await expect(c4.getByTestId("tab-annotation")).toHaveText("G17");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");
 
+  // Save and reload the project to preserve the reset annotations.
   const save = page.getByTestId("recorder-save-button");
   await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
