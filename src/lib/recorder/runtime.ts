@@ -649,7 +649,7 @@ export class RecorderRuntime {
     }
     const before = track.notes;
     const after = notes;
-    this.applyMidiTrackNotes({ trackId: id, notes: after });
+    this.applyMidiTrackNotes(id, after);
     this.history.push({
       before: { type: "midi-notes", trackId: id, notes: before },
       after: { type: "midi-notes", trackId: id, notes: after },
@@ -667,19 +667,13 @@ export class RecorderRuntime {
   private applyHistoryChange(change: RecorderChange): void {
     switch (change.type) {
       case "midi-notes": {
-        this.applyMidiTrackNotes(change);
+        this.applyMidiTrackNotes(change.trackId, change.notes);
         break;
       }
     }
   }
 
-  private applyMidiTrackNotes({
-    trackId,
-    notes,
-  }: {
-    trackId: string;
-    notes: Note[];
-  }): void {
+  private applyMidiTrackNotes(trackId: string, notes: Note[]): void {
     this.updateMidiTrack(trackId, (track) => ({ ...track, notes }));
     this.midiTrackPlaybacks.get(trackId)?.setNotes(notes);
   }
