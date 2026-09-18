@@ -756,10 +756,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   project.ready &&
                   project.saveStatus === "saved" &&
                   !flags.isRecording
-                    ? routes.recorderProjectScore.href({
+                    ? `${routes.scoreViewer.href()}?${new URLSearchParams({
                         projectId,
                         trackId: track.id,
-                      })
+                      })}`
                     : undefined
                 }
               />

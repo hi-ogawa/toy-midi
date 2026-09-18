@@ -20,13 +20,25 @@ export function App() {
     case "recorderProject": {
       return <Recorder projectId={match.params.projectId} />;
     }
-    case "recorderProjectScore": {
-      return <RecorderScorePage {...match.params} />;
-    }
     case "latencyChecker": {
       return <LatencyChecker />;
     }
     case "scoreViewer": {
+      const params = new URL(window.location.href).searchParams;
+      const projectId = params.get("projectId");
+      const trackId = params.get("trackId");
+      if (projectId && trackId) {
+        return <RecorderScorePage projectId={projectId} trackId={trackId} />;
+      }
+      if (params.has("projectId") || params.has("trackId")) {
+        return (
+          <RouteError
+            error="Both projectId and trackId are required to open a recorder score."
+            backHref={routes.scoreViewer.href()}
+            backLabel="Back to score viewer"
+          />
+        );
+      }
       return <ScoreViewer />;
     }
     case "projectScore": {

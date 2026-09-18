@@ -8,7 +8,6 @@ export const routes = route({
   home: "/",
   preview: "/_preview",
   recorderProject: "/recorder/:projectId",
-  recorderProjectScore: "/recorder/:projectId/score/:trackId",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
   project: "/project/:projectId",
