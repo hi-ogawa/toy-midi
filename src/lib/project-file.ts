@@ -42,10 +42,11 @@ export async function exportProjectFile(
   projectName: string,
   projectData: SavedProject,
   {
-    loadAsset = async (assetKey) =>
-      (await projectStorage.loadAsset(assetKey))?.blob,
+    loadAsset = (assetKey) => projectStorage.loadAsset(assetKey),
   }: {
-    loadAsset?: (assetKey: string) => Promise<Blob | Uint8Array | undefined>;
+    loadAsset?: (
+      assetKey: string,
+    ) => Promise<{ blob: Blob | Uint8Array } | undefined>;
   } = {},
 ): Promise<Blob> {
   const zip = new JSZip();
@@ -55,8 +56,8 @@ export async function exportProjectFile(
   // Bundle each track's audio asset and record its path in the manifest
   const tracks = projectData.audioTracks;
   for (const track of tracks) {
-    const audio = await loadAsset(track.assetKey);
-    if (!audio) {
+    const asset = await loadAsset(track.assetKey);
+    if (!asset) {
       throw new Error(`Missing audio asset for "${track.fileName}"`);
     }
     const fileName = track.fileName || "audio.wav";
@@ -65,7 +66,7 @@ export async function exportProjectFile(
     audioEntries.push({ trackId: track.id, path: audioPath });
     // Store audio uncompressed: deflating large audio blobs on the main
     // thread takes seconds for marginal size savings
-    zip.file(audioPath, audio, { compression: "STORE" });
+    zip.file(audioPath, asset.blob, { compression: "STORE" });
   }
 
   // Prepare manifest
