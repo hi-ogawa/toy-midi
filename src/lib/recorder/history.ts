@@ -5,23 +5,28 @@ import type { Note } from "../../types.ts";
 // Capture complete before/after notes for those IDs and migrate callers incrementally.
 // Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
 // preserve array ordering when undo restores deleted notes.
-type MidiHistoryEntry = {
+export type RecorderChange = {
+  type: "midi-notes";
   trackId: string;
-  before: Note[];
-  after: Note[];
+  notes: Note[];
 };
 
-type ApplyNotes = (change: { trackId: string; notes: Note[] }) => void;
+type HistoryEntry = {
+  before: RecorderChange;
+  after: RecorderChange;
+};
+
+type ApplyChange = (change: RecorderChange) => void;
 
 const MAX_HISTORY = 50;
 
 // Keep one chronological stack per recorder project as more edit domains are added.
 // MIDI note edits are the first supported domain.
 export class RecorderHistory {
-  private undoStack: MidiHistoryEntry[] = [];
-  private redoStack: MidiHistoryEntry[] = [];
+  private undoStack: HistoryEntry[] = [];
+  private redoStack: HistoryEntry[] = [];
 
-  push(entry: MidiHistoryEntry): void {
+  push(entry: HistoryEntry): void {
     this.undoStack.push(entry);
     if (this.undoStack.length > MAX_HISTORY) {
       this.undoStack.shift();
@@ -29,33 +34,29 @@ export class RecorderHistory {
     this.redoStack = [];
   }
 
-  undo(apply: ApplyNotes): void {
+  undo(apply: ApplyChange): void {
     const entry = this.undoStack.at(-1);
     if (!entry) {
       return;
     }
-    apply({ trackId: entry.trackId, notes: entry.before });
+    apply(entry.before);
     this.undoStack.pop();
     this.redoStack.push(entry);
   }
 
-  redo(apply: ApplyNotes): void {
+  redo(apply: ApplyChange): void {
     const entry = this.redoStack.at(-1);
     if (!entry) {
       return;
     }
-    apply({ trackId: entry.trackId, notes: entry.after });
+    apply(entry.after);
     this.redoStack.pop();
     this.undoStack.push(entry);
   }
 
-  removeTrack(trackId: string): void {
-    this.undoStack = this.undoStack.filter(
-      (entry) => entry.trackId !== trackId,
-    );
-    this.redoStack = this.redoStack.filter(
-      (entry) => entry.trackId !== trackId,
-    );
+  prune(matches: (entry: HistoryEntry) => boolean): void {
+    this.undoStack = this.undoStack.filter((entry) => !matches(entry));
+    this.redoStack = this.redoStack.filter((entry) => !matches(entry));
   }
 
   clear(): void {

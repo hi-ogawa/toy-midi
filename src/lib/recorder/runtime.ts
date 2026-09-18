@@ -25,7 +25,7 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
-import { RecorderHistory } from "./history.ts";
+import { type RecorderChange, RecorderHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -582,7 +582,12 @@ export class RecorderRuntime {
   }
 
   removeMidiTrack(id: string): void {
-    this.history.removeTrack(id);
+    // Track deletion is not undoable yet, so discard changes that require it.
+    this.history.prune((entry) =>
+      [entry.before, entry.after].some(
+        (change) => change.type === "midi-notes" && change.trackId === id,
+      ),
+    );
     this.midiTrackPlaybacks.get(id)?.dispose();
     this.midiTrackPlaybacks.delete(id);
     this.store.update({
@@ -652,15 +657,27 @@ export class RecorderRuntime {
     const before = track.notes.map((note) => ({ ...note }));
     const after = notes.map((note) => ({ ...note }));
     this.applyMidiTrackNotes({ trackId: id, notes: after });
-    this.history.push({ trackId: id, before, after });
+    this.history.push({
+      before: { type: "midi-notes", trackId: id, notes: before },
+      after: { type: "midi-notes", trackId: id, notes: after },
+    });
   }
 
   undo(): void {
-    this.history.undo((change) => this.applyMidiTrackNotes(change));
+    this.history.undo((change) => this.applyHistoryChange(change));
   }
 
   redo(): void {
-    this.history.redo((change) => this.applyMidiTrackNotes(change));
+    this.history.redo((change) => this.applyHistoryChange(change));
+  }
+
+  private applyHistoryChange(change: RecorderChange): void {
+    switch (change.type) {
+      case "midi-notes": {
+        this.applyMidiTrackNotes(change);
+        break;
+      }
+    }
   }
 
   private applyMidiTrackNotes({

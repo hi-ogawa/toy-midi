@@ -8,9 +8,9 @@ describe(RecorderHistory, () => {
     const first = [note("a"), note("b")];
     const moved = first.map((note) => ({ ...note, start: note.start + 2 }));
     const second = [note("c")];
-    history.push({ trackId: "first", before: [], after: first });
-    history.push({ trackId: "first", before: first, after: moved });
-    history.push({ trackId: "second", before: [], after: second });
+    history.push(notesEntry({ trackId: "first", before: [], after: first }));
+    history.push(notesEntry({ trackId: "first", before: first, after: moved }));
+    history.push(notesEntry({ trackId: "second", before: [], after: second }));
     const apply = vi.fn();
 
     history.undo(apply);
@@ -18,9 +18,9 @@ describe(RecorderHistory, () => {
     history.undo(apply);
     history.undo(apply);
     expect(apply.mock.calls.map(([change]) => change)).toEqual([
-      { trackId: "second", notes: [] },
-      { trackId: "first", notes: first },
-      { trackId: "first", notes: [] },
+      { type: "midi-notes", trackId: "second", notes: [] },
+      { type: "midi-notes", trackId: "first", notes: first },
+      { type: "midi-notes", trackId: "first", notes: [] },
     ]);
 
     apply.mockClear();
@@ -29,24 +29,29 @@ describe(RecorderHistory, () => {
     history.redo(apply);
     history.redo(apply);
     expect(apply.mock.calls.map(([change]) => change)).toEqual([
-      { trackId: "first", notes: first },
-      { trackId: "first", notes: moved },
-      { trackId: "second", notes: second },
+      { type: "midi-notes", trackId: "first", notes: first },
+      { type: "midi-notes", trackId: "first", notes: moved },
+      { type: "midi-notes", trackId: "second", notes: second },
     ]);
   });
 
   it("discards redo after a new edit", () => {
     const history = new RecorderHistory();
     const apply = vi.fn();
-    history.push({ trackId: "track", before: [], after: [note("a")] });
+    history.push(
+      notesEntry({ trackId: "track", before: [], after: [note("a")] }),
+    );
     history.undo(apply);
-    history.push({ trackId: "track", before: [], after: [note("b")] });
+    history.push(
+      notesEntry({ trackId: "track", before: [], after: [note("b")] }),
+    );
     apply.mockClear();
     history.redo(apply);
     expect(apply).not.toHaveBeenCalled();
     history.undo(apply);
     history.redo(apply);
     expect(apply).toHaveBeenLastCalledWith({
+      type: "midi-notes",
       trackId: "track",
       notes: [note("b")],
     });
@@ -56,18 +61,21 @@ describe(RecorderHistory, () => {
     const history = new RecorderHistory();
     const apply = vi.fn();
     for (const trackId of ["keep", "remove", "keep", "remove"]) {
-      history.push({ trackId, before: [], after: [note(trackId)] });
+      history.push(notesEntry({ trackId, before: [], after: [note(trackId)] }));
     }
     history.undo(apply);
-    history.removeTrack("remove");
+    history.prune(
+      (entry) =>
+        entry.before.type === "midi-notes" && entry.before.trackId === "remove",
+    );
     apply.mockClear();
     history.redo(apply);
     history.undo(apply);
     history.undo(apply);
     history.undo(apply);
     expect(apply.mock.calls.map(([change]) => change)).toEqual([
-      { trackId: "keep", notes: [] },
-      { trackId: "keep", notes: [] },
+      { type: "midi-notes", trackId: "keep", notes: [] },
+      { type: "midi-notes", trackId: "keep", notes: [] },
     ]);
   });
 
@@ -75,17 +83,20 @@ describe(RecorderHistory, () => {
     const history = new RecorderHistory();
     const apply = vi.fn();
     for (let index = 0; index < 51; index++) {
-      history.push({
-        trackId: "track",
-        before: [note(String(index))],
-        after: [],
-      });
+      history.push(
+        notesEntry({
+          trackId: "track",
+          before: [note(String(index))],
+          after: [],
+        }),
+      );
     }
     for (let index = 0; index < 51; index++) {
       history.undo(apply);
     }
     expect(apply).toHaveBeenCalledTimes(50);
     expect(apply).toHaveBeenLastCalledWith({
+      type: "midi-notes",
       trackId: "track",
       notes: [note("1")],
     });
@@ -94,8 +105,12 @@ describe(RecorderHistory, () => {
   it("clears both stacks on project replacement", () => {
     const history = new RecorderHistory();
     const apply = vi.fn();
-    history.push({ trackId: "track", before: [], after: [note("a")] });
-    history.push({ trackId: "track", before: [note("a")], after: [] });
+    history.push(
+      notesEntry({ trackId: "track", before: [], after: [note("a")] }),
+    );
+    history.push(
+      notesEntry({ trackId: "track", before: [note("a")], after: [] }),
+    );
     history.undo(apply);
     history.clear();
     apply.mockClear();
@@ -106,17 +121,24 @@ describe(RecorderHistory, () => {
 
   it("keeps the entry available when replay fails", () => {
     const history = new RecorderHistory();
-    history.push({ trackId: "track", before: [], after: [note("a")] });
+    history.push(
+      notesEntry({ trackId: "track", before: [], after: [note("a")] }),
+    );
     const fail = () => {
       throw new Error("replay failed");
     };
     expect(() => history.undo(fail)).toThrow("replay failed");
     const apply = vi.fn();
     history.undo(apply);
-    expect(apply).toHaveBeenLastCalledWith({ trackId: "track", notes: [] });
+    expect(apply).toHaveBeenLastCalledWith({
+      type: "midi-notes",
+      trackId: "track",
+      notes: [],
+    });
     expect(() => history.redo(fail)).toThrow("replay failed");
     history.redo(apply);
     expect(apply).toHaveBeenLastCalledWith({
+      type: "midi-notes",
       trackId: "track",
       notes: [note("a")],
     });
@@ -125,4 +147,19 @@ describe(RecorderHistory, () => {
 
 function note(id: string): Note {
   return { id, pitch: 60, start: 1, duration: 0.25, velocity: 100 };
+}
+
+function notesEntry({
+  trackId,
+  before,
+  after,
+}: {
+  trackId: string;
+  before: Note[];
+  after: Note[];
+}) {
+  return {
+    before: { type: "midi-notes" as const, trackId, notes: before },
+    after: { type: "midi-notes" as const, trackId, notes: after },
+  };
 }
