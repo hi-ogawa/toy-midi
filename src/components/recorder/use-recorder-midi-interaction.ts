@@ -250,35 +250,22 @@ export function useRecorderMidiInteraction({
       return;
     }
     const step = 1 / subdivisionsPerBeat;
-    const grabOffset = snapToGrid(initialBeat - primary.start, step, {
-      floor: true,
+    const copies = originals.map((note) => ({
+      ...note,
+      id: crypto.randomUUID(),
+    }));
+    const primaryCopy = copies[originals.indexOf(primary)];
+    const getNotes = createGetNotes({
+      mode: "move",
+      primary: primaryCopy,
+      originals: copies,
+      grabBeat: initialBeat,
+      step,
     });
-    const ids = originals.map(() => crypto.randomUUID());
-    const minimumStart = Math.min(...originals.map((note) => note.start));
-    const minimumPitch = Math.min(...originals.map((note) => note.pitch));
-    const maximumPitch = Math.max(...originals.map((note) => note.pitch));
-    const getNotes = ({ beat, pitch }: MidiGridPosition) => {
-      const cellStart = snapToGrid(beat, step, { floor: true });
-      const deltaStart = Math.max(
-        cellStart - grabOffset - primary.start,
-        -minimumStart,
-      );
-      const deltaPitch = clamp(
-        Math.floor(pitch) - primary.pitch,
-        -minimumPitch,
-        MAX_PITCH - maximumPitch,
-      );
-      return originals.map((note, index) => ({
-        ...note,
-        id: ids[index],
-        start: note.start + deltaStart,
-        pitch: note.pitch + deltaPitch,
-      }));
-    };
     const notes = getNotes(position);
     const next = {
       trackId,
-      primaryId: ids[originals.indexOf(primary)],
+      primaryId: primaryCopy.id,
       notes,
       getNotes,
     };
