@@ -24,22 +24,7 @@ export function App() {
       return <LatencyChecker />;
     }
     case "scoreViewer": {
-      const params = new URL(window.location.href).searchParams;
-      const projectId = params.get("projectId");
-      const trackId = params.get("trackId");
-      if (projectId && trackId) {
-        return <RecorderScorePage projectId={projectId} trackId={trackId} />;
-      }
-      if (params.has("projectId") || params.has("trackId")) {
-        return (
-          <RouteError
-            error="Both projectId and trackId are required to open a recorder score."
-            backHref={routes.scoreViewer.href()}
-            backLabel="Back to score viewer"
-          />
-        );
-      }
-      return <ScoreViewer />;
+      return <ScoreViewerRoute />;
     }
     case "projectScore": {
       return <ProjectScoreRoute projectId={match.params.projectId} />;
@@ -52,6 +37,25 @@ export function App() {
       return <Home />;
     }
   }
+}
+
+function ScoreViewerRoute() {
+  const params = new URL(window.location.href).searchParams;
+  const projectId = params.get("projectId");
+  const trackId = params.get("trackId");
+  if (projectId && trackId) {
+    return <RecorderScorePage projectId={projectId} trackId={trackId} />;
+  }
+  if (params.has("projectId") || params.has("trackId")) {
+    return (
+      <RouteError
+        error="Both projectId and trackId are required to open a recorder score."
+        backHref={routes.scoreViewer.href()}
+        backLabel="Back to score viewer"
+      />
+    );
+  }
+  return <ScoreViewer />;
 }
 
 function ProjectScoreRoute({ projectId }: { projectId: string }) {
