@@ -87,7 +87,7 @@ export function RecorderScorePanel({
             <span
               id={`score-open-tooltip-${track.id}`}
               role="tooltip"
-              className="pointer-events-none absolute top-full right-0 z-50 mt-2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs whitespace-nowrap text-neutral-100 invisible group-hover/score-link:visible group-focus-within/score-link:visible"
+              className="pointer-events-none absolute top-full right-0 z-50 mt-2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs whitespace-nowrap text-neutral-100 opacity-0 group-hover/score-link:opacity-100 group-focus-within/score-link:opacity-100"
             >
               Please save before opening score view
             </span>

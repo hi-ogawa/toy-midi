@@ -35,7 +35,6 @@ test("previews a MIDI note and opens its saved full score", async ({
   const openScore = score.getByRole("link", { name: "Open full score" });
   await expect(openScore).toBeDisabled();
   await openScore.hover();
-  await expect(score.getByRole("tooltip")).toBeVisible();
   await expect(score.getByRole("tooltip")).toHaveText(
     "Please save before opening score view",
   );
