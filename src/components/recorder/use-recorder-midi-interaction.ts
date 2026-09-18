@@ -253,9 +253,9 @@ export function useRecorderMidiInteraction({
     if (!track || !primary) {
       return;
     }
-    let originals = track.notes.filter((note) => selectedNoteIds?.has(note.id));
     cancelEdit();
     onSelect();
+    let originals = track.notes.filter((note) => selectedNoteIds?.has(note.id));
     if (!isSelected(trackId, noteId)) {
       originals = [primary];
       setSelection({ trackId, noteIds: new Set([noteId]) });
