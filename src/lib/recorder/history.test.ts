@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Note } from "../../types.ts";
-import { RecorderHistory } from "./history.ts";
+import { UndoRedoHistory } from "./history.ts";
 
-describe(RecorderHistory, () => {
+describe(UndoRedoHistory, () => {
   it("replays note groups in chronological order across tracks", () => {
-    const history = new RecorderHistory();
+    const history = new UndoRedoHistory<
+      ReturnType<typeof notesEntry>["before"]
+    >();
     const first = [note("a"), note("b")];
     const moved = first.map((note) => ({ ...note, start: note.start + 2 }));
     const second = [note("c")];
@@ -36,7 +38,9 @@ describe(RecorderHistory, () => {
   });
 
   it("discards redo after a new edit", () => {
-    const history = new RecorderHistory();
+    const history = new UndoRedoHistory<
+      ReturnType<typeof notesEntry>["before"]
+    >();
     const apply = vi.fn();
     history.push(
       notesEntry({ trackId: "track", before: [], after: [note("a")] }),
@@ -58,7 +62,9 @@ describe(RecorderHistory, () => {
   });
 
   it("prunes a deleted track from both stacks while keeping other tracks", () => {
-    const history = new RecorderHistory();
+    const history = new UndoRedoHistory<
+      ReturnType<typeof notesEntry>["before"]
+    >();
     const apply = vi.fn();
     for (const trackId of ["keep", "remove", "keep", "remove"]) {
       history.push(notesEntry({ trackId, before: [], after: [note(trackId)] }));
@@ -80,7 +86,9 @@ describe(RecorderHistory, () => {
   });
 
   it("keeps the most recent 50 edits", () => {
-    const history = new RecorderHistory();
+    const history = new UndoRedoHistory<
+      ReturnType<typeof notesEntry>["before"]
+    >();
     const apply = vi.fn();
     for (let index = 0; index < 51; index++) {
       history.push(
@@ -103,7 +111,9 @@ describe(RecorderHistory, () => {
   });
 
   it("clears both stacks on project replacement", () => {
-    const history = new RecorderHistory();
+    const history = new UndoRedoHistory<
+      ReturnType<typeof notesEntry>["before"]
+    >();
     const apply = vi.fn();
     history.push(
       notesEntry({ trackId: "track", before: [], after: [note("a")] }),
@@ -120,7 +130,9 @@ describe(RecorderHistory, () => {
   });
 
   it("keeps the entry available when replay fails", () => {
-    const history = new RecorderHistory();
+    const history = new UndoRedoHistory<
+      ReturnType<typeof notesEntry>["before"]
+    >();
     history.push(
       notesEntry({ trackId: "track", before: [], after: [note("a")] }),
     );

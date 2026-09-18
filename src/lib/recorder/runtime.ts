@@ -25,7 +25,7 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
-import { type RecorderChange, RecorderHistory } from "./history.ts";
+import { UndoRedoHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -220,6 +220,18 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   };
 }
 
+// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
+// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
+// Capture complete before/after notes for those IDs and migrate callers incrementally.
+// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
+// preserve array ordering when undo restores deleted notes.
+/** A state change that runtime can apply directly, including during undo and redo. */
+type RecorderChange = {
+  type: "midi-notes";
+  trackId: string;
+  notes: Note[];
+};
+
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
@@ -235,7 +247,7 @@ export class RecorderRuntime {
     playback: YouTubePlayerPlayback;
   };
   private readonly metronome: RecorderMetronome;
-  private readonly history = new RecorderHistory();
+  private readonly history = new UndoRedoHistory<RecorderChange>();
 
   constructor() {
     this.masterOutput = this.context.createGain();
