@@ -25,7 +25,7 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
-import { RecorderHistory } from "./history.ts";
+import { UndoRedoHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -1224,6 +1224,61 @@ export class RecorderRuntime {
 
   redo(): void {
     this.history.redo();
+  }
+}
+
+// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
+// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
+// Capture complete before/after notes for those IDs and migrate callers incrementally.
+// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
+// preserve array ordering when undo restores deleted notes.
+/** A state change that runtime can apply directly, including during undo and redo. */
+type RecorderChange = {
+  type: "midi-notes";
+  trackId: string;
+  notes: Note[];
+};
+
+class RecorderHistory {
+  private history = new UndoRedoHistory<RecorderChange>();
+
+  constructor(private runtime: RecorderRuntime) {}
+
+  pushMidiNotes(trackId: string, before: Note[], after: Note[]): void {
+    this.history.push({
+      before: { type: "midi-notes", trackId, notes: before },
+      after: { type: "midi-notes", trackId, notes: after },
+    });
+  }
+
+  undo(): void {
+    this.history.undo((change) => this.apply(change));
+  }
+
+  redo(): void {
+    this.history.redo((change) => this.apply(change));
+  }
+
+  removeMidiTrack(id: string): void {
+    // Track deletion is not undoable yet, so discard changes that require it.
+    this.history.prune((entry) =>
+      [entry.before, entry.after].some(
+        (change) => change.type === "midi-notes" && change.trackId === id,
+      ),
+    );
+  }
+
+  clear(): void {
+    this.history.clear();
+  }
+
+  private apply(change: RecorderChange): void {
+    switch (change.type) {
+      case "midi-notes": {
+        this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
+        break;
+      }
+    }
   }
 }
 
