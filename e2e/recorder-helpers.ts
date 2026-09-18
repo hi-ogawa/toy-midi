@@ -17,7 +17,7 @@ export async function createRecorderProject(page: Page): Promise<void> {
 }
 
 export async function addRecorderMidiTrack(page: Page) {
-  return test.step(
+  return await test.step(
     "Add recorder MIDI track",
     async () => {
       const tracks = page.getByTestId("recorder-midi-track-row");
@@ -44,7 +44,7 @@ export async function createRecorderMidiNote(
     pitch: string;
   },
 ) {
-  return test.step(
+  return await test.step(
     `Create ${pitch} at beat ${beat}`,
     async () => {
       const point = await getRecorderMidiGridPoint(track, { beat, pitch });
