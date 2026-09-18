@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -58,12 +58,6 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  useEffect(() => {
-    window.__e2e.recorderStore = runtime.store;
-    return () => {
-      delete window.__e2e.recorderStore;
-    };
-  }, [runtime]);
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);

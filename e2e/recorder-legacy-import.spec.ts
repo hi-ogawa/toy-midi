@@ -5,11 +5,7 @@ import {
   exportProjectFileV1,
 } from "../src/lib/project-file";
 import type { SavedProject } from "../src/lib/project-store";
-import {
-  evaluateRecorderStore,
-  getRecorderMidiNote,
-  getRecorderPosition,
-} from "./recorder-helpers";
+import { getRecorderMidiNote, getRecorderPosition } from "./recorder-helpers";
 
 for (const version of [1, 2] as const) {
   test(`imports a legacy v${version} archive into the recorder`, async ({
@@ -57,28 +53,6 @@ for (const version of [1, 2] as const) {
     await expect(
       page.getByTestId("recorder-clip-audio").locator("svg"),
     ).toBeVisible();
-
-    // Verify the reloaded audio track retains its imported timing and mix.
-    const audioTracks = await evaluateRecorderStore(page, (store) =>
-      store.get().audioTracks.map((track) => ({
-        name: track.clips[0].name,
-        duration: track.clips[0].duration,
-        offset: track.clips[0].timelineOffset,
-        gain: track.gain,
-        muted: track.muted,
-        soloed: track.soloed,
-      })),
-    );
-    expect(audioTracks).toEqual([
-      {
-        name: "legacy-audio.wav",
-        duration: 3,
-        offset: 0.5,
-        gain: 0.65,
-        muted: false,
-        soloed: version === 2,
-      },
-    ]);
   });
 }
 

@@ -5,7 +5,6 @@ import {
   seedProjectV1,
 } from "./lib/project-storage";
 import { useProjectStore } from "./lib/project-store";
-import type { RecorderRuntime } from "./lib/recorder/runtime";
 
 const utils = {
   useProjectStore,
@@ -19,6 +18,6 @@ window.__e2e = utils;
 
 declare global {
   interface Window {
-    __e2e: typeof utils & { recorderStore?: RecorderRuntime["store"] };
+    __e2e: typeof utils;
   }
 }

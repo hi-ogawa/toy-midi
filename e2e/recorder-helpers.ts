@@ -1,5 +1,4 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import type { RecorderRuntime } from "../src/lib/recorder/runtime";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 
 /** Create a recorder project from its index and wait for the recorder app. */
@@ -234,17 +233,4 @@ export async function enableInput(page: Page) {
     },
     { box: true },
   );
-}
-
-/** Evaluate against the live recorder store, like evaluateStore for the legacy editor. */
-export async function evaluateRecorderStore<T>(
-  page: Page,
-  fn: (store: RecorderRuntime["store"]) => T,
-): Promise<T> {
-  await page.waitForFunction(() => window.__e2e.recorderStore !== undefined);
-  return page.evaluate((fnStr) => {
-    const store = window.__e2e.recorderStore!;
-    const evalFn = new Function("store", `return (${fnStr})(store)`);
-    return evalFn(store) as T;
-  }, fn.toString());
 }
