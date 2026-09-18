@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -138,6 +139,25 @@ export function Recorder({ projectId }: { projectId: string }) {
       );
     },
   });
+
+  function openFullScore(trackId: string) {
+    // Open synchronously so the browser preserves the click's popup permission.
+    // Navigate only after IndexedDB has the current project snapshot.
+    const tab = window.open("about:blank", "_blank");
+    if (!tab) {
+      toast.error("Allow popups to open the full score.");
+      return;
+    }
+    tab.opener = null;
+    project.save(undefined, {
+      onSuccess: () => {
+        tab.location.replace(
+          routes.recorderProjectScore.href({ projectId, trackId }),
+        );
+      },
+      onError: () => tab.close(),
+    });
+  }
 
   const takes = state.recordingTrack.clips;
   const flags = deriveRecorderFlags({
@@ -752,6 +772,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 state={state}
                 track={track}
                 onClose={() => scoreUi.close(track.id)}
+                onOpenFullScore={() => openFullScore(track.id)}
+                openFullScoreDisabled={
+                  !project.ready || project.saving || flags.isRecording
+                }
               />
             ),
         )}

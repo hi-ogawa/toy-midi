@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { ExternalLinkIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
@@ -36,11 +37,15 @@ export function RecorderScorePanel({
   state,
   track,
   onClose,
+  onOpenFullScore,
+  openFullScoreDisabled,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   track: MidiTrackState;
   onClose: () => void;
+  onOpenFullScore: () => void;
+  openFullScoreDisabled: boolean;
 }) {
   const [size, setSize] = useState({ width: 640, height: 448 });
   const resizeRef = usePointerDrag({
@@ -63,6 +68,17 @@ export function RecorderScorePanel({
   return (
     <RecorderPanel
       title={`Score preview · ${track.name}`}
+      headerActions={
+        <button
+          type="button"
+          onClick={onOpenFullScore}
+          disabled={openFullScoreDisabled}
+          className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-200 disabled:opacity-50"
+        >
+          Open full score
+          <ExternalLinkIcon className="size-3" />
+        </button>
+      }
       closeLabel={`Close score preview for ${track.name}`}
       onClose={onClose}
       data-testid="recorder-score-preview"
