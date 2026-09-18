@@ -8,6 +8,7 @@ import {
 test("copies selected MIDI notes and pastes them at the playhead", async ({
   page,
 }) => {
+  // Create two notes and select them as one clipboard group.
   await createRecorderProject(page);
   await page.getByTestId("recorder-add-midi-track").click();
   const row = page.getByTestId("recorder-midi-track-row");
@@ -31,10 +32,12 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
   await expect(originalC4).toHaveAttribute("data-selected", "true");
   await expect(originalE4).toHaveAttribute("data-selected", "true");
 
+  // Copy the selected notes and paste them at the moved playhead.
   await page.keyboard.press("Control+c");
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   await page.keyboard.press("Control+v");
 
+  // Keep the copied timing and select only the newly pasted notes.
   await expect(notes).toHaveCount(4);
   const pastedC4 = grid.locator('[aria-label="C4, beat 3"]');
   const pastedE4 = grid.locator('[aria-label="E4, beat 3.5"]');
@@ -45,6 +48,7 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
   expect((await pastedC4.boundingBox())!.width).toBe(cellWidth);
   expect((await pastedE4.boundingBox())!.width).toBe(cellWidth);
 
+  // Save and reload the project to preserve the pasted notes.
   const save = page.getByTestId("recorder-save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
   await save.click();
