@@ -1,6 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import JSZip from "jszip";
+import {
+  exportProjectFile,
+  exportProjectFileV1,
+} from "../src/lib/project-file";
+import type { SavedProject } from "../src/lib/project-store";
 import type { SerializedRecorderRuntimeState } from "../src/lib/recorder/persistence";
 import { getRecorderMidiNote, getRecorderPosition } from "./recorder-helpers";
 
@@ -106,7 +111,6 @@ for (const version of [1, 2] as const) {
   });
 }
 
-// Keep the historical file layout independent of application serializers and stores.
 const LEGACY_MUSICAL_DATA = {
   notes: [
     {
@@ -132,39 +136,34 @@ const LEGACY_MUSICAL_DATA = {
   masterVolume: 0.75,
   metronomeEnabled: false,
   metronomeVolume: 0.25,
-};
+} satisfies Omit<SavedProject, "version" | "audioTracks">;
 
 async function createLegacyArchive(version: 1 | 2) {
-  const zip = new JSZip();
-  const audioPath = "audio/legacy-audio.wav";
-  zip.file(
-    "manifest.json",
-    JSON.stringify({
-      formatVersion: version,
-      name: `Legacy v${version}`,
-      exportedAt: "2025-01-01T00:00:00.000Z",
-      files: {
-        project: "project.json",
-        audio:
-          version === 1 ? audioPath : [{ trackId: "backing", path: audioPath }],
-      },
-    }),
+  const audio = await readFile(
+    new URL("./fixtures/test-audio.wav", import.meta.url),
   );
-  zip.file(
-    "project.json",
-    JSON.stringify({
-      ...LEGACY_MUSICAL_DATA,
-      version,
-      ...(version === 1
-        ? {
+  const name = `Legacy v${version}`;
+  const blob =
+    version === 1
+      ? await exportProjectFileV1(
+          name,
+          {
+            ...LEGACY_MUSICAL_DATA,
+            version: 1,
             audioFileName: "legacy-audio.wav",
             audioAssetKey: null,
             audioDuration: 3,
             audioOffset: 0.5,
             audioVolume: 0.65,
             audioMuted: false,
-          }
-        : {
+          },
+          audio,
+        )
+      : await exportProjectFile(
+          name,
+          {
+            ...LEGACY_MUSICAL_DATA,
+            version: 2,
             audioTracks: [
               {
                 id: "backing",
@@ -177,12 +176,8 @@ async function createLegacyArchive(version: 1 | 2) {
                 soloed: true,
               },
             ],
-          }),
-    }),
-  );
-  zip.file(
-    audioPath,
-    await readFile(new URL("./fixtures/test-audio.wav", import.meta.url)),
-  );
-  return zip.generateAsync({ type: "nodebuffer" });
+          },
+          async () => audio,
+        );
+  return Buffer.from(await blob.arrayBuffer());
 }

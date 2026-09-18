@@ -42,6 +42,11 @@ interface ParsedProjectFile {
 export async function exportProjectFile(
   projectName: string,
   projectData: SavedProject,
+  // Tests can provide encoded audio without browser asset storage.
+  loadAudio: (
+    assetKey: string,
+  ) => Promise<Blob | Uint8Array | undefined> = async (assetKey) =>
+    (await projectStorage.loadAsset(assetKey))?.blob,
 ): Promise<Blob> {
   const zip = new JSZip();
 
@@ -50,8 +55,8 @@ export async function exportProjectFile(
   // Bundle each track's audio asset and record its path in the manifest
   const tracks = projectData.audioTracks;
   for (const track of tracks) {
-    const asset = await projectStorage.loadAsset(track.assetKey);
-    if (!asset) {
+    const audio = await loadAudio(track.assetKey);
+    if (!audio) {
       throw new Error(`Missing audio asset for "${track.fileName}"`);
     }
     const fileName = track.fileName || "audio.wav";
@@ -60,7 +65,7 @@ export async function exportProjectFile(
     audioEntries.push({ trackId: track.id, path: audioPath });
     // Store audio uncompressed: deflating large audio blobs on the main
     // thread takes seconds for marginal size savings
-    zip.file(audioPath, asset.blob, { compression: "STORE" });
+    zip.file(audioPath, audio, { compression: "STORE" });
   }
 
   // Prepare manifest
