@@ -332,7 +332,7 @@ export function useRecorderMidiInteraction({
           openStringPitches: selectedTrack.tabOpenStringPitches,
           direction,
         });
-        if (move && move.before !== move.after) {
+        if (move && move.after !== move.before) {
           next = move.after;
         }
       }
