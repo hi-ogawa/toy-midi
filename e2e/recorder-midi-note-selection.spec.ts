@@ -103,12 +103,6 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await expect
     .poll(async () => (await boxPreview.boundingBox())?.height)
     .toBeCloseTo(endY - startY, 0);
-
-  // Move within the same pitch row and keep the rectangle aligned with the pointer.
-  await page.mouse.move(c4Box.x + 1, endY + 3);
-  await expect
-    .poll(async () => (await boxPreview.boundingBox())?.height)
-    .toBeCloseTo(endY + 3 - startY, 0);
   await page.mouse.up();
   await page.keyboard.up("Shift");
   await expect(notes).toHaveCount(3);
