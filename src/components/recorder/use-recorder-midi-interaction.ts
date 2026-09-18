@@ -37,6 +37,7 @@ export function useRecorderMidiInteraction({
   /** Only coordinates selection domains by clearing selection in the other domains. */
   onSelect: () => void;
 }) {
+  // A defined selection always contains at least one note ID.
   const [selection, setSelection] = useState<{
     trackId: string;
     noteIds: Set<string>;
@@ -72,7 +73,7 @@ export function useRecorderMidiInteraction({
   }
 
   function hasTrackSelection(trackId: string) {
-    return selection?.trackId === trackId && selection.noteIds.size > 0;
+    return selection?.trackId === trackId;
   }
 
   function getEditPreview({
@@ -341,7 +342,7 @@ export function useRecorderMidiInteraction({
   return {
     activate: onSelect,
     clear,
-    hasSelection: selectedNoteIds !== undefined && selectedNoteIds.size > 0,
+    hasSelection: selection !== undefined,
     hasTrackSelection,
     isSelected,
     select,
