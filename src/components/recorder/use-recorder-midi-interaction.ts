@@ -155,8 +155,8 @@ export function useRecorderMidiInteraction({
         .filter(
           (note) =>
             note.start < maxBeat &&
-            note.start + note.duration > minBeat &&
-            note.pitch >= minPitch &&
+            minBeat < note.start + note.duration &&
+            minPitch <= note.pitch &&
             note.pitch <= maxPitch,
         )
         .map((note) => note.id),
