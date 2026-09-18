@@ -1,5 +1,5 @@
 name: E2E trace
-run-name: "E2E trace for ${{ inputs.ref }} · ${{ inputs.tests }}"
+run-name: "E2E trace for ${{ inputs.ref }} · ${{ inputs.server }} · ${{ inputs.tests }}"
 
 on:
   workflow_dispatch:
@@ -13,6 +13,13 @@ on:
         description: Space-separated Playwright file filters (for example e2e/recorder-midi.spec.ts e2e/recorder-mix.spec.ts)
         required: true
         type: string
+      server:
+        description: App server mode
+        default: build
+        type: choice
+        options:
+          - build
+          - dev
       grep:
         description: Optional Playwright test-title regex
         default: ".*"
@@ -55,6 +62,7 @@ jobs:
       - name: Run selected tests with tracing
         env:
           E2E_TRACE: "1"
+          E2E_SERVER: ${{ inputs.server }}
           TEST_FILTER: ${{ inputs.tests }}
           TEST_GREP: ${{ inputs.grep }}
         run: |
@@ -87,10 +95,11 @@ jobs:
           TEST_GREP: ${{ inputs.grep }}
           TEST_SHA: ${{ needs.trace.outputs.sha }}
           TEST_RESULT: ${{ needs.trace.result }}
+          TEST_SERVER: ${{ inputs.server }}
           ARTIFACT_URL: ${{ needs.trace.outputs.artifact-url }}
         with:
           script: |
-            const { TEST_REF, TEST_FILTER, TEST_GREP, TEST_SHA, TEST_RESULT, ARTIFACT_URL } = process.env;
+            const { TEST_REF, TEST_FILTER, TEST_GREP, TEST_SHA, TEST_RESULT, TEST_SERVER, ARTIFACT_URL } = process.env;
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/attempts/${process.env.GITHUB_RUN_ATTEMPT}`;
             const commitUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${TEST_SHA}`;
             const escape = (value) => value.replace(/[&<>]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[character]);
@@ -99,6 +108,7 @@ jobs:
               "",
               `Branch: <code>${escape(TEST_REF)}</code>`,
               `Commit: [${TEST_SHA.slice(0, 8)}](${commitUrl})`,
+              `Server: <code>${escape(TEST_SERVER)}</code>`,
               `Tests: <code>${escape(TEST_FILTER)}</code>`,
               `Title filter: <code>${escape(TEST_GREP)}</code>`,
               "",
