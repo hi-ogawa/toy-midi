@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { createDefaultSavedProject } from "./legacy-project";
 import {
   type AudioTrack,
-  createDefaultSavedProject,
   fromSavedProject,
   toSavedProject,
   useProjectStore,

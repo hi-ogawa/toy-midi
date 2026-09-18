@@ -1,11 +1,11 @@
 import JSZip from "jszip";
-import { projectStorage } from "./project-storage";
 import {
   type AnySavedProject,
   migrateSavedProject,
   type SavedProject,
   type SavedProjectV1,
-} from "./project-store";
+} from "./legacy-project";
+import { projectStorage } from "./project-storage";
 
 type AnyProjectManifest = ProjectManifest | ProjectManifestV1;
 
@@ -117,98 +117,83 @@ export async function exportProjectFileV1(
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
-/**
- * Parse a .toymidi file and extract its contents
- */
+// Persist assets only for imports into the legacy editor.
 export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
-  const zip = await JSZip.loadAsync(file);
+  const parsed = await readLegacyProjectArchive(
+    await JSZip.loadAsync(await file.arrayBuffer()),
+  );
+  const audioTracks = [];
+  for (const track of parsed.project.audioTracks) {
+    const assetKey = await projectStorage.saveAsset(
+      parsed.assets.get(track.id)!,
+    );
+    audioTracks.push({ ...track, assetKey });
+  }
+  return { name: parsed.name, project: { ...parsed.project, audioTracks } };
+}
 
-  // Read manifest
+// Reading an archive must not write legacy assets during recorder conversion.
+export async function readLegacyProjectArchive(zip: JSZip) {
   const manifestFile = zip.file("manifest.json");
   if (!manifestFile) {
     throw new Error("Invalid project file: missing manifest.json");
   }
-  const manifestText = await manifestFile.async("text");
-  const manifest = JSON.parse(manifestText) as AnyProjectManifest;
-
-  // Validate manifest version
-  if (manifest.formatVersion > CURRENT_FORMAT_VERSION) {
-    throw new Error(
-      `Project file requires newer app version (format v${manifest.formatVersion})`,
-    );
+  const manifest = JSON.parse(
+    await manifestFile.async("text"),
+  ) as AnyProjectManifest;
+  if (manifest.formatVersion !== 1 && manifest.formatVersion !== 2) {
+    throw new Error("Unsupported legacy project archive version");
   }
-
-  // Read project data
   const projectFile = zip.file(manifest.files.project);
   if (!projectFile) {
     throw new Error("Invalid project file: missing project.json");
   }
-  const projectText = await projectFile.async("text");
-  const project = JSON.parse(projectText) as AnySavedProject;
-
-  if (manifest.formatVersion === 1) {
-    if (project.version !== 1) {
-      throw new Error("Invalid project file: v1 manifest with v2 project");
-    }
-
-    // version 1 always persisted `audioAssetKey: null`
-    // and generate new asset key during parse
-    const audioPath = manifest.files.audio;
-    if (audioPath) {
-      const audioZipFile = zip.file(audioPath);
-      if (!audioZipFile) {
-        throw new Error(`Invalid project file: missing ${audioPath}`);
-      }
-
-      const blob = await audioZipFile.async("blob");
-      const fileName =
-        project.audioFileName || audioPath.split("/").pop() || "audio.wav";
-      project.audioAssetKey = await projectStorage.saveAsset(
-        fileFromBlob(blob, fileName),
-      );
-    }
-
-    return {
-      name: manifest.name,
-      project: migrateSavedProject(project),
-    };
+  const data = JSON.parse(await projectFile.async("text")) as AnySavedProject;
+  if (data.version !== manifest.formatVersion) {
+    throw new Error(
+      "Invalid project file: manifest and project versions differ",
+    );
   }
-
-  if (project.version !== 2) {
-    throw new Error("Invalid project file: v2 manifest with v1 project");
+  const assets = new Map<string, File>();
+  if (manifest.formatVersion === 1 && data.version === 1) {
+    const path = manifest.files.audio;
+    if (path) {
+      data.audioFileName ||= path.split("/").pop() || "audio.wav";
+      data.audioAssetKey = path;
+    } else if (data.audioFileName || data.audioAssetKey) {
+      throw new Error("Invalid project file: missing audio manifest entry");
+    }
   }
-
-  if (project.audioTracks.length !== manifest.files.audio.length) {
+  const project = migrateSavedProject(data);
+  const entries =
+    manifest.formatVersion === 1
+      ? manifest.files.audio
+        ? [{ trackId: "audio-1", path: manifest.files.audio }]
+        : []
+      : manifest.files.audio;
+  if (
+    entries.length !== project.audioTracks.length ||
+    new Set(entries.map((entry) => entry.trackId)).size !== entries.length
+  ) {
     throw new Error(
       "Invalid project file: audio manifest does not match project",
     );
   }
-
-  const newAudioTracks: SavedProject["audioTracks"] = [];
-  for (const entry of manifest.files.audio) {
-    const track = project.audioTracks.find((t) => t.id === entry.trackId);
-    if (!track) {
-      throw new Error(
-        `Invalid project file: audio entry references missing track ${entry.trackId}`,
-      );
+  for (const track of project.audioTracks) {
+    const entry = entries.find((entry) => entry.trackId === track.id);
+    const audio = entry && zip.file(entry.path);
+    if (!audio) {
+      throw new Error(`Missing audio asset for "${track.fileName}"`);
     }
-
-    const audioZipFile = zip.file(entry.path);
-    if (!audioZipFile) {
-      throw new Error(`Invalid project file: missing ${entry.path}`);
-    }
-    const blob = await audioZipFile.async("blob");
-    const assetKey = await projectStorage.saveAsset(
-      fileFromBlob(blob, track.fileName),
+    assets.set(
+      track.id,
+      fileFromBlob(
+        new Blob([await audio.async("arraybuffer")]),
+        track.fileName,
+      ),
     );
-    newAudioTracks.push({ ...track, assetKey });
   }
-  project.audioTracks = newAudioTracks;
-
-  return {
-    name: manifest.name,
-    project,
-  };
+  return { name: manifest.name, project, assets };
 }
 
 // Build a File object from a blob, inferring MIME type from the file extension

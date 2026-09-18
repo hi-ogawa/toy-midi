@@ -12,7 +12,7 @@ import {
   migrateSavedProject,
   type SavedProject,
   type SavedProjectV1,
-} from "./project-store";
+} from "./legacy-project";
 
 export interface ProjectMetadata {
   id: string;
