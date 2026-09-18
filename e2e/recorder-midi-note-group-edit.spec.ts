@@ -3,6 +3,7 @@ import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { createRecorderProject, dragBy } from "./recorder-helpers";
 
 test("moves and resizes selected MIDI notes together", async ({ page }) => {
+  // Create two notes and select them as one editing group.
   await createRecorderProject(page);
   await page.getByTestId("recorder-add-midi-track").click();
   const row = page.getByTestId("recorder-midi-track-row");
@@ -47,6 +48,7 @@ test("moves and resizes selected MIDI notes together", async ({ page }) => {
   expect((await resizedC4.boundingBox())!.width).toBeCloseTo(cellWidth * 3, 1);
   expect((await resizedE4.boundingBox())!.width).toBeCloseTo(cellWidth * 3, 1);
 
+  // Save and reload the project to preserve the grouped edits.
   const save = page.getByTestId("recorder-save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
   await save.click();
