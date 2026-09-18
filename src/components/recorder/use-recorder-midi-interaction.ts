@@ -397,7 +397,7 @@ function createEditGetNotes({
       case "resize-end": {
         deltaDuration = Math.max(
           snapToGrid(beat, step) - primaryEnd,
-          step - minDuration,
+          -(minDuration - step),
         );
         break;
       }
