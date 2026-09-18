@@ -364,6 +364,7 @@ function createEditGetNotes({
   });
   const minStart = Math.min(...originals.map((note) => note.start));
   const minDuration = Math.min(...originals.map((note) => note.duration));
+  const maxShrink = Math.max(0, minDuration - step);
   const minPitch = Math.min(...originals.map((note) => note.pitch));
   const maxPitch = Math.max(...originals.map((note) => note.pitch));
   const primaryEnd = primary.start + primary.duration;
@@ -387,7 +388,7 @@ function createEditGetNotes({
         deltaStart = clamp(
           snapToGrid(beat, step) - primary.start,
           -minStart,
-          Math.max(-minStart, minDuration - step),
+          maxShrink,
         );
         deltaDuration = -deltaStart;
         break;
@@ -395,7 +396,7 @@ function createEditGetNotes({
       case "resize-end": {
         deltaDuration = Math.max(
           snapToGrid(beat, step) - primaryEnd,
-          -(minDuration - step),
+          -maxShrink,
         );
         break;
       }
