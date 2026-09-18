@@ -647,12 +647,6 @@ export class RecorderRuntime {
     if (!track) {
       throw new Error("MIDI track state is missing.");
     }
-    if (
-      track.notes.length === notes.length &&
-      track.notes.every((note, index) => shallowEqual(note, notes[index]))
-    ) {
-      return;
-    }
     // Snapshot only committed notes so previews never enter history.
     const before = track.notes;
     const after = notes;
