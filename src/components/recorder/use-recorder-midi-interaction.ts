@@ -175,6 +175,7 @@ export function useRecorderMidiInteraction({
     beat: number;
     mode: EditMode;
   }) {
+    // TODO: Move and resize the whole selection instead of selecting only the grabbed note.
     select({ trackId, noteId });
     const original = state.midiTracks
       .find((track) => track.id === trackId)
@@ -305,6 +306,7 @@ export function useRecorderMidiInteraction({
   }
 
   function handleTabAnnotationShortcut(event: KeyboardEvent): boolean {
+    // TODO: Apply tab string assignment, changes, and reset to the whole selection.
     const selectedNote =
       selectedNoteIds?.size === 1
         ? selectedTrack?.notes.find((note) => selectedNoteIds.has(note.id))
