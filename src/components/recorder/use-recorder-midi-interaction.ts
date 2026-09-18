@@ -406,12 +406,12 @@ export function useRecorderMidiInteraction({
     }
     cancelEdit();
     onSelect();
-    const offset =
-      insertBeat - Math.min(...clipboard.notes.map((note) => note.start));
+    const minStart = Math.min(...clipboard.notes.map((note) => note.start));
+    const deltaStart = insertBeat - minStart;
     const notes = clipboard.notes.map((note) => ({
       ...note,
       id: crypto.randomUUID(),
-      start: note.start + offset,
+      start: note.start + deltaStart,
     }));
     runtime.setMidiTrackNotes(track.id, [...track.notes, ...notes]);
     setSelection({
