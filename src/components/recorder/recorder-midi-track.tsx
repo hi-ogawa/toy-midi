@@ -293,6 +293,8 @@ function MidiTrackEditor({
     },
     onClick: (event, gesture) => {
       if (gesture.data.type === "select" || gesture.data.type === "duplicate") {
+        // Ctrl/Cmd-click toggles selection even on a selected note because
+        // duplication starts only after crossing the drag threshold.
         midiInteraction.select({
           trackId: track.id,
           noteId: gesture.data.noteId,
