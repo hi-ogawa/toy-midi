@@ -1,21 +1,21 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "./recorder-helpers";
+import {
+  createRecorderProject,
+  addRecorderMidiTrack,
+  createRecorderMidiNote,
+  saveRecorderProject,
+} from "./recorder-helpers";
 
 test("assigns MIDI note strings and persists annotation settings", async ({
   page,
 }) => {
   // Create a C4 note at the first grid cell with annotations initially hidden.
   await createRecorderProject(page);
-  await page.getByTestId("recorder-add-midi-track").click();
-  const row = page.getByTestId("recorder-midi-track-row");
+  const row = await addRecorderMidiTrack({ page });
   const grid = row.getByTestId("recorder-midi-grid");
   const note = grid.locator("[data-note-id]");
   const annotation = note.getByTestId("tab-annotation");
-  const key = row.getByRole("button", { name: "Preview C4", exact: true });
-  await expect(key).toBeVisible();
-  const gridBox = (await grid.boundingBox())!;
-  const keyBox = (await key.boundingBox())!;
-  await page.mouse.click(gridBox.x + 5, keyBox.y + keyBox.height / 2);
+  await createRecorderMidiNote({ page, track: row, beat: 0, pitch: "C4" });
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
   await expect(annotation).toHaveCount(0);
   const originalWidth = (await note.boundingBox())!.width;
@@ -48,9 +48,7 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   expect((await note.boundingBox())!.width).toBe(originalWidth);
 
   // Save and reload to verify the automatic label, annotation toggle, and tuning persist.
-  const save = page.getByTestId("recorder-save-button");
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject({ page });
   await page.reload();
   await expect(annotation).toHaveText("G17");
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
