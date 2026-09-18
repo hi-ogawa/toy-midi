@@ -314,13 +314,12 @@ export function useRecorderMidiInteraction({
       }
       let next = note.tabString;
       if (tabString) {
-        if (
-          getFret({
-            pitch: note.pitch,
-            tabString,
-            openStringPitches: selectedTrack.tabOpenStringPitches,
-          }) !== undefined
-        ) {
+        const fret = getFret({
+          pitch: note.pitch,
+          tabString,
+          openStringPitches: selectedTrack.tabOpenStringPitches,
+        });
+        if (fret !== undefined) {
           next = tabString;
         }
       } else if (reset) {
