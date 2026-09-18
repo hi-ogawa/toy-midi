@@ -11,16 +11,9 @@ test("updates tab strings for selected MIDI notes together", async ({
 }) => {
   // Create two notes and enable five-string bass annotations.
   await createRecorderProject(page);
-  const row = await addRecorderMidiTrack({ page });
-  const c4 = await createRecorderMidiNote({
-    page,
-    track: row,
-    beat: 0,
-    pitch: "C4",
-  });
-  const e4 = await createRecorderMidiNote({
-    page,
-    track: row,
+  const row = await addRecorderMidiTrack(page);
+  const c4 = await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
+  const e4 = await createRecorderMidiNote(page, row, {
     beat: 0.5,
     pitch: "E4",
   });
@@ -55,7 +48,7 @@ test("updates tab strings for selected MIDI notes together", async ({
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");
 
   // Save and reload the project to preserve the reset annotations.
-  await saveRecorderProject({ page });
+  await saveRecorderProject(page);
   await page.reload();
   await expect(c4.getByTestId("tab-annotation")).toHaveText("G17");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");

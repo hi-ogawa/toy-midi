@@ -12,24 +12,20 @@ test("duplicates selected MIDI notes by modifier-dragging", async ({
 }) => {
   // Create two notes and save the project before duplicating them.
   await createRecorderProject(page);
-  const row = await addRecorderMidiTrack({ page });
+  const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
-  const originalC4 = await createRecorderMidiNote({
-    page,
-    track: row,
+  const originalC4 = await createRecorderMidiNote(page, row, {
     beat: 0,
     pitch: "C4",
   });
-  const originalE4 = await createRecorderMidiNote({
-    page,
-    track: row,
+  const originalE4 = await createRecorderMidiNote(page, row, {
     beat: 0.5,
     pitch: "E4",
   });
   const cellWidth = (await originalC4.boundingBox())!.width;
   const save = page.getByTestId("recorder-save-button");
-  await saveRecorderProject({ page });
+  await saveRecorderProject(page);
 
   async function selectOriginals() {
     await originalC4.click({ modifiers: ["Control"] });
@@ -67,12 +63,8 @@ test("duplicates selected MIDI notes by modifier-dragging", async ({
   await page.mouse.up();
   await page.keyboard.up("Control");
   await expect(notes).toHaveCount(4);
-  const duplicateC4 = getRecorderMidiNote({
-    track: row,
-    pitch: "C4",
-    beat: 0.5,
-  });
-  const duplicateE4 = getRecorderMidiNote({ track: row, pitch: "E4", beat: 1 });
+  const duplicateC4 = getRecorderMidiNote(row, { pitch: "C4", beat: 0.5 });
+  const duplicateE4 = getRecorderMidiNote(row, { pitch: "E4", beat: 1 });
   await expect(duplicateC4).toHaveAttribute("data-selected", "true");
   await expect(duplicateE4).toHaveAttribute("data-selected", "true");
   await expect(originalC4).toHaveAttribute("data-selected", "false");
@@ -80,7 +72,7 @@ test("duplicates selected MIDI notes by modifier-dragging", async ({
   await expect(save).toHaveAttribute("data-status", "unsaved");
 
   // Save and reload the project to preserve the duplicated notes.
-  await saveRecorderProject({ page });
+  await saveRecorderProject(page);
   await page.reload();
   await expect(notes).toHaveCount(4);
   await expect(duplicateC4).toBeVisible();

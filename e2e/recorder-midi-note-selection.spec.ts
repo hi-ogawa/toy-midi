@@ -9,30 +9,18 @@ import {
 test("selects and deletes multiple MIDI notes", async ({ page }) => {
   // Create three notes and save the project before changing selection.
   await createRecorderProject(page);
-  const row = await addRecorderMidiTrack({ page });
+  const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
-  const c4 = await createRecorderMidiNote({
-    page,
-    track: row,
-    beat: 0,
-    pitch: "C4",
-  });
-  const d4 = await createRecorderMidiNote({
-    page,
-    track: row,
+  const c4 = await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
+  const d4 = await createRecorderMidiNote(page, row, {
     beat: 0.5,
     pitch: "D4",
   });
-  const e4 = await createRecorderMidiNote({
-    page,
-    track: row,
-    beat: 1,
-    pitch: "E4",
-  });
+  const e4 = await createRecorderMidiNote(page, row, { beat: 1, pitch: "E4" });
   await expect(notes).toHaveCount(3);
   const save = page.getByTestId("recorder-save-button");
-  await saveRecorderProject({ page });
+  await saveRecorderProject(page);
 
   // Ctrl/Cmd-click toggles notes without changing the project.
   await c4.click({ modifiers: ["Control"] });
@@ -116,7 +104,7 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await expect(notes).toHaveCount(1);
   await expect(e4).toBeVisible();
   await expect(save).toHaveAttribute("data-status", "unsaved");
-  await saveRecorderProject({ page });
+  await saveRecorderProject(page);
   await page.reload();
   await expect(notes).toHaveCount(1);
   await expect(e4).toBeVisible();

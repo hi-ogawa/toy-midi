@@ -8,10 +8,8 @@ import {
 test("renders a MIDI note in the score panel", async ({ page }) => {
   // Create a MIDI track and add a C4 note at the first beat.
   await createRecorderProject(page);
-  const row = await addRecorderMidiTrack({ page });
-  const note = await createRecorderMidiNote({
-    page,
-    track: row,
+  const row = await addRecorderMidiTrack(page);
+  const note = await createRecorderMidiNote(page, row, {
     beat: 0,
     pitch: "C4",
   });

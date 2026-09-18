@@ -16,7 +16,7 @@ export async function createRecorderProject(page: Page): Promise<void> {
   );
 }
 
-export async function addRecorderMidiTrack({ page }: { page: Page }) {
+export async function addRecorderMidiTrack(page: Page) {
   return test.step(
     "Add recorder MIDI track",
     async () => {
@@ -32,25 +32,25 @@ export async function addRecorderMidiTrack({ page }: { page: Page }) {
   );
 }
 
-export async function createRecorderMidiNote({
-  page,
-  track,
-  beat,
-  pitch,
-}: {
-  page: Page;
-  track: Locator;
-  /** Zero-based beat at a grid boundary. */
-  beat: number;
-  pitch: string;
-}) {
+export async function createRecorderMidiNote(
+  page: Page,
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    /** Zero-based beat at a grid boundary. */
+    beat: number;
+    pitch: string;
+  },
+) {
   return test.step(
     `Create ${pitch} at beat ${beat}`,
     async () => {
-      const point = await getRecorderMidiGridPoint({ track, beat, pitch });
+      const point = await getRecorderMidiGridPoint(track, { beat, pitch });
       // Click inside the cell rather than directly on its boundary.
       await page.mouse.click(point.x + 5, point.y);
-      const note = getRecorderMidiNote({ track, beat, pitch });
+      const note = getRecorderMidiNote(track, { beat, pitch });
       await expect(note).toBeVisible();
       return note;
     },
@@ -59,30 +59,32 @@ export async function createRecorderMidiNote({
 }
 
 /** Locate a note by pitch and zero-based beat, using its displayed one-based label. */
-export function getRecorderMidiNote({
-  track,
-  beat,
-  pitch,
-}: {
-  track: Locator;
-  beat: number;
-  pitch: string;
-}) {
+export function getRecorderMidiNote(
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    beat: number;
+    pitch: string;
+  },
+) {
   return track
     .getByTestId("recorder-midi-grid")
     .locator(`[data-note-id][aria-label="${pitch}, beat ${beat + 1}"]`);
 }
 
 /** Convert a zero-based beat and pitch to a point at the default zoom and horizontal origin. */
-export async function getRecorderMidiGridPoint({
-  track,
-  beat,
-  pitch,
-}: {
-  track: Locator;
-  beat: number;
-  pitch: string;
-}) {
+export async function getRecorderMidiGridPoint(
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    beat: number;
+    pitch: string;
+  },
+) {
   const key = track.getByRole("button", {
     name: `Preview ${pitch}`,
     exact: true,
@@ -98,7 +100,7 @@ export async function getRecorderMidiGridPoint({
   };
 }
 
-export async function saveRecorderProject({ page }: { page: Page }) {
+export async function saveRecorderProject(page: Page) {
   await test.step(
     "Save recorder project",
     async () => {

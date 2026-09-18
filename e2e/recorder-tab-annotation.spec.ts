@@ -11,11 +11,11 @@ test("assigns MIDI note strings and persists annotation settings", async ({
 }) => {
   // Create a C4 note at the first grid cell with annotations initially hidden.
   await createRecorderProject(page);
-  const row = await addRecorderMidiTrack({ page });
+  const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const note = grid.locator("[data-note-id]");
   const annotation = note.getByTestId("tab-annotation");
-  await createRecorderMidiNote({ page, track: row, beat: 0, pitch: "C4" });
+  await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
   await expect(annotation).toHaveCount(0);
   const originalWidth = (await note.boundingBox())!.width;
@@ -48,7 +48,7 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   expect((await note.boundingBox())!.width).toBe(originalWidth);
 
   // Save and reload to verify the automatic label, annotation toggle, and tuning persist.
-  await saveRecorderProject({ page });
+  await saveRecorderProject(page);
   await page.reload();
   await expect(annotation).toHaveText("G17");
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
