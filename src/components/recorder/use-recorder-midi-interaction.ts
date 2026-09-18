@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { matchKeyboardEvent } from "../../lib/keyboard";
-import { clamp, clampPitch, snapToGrid } from "../../lib/music";
+import { clamp, clampPitch, MAX_PITCH, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -15,9 +15,15 @@ type MidiNoteEdit = {
   getNote: GetNote;
 };
 
-type EditPosition = { beat: number; pitch: number };
-type GetNote = (position: EditPosition) => Note;
+// The pitch axis spans [0, MAX_PITCH + 1] upward. Note p occupies [p, p + 1).
+type MidiGridPosition = { beat: number; pitch: number };
+type GetNote = (position: MidiGridPosition) => Note;
 type EditMode = "move" | "resize-start" | "resize-end";
+
+type MidiBoxSelection = {
+  start: MidiGridPosition;
+  current: MidiGridPosition;
+};
 
 export function useRecorderMidiInteraction({
   runtime,
@@ -31,29 +37,42 @@ export function useRecorderMidiInteraction({
   /** Only coordinates selection domains by clearing selection in the other domains. */
   onSelect: () => void;
 }) {
+  // A defined selection always contains at least one note ID.
   const [selection, setSelection] = useState<{
     trackId: string;
-    noteId: string;
+    noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
+  const [boxSelection, setBoxSelection] = useState<
+    MidiBoxSelection & { trackId: string }
+  >();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
-  const selectedNote = selectedTrack?.notes.find(
-    (note) => note.id === selection?.noteId,
-  );
+  const selectedNoteIds = selection?.noteIds;
 
+  // Reconcile selection when notes are removed outside this interaction.
   useEffect(() => {
-    if (!selectedNote) {
-      cancelEdit();
-      setSelection(undefined);
+    if (!selection) {
+      return;
     }
-  }, [selectedNote]);
+    const track = state.midiTracks.find(
+      (entry) => entry.id === selection.trackId,
+    );
+    const availableIds = new Set(track?.notes.map((note) => note.id));
+    const noteIds = selection.noteIds.intersection(availableIds);
+    if (noteIds.size !== selection.noteIds.size) {
+      cancelEdit();
+      setSelection(noteIds.size > 0 ? { ...selection, noteIds } : undefined);
+    }
+  }, [state.midiTracks, selection]);
 
-  function getSelectedNoteId(trackId: string) {
-    return selectedNote && selection?.trackId === trackId
-      ? selection.noteId
-      : undefined;
+  function isSelected(trackId: string, noteId: string) {
+    return selection?.trackId === trackId && selection.noteIds.has(noteId);
+  }
+
+  function hasTrackSelection(trackId: string) {
+    return selection?.trackId === trackId;
   }
 
   function getEditPreview({
@@ -68,10 +87,80 @@ export function useRecorderMidiInteraction({
       : undefined;
   }
 
-  function select(selection: { trackId: string; noteId: string }) {
+  function select({
+    trackId,
+    noteId,
+    additive = false,
+  }: {
+    trackId: string;
+    noteId: string;
+    additive?: boolean;
+  }) {
     cancelEdit();
     onSelect();
-    setSelection(selection);
+    setSelection((current) => {
+      if (!additive || current?.trackId !== trackId) {
+        return { trackId, noteIds: new Set([noteId]) };
+      }
+      const noteIds = new Set(current.noteIds);
+      if (noteIds.has(noteId)) {
+        noteIds.delete(noteId);
+      } else {
+        noteIds.add(noteId);
+      }
+      return noteIds.size > 0 ? { trackId, noteIds } : undefined;
+    });
+  }
+
+  function getBoxSelectionPreview(trackId: string) {
+    return boxSelection?.trackId === trackId ? boxSelection : undefined;
+  }
+
+  function startBoxSelection({
+    trackId,
+    position,
+  }: {
+    trackId: string;
+    position: MidiGridPosition;
+  }) {
+    cancelEdit();
+    onSelect();
+    setBoxSelection({ trackId, start: position, current: position });
+  }
+
+  function updateBoxSelection(position: MidiGridPosition) {
+    if (boxSelection) {
+      setBoxSelection({ ...boxSelection, current: position });
+    }
+  }
+
+  function finishBoxSelection(end: MidiGridPosition) {
+    if (!boxSelection) {
+      return;
+    }
+    const { trackId, start } = boxSelection;
+    cancelEdit();
+    const track = state.midiTracks.find((entry) => entry.id === trackId);
+    if (!track) {
+      return;
+    }
+    const minBeat = Math.min(start.beat, end.beat);
+    const maxBeat = Math.max(start.beat, end.beat);
+    // Include both endpoint rows when resolving the continuous selection box.
+    const minPitch = Math.floor(Math.min(start.pitch, end.pitch));
+    const maxPitch = Math.floor(Math.max(start.pitch, end.pitch));
+    const noteIds = new Set(
+      track.notes
+        .filter(
+          (note) =>
+            note.start < maxBeat &&
+            minBeat < note.start + note.duration &&
+            minPitch <= note.pitch &&
+            note.pitch <= maxPitch,
+        )
+        .map((note) => note.id),
+    );
+    setSelection(noteIds.size > 0 ? { trackId, noteIds } : undefined);
   }
 
   function startEdit({
@@ -85,6 +174,7 @@ export function useRecorderMidiInteraction({
     beat: number;
     mode: EditMode;
   }) {
+    // TODO: Move and resize the whole selection instead of selecting only the grabbed note.
     select({ trackId, noteId });
     const original = state.midiTracks
       .find((track) => track.id === trackId)
@@ -109,7 +199,7 @@ export function useRecorderMidiInteraction({
             return {
               ...original,
               start: Math.max(0, cellStart - grabOffset),
-              pitch: clampPitch(pitch),
+              pitch: clampPitch(Math.floor(pitch)),
             };
           }
           case "resize-start": {
@@ -129,7 +219,7 @@ export function useRecorderMidiInteraction({
     });
   }
 
-  function updateEdit(position: EditPosition) {
+  function updateEdit(position: MidiGridPosition) {
     const note = edit?.getNote(position);
     if (
       edit &&
@@ -143,7 +233,7 @@ export function useRecorderMidiInteraction({
     return note;
   }
 
-  function finishEdit(position: EditPosition) {
+  function finishEdit(position: MidiGridPosition) {
     // Calculate from the release position rather than waiting for a preview render.
     const note = edit?.getNote(position);
     if (!edit || !note) {
@@ -167,6 +257,7 @@ export function useRecorderMidiInteraction({
 
   function cancelEdit() {
     setEdit(undefined);
+    setBoxSelection(undefined);
   }
 
   function clear() {
@@ -189,7 +280,7 @@ export function useRecorderMidiInteraction({
     }
     const note = {
       id: crypto.randomUUID(),
-      pitch,
+      pitch: clampPitch(Math.floor(pitch)),
       start: Math.max(
         0,
         snapToGrid(beat, 1 / subdivisionsPerBeat, { floor: true }),
@@ -199,20 +290,26 @@ export function useRecorderMidiInteraction({
     };
     runtime.setMidiTrackNotes(trackId, [...track.notes, note]);
     select({ trackId, noteId: note.id });
+    return note;
   }
 
   function removeSelected() {
     cancelEdit();
-    if (selectedTrack && selectedNote) {
+    if (selectedTrack && selectedNoteIds) {
       runtime.setMidiTrackNotes(
         selectedTrack.id,
-        selectedTrack.notes.filter((note) => note.id !== selectedNote.id),
+        selectedTrack.notes.filter((note) => !selectedNoteIds.has(note.id)),
       );
     }
     setSelection(undefined);
   }
 
   function handleTabAnnotationShortcut(event: KeyboardEvent): boolean {
+    // TODO: Apply tab string assignment, changes, and reset to the whole selection.
+    const selectedNote =
+      selectedNoteIds?.size === 1
+        ? selectedTrack?.notes.find((note) => selectedNoteIds.has(note.id))
+        : undefined;
     if (!selectedTrack?.tabAnnotationEnabled || !selectedNote) {
       return false;
     }
@@ -246,8 +343,14 @@ export function useRecorderMidiInteraction({
   return {
     activate: onSelect,
     clear,
-    hasSelection: selectedNote !== undefined,
-    getSelectedNoteId,
+    hasSelection: selection !== undefined,
+    hasTrackSelection,
+    isSelected,
+    select,
+    startBoxSelection,
+    updateBoxSelection,
+    finishBoxSelection,
+    getBoxSelectionPreview,
     startEdit,
     updateEdit,
     finishEdit,
@@ -256,5 +359,48 @@ export function useRecorderMidiInteraction({
     create,
     removeSelected,
     handleTabAnnotationShortcut,
+  };
+}
+
+export function getMidiGridPosition({
+  x,
+  y,
+  viewportStartBeat,
+  pixelsPerBeat,
+  pixelsPerKey,
+}: {
+  x: number;
+  y: number;
+  viewportStartBeat: number;
+  pixelsPerBeat: number;
+  pixelsPerKey: number;
+}): MidiGridPosition {
+  return {
+    beat: viewportStartBeat + x / pixelsPerBeat,
+    pitch: MAX_PITCH + 1 - y / pixelsPerKey,
+  };
+}
+
+export function getMidiBoxSelectionRect({
+  selection: { start, current },
+  viewportStartBeat,
+  pixelsPerBeat,
+  pixelsPerKey,
+}: {
+  selection: MidiBoxSelection;
+  viewportStartBeat: number;
+  pixelsPerBeat: number;
+  pixelsPerKey: number;
+}) {
+  const firstBeat = Math.min(start.beat, current.beat);
+  const lastBeat = Math.max(start.beat, current.beat);
+  const lowestPitch = Math.min(start.pitch, current.pitch);
+  const highestPitch = Math.max(start.pitch, current.pitch);
+
+  return {
+    left: (firstBeat - viewportStartBeat) * pixelsPerBeat,
+    top: (MAX_PITCH + 1 - highestPitch) * pixelsPerKey,
+    width: (lastBeat - firstBeat) * pixelsPerBeat,
+    height: (highestPitch - lowestPitch) * pixelsPerKey,
   };
 }

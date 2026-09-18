@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { useWindowEvent } from "../../hooks/use-window-event";
-import { isBlackKey, clampPitch } from "../../lib/music";
+import { isBlackKey, MAX_PITCH } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -39,10 +39,17 @@ import {
 import { cn } from "../ui/utils";
 import { MidiInstrument } from "./recorder-midi-instrument";
 import { TrackRow } from "./recorder-tracks";
-import { useRecorderMidiInteraction } from "./use-recorder-midi-interaction";
+import {
+  useRecorderMidiInteraction,
+  getMidiGridPosition,
+  getMidiBoxSelectionRect,
+} from "./use-recorder-midi-interaction";
 
 const KEY_HEIGHT = 18;
-const PITCHES = Array.from({ length: 128 }, (_, index) => 127 - index);
+const PITCHES = Array.from(
+  { length: MAX_PITCH + 1 },
+  (_, index) => MAX_PITCH - index,
+);
 
 export function MidiTrackRow({
   track,
@@ -185,16 +192,17 @@ function MidiTrackEditor({
 }) {
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
-  const selectedId = midiInteraction.getSelectedNoteId(track.id);
+  const boxSelection = midiInteraction.getBoxSelectionPreview(track.id);
+  const hasSelection = midiInteraction.hasTrackSelection(track.id);
 
   useWindowEvent("blur", midiInteraction.cancelEdit);
 
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
-    if (selectedId === undefined) {
+    if (!hasSelection) {
       preview.stop();
     }
-  }, [selectedId]);
+  }, [hasSelection]);
 
   const scrollRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -203,7 +211,7 @@ function MidiTrackEditor({
       }
       // Center the initial pitch when the scroll container mounts.
       element.scrollTop =
-        (127 - initialPitch) * KEY_HEIGHT - element.clientHeight / 2;
+        (MAX_PITCH - initialPitch) * KEY_HEIGHT - element.clientHeight / 2;
 
       // Keep native vertical pitch scrolling local. Let horizontal gestures,
       // Shift+wheel, and Ctrl+wheel reach the timeline for navigation and zoom.
@@ -220,15 +228,22 @@ function MidiTrackEditor({
 
   function getPointerPosition(event: PointerEvent) {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    return {
-      pitch: clampPitch(
-        127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
-      ),
-      beat: viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat,
-    };
+    return getMidiGridPosition({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+      viewportStartBeat,
+      pixelsPerBeat,
+      pixelsPerKey: KEY_HEIGHT,
+    });
   }
 
-  const gridRef = usePointerGesture({
+  type MidiGridGesture =
+    | { type: "select"; noteId: string }
+    | { type: "edit" }
+    | { type: "box-select" }
+    | { type: "create" };
+
+  const gridRef = usePointerGesture<MidiGridGesture>({
     onStart: (event) => {
       // Focus the grid and select an existing note, or create one in an empty cell.
       event.preventDefault();
@@ -241,6 +256,10 @@ function MidiTrackEditor({
       );
       const position = getPointerPosition(event);
       if (existing) {
+        if (event.ctrlKey || event.metaKey) {
+          preview.start(existing.pitch);
+          return { type: "select", noteId: existing.id };
+        }
         const edge = (event.target as HTMLElement).closest<HTMLElement>(
           "[data-note-edge]",
         )?.dataset.noteEdge;
@@ -257,20 +276,49 @@ function MidiTrackEditor({
           beat: position.beat,
         });
         preview.start(existing.pitch);
-        return;
+        return { type: "edit" };
       }
-      midiInteraction.create({ trackId: track.id, ...position });
-      preview.start(position.pitch);
-    },
-    onClick: cancelEdit,
-    onDragMove: (event) => {
-      const note = midiInteraction.updateEdit(getPointerPosition(event));
+      if (event.shiftKey) {
+        midiInteraction.startBoxSelection({ trackId: track.id, position });
+        return { type: "box-select" };
+      }
+      const note = midiInteraction.create({ trackId: track.id, ...position });
       if (note) {
         preview.start(note.pitch);
       }
+      return { type: "create" };
     },
-    onDragEnd: (event) => {
-      midiInteraction.finishEdit(getPointerPosition(event));
+    onClick: (event, gesture) => {
+      if (gesture.data.type === "select") {
+        midiInteraction.select({
+          trackId: track.id,
+          noteId: gesture.data.noteId,
+          additive: true,
+        });
+      } else if (gesture.data.type === "box-select") {
+        midiInteraction.finishBoxSelection(getPointerPosition(event));
+      } else {
+        midiInteraction.cancelEdit();
+      }
+      preview.stop();
+    },
+    onDragMove: (event, gesture) => {
+      if (gesture.data.type === "box-select") {
+        midiInteraction.updateBoxSelection(getPointerPosition(event));
+      } else if (gesture.data.type === "edit") {
+        const note = midiInteraction.updateEdit(getPointerPosition(event));
+        if (note) {
+          preview.start(note.pitch);
+        }
+      }
+    },
+    onDragEnd: (event, gesture) => {
+      const position = getPointerPosition(event);
+      if (gesture.data.type === "box-select") {
+        midiInteraction.finishBoxSelection(position);
+      } else if (gesture.data.type === "edit") {
+        midiInteraction.finishEdit(position);
+      }
       preview.stop();
     },
     onCancel: cancelEdit,
@@ -284,7 +332,7 @@ function MidiTrackEditor({
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       cancelEdit();
-      if (selectedId !== undefined) {
+      if (hasSelection) {
         midiInteraction.clear();
       }
     }
@@ -299,7 +347,7 @@ function MidiTrackEditor({
     >
       <div
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
-        style={{ height: 128 * KEY_HEIGHT }}
+        style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
         <div className="relative border-r border-neutral-700 bg-neutral-900">
           {PITCHES.map((pitch) => (
@@ -354,12 +402,24 @@ function MidiTrackEditor({
                 key={note.id}
                 note={displayedNote}
                 annotation={annotation}
-                selected={selectedId === note.id}
+                selected={midiInteraction.isSelected(track.id, note.id)}
                 pixelsPerBeat={pixelsPerBeat}
                 viewportStartBeat={viewportStartBeat}
               />
             );
           })}
+          {boxSelection && (
+            <div
+              data-testid="recorder-midi-box-selection"
+              className="pointer-events-none absolute border border-blue-300 bg-blue-400/20"
+              style={getMidiBoxSelectionRect({
+                selection: boxSelection,
+                viewportStartBeat,
+                pixelsPerBeat,
+                pixelsPerKey: KEY_HEIGHT,
+              })}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -440,7 +500,7 @@ function MidiPianoKey({
             ),
       )}
       style={{
-        top: (127 - pitch) * KEY_HEIGHT,
+        top: (MAX_PITCH - pitch) * KEY_HEIGHT,
         height: KEY_HEIGHT,
       }}
       onPointerDown={(event) => {
@@ -465,7 +525,7 @@ function MidiGridRow({ pitch }: { pitch: number }) {
         isBlackKey(pitch) ? "bg-[#111111]" : "bg-[#1a1a1a]",
       )}
       style={{
-        top: (127 - pitch) * KEY_HEIGHT,
+        top: (MAX_PITCH - pitch) * KEY_HEIGHT,
         height: KEY_HEIGHT,
       }}
     />
@@ -488,6 +548,7 @@ function MidiNote({
   return (
     <div
       data-note-id={note.id}
+      data-selected={selected}
       aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
       className={cn(
         "absolute cursor-grab active:cursor-grabbing rounded-sm border border-[#2563eb]",
@@ -499,7 +560,7 @@ function MidiNote({
         backgroundColor: annotation?.color.background,
         borderColor: annotation?.color.border,
         left: (note.start - viewportStartBeat) * pixelsPerBeat,
-        top: (127 - note.pitch) * KEY_HEIGHT + 1,
+        top: (MAX_PITCH - note.pitch) * KEY_HEIGHT + 1,
         width: Math.max(2, note.duration * pixelsPerBeat),
         height: KEY_HEIGHT - 2,
       }}
