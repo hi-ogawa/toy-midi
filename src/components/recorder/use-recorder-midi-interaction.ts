@@ -435,10 +435,11 @@ function createEditGetNotes({
   const grabOffset = snapToGrid(grabBeat - primary.start, step, {
     floor: true,
   });
-  const minimumStart = Math.min(...originals.map((note) => note.start));
-  const minimumDuration = Math.min(...originals.map((note) => note.duration));
-  const minimumPitch = Math.min(...originals.map((note) => note.pitch));
-  const maximumPitch = Math.max(...originals.map((note) => note.pitch));
+  const minStart = Math.min(...originals.map((note) => note.start));
+  const minDuration = Math.min(...originals.map((note) => note.duration));
+  const maxShrink = Math.max(0, minDuration - step);
+  const minPitch = Math.min(...originals.map((note) => note.pitch));
+  const maxPitch = Math.max(...originals.map((note) => note.pitch));
   const primaryEnd = primary.start + primary.duration;
 
   return ({ beat, pitch }) => {
@@ -447,25 +448,20 @@ function createEditGetNotes({
     let deltaDuration = 0;
     switch (mode) {
       case "move": {
-        const cellStart = snapToGrid(beat, step, { floor: true });
-        deltaStart = Math.max(
-          cellStart - grabOffset - primary.start,
-          -minimumStart,
-        );
+        const nextStart = snapToGrid(beat, step, { floor: true }) - grabOffset;
+        deltaStart = Math.max(nextStart - primary.start, -minStart);
         deltaPitch = clamp(
           Math.floor(pitch) - primary.pitch,
-          -minimumPitch,
-          MAX_PITCH - maximumPitch,
+          -minPitch,
+          MAX_PITCH - maxPitch,
         );
         break;
       }
       case "resize-start": {
-        const minimumDelta = -minimumStart;
-        const maximumDelta = Math.max(minimumDelta, minimumDuration - step);
         deltaStart = clamp(
           snapToGrid(beat, step) - primary.start,
-          minimumDelta,
-          maximumDelta,
+          -minStart,
+          maxShrink,
         );
         deltaDuration = -deltaStart;
         break;
@@ -473,7 +469,7 @@ function createEditGetNotes({
       case "resize-end": {
         deltaDuration = Math.max(
           snapToGrid(beat, step) - primaryEnd,
-          step - minimumDuration,
+          -maxShrink,
         );
         break;
       }
