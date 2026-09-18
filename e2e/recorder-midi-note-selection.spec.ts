@@ -1,38 +1,38 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "./recorder-helpers";
+import {
+  createRecorderProject,
+  addRecorderMidiTrack,
+  createRecorderMidiNote,
+  saveRecorderProject,
+} from "./recorder-helpers";
 
 test("selects and deletes multiple MIDI notes", async ({ page }) => {
   // Create three notes and save the project before changing selection.
   await createRecorderProject(page);
-  await page.getByTestId("recorder-add-midi-track").click();
-  const row = page.getByTestId("recorder-midi-track-row");
+  const row = await addRecorderMidiTrack({ page });
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
-  const gridBox = (await grid.boundingBox())!;
-  const c4Key = row.getByRole("button", { name: "Preview C4", exact: true });
-  const d4Key = row.getByRole("button", { name: "Preview D4", exact: true });
-  const e4Key = row.getByRole("button", { name: "Preview E4", exact: true });
-  const c4KeyBox = (await c4Key.boundingBox())!;
-
-  await page.mouse.click(gridBox.x + 5, c4KeyBox.y + c4KeyBox.height / 2);
-  const cellWidth = (await notes.first().boundingBox())!.width;
-  const d4KeyBox = (await d4Key.boundingBox())!;
-  await page.mouse.click(
-    gridBox.x + cellWidth * 2 + 5,
-    d4KeyBox.y + d4KeyBox.height / 2,
-  );
-  const e4KeyBox = (await e4Key.boundingBox())!;
-  await page.mouse.click(
-    gridBox.x + cellWidth * 4 + 5,
-    e4KeyBox.y + e4KeyBox.height / 2,
-  );
+  const c4 = await createRecorderMidiNote({
+    page,
+    track: row,
+    beat: 0,
+    pitch: "C4",
+  });
+  const d4 = await createRecorderMidiNote({
+    page,
+    track: row,
+    beat: 0.5,
+    pitch: "D4",
+  });
+  const e4 = await createRecorderMidiNote({
+    page,
+    track: row,
+    beat: 1,
+    pitch: "E4",
+  });
   await expect(notes).toHaveCount(3);
-  const c4 = grid.locator('[aria-label="C4, beat 1"]');
-  const d4 = grid.locator('[aria-label="D4, beat 1.5"]');
-  const e4 = grid.locator('[aria-label="E4, beat 2"]');
   const save = page.getByTestId("recorder-save-button");
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject({ page });
 
   // Ctrl/Cmd-click toggles notes without changing the project.
   await c4.click({ modifiers: ["Control"] });
@@ -116,8 +116,7 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await expect(notes).toHaveCount(1);
   await expect(e4).toBeVisible();
   await expect(save).toHaveAttribute("data-status", "unsaved");
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
+  await saveRecorderProject({ page });
   await page.reload();
   await expect(notes).toHaveCount(1);
   await expect(e4).toBeVisible();
