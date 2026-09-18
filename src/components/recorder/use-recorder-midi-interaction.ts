@@ -8,14 +8,6 @@ import type {
 import { moveTabString } from "../../lib/tab-annotation";
 import type { Note } from "../../types";
 
-// The pitch axis spans [0, MAX_PITCH + 1] upward. Note p occupies [p, p + 1).
-type MidiGridPosition = { beat: number; pitch: number };
-
-type MidiBoxSelection = {
-  start: MidiGridPosition;
-  current: MidiGridPosition;
-};
-
 type MidiNoteEdit = {
   trackId: string;
   original: Note;
@@ -23,8 +15,15 @@ type MidiNoteEdit = {
   getNote: GetNote;
 };
 
+// The pitch axis spans [0, MAX_PITCH + 1] upward. Note p occupies [p, p + 1).
+type MidiGridPosition = { beat: number; pitch: number };
 type GetNote = (position: MidiGridPosition) => Note;
 type EditMode = "move" | "resize-start" | "resize-end";
+
+type MidiBoxSelection = {
+  start: MidiGridPosition;
+  current: MidiGridPosition;
+};
 
 export function useRecorderMidiInteraction({
   runtime,
