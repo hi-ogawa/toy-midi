@@ -41,7 +41,8 @@ import { MidiInstrument } from "./recorder-midi-instrument";
 import { TrackRow } from "./recorder-tracks";
 import {
   useRecorderMidiInteraction,
-  type MidiBoxSelection,
+  getMidiGridPosition,
+  getMidiBoxSelectionRect,
 } from "./use-recorder-midi-interaction";
 
 const KEY_HEIGHT = 18;
@@ -224,10 +225,13 @@ function MidiTrackEditor({
 
   function getPointerPosition(event: PointerEvent) {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    return {
-      pitch: 127 - (event.clientY - rect.top) / KEY_HEIGHT,
-      beat: viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat,
-    };
+    return getMidiGridPosition({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+      viewportStartBeat,
+      pixelsPerBeat,
+      pixelsPerKey: KEY_HEIGHT,
+    });
   }
 
   type MidiGridGesture =
@@ -409,6 +413,7 @@ function MidiTrackEditor({
                 selection: boxSelection,
                 viewportStartBeat,
                 pixelsPerBeat,
+                pixelsPerKey: KEY_HEIGHT,
               })}
             />
           )}
@@ -416,29 +421,6 @@ function MidiTrackEditor({
       </div>
     </div>
   );
-}
-
-function getMidiBoxSelectionRect({
-  selection: { start, current },
-  viewportStartBeat,
-  pixelsPerBeat,
-}: {
-  selection: MidiBoxSelection;
-  viewportStartBeat: number;
-  pixelsPerBeat: number;
-}) {
-  const firstBeat = Math.min(start.beat, current.beat);
-  const lastBeat = Math.max(start.beat, current.beat);
-  const lowestPitch = Math.min(start.pitch, current.pitch);
-  const highestPitch = Math.max(start.pitch, current.pitch);
-
-  // Continuous pitch coordinates run downward from 127.
-  return {
-    left: (firstBeat - viewportStartBeat) * pixelsPerBeat,
-    top: (127 - highestPitch) * KEY_HEIGHT,
-    width: (lastBeat - firstBeat) * pixelsPerBeat,
-    height: (highestPitch - lowestPitch) * KEY_HEIGHT,
-  };
 }
 
 function useMidiNotePreview({

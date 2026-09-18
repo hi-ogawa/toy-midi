@@ -8,6 +8,20 @@ import type {
 import { moveTabString } from "../../lib/tab-annotation";
 import type { Note } from "../../types";
 
+// The pitch axis spans [0, 128] upward. Note p occupies [p, p + 1).
+type MidiGridPosition = { beat: number; pitch: number };
+
+type MidiBoxSelection = {
+  start: MidiGridPosition;
+  current: MidiGridPosition;
+};
+
+type MidiGridScale = {
+  viewportStartBeat: number;
+  pixelsPerBeat: number;
+  pixelsPerKey: number;
+};
+
 type MidiNoteEdit = {
   trackId: string;
   original: Note;
@@ -15,15 +29,7 @@ type MidiNoteEdit = {
   getNote: GetNote;
 };
 
-export type MidiBoxSelection = {
-  trackId: string;
-  start: EditPosition;
-  current: EditPosition;
-};
-
-// Continuous grid coordinates, with integer pitches at the top of each row.
-type EditPosition = { beat: number; pitch: number };
-type GetNote = (position: EditPosition) => Note;
+type GetNote = (position: MidiGridPosition) => Note;
 type EditMode = "move" | "resize-start" | "resize-end";
 
 export function useRecorderMidiInteraction({
@@ -43,7 +49,9 @@ export function useRecorderMidiInteraction({
     noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
-  const [boxSelection, setBoxSelection] = useState<MidiBoxSelection>();
+  const [boxSelection, setBoxSelection] = useState<
+    MidiBoxSelection & { trackId: string }
+  >();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -120,20 +128,20 @@ export function useRecorderMidiInteraction({
     position,
   }: {
     trackId: string;
-    position: EditPosition;
+    position: MidiGridPosition;
   }) {
     cancelEdit();
     onSelect();
     setBoxSelection({ trackId, start: position, current: position });
   }
 
-  function updateBoxSelection(position: EditPosition) {
+  function updateBoxSelection(position: MidiGridPosition) {
     if (boxSelection) {
       setBoxSelection({ ...boxSelection, current: position });
     }
   }
 
-  function finishBoxSelection(end: EditPosition) {
+  function finishBoxSelection(end: MidiGridPosition) {
     if (!boxSelection) {
       return;
     }
@@ -146,8 +154,8 @@ export function useRecorderMidiInteraction({
     const minBeat = Math.min(start.beat, end.beat);
     const maxBeat = Math.max(start.beat, end.beat);
     // Include both endpoint rows when resolving the continuous selection box.
-    const minPitch = Math.ceil(Math.min(start.pitch, end.pitch));
-    const maxPitch = Math.ceil(Math.max(start.pitch, end.pitch));
+    const minPitch = resolveMidiGridPitch(Math.min(start.pitch, end.pitch));
+    const maxPitch = resolveMidiGridPitch(Math.max(start.pitch, end.pitch));
     const noteIds = new Set(
       track.notes
         .filter(
@@ -197,7 +205,7 @@ export function useRecorderMidiInteraction({
             return {
               ...original,
               start: Math.max(0, cellStart - grabOffset),
-              pitch: clampPitch(Math.ceil(pitch)),
+              pitch: clampPitch(resolveMidiGridPitch(pitch)),
             };
           }
           case "resize-start": {
@@ -217,7 +225,7 @@ export function useRecorderMidiInteraction({
     });
   }
 
-  function updateEdit(position: EditPosition) {
+  function updateEdit(position: MidiGridPosition) {
     const note = edit?.getNote(position);
     if (
       edit &&
@@ -231,7 +239,7 @@ export function useRecorderMidiInteraction({
     return note;
   }
 
-  function finishEdit(position: EditPosition) {
+  function finishEdit(position: MidiGridPosition) {
     // Calculate from the release position rather than waiting for a preview render.
     const note = edit?.getNote(position);
     if (!edit || !note) {
@@ -278,7 +286,7 @@ export function useRecorderMidiInteraction({
     }
     const note = {
       id: crypto.randomUUID(),
-      pitch: clampPitch(Math.ceil(pitch)),
+      pitch: clampPitch(resolveMidiGridPitch(pitch)),
       start: Math.max(
         0,
         snapToGrid(beat, 1 / subdivisionsPerBeat, { floor: true }),
@@ -357,4 +365,44 @@ export function useRecorderMidiInteraction({
     removeSelected,
     handleTabAnnotationShortcut,
   };
+}
+
+export function getMidiGridPosition({
+  x,
+  y,
+  viewportStartBeat,
+  pixelsPerBeat,
+  pixelsPerKey,
+}: MidiGridScale & { x: number; y: number }): MidiGridPosition {
+  return {
+    beat: viewportStartBeat + x / pixelsPerBeat,
+    pitch: 128 - y / pixelsPerKey,
+  };
+}
+
+export function getMidiBoxSelectionRect({
+  selection: { start, current },
+  viewportStartBeat,
+  pixelsPerBeat,
+  pixelsPerKey,
+}: MidiGridScale & {
+  selection: MidiBoxSelection;
+}) {
+  const firstBeat = Math.min(start.beat, current.beat);
+  const lastBeat = Math.max(start.beat, current.beat);
+  const lowestPitch = Math.min(start.pitch, current.pitch);
+  const highestPitch = Math.max(start.pitch, current.pitch);
+
+  return {
+    left: (firstBeat - viewportStartBeat) * pixelsPerBeat,
+    top: (128 - highestPitch) * pixelsPerKey,
+    width: (lastBeat - firstBeat) * pixelsPerBeat,
+    height: (highestPitch - lowestPitch) * pixelsPerKey,
+  };
+}
+
+// Resolve the containing row. Leave out-of-grid values intact for selection
+// bounds; note creation and movement clamp the result to the MIDI range.
+function resolveMidiGridPitch(pitch: number): number {
+  return Math.floor(pitch);
 }
