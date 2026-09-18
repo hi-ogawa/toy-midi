@@ -20,7 +20,7 @@ type MidiNoteDuplicate = {
   trackId: string;
   primaryId: string;
   notes: Note[];
-  getNotes: GetNotes;
+  getNotes: EditGetNotes;
 };
 
 // The pitch axis spans [0, MAX_PITCH + 1] upward. Note p occupies [p, p + 1).
@@ -255,7 +255,7 @@ export function useRecorderMidiInteraction({
       id: crypto.randomUUID(),
     }));
     const primaryCopy = copies[originals.indexOf(primary)];
-    const getNotes = createGetNotes({
+    const getNotes = createEditGetNotes({
       mode: "move",
       primary: primaryCopy,
       originals: copies,
