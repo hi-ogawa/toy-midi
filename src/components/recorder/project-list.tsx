@@ -8,9 +8,19 @@ import {
 import { routes } from "../../lib/routes";
 import { toResult } from "../../utils/result";
 import { FileDropInput } from "../file-drop-input";
+import {
+  ProjectListSearch,
+  matchesProjectSearch,
+} from "../project-list-search";
 import { Button } from "../ui/button";
 
-export function RecorderProjectList() {
+export function RecorderProjectList({
+  query,
+  onQueryChange,
+}: {
+  query: string;
+  onQueryChange: (query: string) => void;
+}) {
   const projects = useSuspenseQuery({
     queryKey: ["recorder-projects"],
     queryFn: () => toResult(recorderProjectStorage.list()),
@@ -35,8 +45,22 @@ export function RecorderProjectList() {
     },
   });
 
+  const filteredProjects = projects.data.ok
+    ? projects.data.value.filter((project) =>
+        matchesProjectSearch({ name: project.title, query }),
+      )
+    : [];
+
   return (
     <div className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
+      {projects.data.ok && (
+        <ProjectListSearch
+          query={query}
+          onQueryChange={onQueryChange}
+          total={projects.data.value.length}
+          count={filteredProjects.length}
+        />
+      )}
       {!projects.data.ok ? (
         <div className="p-8 text-center text-sm text-orange-300">
           {String(projects.data.error)}
@@ -52,7 +76,7 @@ export function RecorderProjectList() {
         </div>
       ) : (
         <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
-          {projects.data.value.map((project) => (
+          {filteredProjects.map((project) => (
             <RecorderProjectListItem
               key={project.id}
               project={project}

@@ -15,6 +15,7 @@ import { Tabs } from "./ui/tabs";
 type ProjectType = "midi" | "recorder";
 
 export function Home() {
+  const [query, setQuery] = useState("");
   const [projectType, setProjectType] = useState<ProjectType>(
     () => projectStorage.readPreferences().projectType,
   );
@@ -27,7 +28,7 @@ export function Home() {
   return (
     <div
       data-testid="startup-screen"
-      className="fixed inset-0 z-50 overflow-hidden bg-neutral-900"
+      className="fixed inset-0 z-50 overflow-y-auto bg-neutral-900"
     >
       {/* Gradient glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
@@ -84,7 +85,9 @@ export function Home() {
                     MIDI
                   </>
                 ),
-                content: <MidiProjectList />,
+                content: (
+                  <MidiProjectList query={query} onQueryChange={setQuery} />
+                ),
               },
               {
                 value: "recorder",
@@ -94,7 +97,9 @@ export function Home() {
                     Recorder
                   </>
                 ),
-                content: <RecorderProjectList />,
+                content: (
+                  <RecorderProjectList query={query} onQueryChange={setQuery} />
+                ),
               },
             ]}
           />
