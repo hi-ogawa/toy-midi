@@ -6,7 +6,7 @@ import {
   saveRecorderProject,
 } from "./recorder-helpers";
 
-test("previews a MIDI note and opens its saved full score", async ({
+test("previews a MIDI note and opens its saved score in the viewer", async ({
   page,
 }) => {
   // Create a MIDI track and add a C4 note at the first beat.
@@ -31,8 +31,8 @@ test("previews a MIDI note and opens its saved full score", async ({
     score.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
 
-  // Keep the full-score link disabled until the project is saved.
-  const openScore = score.getByRole("link", { name: "Open full score" });
+  // Keep the score viewer link disabled until the project is saved.
+  const openScore = score.getByRole("link", { name: "Open score viewer" });
   await expect(openScore).toBeDisabled();
   await openScore.hover();
   const tooltip = score.getByRole("tooltip");
@@ -40,7 +40,7 @@ test("previews a MIDI note and opens its saved full score", async ({
   await expect(tooltip).toHaveCSS("opacity", "1");
   await expect(tooltip).toHaveText("Please save before opening score view");
 
-  // Save the project and open its track in the full score viewer.
+  // Save the project and open its track in the score viewer.
   await saveRecorderProject(page);
   await expect(openScore).toBeEnabled();
   const popupPromise = page.waitForEvent("popup");

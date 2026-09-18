@@ -101,7 +101,7 @@ function RecorderScoreLink({ href }: { href?: string }) {
         aria-describedby={!href ? tooltipId : undefined}
         className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-200 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
       >
-        Open full score
+        Open score viewer
         <ExternalLinkIcon className="size-3" />
       </a>
       {!href && (
