@@ -6,7 +6,7 @@ import {
 // Full MIDI range: C-1 (0) to G9 (127)
 export const MIN_PITCH = 0; // C-1
 export const MAX_PITCH = 127; // G9
-export const PITCH_COUNT = MAX_PITCH - MIN_PITCH + 1;
+export const PITCH_COUNT = MAX_PITCH + 1;
 export const MIN_DB = -60;
 export const MAX_DB = 6;
 const LOG2 = Math.log(2);
