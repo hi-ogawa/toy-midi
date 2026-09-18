@@ -1214,10 +1214,6 @@ export class RecorderRuntime {
     this.store.update({ pendingRecording, previewClipRegions });
   }
 
-  //
-  // undo/redo support
-  //
-
   undo(): void {
     this.history.undo();
   }
