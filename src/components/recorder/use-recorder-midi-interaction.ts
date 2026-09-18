@@ -326,13 +326,15 @@ export function useRecorderMidiInteraction({
       } else if (reset) {
         next = undefined;
       } else if (direction) {
-        next =
-          moveTabString({
-            pitch: note.pitch,
-            tabString: note.tabString,
-            openStringPitches: selectedTrack.tabOpenStringPitches,
-            direction,
-          })?.after ?? note.tabString;
+        const move = moveTabString({
+          pitch: note.pitch,
+          tabString: note.tabString,
+          openStringPitches: selectedTrack.tabOpenStringPitches,
+          direction,
+        });
+        if (move && move.before !== move.after) {
+          next = move.after;
+        }
       }
       if (next === note.tabString) {
         return note;
