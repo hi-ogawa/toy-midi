@@ -13,10 +13,7 @@ export async function convertLegacyProject({
 }: {
   name: string;
   project: AnySavedProject;
-  loadAudio: (track: {
-    id: string;
-    assetKey: string;
-  }) => Promise<Blob | undefined>;
+  loadAudio: (assetKey: string) => Promise<Blob | undefined>;
 }): Promise<SerializedRecorderRuntimeState> {
   if (project.version !== 1 && project.version !== 2) {
     throw new Error("Unsupported legacy project version");
@@ -59,7 +56,7 @@ export async function convertLegacyProject({
     : undefined;
   for (const track of legacy.audioTracks) {
     try {
-      const blob = await loadAudio(track);
+      const blob = await loadAudio(track.assetKey);
       if (!blob) {
         throw new Error("Audio asset is missing");
       }

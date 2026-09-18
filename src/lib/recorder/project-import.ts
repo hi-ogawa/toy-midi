@@ -27,6 +27,6 @@ export async function importRecorderProject(file: File) {
   return convertLegacyProject({
     name: parsed.name,
     project: parsed.project,
-    loadAudio: async (track) => assets.get(track.assetKey),
+    loadAudio: async (assetKey) => assets.get(assetKey),
   });
 }

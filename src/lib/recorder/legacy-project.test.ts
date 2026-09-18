@@ -156,9 +156,7 @@ describe("legacy recorder conversion", () => {
       project: { ...projectV1, audioAssetKey: "stored-audio" },
       loadAudio,
     });
-    expect(loadAudio).toHaveBeenCalledWith(
-      expect.objectContaining({ assetKey: "stored-audio" }),
-    );
+    expect(loadAudio).toHaveBeenCalledWith("stored-audio");
     expect(result.audioTracks[0]).toMatchObject({
       id: "audio-1",
       soloed: false,
