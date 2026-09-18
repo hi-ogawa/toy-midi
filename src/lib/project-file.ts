@@ -130,7 +130,7 @@ export async function parseProjectFile(
   file: File,
   { persistAssets = true }: { persistAssets?: boolean } = {},
 ): Promise<ParsedProjectFile> {
-  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const zip = await JSZip.loadAsync(file);
   const assets = new Map<string, File>();
 
   // Read manifest

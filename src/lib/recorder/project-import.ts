@@ -4,7 +4,7 @@ import { convertLegacyProject } from "./legacy-project";
 import { readRecorderProjectArchive } from "./project-archive";
 
 export async function importRecorderProject(file: File) {
-  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const zip = await JSZip.loadAsync(file);
   const manifestFile = zip.file("manifest.json");
   if (!manifestFile) {
     throw new Error("Invalid project file: missing manifest.json");
