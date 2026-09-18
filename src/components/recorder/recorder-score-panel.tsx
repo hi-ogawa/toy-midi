@@ -37,13 +37,13 @@ export function RecorderScorePanel({
   state,
   track,
   onClose,
-  fullScoreHref,
+  scoreViewerHref,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   track: MidiTrackState;
   onClose: () => void;
-  fullScoreHref?: string;
+  scoreViewerHref?: string;
 }) {
   const [size, setSize] = useState({ width: 640, height: 448 });
   const resizeRef = usePointerDrag({
@@ -66,7 +66,7 @@ export function RecorderScorePanel({
   return (
     <RecorderPanel
       title={`Score preview · ${track.name}`}
-      headerActions={<RecorderScoreLink href={fullScoreHref} />}
+      headerActions={<RecorderScoreLink href={scoreViewerHref} />}
       closeLabel={`Close score preview for ${track.name}`}
       onClose={onClose}
       data-testid="recorder-score-preview"

@@ -752,7 +752,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 state={state}
                 track={track}
                 onClose={() => scoreUi.close(track.id)}
-                fullScoreHref={
+                scoreViewerHref={
                   project.ready &&
                   project.saveStatus === "saved" &&
                   !flags.isRecording
