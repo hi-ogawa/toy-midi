@@ -220,20 +220,6 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   };
 }
 
-// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
-// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
-// Capture complete before/after notes for those IDs and migrate callers incrementally.
-// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
-// preserve array ordering when undo restores deleted notes.
-/** A state change that runtime can apply directly, including during undo and redo. */
-type RecorderChange =
-  | { type: "midi-notes"; trackId: string; notes: Note[] }
-  | {
-      type: "midi-track";
-      trackId: string;
-      snapshot?: { track: MidiTrackState; index: number };
-    };
-
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
@@ -249,7 +235,7 @@ export class RecorderRuntime {
     playback: YouTubePlayerPlayback;
   };
   private readonly metronome: RecorderMetronome;
-  private readonly history = new UndoRedoHistory<RecorderChange>();
+  private readonly history = new RecorderHistory(this);
 
   constructor() {
     this.masterOutput = this.context.createGain();
@@ -389,18 +375,12 @@ export class RecorderRuntime {
     }
     const track = createMidiTrackState(number);
     const index = await this.insertMidiTrack({ track });
-    this.history.push({
-      before: { type: "midi-track", trackId: track.id },
-      after: {
-        type: "midi-track",
-        trackId: track.id,
-        snapshot: { track: structuredClone(track), index },
-      },
-    });
+    this.history.pushMidiTrackAdd({ track, index });
     return track.id;
   }
 
-  private async insertMidiTrack({
+  /** @internal for undo */
+  async insertMidiTrack({
     track,
     index,
   }: {
@@ -624,13 +604,11 @@ export class RecorderRuntime {
     }
     const track = structuredClone(this.store.get().midiTracks[index]);
     this.deleteMidiTrack(id);
-    this.history.push({
-      before: { type: "midi-track", trackId: id, snapshot: { track, index } },
-      after: { type: "midi-track", trackId: id },
-    });
+    this.history.pushMidiTrackRemove({ track, index });
   }
 
-  private deleteMidiTrack(id: string): void {
+  /** @internal for undo */
+  deleteMidiTrack(id: string): void {
     this.midiTrackPlaybacks.get(id)?.dispose();
     this.midiTrackPlaybacks.delete(id);
     this.store.update({
@@ -691,15 +669,12 @@ export class RecorderRuntime {
       throw new Error("MIDI track state is missing.");
     }
     const before = track.notes;
-    const after = notes;
-    this.applyMidiTrackNotes(id, after);
-    this.history.push({
-      before: { type: "midi-notes", trackId: id, notes: before },
-      after: { type: "midi-notes", trackId: id, notes: after },
-    });
+    this.applyMidiTrackNotes(id, notes);
+    this.history.pushMidiNotes(id, before, notes);
   }
 
-  private applyMidiTrackNotes(trackId: string, notes: Note[]): void {
+  /** @internal for undo */
+  applyMidiTrackNotes(trackId: string, notes: Note[]): void {
     this.updateMidiTrack(trackId, (track) => ({ ...track, notes }));
     this.midiTrackPlaybacks.get(trackId)?.setNotes(notes);
   }
@@ -1265,34 +1240,90 @@ export class RecorderRuntime {
     this.store.update({ pendingRecording, previewClipRegions });
   }
 
-  //
-  // undo/redo support
-  //
+  undo = () => this.history.undo();
+  redo = () => this.history.redo();
+}
 
-  async undo(): Promise<void> {
-    await this.history.undo((change) => this.applyHistoryChange(change));
+// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
+// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
+// Capture complete before/after notes for those IDs and migrate callers incrementally.
+// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
+// preserve array ordering when undo restores deleted notes.
+/** A state change that runtime can apply directly, including during undo and redo. */
+type RecorderChange =
+  | { type: "midi-notes"; trackId: string; notes: Note[] }
+  | {
+      type: "midi-track";
+      trackId: string;
+      snapshot?: { track: MidiTrackState; index: number };
+    };
+
+class RecorderHistory {
+  private history = new UndoRedoHistory<RecorderChange>();
+
+  constructor(private runtime: RecorderRuntime) {}
+
+  pushMidiNotes(trackId: string, before: Note[], after: Note[]): void {
+    this.history.push({
+      before: { type: "midi-notes", trackId, notes: before },
+      after: { type: "midi-notes", trackId, notes: after },
+    });
   }
 
-  async redo(): Promise<void> {
-    await this.history.redo((change) => this.applyHistoryChange(change));
+  pushMidiTrackAdd({
+    track,
+    index,
+  }: {
+    track: MidiTrackState;
+    index: number;
+  }): void {
+    this.history.push({
+      before: { type: "midi-track", trackId: track.id },
+      after: {
+        type: "midi-track",
+        trackId: track.id,
+        snapshot: { track: structuredClone(track), index },
+      },
+    });
   }
 
-  private async applyHistoryChange(change: RecorderChange): Promise<void> {
+  pushMidiTrackRemove({
+    track,
+    index,
+  }: {
+    track: MidiTrackState;
+    index: number;
+  }): void {
+    this.history.push({
+      before: {
+        type: "midi-track",
+        trackId: track.id,
+        snapshot: { track, index },
+      },
+      after: { type: "midi-track", trackId: track.id },
+    });
+  }
+
+  private async apply(change: RecorderChange): Promise<void> {
     switch (change.type) {
       case "midi-notes": {
-        this.applyMidiTrackNotes(change.trackId, change.notes);
+        this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
         break;
       }
       case "midi-track": {
         if (change.snapshot) {
-          await this.insertMidiTrack(structuredClone(change.snapshot));
+          await this.runtime.insertMidiTrack(structuredClone(change.snapshot));
         } else {
-          this.deleteMidiTrack(change.trackId);
+          this.runtime.deleteMidiTrack(change.trackId);
         }
         break;
       }
     }
   }
+
+  clear = () => this.history.clear();
+  undo = () => this.history.undo((change) => this.apply(change));
+  redo = () => this.history.redo((change) => this.apply(change));
 }
 
 /**
