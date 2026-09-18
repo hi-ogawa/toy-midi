@@ -4,6 +4,7 @@ import { createRecorderProject } from "./recorder-helpers";
 test("duplicates selected MIDI notes by modifier-dragging", async ({
   page,
 }) => {
+  // Create two notes and save the project before duplicating them.
   await createRecorderProject(page);
   await page.getByTestId("recorder-add-midi-track").click();
   const row = page.getByTestId("recorder-midi-track-row");
@@ -71,6 +72,7 @@ test("duplicates selected MIDI notes by modifier-dragging", async ({
   await expect(originalE4).toHaveAttribute("data-selected", "false");
   await expect(save).toHaveAttribute("data-status", "unsaved");
 
+  // Save and reload the project to preserve the duplicated notes.
   await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
