@@ -18,7 +18,6 @@ const MAX_HISTORY = 50;
  * The caller owns applying changes. History stores values of T and passes them to the apply callback,
  * so entries and their referenced data must not be mutated after push or replay.
  */
-// TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 export class UndoRedoHistory<T> {
   private undoStack: HistoryEntry<T>[] = [];
   private redoStack: HistoryEntry<T>[] = [];

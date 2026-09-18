@@ -1258,6 +1258,7 @@ type RecorderChange =
       snapshot?: { track: MidiTrackState; index: number };
     };
 
+// TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 class RecorderHistory {
   private history = new UndoRedoHistory<RecorderChange>();
 
