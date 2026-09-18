@@ -1,5 +1,10 @@
 import type { Note } from "../../types.ts";
 
+// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
+// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
+// Capture complete before/after notes for those IDs and migrate callers incrementally.
+// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
+// preserve array ordering when undo restores deleted notes.
 type MidiHistoryEntry = {
   trackId: string;
   before: Note[];
