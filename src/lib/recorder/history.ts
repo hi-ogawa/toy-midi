@@ -5,6 +5,7 @@ import type { Note } from "../../types.ts";
 // Capture complete before/after notes for those IDs and migrate callers incrementally.
 // Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
 // preserve array ordering when undo restores deleted notes.
+/** A state change that runtime can apply directly, including during undo and redo. */
 export type RecorderChange = {
   type: "midi-notes";
   trackId: string;
@@ -28,7 +29,7 @@ const MAX_HISTORY = 50;
 
 /**
  * One chronological undo/redo history per recorder project.
- * The caller owns applying changes. History only retains and replays descriptors,
+ * The caller owns applying changes. History only stores RecorderChange values and passes them to the apply callback,
  * so entries and their referenced data must not be mutated after push or replay.
  */
 export class RecorderHistory {
@@ -37,7 +38,7 @@ export class RecorderHistory {
 
   /**
    * Record one edit after the caller has successfully applied it. Does not apply
-   * either descriptor or detect no-ops. Clears redo and retains the latest 50 edits.
+   * either change or detect no-ops. Clears redo and retains the latest 50 edits.
    */
   push(entry: HistoryEntry): void {
     this.undoStack.push(entry);
@@ -48,7 +49,7 @@ export class RecorderHistory {
   }
 
   /**
-   * Apply the latest edit's before descriptor, then move the entry to redo.
+   * Call apply(entry.before) for the latest edit, then move the entry to redo.
    * An empty stack is a no-op. A thrown error propagates without moving the entry.
    */
   undo(apply: ApplyChange): void {
@@ -62,7 +63,7 @@ export class RecorderHistory {
   }
 
   /**
-   * Apply the latest undone edit's after descriptor, then move the entry to undo.
+   * Call apply(entry.after) for the latest undone edit, then move the entry to undo.
    * An empty stack is a no-op. A thrown error propagates without moving the entry.
    */
   redo(apply: ApplyChange): void {
