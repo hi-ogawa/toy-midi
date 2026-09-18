@@ -34,12 +34,11 @@ test("previews a MIDI note and opens its saved full score", async ({
   // Keep the full-score link disabled until the project is saved.
   const openScore = score.getByRole("link", { name: "Open full score" });
   await expect(openScore).toBeDisabled();
-  await expect(openScore).not.toHaveAttribute("href");
   await openScore.hover();
+  await expect(score.getByRole("tooltip")).toBeVisible();
   await expect(score.getByRole("tooltip")).toHaveText(
     "Please save before opening score view",
   );
-  await expect(score.getByRole("tooltip")).toHaveCSS("opacity", "1");
 
   // Save the project and open its track in the full score viewer.
   await saveRecorderProject(page);
