@@ -33,6 +33,7 @@ const CURRENT_FORMAT_VERSION: ProjectManifest["formatVersion"] = 2;
 interface ParsedProjectFile {
   name: string;
   project: SavedProject;
+  assets: Map<string, File>; // Extracted audio keyed by track id
 }
 
 /**
@@ -117,83 +118,109 @@ export async function exportProjectFileV1(
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
-// Persist assets only for imports into the legacy editor.
-export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
-  const parsed = await readLegacyProjectArchive(
-    await JSZip.loadAsync(await file.arrayBuffer()),
-  );
-  const audioTracks = [];
-  for (const track of parsed.project.audioTracks) {
-    const assetKey = await projectStorage.saveAsset(
-      parsed.assets.get(track.id)!,
-    );
-    audioTracks.push({ ...track, assetKey });
-  }
-  return { name: parsed.name, project: { ...parsed.project, audioTracks } };
-}
+/**
+ * Parse a .toymidi file and extract its contents
+ */
+export async function parseProjectFile(
+  file: File,
+  { persistAssets = true }: { persistAssets?: boolean } = {},
+): Promise<ParsedProjectFile> {
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const assets = new Map<string, File>();
 
-// Reading an archive must not write legacy assets during recorder conversion.
-export async function readLegacyProjectArchive(zip: JSZip) {
+  // Read manifest
   const manifestFile = zip.file("manifest.json");
   if (!manifestFile) {
     throw new Error("Invalid project file: missing manifest.json");
   }
-  const manifest = JSON.parse(
-    await manifestFile.async("text"),
-  ) as AnyProjectManifest;
-  if (manifest.formatVersion !== 1 && manifest.formatVersion !== 2) {
-    throw new Error("Unsupported legacy project archive version");
+  const manifestText = await manifestFile.async("text");
+  const manifest = JSON.parse(manifestText) as AnyProjectManifest;
+
+  // Validate manifest version
+  if (manifest.formatVersion > CURRENT_FORMAT_VERSION) {
+    throw new Error(
+      `Project file requires newer app version (format v${manifest.formatVersion})`,
+    );
   }
+
+  // Read project data
   const projectFile = zip.file(manifest.files.project);
   if (!projectFile) {
     throw new Error("Invalid project file: missing project.json");
   }
-  const data = JSON.parse(await projectFile.async("text")) as AnySavedProject;
-  if (data.version !== manifest.formatVersion) {
-    throw new Error(
-      "Invalid project file: manifest and project versions differ",
-    );
-  }
-  const assets = new Map<string, File>();
-  if (manifest.formatVersion === 1 && data.version === 1) {
-    const path = manifest.files.audio;
-    if (path) {
-      data.audioFileName ||= path.split("/").pop() || "audio.wav";
-      data.audioAssetKey = path;
-    } else if (data.audioFileName || data.audioAssetKey) {
-      throw new Error("Invalid project file: missing audio manifest entry");
+  const projectText = await projectFile.async("text");
+  const project = JSON.parse(projectText) as AnySavedProject;
+
+  if (manifest.formatVersion === 1) {
+    if (project.version !== 1) {
+      throw new Error("Invalid project file: v1 manifest with v2 project");
     }
+
+    // version 1 always persisted `audioAssetKey: null`
+    // and generate new asset key during parse
+    const audioPath = manifest.files.audio;
+    if (audioPath) {
+      const audioZipFile = zip.file(audioPath);
+      if (!audioZipFile) {
+        throw new Error(`Invalid project file: missing ${audioPath}`);
+      }
+
+      const blob = await audioZipFile.async("blob");
+      const fileName =
+        project.audioFileName || audioPath.split("/").pop() || "audio.wav";
+      const audioFile = fileFromBlob(blob, fileName);
+      assets.set("audio-1", audioFile);
+      // v1 migration requires an asset key even when audio stays in memory.
+      project.audioAssetKey = persistAssets
+        ? await projectStorage.saveAsset(audioFile)
+        : audioPath;
+    }
+
+    return {
+      name: manifest.name,
+      project: migrateSavedProject(project),
+      assets,
+    };
   }
-  const project = migrateSavedProject(data);
-  const entries =
-    manifest.formatVersion === 1
-      ? manifest.files.audio
-        ? [{ trackId: "audio-1", path: manifest.files.audio }]
-        : []
-      : manifest.files.audio;
-  if (
-    entries.length !== project.audioTracks.length ||
-    new Set(entries.map((entry) => entry.trackId)).size !== entries.length
-  ) {
+
+  if (project.version !== 2) {
+    throw new Error("Invalid project file: v2 manifest with v1 project");
+  }
+
+  if (project.audioTracks.length !== manifest.files.audio.length) {
     throw new Error(
       "Invalid project file: audio manifest does not match project",
     );
   }
-  for (const track of project.audioTracks) {
-    const entry = entries.find((entry) => entry.trackId === track.id);
-    const audio = entry && zip.file(entry.path);
-    if (!audio) {
-      throw new Error(`Missing audio asset for "${track.fileName}"`);
+
+  const newAudioTracks: SavedProject["audioTracks"] = [];
+  for (const entry of manifest.files.audio) {
+    const track = project.audioTracks.find((t) => t.id === entry.trackId);
+    if (!track) {
+      throw new Error(
+        `Invalid project file: audio entry references missing track ${entry.trackId}`,
+      );
     }
-    assets.set(
-      track.id,
-      fileFromBlob(
-        new Blob([await audio.async("arraybuffer")]),
-        track.fileName,
-      ),
-    );
+
+    const audioZipFile = zip.file(entry.path);
+    if (!audioZipFile) {
+      throw new Error(`Invalid project file: missing ${entry.path}`);
+    }
+    const blob = await audioZipFile.async("blob");
+    const audioFile = fileFromBlob(blob, track.fileName);
+    assets.set(track.id, audioFile);
+    const assetKey = persistAssets
+      ? await projectStorage.saveAsset(audioFile)
+      : track.assetKey;
+    newAudioTracks.push({ ...track, assetKey });
   }
-  return { name: manifest.name, project, assets };
+  project.audioTracks = newAudioTracks;
+
+  return {
+    name: manifest.name,
+    project,
+    assets,
+  };
 }
 
 // Build a File object from a blob, inferring MIME type from the file extension

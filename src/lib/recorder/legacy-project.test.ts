@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readLegacyProjectArchive } from "../project-file";
+import { parseProjectFile } from "../project-file";
+import { projectStorage } from "../project-storage";
 import {
   createDefaultSavedProject,
   type SavedProjectV1,
@@ -11,7 +12,10 @@ import { importRecorderProject } from "./project-import";
 vi.hoisted(() => {
   vi.stubGlobal("AudioWorkletNode", class {});
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 const audioTrack = {
   id: "backing",
@@ -183,13 +187,24 @@ describe("legacy recorder conversion", () => {
         [await zip.generateAsync({ type: "arraybuffer" })],
         "test.toymidi",
       );
+      const saveAsset = vi
+        .spyOn(projectStorage, "saveAsset")
+        .mockResolvedValue("saved-asset");
       const result = await importRecorderProject(file);
+      expect(saveAsset).not.toHaveBeenCalled();
       expect(result.title).toBe("Archive");
       expect(result.audioTracks[0]).toMatchObject({
         timelineOffset: 1.25,
         gain: 0.6,
       });
       expect(result.midiTracks).toHaveLength(1);
+
+      const legacy = await parseProjectFile(file);
+      expect(saveAsset).toHaveBeenCalledTimes(1);
+      expect(legacy.project.audioTracks[0].assetKey).toBe("saved-asset");
+      expect(legacy.assets.get(legacy.project.audioTracks[0].id)?.name).toBe(
+        "backing.wav",
+      );
     },
   );
 
@@ -243,7 +258,7 @@ describe("legacy recorder conversion", () => {
     expect(result.midiTracks).toEqual([]);
   });
 
-  it("rejects incomplete and duplicate archive audio entries", async () => {
+  it("rejects missing archive audio", async () => {
     const zip = new JSZip();
     zip.file(
       "manifest.json",
@@ -263,32 +278,12 @@ describe("legacy recorder conversion", () => {
         audioTracks: [audioTrack],
       }),
     );
-    await expect(readLegacyProjectArchive(zip)).rejects.toThrow(
-      "Missing audio asset",
+    const file = new File(
+      [await zip.generateAsync({ type: "arraybuffer" })],
+      "broken.toymidi",
     );
-    zip.file(
-      "manifest.json",
-      JSON.stringify({
-        formatVersion: 2,
-        name: "Broken",
-        files: {
-          project: "project.json",
-          audio: [
-            { trackId: "backing", path: "audio.wav" },
-            { trackId: "backing", path: "audio.wav" },
-          ],
-        },
-      }),
-    );
-    zip.file(
-      "project.json",
-      JSON.stringify({
-        ...createDefaultSavedProject(),
-        audioTracks: [audioTrack, { ...audioTrack, id: "other" }],
-      }),
-    );
-    await expect(readLegacyProjectArchive(zip)).rejects.toThrow(
-      "audio manifest does not match",
-    );
+    await expect(
+      parseProjectFile(file, { persistAssets: false }),
+    ).rejects.toThrow("missing missing.wav");
   });
 });

@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import { readLegacyProjectArchive } from "../project-file";
+import { parseProjectFile } from "../project-file";
 import { convertLegacyProject } from "./legacy-project";
 import { readRecorderProjectArchive } from "./project-archive";
 
@@ -16,7 +16,7 @@ export async function importRecorderProject(file: File) {
   if (manifest.projectType !== undefined) {
     throw new Error("Unsupported project type");
   }
-  const parsed = await readLegacyProjectArchive(zip);
+  const parsed = await parseProjectFile(file, { persistAssets: false });
   return convertLegacyProject({
     name: parsed.name,
     project: parsed.project,
