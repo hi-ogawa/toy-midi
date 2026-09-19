@@ -182,13 +182,12 @@ export type PersistableRecorderRuntimeState = Pick<
   recordingTrack: Omit<AudioTrackState, "regions">;
 };
 
-export type RecorderClipId =
-  | { type: "clip"; id: string }
-  | { type: "reference" };
+export const REFERENCE_VIDEO_CLIP_ID = "__reference_video__";
 
-export type RecorderClipMove =
-  | { type: "clip"; id: string; timelineOffset: number }
-  | { type: "reference"; timelineOffset: number };
+export type RecorderClipMove = {
+  id: string;
+  timelineOffset: number;
+};
 
 export type RecorderClipTrim = {
   id: string;
@@ -503,12 +502,10 @@ export class RecorderRuntime {
     }
   }
 
-  removeClips(clips: readonly RecorderClipId[]): void {
+  removeClips(ids: readonly string[]): void {
     const state = this.store.get();
-    const clipIds = new Set(
-      clips.flatMap((clip) => (clip.type === "clip" ? [clip.id] : [])),
-    );
-    const removeReference = clips.some((clip) => clip.type === "reference");
+    const clipIds = new Set(ids);
+    const removeReference = clipIds.has(REFERENCE_VIDEO_CLIP_ID);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -1291,9 +1288,7 @@ export function deriveClipEditState(
               value: trim.value,
             });
           }
-          const move = moves.find(
-            (change) => change.type === "clip" && change.id === clip.id,
-          );
+          const move = moves.find((change) => change.id === clip.id);
           return move ? { ...clip, timelineOffset: move.timelineOffset } : clip;
         });
       },
@@ -1301,7 +1296,7 @@ export function deriveClipEditState(
   }
   function editReferenceVideo() {
     const { referenceVideo } = state;
-    const move = moves.find((change) => change.type === "reference");
+    const move = moves.find((change) => change.id === REFERENCE_VIDEO_CLIP_ID);
     if (!move) {
       return referenceVideo;
     }

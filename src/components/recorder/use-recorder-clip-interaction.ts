@@ -4,7 +4,7 @@ import type { AudioClip } from "../../lib/recorder/audio-clip";
 import {
   deriveClipEditState,
   MIN_CLIP_DURATION,
-  type RecorderClipId,
+  REFERENCE_VIDEO_CLIP_ID,
   type RecorderClipMove,
   type RecorderClipTrim,
   type ReferenceVideoState,
@@ -12,13 +12,11 @@ import {
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 
-type ClipEditStart =
-  | { type: "move"; clip: RecorderClipId; additive: boolean }
-  | {
-      type: "trim-start" | "trim-end";
-      clip: Extract<RecorderClipId, { type: "clip" }>;
-      additive: boolean;
-    };
+type ClipEditStart = {
+  type: "move" | "trim-start" | "trim-end";
+  id: string;
+  additive: boolean;
+};
 
 type ClipEdit =
   | {
@@ -43,83 +41,69 @@ export function useRecorderClipInteraction({
   onSelect: () => void;
 }) {
   const [edit, setEdit] = useState<ClipEdit>();
-  const [keys, setKeys] = useState(() => new Set<string>());
+  const [selectedIds, setSelectedIds] = useState(() => new Set<string>());
 
-  function getKey(clip: RecorderClipId): string {
-    return clip.type === "reference" ? clip.type : `${clip.type}:${clip.id}`;
-  }
-
-  function getSelectedClips(selectedKeys: ReadonlySet<string>) {
+  function getSelectedClips(editIds: ReadonlySet<string>) {
     return {
       clips: [...state.audioTracks, state.recordingTrack].flatMap((track) =>
-        track.clips.filter((clip) =>
-          selectedKeys.has(getKey({ type: "clip", id: clip.id })),
-        ),
+        track.clips.filter((clip) => editIds.has(clip.id)),
       ),
-      referenceVideo: selectedKeys.has(getKey({ type: "reference" }))
+      referenceVideo: editIds.has(REFERENCE_VIDEO_CLIP_ID)
         ? state.referenceVideo
         : undefined,
     };
   }
 
-  // Remove stale selection keys when clips or the reference video are removed outside this interaction.
+  // Remove stale selection IDs when clips or the reference video are removed outside this interaction.
   useEffect(() => {
     const available = new Set([
       ...[...state.audioTracks, state.recordingTrack].flatMap((track) =>
-        track.clips.map((clip) => getKey({ type: "clip", id: clip.id })),
+        track.clips.map((clip) => clip.id),
       ),
-      ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
+      ...(state.referenceVideo ? [REFERENCE_VIDEO_CLIP_ID] : []),
     ]);
-    setKeys((current) => {
-      const next = new Set([...current].filter((key) => available.has(key)));
+    setSelectedIds((current) => {
+      const next = new Set([...current].filter((id) => available.has(id)));
       return next.size === current.size ? current : next;
     });
   }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
 
-  function isSelected(clip: RecorderClipId): boolean {
-    return keys.has(getKey(clip));
+  function isSelected(id: string): boolean {
+    return selectedIds.has(id);
   }
 
   function isEditing(id: string): boolean {
-    if (!edit) {
-      return false;
-    }
-    return edit.type === "move"
-      ? edit.changes.some(
-          (change) => change.type === "clip" && change.id === id,
-        )
-      : edit.changes.some((change) => change.id === id);
+    return edit?.changes.some((change) => change.id === id) ?? false;
   }
 
-  function select(clip: RecorderClipId, additive: boolean): void {
+  function select(id: string, additive: boolean): void {
     onSelect();
-    const key = getKey(clip);
     if (!additive) {
-      const next = keys.has(key) ? keys : new Set([key]);
-      setKeys(next);
+      const next = selectedIds.has(id) ? selectedIds : new Set([id]);
+      setSelectedIds(next);
       return;
     }
-    const next = new Set(keys);
-    if (next.has(key)) {
-      next.delete(key);
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
     } else {
-      next.add(key);
+      next.add(id);
     }
-    setKeys(next);
+    setSelectedIds(next);
   }
 
   function startEdit(input: ClipEditStart): void {
     onSelect();
-    const key = getKey(input.clip);
+    const id = input.id;
     // Editing a selected clip preserves the group. Ctrl/Cmd adds an unselected
     // clip to the group, while an unmodified edit replaces the selection.
-    const selectedKeys = keys.has(key)
-      ? new Set(keys)
+    const editIds = selectedIds.has(id)
+      ? new Set(selectedIds)
       : input.additive
-        ? new Set([...keys, key])
-        : new Set([key]);
-    setKeys(selectedKeys);
-    const selected = getSelectedClips(selectedKeys);
+        ? new Set([...selectedIds, id])
+        : new Set([id]);
+    setSelectedIds(editIds);
+    const selected = getSelectedClips(editIds);
     if (input.type === "move") {
       const getChanges = createMoveGetChanges(selected);
       setEdit({ type: "move", changes: getChanges(0), getChanges });
@@ -163,15 +147,8 @@ export function useRecorderClipInteraction({
 
   function removeSelected(): void {
     setEdit(undefined);
-    const selected = getSelectedClips(keys);
-    runtime.removeClips([
-      ...selected.clips.map((clip) => ({
-        type: "clip" as const,
-        id: clip.id,
-      })),
-      ...(selected.referenceVideo ? [{ type: "reference" as const }] : []),
-    ]);
-    setKeys(new Set());
+    runtime.removeClips([...selectedIds]);
+    setSelectedIds(new Set());
   }
 
   const preview = edit ? deriveClipEditState(state, edit) : state;
@@ -183,9 +160,9 @@ export function useRecorderClipInteraction({
     cancelEdit: () => setEdit(undefined),
     clear: () => {
       setEdit(undefined);
-      setKeys(new Set());
+      setSelectedIds(new Set());
     },
-    hasSelection: keys.size > 0,
+    hasSelection: selectedIds.size > 0,
     isSelected,
     isEditing,
     select,
@@ -205,14 +182,13 @@ function createMoveGetChanges({
 }): (delta: number) => RecorderClipMove[] {
   const originals: RecorderClipMove[] = [
     ...clips.map((clip) => ({
-      type: "clip" as const,
       id: clip.id,
       timelineOffset: clip.timelineOffset,
     })),
     ...(referenceVideo
       ? [
           {
-            type: "reference" as const,
+            id: REFERENCE_VIDEO_CLIP_ID,
             timelineOffset: referenceVideo.timelineStart,
           },
         ]

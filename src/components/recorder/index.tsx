@@ -13,7 +13,10 @@ import { snapToGrid } from "../../lib/music";
 import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
-import { RecorderRuntime } from "../../lib/recorder/runtime";
+import {
+  RecorderRuntime,
+  REFERENCE_VIDEO_CLIP_ID,
+} from "../../lib/recorder/runtime";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
@@ -398,14 +401,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                   recorderInteraction.clearSelection();
                   runtime.seek(position);
                 }}
-                selected={clipInteraction.isSelected({ type: "reference" })}
+                selected={clipInteraction.isSelected(REFERENCE_VIDEO_CLIP_ID)}
                 onClipClick={(additive) =>
-                  clipInteraction.select({ type: "reference" }, additive)
+                  clipInteraction.select(REFERENCE_VIDEO_CLIP_ID, additive)
                 }
                 onEditStart={(edit) =>
                   clipInteraction.startEdit({
                     ...edit,
-                    clip: { type: "reference" },
+                    id: REFERENCE_VIDEO_CLIP_ID,
                   })
                 }
                 onEditUpdate={clipInteraction.updateEdit}
@@ -460,19 +463,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   tempo={timeline.tempo}
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
-                  isClipSelected={(id) =>
-                    clipInteraction.isSelected({ type: "clip", id })
-                  }
+                  isClipSelected={clipInteraction.isSelected}
                   isClipEditing={clipInteraction.isEditing}
-                  onClipClick={(id, additive) =>
-                    clipInteraction.select({ type: "clip", id }, additive)
-                  }
-                  onEditStart={({ id, ...edit }) =>
-                    clipInteraction.startEdit({
-                      ...edit,
-                      clip: { type: "clip", id },
-                    })
-                  }
+                  onClipClick={clipInteraction.select}
+                  onEditStart={clipInteraction.startEdit}
                   onEditUpdate={clipInteraction.updateEdit}
                   onEditFinish={clipInteraction.finishEdit}
                   onEditCancel={clipInteraction.cancelEdit}
@@ -559,19 +553,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
-                isClipSelected={(id) =>
-                  clipInteraction.isSelected({ type: "clip", id })
-                }
+                isClipSelected={clipInteraction.isSelected}
                 isClipEditing={clipInteraction.isEditing}
-                onClipClick={(id, additive) =>
-                  clipInteraction.select({ type: "clip", id }, additive)
-                }
-                onEditStart={({ id, ...edit }) =>
-                  clipInteraction.startEdit({
-                    ...edit,
-                    clip: { type: "clip", id },
-                  })
-                }
+                onClipClick={clipInteraction.select}
+                onEditStart={clipInteraction.startEdit}
                 onEditUpdate={clipInteraction.updateEdit}
                 onEditFinish={clipInteraction.finishEdit}
                 onEditCancel={clipInteraction.cancelEdit}
@@ -602,9 +587,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   onSoloedChange={(soloed) =>
                     runtime.setClipSoloed({ id: take.id, soloed })
                   }
-                  onDelete={() =>
-                    runtime.removeClips([{ type: "clip", id: take.id }])
-                  }
+                  onDelete={() => runtime.removeClips([take.id])}
                 >
                   <AudioTimelineLane
                     clips={[take]}
@@ -616,19 +599,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                     viewportStartBeat={timeline.viewportStartBeat}
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
-                    isClipSelected={(id) =>
-                      clipInteraction.isSelected({ type: "clip", id })
-                    }
+                    isClipSelected={clipInteraction.isSelected}
                     isClipEditing={clipInteraction.isEditing}
-                    onClipClick={(id, additive) =>
-                      clipInteraction.select({ type: "clip", id }, additive)
-                    }
-                    onEditStart={({ id, ...edit }) =>
-                      clipInteraction.startEdit({
-                        ...edit,
-                        clip: { type: "clip", id },
-                      })
-                    }
+                    onClipClick={clipInteraction.select}
+                    onEditStart={clipInteraction.startEdit}
                     onEditUpdate={clipInteraction.updateEdit}
                     onEditFinish={clipInteraction.finishEdit}
                     onEditCancel={clipInteraction.cancelEdit}
