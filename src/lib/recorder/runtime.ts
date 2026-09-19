@@ -1249,11 +1249,8 @@ export class RecorderRuntime {
 /** A state change that runtime can apply directly, including during undo and redo. */
 type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
-  | {
-      type: "midi-track";
-      trackId: string;
-      snapshot?: { track: MidiTrackState; index: number };
-    };
+  | { type: "midi-track-insert"; track: MidiTrackState; index: number }
+  | { type: "midi-track-delete"; trackId: string };
 
 // TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 class RecorderHistory {
@@ -1278,12 +1275,13 @@ class RecorderHistory {
     reverse?: boolean;
   }): void {
     const before: RecorderChange = {
-      type: "midi-track",
+      type: "midi-track-delete",
       trackId: track.id,
     };
     const after: RecorderChange = {
-      ...before,
-      snapshot: { track, index },
+      type: "midi-track-insert",
+      track,
+      index,
     };
     this.history.push(
       reverse ? { before: after, after: before } : { before, after },
@@ -1296,12 +1294,12 @@ class RecorderHistory {
         this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
         break;
       }
-      case "midi-track": {
-        if (change.snapshot) {
-          await this.runtime.insertMidiTrack(change.snapshot);
-        } else {
-          this.runtime.deleteMidiTrack(change.trackId);
-        }
+      case "midi-track-insert": {
+        await this.runtime.insertMidiTrack(change);
+        break;
+      }
+      case "midi-track-delete": {
+        this.runtime.deleteMidiTrack(change.trackId);
         break;
       }
     }
