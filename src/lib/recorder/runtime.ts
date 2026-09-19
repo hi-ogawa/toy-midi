@@ -375,21 +375,47 @@ export class RecorderRuntime {
         prefix: "MIDI",
       }),
     );
+    const index = await this.insertMidiTrack({ track });
+    this.history.pushMidiTrack({ track, index });
+  }
+
+  /** @internal for undo */
+  async insertMidiTrack({
+    track,
+    index,
+  }: {
+    track: MidiTrackState;
+    index?: number;
+  }): Promise<number> {
+    const state = this.store.get();
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
       output: this.masterOutput,
       track,
       tempo: state.tempo,
     });
+    const midiTracks = [...state.midiTracks];
+    index ??= midiTracks.length;
+    midiTracks.splice(index, 0, track);
     this.midiTrackPlaybacks.set(track.id, playback);
-    this.store.update({
-      midiTracks: [...state.midiTracks, track],
-    });
+    this.store.update({ midiTracks });
     this.syncTrackMix();
+    return index;
   }
 
   removeMidiTrack(id: string): void {
-    this.history.removeMidiTrack(id);
+    const state = this.store.get();
+    const index = state.midiTracks.findIndex((track) => track.id === id);
+    if (index === -1) {
+      return;
+    }
+    const track = state.midiTracks[index];
+    this.deleteMidiTrack(id);
+    this.history.pushMidiTrack({ track, index, reverse: true });
+  }
+
+  /** @internal for undo */
+  deleteMidiTrack(id: string): void {
     this.midiTrackPlaybacks.get(id)?.dispose();
     this.midiTrackPlaybacks.delete(id);
     this.store.update({
@@ -1221,12 +1247,12 @@ export class RecorderRuntime {
 // Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
 // preserve array ordering when undo restores deleted notes.
 /** A state change that runtime can apply directly, including during undo and redo. */
-type RecorderChange = {
-  type: "midi-notes";
-  trackId: string;
-  notes: Note[];
-};
+type RecorderChange =
+  | { type: "midi-notes"; trackId: string; notes: Note[] }
+  | { type: "midi-track-insert"; track: MidiTrackState; index: number }
+  | { type: "midi-track-delete"; trackId: string };
 
+// TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 class RecorderHistory {
   private history = new UndoRedoHistory<RecorderChange>();
 
@@ -1239,19 +1265,41 @@ class RecorderHistory {
     });
   }
 
-  removeMidiTrack(id: string): void {
-    // Track deletion is not undoable yet, so discard changes that require it.
-    this.history.prune((entry) =>
-      [entry.before, entry.after].some(
-        (change) => change.type === "midi-notes" && change.trackId === id,
-      ),
+  pushMidiTrack({
+    track,
+    index,
+    reverse = false,
+  }: {
+    track: MidiTrackState;
+    index: number;
+    reverse?: boolean;
+  }): void {
+    const before: RecorderChange = {
+      type: "midi-track-delete",
+      trackId: track.id,
+    };
+    const after: RecorderChange = {
+      type: "midi-track-insert",
+      track,
+      index,
+    };
+    this.history.push(
+      reverse ? { before: after, after: before } : { before, after },
     );
   }
 
-  private apply(change: RecorderChange): void {
+  private async apply(change: RecorderChange): Promise<void> {
     switch (change.type) {
       case "midi-notes": {
         this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
+        break;
+      }
+      case "midi-track-insert": {
+        await this.runtime.insertMidiTrack(change);
+        break;
+      }
+      case "midi-track-delete": {
+        this.runtime.deleteMidiTrack(change.trackId);
         break;
       }
     }

@@ -410,7 +410,15 @@ type RecorderTimelineClip = {
   offset: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  testId: "audio" | "comp" | "recording" | "reference" | "take" | "take-lane";
+  testId:
+    | "audio"
+    | "comp"
+    | "take-lane"
+    | "audio-source"
+    | "comp-source"
+    | "take-lane-source"
+    | "recording"
+    | "reference";
   variant?: "audio" | "reference";
   audioView?: AudioView;
 };
@@ -421,8 +429,7 @@ export function AudioTimelineLane({
   beatsPerBar,
   clips,
   regions,
-  editSourceClips,
-  recordingPreview,
+  recordingClipId,
   testId,
   emptyLabel,
   pixelsPerBeat,
@@ -441,11 +448,9 @@ export function AudioTimelineLane({
   beatsPerBar: number;
   clips: readonly AudioClip[];
   regions: readonly ClipRegion[];
-  // Comp editing targets complete source clips, including their covered portions.
-  editSourceClips: boolean;
-  recordingPreview?: { id: string; label: string };
-  testId: RecorderTimelineClip["testId"];
-  emptyLabel: string;
+  testId: "audio" | "comp" | "take-lane";
+  recordingClipId?: string;
+  emptyLabel?: string;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   tempo: number;
@@ -473,26 +478,23 @@ export function AudioTimelineLane({
         subdivisionsPerBeat,
       })}
     >
-      {clips.length === 0 && !recordingPreview && (
+      {emptyLabel && clips.length === 0 && recordingClipId === undefined && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
           {emptyLabel}
         </div>
       )}
-      <div
-        className={
-          editSourceClips ? "pointer-events-none absolute inset-0" : undefined
-        }
-      >
+      {/* Paint resolved regions independently of the editable source bounds. */}
+      <div className="pointer-events-none absolute inset-0">
         {regions.map((region, index) => {
           const { clip } = region;
-          const isRecording = clip.id === recordingPreview?.id;
+          const isRecording = clip.id === recordingClipId;
           const previous = regions[index - 1];
           const next = regions[index + 1];
           return (
             <TimelineClip
               key={`${clip.id}:${index}`}
               clip={{
-                label: isRecording ? recordingPreview.label : clip.name,
+                label: isRecording ? "Recording..." : clip.name,
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
                 audioOffset: region.timelineStart - clip.timelineOffset,
@@ -505,123 +507,42 @@ export function AudioTimelineLane({
               viewportWidth={viewportWidth}
               recording={isRecording}
               joinsPrevious={
-                editSourceClips &&
                 previous !== undefined &&
                 Math.abs(previous.timelineEnd - region.timelineStart) <
                   TIMELINE_EPSILON
               }
               joinsNext={
-                editSourceClips &&
                 next !== undefined &&
                 Math.abs(region.timelineEnd - next.timelineStart) <
                   TIMELINE_EPSILON
               }
-              {...(!editSourceClips && {
-                selected: isClipSelected(clip.id),
-                onClipDragStart: (additive: boolean) =>
-                  onClipDragStart(clip.id, additive),
-                onClipClick: (additive: boolean) =>
-                  onClipClick(clip.id, additive),
-                onClipDragMove,
-                onTrimStart: (edge: "start" | "end") =>
-                  onTrimStart(clip.id, edge),
-                onTrimMove,
-              })}
             />
           );
         })}
       </div>
-      {editSourceClips &&
-        activeClips.map((clip) => (
-          <TimelineClip
-            key={clip.id}
-            clip={{
-              label: clip.name,
-              duration: clip.trimEnd - clip.trimStart,
-              offset: clip.timelineOffset + clip.trimStart,
-              testId: "take",
-            }}
-            pixelsPerBeat={pixelsPerBeat}
-            viewportStartBeat={viewportStartBeat}
-            tempo={tempo}
-            viewportWidth={viewportWidth}
-            onClipDragStart={(additive) => onClipDragStart(clip.id, additive)}
-            onClipClick={(additive) => onClipClick(clip.id, additive)}
-            onClipDragMove={onClipDragMove}
-            onTrimStart={(edge) => onTrimStart(clip.id, edge)}
-            onTrimMove={onTrimMove}
-            selected={isClipSelected(clip.id)}
-            hidePresentation
-          />
-        ))}
-    </div>
-  );
-}
-
-export function TimelineLane({
-  beatsPerBar,
-  clip,
-  emptyLabel,
-  pixelsPerBeat,
-  viewportStartBeat,
-  tempo,
-  viewportWidth,
-  selected,
-  onClipDragStart,
-  onClipClick,
-  onClipDragMove,
-  onTrimStart,
-  onTrimMove,
-  subdivisionsPerBeat,
-  onSeek,
-}: {
-  beatsPerBar: number;
-  clip?: RecorderTimelineClip;
-  emptyLabel: string;
-  pixelsPerBeat: number;
-  viewportStartBeat: number;
-  tempo: number;
-  viewportWidth: number;
-  selected: boolean;
-  onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
-  onClipClick: (additive: boolean) => void;
-  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-  onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
-  onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
-  subdivisionsPerBeat: number;
-  onSeek: (position: number) => void;
-}) {
-  return (
-    <div
-      className="relative overflow-hidden bg-neutral-900"
-      {...getTimelineSurfaceProps({
-        beatsPerBar,
-        onSeek,
-        pixelsPerBeat,
-        tempo,
-        viewportStartBeat,
-        subdivisionsPerBeat,
-      })}
-    >
-      {clip ? (
+      {/* Edit each contributing source across its complete trimmed interval. */}
+      {activeClips.map((clip) => (
         <TimelineClip
-          clip={clip}
+          key={clip.id}
+          clip={{
+            label: clip.name,
+            duration: clip.trimEnd - clip.trimStart,
+            offset: clip.timelineOffset + clip.trimStart,
+            testId: `${testId}-source`,
+          }}
           pixelsPerBeat={pixelsPerBeat}
           viewportStartBeat={viewportStartBeat}
           tempo={tempo}
           viewportWidth={viewportWidth}
-          selected={selected}
-          onClipDragStart={onClipDragStart}
-          onClipClick={onClipClick}
+          onClipDragStart={(additive) => onClipDragStart(clip.id, additive)}
+          onClipClick={(additive) => onClipClick(clip.id, additive)}
           onClipDragMove={onClipDragMove}
-          onTrimStart={onTrimStart}
+          onTrimStart={(edge) => onTrimStart(clip.id, edge)}
           onTrimMove={onTrimMove}
+          selected={isClipSelected(clip.id)}
+          hidePresentation
         />
-      ) : (
-        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
-          {emptyLabel}
-        </div>
-      )}
+      ))}
     </div>
   );
 }

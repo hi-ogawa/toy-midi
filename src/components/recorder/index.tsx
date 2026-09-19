@@ -10,6 +10,7 @@ import {
   matchKeyboardEvent,
 } from "../../lib/keyboard";
 import { snapToGrid } from "../../lib/music";
+import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
@@ -38,7 +39,6 @@ import {
 import {
   ReferenceTimelineRow,
   TimelineHeader,
-  TimelineLane,
   AudioTimelineLane,
 } from "./recorder-timeline";
 import {
@@ -451,7 +451,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clips={track.clips}
                   regions={track.regions}
                   testId="audio"
-                  editSourceClips={false}
                   pixelsPerBeat={timeline.pixelsPerBeat}
                   beatsPerBar={timeline.beatsPerBar}
                   subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -550,46 +549,24 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <AudioTimelineLane
                 clips={takes}
-                testId="comp"
-                editSourceClips
-                emptyLabel="Enable input, place the playhead, then record"
                 regions={
                   state.previewClipRegions ?? state.recordingTrack.regions
                 }
-                recordingPreview={
-                  state.pendingRecording
-                    ? {
-                        id: state.pendingRecording.id,
-                        label:
-                          state.captureStatus === "processing"
-                            ? "Finalizing..."
-                            : "Recording...",
-                      }
-                    : undefined
-                }
-                isClipSelected={(id) =>
-                  clipInteraction.isSelected({ type: "clip", id })
-                }
+                testId="comp"
+                emptyLabel="Enable input, place the playhead, then record"
+                recordingClipId={state.pendingRecording?.id}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
-                onSeek={(position) => {
-                  recorderInteraction.clearSelection();
-                  runtime.seek(position);
-                }}
-                onClipDragStart={(id, additive) =>
-                  clipInteraction.startMove({
-                    clip: { type: "clip", id },
-                    additive,
-                  })
+                isClipSelected={(id) =>
+                  clipInteraction.isSelected({ type: "clip", id })
                 }
                 onClipClick={(id, additive) =>
                   clipInteraction.select({ type: "clip", id }, additive)
                 }
-                onClipDragMove={clipInteraction.move}
                 onTrimStart={(id, edge) =>
                   clipInteraction.startTrim({
                     clip: { type: "clip", id },
@@ -597,6 +574,17 @@ export function Recorder({ projectId }: { projectId: string }) {
                   })
                 }
                 onTrimMove={clipInteraction.trim}
+                onClipDragStart={(id, additive) =>
+                  clipInteraction.startMove({
+                    clip: { type: "clip", id },
+                    additive,
+                  })
+                }
+                onClipDragMove={clipInteraction.move}
+                onSeek={(position) => {
+                  recorderInteraction.clearSelection();
+                  runtime.seek(position);
+                }}
               />
             </TrackRow>
             {takes.length > 0 && (
@@ -624,42 +612,32 @@ export function Recorder({ projectId }: { projectId: string }) {
                     runtime.removeClips([{ type: "clip", id: take.id }])
                   }
                 >
-                  <TimelineLane
-                    clip={{
-                      label: take.name,
-                      duration: take.trimEnd - take.trimStart,
-                      offset: take.timelineOffset + take.trimStart,
-                      testId: "take-lane",
-                      audioView: take.audioView,
-                      audioOffset: take.trimStart,
-                    }}
+                  <AudioTimelineLane
+                    clips={[take]}
+                    regions={deriveClipRegions([take])}
+                    testId="take-lane"
                     pixelsPerBeat={timeline.pixelsPerBeat}
                     beatsPerBar={timeline.beatsPerBar}
                     subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                     viewportStartBeat={timeline.viewportStartBeat}
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
-                    emptyLabel=""
-                    selected={clipInteraction.isSelected({
-                      type: "clip",
-                      id: take.id,
-                    })}
-                    onClipClick={(additive) =>
-                      clipInteraction.select(
-                        { type: "clip", id: take.id },
-                        additive,
-                      )
+                    isClipSelected={(id) =>
+                      clipInteraction.isSelected({ type: "clip", id })
                     }
-                    onTrimStart={(edge) =>
+                    onClipClick={(id, additive) =>
+                      clipInteraction.select({ type: "clip", id }, additive)
+                    }
+                    onTrimStart={(id, edge) =>
                       clipInteraction.startTrim({
-                        clip: { type: "clip", id: take.id },
+                        clip: { type: "clip", id },
                         edge,
                       })
                     }
                     onTrimMove={clipInteraction.trim}
-                    onClipDragStart={(additive) =>
+                    onClipDragStart={(id, additive) =>
                       clipInteraction.startMove({
-                        clip: { type: "clip", id: take.id },
+                        clip: { type: "clip", id },
                         additive,
                       })
                     }
