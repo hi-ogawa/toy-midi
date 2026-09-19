@@ -227,8 +227,8 @@ export class RecorderRuntime {
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
-  private readonly trackPlaybacks = new Map<string, AudioTrackPlayback>();
-  private readonly midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
+  private trackPlaybacks = new Map<string, AudioTrackPlayback>();
+  private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
