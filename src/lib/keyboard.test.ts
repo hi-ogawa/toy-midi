@@ -48,7 +48,6 @@ describe("parseShortcut", () => {
     expect(parseShortcut("Enter")).toMatchInlineSnapshot(`
       {
         "code": "Enter",
-        "key": "Enter",
         "modifiers": {
           "alt": false,
           "ctrl": false,
@@ -59,7 +58,6 @@ describe("parseShortcut", () => {
     expect(parseShortcut("ArrowUp")).toMatchInlineSnapshot(`
       {
         "code": "ArrowUp",
-        "key": "ArrowUp",
         "modifiers": {
           "alt": false,
           "ctrl": false,
@@ -70,7 +68,26 @@ describe("parseShortcut", () => {
     expect(parseShortcut("ArrowDown")).toMatchInlineSnapshot(`
       {
         "code": "ArrowDown",
-        "key": "ArrowDown",
+        "modifiers": {
+          "alt": false,
+          "ctrl": false,
+          "shift": false,
+        },
+      }
+    `);
+    expect(parseShortcut("ArrowLeft")).toMatchInlineSnapshot(`
+      {
+        "code": "ArrowLeft",
+        "modifiers": {
+          "alt": false,
+          "ctrl": false,
+          "shift": false,
+        },
+      }
+    `);
+    expect(parseShortcut("ArrowRight")).toMatchInlineSnapshot(`
+      {
+        "code": "ArrowRight",
         "modifiers": {
           "alt": false,
           "ctrl": false,

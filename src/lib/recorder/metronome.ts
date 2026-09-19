@@ -1,4 +1,5 @@
 import type { TimeSignature } from "../../types.ts";
+import { startInterval } from "../../utils/timing.ts";
 import { midiToHz, parseMidiPitch } from "../music.ts";
 import type {
   AudioContextTransport,
@@ -73,7 +74,8 @@ export class RecorderMetronome implements TransportParticipant {
       const anchor = this.transport.playbackAnchor!;
       const nextClickPosition = this.nextClickIndex * this.secondsPerClick;
       const nextClickTime =
-        anchor.contextTime + nextClickPosition - anchor.position;
+        anchor.contextTime +
+        (nextClickPosition - anchor.position) / this.transport.playbackRate;
       const currentTime = this.transport.context.currentTime;
       // Schedule only the near future, then let the interval extend the window.
       if (nextClickTime <= currentTime + SCHEDULE_AHEAD_SECONDS) {
@@ -140,9 +142,4 @@ function scheduleOscillatorClick({
   oscillator.connect(envelope).connect(output);
   oscillator.start(contextTime);
   oscillator.stop(decayEndTime);
-}
-
-function startInterval(callback: () => void, milliseconds: number): () => void {
-  const id = setInterval(callback, milliseconds);
-  return () => clearInterval(id);
 }

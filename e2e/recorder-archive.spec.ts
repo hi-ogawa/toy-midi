@@ -1,6 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { useFakeAudioInput } from "./helpers";
 import {
+  addRecorderAudio,
   createRecorderProject,
   enableInput,
   seekRecorderByPixels,
@@ -13,17 +15,12 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await createRecorderProject(page);
 
   // Build an editable project with backing audio and two retained takes.
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
-  await expect(
-    page.getByTestId("recorder-clip-audio").locator("svg"),
-  ).toBeVisible();
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   await enableInput(page);
   const recordButton = page.getByTestId("recorder-record-button");
-  for (const position of [160, 320]) {
-    await seekRecorderByPixels(page, position);
+  for (const beat of [2, 4]) {
+    await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
     await recordButton.click();
     await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
     await recordButton.click();
@@ -48,7 +45,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await download.saveAs(archivePath);
 
   // Import from the project list, which opens a newly created local project.
-  await page.goto("/recorder");
+  await page.goto("/");
   const importChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("import-recorder-project").click();
   await (await importChooserPromise).setFiles(archivePath);

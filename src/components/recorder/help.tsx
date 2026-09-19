@@ -1,0 +1,150 @@
+import { Dialog } from "../ui/dialog";
+
+type HelpSectionData = {
+  title: string;
+  items: { action: string; keys?: string; gesture?: string }[];
+};
+
+const sections: HelpSectionData[] = [
+  {
+    title: "Transport",
+    items: [
+      { action: "Play / pause", keys: "Space" },
+      { action: "Start / stop recording", keys: "R" },
+      { action: "Toggle metronome", keys: "M" },
+      { action: "Decrease / increase playback speed", keys: "< / >" },
+    ],
+  },
+  {
+    title: "Timeline",
+    items: [
+      { action: "Seek to a position", gesture: "Click ruler / empty lane" },
+      { action: "Seek backward / forward 5 seconds", keys: "Left / Right" },
+      {
+        action: "Scroll timeline horizontally",
+        gesture: "Wheel over timeline",
+      },
+      { action: "Zoom at pointer", keys: "Ctrl", gesture: " + wheel" },
+      { action: "Toggle follow playhead", keys: "F" },
+    ],
+  },
+  {
+    title: "Clips",
+    items: [
+      { action: "Select a clip", gesture: "Click clip" },
+      {
+        action: "Add / remove from selection",
+        keys: "Ctrl / Cmd",
+        gesture: " + click",
+      },
+      { action: "Move selected clips", gesture: "Drag clip body" },
+      { action: "Trim audio clips and takes", gesture: "Drag clip edge" },
+      { action: "Remove selected clips", keys: "Delete / Backspace" },
+      { action: "Clear selection / cancel clip drag", keys: "Esc" },
+    ],
+  },
+  {
+    title: "MIDI notes",
+    items: [
+      { action: "Undo MIDI note edit", keys: "Ctrl / Cmd + Z" },
+      {
+        action: "Redo MIDI note edit",
+        keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
+      },
+      { action: "Create a snapped note", gesture: "Click empty MIDI grid" },
+      { action: "Select and preview a note", gesture: "Press note" },
+      {
+        action: "Add / remove note from selection",
+        keys: "Ctrl / Cmd",
+        gesture: " + click",
+      },
+      { action: "Select notes in an area", gesture: "Shift + drag empty grid" },
+      { action: "Move a note in time and pitch", gesture: "Drag note" },
+      { action: "Resize a note", gesture: "Drag either note edge" },
+      { action: "Cancel note drag", keys: "Esc" },
+      { action: "Copy selected notes", keys: "Ctrl / Cmd + C" },
+      { action: "Paste notes at playhead", keys: "Ctrl / Cmd + V" },
+      {
+        action: "Duplicate selected notes",
+        gesture: "Ctrl / Cmd + drag note",
+      },
+      { action: "Preview a pitch", gesture: "Hold piano key" },
+      { action: "Delete selected notes", keys: "Delete / Backspace" },
+      { action: "Assign string (annotations enabled)", keys: "1–5" },
+      { action: "Change string", keys: "Up / Down" },
+      { action: "Reset string to automatic", keys: "0" },
+      { action: "Scroll pitches", gesture: "Wheel over MIDI grid" },
+      { action: "Scroll time in MIDI grid", gesture: "Shift + wheel" },
+    ],
+  },
+  {
+    title: "Locators",
+    items: [
+      { action: "Add locator at playhead", keys: "L" },
+      { action: "Select and seek to locator", gesture: "Click locator" },
+      { action: "Move locator", gesture: "Drag locator" },
+      {
+        action: "Rename locator",
+        gesture: "Hover / select, then click pencil",
+      },
+      { action: "Remove selected locator", keys: "Delete / Backspace" },
+    ],
+  },
+  {
+    title: "Project",
+    items: [{ action: "Save project", keys: "Ctrl / Cmd + S" }],
+  },
+];
+
+export function RecorderHelp({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Editor quick reference"
+      size="wide"
+    >
+      <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">
+        <div className="columns-2 gap-10">
+          {sections.map((section) => (
+            <HelpSection key={section.title} section={section} />
+          ))}
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
+function HelpSection({ section }: { section: HelpSectionData }) {
+  return (
+    <section className="mb-7 break-inside-avoid">
+      <h3 className="mb-3 text-sm font-semibold text-emerald-300">
+        {section.title}
+      </h3>
+      <dl>
+        {section.items.map((item) => (
+          <div
+            key={item.action}
+            className="flex min-h-[34px] items-center justify-between gap-3"
+          >
+            <dt className="text-[13px] text-neutral-200">{item.action}</dt>
+            <dd className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-neutral-400">
+              {item.keys && (
+                <kbd className="whitespace-nowrap rounded border border-b-2 border-neutral-600 bg-neutral-700/60 px-1.5 py-0.5 font-sans text-[11px] text-neutral-300">
+                  {item.keys}
+                </kbd>
+              )}
+              {item.gesture}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}

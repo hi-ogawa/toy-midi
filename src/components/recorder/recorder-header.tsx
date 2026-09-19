@@ -1,13 +1,13 @@
 import {
   ChevronDownIcon,
   CircleAlertIcon,
+  CircleHelpIcon,
   CircleIcon,
   CircleStopIcon,
   DownloadIcon,
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
-  Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -18,10 +18,17 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
+import { formatGainDb } from "../../lib/music";
+import { PLAYBACK_RATES } from "../../lib/recorder/playback-rate";
+import type {
+  RecorderLoopState,
+  RecorderPunchState,
+} from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
   formatBarBeatAtTime,
+  secondsToBeats,
   type GridDivision,
   GRID_DIVISIONS,
 } from "../../lib/timeline";
@@ -37,6 +44,9 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import type { RecorderFlags } from "./recorder-flags";
+import { RecorderGainSlider } from "./recorder-mixer";
+import { RecorderRangeControl } from "./recorder-range-control";
 import type { SaveStatus } from "./use-recorder-project";
 
 export function RecorderHeader({
@@ -44,56 +54,73 @@ export function RecorderHeader({
   saveStatus,
   referenceVideoOpen,
   isPlaying,
-  isProcessing,
-  isRecording,
+  flags,
   isExporting,
   metronomeEnabled,
+  masterGain,
+  loop,
+  punch,
   position,
+  playbackRate,
   tempo,
   timeSignature,
   gridDivision,
-  recordDisabled,
   autoScrollEnabled,
   onPlayToggle,
   onTitleChange,
   onSave,
   onRecordToggle,
   onAutoScrollChange,
+  onPlaybackRateChange,
   onTempoChange,
   onMetronomeChange,
+  onMasterGainChange,
+  onLoopChange,
+  onPunchChange,
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
+  onExportAudio,
   onReferenceVideoOpenChange,
   onMixerToggle,
+  onHelpOpen,
   mixerOpen,
 }: {
-  title: string;
+  /** Undefined until the project has initialized, so the default title never shows. */
+  title?: string;
   saveStatus: SaveStatus;
   referenceVideoOpen: boolean;
   isPlaying: boolean;
-  isProcessing: boolean;
-  isRecording: boolean;
+  flags: RecorderFlags;
   isExporting: boolean;
   metronomeEnabled: boolean;
+  masterGain: number;
+  loop: RecorderLoopState;
+  punch: RecorderPunchState;
   position: number;
+  playbackRate: number;
   tempo: number;
   timeSignature: TimeSignature;
   gridDivision: GridDivision;
-  recordDisabled: boolean;
   autoScrollEnabled: boolean;
   onPlayToggle: () => void;
   onTitleChange: (title: string) => void;
   onSave: () => void;
   onRecordToggle: () => void;
   onAutoScrollChange: (enabled: boolean) => void;
+  onPlaybackRateChange: (playbackRate: number) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
+  onMasterGainChange: (gain: number) => void;
+  onLoopChange: (update: Partial<RecorderLoopState>) => void;
+  onPunchChange: (update: Partial<RecorderPunchState>) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
+  onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
+  onHelpOpen: () => void;
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
@@ -110,13 +137,10 @@ export function RecorderHeader({
   });
   return (
     <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
-      <Mic2Icon className="size-4 text-emerald-400" />
-      <span className="mr-2 text-sm font-medium">Recorder</span>
-      <div className="h-5 w-px bg-neutral-600" />
       <Button
         data-testid="recorder-play-button"
         onClick={onPlayToggle}
-        disabled={isProcessing}
+        disabled={flags.playDisabled}
         aria-pressed={isPlaying}
         className={cn(
           "size-9",
@@ -124,7 +148,9 @@ export function RecorderHeader({
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         )}
-        title={isRecording || isPlaying ? "Pause (Space)" : "Play (Space)"}
+        title={
+          flags.isRecording || isPlaying ? "Pause (Space)" : "Play (Space)"
+        }
       >
         {isPlaying ? (
           <PauseIcon className="size-5" />
@@ -135,23 +161,39 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-record-button"
         onClick={onRecordToggle}
-        disabled={recordDisabled || isProcessing}
-        aria-pressed={isRecording}
+        disabled={flags.recordDisabled}
+        aria-pressed={flags.isRecording}
         className={cn(
           "size-9",
-          isRecording
-            ? "bg-red-600 text-white hover:bg-red-500"
+          flags.isRecording
+            ? "border-red-500/60 bg-red-500/20 text-red-200 hover:bg-red-500/30"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         )}
-        title={isRecording ? "Stop recording (R)" : "Record (R)"}
+        title={flags.isRecording ? "Stop recording (R)" : "Record (R)"}
       >
-        {isRecording ? (
+        {flags.isRecording ? (
           <CircleStopIcon className="size-5" />
         ) : (
           <CircleIcon className="size-4 fill-current" />
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <RecorderRangeControl
+        kind="loop"
+        state={loop}
+        position={position}
+        tempo={tempo}
+        timeSignature={timeSignature}
+        onChange={onLoopChange}
+      />
+      <RecorderRangeControl
+        kind="punch"
+        state={punch}
+        position={position}
+        tempo={tempo}
+        timeSignature={timeSignature}
+        onChange={onPunchChange}
+      />
       <Button
         onClick={() => onMetronomeChange(!metronomeEnabled)}
         aria-pressed={metronomeEnabled}
@@ -160,7 +202,7 @@ export function RecorderHeader({
           "size-9",
           metronomeEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
         <MetronomeIcon className="size-5" />
@@ -173,19 +215,46 @@ export function RecorderHeader({
           "size-9",
           autoScrollEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
         <LocateFixedIcon className="size-5" />
       </Button>
       <output
         data-testid="recorder-position"
+        data-position={position}
+        data-beat={secondsToBeats(position, tempo)}
         className="font-mono text-sm tabular-nums text-neutral-300"
       >
         {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
         {formatTimeWithMilliseconds(position)}
       </output>
       <div className="h-5 w-px bg-neutral-600" />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            data-testid="recorder-playback-rate"
+            title="Playback speed (< slower / > faster)"
+            disabled={flags.isRecording}
+            className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
+          >
+            {playbackRate}x
+            <ChevronDownIcon className="size-3 text-neutral-400" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={String(playbackRate)}
+            onValueChange={(value) => onPlaybackRateChange(Number(value))}
+          >
+            {PLAYBACK_RATES.map((value) => (
+              <DropdownMenuRadioItem key={value} value={String(value)}>
+                {value}x
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <div className="flex items-center gap-1.5 text-xs text-neutral-400">
         <span>BPM</span>
         <input
@@ -249,12 +318,27 @@ export function RecorderHeader({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      <div className="h-5 w-px bg-neutral-600" />
+      <label className="flex items-center gap-2 text-[10px] text-neutral-400">
+        <span className="font-medium uppercase tracking-wide">Master</span>
+        <RecorderGainSlider
+          data-testid="recorder-master-gain"
+          label="Master gain"
+          gain={masterGain}
+          onGainChange={onMasterGainChange}
+          className="w-24"
+        />
+        <span className="w-12 text-right font-mono">
+          {formatGainDb(masterGain)}
+        </span>
+      </label>
       <div className="flex-1" />
       <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"
         data-testid="recorder-project-name"
         title="Rename project"
+        disabled={title === undefined}
         onClick={() => {
           const nextTitle = window.prompt("Project name", title)?.trim();
           if (nextTitle && nextTitle !== title) {
@@ -263,7 +347,12 @@ export function RecorderHeader({
         }}
         className="max-w-[220px] truncate text-sm text-neutral-300 hover:text-neutral-100"
       >
-        {title}
+        {title ?? (
+          <span
+            aria-label="Loading project name"
+            className="inline-block h-3 w-24 rounded bg-neutral-700 align-middle"
+          />
+        )}
       </button>
       <div className="h-5 w-px bg-neutral-600" />
       <Button
@@ -272,9 +361,10 @@ export function RecorderHeader({
         aria-pressed={referenceVideoOpen}
         title="Reference video"
         className={cn(
-          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-          referenceVideoOpen &&
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+          "size-9",
+          referenceVideoOpen
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
         <VideoIcon className="size-5" />
@@ -288,7 +378,7 @@ export function RecorderHeader({
           "size-9",
           mixerOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
         <SlidersVerticalIcon className="size-5" />
@@ -304,9 +394,20 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onHelpOpen}>
+            <CircleHelpIcon />
+            Help & Shortcuts
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={flags.isRecording}
+            onSelect={onExportAudio}
+          >
+            <DownloadIcon />
+            Export Audio
+          </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="recorder-export-project"
-            disabled={isRecording || isProcessing || isExporting}
+            disabled={flags.isRecording || isExporting}
             onSelect={(event) => {
               event.preventDefault();
               onExportProject();
@@ -326,12 +427,6 @@ export function RecorderHeader({
             <a href={routes.home.href()}>
               <HouseIcon />
               Home
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={routes.recorder.href()}>
-              <Mic2Icon />
-              Recorder projects
             </a>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -363,6 +458,8 @@ function RecorderSaveButton({
   return (
     <div className="group/save relative">
       <Button
+        data-testid="recorder-save-button"
+        data-status={status}
         aria-label={label}
         aria-describedby="recorder-save-tooltip"
         aria-disabled={!canSave}

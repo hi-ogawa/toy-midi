@@ -7,6 +7,7 @@ import {
   RecorderRuntime,
   type ReferenceVideoState,
 } from "../../lib/recorder/runtime";
+import { recorderStorage } from "../../lib/recorder/storage";
 import {
   createYouTubePlayer,
   loadYouTubeApi,
@@ -14,8 +15,19 @@ import {
   type YouTubePlayerApi,
 } from "../../lib/youtube";
 import { Button } from "../ui/button";
-import { FloatingPanel } from "../ui/floating-panel";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { RecorderPanel } from "./recorder-panel";
+
+const DEFAULT_SIZE = { width: 640, height: 480 };
+const MIN_WIDTH = 360;
+const MIN_HEIGHT = 300;
+
+function clampSize({ width, height }: { width: number; height: number }) {
+  return {
+    width: clamp(width, MIN_WIDTH, window.innerWidth - 32),
+    height: clamp(height, MIN_HEIGHT, window.innerHeight - 32),
+  };
+}
 
 export function ReferenceVideoPanel({
   referenceVideo,
@@ -26,7 +38,11 @@ export function ReferenceVideoPanel({
   runtime: RecorderRuntime;
   onClose: () => void;
 }) {
-  const [size, setSize] = useState({ width: 640, height: 480 });
+  const [size, setSize] = useState(() =>
+    clampSize(
+      recorderStorage.readPreferences().referenceVideoSize ?? DEFAULT_SIZE,
+    ),
+  );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
       const target = event.target;
@@ -38,26 +54,23 @@ export function ReferenceVideoPanel({
         x: event.clientX,
         y: event.clientY,
         panelRect: panel.getBoundingClientRect(),
+        size,
       };
     },
     onMove: (event, drag) => {
-      setSize({
-        width: clamp(
-          drag.panelRect.width + drag.x - event.clientX,
-          360,
-          window.innerWidth - 32,
-        ),
-        height: clamp(
-          drag.panelRect.height + drag.y - event.clientY,
-          300,
-          window.innerHeight - 32,
-        ),
+      drag.size = clampSize({
+        width: drag.panelRect.width + drag.x - event.clientX,
+        height: drag.panelRect.height + drag.y - event.clientY,
       });
+      setSize(drag.size);
+    },
+    onEnd: (_event, drag) => {
+      recorderStorage.updatePreferences({ referenceVideoSize: drag.size });
     },
   });
 
   return (
-    <FloatingPanel
+    <RecorderPanel
       title={
         <span className="flex items-center gap-2">
           Reference video
@@ -94,8 +107,8 @@ export function ReferenceVideoPanel({
       }
       closeLabel="Close Reference Video"
       onClose={onClose}
-      testId="recorder-youtube-reference"
-      className="flex flex-col overflow-hidden"
+      data-testid="recorder-youtube-reference"
+      className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
     >
@@ -112,7 +125,7 @@ export function ReferenceVideoPanel({
         referenceVideo={referenceVideo}
         runtime={runtime}
       />
-    </FloatingPanel>
+    </RecorderPanel>
   );
 }
 

@@ -3,7 +3,9 @@ export interface YouTubePlayerApi {
   pauseVideo(): void;
   mute(): void;
   unMute(): void;
+  setPlaybackRate(suggestedRate: number): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
+  getCurrentTime(): number;
   getDuration(): number;
   getVideoData(): { title?: string };
   destroy(): void;

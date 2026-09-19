@@ -18,6 +18,8 @@ import { GRID_SNAP_VALUES } from "../types";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 
+const CONVERSION_CANCELLED_ERROR = new Error("Conversion cancelled");
+
 export function AudioToMidi({ track }: { track: AudioTrack }) {
   return (
     <div className="w-96 space-y-4">
@@ -45,13 +47,18 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
   const [progress, setProgress] = useState<number>();
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const convertStartedAt = useRef<number>(undefined);
+  const conversionController = useRef<AbortController>(undefined);
 
   useEffect(() => {
     bassPitchClient.warmUp();
+    return () =>
+      conversionController.current?.abort(CONVERSION_CANCELLED_ERROR);
   }, []);
 
   const convertMutation = useMutation({
     mutationFn: async () => {
+      const controller = new AbortController();
+      conversionController.current = controller;
       const buffer = audioManager.getAudioTrackBuffer(track.id);
       if (!buffer) {
         throw new Error("Audio is still loading");
@@ -71,7 +78,9 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
           splitThreshold,
         }),
         setProgress,
+        controller.signal,
       );
+      controller.signal.throwIfAborted();
       const notes = transcribed.map((note) => ({
         id: generateNoteId(),
         pitch: note.pitch,
@@ -88,10 +97,14 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
       setProgress(0);
     },
     onError: (error) => {
+      if (error === CONVERSION_CANCELLED_ERROR) {
+        return;
+      }
       console.error("Failed to convert audio to MIDI:", error);
       toast.error("Failed to convert audio to MIDI");
     },
     onSettled: () => {
+      conversionController.current = undefined;
       setProgress(undefined);
       if (convertStartedAt.current !== undefined) {
         setConvertElapsedMs(performance.now() - convertStartedAt.current);
@@ -102,7 +115,9 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
   const conversionStatus = convertMutation.isPending
     ? `Converting ${Math.round((progress ?? 0) * 100)}%`
     : convertMutation.error
-      ? "Conversion failed"
+      ? convertMutation.error === CONVERSION_CANCELLED_ERROR
+        ? "Conversion cancelled"
+        : "Conversion failed"
       : convertMutation.data === 0
         ? "No notes detected. Check the project tempo and the track offset."
         : convertMutation.data !== undefined && convertElapsedMs !== undefined
@@ -147,12 +162,21 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
 
       <section className="space-y-2 border-t border-neutral-700 pt-4">
         <Button
-          data-testid="convert-button"
-          onClick={() => convertMutation.mutate()}
-          disabled={convertMutation.isPending}
-          className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+          data-testid={
+            convertMutation.isPending
+              ? "cancel-conversion-button"
+              : "convert-button"
+          }
+          onClick={() => {
+            if (convertMutation.isPending) {
+              conversionController.current?.abort(CONVERSION_CANCELLED_ERROR);
+            } else {
+              convertMutation.mutate();
+            }
+          }}
+          className={`h-9 w-full cursor-pointer px-3 text-sm ${convertMutation.isPending ? "border-neutral-600 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-600" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
         >
-          {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
+          {convertMutation.isPending ? "Cancel" : "Convert to MIDI"}
         </Button>
         <p
           data-testid="audio-to-midi-conversion-status"

@@ -1,35 +1,35 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { trimAudioClip, type AudioClip } from "../../lib/recorder/audio-clip";
+import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import {
   type RecorderClipId,
   type RecorderClipMove,
-  type RecorderClipTrim,
+  type AudioTrackState,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 
-export type RecorderClipMoveSnapshot = {
+type RecorderClipMoveSnapshot = {
   clips: RecorderClipMove[];
   minimumVisibleStart: number;
 };
 
-export type RecorderClipTrimSnapshot = {
-  clip: RecorderClipId;
-  edge: "start" | "end";
-  initialValue: number;
-};
+type ClipEdit =
+  | { type: "move"; snapshot: RecorderClipMoveSnapshot; delta: number }
+  | { type: "trim"; clip: AudioClip; edge: "start" | "end"; delta: number };
 
 export function useRecorderClipInteraction({
   runtime,
   state,
+  onSelect,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
+  /** Only coordinates selection domains by clearing selection in the other domain. */
+  onSelect: () => void;
 }) {
+  const [edit, setEdit] = useState<ClipEdit>();
   const [keys, setKeys] = useState(() => new Set<string>());
-  const [movePreview, setMovePreview] = useState<RecorderClipMove[]>();
-  const movePreviewRef = useRef<RecorderClipMove[] | undefined>(undefined);
-  const [trimPreview, setTrimPreview] = useState<RecorderClipTrim>();
-  const trimPreviewRef = useRef<RecorderClipTrim | undefined>(undefined);
 
   function getKey(clip: RecorderClipId): string {
     return clip.type === "reference" ? clip.type : `${clip.type}:${clip.id}`;
@@ -37,11 +37,10 @@ export function useRecorderClipInteraction({
 
   function getSelectedClips(selectedKeys: ReadonlySet<string>) {
     return {
-      audioTracks: state.audioTracks.filter((track) =>
-        selectedKeys.has(getKey({ type: "audio", id: track.id })),
-      ),
-      takes: state.recordingTrack.takes.filter((take) =>
-        selectedKeys.has(getKey({ type: "take", id: take.id })),
+      clips: [...state.audioTracks, state.recordingTrack].flatMap((track) =>
+        track.clips.filter((clip) =>
+          selectedKeys.has(getKey({ type: "clip", id: clip.id })),
+        ),
       ),
       referenceVideo: selectedKeys.has(getKey({ type: "reference" }))
         ? state.referenceVideo
@@ -51,11 +50,8 @@ export function useRecorderClipInteraction({
 
   useEffect(() => {
     const available = new Set([
-      ...state.audioTracks
-        .filter((track) => track.clip)
-        .map((track) => getKey({ type: "audio", id: track.id })),
-      ...state.recordingTrack.takes.map((take) =>
-        getKey({ type: "take", id: take.id }),
+      ...[...state.audioTracks, state.recordingTrack].flatMap((track) =>
+        track.clips.map((clip) => getKey({ type: "clip", id: clip.id })),
       ),
       ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
     ]);
@@ -63,9 +59,10 @@ export function useRecorderClipInteraction({
       const next = new Set([...current].filter((key) => available.has(key)));
       return next.size === current.size ? current : next;
     });
-  }, [state.audioTracks, state.recordingTrack.takes, state.referenceVideo]);
+  }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
 
   function select(clip: RecorderClipId, additive: boolean): void {
+    onSelect();
     const key = getKey(clip);
     if (!additive) {
       const next = keys.has(key) ? keys : new Set([key]);
@@ -87,7 +84,8 @@ export function useRecorderClipInteraction({
   }: {
     clip: RecorderClipId;
     additive: boolean;
-  }): RecorderClipMoveSnapshot {
+  }): void {
+    onSelect();
     const draggedKey = getKey(clip);
     // Dragging a selected clip preserves the group; an unselected clip joins
     // with Ctrl/Cmd or replaces the selection otherwise.
@@ -99,15 +97,10 @@ export function useRecorderClipInteraction({
     setKeys(selectedKeys);
     const selected = getSelectedClips(selectedKeys);
     const clips = [
-      ...selected.audioTracks.map((track) => ({
-        type: "audio" as const,
-        id: track.id,
-        timelineOffset: track.timelineOffset,
-      })),
-      ...selected.takes.map((take) => ({
-        type: "take" as const,
-        id: take.id,
-        timelineOffset: take.timelineOffset,
+      ...selected.clips.map((clip) => ({
+        type: "clip" as const,
+        id: clip.id,
+        timelineOffset: clip.timelineOffset,
       })),
       ...(selected.referenceVideo
         ? [
@@ -118,53 +111,38 @@ export function useRecorderClipInteraction({
           ]
         : []),
     ];
-    return {
+    const snapshot = {
       clips,
       minimumVisibleStart: Math.min(
-        ...selected.audioTracks.map(
-          (track) => track.timelineOffset + track.trimStart,
-        ),
-        ...selected.takes.map((take) => take.timelineOffset + take.trimStart),
+        ...selected.clips.map((clip) => clip.timelineOffset + clip.trimStart),
         ...(selected.referenceVideo
           ? [selected.referenceVideo.timelineStart]
           : []),
       ),
     };
+    setEdit({ type: "move", snapshot, delta: 0 });
   }
 
-  function previewMove(
-    snapshot: RecorderClipMoveSnapshot,
-    delta: number,
-  ): void {
-    const clampedDelta = Math.max(delta, -snapshot.minimumVisibleStart);
-    const preview = snapshot.clips.map((clip) =>
-      clip.type === "reference"
-        ? {
-            type: "reference" as const,
-            timelineOffset: clip.timelineOffset + clampedDelta,
-          }
-        : {
-            type: clip.type,
-            id: clip.id,
-            timelineOffset: clip.timelineOffset + clampedDelta,
-          },
-    );
-    movePreviewRef.current = preview;
-    setMovePreview(preview);
-  }
-
-  function commitMove(): void {
-    const preview = movePreviewRef.current;
-    movePreviewRef.current = undefined;
-    setMovePreview(undefined);
-    if (preview) {
-      runtime.moveClips(preview);
+  function updateMove(delta: number): void {
+    if (edit?.type === "move") {
+      setEdit({ ...edit, delta });
     }
   }
 
-  function cancelMove(): void {
-    movePreviewRef.current = undefined;
-    setMovePreview(undefined);
+  function finishMove(delta: number): void {
+    if (edit?.type !== "move") {
+      return;
+    }
+    setEdit(undefined);
+    const changes = getMoveChanges({ ...edit, delta });
+    if (
+      changes.some(
+        (change, index) =>
+          change.timelineOffset !== edit.snapshot.clips[index].timelineOffset,
+      )
+    ) {
+      runtime.moveClips(changes);
+    }
   }
 
   function startTrim({
@@ -173,93 +151,141 @@ export function useRecorderClipInteraction({
   }: {
     clip: RecorderClipId;
     edge: "start" | "end";
-  }): RecorderClipTrimSnapshot {
+  }): void {
     const selected =
-      clip.type === "audio"
-        ? state.audioTracks.find((track) => track.id === clip.id)
-        : clip.type === "take"
-          ? state.recordingTrack.takes.find((take) => take.id === clip.id)
-          : undefined;
+      clip.type === "clip"
+        ? [...state.audioTracks, state.recordingTrack]
+            .flatMap((track) => track.clips)
+            .find((entry) => entry.id === clip.id)
+        : undefined;
     if (!selected) {
       throw new Error("Recorder clip state is missing.");
     }
+    onSelect();
+    // TODO: Decide separately whether starting a trim should select the clip.
+    const key = getKey(clip);
+    if (!keys.has(key)) {
+      setKeys(new Set([key]));
+    }
+    setEdit({ type: "trim", clip: selected, edge, delta: 0 });
+  }
+
+  function updateTrim(delta: number): void {
+    if (edit?.type === "trim") {
+      setEdit({ ...edit, delta });
+    }
+  }
+
+  function finishTrim(delta: number): void {
+    if (edit?.type !== "trim") {
+      return;
+    }
+    setEdit(undefined);
+    const clip = getTrimmedClip({ ...edit, delta });
+    const value = edit.edge === "start" ? clip.trimStart : clip.trimEnd;
+    if (
+      value !==
+      (edit.edge === "start" ? edit.clip.trimStart : edit.clip.trimEnd)
+    ) {
+      runtime.trimClip({ type: "clip", id: clip.id, edge: edit.edge, value });
+    }
+  }
+
+  function previewTrack(track: AudioTrackState): AudioTrackState {
+    if (!edit) {
+      return track;
+    }
+    const moves = edit.type === "move" ? getMoveChanges(edit) : [];
+    const clips = track.clips.map((clip) => {
+      if (edit.type === "trim" && edit.clip.id === clip.id) {
+        return getTrimmedClip(edit);
+      }
+      const move = moves.find(
+        (move) => move.type === "clip" && move.id === clip.id,
+      );
+      return move ? { ...clip, timelineOffset: move.timelineOffset } : clip;
+    });
+    if (clips.every((clip, index) => clip === track.clips[index])) {
+      return track;
+    }
+    const soloed = clips.some((clip) => clip.soloed);
     return {
-      clip,
-      edge,
-      initialValue: edge === "start" ? selected.trimStart : selected.trimEnd,
+      ...track,
+      clips,
+      regions: deriveClipRegions(
+        clips.filter((clip) => !clip.muted && (!soloed || clip.soloed)),
+      ),
     };
-  }
-
-  function previewTrim(
-    snapshot: RecorderClipTrimSnapshot,
-    delta: number,
-  ): void {
-    if (snapshot.clip.type === "reference") {
-      throw new Error("Reference clips cannot be trimmed.");
-    }
-    const preview = {
-      ...snapshot.clip,
-      edge: snapshot.edge,
-      value: snapshot.initialValue + delta,
-    };
-    trimPreviewRef.current = preview;
-    setTrimPreview(preview);
-  }
-
-  function commitTrim(): void {
-    const preview = trimPreviewRef.current;
-    trimPreviewRef.current = undefined;
-    setTrimPreview(undefined);
-    if (preview) {
-      runtime.trimClip(preview);
-    }
-  }
-
-  function cancelTrim(): void {
-    trimPreviewRef.current = undefined;
-    setTrimPreview(undefined);
   }
 
   function removeSelected(): void {
+    setEdit(undefined);
     const selected = getSelectedClips(keys);
     runtime.removeClips([
-      ...selected.audioTracks.map((track) => ({
-        type: "audio" as const,
-        id: track.id,
-      })),
-      ...selected.takes.map((take) => ({
-        type: "take" as const,
-        id: take.id,
+      ...selected.clips.map((clip) => ({
+        type: "clip" as const,
+        id: clip.id,
       })),
       ...(selected.referenceVideo ? [{ type: "reference" as const }] : []),
     ]);
     setKeys(new Set());
   }
 
+  const referenceMove =
+    edit?.type === "move"
+      ? getMoveChanges(edit).find((move) => move.type === "reference")
+      : undefined;
+
   return {
-    clear: () => setKeys(new Set()),
+    audioTracks: state.audioTracks.map(previewTrack),
+    recordingTrack: previewTrack(state.recordingTrack),
+    referenceVideo:
+      state.referenceVideo && referenceMove
+        ? {
+            ...state.referenceVideo,
+            timelineStart: referenceMove.timelineOffset,
+          }
+        : state.referenceVideo,
+    cancelEdit: () => setEdit(undefined),
+    clear: () => {
+      setEdit(undefined);
+      setKeys(new Set());
+    },
     hasSelection: keys.size > 0,
     isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
-    getPreviewOffset: (clip: RecorderClipId) =>
-      movePreview?.find(
-        (preview) =>
-          preview.type === clip.type &&
-          (preview.type === "reference" ||
-            (clip.type !== "reference" && preview.id === clip.id)),
-      )?.timelineOffset,
-    getTrimPreview: (clip: RecorderClipId) =>
-      trimPreview?.type === clip.type && trimPreview.id === clip.id
-        ? trimPreview
-        : undefined,
+    isEditing: (id: string) =>
+      edit?.type === "trim"
+        ? edit.clip.id === id
+        : (edit?.snapshot.clips.some(
+            (clip) => clip.type === "clip" && clip.id === id,
+          ) ?? false),
     select,
     startMove,
-    previewMove,
-    commitMove,
-    cancelMove,
+    updateMove,
+    finishMove,
     startTrim,
-    previewTrim,
-    commitTrim,
-    cancelTrim,
+    updateTrim,
+    finishTrim,
     removeSelected,
   };
+}
+
+function getMoveChanges(
+  edit: Extract<ClipEdit, { type: "move" }>,
+): RecorderClipMove[] {
+  const delta = Math.max(edit.delta, -edit.snapshot.minimumVisibleStart);
+  return edit.snapshot.clips.map((clip) => ({
+    ...clip,
+    timelineOffset: clip.timelineOffset + delta,
+  }));
+}
+
+function getTrimmedClip(edit: Extract<ClipEdit, { type: "trim" }>): AudioClip {
+  const initial =
+    edit.edge === "start" ? edit.clip.trimStart : edit.clip.trimEnd;
+  return trimAudioClip({
+    clip: edit.clip,
+    edge: edit.edge,
+    value: initial + edit.delta,
+  });
 }

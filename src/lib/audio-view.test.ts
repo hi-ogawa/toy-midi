@@ -176,13 +176,13 @@ describe("queryAudioView", () => {
     expect(result.actualEnd).toBe(10);
   });
 
-  it("returns points as-is when fewer than target", () => {
+  it("returns points as-is when zoom exceeds source resolution", () => {
     const view: AudioView = {
       data: [0.1, 0.2, 0.3, 0.4, 0.5],
       samplesPerPoint: 100,
       sampleRate: 1000,
     };
-    // 5 points, 1000 target points - no downsampling needed
+    // 10 source points/sec at 1000 pixels/sec needs no downsampling.
     const result = queryAudioView(view, 0, 0.5, 1000);
 
     expect(result.data).toEqual(view.data);
@@ -190,10 +190,10 @@ describe("queryAudioView", () => {
     expect(result.actualEnd).toBe(0.5);
   });
 
-  it("downsamples to target points when more points than targets", () => {
+  it("downsamples to the timeline scale", () => {
     // 1000 points, view all, downsample to 100 pixels
     const view = createTestView(1000);
-    const result = queryAudioView(view, 0, 100, 100);
+    const result = queryAudioView(view, 0, 100, 1);
 
     expect(result.data).toHaveLength(100);
     expect(result.actualEnd - result.actualStart).toBe(100);
@@ -201,20 +201,20 @@ describe("queryAudioView", () => {
 
   it("preserves the aligned end when live data ends inside a bucket", () => {
     // A 2.3-second live recording has 23 base points at 10 points/sec. Querying
-    // its synchronized duration over 5 pixels chooses alignmentStep = 5, so
+    // at 2 pixels/sec chooses alignmentStep = 5, so
     // the final live bucket is padded to the next lattice boundary:
     //
     //   base points:  [0..5) [5..10) [10..15) [15..20) [20..23) + [23..25)
     //   result:          0       1        2        3        4
     //   aligned time: [0 ----------------------------------------------- 2.5)
-    const before = queryAudioView(createTestView(23), 0, 2.3, 5);
+    const before = queryAudioView(createTestView(23), 0, 2.3, 2);
     expect(before.data).toHaveLength(5);
     expect(before.actualStart).toBe(0);
     expect(before.actualEnd).toBe(2.5);
 
     // Once the recording crosses the next bucket boundary, data and aligned
     // duration grow together: 5 points / 2.5s becomes 6 points / 3s.
-    const after = queryAudioView(createTestView(26), 0, 2.6, 5);
+    const after = queryAudioView(createTestView(26), 0, 2.6, 2);
     expect(after.data).toHaveLength(6);
     expect(after.actualStart).toBe(0);
     expect(after.actualEnd).toBe(3);
@@ -228,7 +228,7 @@ describe("queryAudioView", () => {
     // available base points. Alignment therefore completes only [20..25), not
     // the future buckets [25..30), [30..35), ... through the requested end.
     const view = createTestView(23);
-    const result = queryAudioView(view, 0, 10, 20);
+    const result = queryAudioView(view, 0, 10, 2);
 
     expect(result.data).toHaveLength(5);
     expect(result.actualEnd).toBe(2.5);
@@ -242,7 +242,7 @@ describe("queryAudioView", () => {
 
     // Downsample to 10 pixels (10 points per pixel)
     // Spike at index 50 should appear in pixel 5
-    const result = queryAudioView(view, 0, 10, 10);
+    const result = queryAudioView(view, 0, 10, 1);
 
     expect(result.data).toHaveLength(10);
     expect(result.data[5]).toBe(1.0); // Max preserved
@@ -293,7 +293,7 @@ describe("queryAudioView", () => {
     const pointsPerSec = 800;
     const duration = 180; // 3 minutes
     const viewportDuration = 2; // 2 seconds visible
-    const targetPoints = 200; // pixels
+    const targetPointsPerSecond = 100;
 
     // Create view with distinct values so we can detect changes
     const view: AudioView = {
@@ -309,7 +309,7 @@ describe("queryAudioView", () => {
         view,
         scrollSec,
         scrollSec + viewportDuration,
-        targetPoints,
+        targetPointsPerSecond,
       );
       results.push({ data: result.data });
     }
@@ -328,5 +328,31 @@ describe("queryAudioView", () => {
 
     // With stable grid alignment, most adjacent shifts should match
     expect(shiftsMatch).toBeGreaterThanOrEqual(results.length - 2);
+  });
+
+  it("preserves bucket resolution and peaks when culling bounds change", () => {
+    const view: AudioView = {
+      data: range(800).map((i) => i / 800),
+      samplesPerPoint: 60,
+      sampleRate: 48000,
+    };
+    const targetPointsPerSecond = 6;
+    const bucketDuration = 133 / 800; // round(800 / 6) source points per bucket
+    const whole = queryAudioView(view, 0, 1, targetPointsPerSecond);
+    expect(whole.data).toHaveLength(7);
+    expect(whole.actualEnd).toBeCloseTo(7 * bucketDuration);
+
+    for (const [start, end] of [
+      [0, 0.25],
+      [0.25, 0.5],
+      [0.3, 0.3 + 1e-13],
+    ]) {
+      const slice = queryAudioView(view, start, end, targetPointsPerSecond);
+      const first = Math.floor(start / bucketDuration);
+      const last = Math.ceil(end / bucketDuration);
+      expect(slice.data).toEqual(whole.data.slice(first, last));
+      expect(slice.actualStart).toBeCloseTo(first * bucketDuration);
+      expect(slice.actualEnd).toBeCloseTo(last * bucketDuration);
+    }
   });
 });

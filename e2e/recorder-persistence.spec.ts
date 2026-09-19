@@ -1,14 +1,16 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "./recorder-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  getRecorderPosition,
+} from "./recorder-helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
   // Create a project and give it a recognizable name.
   await createRecorderProject(page);
   const projectUrl = page.url();
-  await expect(
-    page.getByRole("button", { name: "All changes saved" }),
-  ).toHaveAttribute("aria-disabled", "true");
-  const saveButton = page.getByRole("button", { name: "All changes saved" });
+  const saveButton = page.getByTestId("recorder-save-button");
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
   const saveTooltip = page.getByRole("tooltip");
   await expect(saveButton).not.toHaveAttribute("title");
   await expect(saveTooltip).toHaveCSS("opacity", "0");
@@ -21,13 +23,9 @@ test("saves and restores a recorder project", async ({ page }) => {
 
   // Transport updates are session state and do not stale persisted state.
   await page.getByTestId("recorder-play-button").click();
-  await expect(page.getByTestId("recorder-position")).not.toHaveText(
-    "1.1 - 0:00.000",
-  );
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0);
   await page.getByTestId("recorder-play-button").click();
-  await expect(
-    page.getByRole("button", { name: "All changes saved" }),
-  ).toHaveAttribute("aria-disabled", "true");
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
   await page.getByTestId("recorder-project-name").click();
@@ -36,13 +34,9 @@ test("saves and restores a recorder project", async ({ page }) => {
   );
 
   // Load a backing track, including its decoded waveform.
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles("e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   const clip = page.getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("test-audio.wav");
-  await expect(clip.locator("svg")).toBeVisible();
 
   // They change the session tempo.
   await page.getByTestId("recorder-tempo-input").fill("140");
@@ -69,17 +63,9 @@ test("saves and restores a recorder project", async ({ page }) => {
   await metronomeLevel.press("Enter");
 
   // The accumulated project edits are unsaved until explicitly saved.
-  await expect(
-    page.getByRole("button", {
-      name: "Unsaved changes (Ctrl/Cmd+S to save)",
-    }),
-  ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "Unsaved changes (Ctrl/Cmd+S to save)" })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "All changes saved" }),
-  ).toHaveAttribute("aria-disabled", "true");
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
+  await saveButton.click();
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Reload restores project identity, tempo, and PCM-backed waveform data.
   await page.reload();
@@ -107,7 +93,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   ).toHaveValue("-9.0");
 
   // The metadata index finds the saved project and reopens the same route.
-  await page.goto("/recorder");
+  await page.goto("/");
   const project = page.getByText("Practice take", { exact: true });
   await expect(project).toBeVisible();
   await project.click();
@@ -117,9 +103,9 @@ test("saves and restores a recorder project", async ({ page }) => {
   );
 
   // Deleting from the index removes the project metadata and content.
-  await page.goto("/recorder");
+  await page.goto("/");
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Delete recording" }).click();
+  await page.getByRole("button", { name: "Delete project" }).click();
   await expect(page.getByText("Practice take", { exact: true })).toBeHidden();
 
   // A stale deep link reports the missing project without retrying its read.

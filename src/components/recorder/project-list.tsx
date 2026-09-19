@@ -1,6 +1,8 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { HouseIcon, Mic2Icon, Trash2Icon } from "lucide-react";
-import { parseRecorderProjectArchive } from "../../lib/recorder/project-archive";
+import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import { projectStorage } from "../../lib/project-storage";
+import { importRecorderProject } from "../../lib/recorder/project-import";
 import {
   type RecorderProjectMetadata,
   recorderProjectStorage,
@@ -9,8 +11,13 @@ import { routes } from "../../lib/routes";
 import { toResult } from "../../utils/result";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
+import { LegacyProjectList } from "./legacy-project-list";
 
 export function RecorderProjectList() {
+  const [query, setQuery] = useState("");
+  const [legacyProjects, setLegacyProjects] = useState(() =>
+    projectStorage.listMetadata(),
+  );
   const projects = useSuspenseQuery({
     queryKey: ["recorder-projects"],
     queryFn: () => toResult(recorderProjectStorage.list()),
@@ -27,7 +34,7 @@ export function RecorderProjectList() {
   });
   const importProject = useMutation({
     mutationFn: async (file: File) => {
-      const content = await parseRecorderProjectArchive(file);
+      const content = await importRecorderProject(file);
       return recorderProjectStorage.createWithContent(content);
     },
     onSuccess: (projectId) => {
@@ -35,96 +42,97 @@ export function RecorderProjectList() {
     },
   });
 
-  return (
-    <main className="min-h-screen bg-neutral-900 text-neutral-100">
-      <header className="flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4">
-        <Mic2Icon className="mr-2 size-4 text-emerald-400" />
-        <h1 className="text-sm font-medium">Recorder Projects</h1>
-        <div className="flex-1" />
-        <a
-          href={routes.home.href()}
-          title="Home"
-          className="grid size-8 place-items-center rounded-md hover:bg-neutral-700"
-        >
-          <HouseIcon className="size-4" />
-        </a>
-      </header>
+  const filteredProjects = projects.data.ok
+    ? projects.data.value.filter((project) =>
+        matchesProjectSearch({ name: project.title, query }),
+      )
+    : [];
 
-      <section className="mx-auto max-w-4xl px-8 py-12">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
-          Your Recordings
-        </h2>
-        <div className="mt-4 rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
-          {!projects.data.ok ? (
-            <div className="p-8 text-center text-sm text-orange-300">
-              {String(projects.data.error)}
-            </div>
-          ) : projects.data.value.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="font-medium text-neutral-300">No recordings yet</p>
-              <p className="mt-1 text-sm text-neutral-500">
-                Create a recorder project to begin.
-              </p>
-            </div>
-          ) : (
-            <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
-              {projects.data.value.map((project) => (
-                <RecorderProjectListItem
-                  key={project.id}
-                  project={project}
-                  deletePending={deleteProject.isPending}
-                  onDelete={() => deleteProject.mutate(project.id)}
-                />
-              ))}
-            </div>
-          )}
-          {projects.data.ok && (
-            <div
+  const filteredLegacyProjects = legacyProjects.filter((project) =>
+    matchesProjectSearch({ name: project.name, query }),
+  );
+
+  return (
+    <div className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
+      {projects.data.ok && (
+        <ProjectListSearch
+          query={query}
+          onQueryChange={setQuery}
+          total={projects.data.value.length + legacyProjects.length}
+          count={filteredProjects.length + filteredLegacyProjects.length}
+        />
+      )}
+      {!projects.data.ok ? (
+        <div className="p-8 text-center text-sm text-orange-300">
+          {String(projects.data.error)}
+        </div>
+      ) : projects.data.value.length === 0 && legacyProjects.length === 0 ? (
+        <div className="flex min-h-36 flex-col items-center justify-center text-center">
+          <p className="font-medium text-neutral-300">No projects yet</p>
+          <p className="mt-1 text-sm text-neutral-500">
+            Create a project to begin.
+          </p>
+        </div>
+      ) : filteredProjects.length === 0 ? (
+        <p className="mb-4 py-3 text-center text-sm text-neutral-500">
+          {projects.data.value.length === 0
+            ? "No projects yet"
+            : "No matching projects"}
+        </p>
+      ) : (
+        <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+          {filteredProjects.map((project) => (
+            <RecorderProjectListItem
+              key={project.id}
+              project={project}
+              deletePending={deleteProject.isPending}
+              onDelete={() => deleteProject.mutate(project.id)}
+            />
+          ))}
+        </div>
+      )}
+      {projects.data.ok && (
+        <div className={projects.data.value.length > 0 ? "mt-4" : ""}>
+          <div className="flex gap-2">
+            <Button
+              data-testid="new-recorder-project-button"
+              onClick={() => createProject.mutate()}
+              disabled={createProject.isPending || importProject.isPending}
               className={
                 projects.data.value.length > 0
-                  ? "mt-4 border-t border-neutral-700/70 pt-4"
-                  : ""
+                  ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
+                  : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
               }
             >
-              <div className="flex gap-2">
-                <Button
-                  data-testid="new-recorder-project-button"
-                  onClick={() => createProject.mutate()}
-                  disabled={createProject.isPending || importProject.isPending}
-                  className={
-                    projects.data.value.length > 0
-                      ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
-                      : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
-                  }
-                >
-                  {projects.data.value.length > 0
-                    ? "New Recording"
-                    : "Create Your First Recording"}
-                </Button>
-                <FileDropInput
-                  accept=".toymidi.zip"
-                  onFile={(file) => importProject.mutate(file)}
-                  data-testid="import-recorder-project"
-                  disabled={createProject.isPending || importProject.isPending}
-                  className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
-                >
-                  <span className="grid">
-                    <span className="invisible col-start-1 row-start-1">
-                      Import Project
-                    </span>
-                    <span className="col-start-1 row-start-1">
-                      {importProject.isPending
-                        ? "Importing..."
-                        : "Import Project"}
-                    </span>
-                  </span>
-                </FileDropInput>
-              </div>
-            </div>
-          )}
+              New project
+            </Button>
+            <FileDropInput
+              accept=".toymidi.zip,.toymidi"
+              title="Import a project archive"
+              onFile={(file) => importProject.mutate(file)}
+              data-testid="import-recorder-project"
+              disabled={createProject.isPending || importProject.isPending}
+              className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+            >
+              <span className="grid">
+                <span className="invisible col-start-1 row-start-1">
+                  Import project
+                </span>
+                <span className="col-start-1 row-start-1">
+                  {importProject.isPending ? "Importing..." : "Import project"}
+                </span>
+              </span>
+            </FileDropInput>
+          </div>
         </div>
-      </section>
-    </main>
+      )}
+      {projects.data.ok && legacyProjects.length > 0 && (
+        <LegacyProjectList
+          projects={filteredLegacyProjects}
+          onDelete={() => setLegacyProjects(projectStorage.listMetadata())}
+        />
+      )}
+    </div>
   );
 }
 
@@ -155,16 +163,88 @@ function RecorderProjectListItem({
       </a>
       <Button
         onClick={() => {
-          if (confirm("Delete this recording?")) {
+          if (confirm("Delete this project?")) {
             onDelete();
           }
         }}
         disabled={deletePending}
-        title="Delete recording"
+        title="Delete project"
         className="size-8 text-neutral-400 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
       </Button>
     </div>
   );
+}
+
+function ProjectListSearch({
+  query,
+  onQueryChange,
+  count,
+  total,
+}: {
+  query: string;
+  onQueryChange: (query: string) => void;
+  count: number;
+  total: number;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  function clear() {
+    onQueryChange("");
+    inputRef.current?.focus();
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
+        <SearchIcon
+          aria-hidden="true"
+          className="size-4 shrink-0 text-neutral-500"
+        />
+        <input
+          ref={inputRef}
+          type="text"
+          aria-label="Search projects"
+          placeholder="Search projects…"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              clear();
+            }
+          }}
+          className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-200 outline-none"
+        />
+        {query && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={clear}
+            className="rounded p-1 text-neutral-400 hover:text-neutral-200"
+          >
+            <XIcon aria-hidden="true" className="size-4" />
+          </button>
+        )}
+      </div>
+      <p role="status" className="mt-2 text-xs text-neutral-500">
+        {count} of {total} projects
+      </p>
+    </div>
+  );
+}
+
+function matchesProjectSearch({
+  name,
+  query,
+}: {
+  name: string;
+  query: string;
+}) {
+  const normalizedName = name.toLowerCase();
+  return query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .every((word) => normalizedName.includes(word));
 }

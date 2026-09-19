@@ -104,13 +104,13 @@ export function useRecorderInput({
   const route = !initialized
     ? { label: "Loading audio inputs…", needsSetup: false }
     : !hasAccess
-      ? { label: "Microphone access required · Set up", needsSetup: true }
+      ? { label: "Microphone access required", needsSetup: true }
       : selectedDevice
         ? {
-            label: `${selectedDevice.label || "Audio input"} · Input ${state.selectedChannel + 1}`,
+            label: `${selectedDevice.label || "Unnamed input"} · Channel ${state.selectedChannel + 1}`,
             needsSetup: false,
           }
-        : { label: "No input configured · Set up", needsSetup: true };
+        : { label: "No input configured", needsSetup: true };
 
   return {
     active,

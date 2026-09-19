@@ -9,8 +9,8 @@ export type PointerGesture<T> = {
 export type PointerGestureOptions<T> = {
   threshold?: number;
   onStart: (event: PointerEvent) => T;
-  onClick: (event: PointerEvent, gesture: PointerGesture<T>) => void;
-  onDragStart: (event: PointerEvent, gesture: PointerGesture<T>) => void;
+  onClick?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
+  onDragStart?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onDragMove: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onDragEnd?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onCancel?: (
@@ -60,7 +60,7 @@ export function listenPointerGesture<T>({
         gesture.deltaX ** 2 + gesture.deltaY ** 2 >= threshold ** 2
       ) {
         state.dragged = true;
-        onDragStart(event, gesture);
+        onDragStart?.(event, gesture);
       }
       if (state.dragged) {
         onDragMove(event, gesture);
@@ -71,7 +71,7 @@ export function listenPointerGesture<T>({
       if (state.dragged) {
         onDragEnd?.(event, gesture);
       } else {
-        onClick(event, gesture);
+        onClick?.(event, gesture);
       }
     },
     onCancel: (event, state) => {

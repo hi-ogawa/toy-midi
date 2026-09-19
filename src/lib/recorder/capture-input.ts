@@ -1,4 +1,5 @@
 import { AudioAnalyser } from "../audio-analyser.ts";
+import { TunerAnalyser } from "../tuner-analyser.ts";
 import {
   CaptureWorkletClient,
   type CaptureWorkletNotification,
@@ -24,15 +25,18 @@ export class CaptureInput {
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
-  private readonly silentGain: GainNode;
+  readonly tunerAnalyser: TunerAnalyser;
+  private readonly monitorGain: GainNode;
 
   static async open({
     context,
     deviceId,
+    output,
     onNotification,
   }: {
     context: AudioContext;
     deviceId: string;
+    output: AudioNode;
     onNotification: (message: CaptureWorkletNotification) => void;
   }) {
     await ensureCaptureWorklet(context);
@@ -48,6 +52,7 @@ export class CaptureInput {
     const input = new CaptureInput({
       context,
       stream,
+      output,
       onNotification: (message) => {
         if (message.type === "channels" && message.value > 0) {
           channelCountPromise.resolve(message.value);
@@ -72,10 +77,12 @@ export class CaptureInput {
   private constructor({
     context,
     stream,
+    output,
     onNotification,
   }: {
     context: AudioContext;
     stream: MediaStream;
+    output: AudioNode;
     onNotification: (message: CaptureWorkletNotification) => void;
   }) {
     this.stream = stream;
@@ -85,19 +92,35 @@ export class CaptureInput {
       onNotification,
     });
     this.analyser = new AudioAnalyser(context);
-    this.silentGain = context.createGain();
-    this.silentGain.gain.value = 0;
+    this.tunerAnalyser = new TunerAnalyser(context);
+    this.monitorGain = context.createGain();
+    this.monitorGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
-    // prevents microphone monitoring and feedback at the destination.
+    // prevents input monitoring and feedback until it is explicitly enabled.
     this.source
       .connect(this.worklet.node)
+      .connect(this.tunerAnalyser.node)
       .connect(this.analyser.node)
-      .connect(this.silentGain)
-      .connect(context.destination);
+      .connect(this.monitorGain)
+      .connect(output);
   }
 
   setChannel(channel: number): void {
     this.worklet.setChannel(channel);
+  }
+
+  /** Re-points monitoring at another channel without reopening the device. */
+  setMonitorOutput(output: AudioNode): void {
+    this.monitorGain.disconnect();
+    this.monitorGain.connect(output);
+  }
+
+  setMonitoring(enabled: boolean): void {
+    this.monitorGain.gain.setTargetAtTime(
+      enabled ? 1 : 0,
+      this.monitorGain.context.currentTime,
+      0.01,
+    );
   }
 
   startCapture(): Promise<number> {
@@ -112,7 +135,8 @@ export class CaptureInput {
     this.source.disconnect();
     this.worklet.dispose();
     this.analyser.dispose();
-    this.silentGain.disconnect();
+    this.tunerAnalyser.dispose();
+    this.monitorGain.disconnect();
     for (const track of this.stream.getTracks()) {
       track.stop();
     }

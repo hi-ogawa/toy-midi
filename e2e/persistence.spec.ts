@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
   waitForEditor,
   clickNewProject,
@@ -6,8 +7,7 @@ import {
   evaluateStore,
 } from "./helpers";
 
-// Constants matching piano-roll.tsx
-const BEAT_WIDTH = 80;
+// Row height matches piano-roll.tsx.
 const ROW_HEIGHT = 20;
 
 test.describe("Project Persistence", () => {
@@ -28,11 +28,11 @@ test.describe("Project Persistence", () => {
     }
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 1.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1.5;
     const startY = gridBox.y + ROW_HEIGHT * 3.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH * 2, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT * 2, startY);
     await page.mouse.up();
 
     // Verify note exists
@@ -62,12 +62,12 @@ test.describe("Project Persistence", () => {
 
     // Create first note
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 0.5,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5,
       gridBox.y + ROW_HEIGHT * 2,
     );
     await page.mouse.down();
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 1.5,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1.5,
       gridBox.y + ROW_HEIGHT * 2,
     );
     await page.mouse.up();
@@ -76,12 +76,12 @@ test.describe("Project Persistence", () => {
 
     // Create second note
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 2.5,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 2.5,
       gridBox.y + ROW_HEIGHT * 4,
     );
     await page.mouse.down();
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 4,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 4,
       gridBox.y + ROW_HEIGHT * 4,
     );
     await page.mouse.up();
@@ -90,12 +90,12 @@ test.describe("Project Persistence", () => {
 
     // Create third note
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 5,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 5,
       gridBox.y + ROW_HEIGHT * 6,
     );
     await page.mouse.down();
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 6,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 6,
       gridBox.y + ROW_HEIGHT * 6,
     );
     await page.mouse.up();
@@ -197,11 +197,11 @@ test.describe("Project Persistence", () => {
     }
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 1;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1;
     const startY = gridBox.y + ROW_HEIGHT * 5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -215,7 +215,7 @@ test.describe("Project Persistence", () => {
     await page.mouse.move(noteCenter, initialBox.y + initialBox.height / 2);
     await page.mouse.down();
     await page.mouse.move(
-      noteCenter + BEAT_WIDTH * 3,
+      noteCenter + DEFAULT_PIXELS_PER_BEAT * 3,
       initialBox.y - ROW_HEIGHT * 2,
     );
     await page.mouse.up();
@@ -253,12 +253,12 @@ test.describe("Project Persistence", () => {
 
     // Create two notes
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 0.5,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5,
       gridBox.y + ROW_HEIGHT * 2,
     );
     await page.mouse.down();
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 1.5,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1.5,
       gridBox.y + ROW_HEIGHT * 2,
     );
     await page.mouse.up();
@@ -266,12 +266,12 @@ test.describe("Project Persistence", () => {
     await page.keyboard.press("Escape");
 
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 3,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 3,
       gridBox.y + ROW_HEIGHT * 4,
     );
     await page.mouse.down();
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 4,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 4,
       gridBox.y + ROW_HEIGHT * 4,
     );
     await page.mouse.up();
@@ -300,11 +300,11 @@ test.describe("Project Persistence", () => {
     }
 
     // Create a note (auto-selected)
-    const startX = gridBox.x + BEAT_WIDTH * 1;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1;
     const startY = gridBox.y + ROW_HEIGHT * 3;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();

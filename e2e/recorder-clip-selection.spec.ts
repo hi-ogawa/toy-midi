@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { useFakeAudioInput } from "./helpers";
 import {
+  addRecorderAudio,
   createRecorderProject,
   enableInput,
   seekRecorderByPixels,
@@ -13,15 +15,12 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await createRecorderProject(page);
 
   // Import a backing track.
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   const audio = page.getByTestId("recorder-clip-audio");
-  await expect(audio).toBeVisible();
 
   // Record a take away from zero.
   await enableInput(page);
-  await seekRecorderByPixels(page, 160);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
@@ -46,19 +45,24 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   };
   await page.mouse.move(takeCenter.x, takeCenter.y);
   await page.mouse.down();
-  await page.mouse.move(takeCenter.x + 80, takeCenter.y, { steps: 4 });
+  await page.mouse.move(takeCenter.x + DEFAULT_PIXELS_PER_BEAT, takeCenter.y, {
+    steps: 4,
+  });
   await page.mouse.up();
 
   // Both clips preserve their relative spacing through the shared movement.
   const audioAfter = await audio.boundingBox();
   const takeAfter = await take.boundingBox();
-  expect(audioAfter!.x - audioBefore!.x).toBeCloseTo(80, -1);
-  expect(takeAfter!.x - takeBefore!.x).toBeCloseTo(80, -1);
+  expect(audioAfter!.x - audioBefore!.x).toBeCloseTo(
+    DEFAULT_PIXELS_PER_BEAT,
+    -1,
+  );
+  expect(takeAfter!.x - takeBefore!.x).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT, -1);
 
   // Delete clears every selected clip while preserving the audio track row.
   await page.keyboard.press("Delete");
   await expect(audio).toHaveCount(0);
   await expect(take).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
-  await expect(page.getByText("No file loaded")).toBeVisible();
+  await expect(page.getByTestId("recorder-audio-track-row")).toBeVisible();
 });

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { createRecorderProject, dragBy } from "./recorder-helpers";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
@@ -23,6 +24,20 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   expect(resizedPanelBox).not.toBeNull();
   expect(resizedPanelBox!.width).toBeCloseTo(initialPanelBox!.width + 80, -1);
   expect(resizedPanelBox!.height).toBeCloseTo(initialPanelBox!.height + 60, -1);
+
+  await setup.getByRole("button", { name: "Close Reference Video" }).click();
+  await toggle.click();
+  const restoredPanelBox = await setup.boundingBox();
+  expect(restoredPanelBox).not.toBeNull();
+  expect(restoredPanelBox!.width).toBeCloseTo(resizedPanelBox!.width, -1);
+  expect(restoredPanelBox!.height).toBeCloseTo(resizedPanelBox!.height, -1);
+
+  await page.reload();
+  await page.getByTestId("recorder-reference-video-button").click();
+  const reloadedPanelBox = await setup.boundingBox();
+  expect(reloadedPanelBox).not.toBeNull();
+  expect(reloadedPanelBox!.width).toBeCloseTo(resizedPanelBox!.width, -1);
+  expect(reloadedPanelBox!.height).toBeCloseTo(resizedPanelBox!.height, -1);
 
   // The preview fits the resized space while preserving the player's 16:9 frame.
   const preview = setup.getByTestId("recorder-reference-video-preview");
@@ -69,16 +84,27 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   const referenceTrack = page.getByTestId("recorder-reference-track");
   await expect(referenceTrack).toContainText("Reference");
   await expect(referenceTrack).toContainText("0:00");
+  // The header background must leave the row's bottom border exposed.
+  expect(
+    await referenceTrack.evaluate((row) => {
+      const border = Number.parseFloat(getComputedStyle(row).borderBottomWidth);
+      const header = row.firstElementChild!;
+      return (
+        header.getBoundingClientRect().bottom <=
+        row.getBoundingClientRect().bottom - border
+      );
+    }),
+  ).toBe(true);
   const referenceClip = referenceTrack.getByTestId("recorder-clip-reference");
   const initialReferenceClipBox = await referenceClip.boundingBox();
   expect(initialReferenceClipBox).not.toBeNull();
-  await dragBy(page, referenceClip, 80, {
+  await dragBy(page, referenceClip, DEFAULT_PIXELS_PER_BEAT, {
     anchorXOffset: 20,
   });
   const movedReferenceClipBox = await referenceClip.boundingBox();
   expect(movedReferenceClipBox).not.toBeNull();
   expect(movedReferenceClipBox!.x).toBeCloseTo(
-    initialReferenceClipBox!.x + 80,
+    initialReferenceClipBox!.x + DEFAULT_PIXELS_PER_BEAT,
     -1,
   );
 

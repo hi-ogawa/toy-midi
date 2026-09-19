@@ -1,27 +1,29 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, dragBy } from "./recorder-helpers";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  dragBy,
+  getRecorderPosition,
+} from "./recorder-helpers";
 
 test("uploads and plays a backing track", async ({ page }) => {
   await createRecorderProject(page);
 
   // Load a backing track through the recorder's file picker.
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles("e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
-  // Decoding produces both a named timeline clip and its waveform preview.
+  // The imported clip retains its source filename.
   const clip = page.getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("test-audio.wav");
-  await expect(clip.locator("svg")).toBeVisible();
 
   // Move and trim backing audio without changing its source.
   const beforeEdit = await clip.boundingBox();
   expect(beforeEdit).not.toBeNull();
-  await dragBy(page, clip, 80);
+  await dragBy(page, clip, DEFAULT_PIXELS_PER_BEAT);
   const afterMove = await clip.boundingBox();
   expect(afterMove).not.toBeNull();
-  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
+  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + DEFAULT_PIXELS_PER_BEAT, -1);
 
   const trimPixels = afterMove!.width / 4;
   await dragBy(page, clip.getByTestId("recorder-take-trim-start"), trimPixels);
@@ -44,11 +46,10 @@ test("uploads and plays a backing track", async ({ page }) => {
 
   // Playback rolls the shared transport and can be paused from its new position.
   const playButton = page.getByTestId("recorder-play-button");
-  const position = page.getByTestId("recorder-position");
-  await expect(position).toHaveText("01|01 - 00:00.000");
+  await expect.poll(() => getRecorderPosition(page)).toBe(0);
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  await expect(position).not.toHaveText("01|01 - 00:00.000");
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0);
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 
@@ -59,16 +60,58 @@ test("uploads and plays a backing track", async ({ page }) => {
   await page.keyboard.press("Delete");
   await expect(clip).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
-  await expect(page.getByText("No file loaded")).toBeVisible();
+  await expect(page.getByTestId("recorder-audio-track-row")).toBeVisible();
+});
+
+test("scrolls overflowing tracks from the track list", async ({ page }) => {
+  // Fill a short desktop viewport until the capture track sits below the fold.
+  await page.setViewportSize({ width: 1280, height: 400 });
+  await createRecorderProject(page);
+
+  const addTrack = page.getByTitle("Add empty audio track");
+  for (let index = 0; index < 4; index++) {
+    await addTrack.click();
+  }
+
+  const lastTrack = page.getByText("Capture", { exact: true });
+  await expect(lastTrack).not.toBeInViewport();
+
+  // Scroll from the track list rather than panning the adjacent timeline.
+  const tracksLabel = page.getByText("Tracks", { exact: true });
+  const box = await tracksLabel.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.wheel(0, 500);
+
+  // The final track becomes reachable.
+  await expect(lastTrack).toBeInViewport();
 });
 
 test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await createRecorderProject(page);
 
   // Load backing audio so its channel appears in the mixer.
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+
+  // Master gain stays available without opening the mixer and steps by 0.5 dB.
+  const masterGain = page.getByRole("slider", { name: "Master gain" });
+  await expect(masterGain).toHaveAttribute("aria-valuenow", "0");
+  await masterGain.press("ArrowDown");
+  expect(Number(await masterGain.getAttribute("aria-valuenow"))).toBeCloseTo(
+    -0.5,
+  );
+
+  // Track gain uses the same dB keyboard step without seeking the timeline.
+  const position = page.getByTestId("recorder-position");
+  await position.click();
+  await page.keyboard.press("ArrowRight");
+  const initialPosition = await position.getAttribute("data-position");
+  const audioGain = page.getByRole("slider", { name: "Audio 1 gain" });
+  await audioGain.press("ArrowRight");
+  expect(Number(await audioGain.getAttribute("aria-valuenow"))).toBeCloseTo(
+    0.5,
+  );
+  await expect(position).toHaveAttribute("data-position", initialPosition!);
 
   // Open the floating mixer and inspect every recorder output channel.
   await page.getByTestId("recorder-mixer-button").click();
@@ -83,6 +126,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   const masterLevel = panel.getByRole("textbox", {
     name: "Master level in dB",
   });
+  await expect(masterLevel).toHaveValue("-0.5");
   await masterLevel.fill("-6");
   await masterLevel.press("Enter");
   await expect(masterLevel).toHaveValue("-6.0");

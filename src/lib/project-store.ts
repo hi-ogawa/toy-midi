@@ -13,6 +13,7 @@ import { historyStore, type NoteChanges } from "./history-store";
 import { snapToGrid } from "./music";
 import type { KeySignature } from "./pitch-spelling";
 import { getFret, moveTabString, TAB_STRING_PRESETS } from "./tab-annotation";
+import { DEFAULT_PIXELS_PER_BEAT } from "./timeline";
 
 type NoteUpdate = {
   id: string;
@@ -209,10 +210,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   autoScrollEnabled: true,
   linkAudioOffsetsEnabled: true,
 
-  // Viewport state (defaults match piano-roll.tsx)
+  // Viewport state
   scrollX: 0,
   scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
-  pixelsPerBeat: 80, // DEFAULT_PIXELS_PER_BEAT
+  pixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   pixelsPerKey: 20, // DEFAULT_PIXELS_PER_KEY
 
   addNote: (note) => {
@@ -736,7 +737,7 @@ const DEFAULTS = {
   // Viewport state defaults
   scrollX: 0,
   scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
-  pixelsPerBeat: 80,
+  pixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   pixelsPerKey: 20,
 } satisfies Omit<SavedProject, "version">;
 

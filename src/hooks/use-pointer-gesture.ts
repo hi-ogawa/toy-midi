@@ -6,8 +6,8 @@ import {
 
 export function usePointerGesture<T>(options: PointerGestureOptions<T>) {
   const onStart = useEffectEvent(options.onStart);
-  const onClick = useEffectEvent(options.onClick);
-  const onDragStart = useEffectEvent(options.onDragStart);
+  const onClick = useEffectEvent(options.onClick ?? (() => {}));
+  const onDragStart = useEffectEvent(options.onDragStart ?? (() => {}));
   const onDragMove = useEffectEvent(options.onDragMove);
   const onDragEnd = useEffectEvent(options.onDragEnd ?? (() => {}));
   const onCancel = useEffectEvent(options.onCancel ?? (() => {}));

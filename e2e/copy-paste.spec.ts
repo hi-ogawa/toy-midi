@@ -1,8 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { clickNewProject } from "./helpers";
 
-// Constants matching piano-roll.tsx
-const BEAT_WIDTH = 80;
+// Row height matches piano-roll.tsx.
 const ROW_HEIGHT = 20;
 
 // TODO: consolidate into fewer user-flow tests (combine paste/snap/preserve/selection)
@@ -16,8 +16,8 @@ async function seekTobeat(page: Page, beat: number): Promise<void> {
   }
 
   // Click at the position corresponding to the beat
-  // Timeline x = beat * BEAT_WIDTH (since scrollX starts at 0)
-  const clickX = timelineBox.x + beat * BEAT_WIDTH;
+  // Timeline x = beat * DEFAULT_PIXELS_PER_BEAT (since scrollX starts at 0)
+  const clickX = timelineBox.x + beat * DEFAULT_PIXELS_PER_BEAT;
   const clickY = timelineBox.y + timelineBox.height / 2;
 
   // Double-click with jitter to ensure transport state syncs reliably
@@ -41,12 +41,12 @@ test.describe("Copy/Paste", () => {
     }
 
     // Create a note starting at beat 0 (click near left edge to snap to 0)
-    const startX = gridBox.x + BEAT_WIDTH * 0.05;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.05;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const notes = page.locator("[data-testid^='note-']");
@@ -71,7 +71,7 @@ test.describe("Copy/Paste", () => {
     }
 
     // Note 1 is at beat 0, Note 2 at beat 2 = 2 beats offset
-    const expectedOffset = 2 * BEAT_WIDTH;
+    const expectedOffset = 2 * DEFAULT_PIXELS_PER_BEAT;
     expect(note2Box.x - note1Box.x).toBeCloseTo(expectedOffset, -1);
 
     // Same pitch (same y position)
@@ -103,12 +103,12 @@ test.describe("Copy/Paste", () => {
     }
 
     // Create a note starting at beat 0
-    const startX = gridBox.x + BEAT_WIDTH * 0.05;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.05;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const notes = page.locator("[data-testid^='note-']");
@@ -133,7 +133,7 @@ test.describe("Copy/Paste", () => {
     }
 
     // Note1 at beat 0, playhead at 1.5 → note2 at beat 1.5
-    const expectedOffset = 1.5 * BEAT_WIDTH;
+    const expectedOffset = 1.5 * DEFAULT_PIXELS_PER_BEAT;
     expect(note2Box.x - note1Box.x).toBeCloseTo(expectedOffset, -1);
   });
 
@@ -149,11 +149,11 @@ test.describe("Copy/Paste", () => {
     const notes = page.locator("[data-testid^='note-']");
 
     // Create first note at beat 0
-    const note1X = gridBox.x + BEAT_WIDTH * 0.5;
+    const note1X = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const note1Y = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(note1X, note1Y);
     await page.mouse.down();
-    await page.mouse.move(note1X + BEAT_WIDTH, note1Y);
+    await page.mouse.move(note1X + DEFAULT_PIXELS_PER_BEAT, note1Y);
     await page.mouse.up();
     await expect(notes).toHaveCount(1);
 
@@ -161,11 +161,11 @@ test.describe("Copy/Paste", () => {
     await page.keyboard.press("Escape");
 
     // Create second note at beat 2, different pitch (2 rows down)
-    const note2X = gridBox.x + BEAT_WIDTH * 2.5;
+    const note2X = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 2.5;
     const note2Y = gridBox.y + ROW_HEIGHT * 2.5;
     await page.mouse.move(note2X, note2Y);
     await page.mouse.down();
-    await page.mouse.move(note2X + BEAT_WIDTH, note2Y);
+    await page.mouse.move(note2X + DEFAULT_PIXELS_PER_BEAT, note2Y);
     await page.mouse.up();
     await expect(notes).toHaveCount(2);
 
@@ -173,9 +173,9 @@ test.describe("Copy/Paste", () => {
     await page.keyboard.press("Escape");
 
     // Box select both notes
-    const boxStartX = gridBox.x + BEAT_WIDTH * 0.2;
+    const boxStartX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.2;
     const boxStartY = gridBox.y + ROW_HEIGHT * 0.2;
-    const boxEndX = gridBox.x + BEAT_WIDTH * 4;
+    const boxEndX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 4;
     const boxEndY = gridBox.y + ROW_HEIGHT * 4;
 
     await page.keyboard.down("Shift");
@@ -233,11 +233,11 @@ test.describe("Copy/Paste", () => {
     const notes = page.locator("[data-testid^='note-']");
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
     await expect(notes).toHaveCount(1);
 
@@ -266,11 +266,11 @@ test.describe("Copy/Paste", () => {
     const notes = page.locator("[data-testid^='note-']");
 
     // Create a note with specific duration (2 beats) at a specific pitch
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 2.5; // Different row
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH * 2, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT * 2, startY);
     await page.mouse.up();
     await expect(notes).toHaveCount(1);
 
@@ -310,11 +310,11 @@ test.describe("Copy/Paste", () => {
     const notes = page.locator("[data-testid^='note-']");
 
     // Create a note at beat 0 (click near left edge to snap to 0)
-    const startX = gridBox.x + BEAT_WIDTH * 0.05;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.05;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
     await expect(notes).toHaveCount(1);
 
@@ -361,11 +361,11 @@ test.describe("Copy/Paste", () => {
     }
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const notes = page.locator("[data-testid^='note-']");
