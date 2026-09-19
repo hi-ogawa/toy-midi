@@ -163,35 +163,19 @@ export function useRecorderClipInteraction({
     setEdit(undefined);
     switch (edit.type) {
       case "move": {
-        const changes = getMoveChanges({ ...edit, delta });
-        if (
-          changes.some(
-            (change, index) =>
-              change.timelineOffset !==
-              edit.snapshot.clips[index].timelineOffset,
-          )
-        ) {
-          runtime.moveClips(changes);
-        }
+        runtime.moveClips(getMoveChanges({ ...edit, delta }));
         break;
       }
       case "trim": {
         const clips = getTrimmedClips({ ...edit, delta });
         // TODO: Commit bulk trims in one runtime mutation so state and playback update atomically.
-        for (const [index, clip] of clips.entries()) {
-          const original = edit.clips[index];
-          const value = edit.edge === "start" ? clip.trimStart : clip.trimEnd;
-          if (
-            value !==
-            (edit.edge === "start" ? original.trimStart : original.trimEnd)
-          ) {
-            runtime.trimClip({
-              type: "clip",
-              id: clip.id,
-              edge: edit.edge,
-              value,
-            });
-          }
+        for (const clip of clips) {
+          runtime.trimClip({
+            type: "clip",
+            id: clip.id,
+            edge: edit.edge,
+            value: edit.edge === "start" ? clip.trimStart : clip.trimEnd,
+          });
         }
         break;
       }
