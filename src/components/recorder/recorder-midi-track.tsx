@@ -48,7 +48,6 @@ import {
 } from "./use-recorder-midi-interaction";
 
 const KEY_HEIGHT = 18;
-const COMPACT_HEIGHT = 96;
 const PITCHES = Array.from(
   { length: MAX_PITCH + 1 },
   (_, index) => MAX_PITCH - index,
@@ -83,7 +82,6 @@ export function MidiTrackRow({
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
   const pitchScroll = useRef<number>(undefined);
-  const compact = midiInteraction.isCompact(track.id);
   return (
     <div onFocus={midiInteraction.activate}>
       <TrackRow
@@ -91,7 +89,7 @@ export function MidiTrackRow({
         // Keep controls at their content height so the piano keyboard shows below.
         controlsClassName="h-fit"
         title={track.name}
-        height={compact ? COMPACT_HEIGHT : track.height}
+        height={track.overview ? track.overviewHeight : track.height}
         gain={track.gain}
         muted={track.muted}
         soloed={track.soloed}
@@ -100,16 +98,12 @@ export function MidiTrackRow({
         onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
         onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
         onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
-        onHeightChange={
-          compact
-            ? undefined
-            : (height) => runtime.setTrackHeight(track.id, height)
-        }
+        onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
         action={
           <MidiTrackActions
             label={track.name}
-            compact={compact}
-            onCompactToggle={() => midiInteraction.toggleCompact(track.id)}
+            overview={track.overview}
+            onOverviewToggle={() => midiInteraction.toggleOverview(track.id)}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
             onScorePreview={onScorePreview}
@@ -117,7 +111,7 @@ export function MidiTrackRow({
           />
         }
       >
-        {compact ? (
+        {track.overview ? (
           <MidiTrackOverview
             track={track}
             pixelsPerBeat={pixelsPerBeat}
@@ -150,16 +144,16 @@ export function MidiTrackRow({
 
 function MidiTrackActions({
   label,
-  compact,
-  onCompactToggle,
+  overview,
+  onOverviewToggle,
   onRemove,
   onInstrumentOpen,
   onTranscribe,
   onScorePreview,
 }: {
   label: string;
-  compact: boolean;
-  onCompactToggle: () => void;
+  overview: boolean;
+  onOverviewToggle: () => void;
   onRemove: () => void;
   onInstrumentOpen: () => void;
   onTranscribe: () => void;
@@ -177,8 +171,8 @@ function MidiTrackActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuCheckboxItem
-          checked={compact}
-          onCheckedChange={onCompactToggle}
+          checked={overview}
+          onCheckedChange={onOverviewToggle}
         >
           Overview
         </DropdownMenuCheckboxItem>
@@ -227,7 +221,7 @@ function MidiTrackOverview({
   const range = Math.max(12, highest - lowest);
   const noteHeight = 4;
   const padding = 12;
-  const pitchHeight = COMPACT_HEIGHT - padding * 2 - noteHeight;
+  const pitchHeight = track.overviewHeight - padding * 2 - noteHeight;
 
   return (
     <div

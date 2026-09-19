@@ -79,6 +79,8 @@ export interface MidiTrackState {
   program: number;
   eq: MultibandEqParameters;
   height: number;
+  overview: boolean;
+  overviewHeight: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -553,7 +555,7 @@ export class RecorderRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
-        height: clamp(height, 68, 600),
+        [track.overview ? "overviewHeight" : "height"]: clamp(height, 68, 600),
       }));
       return;
     }
@@ -565,6 +567,16 @@ export class RecorderRuntime {
           ? clampRecordingTrackHeight(height)
           : clampTrackHeight(height),
     }));
+  }
+
+  setMidiTrackOverview({
+    id,
+    overview,
+  }: {
+    id: string;
+    overview: boolean;
+  }): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, overview }));
   }
 
   removeAudioTrack(id: string): void {
@@ -1391,6 +1403,8 @@ function createMidiTrackState(number: number): MidiTrackState {
     program: 0,
     eq: createDefaultMultibandEq(),
     height: 300,
+    overview: false,
+    overviewHeight: 96,
     gain: 1,
     muted: false,
     soloed: false,
