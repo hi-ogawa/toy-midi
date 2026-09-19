@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ExternalLinkIcon } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { clamp } from "../../lib/music";
@@ -36,11 +37,13 @@ export function RecorderScorePanel({
   state,
   track,
   onClose,
+  scoreViewerHref,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   track: MidiTrackState;
   onClose: () => void;
+  scoreViewerHref?: string;
 }) {
   const [size, setSize] = useState({ width: 640, height: 448 });
   const resizeRef = usePointerDrag({
@@ -63,6 +66,7 @@ export function RecorderScorePanel({
   return (
     <RecorderPanel
       title={`Score preview · ${track.name}`}
+      headerActions={<RecorderScoreLink href={scoreViewerHref} />}
       closeLabel={`Close score preview for ${track.name}`}
       onClose={onClose}
       data-testid="recorder-score-preview"
@@ -80,6 +84,36 @@ export function RecorderScorePanel({
       </button>
       <RecorderScorePreview runtime={runtime} state={state} track={track} />
     </RecorderPanel>
+  );
+}
+
+function RecorderScoreLink({ href }: { href?: string }) {
+  const tooltipId = useId();
+  return (
+    <div className="group/score-link relative">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        role="link"
+        tabIndex={0}
+        aria-disabled={!href}
+        aria-describedby={!href ? tooltipId : undefined}
+        className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-200 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+      >
+        Open score viewer
+        <ExternalLinkIcon className="size-3" />
+      </a>
+      {!href && (
+        <span
+          id={tooltipId}
+          role="tooltip"
+          className="pointer-events-none absolute top-full right-0 z-50 mt-2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs whitespace-nowrap text-neutral-100 opacity-0 group-hover/score-link:opacity-100 group-focus-within/score-link:opacity-100"
+        >
+          Please save before opening score view
+        </span>
+      )}
+    </div>
   );
 }
 

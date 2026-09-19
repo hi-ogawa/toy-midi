@@ -46,6 +46,11 @@ const sections: HelpSectionData[] = [
   {
     title: "MIDI notes",
     items: [
+      { action: "Undo MIDI note edit", keys: "Ctrl / Cmd + Z" },
+      {
+        action: "Redo MIDI note edit",
+        keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
+      },
       { action: "Create a snapped note", gesture: "Click empty MIDI grid" },
       { action: "Select and preview a note", gesture: "Press note" },
       {
