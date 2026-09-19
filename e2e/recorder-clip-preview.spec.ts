@@ -131,6 +131,106 @@ test("previews capture overlap regions without saving the drag", async ({
   );
 });
 
+test("trims selected clips together with shared limits and cancellation", async ({
+  page,
+}) => {
+  // Load two clips and shorten the second so it constrains group trims.
+  await createRecorderProject(page);
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  const clips = page.getByTestId("recorder-clip-audio-source");
+  const first = clips.nth(0);
+  const second = clips.nth(1);
+  await beginDrag(page, second.getByTestId("recorder-take-trim-start"), 20);
+  await page.mouse.up();
+  await beginDrag(page, second.getByTestId("recorder-take-trim-end"), -30);
+  await page.mouse.up();
+  await first.click();
+  await second.click({ modifiers: ["Control"] });
+  await saveRecorderProject(page);
+  const save = page.getByTestId("recorder-save-button");
+  const originals = [
+    (await first.boundingBox())!,
+    (await second.boundingBox())!,
+  ];
+
+  // Preview both start edges without dirtying the project, then cancel both.
+  await beginDrag(page, first.getByTestId("recorder-take-trim-start"), 10);
+  for (const [index, clip] of [first, second].entries()) {
+    expect((await clip.boundingBox())!.x).toBeCloseTo(
+      originals[index].x + 10,
+      0,
+    );
+    expect((await clip.boundingBox())!.width).toBeCloseTo(
+      originals[index].width - 10,
+      0,
+    );
+  }
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  for (const [index, clip] of [first, second].entries()) {
+    expect((await clip.boundingBox())!.x).toBeCloseTo(originals[index].x, 0);
+    expect((await clip.boundingBox())!.width).toBeCloseTo(
+      originals[index].width,
+      0,
+    );
+  }
+  await expect(save).toHaveAttribute("data-status", "saved");
+
+  // Reselect both and prevent the second start edge extending past the first clip's source limit.
+  await first.click();
+  await second.click({ modifiers: ["Control"] });
+  await beginDrag(page, second.getByTestId("recorder-take-trim-start"), -40);
+  await page.mouse.up();
+  for (const [index, clip] of [first, second].entries()) {
+    expect((await clip.boundingBox())!.x).toBeCloseTo(originals[index].x, 0);
+  }
+  await expect(save).toHaveAttribute("data-status", "saved");
+
+  // Extend both end edges only as far as the first clip's source allows.
+  await beginDrag(page, second.getByTestId("recorder-take-trim-end"), 40);
+  await page.mouse.up();
+  for (const [index, clip] of [first, second].entries()) {
+    expect((await clip.boundingBox())!.width).toBeCloseTo(
+      originals[index].width,
+      0,
+    );
+  }
+  await expect(save).toHaveAttribute("data-status", "saved");
+
+  // Shrink both ends until the shorter clip reaches minimum duration and commit the shared preview.
+  await beginDrag(
+    page,
+    first.getByTestId("recorder-take-trim-end"),
+    -originals[0].width - 30,
+  );
+  const previews = [
+    (await first.boundingBox())!,
+    (await second.boundingBox())!,
+  ];
+  expect(previews[1].width).toBeCloseTo(2, 0);
+  expect(previews[0].width - previews[1].width).toBeCloseTo(
+    originals[0].width - originals[1].width,
+    0,
+  );
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.mouse.up();
+  await expect(save).toHaveAttribute("data-status", "unsaved");
+  await saveRecorderProject(page);
+
+  // Reload and retain both committed trims.
+  await page.reload();
+  await expect(clips).toHaveCount(2);
+  for (const [index, clip] of [first, second].entries()) {
+    expect((await clip.boundingBox())!.x).toBeCloseTo(previews[index].x, 0);
+    expect((await clip.boundingBox())!.width).toBeCloseTo(
+      previews[index].width,
+      0,
+    );
+  }
+});
+
 async function beginDrag(page: Page, locator: Locator, deltaX: number) {
   const box = (await locator.boundingBox())!;
   const x = box.x + box.width / 2;

@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { trimAudioClip, type AudioClip } from "../../lib/recorder/audio-clip";
+import { clamp } from "../../lib/music";
+import {
+  MIN_CLIP_DURATION,
+  trimAudioClip,
+  type AudioClip,
+} from "../../lib/recorder/audio-clip";
 import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import {
   type RecorderClipId,
@@ -16,7 +21,7 @@ type RecorderClipMoveSnapshot = {
 
 type ClipEdit =
   | { type: "move"; snapshot: RecorderClipMoveSnapshot; delta: number }
-  | { type: "trim"; clip: AudioClip; edge: "start" | "end"; delta: number };
+  | { type: "trim"; clips: AudioClip[]; edge: "start" | "end"; delta: number };
 
 type ClipEditStart =
   | { type: "move"; clip: RecorderClipId; additive: boolean }
@@ -136,14 +141,14 @@ export function useRecorderClipInteraction({
         if (!selected) {
           throw new Error("Recorder clip state is missing.");
         }
-        // TODO: Decide separately whether starting a trim should select the clip.
+        // Trimming a selected clip preserves the group, just like moving it.
         const key = getKey(input.clip);
         if (!keys.has(key)) {
           setKeys(new Set([key]));
         }
         setEdit({
           type: "trim",
-          clip: selected,
+          clips: keys.has(key) ? getSelectedClips(keys).clips : [selected],
           edge: input.edge,
           delta: 0,
         });
@@ -178,18 +183,22 @@ export function useRecorderClipInteraction({
         break;
       }
       case "trim": {
-        const clip = getTrimmedClip({ ...edit, delta });
-        const value = edit.edge === "start" ? clip.trimStart : clip.trimEnd;
-        if (
-          value !==
-          (edit.edge === "start" ? edit.clip.trimStart : edit.clip.trimEnd)
-        ) {
-          runtime.trimClip({
-            type: "clip",
-            id: clip.id,
-            edge: edit.edge,
-            value,
-          });
+        const clips = getTrimmedClips({ ...edit, delta });
+        // TODO: Commit bulk trims in one runtime mutation so state and playback update atomically.
+        for (const [index, clip] of clips.entries()) {
+          const original = edit.clips[index];
+          const value = edit.edge === "start" ? clip.trimStart : clip.trimEnd;
+          if (
+            value !==
+            (edit.edge === "start" ? original.trimStart : original.trimEnd)
+          ) {
+            runtime.trimClip({
+              type: "clip",
+              id: clip.id,
+              edge: edit.edge,
+              value,
+            });
+          }
         }
         break;
       }
@@ -201,9 +210,11 @@ export function useRecorderClipInteraction({
       return track;
     }
     const moves = edit.type === "move" ? getMoveChanges(edit) : [];
+    const trims = edit.type === "trim" ? getTrimmedClips(edit) : [];
     const clips = track.clips.map((clip) => {
-      if (edit.type === "trim" && edit.clip.id === clip.id) {
-        return getTrimmedClip(edit);
+      const trim = trims.find((trim) => trim.id === clip.id);
+      if (trim) {
+        return trim;
       }
       const move = moves.find(
         (move) => move.type === "clip" && move.id === clip.id,
@@ -260,7 +271,7 @@ export function useRecorderClipInteraction({
     isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
     isEditing: (id: string) =>
       edit?.type === "trim"
-        ? edit.clip.id === id
+        ? edit.clips.some((clip) => clip.id === id)
         : (edit?.snapshot.clips.some(
             (clip) => clip.type === "clip" && clip.id === id,
           ) ?? false),
@@ -282,12 +293,30 @@ function getMoveChanges(
   }));
 }
 
-function getTrimmedClip(edit: Extract<ClipEdit, { type: "trim" }>): AudioClip {
-  const initial =
-    edit.edge === "start" ? edit.clip.trimStart : edit.clip.trimEnd;
-  return trimAudioClip({
-    clip: edit.clip,
-    edge: edit.edge,
-    value: initial + edit.delta,
-  });
+function getTrimmedClips(
+  edit: Extract<ClipEdit, { type: "trim" }>,
+): AudioClip[] {
+  // Clamp one shared delta so every selected edge moves by the same amount.
+  const minimumDelta = Math.max(
+    ...edit.clips.map((clip) =>
+      edit.edge === "start"
+        ? -clip.trimStart
+        : clip.trimStart + MIN_CLIP_DURATION - clip.trimEnd,
+    ),
+  );
+  const maximumDelta = Math.min(
+    ...edit.clips.map((clip) =>
+      edit.edge === "start"
+        ? clip.trimEnd - MIN_CLIP_DURATION - clip.trimStart
+        : clip.duration - clip.trimEnd,
+    ),
+  );
+  const delta = clamp(edit.delta, minimumDelta, maximumDelta);
+  return edit.clips.map((clip) =>
+    trimAudioClip({
+      clip,
+      edge: edit.edge,
+      value: (edit.edge === "start" ? clip.trimStart : clip.trimEnd) + delta,
+    }),
+  );
 }
