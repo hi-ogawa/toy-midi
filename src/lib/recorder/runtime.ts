@@ -672,10 +672,9 @@ export class RecorderRuntime {
     if (!track) {
       throw new Error("Audio track state is missing.");
     }
-    const next = apply(track);
-    audioTracks[index] = next;
+    audioTracks[index] = apply(track);
     this.store.update({ audioTracks });
-    return next;
+    return audioTracks[index]!;
   }
 
   private getTrackPlayback(id: string): AudioTrackPlayback {
