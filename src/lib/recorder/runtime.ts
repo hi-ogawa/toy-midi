@@ -1281,8 +1281,8 @@ export function deriveClipEditState(
   function editTrack(track: AudioTrackState): AudioTrackState {
     return updateTrackClips({
       track,
-      update: (clips) =>
-        clips.map((clip) => {
+      update: (clips) => {
+        return clips.map((clip) => {
           const trim = trims.find((change) => change.id === clip.id);
           if (trim) {
             return trimAudioClip({
@@ -1295,7 +1295,8 @@ export function deriveClipEditState(
             (change) => change.type === "clip" && change.id === clip.id,
           );
           return move ? { ...clip, timelineOffset: move.timelineOffset } : clip;
-        }),
+        });
+      },
     });
   }
   function editReferenceVideo() {
