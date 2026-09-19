@@ -1,0 +1,82 @@
+import { useMutation } from "@tanstack/react-query";
+import { Trash2Icon } from "lucide-react";
+import { useState } from "react";
+import {
+  type ProjectMetadata,
+  projectStorage,
+} from "../../lib/project-storage";
+import { convertLegacyProject } from "../../lib/recorder/legacy-project";
+import { recorderProjectStorage } from "../../lib/recorder/project-storage";
+import { routes } from "../../lib/routes";
+import { Button } from "../ui/button";
+
+export function LegacyProjectList() {
+  const [projects, setProjects] = useState(() => projectStorage.listMetadata());
+  const migrate = useMutation({
+    mutationFn: async (project: ProjectMetadata) => {
+      // Convert stored data and audio before saving a separate recorder copy.
+      const content = await convertLegacyProject({
+        name: project.name,
+        project: projectStorage.load(project.id),
+        loadAudio: async (assetKey) =>
+          (await projectStorage.loadAsset(assetKey))?.blob,
+      });
+      return recorderProjectStorage.createWithContent(content);
+    },
+    onSuccess: (projectId) => {
+      window.location.href = routes.recorderProject.href({ projectId });
+    },
+  });
+
+  if (projects.length === 0) {
+    return;
+  }
+
+  return (
+    <section
+      aria-label="Legacy projects"
+      className="mt-4 border-t border-neutral-700/70 pt-4"
+    >
+      <h2 className="text-sm font-medium text-neutral-200">Legacy projects</h2>
+      <p className="mt-1 text-xs text-neutral-500">
+        Create a recorder copy. Your original project stays unchanged.
+      </p>
+      <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+        {projects.map((project) => (
+          <div
+            key={project.id}
+            className="flex items-center gap-3 rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 py-3"
+          >
+            <span className="min-w-0 flex-1 truncate text-sm text-neutral-200">
+              {project.name}
+            </span>
+            <Button
+              onClick={() => migrate.mutate(project)}
+              disabled={migrate.isPending}
+              className="shrink-0 bg-neutral-700 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-600"
+            >
+              {migrate.isPending && migrate.variables.id === project.id
+                ? "Migrating..."
+                : "Migrate to recorder"}
+            </Button>
+            <Button
+              onClick={() => {
+                if (
+                  confirm("Delete this project? This action cannot be undone.")
+                ) {
+                  projectStorage.delete(project.id);
+                  setProjects(projectStorage.listMetadata());
+                }
+              }}
+              disabled={migrate.isPending}
+              title="Delete legacy project"
+              className="size-8 shrink-0 text-neutral-400 hover:bg-red-600/30"
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
