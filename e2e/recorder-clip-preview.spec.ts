@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
   addRecorderAudio,
@@ -20,7 +20,7 @@ test("previews a clip move, cancels through release, and persists a committed mo
   const delta = DEFAULT_PIXELS_PER_BEAT;
 
   // Hold a move and show the preview while the project remains saved.
-  const pointer = await beginDrag({ page, target: clip, delta });
+  const pointer = await dragBy(page, clip, delta, { release: false });
   expect((await clip.boundingBox())!.x).toBeCloseTo(original.x + delta, 0);
   await expect(save).toHaveAttribute("data-status", "saved");
 
@@ -33,7 +33,7 @@ test("previews a clip move, cancels through release, and persists a committed mo
   await expect(save).toHaveAttribute("data-status", "saved");
 
   // Release a fresh move and commit exactly the previewed position.
-  await beginDrag({ page, target: clip, delta });
+  await dragBy(page, clip, delta, { release: false });
   const preview = (await clip.boundingBox())!;
   expect(preview.x).toBeCloseTo(original.x + delta, 0);
   await expect(save).toHaveAttribute("data-status", "saved");
@@ -75,11 +75,12 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   await first.click();
   await expect(second).not.toHaveAttribute("data-selected", "true");
   await page.keyboard.down("Control");
-  await beginDrag({
+  await dragBy(
     page,
-    target: second.getByTestId("recorder-take-trim-start"),
-    delta: -inset * 3,
-  });
+    second.getByTestId("recorder-take-trim-start"),
+    -inset * 3,
+    { release: false },
+  );
   await page.keyboard.up("Control");
   await expect(first).toHaveAttribute("data-selected", "true");
   await expect(second).toHaveAttribute("data-selected", "true");
@@ -99,10 +100,8 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   await saveRecorderProject(page);
 
   // Extend both end edges without a modifier and clamp at the first clip's source end.
-  await beginDrag({
-    page,
-    target: second.getByTestId("recorder-take-trim-end"),
-    delta: inset * 3,
+  await dragBy(page, second.getByTestId("recorder-take-trim-end"), inset * 3, {
+    release: false,
   });
   const firstEndPreview = (await first.boundingBox())!;
   const secondEndPreview = (await second.boundingBox())!;
@@ -142,27 +141,3 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
     0,
   );
 });
-
-async function beginDrag({
-  page,
-  target,
-  delta,
-}: {
-  page: Page;
-  target: Locator;
-  delta: number;
-}) {
-  return await test.step(
-    `Begin drag by ${delta}px without releasing`,
-    async () => {
-      const box = (await target.boundingBox())!;
-      const x = box.x + box.width / 2;
-      const y = box.y + box.height / 2;
-      await page.mouse.move(x, y);
-      await page.mouse.down();
-      await page.mouse.move(x + delta, y, { steps: 4 });
-      return { x, y };
-    },
-    { box: true },
-  );
-}
