@@ -55,13 +55,13 @@ test("manually migrates a stored legacy project and retains the original", async
     { project: LEGACY_PROJECT, audio },
   );
 
-  // Migrate the stored project from the Recorder tab into a new recorder copy.
+  // Migrate the stored project from the Projects tab into a new recorder copy.
   await page.goto("/");
-  await page.getByRole("tab", { name: "Recorder", exact: true }).click();
+  await page.getByRole("tab", { name: "Projects", exact: true }).click();
   const legacyProjects = page.getByRole("region", { name: "Legacy projects" });
   await expect(legacyProjects).toContainText("Legacy song");
   await legacyProjects
-    .getByRole("button", { name: "Migrate to recorder" })
+    .getByRole("button", { name: "Migrate to new editor" })
     .click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   const copyUrl = page.url();
@@ -92,14 +92,14 @@ test("manually migrates a stored legacy project and retains the original", async
     new URL(copyUrl).pathname,
   );
   await expect(legacyProjects).toContainText("Legacy song");
-  await page.getByRole("tab", { name: "MIDI", exact: true }).click();
+  await page.getByRole("tab", { name: "Legacy", exact: true }).click();
   await expect(page.getByRole("link", { name: "Legacy song" })).toHaveAttribute(
     "href",
     /\/project\//,
   );
 
   // Cancel deletion and keep the original available for migration.
-  await page.getByRole("tab", { name: "Recorder", exact: true }).click();
+  await page.getByRole("tab", { name: "Projects", exact: true }).click();
   page.once("dialog", (dialog) => dialog.dismiss());
   await legacyProjects
     .getByRole("button", { name: "Delete legacy project" })
