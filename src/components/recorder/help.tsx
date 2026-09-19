@@ -7,16 +7,6 @@ type HelpSectionData = {
 
 const sections: HelpSectionData[] = [
   {
-    title: "History",
-    items: [
-      { action: "Undo MIDI edit or recorded take", keys: "Ctrl / Cmd + Z" },
-      {
-        action: "Redo MIDI edit or recorded take",
-        keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
-      },
-    ],
-  },
-  {
     title: "Transport",
     items: [
       { action: "Play / pause", keys: "Space" },
@@ -93,6 +83,16 @@ const sections: HelpSectionData[] = [
         gesture: "Hover / select, then click pencil",
       },
       { action: "Remove selected locator", keys: "Delete / Backspace" },
+    ],
+  },
+  {
+    title: "History",
+    items: [
+      { action: "Undo MIDI edit or recorded take", keys: "Ctrl / Cmd + Z" },
+      {
+        action: "Redo MIDI edit or recorded take",
+        keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
+      },
     ],
   },
   {
