@@ -46,11 +46,6 @@ const sections: HelpSectionData[] = [
   {
     title: "MIDI notes",
     items: [
-      { action: "Undo MIDI edit", keys: "Ctrl / Cmd + Z" },
-      {
-        action: "Redo MIDI edit",
-        keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
-      },
       { action: "Create a snapped note", gesture: "Click empty MIDI grid" },
       { action: "Select and preview a note", gesture: "Press note" },
       {
@@ -88,6 +83,19 @@ const sections: HelpSectionData[] = [
         gesture: "Hover / select, then click pencil",
       },
       { action: "Remove selected locator", keys: "Delete / Backspace" },
+    ],
+  },
+  {
+    title: "History",
+    items: [
+      {
+        action: "Undo MIDI edit, take, or clip deletion",
+        keys: "Ctrl / Cmd + Z",
+      },
+      {
+        action: "Redo MIDI edit, take, or clip deletion",
+        keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
+      },
     ],
   },
   {
