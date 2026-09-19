@@ -2,8 +2,8 @@ import {
   AudioLinesIcon,
   GitForkIcon,
   Music2Icon,
-  PianoIcon,
-  Mic2Icon,
+  ArchiveIcon,
+  FolderOpenIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { projectStorage } from "../lib/project-storage";
@@ -77,24 +77,24 @@ export function Home() {
             onValueChange={selectProjectType}
             options={[
               {
-                value: "midi",
-                label: (
-                  <>
-                    <PianoIcon aria-hidden="true" className="size-4" />
-                    MIDI
-                  </>
-                ),
-                content: <MidiProjectList />,
-              },
-              {
                 value: "recorder",
                 label: (
                   <>
-                    <Mic2Icon aria-hidden="true" className="size-4" />
-                    Recorder
+                    <FolderOpenIcon aria-hidden="true" className="size-4" />
+                    Projects
                   </>
                 ),
                 content: <RecorderProjectList />,
+              },
+              {
+                value: "midi",
+                label: (
+                  <>
+                    <ArchiveIcon aria-hidden="true" className="size-4" />
+                    Legacy
+                  </>
+                ),
+                content: <MidiProjectList />,
               },
             ]}
           />

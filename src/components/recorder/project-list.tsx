@@ -44,11 +44,9 @@ export function RecorderProjectList() {
         </div>
       ) : projects.data.value.length === 0 ? (
         <div className="flex min-h-36 flex-col items-center justify-center text-center">
-          <p className="font-medium text-neutral-300">
-            No recorder projects yet
-          </p>
+          <p className="font-medium text-neutral-300">No projects yet</p>
           <p className="mt-1 text-sm text-neutral-500">
-            Create a recorder project to begin.
+            Create a project to begin.
           </p>
         </div>
       ) : (
@@ -82,7 +80,7 @@ export function RecorderProjectList() {
                   : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
               }
             >
-              New recorder project
+              New project
             </Button>
             <FileDropInput
               accept=".toymidi.zip,.toymidi"

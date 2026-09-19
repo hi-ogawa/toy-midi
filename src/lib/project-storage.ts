@@ -56,7 +56,7 @@ const preferencesSchema = z.object({
 });
 type Preferences = z.infer<typeof preferencesSchema>;
 const DEFAULT_PREFERENCES: Preferences = {
-  projectType: "midi",
+  projectType: "recorder",
   defaultMidiProgram: 0,
 };
 
