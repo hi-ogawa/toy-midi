@@ -548,10 +548,10 @@ export function Recorder({ projectId }: { projectId: string }) {
               }
             >
               <AudioTimelineLane
-                clips={takes}
                 testId="comp"
                 editSourceClips
                 emptyLabel="Enable input, place the playhead, then record"
+                clips={takes}
                 regions={
                   state.previewClipRegions ?? state.recordingTrack.regions
                 }
