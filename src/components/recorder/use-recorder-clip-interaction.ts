@@ -189,7 +189,7 @@ export function useRecorderClipInteraction({
     setKeys(new Set());
   }
 
-  const preview = edit ? deriveClipEditState({ state, edit }) : state;
+  const preview = edit ? deriveClipEditState(state, edit) : state;
 
   return {
     audioTracks: preview.audioTracks,
