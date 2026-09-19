@@ -56,7 +56,7 @@ export async function convertLegacyProject({
 
   // Decode every referenced asset before the caller saves the recorder copy.
   // Offline decoding requires no playback session or audio device.
-  const decoder = legacy.audioTracks.length
+  const context = legacy.audioTracks.length
     ? new OfflineAudioContext(1, 1, 48000)
     : undefined;
   for (const track of legacy.audioTracks) {
@@ -65,7 +65,7 @@ export async function convertLegacyProject({
       if (!blob) {
         throw new Error("Audio asset is missing");
       }
-      const buffer = await decoder!.decodeAudioData(await blob.arrayBuffer());
+      const buffer = await context!.decodeAudioData(await blob.arrayBuffer());
       content.audioTracks.push({
         id: track.id,
         height: Math.max(72, Math.min(600, track.waveformHeight)),
