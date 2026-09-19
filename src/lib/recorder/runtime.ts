@@ -197,7 +197,7 @@ export type RecorderClipTrim = Extract<RecorderClipId, { id: string }> & {
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
-    title: "Untitled recording",
+    title: "Untitled project",
     locators: [],
     position: 0,
     isPlaying: false,
@@ -1452,8 +1452,8 @@ function createMidiTrackState(number: number): MidiTrackState {
   };
 }
 
-function clampTrackHeight(height: number): number {
-  return Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, height));
+export function clampTrackHeight(height: number): number {
+  return clamp(height, MIN_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
 }
 
 function clampRecordingTrackHeight(height: number): number {

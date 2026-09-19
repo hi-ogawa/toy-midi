@@ -107,7 +107,7 @@ export function RecorderHelp({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title="Recorder quick reference"
+      title="Editor quick reference"
       size="wide"
     >
       <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">

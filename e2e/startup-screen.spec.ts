@@ -7,6 +7,7 @@ test.describe("Startup Screen", () => {
     await page.goto("/");
     await page.evaluate(() => localStorage.clear());
     await page.reload();
+    await page.getByRole("tab", { name: "Legacy", exact: true }).click();
   });
 
   test("new project flow", async ({ page }) => {

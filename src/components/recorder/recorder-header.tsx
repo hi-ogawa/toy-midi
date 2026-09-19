@@ -8,7 +8,6 @@ import {
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
-  Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -138,9 +137,6 @@ export function RecorderHeader({
   });
   return (
     <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
-      <Mic2Icon className="size-4 text-emerald-400" />
-      <span className="mr-2 text-sm font-medium">Recorder</span>
-      <div className="h-5 w-px bg-neutral-600" />
       <Button
         data-testid="recorder-play-button"
         onClick={onPlayToggle}
