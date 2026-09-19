@@ -547,13 +547,13 @@ export function Recorder({ projectId }: { projectId: string }) {
               }
             >
               <AudioTimelineLane
-                testId="comp"
-                editSourceClips
-                emptyLabel="Enable input, place the playhead, then record"
                 clips={takes}
                 regions={
                   state.previewClipRegions ?? state.recordingTrack.regions
                 }
+                testId="comp"
+                editSourceClips
+                emptyLabel="Enable input, place the playhead, then record"
                 recordingClipId={state.pendingRecording?.id}
                 isClipSelected={(id) =>
                   clipInteraction.isSelected({ type: "clip", id })
@@ -613,9 +613,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                 >
                   <AudioTimelineLane
-                    testId="take-lane"
                     clips={[take]}
                     regions={deriveClipRegions([take])}
+                    testId="take-lane"
                     pixelsPerBeat={timeline.pixelsPerBeat}
                     beatsPerBar={timeline.beatsPerBar}
                     subdivisionsPerBeat={timeline.subdivisionsPerBeat}
