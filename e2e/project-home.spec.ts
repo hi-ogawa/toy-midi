@@ -16,13 +16,13 @@ test("home creates and reopens recorder projects without project-type tabs", asy
   );
   await page.goto("/");
   await expect(
-    page.getByRole("tab", { name: "MIDI", exact: true }),
+    page.getByRole("tab", { name: "Legacy", exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("tab", { name: "Recorder", exact: true }),
+    page.getByRole("tab", { name: "Projects", exact: true }),
   ).toHaveCount(0);
   await expect(page.getByTestId("new-project-button")).toHaveCount(0);
-  await expect(page.getByText("No recorder projects yet")).toBeVisible();
+  await expect(page.getByText("No projects yet")).toBeVisible();
 
   // Create a recorder project and return home to its saved entry.
   await page.getByTestId("new-recorder-project-button").click();

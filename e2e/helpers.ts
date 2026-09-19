@@ -36,6 +36,7 @@ export function createCheckpoint(): (label: string) => void {
  * Click "New Project" on startup screen to get to main UI with empty state.
  */
 export async function clickNewProject(page: Page): Promise<void> {
+  await page.getByRole("tab", { name: "Legacy", exact: true }).click();
   await page.getByTestId("new-project-button").click();
   await page.getByTestId("transport").waitFor({ state: "visible" });
 }

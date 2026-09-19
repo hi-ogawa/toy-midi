@@ -60,7 +60,7 @@ test("manually migrates a stored legacy project and retains the original", async
   const legacyProjects = page.getByRole("region", { name: "Legacy projects" });
   await expect(legacyProjects).toContainText("Legacy song");
   await legacyProjects
-    .getByRole("button", { name: "Migrate to recorder" })
+    .getByRole("button", { name: "Migrate to new editor" })
     .click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   const copyUrl = page.url();

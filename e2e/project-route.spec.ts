@@ -24,11 +24,11 @@ for (const suffix of ["", "/score"]) {
     await expect(page.getByTestId("transport")).toHaveCount(0);
     await expect(page.getByTestId("recorder-project-name")).toHaveCount(0);
     await page.getByRole("link", { name: "Back to projects" }).click();
-    await expect(page.getByText("No recorder projects yet")).toBeVisible();
+    await expect(page.getByText("No projects yet")).toBeVisible();
 
     // Explicitly migrate the selected project and open its recorder copy.
     await page.goto(legacyUrl);
-    await legacy.getByRole("button", { name: "Migrate to recorder" }).click();
+    await legacy.getByRole("button", { name: "Migrate to new editor" }).click();
     await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
     const copyUrl = page.url();
     await expect(page.getByTestId("recorder-project-name")).toHaveText(
@@ -39,7 +39,7 @@ for (const suffix of ["", "/score"]) {
     await page.goto(legacyUrl);
     await expect(legacy).toContainText("Bookmarked song");
     await expect(
-      legacy.getByRole("button", { name: "Migrate to recorder" }),
+      legacy.getByRole("button", { name: "Migrate to new editor" }),
     ).toBeVisible();
     await page.getByRole("link", { name: "Back to projects" }).click();
     await expect(
@@ -56,7 +56,7 @@ for (const suffix of ["", "/score"]) {
       "Legacy project not found.",
     );
     await expect(
-      page.getByRole("button", { name: "Migrate to recorder" }),
+      page.getByRole("button", { name: "Migrate to new editor" }),
     ).toHaveCount(0);
     await page.getByRole("link", { name: "Back to projects" }).click();
     await expect(page.getByTestId("new-recorder-project-button")).toBeVisible();

@@ -50,6 +50,7 @@ test.describe("Project Migration", () => {
     );
 
     await page.goto("/");
+    await page.getByRole("tab", { name: "Legacy", exact: true }).click();
     await page.locator('[data-testid^="project-card-"]').click();
     await waitForEditor(page);
 
@@ -84,6 +85,7 @@ test.describe("Project Migration", () => {
     page,
   }) => {
     await page.goto("/");
+    await page.getByRole("tab", { name: "Legacy", exact: true }).click();
 
     const projectBlob = await exportProjectFileV1(
       "Legacy Import",
@@ -146,6 +148,7 @@ test.describe("Project Migration", () => {
     // URL (no "project-" stutter)
     const bareId = legacyId.replace(/^project-/, "");
     await page.goto("/");
+    await page.getByRole("tab", { name: "Legacy", exact: true }).click();
     await page.getByTestId(`project-card-${bareId}`).click();
     await expect(page).toHaveURL(/\/project\/[0-9a-f-]{36}$/);
     await waitForEditor(page);
@@ -156,6 +159,7 @@ test.describe("Project Migration", () => {
     // The last-project pointer survives the migration, and a second load is a
     // no-op migration
     await page.goto("/");
+    await page.getByRole("tab", { name: "Legacy", exact: true }).click();
     await expect(page.getByTestId(`project-card-${bareId}`)).toHaveAttribute(
       "aria-current",
       "true",

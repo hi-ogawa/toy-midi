@@ -197,7 +197,7 @@ export type RecorderClipTrim = Extract<RecorderClipId, { id: string }> & {
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
-    title: "Untitled recording",
+    title: "Untitled project",
     locators: [],
     position: 0,
     isPlaying: false,
