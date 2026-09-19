@@ -79,6 +79,18 @@ export function useRecorderClipInteraction({
     });
   }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
 
+  function isSelected(clip: RecorderClipId): boolean {
+    return keys.has(getKey(clip));
+  }
+
+  function isEditing(id: string): boolean {
+    return (
+      edit?.changes.some(
+        (change) => change.type === "clip" && change.id === id,
+      ) ?? false
+    );
+  }
+
   function select(clip: RecorderClipId, additive: boolean): void {
     onSelect();
     const key = getKey(clip);
@@ -252,11 +264,8 @@ export function useRecorderClipInteraction({
       setKeys(new Set());
     },
     hasSelection: keys.size > 0,
-    isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
-    isEditing: (id: string) =>
-      edit?.changes.some(
-        (change) => change.type === "clip" && change.id === id,
-      ) ?? false,
+    isSelected,
+    isEditing,
     select,
     startEdit,
     updateEdit,
