@@ -194,12 +194,12 @@ function createMoveGetChanges({
         ]
       : []),
   ];
-  const minimumVisibleStart = Math.min(
+  const minStart = Math.min(
     ...clips.map((clip) => clip.timelineOffset + clip.trimStart),
     ...(referenceVideo ? [referenceVideo.timelineStart] : []),
   );
   return (delta) => {
-    const clampedDelta = Math.max(delta, -minimumVisibleStart);
+    const clampedDelta = Math.max(delta, -minStart);
     return originals.map((clip) => ({
       ...clip,
       timelineOffset: clip.timelineOffset + clampedDelta,
@@ -215,14 +215,14 @@ function createTrimGetChanges({
   edge: "start" | "end";
 }): (delta: number) => RecorderClipTrim[] {
   // Clamp one shared delta so every selected edge moves by the same amount.
-  const minimumDelta = Math.max(
+  const minDelta = Math.max(
     ...clips.map((clip) =>
       edge === "start"
         ? -clip.trimStart
         : clip.trimStart + MIN_CLIP_DURATION - clip.trimEnd,
     ),
   );
-  const maximumDelta = Math.min(
+  const maxDelta = Math.min(
     ...clips.map((clip) =>
       edge === "start"
         ? clip.trimEnd - MIN_CLIP_DURATION - clip.trimStart
@@ -230,7 +230,7 @@ function createTrimGetChanges({
     ),
   );
   return (delta) => {
-    const clampedDelta = clamp(delta, minimumDelta, maximumDelta);
+    const clampedDelta = clamp(delta, minDelta, maxDelta);
     return clips.map((clip) => ({
       id: clip.id,
       value: (edge === "start" ? clip.trimStart : clip.trimEnd) + clampedDelta,
