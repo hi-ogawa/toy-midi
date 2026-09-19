@@ -617,7 +617,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                     testId="take-lane"
                     editSourceClips={false}
                     clips={[take]}
-                    // Show the complete trimmed source even when absent from the comp.
                     regions={deriveClipRegions([take])}
                     pixelsPerBeat={timeline.pixelsPerBeat}
                     beatsPerBar={timeline.beatsPerBar}
