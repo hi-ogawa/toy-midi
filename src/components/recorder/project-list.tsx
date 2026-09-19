@@ -1,5 +1,7 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
+import { useState } from "react";
+import { projectStorage } from "../../lib/project-storage";
 import { importRecorderProject } from "../../lib/recorder/project-import";
 import {
   type RecorderProjectMetadata,
@@ -15,13 +17,11 @@ import {
 import { Button } from "../ui/button";
 import { LegacyProjectList } from "./legacy-project-list";
 
-export function RecorderProjectList({
-  query,
-  onQueryChange,
-}: {
-  query: string;
-  onQueryChange: (query: string) => void;
-}) {
+export function RecorderProjectList() {
+  const [query, setQuery] = useState("");
+  const [legacyProjects, setLegacyProjects] = useState(() =>
+    projectStorage.listMetadata(),
+  );
   const projects = useSuspenseQuery({
     queryKey: ["recorder-projects"],
     queryFn: () => toResult(recorderProjectStorage.list()),
@@ -52,21 +52,25 @@ export function RecorderProjectList({
       )
     : [];
 
+  const filteredLegacyProjects = legacyProjects.filter((project) =>
+    matchesProjectSearch({ name: project.name, query }),
+  );
+
   return (
     <div className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
       {projects.data.ok && (
         <ProjectListSearch
           query={query}
-          onQueryChange={onQueryChange}
-          total={projects.data.value.length}
-          count={filteredProjects.length}
+          onQueryChange={setQuery}
+          total={projects.data.value.length + legacyProjects.length}
+          count={filteredProjects.length + filteredLegacyProjects.length}
         />
       )}
       {!projects.data.ok ? (
         <div className="p-8 text-center text-sm text-orange-300">
           {String(projects.data.error)}
         </div>
-      ) : projects.data.value.length === 0 ? (
+      ) : projects.data.value.length === 0 && legacyProjects.length === 0 ? (
         <div className="flex min-h-36 flex-col items-center justify-center text-center">
           <p className="font-medium text-neutral-300">No projects yet</p>
           <p className="mt-1 text-sm text-neutral-500">
@@ -126,7 +130,12 @@ export function RecorderProjectList({
           </div>
         </div>
       )}
-      {projects.data.ok && <LegacyProjectList />}
+      {projects.data.ok && (
+        <LegacyProjectList
+          projects={filteredLegacyProjects}
+          onDelete={() => setLegacyProjects(projectStorage.listMetadata())}
+        />
+      )}
     </div>
   );
 }

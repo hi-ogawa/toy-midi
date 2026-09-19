@@ -15,7 +15,6 @@ import { Tabs } from "./ui/tabs";
 type ProjectType = "midi" | "recorder";
 
 export function Home() {
-  const [query, setQuery] = useState("");
   const [projectType, setProjectType] = useState<ProjectType>(
     () => projectStorage.readPreferences().projectType,
   );
@@ -85,9 +84,7 @@ export function Home() {
                     Projects
                   </>
                 ),
-                content: (
-                  <RecorderProjectList query={query} onQueryChange={setQuery} />
-                ),
+                content: <RecorderProjectList />,
               },
               {
                 value: "midi",
@@ -97,9 +94,7 @@ export function Home() {
                     Legacy
                   </>
                 ),
-                content: (
-                  <MidiProjectList query={query} onQueryChange={setQuery} />
-                ),
+                content: <MidiProjectList />,
               },
             ]}
           />

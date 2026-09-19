@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
-import { useState } from "react";
 import {
   type ProjectMetadata,
   projectStorage,
@@ -10,8 +9,13 @@ import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
 import { Button } from "../ui/button";
 
-export function LegacyProjectList() {
-  const [projects, setProjects] = useState(() => projectStorage.listMetadata());
+export function LegacyProjectList({
+  projects,
+  onDelete,
+}: {
+  projects: ProjectMetadata[];
+  onDelete: () => void;
+}) {
   const migrate = useMutation({
     mutationFn: async (project: ProjectMetadata) => {
       // Convert stored data and audio before saving a separate recorder copy.
@@ -65,7 +69,7 @@ export function LegacyProjectList() {
                   confirm("Delete this project? This action cannot be undone.")
                 ) {
                   projectStorage.delete(project.id);
-                  setProjects(projectStorage.listMetadata());
+                  onDelete();
                 }
               }}
               disabled={migrate.isPending}

@@ -8,22 +8,12 @@ import { parseProjectFile } from "../lib/project-file";
 import { type ProjectMetadata, projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { FileDropInput } from "./file-drop-input";
-import { ProjectListSearch, matchesProjectSearch } from "./project-list-search";
 import { Button } from "./ui/button";
 
-export function MidiProjectList({
-  query,
-  onQueryChange,
-}: {
-  query: string;
-  onQueryChange: (query: string) => void;
-}) {
+export function MidiProjectList() {
   const [renamingProjectId, setRenamingProjectId] = useState<string>();
   const [projects, setProjects] = useState(projectStorage.listMetadata());
 
-  const filteredProjects = projects.filter((project) =>
-    matchesProjectSearch({ name: project.name, query }),
-  );
   const hasProjects = projects.length > 0;
   const lastProjectId = projectStorage.getLastProjectId();
 
@@ -74,15 +64,9 @@ export function MidiProjectList({
 
   return (
     <section className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
-      <ProjectListSearch
-        query={query}
-        onQueryChange={onQueryChange}
-        total={projects.length}
-        count={filteredProjects.length}
-      />
       {hasProjects && (
         <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
-          {filteredProjects.map((project) => (
+          {projects.map((project) => (
             <ProjectListItem
               key={project.id}
               project={project}
