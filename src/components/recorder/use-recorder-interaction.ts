@@ -82,6 +82,8 @@ export function useRecorderInteraction({
     if (!undo && !redo) {
       return false;
     }
+    // Consume the shortcut without replaying history while capture is in flight,
+    // keeping the recording track stable until the take and its history entry are finalized.
     if (
       state.captureStatus === "recording" ||
       state.captureStatus === "processing"
