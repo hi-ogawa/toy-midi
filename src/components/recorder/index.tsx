@@ -555,29 +555,18 @@ export function Recorder({ projectId }: { projectId: string }) {
                 editSourceClips
                 emptyLabel="Enable input, place the playhead, then record"
                 recordingClipId={state.pendingRecording?.id}
-                isClipSelected={(id) =>
-                  clipInteraction.isSelected({ type: "clip", id })
-                }
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
-                onSeek={(position) => {
-                  recorderInteraction.clearSelection();
-                  runtime.seek(position);
-                }}
-                onClipDragStart={(id, additive) =>
-                  clipInteraction.startMove({
-                    clip: { type: "clip", id },
-                    additive,
-                  })
+                isClipSelected={(id) =>
+                  clipInteraction.isSelected({ type: "clip", id })
                 }
                 onClipClick={(id, additive) =>
                   clipInteraction.select({ type: "clip", id }, additive)
                 }
-                onClipDragMove={clipInteraction.move}
                 onTrimStart={(id, edge) =>
                   clipInteraction.startTrim({
                     clip: { type: "clip", id },
@@ -585,6 +574,17 @@ export function Recorder({ projectId }: { projectId: string }) {
                   })
                 }
                 onTrimMove={clipInteraction.trim}
+                onClipDragStart={(id, additive) =>
+                  clipInteraction.startMove({
+                    clip: { type: "clip", id },
+                    additive,
+                  })
+                }
+                onClipDragMove={clipInteraction.move}
+                onSeek={(position) => {
+                  recorderInteraction.clearSelection();
+                  runtime.seek(position);
+                }}
               />
             </CaptureTrackRow>
             {takes.length > 0 && (
@@ -622,7 +622,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                     viewportStartBeat={timeline.viewportStartBeat}
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
-                    emptyLabel=""
                     isClipSelected={(id) =>
                       clipInteraction.isSelected({ type: "clip", id })
                     }

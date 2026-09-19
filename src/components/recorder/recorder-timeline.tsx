@@ -445,7 +445,7 @@ export function AudioTimelineLane({
   editSourceClips?: boolean;
   recordingClipId?: string;
   testId: RecorderTimelineClip["testId"];
-  emptyLabel: string;
+  emptyLabel?: string;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   tempo: number;
@@ -473,7 +473,7 @@ export function AudioTimelineLane({
         subdivisionsPerBeat,
       })}
     >
-      {clips.length === 0 && recordingClipId === undefined && (
+      {emptyLabel && clips.length === 0 && recordingClipId === undefined && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
           {emptyLabel}
         </div>
