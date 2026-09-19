@@ -8,17 +8,6 @@ vi.hoisted(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-const AUDIO_TRACK: SavedProject["audioTracks"][number] = {
-  id: "backing",
-  fileName: "backing.wav",
-  assetKey: "original",
-  duration: 9,
-  offset: 1.25,
-  volume: 0.6,
-  muted: false,
-  soloed: true,
-};
-
 function mockDecoder() {
   const channels = [
     new Float32Array([0.25, -0.5]),
@@ -99,7 +88,21 @@ describe("legacy recorder conversion", () => {
     const { channels } = mockDecoder();
     const result = await convertLegacyProject({
       name: "Audio",
-      project: { ...createDefaultSavedProject(), audioTracks: [AUDIO_TRACK] },
+      project: {
+        ...createDefaultSavedProject(),
+        audioTracks: [
+          {
+            id: "backing",
+            fileName: "backing.wav",
+            assetKey: "original",
+            duration: 9,
+            offset: 1.25,
+            volume: 0.6,
+            muted: false,
+            soloed: true,
+          },
+        ],
+      },
       loadAudio: async () => new Blob(["encoded"]),
     });
     expect(result.audioTracks[0]).toMatchObject({
