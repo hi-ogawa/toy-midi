@@ -9,6 +9,7 @@ import { routes } from "../../lib/routes";
 import { toResult } from "../../utils/result";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
+import { LegacyProjectList } from "./legacy-project-list";
 
 export function RecorderProjectList() {
   const projects = useSuspenseQuery({
@@ -101,6 +102,7 @@ export function RecorderProjectList() {
           </div>
         </div>
       )}
+      {projects.data.ok && <LegacyProjectList />}
     </div>
   );
 }
