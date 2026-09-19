@@ -391,18 +391,6 @@ export class RecorderRuntime {
   }
 
   /** @internal for undo */
-  deleteMidiTrack(id: string): void {
-    this.midiTrackPlaybacks.get(id)?.dispose();
-    this.midiTrackPlaybacks.delete(id);
-    this.store.update({
-      midiTracks: this.store
-        .get()
-        .midiTracks.filter((track) => track.id !== id),
-    });
-    this.syncTrackMix();
-  }
-
-  /** @internal for undo */
   async insertMidiTrack({
     track,
     index,
@@ -424,6 +412,18 @@ export class RecorderRuntime {
     this.store.update({ midiTracks });
     this.syncTrackMix();
     return index;
+  }
+
+  /** @internal for undo */
+  deleteMidiTrack(id: string): void {
+    this.midiTrackPlaybacks.get(id)?.dispose();
+    this.midiTrackPlaybacks.delete(id);
+    this.store.update({
+      midiTracks: this.store
+        .get()
+        .midiTracks.filter((track) => track.id !== id),
+    });
+    this.syncTrackMix();
   }
 
   setTrackMix(
@@ -1277,18 +1277,16 @@ class RecorderHistory {
     index: number;
     reverse?: boolean;
   }): void {
-    const absent: RecorderChange = {
+    const before: RecorderChange = {
       type: "midi-track",
       trackId: track.id,
     };
-    const present: RecorderChange = {
-      ...absent,
+    const after: RecorderChange = {
+      ...before,
       snapshot: { track, index },
     };
     this.history.push(
-      reverse
-        ? { before: present, after: absent }
-        : { before: absent, after: present },
+      reverse ? { before: after, after: before } : { before, after },
     );
   }
 
