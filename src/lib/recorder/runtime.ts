@@ -574,10 +574,9 @@ export class RecorderRuntime {
     });
     this.midiTrackPlaybacks.set(track.id, playback);
     this.store.update({
-      midiTracks: [...this.store.get().midiTracks, track],
+      midiTracks: [...state.midiTracks, track],
     });
     this.syncTrackMix();
-    playback.setTempo(this.store.get().tempo);
   }
 
   removeMidiTrack(id: string): void {
