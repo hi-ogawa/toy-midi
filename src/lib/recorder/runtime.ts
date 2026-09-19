@@ -42,9 +42,8 @@ import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
-export const MIN_CLIP_DURATION = 0.01;
-
 const MAX_RECORDING_SECONDS = 5 * 60;
+export const MIN_CLIP_DURATION = 0.01;
 const DEFAULT_TRACK_HEIGHT = 72;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MIN_RECORDING_TRACK_HEIGHT = 116;
