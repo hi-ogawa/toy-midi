@@ -227,8 +227,8 @@ export class RecorderRuntime {
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
-  private trackPlaybacks = new Map<string, AudioTrackPlayback>();
-  private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
+  private readonly trackPlaybacks = new Map<string, AudioTrackPlayback>();
+  private readonly midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
@@ -672,9 +672,10 @@ export class RecorderRuntime {
     if (!track) {
       throw new Error("Audio track state is missing.");
     }
-    audioTracks[index] = apply(track);
+    const next = apply(track);
+    audioTracks[index] = next;
     this.store.update({ audioTracks });
-    return audioTracks[index]!;
+    return next;
   }
 
   private getTrackPlayback(id: string): AudioTrackPlayback {
@@ -702,7 +703,7 @@ export class RecorderRuntime {
   private updateMidiTrack(
     id: string,
     update: (track: MidiTrackState) => MidiTrackState,
-  ): MidiTrackState {
+  ): void {
     const midiTracks = this.store.get().midiTracks.slice();
     const index = midiTracks.findIndex((track) => track.id === id);
     const track = midiTracks[index];
@@ -711,7 +712,6 @@ export class RecorderRuntime {
     }
     midiTracks[index] = update(track);
     this.store.update({ midiTracks });
-    return midiTracks[index]!;
   }
 
   private syncTrackPlayback(track: AudioTrackState): void {
@@ -1403,10 +1403,7 @@ export function clampTrackHeight(height: number): number {
 }
 
 function clampRecordingTrackHeight(height: number): number {
-  return Math.max(
-    MIN_RECORDING_TRACK_HEIGHT,
-    Math.min(MAX_TRACK_HEIGHT, height),
-  );
+  return clamp(height, MIN_RECORDING_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
 }
 
 function createNumberedName({
