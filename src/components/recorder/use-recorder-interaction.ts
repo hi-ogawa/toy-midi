@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { matchKeyboardEvent } from "../../lib/keyboard";
 import type {
   RecorderRuntime,
@@ -69,6 +70,10 @@ export function useRecorderInteraction({
     return true;
   }
 
+  const historyMutation = useMutation({
+    mutationFn: (direction: "undo" | "redo") => runtime[direction](),
+  });
+
   function handleUndoRedoShortcut(event: KeyboardEvent): boolean {
     const undo = matchKeyboardEvent(event, "Ctrl+Z");
     const redo =
@@ -79,11 +84,7 @@ export function useRecorderInteraction({
     }
     // Discard active previews before undo/redo changes committed state.
     clearSelection();
-    if (undo) {
-      runtime.undo();
-    } else {
-      runtime.redo();
-    }
+    historyMutation.mutate(undo ? "undo" : "redo");
     return true;
   }
 

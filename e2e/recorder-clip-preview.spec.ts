@@ -27,7 +27,7 @@ test("previews clip moves and trims, commits on release, and cancels on Escape o
   });
   await saveRecorderProject(page);
   const save = page.getByTestId("recorder-save-button");
-  const clip = page.getByTestId("recorder-clip-audio");
+  const clip = page.getByTestId("recorder-clip-audio-source");
   const original = (await clip.boundingBox())!;
   const delta = DEFAULT_PIXELS_PER_BEAT;
 
@@ -102,7 +102,7 @@ test("previews capture overlap regions without saving the drag", async ({
   const source = page
     .getByTestId("recorder-take-row")
     .filter({ hasText: "Take 2" })
-    .getByTestId("recorder-clip-take-lane");
+    .getByTestId("recorder-clip-take-lane-source");
   const comp = page.getByTestId("recorder-clip-comp");
   const originalRegions = await comp.allTextContents();
   const original = (await source.boundingBox())!;
