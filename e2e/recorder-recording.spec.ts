@@ -65,6 +65,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 2, -2);
 
+  // TODO: Consider consolidating edit assertions with recorder-clip-move.spec.ts and recorder-clip-trim.spec.ts.
   // The take can be moved and trimmed without changing its source audio.
   const beforeEdit = await take.boundingBox();
   expect(beforeEdit).not.toBeNull();

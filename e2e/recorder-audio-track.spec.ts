@@ -19,6 +19,7 @@ test("uploads and plays a backing track", async ({ page }) => {
     "test-audio.wav",
   );
 
+  // TODO: Consider consolidating edit assertions with recorder-clip-move.spec.ts and recorder-clip-trim.spec.ts.
   // Move and trim backing audio without changing its source.
   const beforeEdit = await clip.boundingBox();
   expect(beforeEdit).not.toBeNull();

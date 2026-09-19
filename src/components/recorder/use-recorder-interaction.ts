@@ -82,8 +82,7 @@ export function useRecorderInteraction({
     if (!undo && !redo) {
       return false;
     }
-    // Clear selection and previews so an active gesture cannot overwrite replay.
-    midiInteraction.clear();
+    clearSelection();
     historyMutation.mutate(undo ? "undo" : "redo");
     return true;
   }

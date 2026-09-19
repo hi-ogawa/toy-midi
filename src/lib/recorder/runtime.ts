@@ -43,7 +43,7 @@ import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
-const MIN_TAKE_DURATION = 0.01;
+export const MIN_CLIP_DURATION = 0.01;
 const DEFAULT_TRACK_HEIGHT = 72;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MIN_RECORDING_TRACK_HEIGHT = 116;
@@ -182,18 +182,21 @@ export type PersistableRecorderRuntimeState = Pick<
   recordingTrack: Omit<AudioTrackState, "regions">;
 };
 
-export type RecorderClipId =
-  | { type: "clip"; id: string }
-  | { type: "reference" };
+export const REFERENCE_VIDEO_CLIP_ID = "__reference_video__";
 
-export type RecorderClipMove =
-  | { type: "clip"; id: string; timelineOffset: number }
-  | { type: "reference"; timelineOffset: number };
+export type RecorderClipMove = {
+  id: string;
+  timelineOffset: number;
+};
 
-export type RecorderClipTrim = Extract<RecorderClipId, { id: string }> & {
-  edge: "start" | "end";
+export type RecorderClipTrim = {
+  id: string;
   value: number;
 };
+
+export type RecorderClipEdit =
+  | { type: "move"; changes: readonly RecorderClipMove[] }
+  | { type: "trim-start" | "trim-end"; changes: readonly RecorderClipTrim[] };
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
@@ -438,52 +441,21 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  moveClips(updates: readonly RecorderClipMove[]): void {
+  commitClipEdit(edit: RecorderClipEdit): void {
     const state = this.store.get();
-    const offsets = new Map(
-      updates.flatMap((update) =>
-        update.type === "clip"
-          ? [[update.id, update.timelineOffset] as const]
-          : [],
-      ),
-    );
-    const referenceOffset = updates.find(
-      (update) => update.type === "reference",
-    )?.timelineOffset;
+    const next = deriveClipEditState(state, edit);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    function moveTrackClips(track: AudioTrackState): AudioTrackState {
-      return updateTrackClips({
-        track,
-        update: (clips) =>
-          clips.map((clip) =>
-            offsets.has(clip.id)
-              ? { ...clip, timelineOffset: offsets.get(clip.id)! }
-              : clip,
-          ),
-      });
+    this.store.update(next);
+    if (next.recordingTrack !== state.recordingTrack) {
+      this.syncTrackPlayback(next.recordingTrack);
     }
-    const audioTracks = state.audioTracks.map((track) => moveTrackClips(track));
-    const recordingTrack = moveTrackClips(state.recordingTrack);
-    const referenceVideo = state.referenceVideo
-      ? {
-          ...state.referenceVideo,
-          timelineStart: referenceOffset ?? state.referenceVideo.timelineStart,
-        }
-      : undefined;
-    if (referenceOffset !== undefined && !referenceVideo) {
-      throw new Error("Recorder clip state is missing.");
-    }
-    this.store.update({ recordingTrack, audioTracks, referenceVideo });
-    if (recordingTrack !== state.recordingTrack) {
-      this.syncTrackPlayback(recordingTrack);
-    }
-    if (referenceOffset !== undefined) {
+    if (next.referenceVideo !== state.referenceVideo) {
       this.syncYouTubePlayer();
     }
-    for (const [index, track] of audioTracks.entries()) {
+    for (const [index, track] of next.audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
         this.syncTrackPlayback(track);
       }
@@ -491,21 +463,6 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.transport.play();
     }
-  }
-
-  trimClip({ id, edge, value }: RecorderClipTrim): void {
-    this.updateClip(id, (clip) => ({
-      ...clip,
-      ...(edge === "start"
-        ? { trimStart: clamp(value, 0, clip.trimEnd - MIN_TAKE_DURATION) }
-        : {
-            trimEnd: clamp(
-              value,
-              clip.trimStart + MIN_TAKE_DURATION,
-              clip.duration,
-            ),
-          }),
-    }));
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
@@ -545,12 +502,10 @@ export class RecorderRuntime {
     }
   }
 
-  removeClips(clips: readonly RecorderClipId[]): void {
+  removeClips(ids: readonly string[]): void {
     const state = this.store.get();
-    const clipIds = new Set(
-      clips.flatMap((clip) => (clip.type === "clip" ? [clip.id] : [])),
-    );
-    const removeReference = clips.some((clip) => clip.type === "reference");
+    const clipIds = new Set(ids);
+    const removeReference = clipIds.has(REFERENCE_VIDEO_CLIP_ID);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -1179,7 +1134,7 @@ export class RecorderRuntime {
       : undefined;
     if (
       !slice ||
-      slice.samples.length < MIN_TAKE_DURATION * context.sampleRate
+      slice.samples.length < MIN_CLIP_DURATION * context.sampleRate
     ) {
       this.store.update({
         captureStatus: "ready",
@@ -1308,6 +1263,76 @@ class RecorderHistory {
   clear = () => this.history.clear();
   undo = () => this.history.undo((change) => this.apply(change));
   redo = () => this.history.redo((change) => this.apply(change));
+}
+
+/** Calculate clip state from an explicit snapshot for both preview and commit. */
+export function deriveClipEditState(
+  state: RecorderRuntimeState,
+  edit: RecorderClipEdit,
+): Pick<
+  RecorderRuntimeState,
+  "audioTracks" | "recordingTrack" | "referenceVideo"
+> {
+  const moves = edit.type === "move" ? edit.changes : [];
+  const trims = edit.type !== "move" ? edit.changes : [];
+  function editTrack(track: AudioTrackState): AudioTrackState {
+    return updateTrackClips({
+      track,
+      update: (clips) => {
+        return clips.map((clip) => {
+          const trim = trims.find((change) => change.id === clip.id);
+          if (trim) {
+            return trimAudioClip({
+              clip,
+              edge: edit.type === "trim-start" ? "start" : "end",
+              value: trim.value,
+            });
+          }
+          const move = moves.find((change) => change.id === clip.id);
+          return move ? { ...clip, timelineOffset: move.timelineOffset } : clip;
+        });
+      },
+    });
+  }
+  function editReferenceVideo() {
+    const { referenceVideo } = state;
+    const move = moves.find((change) => change.id === REFERENCE_VIDEO_CLIP_ID);
+    if (!move) {
+      return referenceVideo;
+    }
+    if (!referenceVideo) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    return { ...referenceVideo, timelineStart: move.timelineOffset };
+  }
+  return {
+    audioTracks: state.audioTracks.map(editTrack),
+    recordingTrack: editTrack(state.recordingTrack),
+    referenceVideo: editReferenceVideo(),
+  };
+}
+
+function trimAudioClip({
+  clip,
+  edge,
+  value,
+}: {
+  clip: AudioClip;
+  edge: "start" | "end";
+  value: number;
+}): AudioClip {
+  return {
+    ...clip,
+    ...(edge === "start"
+      ? { trimStart: clamp(value, 0, clip.trimEnd - MIN_CLIP_DURATION) }
+      : {
+          trimEnd: clamp(
+            value,
+            clip.trimStart + MIN_CLIP_DURATION,
+            clip.duration,
+          ),
+        }),
+  };
 }
 
 /**
