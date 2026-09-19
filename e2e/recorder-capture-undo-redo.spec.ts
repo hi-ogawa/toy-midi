@@ -87,7 +87,7 @@ test("undoes recorded takes and MIDI edits together and restores overlapping aud
   expect(restoredBox.width).toBeCloseTo(secondBox.width, 0);
   await expect(comp.filter({ hasText: "Take 2" })).toBeVisible();
 
-  // Undo during a drag of the first take and stop further pointer movement from changing it.
+  // Undo during a drag to discard its preview and keep the original position after release.
   const first = takes
     .filter({ hasText: "Take 1" })
     .getByTestId("recorder-clip-take-lane");
@@ -103,7 +103,7 @@ test("undoes recorded takes and MIDI edits together and restores overlapping aud
   await expect(takes).toHaveCount(1);
   await page.mouse.move(x + 40, y, { steps: 4 });
   await page.mouse.up();
-  expect((await first.boundingBox())!.x).toBeCloseTo(movedX, 0);
+  expect((await first.boundingBox())!.x).toBeCloseTo(firstBox.x, 0);
   await expect(
     takes
       .filter({ hasText: "Take 1" })

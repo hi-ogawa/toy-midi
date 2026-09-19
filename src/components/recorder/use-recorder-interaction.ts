@@ -88,7 +88,7 @@ export function useRecorderInteraction({
     ) {
       return true;
     }
-    // Clear selection and gestures so an active drag cannot overwrite replay.
+    // Discard active previews before undo/redo changes committed state.
     clearSelection();
     historyMutation.mutate(undo ? "undo" : "redo");
     return true;
