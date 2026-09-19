@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   MoreVerticalIcon,
+  Minimize2Icon,
+  PianoIcon,
   Music2Icon,
   FileMusicIcon,
   Settings2Icon,
@@ -12,6 +14,7 @@ import {
   useRef,
   useState,
   type FocusEvent,
+  type RefObject,
 } from "react";
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
@@ -46,6 +49,7 @@ import {
 } from "./use-recorder-midi-interaction";
 
 const KEY_HEIGHT = 18;
+const COMPACT_HEIGHT = 96;
 const PITCHES = Array.from(
   { length: MAX_PITCH + 1 },
   (_, index) => MAX_PITCH - index,
@@ -79,6 +83,8 @@ export function MidiTrackRow({
   onScorePreview: () => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
+  const pitchScroll = useRef<number>(undefined);
+  const compact = midiInteraction.isCompact(track.id);
   return (
     <div onFocus={midiInteraction.activate}>
       <TrackRow
@@ -86,7 +92,7 @@ export function MidiTrackRow({
         // Keep controls at their content height so the piano keyboard shows below.
         controlsClassName="h-fit"
         title={track.name}
-        height={track.height}
+        height={compact ? COMPACT_HEIGHT : track.height}
         gain={track.gain}
         muted={track.muted}
         soloed={track.soloed}
@@ -95,10 +101,16 @@ export function MidiTrackRow({
         onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
         onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
         onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
-        onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
+        onHeightChange={
+          compact
+            ? undefined
+            : (height) => runtime.setTrackHeight(track.id, height)
+        }
         action={
           <MidiTrackActions
             label={track.name}
+            compact={compact}
+            onCompactToggle={() => midiInteraction.toggleCompact(track.id)}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
             onScorePreview={onScorePreview}
@@ -106,15 +118,25 @@ export function MidiTrackRow({
           />
         }
       >
-        <MidiTrackEditor
-          track={track}
-          runtime={runtime}
-          midiInteraction={midiInteraction}
-          pixelsPerBeat={pixelsPerBeat}
-          beatsPerBar={beatsPerBar}
-          subdivisionsPerBeat={subdivisionsPerBeat}
-          viewportStartBeat={viewportStartBeat}
-        />
+        {compact ? (
+          <MidiTrackOverview
+            track={track}
+            pixelsPerBeat={pixelsPerBeat}
+            beatsPerBar={beatsPerBar}
+            viewportStartBeat={viewportStartBeat}
+          />
+        ) : (
+          <MidiTrackEditor
+            track={track}
+            runtime={runtime}
+            midiInteraction={midiInteraction}
+            pixelsPerBeat={pixelsPerBeat}
+            beatsPerBar={beatsPerBar}
+            subdivisionsPerBeat={subdivisionsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+            pitchScroll={pitchScroll}
+          />
+        )}
       </TrackRow>
       <PortalDialog
         isOpen={isInstrumentOpen}
@@ -129,12 +151,16 @@ export function MidiTrackRow({
 
 function MidiTrackActions({
   label,
+  compact,
+  onCompactToggle,
   onRemove,
   onInstrumentOpen,
   onTranscribe,
   onScorePreview,
 }: {
   label: string;
+  compact: boolean;
+  onCompactToggle: () => void;
   onRemove: () => void;
   onInstrumentOpen: () => void;
   onTranscribe: () => void;
@@ -151,6 +177,11 @@ function MidiTrackActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onCompactToggle}>
+          {compact ? <PianoIcon /> : <Minimize2Icon />}
+          {compact ? "Open piano roll" : "Show compact overview"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onInstrumentOpen}>
           <Settings2Icon />
           Instrument…
@@ -173,6 +204,63 @@ function MidiTrackActions({
   );
 }
 
+function MidiTrackOverview({
+  track,
+  pixelsPerBeat,
+  beatsPerBar,
+  viewportStartBeat,
+}: {
+  track: MidiTrackState;
+  pixelsPerBeat: number;
+  beatsPerBar: number;
+  viewportStartBeat: number;
+}) {
+  // Use the whole track so horizontal navigation never changes the pitch scale.
+  let lowest = track.notes[0]?.pitch ?? 60;
+  let highest = lowest;
+  for (const note of track.notes) {
+    lowest = Math.min(lowest, note.pitch);
+    highest = Math.max(highest, note.pitch);
+  }
+  const center = (lowest + highest) / 2;
+  const range = Math.max(12, highest - lowest);
+  const noteHeight = 4;
+  const padding = 12;
+  const pitchHeight = COMPACT_HEIGHT - padding * 2 - noteHeight;
+
+  return (
+    <div
+      data-testid="recorder-midi-overview"
+      role="img"
+      aria-label={`${track.name} note overview, ${track.notes.length} ${track.notes.length === 1 ? "note" : "notes"}`}
+      className="relative col-start-2 row-start-1 overflow-hidden bg-neutral-900"
+      style={getTimelineGridBackground({
+        beatsPerBar,
+        pixelsPerBeat,
+        viewportStartBeat,
+        subdivisionsPerBeat: 1,
+        minimumPixelSpacing: 8,
+        colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
+      })}
+    >
+      {track.notes.map((note) => (
+        <div
+          key={note.id}
+          className="pointer-events-none absolute rounded-sm bg-blue-400/70"
+          style={{
+            left: (note.start - viewportStartBeat) * pixelsPerBeat,
+            top:
+              padding +
+              ((center + range / 2 - note.pitch) / range) * pitchHeight,
+            width: Math.max(2, note.duration * pixelsPerBeat),
+            height: noteHeight,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function MidiTrackEditor({
   track,
   runtime,
@@ -181,6 +269,7 @@ function MidiTrackEditor({
   beatsPerBar,
   subdivisionsPerBeat,
   viewportStartBeat,
+  pitchScroll,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -189,6 +278,7 @@ function MidiTrackEditor({
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
+  pitchScroll: RefObject<number | undefined>;
 }) {
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
@@ -209,8 +299,9 @@ function MidiTrackEditor({
       if (!element) {
         return;
       }
-      // Center the initial pitch when the scroll container mounts.
+      // Restore the editor after compact mode, or center the initial pitch.
       element.scrollTop =
+        pitchScroll.current ??
         (MAX_PITCH - initialPitch) * KEY_HEIGHT - element.clientHeight / 2;
 
       // Keep native vertical pitch scrolling local. Let horizontal gestures,
@@ -221,9 +312,12 @@ function MidiTrackEditor({
         }
       };
       element.addEventListener("wheel", handleWheel);
-      return () => element.removeEventListener("wheel", handleWheel);
+      return () => {
+        pitchScroll.current = element.scrollTop;
+        element.removeEventListener("wheel", handleWheel);
+      };
     },
-    [initialPitch],
+    [initialPitch, pitchScroll],
   );
 
   function getPointerPosition(event: PointerEvent) {

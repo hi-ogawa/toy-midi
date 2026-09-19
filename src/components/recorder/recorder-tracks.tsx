@@ -94,7 +94,7 @@ export function TrackRow({
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
-  onHeightChange: (height: number) => void;
+  onHeightChange?: (height: number) => void;
   children: React.ReactNode;
 }) {
   const resizeRef = usePointerDrag({
@@ -103,7 +103,7 @@ export function TrackRow({
       return { startClientY: event.clientY, startHeight: height };
     },
     onMove: (event, drag) => {
-      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+      onHeightChange?.(drag.startHeight + event.clientY - drag.startClientY);
     },
   });
   return (
@@ -154,11 +154,13 @@ export function TrackRow({
         </label>
       </div>
       {children}
-      <div
-        ref={resizeRef}
-        className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
-        title={`Resize ${title}`}
-      />
+      {onHeightChange && (
+        <div
+          ref={resizeRef}
+          className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
+          title={`Resize ${title}`}
+        />
+      )}
     </div>
   );
 }

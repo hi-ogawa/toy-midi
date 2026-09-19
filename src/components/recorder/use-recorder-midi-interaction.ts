@@ -45,6 +45,7 @@ export function useRecorderMidiInteraction({
   /** Only coordinates selection domains by clearing selection in the other domains. */
   onSelect: () => void;
 }) {
+  const [compactTrackIds, setCompactTrackIds] = useState(new Set<string>());
   // A defined selection always contains at least one note ID.
   const [selection, setSelection] = useState<{
     trackId: string;
@@ -79,6 +80,25 @@ export function useRecorderMidiInteraction({
       setSelection(noteIds.size > 0 ? { ...selection, noteIds } : undefined);
     }
   }, [state.midiTracks, selection]);
+
+  function isCompact(trackId: string) {
+    return compactTrackIds.has(trackId);
+  }
+
+  function toggleCompact(trackId: string) {
+    if (hasTrackSelection(trackId)) {
+      clear();
+    }
+    setCompactTrackIds((current) => {
+      const next = new Set(current);
+      if (next.has(trackId)) {
+        next.delete(trackId);
+      } else {
+        next.add(trackId);
+      }
+      return next;
+    });
+  }
 
   function isSelected(trackId: string, noteId: string) {
     return selection?.trackId === trackId && selection.noteIds.has(noteId);
@@ -395,7 +415,7 @@ export function useRecorderMidiInteraction({
   }
 
   function paste(insertBeat: number) {
-    if (!clipboard) {
+    if (!clipboard || isCompact(clipboard.trackId)) {
       return false;
     }
     const track = state.midiTracks.find(
@@ -483,6 +503,8 @@ export function useRecorderMidiInteraction({
 
   return {
     activate: onSelect,
+    isCompact,
+    toggleCompact,
     clear,
     hasSelection: selection !== undefined,
     hasTrackSelection,
