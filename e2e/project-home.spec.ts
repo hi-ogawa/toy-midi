@@ -141,7 +141,7 @@ test("Projects search filters current and legacy projects together", async ({
 
   // Remove the current project and keep searching the remaining legacy project.
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Delete recording" }).click();
+  await page.getByRole("button", { name: "Delete project" }).click();
   await expect(status).toHaveText("1 of 1 projects");
   await expect(page.getByText("No projects yet", { exact: true })).toBeHidden();
   await search.fill("missing");
