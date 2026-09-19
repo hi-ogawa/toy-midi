@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type RecorderClipId,
   type RecorderClipMove,
@@ -27,6 +27,9 @@ export function useRecorderClipInteraction({
   /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
 }) {
+  const gesture = useRef<
+    RecorderClipMoveSnapshot | RecorderClipTrimSnapshot | undefined
+  >(undefined);
   const [keys, setKeys] = useState(() => new Set<string>());
 
   function getKey(clip: RecorderClipId): string {
@@ -109,7 +112,7 @@ export function useRecorderClipInteraction({
           ]
         : []),
     ];
-    return {
+    const snapshot = {
       clips,
       minimumVisibleStart: Math.min(
         ...selected.clips.map((clip) => clip.timelineOffset + clip.trimStart),
@@ -118,9 +121,14 @@ export function useRecorderClipInteraction({
           : []),
       ),
     };
+    gesture.current = snapshot;
+    return snapshot;
   }
 
   function move(snapshot: RecorderClipMoveSnapshot, delta: number): void {
+    if (gesture.current !== snapshot) {
+      return;
+    }
     const clampedDelta = Math.max(delta, -snapshot.minimumVisibleStart);
     runtime.moveClips(
       snapshot.clips.map((clip) =>
@@ -160,14 +168,19 @@ export function useRecorderClipInteraction({
     if (!keys.has(key)) {
       setKeys(new Set([key]));
     }
-    return {
+    const snapshot = {
       clip,
       edge,
       initialValue: edge === "start" ? selected.trimStart : selected.trimEnd,
     };
+    gesture.current = snapshot;
+    return snapshot;
   }
 
   function trim(snapshot: RecorderClipTrimSnapshot, delta: number): void {
+    if (gesture.current !== snapshot) {
+      return;
+    }
     if (snapshot.clip.type === "reference") {
       throw new Error("Reference clips cannot be trimmed.");
     }
@@ -191,7 +204,10 @@ export function useRecorderClipInteraction({
   }
 
   return {
-    clear: () => setKeys(new Set()),
+    clear: () => {
+      gesture.current = undefined;
+      setKeys(new Set());
+    },
     hasSelection: keys.size > 0,
     isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
     select,

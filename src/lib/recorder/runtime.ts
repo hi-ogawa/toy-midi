@@ -1198,21 +1198,20 @@ export class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
+    const take = {
+      ...createAudioClip({
+        id: pendingRecording.id,
+        name: pendingRecording.name,
+        buffer: takeBuffer,
+      }),
+      timelineOffset,
+    };
     const previousTrack = this.store.get().recordingTrack;
+    const index = previousTrack.clips.length;
     const recordingTrack = resolveTrackRegions({
       ...previousTrack,
       nextTakeNumber: previousTrack.nextTakeNumber + 1,
-      clips: [
-        ...previousTrack.clips,
-        {
-          ...createAudioClip({
-            id: pendingRecording.id,
-            name: pendingRecording.name,
-            buffer: takeBuffer,
-          }),
-          timelineOffset,
-        },
-      ],
+      clips: [...previousTrack.clips, take],
     });
     this.store.update({
       captureStatus: "ready",
@@ -1222,6 +1221,25 @@ export class RecorderRuntime {
     });
     this.syncTrackPlayback(recordingTrack);
     this.syncTrackMix();
+    this.history.pushCaptureTake({ take, index });
+  }
+
+  /** @internal for undo */
+  applyCaptureTake({
+    id,
+    snapshot,
+  }: {
+    id: string;
+    snapshot?: { take: AudioClip; index: number };
+  }): void {
+    const recordingTrack = this.updateTrack(RECORDING_TRACK_ID, (track) => {
+      const clips = track.clips.filter((clip) => clip.id !== id);
+      if (snapshot) {
+        clips.splice(snapshot.index, 0, snapshot.take);
+      }
+      return { ...track, clips };
+    });
+    this.syncTrackPlayback(recordingTrack);
   }
 
   private closeInput(): void {
@@ -1255,6 +1273,11 @@ type RecorderChange =
       type: "midi-track";
       trackId: string;
       snapshot?: { track: MidiTrackState; index: number };
+    }
+  | {
+      type: "capture-take";
+      id: string;
+      snapshot?: { take: AudioClip; index: number };
     };
 
 // TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
@@ -1294,8 +1317,19 @@ class RecorderHistory {
     );
   }
 
+  pushCaptureTake({ take, index }: { take: AudioClip; index: number }): void {
+    this.history.push({
+      before: { type: "capture-take", id: take.id },
+      after: { type: "capture-take", id: take.id, snapshot: { take, index } },
+    });
+  }
+
   private async apply(change: RecorderChange): Promise<void> {
     switch (change.type) {
+      case "capture-take": {
+        this.runtime.applyCaptureTake(change);
+        break;
+      }
       case "midi-notes": {
         this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
         break;
