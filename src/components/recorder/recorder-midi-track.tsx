@@ -1,8 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   MoreVerticalIcon,
-  Minimize2Icon,
-  PianoIcon,
   Music2Icon,
   FileMusicIcon,
   Settings2Icon,
@@ -35,6 +33,7 @@ import { PortalDialog } from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -177,10 +176,12 @@ function MidiTrackActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuItem onSelect={onCompactToggle}>
-          {compact ? <PianoIcon /> : <Minimize2Icon />}
-          {compact ? "Open piano roll" : "Show compact overview"}
-        </DropdownMenuItem>
+        <DropdownMenuCheckboxItem
+          checked={compact}
+          onCheckedChange={onCompactToggle}
+        >
+          Overview
+        </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onInstrumentOpen}>
           <Settings2Icon />

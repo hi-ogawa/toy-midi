@@ -41,7 +41,12 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   });
   await saveRecorderProject(page);
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page.getByRole("menuitem", { name: "Show compact overview" }).click();
+  const overviewToggle = page.getByRole("menuitemcheckbox", {
+    name: "Overview",
+    exact: true,
+  });
+  await expect(overviewToggle).not.toBeChecked();
+  await overviewToggle.click();
 
   // Verify the short overview retains note timing while removing the piano roll and resizing.
   const overview = row.getByRole("img", {
@@ -81,7 +86,8 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
 
   // Reopen the piano roll at its previous height and pitch scroll, with editing still available.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page.getByRole("menuitem", { name: "Open piano roll" }).click();
+  await expect(overviewToggle).toBeChecked();
+  await overviewToggle.click();
   await expect(grid).toBeVisible();
   expect((await row.boundingBox())!.height).toBe(expandedHeight);
   expect(await scroll.evaluate((element) => element.scrollTop)).toBe(scrollTop);
@@ -95,7 +101,9 @@ test("shows empty and single-pitch compact overviews", async ({ page }) => {
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page.getByRole("menuitem", { name: "Show compact overview" }).click();
+  await page
+    .getByRole("menuitemcheckbox", { name: "Overview", exact: true })
+    .click();
   await expect(
     row.getByRole("img", { name: "MIDI 1 note overview, 0 notes" }),
   ).toBeVisible();
@@ -106,10 +114,14 @@ test("shows empty and single-pitch compact overviews", async ({ page }) => {
 
   // Add one note in the editor and verify the overview centers it in the lane.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page.getByRole("menuitem", { name: "Open piano roll" }).click();
+  await page
+    .getByRole("menuitemcheckbox", { name: "Overview", exact: true })
+    .click();
   await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page.getByRole("menuitem", { name: "Show compact overview" }).click();
+  await page
+    .getByRole("menuitemcheckbox", { name: "Overview", exact: true })
+    .click();
   const overview = row.getByRole("img", {
     name: "MIDI 1 note overview, 1 note",
   });
