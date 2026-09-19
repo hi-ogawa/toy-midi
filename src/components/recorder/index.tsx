@@ -403,13 +403,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clipInteraction.select({ type: "reference" }, additive)
                 }
                 onClipDragStart={(additive) =>
-                  clipInteraction.startMove({
+                  clipInteraction.startEdit({
+                    type: "move",
                     clip: { type: "reference" },
                     additive,
                   })
                 }
-                onClipDragMove={clipInteraction.updateMove}
-                onClipDragEnd={clipInteraction.finishMove}
+                onClipDragMove={clipInteraction.updateEdit}
+                onClipDragEnd={clipInteraction.finishEdit}
                 onClipDragCancel={clipInteraction.cancelEdit}
                 muted={state.referenceVideo.muted}
                 onMutedChange={(muted) => runtime.setReferenceVideoMuted(muted)}
@@ -468,22 +469,24 @@ export function Recorder({ projectId }: { projectId: string }) {
                     clipInteraction.select({ type: "clip", id }, additive)
                   }
                   onTrimStart={(id, edge) =>
-                    clipInteraction.startTrim({
+                    clipInteraction.startEdit({
+                      type: "trim",
                       clip: { type: "clip", id },
                       edge,
                     })
                   }
-                  onTrimMove={clipInteraction.updateTrim}
-                  onTrimEnd={clipInteraction.finishTrim}
+                  onTrimMove={clipInteraction.updateEdit}
+                  onTrimEnd={clipInteraction.finishEdit}
                   onTrimCancel={clipInteraction.cancelEdit}
                   onClipDragStart={(id, additive) =>
-                    clipInteraction.startMove({
+                    clipInteraction.startEdit({
+                      type: "move",
                       clip: { type: "clip", id },
                       additive,
                     })
                   }
-                  onClipDragMove={clipInteraction.updateMove}
-                  onClipDragEnd={clipInteraction.finishMove}
+                  onClipDragMove={clipInteraction.updateEdit}
+                  onClipDragEnd={clipInteraction.finishEdit}
                   onClipDragCancel={clipInteraction.cancelEdit}
                   onSeek={(position) => {
                     recorderInteraction.clearSelection();
@@ -576,22 +579,24 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clipInteraction.select({ type: "clip", id }, additive)
                 }
                 onTrimStart={(id, edge) =>
-                  clipInteraction.startTrim({
+                  clipInteraction.startEdit({
+                    type: "trim",
                     clip: { type: "clip", id },
                     edge,
                   })
                 }
-                onTrimMove={clipInteraction.updateTrim}
-                onTrimEnd={clipInteraction.finishTrim}
+                onTrimMove={clipInteraction.updateEdit}
+                onTrimEnd={clipInteraction.finishEdit}
                 onTrimCancel={clipInteraction.cancelEdit}
                 onClipDragStart={(id, additive) =>
-                  clipInteraction.startMove({
+                  clipInteraction.startEdit({
+                    type: "move",
                     clip: { type: "clip", id },
                     additive,
                   })
                 }
-                onClipDragMove={clipInteraction.updateMove}
-                onClipDragEnd={clipInteraction.finishMove}
+                onClipDragMove={clipInteraction.updateEdit}
+                onClipDragEnd={clipInteraction.finishEdit}
                 onClipDragCancel={clipInteraction.cancelEdit}
                 onSeek={(position) => {
                   recorderInteraction.clearSelection();
@@ -642,22 +647,24 @@ export function Recorder({ projectId }: { projectId: string }) {
                       clipInteraction.select({ type: "clip", id }, additive)
                     }
                     onTrimStart={(id, edge) =>
-                      clipInteraction.startTrim({
+                      clipInteraction.startEdit({
+                        type: "trim",
                         clip: { type: "clip", id },
                         edge,
                       })
                     }
-                    onTrimMove={clipInteraction.updateTrim}
-                    onTrimEnd={clipInteraction.finishTrim}
+                    onTrimMove={clipInteraction.updateEdit}
+                    onTrimEnd={clipInteraction.finishEdit}
                     onTrimCancel={clipInteraction.cancelEdit}
                     onClipDragStart={(id, additive) =>
-                      clipInteraction.startMove({
+                      clipInteraction.startEdit({
+                        type: "move",
                         clip: { type: "clip", id },
                         additive,
                       })
                     }
-                    onClipDragMove={clipInteraction.updateMove}
-                    onClipDragEnd={clipInteraction.finishMove}
+                    onClipDragMove={clipInteraction.updateEdit}
+                    onClipDragEnd={clipInteraction.finishEdit}
                     onClipDragCancel={clipInteraction.cancelEdit}
                     onSeek={(position) => {
                       recorderInteraction.clearSelection();

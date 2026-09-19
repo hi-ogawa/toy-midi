@@ -18,6 +18,14 @@ type ClipEdit =
   | { type: "move"; snapshot: RecorderClipMoveSnapshot; delta: number }
   | { type: "trim"; clip: AudioClip; edge: "start" | "end"; delta: number };
 
+type ClipEditStart =
+  | { type: "move"; clip: RecorderClipId; additive: boolean }
+  | {
+      type: "trim";
+      clip: Extract<RecorderClipId, { type: "clip" }>;
+      edge: "start" | "end";
+    };
+
 export function useRecorderClipInteraction({
   runtime,
   state,
@@ -78,116 +86,113 @@ export function useRecorderClipInteraction({
     setKeys(next);
   }
 
-  function startMove({
-    clip,
-    additive,
-  }: {
-    clip: RecorderClipId;
-    additive: boolean;
-  }): void {
+  function startEdit(input: ClipEditStart): void {
     onSelect();
-    const draggedKey = getKey(clip);
-    // Dragging a selected clip preserves the group; an unselected clip joins
-    // with Ctrl/Cmd or replaces the selection otherwise.
-    const selectedKeys = keys.has(draggedKey)
-      ? new Set(keys)
-      : additive
-        ? new Set([...keys, draggedKey])
-        : new Set([draggedKey]);
-    setKeys(selectedKeys);
-    const selected = getSelectedClips(selectedKeys);
-    const clips = [
-      ...selected.clips.map((clip) => ({
-        type: "clip" as const,
-        id: clip.id,
-        timelineOffset: clip.timelineOffset,
-      })),
-      ...(selected.referenceVideo
-        ? [
-            {
-              type: "reference" as const,
-              timelineOffset: selected.referenceVideo.timelineStart,
-            },
-          ]
-        : []),
-    ];
-    const snapshot = {
-      clips,
-      minimumVisibleStart: Math.min(
-        ...selected.clips.map((clip) => clip.timelineOffset + clip.trimStart),
-        ...(selected.referenceVideo
-          ? [selected.referenceVideo.timelineStart]
-          : []),
-      ),
-    };
-    setEdit({ type: "move", snapshot, delta: 0 });
+    switch (input.type) {
+      case "move": {
+        const draggedKey = getKey(input.clip);
+        // Dragging a selected clip preserves the group; an unselected clip joins
+        // with Ctrl/Cmd or replaces the selection otherwise.
+        const selectedKeys = keys.has(draggedKey)
+          ? new Set(keys)
+          : input.additive
+            ? new Set([...keys, draggedKey])
+            : new Set([draggedKey]);
+        setKeys(selectedKeys);
+        const selected = getSelectedClips(selectedKeys);
+        const clips = [
+          ...selected.clips.map((clip) => ({
+            type: "clip" as const,
+            id: clip.id,
+            timelineOffset: clip.timelineOffset,
+          })),
+          ...(selected.referenceVideo
+            ? [
+                {
+                  type: "reference" as const,
+                  timelineOffset: selected.referenceVideo.timelineStart,
+                },
+              ]
+            : []),
+        ];
+        const snapshot = {
+          clips,
+          minimumVisibleStart: Math.min(
+            ...selected.clips.map(
+              (clip) => clip.timelineOffset + clip.trimStart,
+            ),
+            ...(selected.referenceVideo
+              ? [selected.referenceVideo.timelineStart]
+              : []),
+          ),
+        };
+        setEdit({ type: "move", snapshot, delta: 0 });
+        break;
+      }
+      case "trim": {
+        const selected = [...state.audioTracks, state.recordingTrack]
+          .flatMap((track) => track.clips)
+          .find((entry) => entry.id === input.clip.id);
+        if (!selected) {
+          throw new Error("Recorder clip state is missing.");
+        }
+        // TODO: Decide separately whether starting a trim should select the clip.
+        const key = getKey(input.clip);
+        if (!keys.has(key)) {
+          setKeys(new Set([key]));
+        }
+        setEdit({
+          type: "trim",
+          clip: selected,
+          edge: input.edge,
+          delta: 0,
+        });
+        break;
+      }
+    }
   }
 
-  function updateMove(delta: number): void {
-    if (edit?.type === "move") {
+  function updateEdit(delta: number): void {
+    if (edit) {
       setEdit({ ...edit, delta });
     }
   }
 
-  function finishMove(delta: number): void {
-    if (edit?.type !== "move") {
+  function finishEdit(delta: number): void {
+    if (!edit) {
       return;
     }
     setEdit(undefined);
-    const changes = getMoveChanges({ ...edit, delta });
-    if (
-      changes.some(
-        (change, index) =>
-          change.timelineOffset !== edit.snapshot.clips[index].timelineOffset,
-      )
-    ) {
-      runtime.moveClips(changes);
-    }
-  }
-
-  function startTrim({
-    clip,
-    edge,
-  }: {
-    clip: RecorderClipId;
-    edge: "start" | "end";
-  }): void {
-    const selected =
-      clip.type === "clip"
-        ? [...state.audioTracks, state.recordingTrack]
-            .flatMap((track) => track.clips)
-            .find((entry) => entry.id === clip.id)
-        : undefined;
-    if (!selected) {
-      throw new Error("Recorder clip state is missing.");
-    }
-    onSelect();
-    // TODO: Decide separately whether starting a trim should select the clip.
-    const key = getKey(clip);
-    if (!keys.has(key)) {
-      setKeys(new Set([key]));
-    }
-    setEdit({ type: "trim", clip: selected, edge, delta: 0 });
-  }
-
-  function updateTrim(delta: number): void {
-    if (edit?.type === "trim") {
-      setEdit({ ...edit, delta });
-    }
-  }
-
-  function finishTrim(delta: number): void {
-    if (edit?.type !== "trim") {
-      return;
-    }
-    setEdit(undefined);
-    const clip = getTrimmedClip({ ...edit, delta });
-    const value = edit.edge === "start" ? clip.trimStart : clip.trimEnd;
-    if (
-      value !==
-      (edit.edge === "start" ? edit.clip.trimStart : edit.clip.trimEnd)
-    ) {
-      runtime.trimClip({ type: "clip", id: clip.id, edge: edit.edge, value });
+    switch (edit.type) {
+      case "move": {
+        const changes = getMoveChanges({ ...edit, delta });
+        if (
+          changes.some(
+            (change, index) =>
+              change.timelineOffset !==
+              edit.snapshot.clips[index].timelineOffset,
+          )
+        ) {
+          runtime.moveClips(changes);
+        }
+        break;
+      }
+      case "trim": {
+        const clip = getTrimmedClip({ ...edit, delta });
+        const value = edit.edge === "start" ? clip.trimStart : clip.trimEnd;
+        if (
+          value !==
+          (edit.edge === "start" ? edit.clip.trimStart : edit.clip.trimEnd)
+        ) {
+          runtime.trimClip({
+            type: "clip",
+            id: clip.id,
+            edge: edit.edge,
+            value,
+          });
+        }
+        break;
+      }
     }
   }
 
@@ -260,12 +265,9 @@ export function useRecorderClipInteraction({
             (clip) => clip.type === "clip" && clip.id === id,
           ) ?? false),
     select,
-    startMove,
-    updateMove,
-    finishMove,
-    startTrim,
-    updateTrim,
-    finishTrim,
+    startEdit,
+    updateEdit,
+    finishEdit,
     removeSelected,
   };
 }
