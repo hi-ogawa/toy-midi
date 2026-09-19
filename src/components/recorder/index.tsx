@@ -614,11 +614,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                 >
                   <AudioTimelineLane
+                    testId="take-lane"
+                    editSourceClips={false}
                     clips={[take]}
                     // Show the complete trimmed source even when absent from the comp.
                     regions={deriveClipRegions([take])}
-                    editSourceClips={false}
-                    testId="take-lane"
                     pixelsPerBeat={timeline.pixelsPerBeat}
                     beatsPerBar={timeline.beatsPerBar}
                     subdivisionsPerBeat={timeline.subdivisionsPerBeat}
