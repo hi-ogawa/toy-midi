@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
-import { useState } from "react";
 import {
   type ProjectMetadata,
   projectStorage,
@@ -10,8 +9,13 @@ import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
 import { Button } from "../ui/button";
 
-export function LegacyProjectList() {
-  const [projects, setProjects] = useState(() => projectStorage.listMetadata());
+export function LegacyProjectList({
+  projects,
+  onDelete,
+}: {
+  projects: ProjectMetadata[];
+  onDelete: () => void;
+}) {
   const migrate = useMutation({
     mutationFn: async (project: ProjectMetadata) => {
       // Convert stored data and audio before saving a separate recorder copy.
@@ -28,20 +32,18 @@ export function LegacyProjectList() {
     },
   });
 
-  if (projects.length === 0) {
-    return;
-  }
-
   return (
     <section
       aria-label="Legacy projects"
       className="mt-4 border-t border-neutral-700/70 pt-4"
     >
       <h2 className="text-sm font-medium text-neutral-200">Legacy projects</h2>
-      <p className="mt-1 text-xs text-neutral-500">
-        Create a copy for the new editor. Your original project stays unchanged.
-      </p>
       <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+        {projects.length === 0 && (
+          <p className="py-3 text-center text-sm text-neutral-500">
+            No matching legacy projects
+          </p>
+        )}
         {projects.map((project) => (
           <div
             key={project.id}
@@ -65,7 +67,7 @@ export function LegacyProjectList() {
                   confirm("Delete this project? This action cannot be undone.")
                 ) {
                   projectStorage.delete(project.id);
-                  setProjects(projectStorage.listMetadata());
+                  onDelete();
                 }
               }}
               disabled={migrate.isPending}
