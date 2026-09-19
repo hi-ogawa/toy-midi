@@ -16,7 +16,7 @@ test("selects and moves audio and take clips together", async ({ page }) => {
 
   // Import a backing track.
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  const audio = page.getByTestId("recorder-clip-audio");
+  const audio = page.getByTestId("recorder-clip-audio-source");
 
   // Record a take away from zero.
   await enableInput(page);
@@ -25,7 +25,7 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await recordButton.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await recordButton.click();
-  const take = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-comp-source");
   await expect(take).toBeVisible();
 
   // Ctrl-click adds the take to the selected backing track.

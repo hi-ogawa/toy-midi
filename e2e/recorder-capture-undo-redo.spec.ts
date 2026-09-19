@@ -53,7 +53,10 @@ test("undoes recorded takes and MIDI edits together and restores overlapping aud
   await expect(comp.filter({ hasText: "Take 2" })).toBeVisible();
 
   // Undo the second take and reveal the first take across its original full span.
-  await second.click();
+  await takes
+    .filter({ hasText: "Take 2" })
+    .getByTestId("recorder-clip-take-lane-source")
+    .click();
   await page.keyboard.press("Control+z");
   await expect(takes).toHaveCount(1);
   await expect(comp).toHaveCount(1);
@@ -101,7 +104,11 @@ test("undoes recorded takes and MIDI edits together and restores overlapping aud
   await page.mouse.move(x + 40, y, { steps: 4 });
   await page.mouse.up();
   expect((await first.boundingBox())!.x).toBeCloseTo(movedX, 0);
-  await expect(first).not.toHaveAttribute("data-selected", "true");
+  await expect(
+    takes
+      .filter({ hasText: "Take 1" })
+      .getByTestId("recorder-clip-take-lane-source"),
+  ).not.toHaveAttribute("data-selected", "true");
 
   // Record a replacement take with a new number and discard the undone take's redo entry.
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
