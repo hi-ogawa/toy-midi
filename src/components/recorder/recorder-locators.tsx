@@ -67,17 +67,17 @@ export function useRecorderLocatorInteraction({
 
 export function RecorderLocatorRow({
   locatorInteraction,
-  onClearSelection,
+  subdivisionsPerBeat,
   pixelsPerBeat,
   viewportStartBeat,
-  subdivisionsPerBeat,
+  onClearSelection,
   onSeekBeat,
 }: {
   locatorInteraction: ReturnType<typeof useRecorderLocatorInteraction>;
-  onClearSelection: () => void;
+  subdivisionsPerBeat: number;
   pixelsPerBeat: number;
   viewportStartBeat: number;
-  subdivisionsPerBeat: number;
+  onClearSelection: () => void;
   onSeekBeat: (beat: number) => void;
 }) {
   return (
@@ -108,8 +108,8 @@ export function RecorderLocatorRow({
             locator={locator}
             selected={locatorInteraction.selectedId === locator.id}
             left={(locator.beat - viewportStartBeat) * pixelsPerBeat}
-            pixelsPerBeat={pixelsPerBeat}
             subdivisionsPerBeat={subdivisionsPerBeat}
+            pixelsPerBeat={pixelsPerBeat}
             onSelect={() => locatorInteraction.select(locator.id)}
             onSeek={() => onSeekBeat(locator.beat)}
             onUpdate={(changes) =>
@@ -126,8 +126,8 @@ function LocatorMarker({
   locator,
   selected,
   left,
-  pixelsPerBeat,
   subdivisionsPerBeat,
+  pixelsPerBeat,
   onSelect,
   onSeek,
   onUpdate,
@@ -135,8 +135,8 @@ function LocatorMarker({
   locator: RecorderLocator;
   selected: boolean;
   left: number;
-  pixelsPerBeat: number;
   subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
   onSelect: () => void;
   onSeek: () => void;
   onUpdate: (changes: Omit<RecorderLocatorUpdate, "id">) => void;
