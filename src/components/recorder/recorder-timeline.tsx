@@ -438,8 +438,8 @@ export function AudioTimelineLane({
   viewportWidth,
   isClipSelected,
   isClipEditing,
-  onEditStart,
   onClipClick,
+  onEditStart,
   onEditUpdate,
   onEditFinish,
   onEditCancel,
@@ -458,8 +458,8 @@ export function AudioTimelineLane({
   viewportWidth: number;
   isClipSelected: (id: string) => boolean;
   isClipEditing: (id: string) => boolean;
-  onEditStart: (edit: ClipEditStart & { id: string }) => void;
   onClipClick: (id: string, additive: boolean) => void;
+  onEditStart: (edit: ClipEditStart & { id: string }) => void;
   onEditUpdate: (delta: number) => void;
   onEditFinish: (delta: number) => void;
   onEditCancel: () => void;
@@ -682,8 +682,8 @@ function TimelineClip({
   viewportStartBeat,
   tempo,
   viewportWidth,
-  onEditStart,
   onClipClick,
+  onEditStart,
   onEditUpdate,
   onEditFinish,
   onEditCancel,
@@ -699,9 +699,8 @@ function TimelineClip({
   viewportStartBeat: number;
   tempo: number;
   viewportWidth: number;
-  onEditStart?: (edit: ClipEditStart) => void;
-  canTrim?: boolean;
   onClipClick?: (additive: boolean) => void;
+  onEditStart?: (edit: ClipEditStart) => void;
   onEditUpdate?: (delta: number) => void;
   onEditFinish?: (delta: number) => void;
   onEditCancel?: () => void;
@@ -710,6 +709,7 @@ function TimelineClip({
   recording?: boolean;
   selected?: boolean;
   hidePresentation?: boolean;
+  canTrim?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = usePointerGesture({
