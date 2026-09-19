@@ -84,7 +84,7 @@ export function RecorderProjectList() {
             </Button>
             <FileDropInput
               accept=".toymidi.zip,.toymidi"
-              title="Import a recorder or legacy MIDI project"
+              title="Import a project archive"
               onFile={(file) => importProject.mutate(file)}
               data-testid="import-recorder-project"
               disabled={createProject.isPending || importProject.isPending}
@@ -134,12 +134,12 @@ function RecorderProjectListItem({
       </a>
       <Button
         onClick={() => {
-          if (confirm("Delete this recording?")) {
+          if (confirm("Delete this project?")) {
             onDelete();
           }
         }}
         disabled={deletePending}
-        title="Delete recording"
+        title="Delete project"
         className="size-8 text-neutral-400 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
