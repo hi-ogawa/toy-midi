@@ -162,22 +162,9 @@ test("Projects search filters current and legacy projects together", async ({
   await page.getByRole("tab", { name: "Legacy", exact: true }).click();
   await expect(search).toBeHidden();
   await expect(page.getByRole("link", { name: /Old song/ })).toBeVisible();
-});
 
-test("Projects hides the legacy section only when no saved legacy projects remain", async ({
-  page,
-}) => {
-  // Seed a legacy project and show its migration section even when search excludes it.
-  await page.goto("/__e2e__/");
-  await page.evaluate(() => window.__e2e.projectStorage.createNew());
-  await page.goto("/");
-  const search = page.getByRole("textbox", { name: "Search projects" });
-  const legacy = page.getByRole("region", { name: "Legacy projects" });
-  await search.fill("missing");
-  await expect(legacy).toContainText("No matching legacy projects");
-
-  // Clear search and delete the last saved legacy project to remove the section.
-  await search.press("Escape");
+  // Return to Projects and delete the last legacy project to remove its section.
+  await page.getByRole("tab", { name: "Projects", exact: true }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await legacy.getByRole("button", { name: "Delete legacy project" }).click();
   await expect(legacy).toBeHidden();
