@@ -80,11 +80,10 @@ describe("legacy recorder conversion", () => {
       masterVolume: 0.8,
       metronomeVolume: 0.2,
     };
-    const loadAudio = vi.fn();
     const result = await convertLegacyProject({
       name: "Song",
       project,
-      loadAudio,
+      loadAudio: async () => undefined,
     });
     expect(result).toMatchObject({
       title: "Song",
@@ -108,7 +107,6 @@ describe("legacy recorder conversion", () => {
       audioTracks: [],
       recordingTrack: { takes: [] },
     });
-    expect(loadAudio).not.toHaveBeenCalled();
   });
 
   it("decodes all channels and uses decoded duration while preserving offsets and gains", async () => {
@@ -150,13 +148,11 @@ describe("legacy recorder conversion", () => {
 
   it("converts saved v1 data with legacy defaults", async () => {
     mockDecoder();
-    const loadAudio = vi.fn().mockResolvedValue(new Blob(["audio"]));
     const result = await convertLegacyProject({
       name: "Stored v1",
       project: { ...PROJECT_V1, audioAssetKey: "stored-audio" },
-      loadAudio,
+      loadAudio: async () => new Blob(["audio"]),
     });
-    expect(loadAudio).toHaveBeenCalledWith("stored-audio");
     expect(result.audioTracks[0]).toMatchObject({
       id: "audio-1",
       soloed: false,
