@@ -239,7 +239,7 @@ function createTrimEndGetChanges(
   return (delta) => {
     const clampedDelta = clamp(
       delta,
-      MIN_CLIP_DURATION - minDuration,
+      -(minDuration - MIN_CLIP_DURATION),
       minRemaining,
     );
     return clips.map((clip) => ({
