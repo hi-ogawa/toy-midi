@@ -17,9 +17,8 @@ import {
 type ClipEditStart =
   | { type: "move"; clip: RecorderClipId; additive: boolean }
   | {
-      type: "trim";
+      type: "trim-start" | "trim-end";
       clip: Extract<RecorderClipId, { type: "clip" }>;
-      edge: "start" | "end";
       additive: boolean;
     };
 
@@ -30,7 +29,7 @@ type ClipEdit =
       getChanges: (delta: number) => RecorderClipMove[];
     }
   | {
-      type: "trim";
+      type: "trim-start" | "trim-end";
       changes: RecorderClipTrim[];
       getChanges: (delta: number) => RecorderClipTrim[];
     };
@@ -84,11 +83,14 @@ export function useRecorderClipInteraction({
   }
 
   function isEditing(id: string): boolean {
-    return (
-      edit?.changes.some(
-        (change) => change.type === "clip" && change.id === id,
-      ) ?? false
-    );
+    if (!edit) {
+      return false;
+    }
+    return edit.type === "move"
+      ? edit.changes.some(
+          (change) => change.type === "clip" && change.id === id,
+        )
+      : edit.changes.some((change) => change.id === id);
   }
 
   function select(clip: RecorderClipId, additive: boolean): void {
@@ -120,20 +122,15 @@ export function useRecorderClipInteraction({
         : new Set([key]);
     setKeys(selectedKeys);
     const selected = getSelectedClips(selectedKeys);
-    switch (input.type) {
-      case "move": {
-        const getChanges = createMoveGetChanges(selected);
-        setEdit({ type: "move", changes: getChanges(0), getChanges });
-        break;
-      }
-      case "trim": {
-        const getChanges = createTrimGetChanges({
-          clips: selected.clips,
-          edge: input.edge,
-        });
-        setEdit({ type: "trim", changes: getChanges(0), getChanges });
-        break;
-      }
+    if (input.type === "move") {
+      const getChanges = createMoveGetChanges(selected);
+      setEdit({ type: "move", changes: getChanges(0), getChanges });
+    } else {
+      const getChanges = createTrimGetChanges({
+        clips: selected.clips,
+        edge: input.type === "trim-start" ? "start" : "end",
+      });
+      setEdit({ type: input.type, changes: getChanges(0), getChanges });
     }
   }
 
@@ -141,15 +138,10 @@ export function useRecorderClipInteraction({
     if (!edit) {
       return;
     }
-    switch (edit.type) {
-      case "move": {
-        setEdit({ ...edit, changes: edit.getChanges(delta) });
-        break;
-      }
-      case "trim": {
-        setEdit({ ...edit, changes: edit.getChanges(delta) });
-        break;
-      }
+    if (edit.type === "move") {
+      setEdit({ ...edit, changes: edit.getChanges(delta) });
+    } else {
+      setEdit({ ...edit, changes: edit.getChanges(delta) });
     }
   }
 
@@ -158,21 +150,16 @@ export function useRecorderClipInteraction({
       return;
     }
     setEdit(undefined);
-    switch (edit.type) {
-      case "move": {
-        runtime.commitClipEdit({
-          type: "move",
-          changes: edit.getChanges(delta),
-        });
-        break;
-      }
-      case "trim": {
-        runtime.commitClipEdit({
-          type: "trim",
-          changes: edit.getChanges(delta),
-        });
-        break;
-      }
+    if (edit.type === "move") {
+      runtime.commitClipEdit({
+        type: edit.type,
+        changes: edit.getChanges(delta),
+      });
+    } else {
+      runtime.commitClipEdit({
+        type: edit.type,
+        changes: edit.getChanges(delta),
+      });
     }
   }
 
@@ -271,9 +258,7 @@ function createTrimGetChanges({
   return (delta) => {
     const clampedDelta = clamp(delta, minimumDelta, maximumDelta);
     return clips.map((clip) => ({
-      type: "clip",
       id: clip.id,
-      edge,
       value: (edge === "start" ? clip.trimStart : clip.trimEnd) + clampedDelta,
     }));
   };

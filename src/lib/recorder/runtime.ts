@@ -192,15 +192,13 @@ export type RecorderClipMove =
   | { type: "reference"; timelineOffset: number };
 
 export type RecorderClipTrim = {
-  type: "clip";
   id: string;
-  edge: "start" | "end";
   value: number;
 };
 
 export type RecorderClipEdit =
   | { type: "move"; changes: readonly RecorderClipMove[] }
-  | { type: "trim"; changes: readonly RecorderClipTrim[] };
+  | { type: "trim-start" | "trim-end"; changes: readonly RecorderClipTrim[] };
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
@@ -1280,7 +1278,7 @@ export function deriveClipEditState(
   "audioTracks" | "recordingTrack" | "referenceVideo"
 > {
   const moves = edit.type === "move" ? edit.changes : [];
-  const trims = edit.type === "trim" ? edit.changes : [];
+  const trims = edit.type !== "move" ? edit.changes : [];
   const referenceMove = moves.find((change) => change.type === "reference");
   function editTrack(track: AudioTrackState): AudioTrackState {
     return updateTrackClips({
@@ -1291,7 +1289,7 @@ export function deriveClipEditState(
           if (trim) {
             return trimAudioClip({
               clip,
-              edge: trim.edge,
+              edge: edit.type === "trim-start" ? "start" : "end",
               value: trim.value,
             });
           }
