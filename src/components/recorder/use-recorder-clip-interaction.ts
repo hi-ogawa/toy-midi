@@ -23,7 +23,7 @@ type ClipEdit =
   | { type: "move"; snapshot: RecorderClipMoveSnapshot; delta: number }
   | { type: "trim"; clips: AudioClip[]; edge: "start" | "end"; delta: number };
 
-type ClipEditStart =
+type RecorderClipEditStart =
   | { type: "move"; clip: RecorderClipId; additive: boolean }
   | {
       type: "trim";
@@ -91,7 +91,7 @@ export function useRecorderClipInteraction({
     setKeys(next);
   }
 
-  function startEdit(input: ClipEditStart): void {
+  function startEdit(input: RecorderClipEditStart): void {
     onSelect();
     switch (input.type) {
       case "move": {

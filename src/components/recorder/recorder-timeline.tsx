@@ -421,7 +421,7 @@ type RecorderTimelineClip = {
 
 const TIMELINE_EPSILON = 1e-6;
 
-type ClipEditStart =
+type TimelineClipEditStart =
   | { type: "move"; additive: boolean }
   | { type: "trim"; edge: "start" | "end" };
 
@@ -459,7 +459,7 @@ export function AudioTimelineLane({
   isClipSelected: (id: string) => boolean;
   isClipEditing: (id: string) => boolean;
   onClipClick: (id: string, additive: boolean) => void;
-  onEditStart: (edit: ClipEditStart & { id: string }) => void;
+  onEditStart: (edit: TimelineClipEditStart & { id: string }) => void;
   onEditUpdate: (delta: number) => void;
   onEditFinish: (delta: number) => void;
   onEditCancel: () => void;
@@ -584,7 +584,7 @@ export function ReferenceTimelineRow({
   onSeek: (position: number) => void;
   selected: boolean;
   onClipClick: (additive: boolean) => void;
-  onEditStart: (edit: Extract<ClipEditStart, { type: "move" }>) => void;
+  onEditStart: (edit: Extract<TimelineClipEditStart, { type: "move" }>) => void;
   onEditUpdate: (delta: number) => void;
   onEditFinish: (delta: number) => void;
   onEditCancel: () => void;
@@ -700,7 +700,7 @@ function TimelineClip({
   tempo: number;
   viewportWidth: number;
   onClipClick?: (additive: boolean) => void;
-  onEditStart?: (edit: ClipEditStart) => void;
+  onEditStart?: (edit: TimelineClipEditStart) => void;
   onEditUpdate?: (delta: number) => void;
   onEditFinish?: (delta: number) => void;
   onEditCancel?: () => void;
