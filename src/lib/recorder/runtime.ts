@@ -17,8 +17,6 @@ import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import {
   createAudioClip,
-  trimAudioClip,
-  MIN_CLIP_DURATION,
   WAVEFORM_POINTS_PER_SECOND,
   type ClipRegion,
   type AudioClip,
@@ -43,6 +41,8 @@ import {
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
+
+export const MIN_CLIP_DURATION = 0.01;
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 const DEFAULT_TRACK_HEIGHT = 72;
@@ -1313,6 +1313,29 @@ export function deriveClipEditState(
             timelineStart: referenceMove.timelineOffset,
           }
         : state.referenceVideo,
+  };
+}
+
+function trimAudioClip({
+  clip,
+  edge,
+  value,
+}: {
+  clip: AudioClip;
+  edge: "start" | "end";
+  value: number;
+}): AudioClip {
+  return {
+    ...clip,
+    ...(edge === "start"
+      ? { trimStart: clamp(value, 0, clip.trimEnd - MIN_CLIP_DURATION) }
+      : {
+          trimEnd: clamp(
+            value,
+            clip.trimStart + MIN_CLIP_DURATION,
+            clip.duration,
+          ),
+        }),
   };
 }
 

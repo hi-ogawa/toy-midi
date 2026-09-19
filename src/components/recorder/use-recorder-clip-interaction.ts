@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { clamp } from "../../lib/music";
-import {
-  MIN_CLIP_DURATION,
-  type AudioClip,
-} from "../../lib/recorder/audio-clip";
+import type { AudioClip } from "../../lib/recorder/audio-clip";
 import {
   deriveClipEditState,
+  MIN_CLIP_DURATION,
   type RecorderClipId,
   type RecorderClipMove,
   type RecorderClipTrim,

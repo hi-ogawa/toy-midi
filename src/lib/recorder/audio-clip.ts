@@ -1,5 +1,4 @@
 import { createAudioView, type AudioView } from "../audio-view.ts";
-import { clamp } from "../music.ts";
 
 export interface AudioClip {
   id: string;
@@ -47,30 +46,5 @@ export function createAudioClip({
       buffer.sampleRate,
       WAVEFORM_POINTS_PER_SECOND,
     ),
-  };
-}
-
-export const MIN_CLIP_DURATION = 0.01;
-
-export function trimAudioClip({
-  clip,
-  edge,
-  value,
-}: {
-  clip: AudioClip;
-  edge: "start" | "end";
-  value: number;
-}): AudioClip {
-  return {
-    ...clip,
-    ...(edge === "start"
-      ? { trimStart: clamp(value, 0, clip.trimEnd - MIN_CLIP_DURATION) }
-      : {
-          trimEnd: clamp(
-            value,
-            clip.trimStart + MIN_CLIP_DURATION,
-            clip.duration,
-          ),
-        }),
   };
 }
