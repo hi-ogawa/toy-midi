@@ -12,6 +12,7 @@ const sections: HelpSectionData[] = [
       { action: "Play / pause", keys: "Space" },
       { action: "Start / stop recording", keys: "R" },
       { action: "Toggle metronome", keys: "M" },
+      { action: "Decrease / increase playback speed", keys: "< / >" },
     ],
   },
   {
@@ -40,6 +41,40 @@ const sections: HelpSectionData[] = [
       { action: "Trim audio clips and takes", gesture: "Drag clip edge" },
       { action: "Remove selected clips", keys: "Delete / Backspace" },
       { action: "Clear selection", keys: "Esc" },
+    ],
+  },
+  {
+    title: "MIDI notes",
+    items: [
+      { action: "Undo MIDI note edit", keys: "Ctrl / Cmd + Z" },
+      {
+        action: "Redo MIDI note edit",
+        keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
+      },
+      { action: "Create a snapped note", gesture: "Click empty MIDI grid" },
+      { action: "Select and preview a note", gesture: "Press note" },
+      {
+        action: "Add / remove note from selection",
+        keys: "Ctrl / Cmd",
+        gesture: " + click",
+      },
+      { action: "Select notes in an area", gesture: "Shift + drag empty grid" },
+      { action: "Move a note in time and pitch", gesture: "Drag note" },
+      { action: "Resize a note", gesture: "Drag either note edge" },
+      { action: "Cancel note drag", keys: "Esc" },
+      { action: "Copy selected notes", keys: "Ctrl / Cmd + C" },
+      { action: "Paste notes at playhead", keys: "Ctrl / Cmd + V" },
+      {
+        action: "Duplicate selected notes",
+        gesture: "Ctrl / Cmd + drag note",
+      },
+      { action: "Preview a pitch", gesture: "Hold piano key" },
+      { action: "Delete selected notes", keys: "Delete / Backspace" },
+      { action: "Assign string (annotations enabled)", keys: "1–5" },
+      { action: "Change string", keys: "Up / Down" },
+      { action: "Reset string to automatic", keys: "0" },
+      { action: "Scroll pitches", gesture: "Wheel over MIDI grid" },
+      { action: "Scroll time in MIDI grid", gesture: "Shift + wheel" },
     ],
   },
   {
@@ -72,7 +107,7 @@ export function RecorderHelp({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title="Recorder quick reference"
+      title="Editor quick reference"
       size="wide"
     >
       <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">

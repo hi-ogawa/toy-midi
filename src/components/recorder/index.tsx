@@ -9,21 +9,32 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { snapToGrid } from "../../lib/music";
+import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
-import { routes } from "../../lib/routes";
-import { beatsToSeconds } from "../../lib/timeline";
+import { getRecorderScoreHref, routes } from "../../lib/routes";
+import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
+import {
+  RecorderAudioToMidi,
+  useRecorderAudioToMidiUi,
+} from "./recorder-audio-to-midi";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
-import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
+import { RecorderLocatorRow } from "./recorder-locators";
+import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
+import {
+  RecorderScorePanel,
+  useRecorderScorePanelUi,
+} from "./recorder-score-panel";
 import {
   ReferenceTimelineRow,
   TimelineHeader,
@@ -36,9 +47,10 @@ import {
   TakeTrackRow,
   TrackRow,
 } from "./recorder-tracks";
+import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
-import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
+import { useRecorderInteraction } from "./use-recorder-interaction";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
 
@@ -48,6 +60,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -66,19 +79,15 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const clipInteraction = useRecorderClipInteraction({
-    runtime,
-    state,
-    onSelect: () => {
-      locators.select(undefined);
-    },
-  });
-  const locators = useRecorderLocators({
+  const recorderInteraction = useRecorderInteraction({
     runtime,
     state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
-    onSelect: clipInteraction.clear,
   });
+  const { clipInteraction, locatorInteraction, midiInteraction } =
+    recorderInteraction;
+  const transcriptions = useRecorderAudioToMidiUi();
+  const scoreUi = useRecorderScorePanelUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -109,6 +118,9 @@ export function Recorder({ projectId }: { projectId: string }) {
         await runtime.setAudioTrack(id, file);
       }
     },
+  });
+  const addMidiMutation = useMutation({
+    mutationFn: () => runtime.addMidiTrack(),
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
@@ -178,22 +190,67 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    if (recorderInteraction.handleUndoRedoShortcut(event)) {
+      event.preventDefault();
+      return;
+    }
+    if (matchKeyboardEvent(event, "Ctrl+C")) {
+      // Preserve normal browser copy when the user selected rendered text.
+      if (window.getSelection()?.isCollapsed === false) {
+        return;
+      }
+      if (midiInteraction.copySelected()) {
+        event.preventDefault();
+        return;
+      }
+    }
+    if (matchKeyboardEvent(event, "Ctrl+V")) {
+      const beat = snapToGrid(
+        secondsToBeats(state.position, state.tempo),
+        1 / timeline.subdivisionsPerBeat,
+      );
+      if (midiInteraction.paste(beat)) {
+        event.preventDefault();
+        return;
+      }
+    }
+    if (midiInteraction.handleTabAnnotationShortcut(event)) {
+      event.preventDefault();
+      return;
+    }
+    if (matchKeyboardEvent(event, "<") || matchKeyboardEvent(event, ">")) {
+      if (flags.isRecording) {
+        return;
+      }
+      event.preventDefault();
+      const rate = getNextPlaybackRate({
+        rate: state.playbackRate,
+        direction: event.key === ">" ? "increase" : "decrease",
+      });
+      if (rate !== undefined) {
+        runtime.setPlaybackRate(rate);
+      }
+      return;
+    }
     if (matchKeyboardEvent(event, "L")) {
       event.preventDefault();
-      locators.add();
+      locatorInteraction.add();
       return;
     }
     if (
-      locators.selectedId &&
       (matchKeyboardEvent(event, "Delete") ||
-        matchKeyboardEvent(event, "Backspace"))
+        matchKeyboardEvent(event, "Backspace")) &&
+      recorderInteraction.deleteSelection()
     ) {
       event.preventDefault();
-      locators.removeSelected();
       return;
     }
-    if (matchKeyboardEvent(event, "Escape")) {
-      locators.select(undefined);
+    if (
+      matchKeyboardEvent(event, "Escape") &&
+      recorderInteraction.clearSelection()
+    ) {
+      event.preventDefault();
+      return;
     }
     const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
       ? -1
@@ -206,17 +263,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       runtime.seek(position);
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
-      event.preventDefault();
-      clipInteraction.clear();
-    } else if (
-      clipInteraction.hasSelection &&
-      (matchKeyboardEvent(event, "Delete") ||
-        matchKeyboardEvent(event, "Backspace"))
-    ) {
-      event.preventDefault();
-      clipInteraction.removeSelected();
-    } else if (matchKeyboardEvent(event, "Space")) {
+    if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
     } else if (matchKeyboardEvent(event, "R")) {
@@ -282,7 +329,8 @@ export function Recorder({ projectId }: { projectId: string }) {
 
       <div className="flex min-h-0 flex-1 flex-col">
         <RecorderLocatorRow
-          locators={locators}
+          locatorInteraction={locatorInteraction}
+          onClearSelection={recorderInteraction.clearSelection}
           pixelsPerBeat={timeline.pixelsPerBeat}
           viewportStartBeat={timeline.viewportStartBeat}
           subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -292,7 +340,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         />
         <section
           data-testid="recorder-track-scroll"
-          className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
+          className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#525252_transparent]"
         >
           <div
             ref={timeline.viewportRef}
@@ -316,9 +364,14 @@ export function Recorder({ projectId }: { projectId: string }) {
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
               isAddingAudio={addAudioMutation.isPending}
+              isAddingMidi={addMidiMutation.isPending}
+              onAddMidiTrack={() => addMidiMutation.mutate()}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
-              onSeek={(position) => runtime.seek(position)}
+              onSeek={(position) => {
+                recorderInteraction.clearSelection();
+                runtime.seek(position);
+              }}
               loop={state.loop}
               punch={state.punch}
               onLoopRangeChange={(range) => runtime.setLoop({ range })}
@@ -340,7 +393,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 tempo={timeline.tempo}
                 viewportWidth={timeline.viewportWidth}
-                onSeek={(position) => runtime.seek(position)}
+                onSeek={(position) => {
+                  recorderInteraction.clearSelection();
+                  runtime.seek(position);
+                }}
                 selected={clipInteraction.isSelected({ type: "reference" })}
                 onClipClick={(additive) =>
                   clipInteraction.select({ type: "reference" }, additive)
@@ -424,11 +480,33 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                   onClipDragMove={clipInteraction.move}
                   onSeek={(position) => {
-                    clipInteraction.clear();
+                    recorderInteraction.clearSelection();
                     runtime.seek(position);
                   }}
                 />
               </TrackRow>
+            ))}
+            {state.midiTracks.map((track) => (
+              <MidiTrackRow
+                key={track.id}
+                track={track}
+                runtime={runtime}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
+                effectsOpen={effects.openEffects.has(track.id)}
+                onEffectsToggle={() => effects.toggleEffects(track.id)}
+                onRemove={() => {
+                  runtime.removeMidiTrack(track.id);
+                  effects.closeEffects(track.id);
+                  transcriptions.closeTranscription(track.id);
+                  scoreUi.close(track.id);
+                }}
+                midiInteraction={midiInteraction}
+                onTranscribe={() => transcriptions.openTranscription(track.id)}
+                onScorePreview={() => scoreUi.open(track.id)}
+              />
             ))}
 
             <TrackRow
@@ -466,6 +544,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onInputMonitoringChange: (monitoring) =>
                   runtime.setInputMonitoring(monitoring),
                 onInputToggle: input.toggle,
+                tunerOpen: isTunerOpen,
+                onTunerToggle: () => setIsTunerOpen((open) => !open),
               }}
             >
               <AudioTimelineLane
@@ -497,7 +577,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => {
-                  clipInteraction.clear();
+                  recorderInteraction.clearSelection();
                   runtime.seek(position);
                 }}
                 onClipDragStart={(id, additive) =>
@@ -585,7 +665,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     }
                     onClipDragMove={clipInteraction.move}
                     onSeek={(position) => {
-                      clipInteraction.clear();
+                      recorderInteraction.clearSelection();
                       runtime.seek(position);
                     }}
                   />
@@ -656,6 +736,18 @@ export function Recorder({ projectId }: { projectId: string }) {
                   />
                 ),
             )}
+            {state.midiTracks.map(
+              (track) =>
+                effects.openEffects.has(track.id) && (
+                  <RecorderEffects
+                    key={track.id}
+                    label={track.name}
+                    eq={track.eq}
+                    onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
+                    onClose={() => effects.closeEffects(track.id)}
+                  />
+                ),
+            )}
             {effects.openEffects.has("capture") && (
               <RecorderEffects
                 label="Capture"
@@ -667,6 +759,51 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             )}
           </div>
+        )}
+        {state.midiTracks.map(
+          (track) =>
+            scoreUi.openTracks.has(track.id) && (
+              <RecorderScorePanel
+                key={track.id}
+                runtime={runtime}
+                state={state}
+                track={track}
+                onClose={() => scoreUi.close(track.id)}
+                scoreViewerHref={
+                  project.ready &&
+                  project.saveStatus === "saved" &&
+                  !flags.isRecording
+                    ? getRecorderScoreHref({
+                        projectId,
+                        trackId: track.id,
+                      })
+                    : undefined
+                }
+              />
+            ),
+        )}
+        {state.midiTracks.map(
+          (track) =>
+            transcriptions.openTranscriptions.has(track.id) && (
+              <RecorderAudioToMidi
+                key={track.id}
+                runtime={runtime}
+                state={state}
+                track={track}
+                cellsPerBeat={timeline.subdivisionsPerBeat}
+                onClose={() => transcriptions.closeTranscription(track.id)}
+              />
+            ),
+        )}
+        {isTunerOpen && (
+          <RecorderTuner
+            analyser={
+              // TODO: Make the capture input reactive if compiler memoization can
+              // retain this mutable runtime field across input changes.
+              runtime.captureInput?.tunerAnalyser
+            }
+            onClose={() => setIsTunerOpen(false)}
+          />
         )}
         {isMixerOpen && (
           <RecorderPanel

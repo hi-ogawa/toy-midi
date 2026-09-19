@@ -1,4 +1,5 @@
 import { AudioAnalyser } from "../audio-analyser.ts";
+import { TunerAnalyser } from "../tuner-analyser.ts";
 import {
   CaptureWorkletClient,
   type CaptureWorkletNotification,
@@ -24,6 +25,7 @@ export class CaptureInput {
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
+  readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;
 
   static async open({
@@ -90,12 +92,14 @@ export class CaptureInput {
       onNotification,
     });
     this.analyser = new AudioAnalyser(context);
+    this.tunerAnalyser = new TunerAnalyser(context);
     this.monitorGain = context.createGain();
     this.monitorGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
     // prevents input monitoring and feedback until it is explicitly enabled.
     this.source
       .connect(this.worklet.node)
+      .connect(this.tunerAnalyser.node)
       .connect(this.analyser.node)
       .connect(this.monitorGain)
       .connect(output);
@@ -131,6 +135,7 @@ export class CaptureInput {
     this.source.disconnect();
     this.worklet.dispose();
     this.analyser.dispose();
+    this.tunerAnalyser.dispose();
     this.monitorGain.disconnect();
     for (const track of this.stream.getTracks()) {
       track.stop();

@@ -1,5 +1,6 @@
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
+import { disposeWorklet } from "../dsp/worklet-disposal.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
@@ -109,7 +110,9 @@ class PitchShiftBus implements TransportParticipant {
 
   stop(): void {
     this.input.disconnect();
-    this.pitchShifter?.disconnect();
+    if (this.pitchShifter) {
+      disposeWorklet(this.pitchShifter);
+    }
     this.pitchShifter = undefined;
   }
 

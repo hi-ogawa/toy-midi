@@ -86,7 +86,7 @@ export function MidiProjectList() {
       {!hasProjects && (
         <div className="flex min-h-36 flex-col items-center justify-center text-center">
           <p className="text-base font-medium text-neutral-300">
-            No MIDI projects yet
+            No legacy projects yet
           </p>
           <p className="mt-1 text-sm text-neutral-500">
             Start from an empty piano roll or import an existing project.
@@ -109,7 +109,7 @@ export function MidiProjectList() {
               : "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
           }`}
         >
-          New MIDI project
+          New legacy project
         </Button>
         <FileDropInput
           accept=".toymidi"
@@ -119,7 +119,7 @@ export function MidiProjectList() {
           disabled={isLoading}
           className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
         >
-          {isLoading ? "Importing..." : "Import MIDI project"}
+          {isLoading ? "Importing..." : "Import legacy project"}
         </FileDropInput>
       </div>
     </section>

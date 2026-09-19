@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 
 /** Create a recorder project from its index and wait for the recorder app. */
 export async function createRecorderProject(page: Page): Promise<void> {
@@ -6,10 +7,106 @@ export async function createRecorderProject(page: Page): Promise<void> {
     "Create recorder project",
     async () => {
       await page.goto("/");
-      await page.getByRole("tab", { name: "Recorder", exact: true }).click();
+      await page.getByRole("tab", { name: "Projects", exact: true }).click();
       await page.getByTestId("new-recorder-project-button").click();
       await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
       await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+    },
+    { box: true },
+  );
+}
+
+export async function addRecorderMidiTrack(page: Page) {
+  return await test.step(
+    "Add recorder MIDI track",
+    async () => {
+      const tracks = page.getByTestId("recorder-midi-track-row");
+      const count = await tracks.count();
+      await page.getByTestId("recorder-add-midi-track").click();
+      await expect(tracks).toHaveCount(count + 1);
+      const track = tracks.nth(count);
+      await expect(track.getByTestId("recorder-midi-grid")).toBeVisible();
+      return track;
+    },
+    { box: true },
+  );
+}
+
+export async function createRecorderMidiNote(
+  page: Page,
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    /** Zero-based beat at a grid boundary. */
+    beat: number;
+    pitch: string;
+  },
+) {
+  return await test.step(
+    `Create ${pitch} at beat ${beat}`,
+    async () => {
+      const point = await getRecorderMidiGridPoint(track, { beat, pitch });
+      // Click inside the cell rather than directly on its boundary.
+      await page.mouse.click(point.x + 5, point.y);
+      const note = getRecorderMidiNote(track, { beat, pitch });
+      await expect(note).toBeVisible();
+      return note;
+    },
+    { box: true },
+  );
+}
+
+/** Locate a note by pitch and zero-based beat, using its displayed one-based label. */
+export function getRecorderMidiNote(
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    beat: number;
+    pitch: string;
+  },
+) {
+  return track
+    .getByTestId("recorder-midi-grid")
+    .locator(`[data-note-id][aria-label="${pitch}, beat ${beat + 1}"]`);
+}
+
+/** Convert a zero-based beat and pitch to a point at the default zoom and horizontal origin. */
+export async function getRecorderMidiGridPoint(
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    beat: number;
+    pitch: string;
+  },
+) {
+  const key = track.getByRole("button", {
+    name: `Preview ${pitch}`,
+    exact: true,
+  });
+  await expect(key).toBeVisible();
+  const gridBox = (await track
+    .getByTestId("recorder-midi-grid")
+    .boundingBox())!;
+  const keyBox = (await key.boundingBox())!;
+  return {
+    x: gridBox.x + beat * DEFAULT_PIXELS_PER_BEAT,
+    y: keyBox.y + keyBox.height / 2,
+  };
+}
+
+export async function saveRecorderProject(page: Page) {
+  await test.step(
+    "Save recorder project",
+    async () => {
+      const save = page.getByTestId("recorder-save-button");
+      await save.click();
+      await expect(save).toHaveAttribute("data-status", "saved");
     },
     { box: true },
   );
@@ -125,7 +222,7 @@ export async function enableInput(page: Page) {
         "Fake Default Audio Input",
       );
       await expect(page.getByLabel("Channel")).toContainText("Channel 1");
-      await page.getByRole("button", { name: "Close" }).click();
+      await setup.getByRole("button", { name: "Close", exact: true }).click();
       await expect(
         page.getByText("Fake Default Audio Input · Channel 1"),
       ).toBeVisible();

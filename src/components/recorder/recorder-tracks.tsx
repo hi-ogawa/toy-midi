@@ -1,4 +1,5 @@
 import {
+  AudioWaveformIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   HeadphonesIcon,
@@ -44,7 +45,7 @@ export function AudioTrackActions({
           <MoreVerticalIcon className="size-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent>
         <DropdownMenuItem
           onSelect={() =>
             openFilePicker({ accept: "audio/*,.wav", onFile: onFileChange })
@@ -65,6 +66,8 @@ export function AudioTrackActions({
 
 export function TrackRow({
   title,
+  "data-testid": testId,
+  controlsClassName,
   height,
   gain,
   muted,
@@ -73,7 +76,6 @@ export function TrackRow({
   onEffectsToggle,
   action,
   input,
-  "data-testid": testId,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -81,6 +83,8 @@ export function TrackRow({
   children,
 }: {
   title: string;
+  "data-testid"?: string;
+  controlsClassName?: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -89,7 +93,6 @@ export function TrackRow({
   onEffectsToggle: () => void;
   action?: React.ReactNode;
   input?: TrackInputControls;
-  "data-testid"?: string;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -113,10 +116,11 @@ export function TrackRow({
     >
       <div
         className={cn(
-          "sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
+          "sticky left-0 z-20 col-start-1 row-start-1 grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
           input
             ? "grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] gap-y-1"
             : "grid-rows-[1.75rem_auto] gap-y-2",
+          controlsClassName,
         )}
       >
         <div className="min-w-0 self-center truncate text-xs font-semibold">
@@ -173,6 +177,8 @@ interface TrackInputControls {
   inputAnalyser?: AudioAnalyser;
   inputMonitoring: boolean;
   inputToggleDisabled: boolean;
+  tunerOpen: boolean;
+  onTunerToggle: () => void;
   onInputSetup: () => void;
   onInputMonitoringChange: (monitoring: boolean) => void;
   onInputToggle: () => void;
@@ -210,6 +216,8 @@ function TrackInputRoute({
   inputMonitoring,
   onInputSetup,
   onInputMonitoringChange,
+  tunerOpen,
+  onTunerToggle,
 }: TrackInputControls) {
   return (
     <>
@@ -260,6 +268,21 @@ function TrackInputRoute({
           )}
         >
           <HeadphonesIcon className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          aria-label={tunerOpen ? "Close tuner" : "Open tuner"}
+          aria-pressed={tunerOpen}
+          title={tunerOpen ? "Close tuner" : "Open tuner"}
+          onClick={onTunerToggle}
+          className={cn(
+            "grid size-6 shrink-0 place-items-center rounded",
+            tunerOpen
+              ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-700"
+              : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+          )}
+        >
+          <AudioWaveformIcon className="size-3.5" />
         </button>
       </div>
       <div className="col-span-2">
@@ -332,7 +355,7 @@ export function TakeTrackRow({
               <MoreVerticalIcon className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent>
             <DropdownMenuItem onSelect={onDelete}>
               <Trash2Icon />
               Delete take

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
-import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   dragBy,
@@ -8,6 +9,8 @@ import {
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
+
+useFakeAudioInput();
 
 test("records only the punched interval into the comp", async ({ page }) => {
   await createRecorderProject(page);

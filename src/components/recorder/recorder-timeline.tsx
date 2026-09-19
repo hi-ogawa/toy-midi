@@ -1,5 +1,6 @@
 import {
   LoaderCircleIcon,
+  Music2Icon,
   MoreVerticalIcon,
   PlusIcon,
   UploadIcon,
@@ -49,8 +50,10 @@ export function TimelineHeader({
   tempo,
   timelineWidth,
   isAddingAudio,
+  isAddingMidi,
   subdivisionsPerBeat,
   onAddAudioTrack,
+  onAddMidiTrack,
   onAddAudioFile,
   onSeek,
   loop,
@@ -66,8 +69,10 @@ export function TimelineHeader({
   tempo: number;
   timelineWidth: number;
   isAddingAudio: boolean;
+  isAddingMidi: boolean;
   subdivisionsPerBeat: number;
   onAddAudioTrack: () => void;
+  onAddMidiTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
   loop: RecorderLoopState;
@@ -83,6 +88,15 @@ export function TimelineHeader({
         <span>Tracks</span>
         <div className="flex-1" />
         <div className="flex gap-1">
+          <Button
+            data-testid="recorder-add-midi-track"
+            onClick={onAddMidiTrack}
+            disabled={isAddingMidi}
+            className="size-7 hover:bg-neutral-700"
+            title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
+          >
+            <Music2Icon className="size-3.5" />
+          </Button>
           <Button
             onClick={onAddAudioTrack}
             disabled={isAddingAudio}
@@ -666,7 +680,7 @@ export function ReferenceTimelineRow({
                 <MoreVerticalIcon className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent>
               <DropdownMenuItem onSelect={onRemove} className="text-red-400">
                 <Trash2Icon />
                 Remove reference video

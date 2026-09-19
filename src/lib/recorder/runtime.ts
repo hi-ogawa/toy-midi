@@ -1,4 +1,8 @@
-import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
+import {
+  DEFAULT_TIME_SIGNATURE,
+  type Note,
+  type TimeSignature,
+} from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
@@ -7,6 +11,8 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
+import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "../pitch-spelling.ts";
+import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import {
@@ -19,7 +25,9 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
+import { UndoRedoHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
+import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
   renderRecorderMix,
@@ -62,6 +70,21 @@ export interface AudioTrackState {
   clips: AudioClip[];
   regions: ClipRegion[];
   nextTakeNumber: number;
+}
+
+export interface MidiTrackState {
+  id: string;
+  name: string;
+  notes: Note[];
+  program: number;
+  eq: MultibandEqParameters;
+  height: number;
+  gain: number;
+  muted: boolean;
+  soloed: boolean;
+  tabAnnotationEnabled: boolean;
+  tabOpenStringPitches: number[];
+  keySignature: KeySignature;
 }
 
 export interface RecorderLoopRange {
@@ -129,6 +152,7 @@ export interface RecorderRuntimeState {
   metronomeGain: number;
   // Tracks
   audioTracks: AudioTrackState[];
+  midiTracks: MidiTrackState[];
   recordingTrack: AudioTrackState;
   previewClipRegions?: ClipRegion[];
   pendingRecording?: PendingRecordingState;
@@ -152,6 +176,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "punch"
   | "latencyCompensation"
   | "referenceVideo"
+  | "midiTracks"
 > & {
   audioTracks: Omit<AudioTrackState, "regions">[];
   recordingTrack: Omit<AudioTrackState, "regions">;
@@ -172,7 +197,7 @@ export type RecorderClipTrim = Extract<RecorderClipId, { id: string }> & {
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
-    title: "Untitled recording",
+    title: "Untitled project",
     locators: [],
     position: 0,
     isPlaying: false,
@@ -185,6 +210,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     masterGain: 1,
     metronomeGain: 0.5,
     audioTracks: [],
+    midiTracks: [],
     recordingTrack: createRecordingTrackState(),
     captureStatus: "disabled",
     inputChannelCount: 0,
@@ -202,12 +228,14 @@ export class RecorderRuntime {
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
+  private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
     playback: YouTubePlayerPlayback;
   };
   private readonly metronome: RecorderMetronome;
+  private readonly history = new RecorderHistory(this);
 
   constructor() {
     this.masterOutput = this.context.createGain();
@@ -339,11 +367,37 @@ export class RecorderRuntime {
     }
   }
 
+  async addMidiTrack(): Promise<string> {
+    const state = this.store.get();
+    let number = state.midiTracks.length + 1;
+    while (state.midiTracks.some((track) => track.name === `MIDI ${number}`)) {
+      number += 1;
+    }
+    const track = createMidiTrackState(number);
+    const playback = await MidiTrackPlayback.create({
+      transport: this.transport,
+      output: this.masterOutput,
+      track,
+      tempo: state.tempo,
+    });
+    this.midiTrackPlaybacks.set(track.id, playback);
+    this.store.update({
+      midiTracks: [...this.store.get().midiTracks, track],
+    });
+    this.syncTrackMix();
+    playback.setTempo(this.store.get().tempo);
+    return track.id;
+  }
+
   setTrackMix(
     id: string,
     update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
   ): void {
-    this.updateTrack(id, (track) => ({ ...track, ...update }));
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, ...update }));
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, ...update }));
+    }
     this.syncTrackMix();
   }
 
@@ -496,6 +550,13 @@ export class RecorderRuntime {
   }
 
   setTrackHeight(id: string, height: number): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({
+        ...track,
+        height: clamp(height, 68, 600),
+      }));
+      return;
+    }
     this.updateTrack(id, (track) => ({
       ...track,
       // The Capture row carries input controls and needs more room.
@@ -520,9 +581,76 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
+  removeMidiTrack(id: string): void {
+    this.history.removeMidiTrack(id);
+    this.midiTrackPlaybacks.get(id)?.dispose();
+    this.midiTrackPlaybacks.delete(id);
+    this.store.update({
+      midiTracks: this.store
+        .get()
+        .midiTracks.filter((track) => track.id !== id),
+    });
+    this.syncTrackMix();
+  }
+
   setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
-    this.updateTrack(id, (track) => ({ ...track, eq }));
-    this.trackPlaybacks.get(id)?.channel.setEq(eq);
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, eq }));
+      this.midiTrackPlaybacks.get(id)?.channel.setEq(eq);
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, eq }));
+      this.trackPlaybacks.get(id)?.channel.setEq(eq);
+    }
+  }
+
+  async setMidiTrackProgram(id: string, program: number): Promise<void> {
+    await this.midiTrackPlaybacks.get(id)?.setProgram(program);
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, program }));
+    }
+  }
+
+  setMidiTrackNotationSettings(
+    id: string,
+    settings: Partial<
+      Pick<
+        MidiTrackState,
+        "keySignature" | "tabAnnotationEnabled" | "tabOpenStringPitches"
+      >
+    >,
+  ): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
+  }
+
+  async startMidiNotePreview({
+    id,
+    pitch,
+  }: {
+    id: string;
+    pitch: number;
+  }): Promise<void> {
+    await this.context.resume();
+    this.midiTrackPlaybacks.get(id)?.noteOn(pitch);
+  }
+
+  stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
+    this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
+  }
+
+  setMidiTrackNotes(id: string, notes: Note[]): void {
+    const track = this.store.get().midiTracks.find((track) => track.id === id);
+    if (!track) {
+      throw new Error("MIDI track state is missing.");
+    }
+    const before = track.notes;
+    this.applyMidiTrackNotes(id, notes);
+    this.history.pushMidiNotes(id, before, notes);
+  }
+
+  /** @internal for undo */
+  applyMidiTrackNotes(trackId: string, notes: Note[]): void {
+    this.updateMidiTrack(trackId, (track) => ({ ...track, notes }));
+    this.midiTrackPlaybacks.get(trackId)?.setNotes(notes);
   }
 
   private updateTrack(
@@ -570,6 +698,21 @@ export class RecorderRuntime {
       this.syncTrackMix();
     }
     return playback;
+  }
+
+  private updateMidiTrack(
+    id: string,
+    update: (track: MidiTrackState) => MidiTrackState,
+  ): MidiTrackState {
+    const midiTracks = this.store.get().midiTracks.slice();
+    const index = midiTracks.findIndex((track) => track.id === id);
+    const track = midiTracks[index];
+    if (!track) {
+      throw new Error("MIDI track state is missing.");
+    }
+    midiTracks[index] = update(track);
+    this.store.update({ midiTracks });
+    return midiTracks[index]!;
   }
 
   private syncTrackPlayback(track: AudioTrackState): void {
@@ -655,6 +798,9 @@ export class RecorderRuntime {
   setTempo(tempo: number): void {
     this.store.update({ tempo });
     this.metronome.setTempo(tempo);
+    for (const playback of this.midiTrackPlaybacks.values()) {
+      playback.setTempo(tempo);
+    }
     this.syncLoopRange();
   }
 
@@ -847,8 +993,10 @@ export class RecorderRuntime {
     return serializeRecorderRuntimeState(this.store.get());
   }
 
-  deserializeProject(project: SerializedRecorderRuntimeState): void {
-    this.replacePersistableState(
+  async deserializeProject(
+    project: SerializedRecorderRuntimeState,
+  ): Promise<void> {
+    await this.replacePersistableState(
       deserializeRecorderRuntimeState({
         context: this.context,
         project,
@@ -856,20 +1004,25 @@ export class RecorderRuntime {
     );
   }
 
-  private replacePersistableState(
+  private async replacePersistableState(
     project: PersistableRecorderRuntimeState,
-  ): void {
+  ): Promise<void> {
     if (
       this.store.get().captureStatus === "recording" ||
       this.store.get().captureStatus === "processing"
     ) {
       throw new Error("Cannot load a project while recording.");
     }
+    this.history.clear();
     this.pause();
     for (const playback of this.trackPlaybacks.values()) {
       playback.dispose();
     }
     this.trackPlaybacks.clear();
+    for (const playback of this.midiTrackPlaybacks.values()) {
+      playback.dispose();
+    }
+    this.midiTrackPlaybacks.clear();
     const audioTracks = project.audioTracks.map((track) =>
       resolveTrackRegions(track),
     );
@@ -885,6 +1038,17 @@ export class RecorderRuntime {
       });
       playback.setSources(getClipSources(track.regions));
       this.trackPlaybacks.set(track.id, playback);
+    }
+    for (const track of project.midiTracks) {
+      this.midiTrackPlaybacks.set(
+        track.id,
+        await MidiTrackPlayback.create({
+          transport: this.transport,
+          output: this.masterOutput,
+          track,
+          tempo: project.tempo,
+        }),
+      );
     }
     // Clamp loaded external state at the runtime boundary so older projects
     // cannot restore a Capture row too short for its current controls, and pin
@@ -929,6 +1093,7 @@ export class RecorderRuntime {
           loop: state.loop,
           punch: state.punch,
           audioTracks: state.audioTracks,
+          midiTracks: state.midiTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,
           referenceVideo: state.referenceVideo,
@@ -942,6 +1107,7 @@ export class RecorderRuntime {
     const state = this.store.get();
     for (const [id, gain] of deriveTrackMix(state)) {
       this.trackPlaybacks.get(id)?.channel.setGain(gain);
+      this.midiTrackPlaybacks.get(id)?.channel.setGain(gain);
     }
     // Suppress take playback independently so channel mix edits cannot unmute it.
     const { captureStatus } = state;
@@ -1047,6 +1213,56 @@ export class RecorderRuntime {
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
   }
+
+  undo = () => this.history.undo();
+  redo = () => this.history.redo();
+}
+
+// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
+// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
+// Capture complete before/after notes for those IDs and migrate callers incrementally.
+// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
+// preserve array ordering when undo restores deleted notes.
+/** A state change that runtime can apply directly, including during undo and redo. */
+type RecorderChange = {
+  type: "midi-notes";
+  trackId: string;
+  notes: Note[];
+};
+
+class RecorderHistory {
+  private history = new UndoRedoHistory<RecorderChange>();
+
+  constructor(private runtime: RecorderRuntime) {}
+
+  pushMidiNotes(trackId: string, before: Note[], after: Note[]): void {
+    this.history.push({
+      before: { type: "midi-notes", trackId, notes: before },
+      after: { type: "midi-notes", trackId, notes: after },
+    });
+  }
+
+  removeMidiTrack(id: string): void {
+    // Track deletion is not undoable yet, so discard changes that require it.
+    this.history.prune((entry) =>
+      [entry.before, entry.after].some(
+        (change) => change.type === "midi-notes" && change.trackId === id,
+      ),
+    );
+  }
+
+  private apply(change: RecorderChange): void {
+    switch (change.type) {
+      case "midi-notes": {
+        this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
+        break;
+      }
+    }
+  }
+
+  clear = () => this.history.clear();
+  undo = () => this.history.undo((change) => this.apply(change));
+  redo = () => this.history.redo((change) => this.apply(change));
 }
 
 /**
@@ -1167,8 +1383,25 @@ function createRecordingTrackState(): AudioTrackState {
   };
 }
 
-function clampTrackHeight(height: number): number {
-  return Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, height));
+function createMidiTrackState(number: number): MidiTrackState {
+  return {
+    id: crypto.randomUUID(),
+    name: `MIDI ${number}`,
+    notes: [],
+    program: 0,
+    eq: createDefaultMultibandEq(),
+    height: 300,
+    gain: 1,
+    muted: false,
+    soloed: false,
+    tabAnnotationEnabled: false,
+    tabOpenStringPitches: [...DEFAULT_TAB_OPEN_STRING_PITCHES],
+    keySignature: { ...DEFAULT_KEY_SIGNATURE },
+  };
+}
+
+export function clampTrackHeight(height: number): number {
+  return clamp(height, MIN_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
 }
 
 function clampRecordingTrackHeight(height: number): number {
