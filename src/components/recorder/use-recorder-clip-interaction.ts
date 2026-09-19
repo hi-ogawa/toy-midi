@@ -24,13 +24,17 @@ type ClipEditStart =
     };
 
 type ClipEdit =
-  | { type: "move"; snapshot: ClipMoveSnapshot; delta: number }
-  | { type: "trim"; clips: AudioClip[]; edge: "start" | "end"; delta: number };
-
-type ClipMoveSnapshot = {
-  clips: RecorderClipMove[];
-  minimumVisibleStart: number;
-};
+  | {
+      type: "move";
+      changes: RecorderClipMove[];
+      getChanges: (delta: number) => RecorderClipMove[];
+    }
+  | {
+      type: "trim";
+      clips: AudioClip[];
+      edge: "start" | "end";
+      getClips: (delta: number) => AudioClip[];
+    };
 
 export function useRecorderClipInteraction({
   runtime,
@@ -121,7 +125,7 @@ export function useRecorderClipInteraction({
               ]
             : []),
         ];
-        const snapshot: ClipMoveSnapshot = {
+        const getChanges = createMoveGetChanges({
           clips,
           minimumVisibleStart: Math.min(
             ...selected.clips.map(
@@ -131,8 +135,8 @@ export function useRecorderClipInteraction({
               ? [selected.referenceVideo.timelineStart]
               : []),
           ),
-        };
-        setEdit({ type: "move", snapshot, delta: 0 });
+        });
+        setEdit({ type: "move", changes: clips, getChanges });
         break;
       }
       case "trim": {
@@ -143,7 +147,10 @@ export function useRecorderClipInteraction({
           type: "trim",
           clips: selected.clips,
           edge: input.edge,
-          delta: 0,
+          getClips: createTrimGetClips({
+            clips: selected.clips,
+            edge: input.edge,
+          }),
         });
         break;
       }
@@ -151,8 +158,18 @@ export function useRecorderClipInteraction({
   }
 
   function updateEdit(delta: number): void {
-    if (edit) {
-      setEdit({ ...edit, delta });
+    if (!edit) {
+      return;
+    }
+    switch (edit.type) {
+      case "move": {
+        setEdit({ ...edit, changes: edit.getChanges(delta) });
+        break;
+      }
+      case "trim": {
+        setEdit({ ...edit, clips: edit.getClips(delta) });
+        break;
+      }
     }
   }
 
@@ -163,11 +180,11 @@ export function useRecorderClipInteraction({
     setEdit(undefined);
     switch (edit.type) {
       case "move": {
-        runtime.moveClips(getMoveChanges({ ...edit, delta }));
+        runtime.moveClips(edit.getChanges(delta));
         break;
       }
       case "trim": {
-        const clips = getTrimmedClips({ ...edit, delta });
+        const clips = edit.getClips(delta);
         // TODO: Commit bulk trims in one runtime mutation so state and playback update atomically.
         for (const clip of clips) {
           runtime.trimClip({
@@ -186,8 +203,8 @@ export function useRecorderClipInteraction({
     if (!edit) {
       return track;
     }
-    const moves = edit.type === "move" ? getMoveChanges(edit) : [];
-    const trims = edit.type === "trim" ? getTrimmedClips(edit) : [];
+    const moves = edit.type === "move" ? edit.changes : [];
+    const trims = edit.type === "trim" ? edit.clips : [];
     const clips = track.clips.map((clip) => {
       const trim = trims.find((trim) => trim.id === clip.id);
       if (trim) {
@@ -226,7 +243,7 @@ export function useRecorderClipInteraction({
 
   const referenceMove =
     edit?.type === "move"
-      ? getMoveChanges(edit).find((move) => move.type === "reference")
+      ? edit.changes.find((move) => move.type === "reference")
       : undefined;
 
   return {
@@ -249,7 +266,7 @@ export function useRecorderClipInteraction({
     isEditing: (id: string) =>
       edit?.type === "trim"
         ? edit.clips.some((clip) => clip.id === id)
-        : (edit?.snapshot.clips.some(
+        : (edit?.changes.some(
             (clip) => clip.type === "clip" && clip.id === id,
           ) ?? false),
     select,
@@ -260,40 +277,53 @@ export function useRecorderClipInteraction({
   };
 }
 
-function getMoveChanges(
-  edit: Extract<ClipEdit, { type: "move" }>,
-): RecorderClipMove[] {
-  const delta = Math.max(edit.delta, -edit.snapshot.minimumVisibleStart);
-  return edit.snapshot.clips.map((clip) => ({
-    ...clip,
-    timelineOffset: clip.timelineOffset + delta,
-  }));
+function createMoveGetChanges({
+  clips,
+  minimumVisibleStart,
+}: {
+  clips: RecorderClipMove[];
+  minimumVisibleStart: number;
+}): (delta: number) => RecorderClipMove[] {
+  return (delta) => {
+    const clampedDelta = Math.max(delta, -minimumVisibleStart);
+    return clips.map((clip) => ({
+      ...clip,
+      timelineOffset: clip.timelineOffset + clampedDelta,
+    }));
+  };
 }
 
-function getTrimmedClips(
-  edit: Extract<ClipEdit, { type: "trim" }>,
-): AudioClip[] {
+function createTrimGetClips({
+  clips,
+  edge,
+}: {
+  clips: AudioClip[];
+  edge: "start" | "end";
+}): (delta: number) => AudioClip[] {
   // Clamp one shared delta so every selected edge moves by the same amount.
   const minimumDelta = Math.max(
-    ...edit.clips.map((clip) =>
-      edit.edge === "start"
+    ...clips.map((clip) =>
+      edge === "start"
         ? -clip.trimStart
         : clip.trimStart + MIN_CLIP_DURATION - clip.trimEnd,
     ),
   );
   const maximumDelta = Math.min(
-    ...edit.clips.map((clip) =>
-      edit.edge === "start"
+    ...clips.map((clip) =>
+      edge === "start"
         ? clip.trimEnd - MIN_CLIP_DURATION - clip.trimStart
         : clip.duration - clip.trimEnd,
     ),
   );
-  const delta = clamp(edit.delta, minimumDelta, maximumDelta);
-  return edit.clips.map((clip) =>
-    trimAudioClip({
-      clip,
-      edge: edit.edge,
-      value: (edit.edge === "start" ? clip.trimStart : clip.trimEnd) + delta,
-    }),
-  );
+  return (delta) => {
+    const clampedDelta = clamp(delta, minimumDelta, maximumDelta);
+    return clips.map((clip) =>
+      trimAudioClip({
+        clip,
+        edge,
+        value:
+          (edge === "start" ? clip.trimStart : clip.trimEnd) + clampedDelta,
+      }),
+    );
+  };
 }
