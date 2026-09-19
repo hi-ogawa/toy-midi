@@ -38,9 +38,6 @@ export function LegacyProjectList({
       className="mt-4 border-t border-neutral-700/70 pt-4"
     >
       <h2 className="text-sm font-medium text-neutral-200">Legacy projects</h2>
-      <p className="mt-1 text-xs text-neutral-500">
-        Create a copy for the new editor. Your original project stays unchanged.
-      </p>
       <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
         {projects.length === 0 && (
           <p className="py-3 text-center text-sm text-neutral-500">
