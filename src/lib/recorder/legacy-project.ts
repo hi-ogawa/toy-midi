@@ -4,7 +4,7 @@ import {
   serializeRecorderRuntimeState,
   type SerializedRecorderRuntimeState,
 } from "./persistence";
-import { createDefaultRecorderRuntimeState } from "./runtime";
+import { clampTrackHeight, createDefaultRecorderRuntimeState } from "./runtime";
 
 /**
  * Convert a v1/v2 legacy project into recorder content, loading encoded audio by asset key and decoding it to 48 kHz PCM.
@@ -68,7 +68,7 @@ export async function convertLegacyProject({
       const buffer = await context!.decodeAudioData(await blob.arrayBuffer());
       content.audioTracks.push({
         id: track.id,
-        height: Math.max(72, Math.min(600, track.waveformHeight)),
+        height: clampTrackHeight(track.waveformHeight),
         gain: track.volume,
         muted: track.muted,
         soloed: track.soloed,
