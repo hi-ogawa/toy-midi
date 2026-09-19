@@ -11,6 +11,7 @@ import {
   type RecorderClipMove,
   type RecorderClipTrim,
   type AudioTrackState,
+  type ReferenceVideoState,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -123,33 +124,8 @@ export function useRecorderClipInteraction({
     const selected = getSelectedClips(selectedKeys);
     switch (input.type) {
       case "move": {
-        const clips: RecorderClipMove[] = [
-          ...selected.clips.map((clip) => ({
-            type: "clip" as const,
-            id: clip.id,
-            timelineOffset: clip.timelineOffset,
-          })),
-          ...(selected.referenceVideo
-            ? [
-                {
-                  type: "reference" as const,
-                  timelineOffset: selected.referenceVideo.timelineStart,
-                },
-              ]
-            : []),
-        ];
-        const getChanges = createMoveGetChanges({
-          clips,
-          minimumVisibleStart: Math.min(
-            ...selected.clips.map(
-              (clip) => clip.timelineOffset + clip.trimStart,
-            ),
-            ...(selected.referenceVideo
-              ? [selected.referenceVideo.timelineStart]
-              : []),
-          ),
-        });
-        setEdit({ type: "move", changes: clips, getChanges });
+        const getChanges = createMoveGetChanges(selected);
+        setEdit({ type: "move", changes: getChanges(0), getChanges });
         break;
       }
       case "trim": {
@@ -277,14 +253,33 @@ export function useRecorderClipInteraction({
 
 function createMoveGetChanges({
   clips,
-  minimumVisibleStart,
+  referenceVideo,
 }: {
-  clips: RecorderClipMove[];
-  minimumVisibleStart: number;
+  clips: AudioClip[];
+  referenceVideo?: ReferenceVideoState;
 }): (delta: number) => RecorderClipMove[] {
+  const originals: RecorderClipMove[] = [
+    ...clips.map((clip) => ({
+      type: "clip" as const,
+      id: clip.id,
+      timelineOffset: clip.timelineOffset,
+    })),
+    ...(referenceVideo
+      ? [
+          {
+            type: "reference" as const,
+            timelineOffset: referenceVideo.timelineStart,
+          },
+        ]
+      : []),
+  ];
+  const minimumVisibleStart = Math.min(
+    ...clips.map((clip) => clip.timelineOffset + clip.trimStart),
+    ...(referenceVideo ? [referenceVideo.timelineStart] : []),
+  );
   return (delta) => {
     const clampedDelta = Math.max(delta, -minimumVisibleStart);
-    return clips.map((clip) => ({
+    return originals.map((clip) => ({
       ...clip,
       timelineOffset: clip.timelineOffset + clampedDelta,
     }));
