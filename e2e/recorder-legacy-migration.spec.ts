@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import type { SavedProjectV1 } from "../src/lib/project-store";
+import type { SavedProject } from "../src/lib/project-store";
 import { getRecorderMidiNote } from "./recorder-helpers";
 
-const LEGACY_PROJECT: SavedProjectV1 = {
-  version: 1,
+const LEGACY_PROJECT: SavedProject = {
+  version: 2,
   notes: [
     {
       id: "c4",
@@ -20,11 +20,17 @@ const LEGACY_PROJECT: SavedProjectV1 = {
   gridSnap: "1/8",
   tabAnnotationEnabled: true,
   tabOpenStringPitches: [43, 38, 33, 28],
-  audioFileName: "legacy-audio.wav",
-  audioAssetKey: null,
-  audioDuration: 3,
-  audioOffset: 0.5,
-  audioVolume: 0.65,
+  audioTracks: [
+    {
+      id: "backing",
+      fileName: "legacy-audio.wav",
+      assetKey: "",
+      duration: 3,
+      offset: 0.5,
+      volume: 0.65,
+      muted: false,
+    },
+  ],
   midiVolume: 0.8,
   metronomeEnabled: false,
   metronomeVolume: 0.5,
@@ -40,7 +46,11 @@ test("manually migrates a stored legacy project and retains the original", async
   );
   await page.evaluate(
     async ({ project, audio }) => {
-      await window.__e2e.seedProjectV1("Legacy song", project, audio);
+      await window.__e2e.seedProjectLegacyV2({
+        name: "Legacy song",
+        project,
+        audioData: { backing: audio },
+      });
     },
     { project: LEGACY_PROJECT, audio },
   );
