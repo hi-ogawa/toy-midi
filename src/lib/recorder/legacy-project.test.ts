@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  createDefaultSavedProject,
-  type SavedProject,
-  type SavedProjectV1,
-} from "../project-store";
+import { createDefaultSavedProject, type SavedProject } from "../project-store";
 import { convertLegacyProject } from "./legacy-project";
 
 vi.hoisted(() => {
@@ -21,16 +17,6 @@ const AUDIO_TRACK: SavedProject["audioTracks"][number] = {
   volume: 0.6,
   muted: false,
   soloed: true,
-};
-
-const PROJECT_V1: SavedProjectV1 = {
-  ...createDefaultSavedProject(),
-  version: 1,
-  audioFileName: "backing.wav",
-  audioAssetKey: null,
-  audioDuration: 9,
-  audioOffset: 1.25,
-  audioVolume: 0.6,
 };
 
 function mockDecoder() {
@@ -132,7 +118,15 @@ describe("legacy recorder conversion", () => {
     mockDecoder();
     const result = await convertLegacyProject({
       name: "Stored v1",
-      project: { ...PROJECT_V1, audioAssetKey: "stored-audio" },
+      project: {
+        ...createDefaultSavedProject(),
+        version: 1,
+        audioFileName: "backing.wav",
+        audioAssetKey: "stored-audio",
+        audioDuration: 9,
+        audioOffset: 1.25,
+        audioVolume: 0.6,
+      },
       loadAudio: async () => new Blob(["audio"]),
     });
     expect(result.audioTracks[0]).toMatchObject({
