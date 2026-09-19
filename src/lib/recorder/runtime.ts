@@ -505,26 +505,64 @@ export class RecorderRuntime {
   removeClips(ids: readonly string[]): void {
     const state = this.store.get();
     const clipIds = new Set(ids);
-    const removeReference = clipIds.has(REFERENCE_VIDEO_CLIP_ID);
+    const before: RecorderClipsState = {
+      tracks: [...state.audioTracks, state.recordingTrack].flatMap((track) => {
+        const clips = track.clips.flatMap((clip, index) =>
+          clipIds.has(clip.id)
+            ? [{ clipId: clip.id, snapshot: { clip, index } }]
+            : [],
+        );
+        return clips.length > 0 ? [{ trackId: track.id, clips }] : [];
+      }),
+      ...(clipIds.has(REFERENCE_VIDEO_CLIP_ID) && state.referenceVideo
+        ? { reference: { snapshot: state.referenceVideo } }
+        : {}),
+    };
+    const after: RecorderClipsState = {
+      tracks: before.tracks.map(({ trackId, clips }) => ({
+        trackId,
+        clips: clips.map(({ clipId }) => ({ clipId })),
+      })),
+      ...(before.reference ? { reference: {} } : {}),
+    };
+    this.applyClips(after);
+    this.history.pushClips({ before, after });
+  }
+
+  /** Restore only the described clips, preserving unrelated edits and track settings. */
+  applyClips(change: RecorderClipsState): void {
+    const state = this.store.get();
+    function applyTrack(track: AudioTrackState): AudioTrackState {
+      const edits = change.tracks.find((entry) => entry.trackId === track.id);
+      if (!edits) {
+        return track;
+      }
+      const ids = new Set(edits.clips.map(({ clipId }) => clipId));
+      return updateTrackClips({
+        track,
+        update: (current) => {
+          const clips = current.filter((clip) => !ids.has(clip.id));
+          // Restore original ordering after removing all targeted clips.
+          const snapshots = edits.clips
+            .flatMap(({ snapshot }) => (snapshot ? [snapshot] : []))
+            .sort((a, b) => a.index - b.index);
+          for (const { clip, index } of snapshots) {
+            clips.splice(index, 0, clip);
+          }
+          return clips;
+        },
+      });
+    }
+    const audioTracks = state.audioTracks.map(applyTrack);
+    const recordingTrack = applyTrack(state.recordingTrack);
+    const referenceVideo = change.reference
+      ? change.reference.snapshot
+      : state.referenceVideo;
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    function removeTrackClips(track: AudioTrackState): AudioTrackState {
-      return updateTrackClips({
-        track,
-        update: (clips) => clips.filter((clip) => !clipIds.has(clip.id)),
-      });
-    }
-    const audioTracks = state.audioTracks.map((track) =>
-      removeTrackClips(track),
-    );
-    const recordingTrack = removeTrackClips(state.recordingTrack);
-    this.store.update({
-      recordingTrack,
-      audioTracks,
-      ...(removeReference ? { referenceVideo: undefined } : {}),
-    });
+    this.store.update({ audioTracks, recordingTrack, referenceVideo });
     if (recordingTrack !== state.recordingTrack) {
       this.syncTrackPlayback(recordingTrack);
     }
@@ -533,7 +571,7 @@ export class RecorderRuntime {
         this.syncTrackPlayback(track);
       }
     }
-    if (removeReference) {
+    if (referenceVideo !== state.referenceVideo) {
       this.syncYouTubePlayer();
     }
     if (wasPlaying) {
@@ -926,8 +964,7 @@ export class RecorderRuntime {
   }
 
   removeReferenceVideo(): void {
-    this.store.update({ referenceVideo: undefined });
-    this.syncYouTubePlayer();
+    this.removeClips([REFERENCE_VIDEO_CLIP_ID]);
   }
 
   private syncYouTubePlayer(): void {
@@ -1174,25 +1211,19 @@ export class RecorderRuntime {
     });
     this.syncTrackPlayback(recordingTrack);
     this.syncTrackMix();
-    this.history.pushCaptureTake({ clip, index });
-  }
-
-  /** @internal for undo */
-  applyCaptureTake({
-    clipId,
-    snapshot,
-  }: {
-    clipId: string;
-    snapshot?: { clip: AudioClip; index: number };
-  }): void {
-    const recordingTrack = this.updateTrack(RECORDING_TRACK_ID, (track) => {
-      const clips = track.clips.filter((clip) => clip.id !== clipId);
-      if (snapshot) {
-        clips.splice(snapshot.index, 0, snapshot.clip);
-      }
-      return { ...track, clips };
+    this.history.pushClips({
+      before: {
+        tracks: [{ trackId: RECORDING_TRACK_ID, clips: [{ clipId: clip.id }] }],
+      },
+      after: {
+        tracks: [
+          {
+            trackId: RECORDING_TRACK_ID,
+            clips: [{ clipId: clip.id, snapshot: { clip, index } }],
+          },
+        ],
+      },
     });
-    this.syncTrackPlayback(recordingTrack);
   }
 
   private closeInput(): void {
@@ -1214,6 +1245,18 @@ export class RecorderRuntime {
   redo = () => this.history.redo();
 }
 
+type RecorderClipsState = {
+  tracks: {
+    trackId: string;
+    clips: {
+      clipId: string;
+      snapshot?: { clip: AudioClip; index: number };
+    }[];
+  }[];
+  // Omitted leaves the reference unchanged; an empty object removes it.
+  reference?: { snapshot?: ReferenceVideoState };
+};
+
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
 // editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
 // Capture complete before/after notes for those IDs and migrate callers incrementally.
@@ -1224,11 +1267,7 @@ type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
   | { type: "midi-track-insert"; track: MidiTrackState; index: number }
   | { type: "midi-track-delete"; trackId: string }
-  | {
-      type: "capture-take";
-      clipId: string;
-      snapshot?: { clip: AudioClip; index: number };
-    };
+  | ({ type: "clips" } & RecorderClipsState);
 
 // TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 class RecorderHistory {
@@ -1266,14 +1305,16 @@ class RecorderHistory {
     );
   }
 
-  pushCaptureTake({ clip, index }: { clip: AudioClip; index: number }): void {
+  pushClips({
+    before,
+    after,
+  }: {
+    before: RecorderClipsState;
+    after: RecorderClipsState;
+  }): void {
     this.history.push({
-      before: { type: "capture-take", clipId: clip.id },
-      after: {
-        type: "capture-take",
-        clipId: clip.id,
-        snapshot: { clip, index },
-      },
+      before: { type: "clips", ...before },
+      after: { type: "clips", ...after },
     });
   }
 
@@ -1291,8 +1332,8 @@ class RecorderHistory {
         this.runtime.deleteMidiTrack(change.trackId);
         break;
       }
-      case "capture-take": {
-        this.runtime.applyCaptureTake(change);
+      case "clips": {
+        this.runtime.applyClips(change);
         break;
       }
     }

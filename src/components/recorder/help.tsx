@@ -88,9 +88,12 @@ const sections: HelpSectionData[] = [
   {
     title: "History",
     items: [
-      { action: "Undo MIDI edit or recorded take", keys: "Ctrl / Cmd + Z" },
       {
-        action: "Redo MIDI edit or recorded take",
+        action: "Undo MIDI edit, take, or clip deletion",
+        keys: "Ctrl / Cmd + Z",
+      },
+      {
+        action: "Redo MIDI edit, take, or clip deletion",
         keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
       },
     ],
