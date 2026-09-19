@@ -20,6 +20,7 @@ type ClipEditStart =
       type: "trim";
       clip: Extract<RecorderClipId, { type: "clip" }>;
       edge: "start" | "end";
+      additive: boolean;
     };
 
 type ClipEdit =
@@ -93,18 +94,18 @@ export function useRecorderClipInteraction({
 
   function startEdit(input: ClipEditStart): void {
     onSelect();
+    const key = getKey(input.clip);
+    // Editing a selected clip preserves the group. Ctrl/Cmd adds an unselected
+    // clip to the group, while an unmodified edit replaces the selection.
+    const selectedKeys = keys.has(key)
+      ? new Set(keys)
+      : input.additive
+        ? new Set([...keys, key])
+        : new Set([key]);
+    setKeys(selectedKeys);
+    const selected = getSelectedClips(selectedKeys);
     switch (input.type) {
       case "move": {
-        const draggedKey = getKey(input.clip);
-        // Dragging a selected clip preserves the group; an unselected clip joins
-        // with Ctrl/Cmd or replaces the selection otherwise.
-        const selectedKeys = keys.has(draggedKey)
-          ? new Set(keys)
-          : input.additive
-            ? new Set([...keys, draggedKey])
-            : new Set([draggedKey]);
-        setKeys(selectedKeys);
-        const selected = getSelectedClips(selectedKeys);
         const clips: RecorderClipMove[] = [
           ...selected.clips.map((clip) => ({
             type: "clip" as const,
@@ -135,20 +136,12 @@ export function useRecorderClipInteraction({
         break;
       }
       case "trim": {
-        const selected = [...state.audioTracks, state.recordingTrack]
-          .flatMap((track) => track.clips)
-          .find((entry) => entry.id === input.clip.id);
-        if (!selected) {
+        if (!selected.clips.some((clip) => clip.id === input.clip.id)) {
           throw new Error("Recorder clip state is missing.");
-        }
-        // Trimming a selected clip preserves the group, just like moving it.
-        const key = getKey(input.clip);
-        if (!keys.has(key)) {
-          setKeys(new Set([key]));
         }
         setEdit({
           type: "trim",
-          clips: keys.has(key) ? getSelectedClips(keys).clips : [selected],
+          clips: selected.clips,
           edge: input.edge,
           delta: 0,
         });

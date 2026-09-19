@@ -423,7 +423,7 @@ const TIMELINE_EPSILON = 1e-6;
 
 type TimelineClipEditStart =
   | { type: "move"; additive: boolean }
-  | { type: "trim"; edge: "start" | "end" };
+  | { type: "trim"; edge: "start" | "end"; additive: boolean };
 
 export function AudioTimelineLane({
   beatsPerBar,
@@ -743,7 +743,11 @@ function TimelineClip({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      onEditStart!({ type: "trim", edge: "start" });
+      onEditStart!({
+        type: "trim",
+        edge: "start",
+        additive: event.ctrlKey || event.metaKey,
+      });
       return {
         startClientX: event.clientX,
       };
@@ -769,7 +773,11 @@ function TimelineClip({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      onEditStart!({ type: "trim", edge: "end" });
+      onEditStart!({
+        type: "trim",
+        edge: "end",
+        additive: event.ctrlKey || event.metaKey,
+      });
       return {
         startClientX: event.clientX,
       };
