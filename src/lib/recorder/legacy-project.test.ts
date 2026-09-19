@@ -12,7 +12,7 @@ vi.hoisted(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-const audioTrack: SavedProject["audioTracks"][number] = {
+const AUDIO_TRACK: SavedProject["audioTracks"][number] = {
   id: "backing",
   fileName: "backing.wav",
   assetKey: "original",
@@ -23,7 +23,7 @@ const audioTrack: SavedProject["audioTracks"][number] = {
   soloed: true,
 };
 
-const projectV1: SavedProjectV1 = {
+const PROJECT_V1: SavedProjectV1 = {
   ...createDefaultSavedProject(),
   version: 1,
   audioFileName: "backing.wav",
@@ -118,7 +118,7 @@ describe("legacy recorder conversion", () => {
     const { channels } = mockDecoder();
     const result = await convertLegacyProject({
       name: "Audio",
-      project: { ...createDefaultSavedProject(), audioTracks: [audioTrack] },
+      project: { ...createDefaultSavedProject(), audioTracks: [AUDIO_TRACK] },
       loadAudio: async () => new Blob(["encoded"]),
     });
     expect(result.audioTracks[0]).toMatchObject({
@@ -137,7 +137,7 @@ describe("legacy recorder conversion", () => {
     const { decode } = mockDecoder();
     const options = {
       name: "Broken",
-      project: { ...createDefaultSavedProject(), audioTracks: [audioTrack] },
+      project: { ...createDefaultSavedProject(), audioTracks: [AUDIO_TRACK] },
     };
     await expect(
       convertLegacyProject({ ...options, loadAudio: async () => undefined }),
@@ -156,7 +156,7 @@ describe("legacy recorder conversion", () => {
     const loadAudio = vi.fn().mockResolvedValue(new Blob(["audio"]));
     const result = await convertLegacyProject({
       name: "Stored v1",
-      project: { ...projectV1, audioAssetKey: "stored-audio" },
+      project: { ...PROJECT_V1, audioAssetKey: "stored-audio" },
       loadAudio,
     });
     expect(loadAudio).toHaveBeenCalledWith("stored-audio");
