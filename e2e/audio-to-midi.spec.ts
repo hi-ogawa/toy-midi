@@ -49,7 +49,7 @@ test.describe("Audio to MIDI", () => {
     // Hold model loading so cancellation happens during an active conversion.
     const modelGate = Promise.withResolvers<void>();
     let modelRequests = 0;
-    await page.route("**/bass_pitch_bg.wasm", async (route) => {
+    await page.route("**/bass_pitch_bg*.wasm", async (route) => {
       modelRequests += 1;
       await modelGate.promise;
       await route.continue();
