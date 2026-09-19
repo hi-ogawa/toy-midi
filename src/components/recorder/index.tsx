@@ -450,7 +450,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                 <AudioTimelineLane
                   clips={track.clips}
                   regions={track.regions}
-                  editSourceClips={false}
                   testId="audio"
                   pixelsPerBeat={timeline.pixelsPerBeat}
                   beatsPerBar={timeline.beatsPerBar}
@@ -615,7 +614,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                 >
                   <AudioTimelineLane
                     testId="take-lane"
-                    editSourceClips={false}
                     clips={[take]}
                     regions={deriveClipRegions([take])}
                     pixelsPerBeat={timeline.pixelsPerBeat}

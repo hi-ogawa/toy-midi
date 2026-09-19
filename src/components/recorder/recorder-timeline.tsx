@@ -421,7 +421,7 @@ export function AudioTimelineLane({
   beatsPerBar,
   clips,
   regions,
-  editSourceClips,
+  editSourceClips = false,
   recordingClipId,
   testId,
   emptyLabel,
@@ -442,7 +442,7 @@ export function AudioTimelineLane({
   clips: readonly AudioClip[];
   regions: readonly ClipRegion[];
   // Comp editing targets complete source clips, including their covered portions.
-  editSourceClips: boolean;
+  editSourceClips?: boolean;
   recordingClipId?: string;
   testId: RecorderTimelineClip["testId"];
   emptyLabel: string;
