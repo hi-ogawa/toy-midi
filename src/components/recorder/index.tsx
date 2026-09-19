@@ -192,6 +192,10 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    if (recorderInteraction.handleUndoRedoShortcut(event)) {
+      event.preventDefault();
+      return;
+    }
     if (matchKeyboardEvent(event, "Ctrl+C")) {
       // Preserve normal browser copy when the user selected rendered text.
       if (window.getSelection()?.isCollapsed === false) {
