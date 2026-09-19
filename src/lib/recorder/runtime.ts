@@ -1279,10 +1279,6 @@ class RecorderHistory {
 
   private async apply(change: RecorderChange): Promise<void> {
     switch (change.type) {
-      case "capture-take": {
-        this.runtime.applyCaptureTake(change);
-        break;
-      }
       case "midi-notes": {
         this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
         break;
@@ -1293,6 +1289,10 @@ class RecorderHistory {
       }
       case "midi-track-delete": {
         this.runtime.deleteMidiTrack(change.trackId);
+        break;
+      }
+      case "capture-take": {
+        this.runtime.applyCaptureTake(change);
         break;
       }
     }
