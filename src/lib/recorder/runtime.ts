@@ -367,13 +367,14 @@ export class RecorderRuntime {
     }
   }
 
-  async addMidiTrack(): Promise<string> {
+  async addMidiTrack(): Promise<void> {
     const state = this.store.get();
-    let number = state.midiTracks.length + 1;
-    while (state.midiTracks.some((track) => track.name === `MIDI ${number}`)) {
-      number += 1;
-    }
-    const track = createMidiTrackState(number);
+    const track = createMidiTrackState(
+      createNumberedName({
+        names: state.midiTracks.map((track) => track.name),
+        prefix: "MIDI",
+      }),
+    );
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
       output: this.masterOutput,
@@ -382,11 +383,21 @@ export class RecorderRuntime {
     });
     this.midiTrackPlaybacks.set(track.id, playback);
     this.store.update({
-      midiTracks: [...this.store.get().midiTracks, track],
+      midiTracks: [...state.midiTracks, track],
     });
     this.syncTrackMix();
-    playback.setTempo(this.store.get().tempo);
-    return track.id;
+  }
+
+  removeMidiTrack(id: string): void {
+    this.history.removeMidiTrack(id);
+    this.midiTrackPlaybacks.get(id)?.dispose();
+    this.midiTrackPlaybacks.delete(id);
+    this.store.update({
+      midiTracks: this.store
+        .get()
+        .midiTracks.filter((track) => track.id !== id),
+    });
+    this.syncTrackMix();
   }
 
   setTrackMix(
@@ -581,18 +592,6 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  removeMidiTrack(id: string): void {
-    this.history.removeMidiTrack(id);
-    this.midiTrackPlaybacks.get(id)?.dispose();
-    this.midiTrackPlaybacks.delete(id);
-    this.store.update({
-      midiTracks: this.store
-        .get()
-        .midiTracks.filter((track) => track.id !== id),
-    });
-    this.syncTrackMix();
-  }
-
   setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({ ...track, eq }));
@@ -703,7 +702,7 @@ export class RecorderRuntime {
   private updateMidiTrack(
     id: string,
     update: (track: MidiTrackState) => MidiTrackState,
-  ): MidiTrackState {
+  ): void {
     const midiTracks = this.store.get().midiTracks.slice();
     const index = midiTracks.findIndex((track) => track.id === id);
     const track = midiTracks[index];
@@ -712,7 +711,6 @@ export class RecorderRuntime {
     }
     midiTracks[index] = update(track);
     this.store.update({ midiTracks });
-    return midiTracks[index]!;
   }
 
   private syncTrackPlayback(track: AudioTrackState): void {
@@ -852,14 +850,13 @@ export class RecorderRuntime {
 
   addLocator(beat: number): string {
     const { locators } = this.store.get();
-    let number = locators.length + 1;
-    while (locators.some((locator) => locator.label === `Section ${number}`)) {
-      number += 1;
-    }
     const locator = {
       id: crypto.randomUUID(),
       beat,
-      label: `Section ${number}`,
+      label: createNumberedName({
+        names: locators.map((locator) => locator.label),
+        prefix: "Section",
+      }),
     };
     this.store.update({ locators: [...locators, locator] });
     return locator.id;
@@ -1383,10 +1380,10 @@ function createRecordingTrackState(): AudioTrackState {
   };
 }
 
-function createMidiTrackState(number: number): MidiTrackState {
+function createMidiTrackState(name: string): MidiTrackState {
   return {
     id: crypto.randomUUID(),
-    name: `MIDI ${number}`,
+    name,
     notes: [],
     program: 0,
     eq: createDefaultMultibandEq(),
@@ -1405,8 +1402,20 @@ export function clampTrackHeight(height: number): number {
 }
 
 function clampRecordingTrackHeight(height: number): number {
-  return Math.max(
-    MIN_RECORDING_TRACK_HEIGHT,
-    Math.min(MAX_TRACK_HEIGHT, height),
-  );
+  return clamp(height, MIN_RECORDING_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
+}
+
+function createNumberedName({
+  names,
+  prefix,
+}: {
+  names: readonly string[];
+  prefix: string;
+}): string {
+  const existingNames = new Set(names);
+  let number = names.length + 1;
+  while (existingNames.has(`${prefix} ${number}`)) {
+    number += 1;
+  }
+  return `${prefix} ${number}`;
 }
