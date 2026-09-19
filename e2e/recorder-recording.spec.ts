@@ -46,10 +46,10 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-comp-source");
   const takeLane = page
     .getByTestId("recorder-take-row")
-    .getByTestId("recorder-clip-take-lane");
+    .getByTestId("recorder-clip-take-lane-source");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
@@ -123,6 +123,35 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(muteTake.nth(1)).toHaveAttribute("aria-pressed", "true");
   await expect(takeLane).toHaveCount(2);
   await expect(take).toHaveCount(1);
+  await expect(compRegion).not.toContainText("Take 2");
+
+  // Move and trim a muted source in its expanded lane while it stays absent from the comp.
+  const mutedLane = takeLane.nth(1);
+  const beforeSourceMove = (await mutedLane.boundingBox())!;
+  await dragBy(page, mutedLane, DEFAULT_PIXELS_PER_BEAT);
+  const afterSourceMove = (await mutedLane.boundingBox())!;
+  expect(afterSourceMove.x).toBeCloseTo(
+    beforeSourceMove.x + DEFAULT_PIXELS_PER_BEAT,
+    -1,
+  );
+  const sourceTrimPixels = Math.max(2, afterSourceMove.width / 4);
+  await dragBy(
+    page,
+    mutedLane.getByTestId("recorder-take-trim-start"),
+    sourceTrimPixels,
+  );
+  const afterSourceTrim = (await mutedLane.boundingBox())!;
+  expect(afterSourceTrim.x).toBeCloseTo(
+    afterSourceMove.x + sourceTrimPixels,
+    -1,
+  );
+  expect(afterSourceTrim.x + afterSourceTrim.width).toBeCloseTo(
+    afterSourceMove.x + afterSourceMove.width,
+    -1,
+  );
+  await expect(
+    takeRows.nth(1).getByTestId("recorder-clip-take-lane").locator("svg"),
+  ).toBeVisible();
   await expect(compRegion).not.toContainText("Take 2");
 
   // Solo derives Capture from soloed, unmuted take lanes.
