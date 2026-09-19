@@ -1,6 +1,5 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
-import { toast } from "sonner";
 import { importRecorderProject } from "../../lib/recorder/project-import";
 import {
   type RecorderProjectMetadata,
@@ -31,7 +30,6 @@ export function RecorderProjectList() {
       const content = await importRecorderProject(file);
       return recorderProjectStorage.createWithContent(content);
     },
-    onError: (error) => toast.error(error.message),
     onSuccess: (projectId) => {
       window.location.href = routes.recorderProject.href({ projectId });
     },
