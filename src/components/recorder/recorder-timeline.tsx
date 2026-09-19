@@ -422,7 +422,7 @@ export function AudioTimelineLane({
   clips,
   regions,
   editSourceClips,
-  recordingPreview,
+  recordingClipId,
   testId,
   emptyLabel,
   pixelsPerBeat,
@@ -443,7 +443,7 @@ export function AudioTimelineLane({
   regions: readonly ClipRegion[];
   // Comp editing targets complete source clips, including their covered portions.
   editSourceClips: boolean;
-  recordingPreview?: { id: string; label: string };
+  recordingClipId?: string;
   testId: RecorderTimelineClip["testId"];
   emptyLabel: string;
   pixelsPerBeat: number;
@@ -473,7 +473,7 @@ export function AudioTimelineLane({
         subdivisionsPerBeat,
       })}
     >
-      {clips.length === 0 && !recordingPreview && (
+      {clips.length === 0 && recordingClipId === undefined && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
           {emptyLabel}
         </div>
@@ -485,14 +485,14 @@ export function AudioTimelineLane({
       >
         {regions.map((region, index) => {
           const { clip } = region;
-          const isRecording = clip.id === recordingPreview?.id;
+          const isRecording = clip.id === recordingClipId;
           const previous = regions[index - 1];
           const next = regions[index + 1];
           return (
             <TimelineClip
               key={`${clip.id}:${index}`}
               clip={{
-                label: isRecording ? recordingPreview.label : clip.name,
+                label: isRecording ? "Recording..." : clip.name,
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
                 audioOffset: region.timelineStart - clip.timelineOffset,
