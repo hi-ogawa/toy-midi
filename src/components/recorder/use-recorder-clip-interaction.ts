@@ -210,7 +210,6 @@ function createMoveGetChanges({
 function createTrimStartGetChanges(
   clips: AudioClip[],
 ): (delta: number) => RecorderClipTrim[] {
-  // Clamp one shared delta so every selected start edge moves by the same amount.
   const minDelta = Math.max(...clips.map((clip) => -clip.trimStart));
   const maxDelta = Math.min(
     ...clips.map((clip) => clip.trimEnd - MIN_CLIP_DURATION - clip.trimStart),
@@ -227,7 +226,6 @@ function createTrimStartGetChanges(
 function createTrimEndGetChanges(
   clips: AudioClip[],
 ): (delta: number) => RecorderClipTrim[] {
-  // Clamp one shared delta so every selected end edge moves by the same amount.
   const minDelta = Math.max(
     ...clips.map((clip) => clip.trimStart + MIN_CLIP_DURATION - clip.trimEnd),
   );
