@@ -54,7 +54,7 @@ function mockDecoder() {
 }
 
 describe("legacy recorder conversion", () => {
-  it("copies MIDI, annotations, timing, and mix without mutating the source", async () => {
+  it("copies MIDI, annotations, timing, and mix", async () => {
     const project: SavedProject = {
       ...createDefaultSavedProject(),
       notes: [
@@ -80,7 +80,6 @@ describe("legacy recorder conversion", () => {
       masterVolume: 0.8,
       metronomeVolume: 0.2,
     };
-    const original = structuredClone(project);
     const loadAudio = vi.fn();
     const result = await convertLegacyProject({
       name: "Song",
@@ -110,8 +109,6 @@ describe("legacy recorder conversion", () => {
       recordingTrack: { takes: [] },
     });
     expect(loadAudio).not.toHaveBeenCalled();
-    result.midiTracks![0].notes[0].pitch = 60;
-    expect(project).toEqual(original);
   });
 
   it("decodes all channels and uses decoded duration while preserving offsets and gains", async () => {

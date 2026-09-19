@@ -40,7 +40,7 @@ export async function convertLegacyProject({
     {
       id: crypto.randomUUID(),
       name: "MIDI 1",
-      notes: structuredClone(legacy.notes),
+      notes: legacy.notes,
       program: legacy.midiProgram,
       gain: legacy.midiVolume,
       muted: legacy.midiMuted,
