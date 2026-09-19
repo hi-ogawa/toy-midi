@@ -1,29 +1,9 @@
-import {
-  AudioLinesIcon,
-  GitForkIcon,
-  Music2Icon,
-  PianoIcon,
-  Mic2Icon,
-} from "lucide-react";
-import { useState } from "react";
-import { projectStorage } from "../lib/project-storage";
+import { AudioLinesIcon, GitForkIcon, Music2Icon } from "lucide-react";
 import { routes } from "../lib/routes";
-import { MidiProjectList } from "./midi-project-list";
+import { LegacyProjectList } from "./recorder/legacy-project-list";
 import { RecorderProjectList } from "./recorder/project-list";
-import { Tabs } from "./ui/tabs";
 
-type ProjectType = "midi" | "recorder";
-
-export function Home() {
-  const [projectType, setProjectType] = useState<ProjectType>(
-    () => projectStorage.readPreferences().projectType,
-  );
-
-  const selectProjectType = (type: ProjectType) => {
-    projectStorage.updatePreferences({ projectType: type });
-    setProjectType(type);
-  };
-
+export function Home({ legacyProjectId }: { legacyProjectId?: string }) {
   return (
     <div
       data-testid="startup-screen"
@@ -70,34 +50,18 @@ export function Home() {
           </nav>
         </header>
 
-        <main className="mt-14 min-h-0 flex-1">
-          <Tabs
-            label="Project type"
-            value={projectType}
-            onValueChange={selectProjectType}
-            options={[
-              {
-                value: "midi",
-                label: (
-                  <>
-                    <PianoIcon aria-hidden="true" className="size-4" />
-                    MIDI
-                  </>
-                ),
-                content: <MidiProjectList />,
-              },
-              {
-                value: "recorder",
-                label: (
-                  <>
-                    <Mic2Icon aria-hidden="true" className="size-4" />
-                    Recorder
-                  </>
-                ),
-                content: <RecorderProjectList />,
-              },
-            ]}
-          />
+        <main className="mt-14 min-h-0 flex-1 overflow-y-auto">
+          {legacyProjectId ? (
+            <a
+              href={routes.home.href()}
+              className="mb-4 inline-block text-sm text-emerald-400 hover:text-emerald-300"
+            >
+              Back to projects
+            </a>
+          ) : (
+            <RecorderProjectList />
+          )}
+          <LegacyProjectList selectedProjectId={legacyProjectId} />
         </main>
       </div>
     </div>
