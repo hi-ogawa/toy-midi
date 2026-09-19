@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>pYIN — Algorithm Breakdown</title>
+    <title>pYIN Visual Guide</title>
     <style>
       :root {
         --ink: #1f2937;
@@ -192,15 +192,13 @@
         </nav>
       </details>
 
-      <h1>pYIN, De-Black-Boxed</h1>
+      <h1>pYIN Visual Guide</h1>
       <p class="subtitle">
-        Inside the pitch stage of the grid-guided bass pipeline — vendored
-        <a
-          href="https://github.com/hi-ogawa/toy-midi/blob/d63bbeb/crates/pyin/src/pyin.rs"
-          ><code>crates/pyin</code></a
-        >
-        — companion to <code>docs/bass-pitch/pyin.md</code>. All plotted values
-        are measured from the bar-11 fixture.
+        Explore pitch candidates and sequence decoding through plots measured
+        from the bar-11 bass fixture. Read
+        <a href="pyin-math.md">pYIN math</a> for the derivation, or the
+        <a href="algorithm.md">pipeline overview</a>
+        to see how decoded pitches become notes.
       </p>
 
       <section id="idea">
@@ -221,10 +219,10 @@
             <b>2 · Thresholds → probabilities</b>Integrate over 100 Beta(2,18)
             thresholds. Trough depth becomes probability mass per pitch
             candidate; the total is the frame's voiced probability — the
-            calibrated "confidence".
+            reported "confidence".
           </div>
           <div class="step">
-            <b>3 · Viterbi over (pitch × voicing)</b>898 states, ±5
+            <b>3 · Viterbi over (pitch × voicing)</b>898 states, ±2.5
             semitones/frame pitch inertia, 0.01 voicing-switch cost. The path,
             not any single frame, decides f0 and voicing.
           </div>
@@ -412,7 +410,7 @@
             it is shallow (0.41) — above almost the entire threshold prior — so
             the frame's voiced probability collapses to 0.01. Where classic
             YIN's single 0.1 cutoff (dashed) gives a hard yes/no plus a wrong
-            pitch, pYIN converts trough depth into calibrated evidence. This is
+            pitch, pYIN converts trough depth into weighted evidence. This is
             exactly why downstream code may weight votes by this probability but
             must never gate note existence on it.
           </figcaption>
@@ -539,7 +537,7 @@
                   fill="#6b7280"
                   font-size="11"
                 >
-                  −5 st
+                  −2.5 st
                 </text>
                 <text
                   x="330"
@@ -548,7 +546,7 @@
                   fill="#6b7280"
                   font-size="11"
                 >
-                  +5 st
+                  +2.5 st
                 </text>
                 <text
                   x="210"
@@ -557,7 +555,7 @@
                   fill="#6b7280"
                   font-size="12"
                 >
-                  triangular window, ±5 semitones per 11.6 ms frame
+                  triangular window, ±2.5 semitones per 11.6 ms frame
                 </text>
                 <text
                   x="210"
@@ -567,7 +565,7 @@
                   font-size="12"
                   font-weight="600"
                 >
-                  an octave jump (±12 st) between adjacent frames is impossible
+                  octave jumps (±12 st) receive zero transition probability
                 </text>
               </g>
               <text x="40" y="243" fill="#6b7280" font-size="12">
@@ -579,9 +577,9 @@
           <figcaption>
             Viterbi finds the maximum-likelihood path through this state space
             for the whole excerpt. Both priors are inertia: pitch moves at most
-            5 semitones between frames (from 35.92 octaves/s at hop 256), and
-            voicing flips cost 1% each. Weak-evidence frames therefore do not
-            decide anything alone — the path coasts through them, which is what
+            2.5 semitones between frames (a centered 51-bin window), and voicing
+            flips cost 1% each. Weak-evidence frames therefore do not decide
+            anything alone — the path coasts through them, which is what
             corrects frame 188 below.
           </figcaption>
         </figure>
@@ -896,7 +894,7 @@
             197 frames, which shows that per-frame YIN is accurate on most of
             this clean bass fixture. The 4 orange frames are sub-octave errors
             at note transitions (A1 and C#2 attacks). The decoded path corrects
-            them because the sub-octave is outside the ±5 semitone transition
+            them because the sub-octave is outside the ±2.5 semitone transition
             range and a momentary voicing change has a higher transition cost.
             The decoded pitch also varies by a few semitones during decays, so
             the pipeline assigns final pitch by region-level voting instead of
@@ -943,7 +941,7 @@
           </tr>
           <tr>
             <td>transition / switch</td>
-            <td>±5 st per frame / 0.01</td>
+            <td>±2.5 st per frame / 0.01</td>
             <td>pitch and voicing inertia</td>
           </tr>
         </table>
@@ -996,8 +994,8 @@
           v1.2.0 (librosa-0.9.1-compatible; C FFI removed for wasm32).
           Reference: Mauch &amp; Dixon, “pYIN: A fundamental frequency estimator
           using probabilistic threshold distributions”, ICASSP 2014. Companion
-          docs: <code>docs/bass-pitch/pyin.md</code>,
-          <code>docs/bass-pitch/algorithm.md</code>.
+          docs: <a href="pyin-math.md">pYIN math</a> and
+          <a href="algorithm.md">the pipeline overview</a>.
         </p>
       </section>
 

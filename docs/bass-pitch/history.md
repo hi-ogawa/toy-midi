@@ -1,6 +1,6 @@
 # Grid-Guided Bass Transcription: Development History
 
-This document records how the grid-guided bass transcription pipeline evolved from a Python evaluation harness into the Rust/WASM implementation used by toy-midi. It focuses on the evidence and design decisions that changed the pipeline. The current signal path is described in `docs/bass-pitch/algorithm.md`, while pYIN itself is explained in `docs/bass-pitch/pyin.md`.
+This document records how the grid-guided bass transcription pipeline evolved from a Python evaluation harness into the Rust/WASM implementation used by toy-midi. It focuses on the evidence and design decisions that changed the pipeline. The current signal path is described in `docs/bass-pitch/algorithm.md`, while pYIN itself is explained in `docs/bass-pitch/pyin-math.md`.
 
 ## Goal and Constraints
 
