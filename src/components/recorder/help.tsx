@@ -40,7 +40,7 @@ const sections: HelpSectionData[] = [
       { action: "Move selected clips", gesture: "Drag clip body" },
       { action: "Trim audio clips and takes", gesture: "Drag clip edge" },
       { action: "Remove selected clips", keys: "Delete / Backspace" },
-      { action: "Clear selection / cancel clip drag", keys: "Esc" },
+      { action: "Clear selection", keys: "Esc" },
     ],
   },
   {
