@@ -367,27 +367,6 @@ export class RecorderRuntime {
     }
   }
 
-  async addMidiTrack(): Promise<void> {
-    const state = this.store.get();
-    let number = state.midiTracks.length + 1;
-    while (state.midiTracks.some((track) => track.name === `MIDI ${number}`)) {
-      number += 1;
-    }
-    const track = createMidiTrackState(number);
-    const playback = await MidiTrackPlayback.create({
-      transport: this.transport,
-      output: this.masterOutput,
-      track,
-      tempo: state.tempo,
-    });
-    this.midiTrackPlaybacks.set(track.id, playback);
-    this.store.update({
-      midiTracks: [...this.store.get().midiTracks, track],
-    });
-    this.syncTrackMix();
-    playback.setTempo(this.store.get().tempo);
-  }
-
   setTrackMix(
     id: string,
     update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
@@ -578,6 +557,27 @@ export class RecorderRuntime {
         .audioTracks.filter((track) => track.id !== id),
     });
     this.syncTrackMix();
+  }
+
+  async addMidiTrack(): Promise<void> {
+    const state = this.store.get();
+    let number = state.midiTracks.length + 1;
+    while (state.midiTracks.some((track) => track.name === `MIDI ${number}`)) {
+      number += 1;
+    }
+    const track = createMidiTrackState(number);
+    const playback = await MidiTrackPlayback.create({
+      transport: this.transport,
+      output: this.masterOutput,
+      track,
+      tempo: state.tempo,
+    });
+    this.midiTrackPlaybacks.set(track.id, playback);
+    this.store.update({
+      midiTracks: [...this.store.get().midiTracks, track],
+    });
+    this.syncTrackMix();
+    playback.setTempo(this.store.get().tempo);
   }
 
   removeMidiTrack(id: string): void {
