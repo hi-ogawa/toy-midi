@@ -46,10 +46,10 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-comp-source");
   const takeLane = page
     .getByTestId("recorder-take-row")
-    .getByTestId("recorder-clip-take-lane");
+    .getByTestId("recorder-clip-take-lane-source");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
@@ -149,7 +149,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     afterSourceMove.x + afterSourceMove.width,
     -1,
   );
-  await expect(mutedLane.locator("svg")).toBeVisible();
+  await expect(
+    takeRows.nth(1).getByTestId("recorder-clip-take-lane").locator("svg"),
+  ).toBeVisible();
   await expect(compRegion).not.toContainText("Take 2");
 
   // Solo derives Capture from soloed, unmuted take lanes.

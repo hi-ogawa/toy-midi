@@ -17,7 +17,7 @@ test("records only the punched interval into the comp", async ({ page }) => {
   await enableInput(page);
 
   const recordButton = page.getByTestId("recorder-record-button");
-  const take = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-comp-source");
   const comp = page.getByTestId("recorder-clip-comp");
 
   // Create a punch range strictly inside the recording span.

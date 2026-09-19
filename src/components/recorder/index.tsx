@@ -552,7 +552,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                   state.previewClipRegions ?? state.recordingTrack.regions
                 }
                 testId="comp"
-                editSourceClips
                 emptyLabel="Enable input, place the playhead, then record"
                 recordingClipId={state.pendingRecording?.id}
                 beatsPerBar={timeline.beatsPerBar}
