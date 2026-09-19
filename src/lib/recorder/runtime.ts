@@ -367,7 +367,7 @@ export class RecorderRuntime {
     }
   }
 
-  async addMidiTrack(): Promise<string> {
+  async addMidiTrack(): Promise<void> {
     const state = this.store.get();
     let number = state.midiTracks.length + 1;
     while (state.midiTracks.some((track) => track.name === `MIDI ${number}`)) {
@@ -386,7 +386,6 @@ export class RecorderRuntime {
     });
     this.syncTrackMix();
     playback.setTempo(this.store.get().tempo);
-    return track.id;
   }
 
   setTrackMix(
