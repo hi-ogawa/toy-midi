@@ -1278,7 +1278,6 @@ export function deriveClipEditState(
 > {
   const moves = edit.type === "move" ? edit.changes : [];
   const trims = edit.type !== "move" ? edit.changes : [];
-  const referenceMove = moves.find((change) => change.type === "reference");
   function editTrack(track: AudioTrackState): AudioTrackState {
     return updateTrackClips({
       track,
@@ -1299,19 +1298,21 @@ export function deriveClipEditState(
         }),
     });
   }
-  if (referenceMove && !state.referenceVideo) {
-    throw new Error("Recorder clip state is missing.");
+  function editReferenceVideo() {
+    const { referenceVideo } = state;
+    const move = moves.find((change) => change.type === "reference");
+    if (!move) {
+      return referenceVideo;
+    }
+    if (!referenceVideo) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    return { ...referenceVideo, timelineStart: move.timelineOffset };
   }
   return {
     audioTracks: state.audioTracks.map(editTrack),
     recordingTrack: editTrack(state.recordingTrack),
-    referenceVideo:
-      state.referenceVideo && referenceMove
-        ? {
-            ...state.referenceVideo,
-            timelineStart: referenceMove.timelineOffset,
-          }
-        : state.referenceVideo,
+    referenceVideo: editReferenceVideo(),
   };
 }
 
