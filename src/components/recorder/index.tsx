@@ -539,11 +539,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                   !input.initialized ||
                   flags.isRecording ||
                   (!input.active && input.route.needsSetup),
+                tunerOpen: isTunerOpen,
                 onInputSetup: () => setIsInputSetupOpen(true),
                 onInputMonitoringChange: (monitoring) =>
                   runtime.setInputMonitoring(monitoring),
                 onInputToggle: input.toggle,
-                tunerOpen: isTunerOpen,
                 onTunerToggle: () => setIsTunerOpen((open) => !open),
               }}
             >

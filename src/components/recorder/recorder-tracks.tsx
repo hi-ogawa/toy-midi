@@ -178,10 +178,10 @@ interface TrackInputControls {
   inputMonitoring: boolean;
   inputToggleDisabled: boolean;
   tunerOpen: boolean;
-  onTunerToggle: () => void;
   onInputSetup: () => void;
   onInputMonitoringChange: (monitoring: boolean) => void;
   onInputToggle: () => void;
+  onTunerToggle: () => void;
 }
 
 function TrackInputToggle({
