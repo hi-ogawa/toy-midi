@@ -552,8 +552,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                 regions={
                   state.previewClipRegions ?? state.recordingTrack.regions
                 }
-                pendingRecording={state.pendingRecording}
-                captureStatus={state.captureStatus}
+                pendingRecording={
+                  flags.isRecording ? state.pendingRecording : undefined
+                }
                 isTakeSelected={(id) =>
                   clipInteraction.isSelected({ type: "clip", id })
                 }

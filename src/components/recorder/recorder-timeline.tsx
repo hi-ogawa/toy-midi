@@ -422,7 +422,6 @@ export function TakeTimelineLane({
   takes,
   regions,
   pendingRecording,
-  captureStatus,
   isTakeSelected,
   beatsPerBar,
   subdivisionsPerBeat,
@@ -440,7 +439,6 @@ export function TakeTimelineLane({
   takes: RecorderRuntimeState["recordingTrack"]["clips"];
   regions: RecorderRuntimeState["recordingTrack"]["regions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
-  captureStatus: RecorderRuntimeState["captureStatus"];
   isTakeSelected: (id: string) => boolean;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
@@ -497,11 +495,7 @@ export function TakeTimelineLane({
             <TimelineClip
               key={`${take.id}:${index}`}
               clip={{
-                label: isPendingRecording
-                  ? captureStatus === "processing"
-                    ? "Finalizing..."
-                    : "Recording..."
-                  : take.name,
+                label: isPendingRecording ? "Recording..." : take.name,
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
                 audioOffset,
