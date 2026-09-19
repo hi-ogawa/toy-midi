@@ -402,16 +402,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onClipClick={(additive) =>
                   clipInteraction.select({ type: "reference" }, additive)
                 }
-                onClipDragStart={(additive) =>
+                onEditStart={(edit) =>
                   clipInteraction.startEdit({
-                    type: "move",
+                    ...edit,
                     clip: { type: "reference" },
-                    additive,
                   })
                 }
-                onClipDragMove={clipInteraction.updateEdit}
-                onClipDragEnd={clipInteraction.finishEdit}
-                onClipDragCancel={clipInteraction.cancelEdit}
+                onEditUpdate={clipInteraction.updateEdit}
+                onEditFinish={clipInteraction.finishEdit}
+                onEditCancel={clipInteraction.cancelEdit}
                 muted={state.referenceVideo.muted}
                 onMutedChange={(muted) => runtime.setReferenceVideoMuted(muted)}
                 onRemove={() => runtime.removeReferenceVideo()}
@@ -468,26 +467,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                   onClipClick={(id, additive) =>
                     clipInteraction.select({ type: "clip", id }, additive)
                   }
-                  onTrimStart={(id, edge) =>
+                  onEditStart={({ id, ...edit }) =>
                     clipInteraction.startEdit({
-                      type: "trim",
+                      ...edit,
                       clip: { type: "clip", id },
-                      edge,
                     })
                   }
-                  onTrimMove={clipInteraction.updateEdit}
-                  onTrimEnd={clipInteraction.finishEdit}
-                  onTrimCancel={clipInteraction.cancelEdit}
-                  onClipDragStart={(id, additive) =>
-                    clipInteraction.startEdit({
-                      type: "move",
-                      clip: { type: "clip", id },
-                      additive,
-                    })
-                  }
-                  onClipDragMove={clipInteraction.updateEdit}
-                  onClipDragEnd={clipInteraction.finishEdit}
-                  onClipDragCancel={clipInteraction.cancelEdit}
+                  onEditUpdate={clipInteraction.updateEdit}
+                  onEditFinish={clipInteraction.finishEdit}
+                  onEditCancel={clipInteraction.cancelEdit}
                   onSeek={(position) => {
                     recorderInteraction.clearSelection();
                     runtime.seek(position);
@@ -578,26 +566,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onClipClick={(id, additive) =>
                   clipInteraction.select({ type: "clip", id }, additive)
                 }
-                onTrimStart={(id, edge) =>
+                onEditStart={({ id, ...edit }) =>
                   clipInteraction.startEdit({
-                    type: "trim",
+                    ...edit,
                     clip: { type: "clip", id },
-                    edge,
                   })
                 }
-                onTrimMove={clipInteraction.updateEdit}
-                onTrimEnd={clipInteraction.finishEdit}
-                onTrimCancel={clipInteraction.cancelEdit}
-                onClipDragStart={(id, additive) =>
-                  clipInteraction.startEdit({
-                    type: "move",
-                    clip: { type: "clip", id },
-                    additive,
-                  })
-                }
-                onClipDragMove={clipInteraction.updateEdit}
-                onClipDragEnd={clipInteraction.finishEdit}
-                onClipDragCancel={clipInteraction.cancelEdit}
+                onEditUpdate={clipInteraction.updateEdit}
+                onEditFinish={clipInteraction.finishEdit}
+                onEditCancel={clipInteraction.cancelEdit}
                 onSeek={(position) => {
                   recorderInteraction.clearSelection();
                   runtime.seek(position);
@@ -646,26 +623,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                     onClipClick={(id, additive) =>
                       clipInteraction.select({ type: "clip", id }, additive)
                     }
-                    onTrimStart={(id, edge) =>
+                    onEditStart={({ id, ...edit }) =>
                       clipInteraction.startEdit({
-                        type: "trim",
+                        ...edit,
                         clip: { type: "clip", id },
-                        edge,
                       })
                     }
-                    onTrimMove={clipInteraction.updateEdit}
-                    onTrimEnd={clipInteraction.finishEdit}
-                    onTrimCancel={clipInteraction.cancelEdit}
-                    onClipDragStart={(id, additive) =>
-                      clipInteraction.startEdit({
-                        type: "move",
-                        clip: { type: "clip", id },
-                        additive,
-                      })
-                    }
-                    onClipDragMove={clipInteraction.updateEdit}
-                    onClipDragEnd={clipInteraction.finishEdit}
-                    onClipDragCancel={clipInteraction.cancelEdit}
+                    onEditUpdate={clipInteraction.updateEdit}
+                    onEditFinish={clipInteraction.finishEdit}
+                    onEditCancel={clipInteraction.cancelEdit}
                     onSeek={(position) => {
                       recorderInteraction.clearSelection();
                       runtime.seek(position);
