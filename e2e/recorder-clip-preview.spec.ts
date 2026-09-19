@@ -24,7 +24,7 @@ test("previews a clip move, cancels through release, and persists a committed mo
   expect((await clip.boundingBox())!.x).toBeCloseTo(original.x + delta, 0);
   await expect(save).toHaveAttribute("data-status", "saved");
 
-  // Cancel, then continue moving and release without resurrecting the edit.
+  // Cancel, then continue dragging and release without resurrecting the edit.
   await page.keyboard.press("Escape");
   expect((await clip.boundingBox())!.x).toBeCloseTo(original.x, 0);
   await page.mouse.move(pointer.x + delta * 2, pointer.y, { steps: 4 });
