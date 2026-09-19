@@ -441,10 +441,10 @@ export function AudioTimelineLane({
   beatsPerBar: number;
   clips: readonly AudioClip[];
   regions: readonly ClipRegion[];
+  testId: RecorderTimelineClip["testId"];
   // Comp editing targets complete source clips, including their covered portions.
   editSourceClips?: boolean;
   recordingClipId?: string;
-  testId: RecorderTimelineClip["testId"];
   emptyLabel?: string;
   pixelsPerBeat: number;
   viewportStartBeat: number;
