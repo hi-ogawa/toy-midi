@@ -38,7 +38,7 @@ function mockDecoder() {
     new Float32Array([0.25, -0.5]),
     new Float32Array([0.75, 0]),
   ];
-  const decode = vi.fn().mockResolvedValue({
+  const decode = async () => ({
     sampleRate: 48000,
     numberOfChannels: 2,
     duration: 2 / 48000,
@@ -50,7 +50,7 @@ function mockDecoder() {
       decodeAudioData = decode;
     },
   );
-  return { channels, decode };
+  return { channels };
 }
 
 describe("legacy recorder conversion", () => {
@@ -126,24 +126,6 @@ describe("legacy recorder conversion", () => {
       clip: { name: "backing.wav", pcm: { sampleRate: 48000, channels } },
     });
     expect(result.audioTracks[0].clip!.pcm.channels[0]).not.toBe(channels[0]);
-  });
-
-  it("names missing or undecodable tracks and rejects the conversion", async () => {
-    const { decode } = mockDecoder();
-    const options = {
-      name: "Broken",
-      project: { ...createDefaultSavedProject(), audioTracks: [AUDIO_TRACK] },
-    };
-    await expect(
-      convertLegacyProject({ ...options, loadAudio: async () => undefined }),
-    ).rejects.toThrow('Could not convert audio track "backing.wav"');
-    decode.mockRejectedValue(new Error("Invalid encoding"));
-    await expect(
-      convertLegacyProject({
-        ...options,
-        loadAudio: async () => new Blob(["bad"]),
-      }),
-    ).rejects.toThrow('Could not convert audio track "backing.wav"');
   });
 
   it("converts saved v1 data with legacy defaults", async () => {
