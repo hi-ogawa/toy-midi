@@ -90,7 +90,6 @@ export function useRecorderInteraction({
     ) {
       return true;
     }
-    // Discard active previews before undo/redo changes committed state.
     clearSelection();
     historyMutation.mutate(undo ? "undo" : "redo");
     return true;
