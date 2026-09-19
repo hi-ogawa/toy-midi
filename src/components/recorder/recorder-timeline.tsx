@@ -539,12 +539,12 @@ export function AudioTimelineLane({
           viewportStartBeat={viewportStartBeat}
           tempo={tempo}
           viewportWidth={viewportWidth}
-          onEditStart={(edit) => onEditStart({ ...edit, id: clip.id })}
-          canTrim
           onClipClick={(additive) => onClipClick(clip.id, additive)}
+          onEditStart={(edit) => onEditStart({ ...edit, id: clip.id })}
           onEditUpdate={onEditUpdate}
           onEditFinish={onEditFinish}
           onEditCancel={onEditCancel}
+          canTrim
           selected={isClipSelected(clip.id)}
           hidePresentation
         />
