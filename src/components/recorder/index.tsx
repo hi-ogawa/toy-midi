@@ -460,10 +460,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   tempo={timeline.tempo}
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
-                  isClipEditing={clipInteraction.isEditing}
                   isClipSelected={(id) =>
                     clipInteraction.isSelected({ type: "clip", id })
                   }
+                  isClipEditing={clipInteraction.isEditing}
                   onClipClick={(id, additive) =>
                     clipInteraction.select({ type: "clip", id }, additive)
                   }
@@ -559,10 +559,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
-                isClipEditing={clipInteraction.isEditing}
                 isClipSelected={(id) =>
                   clipInteraction.isSelected({ type: "clip", id })
                 }
+                isClipEditing={clipInteraction.isEditing}
                 onClipClick={(id, additive) =>
                   clipInteraction.select({ type: "clip", id }, additive)
                 }
@@ -616,10 +616,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                     viewportStartBeat={timeline.viewportStartBeat}
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
-                    isClipEditing={clipInteraction.isEditing}
                     isClipSelected={(id) =>
                       clipInteraction.isSelected({ type: "clip", id })
                     }
+                    isClipEditing={clipInteraction.isEditing}
                     onClipClick={(id, additive) =>
                       clipInteraction.select({ type: "clip", id }, additive)
                     }
