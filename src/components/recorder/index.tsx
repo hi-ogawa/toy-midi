@@ -558,10 +558,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   state.pendingRecording
                     ? {
                         id: state.pendingRecording.id,
-                        label:
-                          state.captureStatus === "processing"
-                            ? "Finalizing..."
-                            : "Recording...",
+                        label: "Recording...",
                       }
                     : undefined
                 }
