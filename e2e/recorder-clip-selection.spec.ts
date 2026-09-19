@@ -4,7 +4,6 @@ import { useFakeAudioInput } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
-  dragBy,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
