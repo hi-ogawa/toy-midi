@@ -10,6 +10,7 @@ import {
   matchKeyboardEvent,
 } from "../../lib/keyboard";
 import { snapToGrid } from "../../lib/music";
+import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
@@ -622,13 +623,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   <AudioTimelineLane
                     clips={[take]}
                     // Show the complete trimmed source even when absent from the comp.
-                    regions={[
-                      {
-                        clip: take,
-                        timelineStart: take.timelineOffset + take.trimStart,
-                        timelineEnd: take.timelineOffset + take.trimEnd,
-                      },
-                    ]}
+                    regions={deriveClipRegions([take])}
                     editSourceClips={false}
                     testId="take-lane"
                     pixelsPerBeat={timeline.pixelsPerBeat}
