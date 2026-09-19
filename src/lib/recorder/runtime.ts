@@ -1151,7 +1151,7 @@ export class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
-    const take = {
+    const take: AudioClip = {
       ...createAudioClip({
         id: pendingRecording.id,
         name: pendingRecording.name,
