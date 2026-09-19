@@ -77,6 +77,12 @@ export function RecorderProjectList() {
             Create a project to begin.
           </p>
         </div>
+      ) : filteredProjects.length === 0 && filteredLegacyProjects.length > 0 ? (
+        <p className="mb-4 py-3 text-center text-sm text-neutral-500">
+          {projects.data.value.length === 0
+            ? "No projects yet"
+            : "No matching projects"}
+        </p>
       ) : (
         <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
           {filteredProjects.map((project) => (

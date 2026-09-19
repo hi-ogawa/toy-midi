@@ -116,11 +116,17 @@ test("Projects search filters current and legacy projects together", async ({
   await expect(status).toHaveText("1 of 3 projects");
   await expect(current).toBeHidden();
   await expect(legacy).toContainText("Blue archive");
+  await expect(
+    page.getByText("No matching projects", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText(/No projects match/)).toBeHidden();
 
   // Show one empty search result and clear it to restore both lists.
   await search.fill("missing");
   await expect(status).toHaveText("0 of 3 projects");
+  await expect(
+    page.getByText("No matching projects", { exact: true }),
+  ).toBeHidden();
   await expect(page.getByText(/No projects match/)).toBeVisible();
   await expect(legacy).toBeHidden();
   await page
@@ -143,9 +149,14 @@ test("Projects search filters current and legacy projects together", async ({
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete project" }).click();
   await expect(status).toHaveText("1 of 1 projects");
-  await expect(page.getByText("No projects yet", { exact: true })).toBeHidden();
+  await expect(legacy).toContainText("Old song");
+  await expect(
+    page.getByText("No projects yet", { exact: true }),
+  ).toBeVisible();
   await search.fill("missing");
   await expect(page.getByText(/No projects match/)).toBeVisible();
+
+  await expect(page.getByText("No projects yet", { exact: true })).toBeHidden();
 
   // Open Legacy and show its full list without a search field.
   await page.getByRole("tab", { name: "Legacy", exact: true }).click();
