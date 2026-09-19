@@ -77,7 +77,7 @@ export function RecorderProjectList() {
             Create a project to begin.
           </p>
         </div>
-      ) : filteredProjects.length === 0 && filteredLegacyProjects.length > 0 ? (
+      ) : filteredProjects.length === 0 ? (
         <p className="mb-4 py-3 text-center text-sm text-neutral-500">
           {projects.data.value.length === 0
             ? "No projects yet"
@@ -136,7 +136,7 @@ export function RecorderProjectList() {
           </div>
         </div>
       )}
-      {projects.data.ok && (
+      {projects.data.ok && legacyProjects.length > 0 && (
         <LegacyProjectList
           projects={filteredLegacyProjects}
           onDelete={() => setLegacyProjects(projectStorage.listMetadata())}

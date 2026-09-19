@@ -32,10 +32,6 @@ export function LegacyProjectList({
     },
   });
 
-  if (projects.length === 0) {
-    return;
-  }
-
   return (
     <section
       aria-label="Legacy projects"
@@ -46,6 +42,11 @@ export function LegacyProjectList({
         Create a copy for the new editor. Your original project stays unchanged.
       </p>
       <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+        {projects.length === 0 && (
+          <p className="py-3 text-center text-sm text-neutral-500">
+            No matching legacy projects
+          </p>
+        )}
         {projects.map((project) => (
           <div
             key={project.id}

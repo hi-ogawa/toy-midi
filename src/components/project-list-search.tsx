@@ -54,20 +54,6 @@ export function ProjectListSearch({
       <p role="status" className="mt-2 text-xs text-neutral-500">
         {count} of {total} projects
       </p>
-      {total > 0 && count === 0 && (
-        <div className="flex min-h-36 flex-col items-center justify-center gap-2 text-center text-sm">
-          <p className="text-neutral-300">
-            No projects match “{query.trim()}”.
-          </p>
-          <button
-            type="button"
-            onClick={clear}
-            className="text-emerald-400 hover:text-emerald-300"
-          >
-            Clear search
-          </button>
-        </div>
-      )}
     </div>
   );
 }

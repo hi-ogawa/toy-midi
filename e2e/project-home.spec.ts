@@ -107,11 +107,11 @@ test("Projects search filters current and legacy projects together", async ({
   await expect(legacy).toContainText("Blue archive");
   await expect(legacy).not.toContainText("Old song");
 
-  // Match each list independently and hide the migration section without matches.
+  // Match each list independently and retain the empty section with an explanation.
   await search.fill("session");
   await expect(status).toHaveText("1 of 3 projects");
   await expect(current).toBeVisible();
-  await expect(legacy).toBeHidden();
+  await expect(legacy).toContainText("No matching legacy projects");
   await search.fill("archive blue");
   await expect(status).toHaveText("1 of 3 projects");
   await expect(current).toBeHidden();
@@ -121,18 +121,15 @@ test("Projects search filters current and legacy projects together", async ({
   ).toBeVisible();
   await expect(page.getByText(/No projects match/)).toBeHidden();
 
-  // Show one empty search result and clear it to restore both lists.
+  // Show compact messages in both sections and clear the search to restore their rows.
   await search.fill("missing");
   await expect(status).toHaveText("0 of 3 projects");
   await expect(
     page.getByText("No matching projects", { exact: true }),
-  ).toBeHidden();
-  await expect(page.getByText(/No projects match/)).toBeVisible();
-  await expect(legacy).toBeHidden();
-  await page
-    .getByRole("button", { name: "Clear search", exact: true })
-    .last()
-    .click();
+  ).toBeVisible();
+  await expect(page.getByText(/No projects match/)).toBeHidden();
+  await expect(legacy).toContainText("No matching legacy projects");
+  await page.getByRole("button", { name: "Clear search", exact: true }).click();
   await expect(search).toBeFocused();
   await expect(status).toHaveText("3 of 3 projects");
 
@@ -141,7 +138,7 @@ test("Projects search filters current and legacy projects together", async ({
   page.once("dialog", (dialog) => dialog.accept());
   await legacy.getByRole("button", { name: "Delete legacy project" }).click();
   await expect(status).toHaveText("0 of 2 projects");
-  await expect(legacy).toBeHidden();
+  await expect(legacy).toContainText("No matching legacy projects");
   await search.press("Escape");
   await expect(status).toHaveText("2 of 2 projects");
 
@@ -154,12 +151,38 @@ test("Projects search filters current and legacy projects together", async ({
     page.getByText("No projects yet", { exact: true }),
   ).toBeVisible();
   await search.fill("missing");
-  await expect(page.getByText(/No projects match/)).toBeVisible();
+  await expect(page.getByText(/No projects match/)).toBeHidden();
 
-  await expect(page.getByText("No projects yet", { exact: true })).toBeHidden();
+  await expect(
+    page.getByText("No projects yet", { exact: true }),
+  ).toBeVisible();
+  await expect(legacy).toContainText("No matching legacy projects");
 
   // Open Legacy and show its full list without a search field.
   await page.getByRole("tab", { name: "Legacy", exact: true }).click();
   await expect(search).toBeHidden();
   await expect(page.getByRole("link", { name: /Old song/ })).toBeVisible();
+});
+
+test("Projects hides the legacy section only when no saved legacy projects remain", async ({
+  page,
+}) => {
+  // Seed a legacy project and show its migration section even when search excludes it.
+  await page.goto("/__e2e__/");
+  await page.evaluate(() => window.__e2e.projectStorage.createNew());
+  await page.goto("/");
+  const search = page.getByRole("textbox", { name: "Search projects" });
+  const legacy = page.getByRole("region", { name: "Legacy projects" });
+  await search.fill("missing");
+  await expect(legacy).toContainText("No matching legacy projects");
+
+  // Clear search and delete the last saved legacy project to remove the section.
+  await search.press("Escape");
+  page.once("dialog", (dialog) => dialog.accept());
+  await legacy.getByRole("button", { name: "Delete legacy project" }).click();
+  await expect(legacy).toBeHidden();
+  await expect(page.getByRole("status")).toHaveText("0 of 0 projects");
+  await expect(
+    page.getByText("No projects yet", { exact: true }),
+  ).toBeVisible();
 });
