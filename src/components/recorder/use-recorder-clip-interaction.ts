@@ -11,7 +11,6 @@ import {
   type RecorderClipMove,
   type RecorderClipTrim,
   type AudioTrackState,
-  type ReferenceVideoState,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -219,9 +218,8 @@ export function useRecorderClipInteraction({
     };
   }
 
-  function previewReferenceVideo(
-    referenceVideo: ReferenceVideoState | undefined,
-  ) {
+  function previewReferenceVideo() {
+    const { referenceVideo } = state;
     const move =
       edit?.type === "move"
         ? edit.changes.find((change) => change.type === "reference")
@@ -247,7 +245,7 @@ export function useRecorderClipInteraction({
   return {
     audioTracks: state.audioTracks.map(previewTrack),
     recordingTrack: previewTrack(state.recordingTrack),
-    referenceVideo: previewReferenceVideo(state.referenceVideo),
+    referenceVideo: previewReferenceVideo(),
     cancelEdit: () => setEdit(undefined),
     clear: () => {
       setEdit(undefined);
