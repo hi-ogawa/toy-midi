@@ -191,7 +191,9 @@ export type RecorderClipMove =
   | { type: "clip"; id: string; timelineOffset: number }
   | { type: "reference"; timelineOffset: number };
 
-export type RecorderClipTrim = Extract<RecorderClipId, { id: string }> & {
+export type RecorderClipTrim = {
+  type: "clip";
+  id: string;
   edge: "start" | "end";
   value: number;
 };
