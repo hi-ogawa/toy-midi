@@ -152,11 +152,17 @@ async function beginDrag({
   target: Locator;
   delta: number;
 }) {
-  const box = (await target.boundingBox())!;
-  const x = box.x + box.width / 2;
-  const y = box.y + box.height / 2;
-  await page.mouse.move(x, y);
-  await page.mouse.down();
-  await page.mouse.move(x + delta, y, { steps: 4 });
-  return { x, y };
+  return await test.step(
+    `Begin drag by ${delta}px without releasing`,
+    async () => {
+      const box = (await target.boundingBox())!;
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + delta, y, { steps: 4 });
+      return { x, y };
+    },
+    { box: true },
+  );
 }
