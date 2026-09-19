@@ -447,7 +447,7 @@ export class RecorderRuntime {
 
   commitClipEdit(edit: RecorderClipEdit): void {
     const state = this.store.get();
-    const next = this.previewClipEdit(edit);
+    const next = applyRecorderClipEdit({ state, edit });
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -467,55 +467,6 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.transport.play();
     }
-  }
-
-  /** Calculate the same clip state as commit without updating the store or playback. */
-  previewClipEdit(
-    edit: RecorderClipEdit,
-  ): Pick<
-    RecorderRuntimeState,
-    "audioTracks" | "recordingTrack" | "referenceVideo"
-  > {
-    const state = this.store.get();
-    const moves = edit.type === "move" ? edit.changes : [];
-    const trims = edit.type === "trim" ? edit.changes : [];
-    const referenceMove = moves.find((change) => change.type === "reference");
-    function editTrack(track: AudioTrackState): AudioTrackState {
-      return updateTrackClips({
-        track,
-        update: (clips) =>
-          clips.map((clip) => {
-            const trim = trims.find((change) => change.id === clip.id);
-            if (trim) {
-              return trimAudioClip({
-                clip,
-                edge: trim.edge,
-                value: trim.value,
-              });
-            }
-            const move = moves.find(
-              (change) => change.type === "clip" && change.id === clip.id,
-            );
-            return move
-              ? { ...clip, timelineOffset: move.timelineOffset }
-              : clip;
-          }),
-      });
-    }
-    if (referenceMove && !state.referenceVideo) {
-      throw new Error("Recorder clip state is missing.");
-    }
-    return {
-      audioTracks: state.audioTracks.map(editTrack),
-      recordingTrack: editTrack(state.recordingTrack),
-      referenceVideo:
-        state.referenceVideo && referenceMove
-          ? {
-              ...state.referenceVideo,
-              timelineStart: referenceMove.timelineOffset,
-            }
-          : state.referenceVideo,
-    };
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
@@ -1318,6 +1269,56 @@ class RecorderHistory {
   clear = () => this.history.clear();
   undo = () => this.history.undo((change) => this.apply(change));
   redo = () => this.history.redo((change) => this.apply(change));
+}
+
+/** Calculate clip state from an explicit snapshot for both preview and commit. */
+export function applyRecorderClipEdit({
+  state,
+  edit,
+}: {
+  state: RecorderRuntimeState;
+  edit: RecorderClipEdit;
+}): Pick<
+  RecorderRuntimeState,
+  "audioTracks" | "recordingTrack" | "referenceVideo"
+> {
+  const moves = edit.type === "move" ? edit.changes : [];
+  const trims = edit.type === "trim" ? edit.changes : [];
+  const referenceMove = moves.find((change) => change.type === "reference");
+  function editTrack(track: AudioTrackState): AudioTrackState {
+    return updateTrackClips({
+      track,
+      update: (clips) =>
+        clips.map((clip) => {
+          const trim = trims.find((change) => change.id === clip.id);
+          if (trim) {
+            return trimAudioClip({
+              clip,
+              edge: trim.edge,
+              value: trim.value,
+            });
+          }
+          const move = moves.find(
+            (change) => change.type === "clip" && change.id === clip.id,
+          );
+          return move ? { ...clip, timelineOffset: move.timelineOffset } : clip;
+        }),
+    });
+  }
+  if (referenceMove && !state.referenceVideo) {
+    throw new Error("Recorder clip state is missing.");
+  }
+  return {
+    audioTracks: state.audioTracks.map(editTrack),
+    recordingTrack: editTrack(state.recordingTrack),
+    referenceVideo:
+      state.referenceVideo && referenceMove
+        ? {
+            ...state.referenceVideo,
+            timelineStart: referenceMove.timelineOffset,
+          }
+        : state.referenceVideo,
+  };
 }
 
 /**
