@@ -108,10 +108,10 @@ export function useRecorderClipInteraction({
       const getChanges = createMoveGetChanges(selected);
       setEdit({ type: "move", changes: getChanges(0), getChanges });
     } else {
-      const getChanges = createTrimGetChanges({
-        clips: selected.clips,
-        edge: input.type === "trim-start" ? "start" : "end",
-      });
+      const getChanges =
+        input.type === "trim-start"
+          ? createTrimStartGetChanges(selected.clips)
+          : createTrimEndGetChanges(selected.clips);
       setEdit({ type: input.type, changes: getChanges(0), getChanges });
     }
   }
@@ -207,33 +207,38 @@ function createMoveGetChanges({
   };
 }
 
-function createTrimGetChanges({
-  clips,
-  edge,
-}: {
-  clips: AudioClip[];
-  edge: "start" | "end";
-}): (delta: number) => RecorderClipTrim[] {
-  // Clamp one shared delta so every selected edge moves by the same amount.
-  const minDelta = Math.max(
-    ...clips.map((clip) =>
-      edge === "start"
-        ? -clip.trimStart
-        : clip.trimStart + MIN_CLIP_DURATION - clip.trimEnd,
-    ),
-  );
+function createTrimStartGetChanges(
+  clips: AudioClip[],
+): (delta: number) => RecorderClipTrim[] {
+  // Clamp one shared delta so every selected start edge moves by the same amount.
+  const minDelta = Math.max(...clips.map((clip) => -clip.trimStart));
   const maxDelta = Math.min(
-    ...clips.map((clip) =>
-      edge === "start"
-        ? clip.trimEnd - MIN_CLIP_DURATION - clip.trimStart
-        : clip.duration - clip.trimEnd,
-    ),
+    ...clips.map((clip) => clip.trimEnd - MIN_CLIP_DURATION - clip.trimStart),
   );
   return (delta) => {
     const clampedDelta = clamp(delta, minDelta, maxDelta);
     return clips.map((clip) => ({
       id: clip.id,
-      value: (edge === "start" ? clip.trimStart : clip.trimEnd) + clampedDelta,
+      value: clip.trimStart + clampedDelta,
+    }));
+  };
+}
+
+function createTrimEndGetChanges(
+  clips: AudioClip[],
+): (delta: number) => RecorderClipTrim[] {
+  // Clamp one shared delta so every selected end edge moves by the same amount.
+  const minDelta = Math.max(
+    ...clips.map((clip) => clip.trimStart + MIN_CLIP_DURATION - clip.trimEnd),
+  );
+  const maxDelta = Math.min(
+    ...clips.map((clip) => clip.duration - clip.trimEnd),
+  );
+  return (delta) => {
+    const clampedDelta = clamp(delta, minDelta, maxDelta);
+    return clips.map((clip) => ({
+      id: clip.id,
+      value: clip.trimEnd + clampedDelta,
     }));
   };
 }
