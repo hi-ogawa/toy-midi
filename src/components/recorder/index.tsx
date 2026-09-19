@@ -36,10 +36,8 @@ import {
   useRecorderScorePanelUi,
 } from "./recorder-score-panel";
 import {
-  TakeTimelineLane,
   ReferenceTimelineRow,
   TimelineHeader,
-  TimelineLane,
   AudioTimelineLane,
 } from "./recorder-timeline";
 import {
@@ -451,6 +449,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 <AudioTimelineLane
                   clips={track.clips}
                   regions={track.regions}
+                  editSourceClips={false}
                   testId="audio"
                   pixelsPerBeat={timeline.pixelsPerBeat}
                   beatsPerBar={timeline.beatsPerBar}
@@ -547,14 +546,26 @@ export function Recorder({ projectId }: { projectId: string }) {
                 runtime.setTrackHeight(state.recordingTrack.id, height)
               }
             >
-              <TakeTimelineLane
-                takes={takes}
+              <AudioTimelineLane
+                clips={takes}
+                testId="comp"
+                editSourceClips
+                emptyLabel="Enable input, place the playhead, then record"
                 regions={
                   state.previewClipRegions ?? state.recordingTrack.regions
                 }
-                pendingRecording={state.pendingRecording}
-                captureStatus={state.captureStatus}
-                isTakeSelected={(id) =>
+                recordingPreview={
+                  state.pendingRecording
+                    ? {
+                        id: state.pendingRecording.id,
+                        label:
+                          state.captureStatus === "processing"
+                            ? "Finalizing..."
+                            : "Recording...",
+                      }
+                    : undefined
+                }
+                isClipSelected={(id) =>
                   clipInteraction.isSelected({ type: "clip", id })
                 }
                 beatsPerBar={timeline.beatsPerBar}
@@ -567,23 +578,23 @@ export function Recorder({ projectId }: { projectId: string }) {
                   recorderInteraction.clearSelection();
                   runtime.seek(position);
                 }}
-                onTakeDragStart={(id, additive) =>
+                onClipDragStart={(id, additive) =>
                   clipInteraction.startMove({
                     clip: { type: "clip", id },
                     additive,
                   })
                 }
-                onTakeClick={(id, additive) =>
+                onClipClick={(id, additive) =>
                   clipInteraction.select({ type: "clip", id }, additive)
                 }
-                onTakeDragMove={clipInteraction.move}
-                onTakeTrimStart={(id, edge) =>
+                onClipDragMove={clipInteraction.move}
+                onTrimStart={(id, edge) =>
                   clipInteraction.startTrim({
                     clip: { type: "clip", id },
                     edge,
                   })
                 }
-                onTakeTrimMove={clipInteraction.trim}
+                onTrimMove={clipInteraction.trim}
               />
             </CaptureTrackRow>
             {takes.length > 0 && (
@@ -611,15 +622,18 @@ export function Recorder({ projectId }: { projectId: string }) {
                     runtime.removeClips([{ type: "clip", id: take.id }])
                   }
                 >
-                  <TimelineLane
-                    clip={{
-                      label: take.name,
-                      duration: take.trimEnd - take.trimStart,
-                      offset: take.timelineOffset + take.trimStart,
-                      testId: "take-lane",
-                      audioView: take.audioView,
-                      audioOffset: take.trimStart,
-                    }}
+                  <AudioTimelineLane
+                    clips={[take]}
+                    // Show the complete trimmed source even when absent from the comp.
+                    regions={[
+                      {
+                        clip: take,
+                        timelineStart: take.timelineOffset + take.trimStart,
+                        timelineEnd: take.timelineOffset + take.trimEnd,
+                      },
+                    ]}
+                    editSourceClips={false}
+                    testId="take-lane"
                     pixelsPerBeat={timeline.pixelsPerBeat}
                     beatsPerBar={timeline.beatsPerBar}
                     subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -627,26 +641,22 @@ export function Recorder({ projectId }: { projectId: string }) {
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
-                    selected={clipInteraction.isSelected({
-                      type: "clip",
-                      id: take.id,
-                    })}
-                    onClipClick={(additive) =>
-                      clipInteraction.select(
-                        { type: "clip", id: take.id },
-                        additive,
-                      )
+                    isClipSelected={(id) =>
+                      clipInteraction.isSelected({ type: "clip", id })
                     }
-                    onTrimStart={(edge) =>
+                    onClipClick={(id, additive) =>
+                      clipInteraction.select({ type: "clip", id }, additive)
+                    }
+                    onTrimStart={(id, edge) =>
                       clipInteraction.startTrim({
-                        clip: { type: "clip", id: take.id },
+                        clip: { type: "clip", id },
                         edge,
                       })
                     }
                     onTrimMove={clipInteraction.trim}
-                    onClipDragStart={(additive) =>
+                    onClipDragStart={(id, additive) =>
                       clipInteraction.startMove({
-                        clip: { type: "clip", id: take.id },
+                        clip: { type: "clip", id },
                         additive,
                       })
                     }

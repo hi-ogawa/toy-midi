@@ -125,6 +125,33 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(take).toHaveCount(1);
   await expect(compRegion).not.toContainText("Take 2");
 
+  // Move and trim a muted source in its expanded lane while it stays absent from the comp.
+  const mutedLane = takeLane.nth(1);
+  const beforeSourceMove = (await mutedLane.boundingBox())!;
+  await dragBy(page, mutedLane, DEFAULT_PIXELS_PER_BEAT);
+  const afterSourceMove = (await mutedLane.boundingBox())!;
+  expect(afterSourceMove.x).toBeCloseTo(
+    beforeSourceMove.x + DEFAULT_PIXELS_PER_BEAT,
+    -1,
+  );
+  const sourceTrimPixels = Math.max(2, afterSourceMove.width / 4);
+  await dragBy(
+    page,
+    mutedLane.getByTestId("recorder-take-trim-start"),
+    sourceTrimPixels,
+  );
+  const afterSourceTrim = (await mutedLane.boundingBox())!;
+  expect(afterSourceTrim.x).toBeCloseTo(
+    afterSourceMove.x + sourceTrimPixels,
+    -1,
+  );
+  expect(afterSourceTrim.x + afterSourceTrim.width).toBeCloseTo(
+    afterSourceMove.x + afterSourceMove.width,
+    -1,
+  );
+  await expect(mutedLane.locator("svg")).toBeVisible();
+  await expect(compRegion).not.toContainText("Take 2");
+
   // Solo derives Capture from soloed, unmuted take lanes.
   const soloTake = page.getByTestId("recorder-take-solo");
   await soloTake.nth(1).click();
