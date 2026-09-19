@@ -9,6 +9,7 @@ import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import {
   type RecorderClipId,
   type RecorderClipMove,
+  type RecorderClipTrim,
   type AudioTrackState,
   RecorderRuntime,
   RecorderRuntimeState,
@@ -31,9 +32,8 @@ type ClipEdit =
     }
   | {
       type: "trim";
-      clips: AudioClip[];
-      edge: "start" | "end";
-      getClips: (delta: number) => AudioClip[];
+      changes: RecorderClipTrim[];
+      getChanges: (delta: number) => RecorderClipTrim[];
     };
 
 export function useRecorderClipInteraction({
@@ -143,15 +143,11 @@ export function useRecorderClipInteraction({
         if (!selected.clips.some((clip) => clip.id === input.clip.id)) {
           throw new Error("Recorder clip state is missing.");
         }
-        setEdit({
-          type: "trim",
+        const getChanges = createTrimGetChanges({
           clips: selected.clips,
           edge: input.edge,
-          getClips: createTrimGetClips({
-            clips: selected.clips,
-            edge: input.edge,
-          }),
         });
+        setEdit({ type: "trim", changes: getChanges(0), getChanges });
         break;
       }
     }
@@ -167,7 +163,7 @@ export function useRecorderClipInteraction({
         break;
       }
       case "trim": {
-        setEdit({ ...edit, clips: edit.getClips(delta) });
+        setEdit({ ...edit, changes: edit.getChanges(delta) });
         break;
       }
     }
@@ -184,15 +180,9 @@ export function useRecorderClipInteraction({
         break;
       }
       case "trim": {
-        const clips = edit.getClips(delta);
         // TODO: Commit bulk trims in one runtime mutation so state and playback update atomically.
-        for (const clip of clips) {
-          runtime.trimClip({
-            type: "clip",
-            id: clip.id,
-            edge: edit.edge,
-            value: edit.edge === "start" ? clip.trimStart : clip.trimEnd,
-          });
+        for (const change of edit.getChanges(delta)) {
+          runtime.trimClip(change);
         }
         break;
       }
@@ -204,11 +194,11 @@ export function useRecorderClipInteraction({
       return track;
     }
     const moves = edit.type === "move" ? edit.changes : [];
-    const trims = edit.type === "trim" ? edit.clips : [];
+    const trims = edit.type === "trim" ? edit.changes : [];
     const clips = track.clips.map((clip) => {
       const trim = trims.find((trim) => trim.id === clip.id);
       if (trim) {
-        return trim;
+        return trimAudioClip({ clip, edge: trim.edge, value: trim.value });
       }
       const move = moves.find(
         (move) => move.type === "clip" && move.id === clip.id,
@@ -264,11 +254,9 @@ export function useRecorderClipInteraction({
     hasSelection: keys.size > 0,
     isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
     isEditing: (id: string) =>
-      edit?.type === "trim"
-        ? edit.clips.some((clip) => clip.id === id)
-        : (edit?.changes.some(
-            (clip) => clip.type === "clip" && clip.id === id,
-          ) ?? false),
+      edit?.changes.some(
+        (change) => change.type === "clip" && change.id === id,
+      ) ?? false,
     select,
     startEdit,
     updateEdit,
@@ -293,13 +281,13 @@ function createMoveGetChanges({
   };
 }
 
-function createTrimGetClips({
+function createTrimGetChanges({
   clips,
   edge,
 }: {
   clips: AudioClip[];
   edge: "start" | "end";
-}): (delta: number) => AudioClip[] {
+}): (delta: number) => RecorderClipTrim[] {
   // Clamp one shared delta so every selected edge moves by the same amount.
   const minimumDelta = Math.max(
     ...clips.map((clip) =>
@@ -317,13 +305,11 @@ function createTrimGetClips({
   );
   return (delta) => {
     const clampedDelta = clamp(delta, minimumDelta, maximumDelta);
-    return clips.map((clip) =>
-      trimAudioClip({
-        clip,
-        edge,
-        value:
-          (edge === "start" ? clip.trimStart : clip.trimEnd) + clampedDelta,
-      }),
-    );
+    return clips.map((clip) => ({
+      type: "clip",
+      id: clip.id,
+      edge,
+      value: (edge === "start" ? clip.trimStart : clip.trimEnd) + clampedDelta,
+    }));
   };
 }
