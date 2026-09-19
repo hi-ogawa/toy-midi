@@ -367,6 +367,39 @@ export class RecorderRuntime {
     }
   }
 
+  async addMidiTrack(): Promise<void> {
+    const state = this.store.get();
+    const track = createMidiTrackState(
+      createNumberedName({
+        names: state.midiTracks.map((track) => track.name),
+        prefix: "MIDI",
+      }),
+    );
+    const playback = await MidiTrackPlayback.create({
+      transport: this.transport,
+      output: this.masterOutput,
+      track,
+      tempo: state.tempo,
+    });
+    this.midiTrackPlaybacks.set(track.id, playback);
+    this.store.update({
+      midiTracks: [...state.midiTracks, track],
+    });
+    this.syncTrackMix();
+  }
+
+  removeMidiTrack(id: string): void {
+    this.history.removeMidiTrack(id);
+    this.midiTrackPlaybacks.get(id)?.dispose();
+    this.midiTrackPlaybacks.delete(id);
+    this.store.update({
+      midiTracks: this.store
+        .get()
+        .midiTracks.filter((track) => track.id !== id),
+    });
+    this.syncTrackMix();
+  }
+
   setTrackMix(
     id: string,
     update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
@@ -555,39 +588,6 @@ export class RecorderRuntime {
       audioTracks: this.store
         .get()
         .audioTracks.filter((track) => track.id !== id),
-    });
-    this.syncTrackMix();
-  }
-
-  async addMidiTrack(): Promise<void> {
-    const state = this.store.get();
-    const track = createMidiTrackState(
-      createNumberedName({
-        names: state.midiTracks.map((track) => track.name),
-        prefix: "MIDI",
-      }),
-    );
-    const playback = await MidiTrackPlayback.create({
-      transport: this.transport,
-      output: this.masterOutput,
-      track,
-      tempo: state.tempo,
-    });
-    this.midiTrackPlaybacks.set(track.id, playback);
-    this.store.update({
-      midiTracks: [...state.midiTracks, track],
-    });
-    this.syncTrackMix();
-  }
-
-  removeMidiTrack(id: string): void {
-    this.history.removeMidiTrack(id);
-    this.midiTrackPlaybacks.get(id)?.dispose();
-    this.midiTrackPlaybacks.delete(id);
-    this.store.update({
-      midiTracks: this.store
-        .get()
-        .midiTracks.filter((track) => track.id !== id),
     });
     this.syncTrackMix();
   }
