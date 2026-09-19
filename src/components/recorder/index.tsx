@@ -46,7 +46,6 @@ import {
 } from "./recorder-timeline";
 import {
   AudioTrackActions,
-  CaptureTrackRow,
   TakesDisclosureRow,
   TakeTrackRow,
   TrackRow,
@@ -422,6 +421,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             {clipInteraction.audioTracks.map((track, index) => (
               <TrackRow
                 key={track.id}
+                data-testid="recorder-audio-track-row"
                 title={`Audio ${index + 1}`}
                 height={track.height}
                 gain={track.gain}
@@ -500,21 +500,10 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             ))}
 
-            <CaptureTrackRow
-              route={input.route.label}
-              routeNeedsSetup={input.route.needsSetup}
+            <TrackRow
+              title="Capture"
               gain={state.recordingTrack.gain}
               height={state.recordingTrack.height}
-              inputActive={input.active}
-              inputAnalyser={runtime.captureInput?.analyser}
-              inputMonitoring={state.inputMonitoring}
-              inputToggleDisabled={
-                input.mutationPending ||
-                !input.initialized ||
-                flags.isRecording ||
-                (!input.active && input.route.needsSetup)
-              }
-              tunerOpen={isTunerOpen}
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
               effectsOpen={effects.openEffects.has("capture")}
@@ -522,12 +511,6 @@ export function Recorder({ projectId }: { projectId: string }) {
               onGainChange={(gain) =>
                 runtime.setTrackMix(state.recordingTrack.id, { gain })
               }
-              onInputSetup={() => setIsInputSetupOpen(true)}
-              onInputMonitoringChange={(monitoring) =>
-                runtime.setInputMonitoring(monitoring)
-              }
-              onInputToggle={input.toggle}
-              onTunerToggle={() => setIsTunerOpen((open) => !open)}
               onMutedChange={(muted) =>
                 runtime.setTrackMix(state.recordingTrack.id, { muted })
               }
@@ -537,6 +520,24 @@ export function Recorder({ projectId }: { projectId: string }) {
               onHeightChange={(height) =>
                 runtime.setTrackHeight(state.recordingTrack.id, height)
               }
+              input={{
+                route: input.route.label,
+                routeNeedsSetup: input.route.needsSetup,
+                inputActive: input.active,
+                inputAnalyser: runtime.captureInput?.analyser,
+                inputMonitoring: state.inputMonitoring,
+                inputToggleDisabled:
+                  input.mutationPending ||
+                  !input.initialized ||
+                  flags.isRecording ||
+                  (!input.active && input.route.needsSetup),
+                tunerOpen: isTunerOpen,
+                onInputSetup: () => setIsInputSetupOpen(true),
+                onInputMonitoringChange: (monitoring) =>
+                  runtime.setInputMonitoring(monitoring),
+                onInputToggle: input.toggle,
+                onTunerToggle: () => setIsTunerOpen((open) => !open),
+              }}
             >
               <AudioTimelineLane
                 clips={takes}
@@ -565,7 +566,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   runtime.seek(position);
                 }}
               />
-            </CaptureTrackRow>
+            </TrackRow>
             {takes.length > 0 && (
               <TakesDisclosureRow
                 expanded={takesExpanded}
