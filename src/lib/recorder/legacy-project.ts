@@ -6,7 +6,7 @@ import {
 } from "./persistence";
 import { clampTrackHeight, createDefaultRecorderRuntimeState } from "./runtime";
 
-/** Convert a legacy MIDI project into a recorder project while preserving its musical content. */
+/** Convert a legacy MIDI project into recorder project content. */
 export async function convertLegacyProject({
   name,
   project,
