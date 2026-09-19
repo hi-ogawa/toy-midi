@@ -1179,14 +1179,14 @@ export class RecorderRuntime {
 
   /** @internal for undo */
   applyCaptureTake({
-    id,
+    clipId,
     snapshot,
   }: {
-    id: string;
+    clipId: string;
     snapshot?: { take: AudioClip; index: number };
   }): void {
     const recordingTrack = this.updateTrack(RECORDING_TRACK_ID, (track) => {
-      const clips = track.clips.filter((clip) => clip.id !== id);
+      const clips = track.clips.filter((clip) => clip.id !== clipId);
       if (snapshot) {
         clips.splice(snapshot.index, 0, snapshot.take);
       }
@@ -1226,7 +1226,7 @@ type RecorderChange =
   | { type: "midi-track-delete"; trackId: string }
   | {
       type: "capture-take";
-      id: string;
+      clipId: string;
       snapshot?: { take: AudioClip; index: number };
     };
 
@@ -1268,8 +1268,12 @@ class RecorderHistory {
 
   pushCaptureTake({ take, index }: { take: AudioClip; index: number }): void {
     this.history.push({
-      before: { type: "capture-take", id: take.id },
-      after: { type: "capture-take", id: take.id, snapshot: { take, index } },
+      before: { type: "capture-take", clipId: take.id },
+      after: {
+        type: "capture-take",
+        clipId: take.id,
+        snapshot: { take, index },
+      },
     });
   }
 
