@@ -1,112 +1,64 @@
 import { expect, test } from "@playwright/test";
-import {
-  clickNewProject,
-  evaluateFlushAutoSave,
-  evaluateStore,
-} from "./helpers";
+import { createDefaultSavedProject } from "../src/lib/project-store";
 
-test.describe("Project Route", () => {
-  test("deep link opens project directly without startup screen", async ({
+for (const suffix of ["", "/score"]) {
+  test(`legacy ${suffix || "editor"} link selects its project for manual migration`, async ({
     page,
   }) => {
-    // Create a project with recognizable state
-    await page.goto("/");
-    await clickNewProject(page);
-    await evaluateStore(page, (store) => {
-      store.getState().addNote({
-        id: "note-deep-link",
-        pitch: 62,
-        start: 0,
-        duration: 1,
-        velocity: 100,
-      });
-      store.getState().setTempo(140);
-    });
-    await evaluateFlushAutoSave(page);
+    // Seed two projects so the bookmark must select the requested one.
+    await page.goto("/__e2e__/");
+    const projectId = await page.evaluate((project) => {
+      window.__e2e.projectStorage.create("Other legacy song", project);
+      return window.__e2e.projectStorage.create("Bookmarked song", project);
+    }, createDefaultSavedProject());
 
-    const projectId = await page.evaluate(() =>
-      window.__e2e.projectStorage.getLastProjectId(),
+    // Open the old URL without initializing an editor or creating a recorder copy.
+    const legacyUrl = `/project/${projectId}${suffix}`;
+    await page.goto(legacyUrl);
+    const legacy = page.getByRole("region", { name: "Legacy projects" });
+    await expect(legacy).toContainText("Bookmarked song");
+    await expect(legacy).not.toContainText("Other legacy song");
+    await expect(legacy.locator('[aria-current="true"]')).toContainText(
+      "Bookmarked song",
     );
-    expect(projectId).not.toBeNull();
+    await expect(page.getByTestId("transport")).toHaveCount(0);
+    await expect(page.getByTestId("recorder-project-name")).toHaveCount(0);
+    await page.getByRole("link", { name: "Back to projects" }).click();
+    await expect(page.getByText("No recorder projects yet")).toBeVisible();
 
-    await page.goto("/");
-    const projectLink = page
-      .getByTestId(`project-card-${projectId}`)
-      .getByRole("link");
-    await expect(projectLink).toHaveAttribute("href", `/project/${projectId}`);
-    await projectLink.click();
-    await expect(page).toHaveURL(`/project/${projectId}`);
+    // Explicitly migrate the selected project and open its recorder copy.
+    await page.goto(legacyUrl);
+    await legacy.getByRole("button", { name: "Migrate to recorder" }).click();
+    await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+    const copyUrl = page.url();
+    await expect(page.getByTestId("recorder-project-name")).toHaveText(
+      "Bookmarked song",
+    );
 
-    // Open via URL directly
-    await page.goto(`/project/${projectId}`);
-    await expect(page.getByTestId("transport")).toBeVisible();
-    await expect(page.getByTestId("startup-screen")).not.toBeVisible();
-
-    const notes = await evaluateStore(page, (store) => store.getState().notes);
-    expect(notes).toHaveLength(1);
-    expect(notes[0].pitch).toBe(62);
-    const tempo = await evaluateStore(page, (store) => store.getState().tempo);
-    expect(tempo).toBe(140);
-  });
-
-  test("editor renders notes before audio is ready", async ({ page }) => {
-    // Hold soundfont requests behind a gate so audio init cannot finish
-    // until we release it. Installed before any navigation so the preload
-    // on the startup page doesn't warm the browser cache past the route.
-    let releaseSoundfont = () => {};
-    const soundfontGate = new Promise<void>((resolve) => {
-      releaseSoundfont = resolve;
-    });
-    await page.route("**/*.sf2", async (route) => {
-      await soundfontGate;
-      // Requests aborted by navigation are already handled; ignore those
-      await route.continue().catch(() => {});
-    });
-
-    // Create a project with a note
-    await page.goto("/");
-    await clickNewProject(page);
-    await evaluateStore(page, (store) => {
-      store.getState().addNote({
-        id: "note-audio-loading",
-        pitch: 60,
-        start: 0,
-        duration: 1,
-        velocity: 100,
-      });
-    });
-    await evaluateFlushAutoSave(page);
-
-    // Already on /project/:id (clickNewProject navigated there); reload and
-    // assert the editor mounts with content while audio is still initializing
-    await page.reload();
-    await expect(page.getByTestId("transport")).toBeVisible();
-    await expect(page.getByTestId("note-note-audio-loading")).toBeVisible();
-    await expect(page.getByTestId("play-pause-button")).toBeDisabled();
-
-    // Space is a no-op while audio is loading
-    await page.keyboard.press("Space");
-    await expect(page.getByTestId("play-icon")).toBeVisible();
-
-    // Release the soundfont; playback becomes available
-    releaseSoundfont();
-    await expect(page.getByTestId("play-pause-button")).toBeEnabled();
-  });
-
-  test("unknown project id shows error", async ({ page }) => {
-    await page.goto("/project/does-not-exist");
+    // Revisit the old bookmark and retain the manual migration screen and original.
+    await page.goto(legacyUrl);
+    await expect(legacy).toContainText("Bookmarked song");
     await expect(
-      page.getByText("Project does-not-exist metadata not found"),
+      legacy.getByRole("button", { name: "Migrate to recorder" }),
+    ).toBeVisible();
+    await page.getByRole("link", { name: "Back to projects" }).click();
+    await expect(
+      page.locator(`a[href="${new URL(copyUrl).pathname}"]`),
     ).toBeVisible();
   });
 
-  test("unknown project score id shows error", async ({ page }) => {
-    await page.goto("/project/does-not-exist/score");
+  test(`missing legacy ${suffix || "editor"} link offers a path back home`, async ({
+    page,
+  }) => {
+    // Open a missing legacy project and recover through the shared project home.
+    await page.goto(`/project/missing${suffix}`);
+    await expect(page.getByRole("alert")).toHaveText(
+      "Legacy project not found.",
+    );
     await expect(
-      page.getByText("Project does-not-exist metadata not found"),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Back to project" }),
-    ).toHaveAttribute("href", "/project/does-not-exist");
+      page.getByRole("button", { name: "Migrate to recorder" }),
+    ).toHaveCount(0);
+    await page.getByRole("link", { name: "Back to projects" }).click();
+    await expect(page.getByTestId("new-recorder-project-button")).toBeVisible();
   });
-});
+}
