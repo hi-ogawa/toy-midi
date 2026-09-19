@@ -3,7 +3,7 @@ import { routes } from "../lib/routes";
 import { LegacyProjectList } from "./recorder/legacy-project-list";
 import { RecorderProjectList } from "./recorder/project-list";
 
-export function Home({ legacyProjectId }: { legacyProjectId?: string }) {
+export function Home() {
   return (
     <div
       data-testid="startup-screen"
@@ -51,17 +51,8 @@ export function Home({ legacyProjectId }: { legacyProjectId?: string }) {
         </header>
 
         <main className="mt-14 min-h-0 flex-1 overflow-y-auto">
-          {legacyProjectId ? (
-            <a
-              href={routes.home.href()}
-              className="mb-4 inline-block text-sm text-emerald-400 hover:text-emerald-300"
-            >
-              Back to projects
-            </a>
-          ) : (
-            <RecorderProjectList />
-          )}
-          <LegacyProjectList selectedProjectId={legacyProjectId} />
+          <RecorderProjectList />
+          <LegacyProjectList />
         </main>
       </div>
     </div>

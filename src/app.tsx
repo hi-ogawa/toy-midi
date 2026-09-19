@@ -24,16 +24,26 @@ export function App() {
       return <ScoreViewerRoute />;
     }
     case "projectScore": {
-      return <Home legacyProjectId={match.params.projectId} />;
+      return <LegacyProjectRoute />;
     }
     case "project": {
-      return <Home legacyProjectId={match.params.projectId} />;
+      return <LegacyProjectRoute />;
     }
     case "home":
     default: {
       return <Home />;
     }
   }
+}
+
+function LegacyProjectRoute() {
+  return (
+    <RouteError
+      error='The legacy editor has been retired. To migrate your project, go home and choose "Migrate to new editor" under Legacy projects.'
+      backHref={routes.home.href()}
+      backLabel="Back to projects"
+    />
+  );
 }
 
 function ScoreViewerRoute() {

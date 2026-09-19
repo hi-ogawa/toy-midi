@@ -10,11 +10,7 @@ import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
 import { Button } from "../ui/button";
 
-export function LegacyProjectList({
-  selectedProjectId,
-}: {
-  selectedProjectId?: string;
-}) {
+export function LegacyProjectList() {
   const [projects, setProjects] = useState(() => projectStorage.listMetadata());
   const migrate = useMutation({
     mutationFn: async (project: ProjectMetadata) => {
@@ -32,17 +28,7 @@ export function LegacyProjectList({
     },
   });
 
-  const visibleProjects = selectedProjectId
-    ? projects.filter((project) => project.id === selectedProjectId)
-    : projects;
-  if (selectedProjectId && visibleProjects.length === 0) {
-    return (
-      <p role="alert" className="text-sm text-neutral-400">
-        Legacy project not found.
-      </p>
-    );
-  }
-  if (visibleProjects.length === 0) {
+  if (projects.length === 0) {
     return;
   }
 
@@ -56,10 +42,9 @@ export function LegacyProjectList({
         Create a copy for the new editor. Your original project stays unchanged.
       </p>
       <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
-        {visibleProjects.map((project) => (
+        {projects.map((project) => (
           <div
             key={project.id}
-            aria-current={project.id === selectedProjectId ? "true" : undefined}
             className="flex items-center gap-3 rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 py-3"
           >
             <span className="min-w-0 flex-1 truncate text-sm text-neutral-200">
