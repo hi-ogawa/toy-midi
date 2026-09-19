@@ -14,22 +14,22 @@ import {
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 
-type RecorderClipMoveSnapshot = {
-  clips: RecorderClipMove[];
-  minimumVisibleStart: number;
-};
-
-type ClipEdit =
-  | { type: "move"; snapshot: RecorderClipMoveSnapshot; delta: number }
-  | { type: "trim"; clips: AudioClip[]; edge: "start" | "end"; delta: number };
-
-type RecorderClipEditStart =
+type ClipEditStart =
   | { type: "move"; clip: RecorderClipId; additive: boolean }
   | {
       type: "trim";
       clip: Extract<RecorderClipId, { type: "clip" }>;
       edge: "start" | "end";
     };
+
+type ClipEdit =
+  | { type: "move"; snapshot: ClipMoveSnapshot; delta: number }
+  | { type: "trim"; clips: AudioClip[]; edge: "start" | "end"; delta: number };
+
+type ClipMoveSnapshot = {
+  clips: RecorderClipMove[];
+  minimumVisibleStart: number;
+};
 
 export function useRecorderClipInteraction({
   runtime,
@@ -91,7 +91,7 @@ export function useRecorderClipInteraction({
     setKeys(next);
   }
 
-  function startEdit(input: RecorderClipEditStart): void {
+  function startEdit(input: ClipEditStart): void {
     onSelect();
     switch (input.type) {
       case "move": {
