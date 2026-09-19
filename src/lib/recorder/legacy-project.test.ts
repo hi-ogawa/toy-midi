@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createDefaultSavedProject,
+  type SavedProject,
   type SavedProjectV1,
 } from "../project-store";
 import { convertLegacyProject } from "./legacy-project";
@@ -10,7 +11,7 @@ vi.hoisted(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-const audioTrack = {
+const audioTrack: SavedProject["audioTracks"][number] = {
   id: "backing",
   fileName: "backing.wav",
   assetKey: "original",
@@ -52,7 +53,7 @@ function mockDecoder() {
 
 describe("legacy recorder conversion", () => {
   it("copies MIDI, annotations, timing, and mix without mutating the source", async () => {
-    const project = {
+    const project: SavedProject = {
       ...createDefaultSavedProject(),
       notes: [
         {
@@ -61,13 +62,13 @@ describe("legacy recorder conversion", () => {
           duration: 0.5,
           pitch: 64,
           velocity: 0.7,
-          tabString: 1 as const,
+          tabString: 1,
         },
       ],
       tempo: 98,
       timeSignature: { numerator: 3, denominator: 4 },
       locators: [{ id: "verse", position: 4, label: "Verse" }],
-      keySignature: { fifths: 2, mode: "minor" as const },
+      keySignature: { fifths: 2, mode: "minor" },
       tabAnnotationEnabled: true,
       tabOpenStringPitches: [40, 45, 50, 55, 59, 64],
       midiProgram: 24,
