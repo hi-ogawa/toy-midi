@@ -105,7 +105,7 @@ export function useRecorderClipInteraction({
             : new Set([draggedKey]);
         setKeys(selectedKeys);
         const selected = getSelectedClips(selectedKeys);
-        const clips = [
+        const clips: RecorderClipMove[] = [
           ...selected.clips.map((clip) => ({
             type: "clip" as const,
             id: clip.id,
@@ -120,7 +120,7 @@ export function useRecorderClipInteraction({
               ]
             : []),
         ];
-        const snapshot = {
+        const snapshot: ClipMoveSnapshot = {
           clips,
           minimumVisibleStart: Math.min(
             ...selected.clips.map(
