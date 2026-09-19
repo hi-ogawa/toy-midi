@@ -561,11 +561,12 @@ export class RecorderRuntime {
 
   async addMidiTrack(): Promise<void> {
     const state = this.store.get();
-    let number = state.midiTracks.length + 1;
-    while (state.midiTracks.some((track) => track.name === `MIDI ${number}`)) {
-      number += 1;
-    }
-    const track = createMidiTrackState(number);
+    const track = createMidiTrackState(
+      createNumberedName({
+        names: state.midiTracks.map((track) => track.name),
+        prefix: "MIDI",
+      }),
+    );
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
       output: this.masterOutput,
@@ -850,14 +851,13 @@ export class RecorderRuntime {
 
   addLocator(beat: number): string {
     const { locators } = this.store.get();
-    let number = locators.length + 1;
-    while (locators.some((locator) => locator.label === `Section ${number}`)) {
-      number += 1;
-    }
     const locator = {
       id: crypto.randomUUID(),
       beat,
-      label: `Section ${number}`,
+      label: createNumberedName({
+        names: locators.map((locator) => locator.label),
+        prefix: "Section",
+      }),
     };
     this.store.update({ locators: [...locators, locator] });
     return locator.id;
@@ -1381,10 +1381,26 @@ function createRecordingTrackState(): AudioTrackState {
   };
 }
 
-function createMidiTrackState(number: number): MidiTrackState {
+/** Start after the current item count and skip names already in use. */
+function createNumberedName({
+  names,
+  prefix,
+}: {
+  names: readonly string[];
+  prefix: string;
+}): string {
+  const existingNames = new Set(names);
+  let number = names.length + 1;
+  while (existingNames.has(`${prefix} ${number}`)) {
+    number += 1;
+  }
+  return `${prefix} ${number}`;
+}
+
+function createMidiTrackState(name: string): MidiTrackState {
   return {
     id: crypto.randomUUID(),
-    name: `MIDI ${number}`,
+    name,
     notes: [],
     program: 0,
     eq: createDefaultMultibandEq(),
