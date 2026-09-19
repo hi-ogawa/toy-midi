@@ -13,7 +13,7 @@ import { snapToGrid } from "../../lib/music";
 import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
-import { routes } from "../../lib/routes";
+import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -190,6 +190,10 @@ export function Recorder({ projectId }: { projectId: string }) {
       return;
     }
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
+      return;
+    }
+    if (recorderInteraction.handleUndoRedoShortcut(event)) {
+      event.preventDefault();
       return;
     }
     if (matchKeyboardEvent(event, "Ctrl+C")) {
@@ -752,6 +756,16 @@ export function Recorder({ projectId }: { projectId: string }) {
                 state={state}
                 track={track}
                 onClose={() => scoreUi.close(track.id)}
+                scoreViewerHref={
+                  project.ready &&
+                  project.saveStatus === "saved" &&
+                  !flags.isRecording
+                    ? getRecorderScoreHref({
+                        projectId,
+                        trackId: track.id,
+                      })
+                    : undefined
+                }
               />
             ),
         )}

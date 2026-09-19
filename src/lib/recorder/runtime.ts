@@ -25,6 +25,7 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
+import { UndoRedoHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -234,6 +235,7 @@ export class RecorderRuntime {
     playback: YouTubePlayerPlayback;
   };
   private readonly metronome: RecorderMetronome;
+  private readonly history = new RecorderHistory(this);
 
   constructor() {
     this.masterOutput = this.context.createGain();
@@ -580,6 +582,7 @@ export class RecorderRuntime {
   }
 
   removeMidiTrack(id: string): void {
+    this.history.removeMidiTrack(id);
     this.midiTrackPlaybacks.get(id)?.dispose();
     this.midiTrackPlaybacks.delete(id);
     this.store.update({
@@ -635,8 +638,19 @@ export class RecorderRuntime {
   }
 
   setMidiTrackNotes(id: string, notes: Note[]): void {
-    this.updateMidiTrack(id, (track) => ({ ...track, notes }));
-    this.midiTrackPlaybacks.get(id)?.setNotes(notes);
+    const track = this.store.get().midiTracks.find((track) => track.id === id);
+    if (!track) {
+      throw new Error("MIDI track state is missing.");
+    }
+    const before = track.notes;
+    this.applyMidiTrackNotes(id, notes);
+    this.history.pushMidiNotes(id, before, notes);
+  }
+
+  /** @internal for undo */
+  applyMidiTrackNotes(trackId: string, notes: Note[]): void {
+    this.updateMidiTrack(trackId, (track) => ({ ...track, notes }));
+    this.midiTrackPlaybacks.get(trackId)?.setNotes(notes);
   }
 
   private updateTrack(
@@ -999,6 +1013,7 @@ export class RecorderRuntime {
     ) {
       throw new Error("Cannot load a project while recording.");
     }
+    this.history.clear();
     this.pause();
     for (const playback of this.trackPlaybacks.values()) {
       playback.dispose();
@@ -1198,6 +1213,56 @@ export class RecorderRuntime {
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
   }
+
+  undo = () => this.history.undo();
+  redo = () => this.history.redo();
+}
+
+// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
+// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
+// Capture complete before/after notes for those IDs and migrate callers incrementally.
+// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
+// preserve array ordering when undo restores deleted notes.
+/** A state change that runtime can apply directly, including during undo and redo. */
+type RecorderChange = {
+  type: "midi-notes";
+  trackId: string;
+  notes: Note[];
+};
+
+class RecorderHistory {
+  private history = new UndoRedoHistory<RecorderChange>();
+
+  constructor(private runtime: RecorderRuntime) {}
+
+  pushMidiNotes(trackId: string, before: Note[], after: Note[]): void {
+    this.history.push({
+      before: { type: "midi-notes", trackId, notes: before },
+      after: { type: "midi-notes", trackId, notes: after },
+    });
+  }
+
+  removeMidiTrack(id: string): void {
+    // Track deletion is not undoable yet, so discard changes that require it.
+    this.history.prune((entry) =>
+      [entry.before, entry.after].some(
+        (change) => change.type === "midi-notes" && change.trackId === id,
+      ),
+    );
+  }
+
+  private apply(change: RecorderChange): void {
+    switch (change.type) {
+      case "midi-notes": {
+        this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
+        break;
+      }
+    }
+  }
+
+  clear = () => this.history.clear();
+  undo = () => this.history.undo((change) => this.apply(change));
+  redo = () => this.history.redo((change) => this.apply(change));
 }
 
 /**
