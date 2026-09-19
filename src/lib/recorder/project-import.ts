@@ -3,8 +3,8 @@ import { parseProjectFile } from "../project-file";
 import { convertLegacyProject } from "./legacy-project";
 import { readRecorderProjectArchive } from "./project-archive";
 
-/** Import a native recorder archive or a legacy MIDI archive as recorder project content. */
 export async function importRecorderProject(file: File) {
+  // Use the manifest to distinguish native recorder archives from legacy projects.
   const zip = await JSZip.loadAsync(file);
   const manifestFile = zip.file("manifest.json");
   if (!manifestFile) {
@@ -17,6 +17,8 @@ export async function importRecorderProject(file: File) {
   if (manifest.projectType !== undefined) {
     throw new Error("Unsupported project type");
   }
+
+  // Keep legacy audio in memory for conversion instead of saving it to the old asset store.
   const assets = new Map<string, File>();
   const parsed = await parseProjectFile(file, {
     saveAsset: async (audio) => {

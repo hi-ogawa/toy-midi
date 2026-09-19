@@ -6,7 +6,6 @@ import {
 } from "./persistence";
 import { clampTrackHeight, createDefaultRecorderRuntimeState } from "./runtime";
 
-/** Convert a legacy MIDI project into recorder project content. */
 export async function convertLegacyProject({
   name,
   project,
@@ -19,6 +18,8 @@ export async function convertLegacyProject({
   if (project.version !== 1 && project.version !== 2) {
     throw new Error("Unsupported legacy project version");
   }
+
+  // Apply legacy defaults and copy project settings onto a fresh recorder project.
   const legacy = fromSavedProject(project);
   const content = serializeRecorderRuntimeState(
     createDefaultRecorderRuntimeState(),
@@ -33,6 +34,8 @@ export async function convertLegacyProject({
     beat: position,
     label,
   }));
+
+  // Move the legacy editor's notes and instrument settings into one MIDI track.
   content.midiTracks = [
     {
       id: crypto.randomUUID(),
@@ -50,8 +53,7 @@ export async function convertLegacyProject({
     },
   ];
 
-  // Decode every referenced asset before the caller saves the recorder copy.
-  // Offline decoding requires no playback session or audio device.
+  // Decode encoded audio into the PCM clips used by recorder tracks.
   const context = legacy.audioTracks.length
     ? new OfflineAudioContext(1, 1, 48000)
     : undefined;
