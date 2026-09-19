@@ -66,6 +66,7 @@ export function useRecorderClipInteraction({
     };
   }
 
+  // Remove stale selection keys when clips or the reference video are removed outside this interaction.
   useEffect(() => {
     const available = new Set([
       ...[...state.audioTracks, state.recordingTrack].flatMap((track) =>
