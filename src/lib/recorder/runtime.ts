@@ -1381,22 +1381,6 @@ function createRecordingTrackState(): AudioTrackState {
   };
 }
 
-/** Start after the current item count and skip names already in use. */
-function createNumberedName({
-  names,
-  prefix,
-}: {
-  names: readonly string[];
-  prefix: string;
-}): string {
-  const existingNames = new Set(names);
-  let number = names.length + 1;
-  while (existingNames.has(`${prefix} ${number}`)) {
-    number += 1;
-  }
-  return `${prefix} ${number}`;
-}
-
 function createMidiTrackState(name: string): MidiTrackState {
   return {
     id: crypto.randomUUID(),
@@ -1423,4 +1407,19 @@ function clampRecordingTrackHeight(height: number): number {
     MIN_RECORDING_TRACK_HEIGHT,
     Math.min(MAX_TRACK_HEIGHT, height),
   );
+}
+
+function createNumberedName({
+  names,
+  prefix,
+}: {
+  names: readonly string[];
+  prefix: string;
+}): string {
+  const existingNames = new Set(names);
+  let number = names.length + 1;
+  while (existingNames.has(`${prefix} ${number}`)) {
+    number += 1;
+  }
+  return `${prefix} ${number}`;
 }
