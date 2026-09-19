@@ -9,6 +9,7 @@ import { convertLegacyProject } from "./legacy-project";
 vi.hoisted(() => {
   vi.stubGlobal("AudioWorkletNode", class {});
 });
+
 afterEach(() => vi.unstubAllGlobals());
 
 const audioTrack: SavedProject["audioTracks"][number] = {
@@ -21,6 +22,7 @@ const audioTrack: SavedProject["audioTracks"][number] = {
   muted: false,
   soloed: true,
 };
+
 const projectV1: SavedProjectV1 = {
   ...createDefaultSavedProject(),
   version: 1,
