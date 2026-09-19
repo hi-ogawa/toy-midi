@@ -87,4 +87,27 @@ test("manually migrates a stored legacy project and retains the original", async
     "href",
     /\/project\//,
   );
+
+  // Cancel deletion and keep the original available for migration.
+  await page.getByRole("tab", { name: "Recorder", exact: true }).click();
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await legacyProjects
+    .getByRole("button", { name: "Delete legacy project" })
+    .click();
+  await expect(legacyProjects).toContainText("Legacy song");
+
+  // Delete the original explicitly and retain the recorder copy after reload.
+  page.once("dialog", (dialog) => dialog.accept());
+  await legacyProjects
+    .getByRole("button", { name: "Delete legacy project" })
+    .click();
+  await expect(legacyProjects).toHaveCount(0);
+  await page.reload();
+  await expect(legacyProjects).toHaveCount(0);
+  await page.getByRole("link", { name: "Legacy song" }).click();
+  await expect(page).toHaveURL(copyUrl);
+  await expect(note.getByTestId("tab-annotation")).toHaveText("G17");
+  await expect(
+    page.getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
 });
