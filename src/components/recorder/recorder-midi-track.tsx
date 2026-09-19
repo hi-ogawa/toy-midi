@@ -89,7 +89,7 @@ export function MidiTrackRow({
         // Keep controls at their content height so the piano keyboard shows below.
         controlsClassName="h-fit"
         title={track.name}
-        height={track.overview ? track.overviewHeight : track.height}
+        height={track.height}
         gain={track.gain}
         muted={track.muted}
         soloed={track.soloed}
@@ -221,7 +221,7 @@ function MidiTrackOverview({
   const range = Math.max(12, highest - lowest);
   const noteHeight = 4;
   const padding = 12;
-  const pitchHeight = track.overviewHeight - padding * 2 - noteHeight;
+  const pitchHeight = track.height - padding * 2 - noteHeight;
 
   return (
     <div

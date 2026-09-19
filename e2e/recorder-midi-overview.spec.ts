@@ -48,7 +48,7 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   await expect(overviewToggle).not.toBeChecked();
   await overviewToggle.click();
 
-  // Verify the short overview retains note timing while removing the piano roll.
+  // Verify the overview retains track height and note timing while removing the piano roll.
   const overview = row.getByRole("img", {
     name: "MIDI 1 note overview, 2 notes",
   });
@@ -56,7 +56,7 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   await expect(grid).toHaveCount(0);
   await expect(row.getByRole("button", { name: /^Preview / })).toHaveCount(0);
   await expect(row.getByTitle("Resize MIDI 1")).toBeVisible();
-  expect((await row.boundingBox())!.height).toBe(96);
+  expect((await row.boundingBox())!.height).toBe(expandedHeight);
   const previewNotes = overview.locator(":scope > div");
   const firstPreview = (await previewNotes.first().boundingBox())!;
   expect(firstPreview.x).toBeCloseTo(originalNote.x, 0);
@@ -79,7 +79,7 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   );
   await page.mouse.up();
   const overviewHeight = (await row.boundingBox())!.height;
-  expect(overviewHeight).toBe(176);
+  expect(overviewHeight).toBe(expandedHeight + 80);
   const resizedPreview = (await previewNotes.first().boundingBox())!;
   const secondPreview = (await previewNotes.nth(1).boundingBox())!;
   expect(resizedPreview.y - secondPreview.y).toBeGreaterThan(40);
@@ -104,18 +104,18 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
     "saved",
   );
 
-  // Reopen the piano roll at its previous height and pitch scroll, with editing still available.
+  // Reopen the piano roll at the shared height and previous pitch scroll, with editing still available.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await expect(overviewToggle).toBeChecked();
   await overviewToggle.click();
   await expect(grid).toBeVisible();
-  expect((await row.boundingBox())!.height).toBe(expandedHeight);
+  expect((await row.boundingBox())!.height).toBe(overviewHeight);
   expect(await scroll.evaluate((element) => element.scrollTop)).toBe(scrollTop);
   await expect(notes).toHaveCount(2);
   await createRecorderMidiNote(page, row, { beat: 1, pitch: "D4" });
   await expect(notes).toHaveCount(3);
 
-  // Return to the resized overview, save, and reload its mode and independent height.
+  // Return to the resized overview, save, and reload its mode and shared height.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await overviewToggle.click();
   expect((await row.boundingBox())!.height).toBe(overviewHeight);
@@ -127,16 +127,16 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   expect((await row.boundingBox())!.height).toBe(overviewHeight);
   await expect(other.getByTestId("recorder-midi-grid")).toBeVisible();
 
-  // Uncheck Overview after reload and verify the separately saved piano-roll height.
+  // Uncheck Overview after reload and verify the shared track height.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await expect(overviewToggle).toBeChecked();
   await overviewToggle.click();
   await expect(grid).toBeVisible();
-  expect((await row.boundingBox())!.height).toBe(expandedHeight);
+  expect((await row.boundingBox())!.height).toBe(overviewHeight);
   await saveRecorderProject(page);
   await page.reload();
   await expect(grid).toBeVisible();
-  expect((await row.boundingBox())!.height).toBe(expandedHeight);
+  expect((await row.boundingBox())!.height).toBe(overviewHeight);
 });
 
 test("shows empty and single-pitch overviews", async ({ page }) => {
