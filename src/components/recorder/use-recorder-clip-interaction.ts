@@ -129,9 +129,6 @@ export function useRecorderClipInteraction({
         break;
       }
       case "trim": {
-        if (!selected.clips.some((clip) => clip.id === input.clip.id)) {
-          throw new Error("Recorder clip state is missing.");
-        }
         const getChanges = createTrimGetChanges({
           clips: selected.clips,
           edge: input.edge,
