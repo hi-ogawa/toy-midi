@@ -198,6 +198,10 @@ export type RecorderClipTrim = {
   value: number;
 };
 
+export type RecorderClipEdit =
+  | { type: "move"; changes: readonly RecorderClipMove[] }
+  | { type: "trim"; changes: readonly RecorderClipTrim[] };
+
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
     title: "Untitled project",
@@ -441,52 +445,21 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  moveClips(updates: readonly RecorderClipMove[]): void {
+  commitClipEdit(edit: RecorderClipEdit): void {
     const state = this.store.get();
-    const offsets = new Map(
-      updates.flatMap((update) =>
-        update.type === "clip"
-          ? [[update.id, update.timelineOffset] as const]
-          : [],
-      ),
-    );
-    const referenceOffset = updates.find(
-      (update) => update.type === "reference",
-    )?.timelineOffset;
+    const next = this.previewClipEdit(edit);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    function moveTrackClips(track: AudioTrackState): AudioTrackState {
-      return updateTrackClips({
-        track,
-        update: (clips) =>
-          clips.map((clip) =>
-            offsets.has(clip.id)
-              ? { ...clip, timelineOffset: offsets.get(clip.id)! }
-              : clip,
-          ),
-      });
+    this.store.update(next);
+    if (next.recordingTrack !== state.recordingTrack) {
+      this.syncTrackPlayback(next.recordingTrack);
     }
-    const audioTracks = state.audioTracks.map((track) => moveTrackClips(track));
-    const recordingTrack = moveTrackClips(state.recordingTrack);
-    const referenceVideo = state.referenceVideo
-      ? {
-          ...state.referenceVideo,
-          timelineStart: referenceOffset ?? state.referenceVideo.timelineStart,
-        }
-      : undefined;
-    if (referenceOffset !== undefined && !referenceVideo) {
-      throw new Error("Recorder clip state is missing.");
-    }
-    this.store.update({ recordingTrack, audioTracks, referenceVideo });
-    if (recordingTrack !== state.recordingTrack) {
-      this.syncTrackPlayback(recordingTrack);
-    }
-    if (referenceOffset !== undefined) {
+    if (next.referenceVideo !== state.referenceVideo) {
       this.syncYouTubePlayer();
     }
-    for (const [index, track] of audioTracks.entries()) {
+    for (const [index, track] of next.audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
         this.syncTrackPlayback(track);
       }
@@ -496,8 +469,53 @@ export class RecorderRuntime {
     }
   }
 
-  trimClip({ id, edge, value }: RecorderClipTrim): void {
-    this.updateClip(id, (clip) => trimAudioClip({ clip, edge, value }));
+  /** Calculate the same clip state as commit without updating the store or playback. */
+  previewClipEdit(
+    edit: RecorderClipEdit,
+  ): Pick<
+    RecorderRuntimeState,
+    "audioTracks" | "recordingTrack" | "referenceVideo"
+  > {
+    const state = this.store.get();
+    const moves = edit.type === "move" ? edit.changes : [];
+    const trims = edit.type === "trim" ? edit.changes : [];
+    const referenceMove = moves.find((change) => change.type === "reference");
+    function editTrack(track: AudioTrackState): AudioTrackState {
+      return updateTrackClips({
+        track,
+        update: (clips) =>
+          clips.map((clip) => {
+            const trim = trims.find((change) => change.id === clip.id);
+            if (trim) {
+              return trimAudioClip({
+                clip,
+                edge: trim.edge,
+                value: trim.value,
+              });
+            }
+            const move = moves.find(
+              (change) => change.type === "clip" && change.id === clip.id,
+            );
+            return move
+              ? { ...clip, timelineOffset: move.timelineOffset }
+              : clip;
+          }),
+      });
+    }
+    if (referenceMove && !state.referenceVideo) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    return {
+      audioTracks: state.audioTracks.map(editTrack),
+      recordingTrack: editTrack(state.recordingTrack),
+      referenceVideo:
+        state.referenceVideo && referenceMove
+          ? {
+              ...state.referenceVideo,
+              timelineStart: referenceMove.timelineOffset,
+            }
+          : state.referenceVideo,
+    };
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {

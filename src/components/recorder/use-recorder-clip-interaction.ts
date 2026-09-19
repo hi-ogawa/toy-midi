@@ -2,15 +2,12 @@ import { useEffect, useState } from "react";
 import { clamp } from "../../lib/music";
 import {
   MIN_CLIP_DURATION,
-  trimAudioClip,
   type AudioClip,
 } from "../../lib/recorder/audio-clip";
-import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import {
   type RecorderClipId,
   type RecorderClipMove,
   type RecorderClipTrim,
-  type AudioTrackState,
   type ReferenceVideoState,
   RecorderRuntime,
   RecorderRuntimeState,
@@ -162,57 +159,20 @@ export function useRecorderClipInteraction({
     setEdit(undefined);
     switch (edit.type) {
       case "move": {
-        runtime.moveClips(edit.getChanges(delta));
+        runtime.commitClipEdit({
+          type: "move",
+          changes: edit.getChanges(delta),
+        });
         break;
       }
       case "trim": {
-        // TODO: Commit bulk trims in one runtime mutation so state and playback update atomically.
-        for (const change of edit.getChanges(delta)) {
-          runtime.trimClip(change);
-        }
+        runtime.commitClipEdit({
+          type: "trim",
+          changes: edit.getChanges(delta),
+        });
         break;
       }
     }
-  }
-
-  function previewTrack(track: AudioTrackState): AudioTrackState {
-    if (!edit) {
-      return track;
-    }
-    const moves = edit.type === "move" ? edit.changes : [];
-    const trims = edit.type === "trim" ? edit.changes : [];
-    const clips = track.clips.map((clip) => {
-      const trim = trims.find((trim) => trim.id === clip.id);
-      if (trim) {
-        return trimAudioClip({ clip, edge: trim.edge, value: trim.value });
-      }
-      const move = moves.find(
-        (move) => move.type === "clip" && move.id === clip.id,
-      );
-      return move ? { ...clip, timelineOffset: move.timelineOffset } : clip;
-    });
-    if (clips.every((clip, index) => clip === track.clips[index])) {
-      return track;
-    }
-    const soloed = clips.some((clip) => clip.soloed);
-    return {
-      ...track,
-      clips,
-      regions: deriveClipRegions(
-        clips.filter((clip) => !clip.muted && (!soloed || clip.soloed)),
-      ),
-    };
-  }
-
-  function previewReferenceVideo() {
-    const { referenceVideo } = state;
-    const move =
-      edit?.type === "move"
-        ? edit.changes.find((change) => change.type === "reference")
-        : undefined;
-    return referenceVideo && move
-      ? { ...referenceVideo, timelineStart: move.timelineOffset }
-      : referenceVideo;
   }
 
   function removeSelected(): void {
@@ -228,10 +188,12 @@ export function useRecorderClipInteraction({
     setKeys(new Set());
   }
 
+  const preview = edit ? runtime.previewClipEdit(edit) : state;
+
   return {
-    audioTracks: state.audioTracks.map(previewTrack),
-    recordingTrack: previewTrack(state.recordingTrack),
-    referenceVideo: previewReferenceVideo(),
+    audioTracks: preview.audioTracks,
+    recordingTrack: preview.recordingTrack,
+    referenceVideo: preview.referenceVideo,
     cancelEdit: () => setEdit(undefined),
     clear: () => {
       setEdit(undefined);
