@@ -96,13 +96,7 @@ export function RecorderProjectList() {
         </div>
       )}
       {projects.data.ok && (
-        <div
-          className={
-            projects.data.value.length > 0
-              ? "mt-4 border-t border-neutral-700/70 pt-4"
-              : ""
-          }
-        >
+        <div className={projects.data.value.length > 0 ? "mt-4" : ""}>
           <div className="flex gap-2">
             <Button
               data-testid="new-recorder-project-button"
