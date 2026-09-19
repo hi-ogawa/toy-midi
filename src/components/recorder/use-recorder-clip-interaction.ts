@@ -210,12 +210,16 @@ function createMoveGetChanges({
 function createTrimStartGetChanges(
   clips: AudioClip[],
 ): (delta: number) => RecorderClipTrim[] {
-  const minDelta = Math.max(...clips.map((clip) => -clip.trimStart));
-  const maxDelta = Math.min(
-    ...clips.map((clip) => clip.trimEnd - MIN_CLIP_DURATION - clip.trimStart),
+  const minStart = Math.min(...clips.map((clip) => clip.trimStart));
+  const minDuration = Math.min(
+    ...clips.map((clip) => clip.trimEnd - clip.trimStart),
   );
   return (delta) => {
-    const clampedDelta = clamp(delta, minDelta, maxDelta);
+    const clampedDelta = clamp(
+      delta,
+      -minStart,
+      minDuration - MIN_CLIP_DURATION,
+    );
     return clips.map((clip) => ({
       id: clip.id,
       value: clip.trimStart + clampedDelta,
@@ -226,14 +230,18 @@ function createTrimStartGetChanges(
 function createTrimEndGetChanges(
   clips: AudioClip[],
 ): (delta: number) => RecorderClipTrim[] {
-  const minDelta = Math.max(
-    ...clips.map((clip) => clip.trimStart + MIN_CLIP_DURATION - clip.trimEnd),
+  const minDuration = Math.min(
+    ...clips.map((clip) => clip.trimEnd - clip.trimStart),
   );
-  const maxDelta = Math.min(
+  const minRemaining = Math.min(
     ...clips.map((clip) => clip.duration - clip.trimEnd),
   );
   return (delta) => {
-    const clampedDelta = clamp(delta, minDelta, maxDelta);
+    const clampedDelta = clamp(
+      delta,
+      MIN_CLIP_DURATION - minDuration,
+      minRemaining,
+    );
     return clips.map((clip) => ({
       id: clip.id,
       value: clip.trimEnd + clampedDelta,
