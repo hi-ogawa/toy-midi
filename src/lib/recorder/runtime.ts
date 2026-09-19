@@ -1151,7 +1151,7 @@ export class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
-    const take: AudioClip = {
+    const clip: AudioClip = {
       ...createAudioClip({
         id: pendingRecording.id,
         name: pendingRecording.name,
@@ -1164,7 +1164,7 @@ export class RecorderRuntime {
     const recordingTrack = resolveTrackRegions({
       ...previousTrack,
       nextTakeNumber: previousTrack.nextTakeNumber + 1,
-      clips: [...previousTrack.clips, take],
+      clips: [...previousTrack.clips, clip],
     });
     this.store.update({
       captureStatus: "ready",
@@ -1174,7 +1174,7 @@ export class RecorderRuntime {
     });
     this.syncTrackPlayback(recordingTrack);
     this.syncTrackMix();
-    this.history.pushCaptureTake({ take, index });
+    this.history.pushCaptureTake({ clip, index });
   }
 
   /** @internal for undo */
@@ -1183,12 +1183,12 @@ export class RecorderRuntime {
     snapshot,
   }: {
     clipId: string;
-    snapshot?: { take: AudioClip; index: number };
+    snapshot?: { clip: AudioClip; index: number };
   }): void {
     const recordingTrack = this.updateTrack(RECORDING_TRACK_ID, (track) => {
       const clips = track.clips.filter((clip) => clip.id !== clipId);
       if (snapshot) {
-        clips.splice(snapshot.index, 0, snapshot.take);
+        clips.splice(snapshot.index, 0, snapshot.clip);
       }
       return { ...track, clips };
     });
@@ -1227,7 +1227,7 @@ type RecorderChange =
   | {
       type: "capture-take";
       clipId: string;
-      snapshot?: { take: AudioClip; index: number };
+      snapshot?: { clip: AudioClip; index: number };
     };
 
 // TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
@@ -1266,13 +1266,13 @@ class RecorderHistory {
     );
   }
 
-  pushCaptureTake({ take, index }: { take: AudioClip; index: number }): void {
+  pushCaptureTake({ clip, index }: { clip: AudioClip; index: number }): void {
     this.history.push({
-      before: { type: "capture-take", clipId: take.id },
+      before: { type: "capture-take", clipId: clip.id },
       after: {
         type: "capture-take",
-        clipId: take.id,
-        snapshot: { take, index },
+        clipId: clip.id,
+        snapshot: { clip, index },
       },
     });
   }
