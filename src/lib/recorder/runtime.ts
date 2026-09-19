@@ -379,17 +379,6 @@ export class RecorderRuntime {
     this.history.pushMidiTrack({ track, index });
   }
 
-  removeMidiTrack(id: string): void {
-    const state = this.store.get();
-    const index = state.midiTracks.findIndex((track) => track.id === id);
-    if (index === -1) {
-      return;
-    }
-    const track = state.midiTracks[index];
-    this.deleteMidiTrack(id);
-    this.history.pushMidiTrack({ track, index, reverse: true });
-  }
-
   /** @internal for undo */
   async insertMidiTrack({
     track,
@@ -412,6 +401,17 @@ export class RecorderRuntime {
     this.store.update({ midiTracks });
     this.syncTrackMix();
     return index;
+  }
+
+  removeMidiTrack(id: string): void {
+    const state = this.store.get();
+    const index = state.midiTracks.findIndex((track) => track.id === id);
+    if (index === -1) {
+      return;
+    }
+    const track = state.midiTracks[index];
+    this.deleteMidiTrack(id);
+    this.history.pushMidiTrack({ track, index, reverse: true });
   }
 
   /** @internal for undo */
