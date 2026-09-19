@@ -5,7 +5,7 @@ import {
   type AudioClip,
 } from "../../lib/recorder/audio-clip";
 import {
-  applyRecorderClipEdit,
+  deriveClipEditState,
   type RecorderClipId,
   type RecorderClipMove,
   type RecorderClipTrim,
@@ -189,7 +189,7 @@ export function useRecorderClipInteraction({
     setKeys(new Set());
   }
 
-  const preview = edit ? applyRecorderClipEdit({ state, edit }) : state;
+  const preview = edit ? deriveClipEditState({ state, edit }) : state;
 
   return {
     audioTracks: preview.audioTracks,

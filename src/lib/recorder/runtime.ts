@@ -447,7 +447,7 @@ export class RecorderRuntime {
 
   commitClipEdit(edit: RecorderClipEdit): void {
     const state = this.store.get();
-    const next = applyRecorderClipEdit({ state, edit });
+    const next = deriveClipEditState({ state, edit });
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -1272,7 +1272,7 @@ class RecorderHistory {
 }
 
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
-export function applyRecorderClipEdit({
+export function deriveClipEditState({
   state,
   edit,
 }: {
