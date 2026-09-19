@@ -44,39 +44,39 @@ import type {
 } from "./use-recorder-clip-interaction";
 
 export function TimelineHeader({
-  beatsPerBar,
-  pixelsPerBeat,
-  viewportStartBeat,
-  tempo,
-  timelineWidth,
+  loop,
+  punch,
   isAddingAudio,
   isAddingMidi,
+  tempo,
+  beatsPerBar,
   subdivisionsPerBeat,
+  pixelsPerBeat,
+  viewportStartBeat,
+  timelineWidth,
   onAddAudioTrack,
   onAddMidiTrack,
   onAddAudioFile,
   onSeek,
-  loop,
-  punch,
   onLoopRangeChange,
   onLoopRangeClear,
   onPunchRangeChange,
   onPunchRangeClear,
 }: {
-  beatsPerBar: number;
-  pixelsPerBeat: number;
-  viewportStartBeat: number;
-  tempo: number;
-  timelineWidth: number;
+  loop: RecorderLoopState;
+  punch: RecorderPunchState;
   isAddingAudio: boolean;
   isAddingMidi: boolean;
+  tempo: number;
+  beatsPerBar: number;
   subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  timelineWidth: number;
   onAddAudioTrack: () => void;
   onAddMidiTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
-  loop: RecorderLoopState;
-  punch: RecorderPunchState;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
   onPunchRangeChange: (range: RecorderPunchRange) => void;
@@ -128,15 +128,15 @@ export function TimelineHeader({
         </div>
       </div>
       <TimelineRuler
-        beatsPerBar={beatsPerBar}
-        pixelsPerBeat={pixelsPerBeat}
-        viewportStartBeat={viewportStartBeat}
-        tempo={tempo}
-        subdivisionsPerBeat={subdivisionsPerBeat}
-        timelineWidth={timelineWidth}
-        onSeek={onSeek}
         loop={loop}
         punch={punch}
+        tempo={tempo}
+        beatsPerBar={beatsPerBar}
+        subdivisionsPerBeat={subdivisionsPerBeat}
+        pixelsPerBeat={pixelsPerBeat}
+        viewportStartBeat={viewportStartBeat}
+        timelineWidth={timelineWidth}
+        onSeek={onSeek}
         onLoopRangeChange={onLoopRangeChange}
         onLoopRangeClear={onLoopRangeClear}
         onPunchRangeChange={onPunchRangeChange}
@@ -147,29 +147,29 @@ export function TimelineHeader({
 }
 
 function TimelineRuler({
-  beatsPerBar,
-  pixelsPerBeat,
-  viewportStartBeat,
-  tempo,
-  subdivisionsPerBeat,
-  timelineWidth,
-  onSeek,
   loop,
   punch,
+  tempo,
+  beatsPerBar,
+  subdivisionsPerBeat,
+  pixelsPerBeat,
+  viewportStartBeat,
+  timelineWidth,
+  onSeek,
   onLoopRangeChange,
   onLoopRangeClear,
   onPunchRangeChange,
   onPunchRangeClear,
 }: {
-  beatsPerBar: number;
-  pixelsPerBeat: number;
-  viewportStartBeat: number;
-  tempo: number;
-  subdivisionsPerBeat: number;
-  timelineWidth: number;
-  onSeek: (position: number) => void;
   loop: RecorderLoopState;
   punch: RecorderPunchState;
+  tempo: number;
+  beatsPerBar: number;
+  subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  timelineWidth: number;
+  onSeek: (position: number) => void;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
   onPunchRangeChange: (range: RecorderPunchRange) => void;
@@ -192,20 +192,20 @@ function TimelineRuler({
       data-testid="recorder-timeline-ruler"
       className="relative cursor-pointer bg-neutral-800 font-mono text-[10px] text-neutral-400"
       {...getTimelineSurfaceProps({
-        beatsPerBar,
-        onSeek,
-        pixelsPerBeat,
         tempo,
-        viewportStartBeat,
+        beatsPerBar,
         subdivisionsPerBeat,
+        pixelsPerBeat,
+        viewportStartBeat,
+        onSeek,
       })}
     >
       {loop.range && (
         <LoopRange
           range={loop.range}
           enabled={loop.enabled}
-          pixelsPerBeat={pixelsPerBeat}
           subdivisionsPerBeat={subdivisionsPerBeat}
+          pixelsPerBeat={pixelsPerBeat}
           viewportStartBeat={viewportStartBeat}
           onChange={onLoopRangeChange}
           onClear={onLoopRangeClear}
@@ -218,8 +218,8 @@ function TimelineRuler({
           label="Punch"
           activeClassName="border-amber-300 bg-amber-400/20 text-amber-100"
           clearHoverClassName="hover:bg-amber-200/20"
-          pixelsPerBeat={pixelsPerBeat}
           subdivisionsPerBeat={subdivisionsPerBeat}
+          pixelsPerBeat={pixelsPerBeat}
           viewportStartBeat={viewportStartBeat}
           onChange={onPunchRangeChange}
           onClear={onPunchRangeClear}
@@ -244,16 +244,16 @@ function TimelineRuler({
 function LoopRange({
   range,
   enabled,
-  pixelsPerBeat,
   subdivisionsPerBeat,
+  pixelsPerBeat,
   viewportStartBeat,
   onChange,
   onClear,
 }: {
   range: RecorderLoopRange;
   enabled: boolean;
-  pixelsPerBeat: number;
   subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
   viewportStartBeat: number;
   onChange: (range: RecorderLoopRange) => void;
   onClear: () => void;
@@ -265,8 +265,8 @@ function LoopRange({
       label="Loop"
       activeClassName="border-violet-300 bg-violet-400/20 text-violet-100"
       clearHoverClassName="hover:bg-violet-200/20"
-      pixelsPerBeat={pixelsPerBeat}
       subdivisionsPerBeat={subdivisionsPerBeat}
+      pixelsPerBeat={pixelsPerBeat}
       viewportStartBeat={viewportStartBeat}
       onChange={onChange}
       onClear={onClear}
@@ -280,8 +280,8 @@ function TimelineRange({
   label,
   activeClassName,
   clearHoverClassName,
-  pixelsPerBeat,
   subdivisionsPerBeat,
+  pixelsPerBeat,
   viewportStartBeat,
   onChange,
   onClear,
@@ -291,8 +291,8 @@ function TimelineRange({
   label: string;
   activeClassName: string;
   clearHoverClassName: string;
-  pixelsPerBeat: number;
   subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
   viewportStartBeat: number;
   onChange: (range: RecorderLoopRange) => void;
   onClear: () => void;
@@ -426,42 +426,42 @@ type RecorderTimelineClip = {
 const TIMELINE_EPSILON = 1e-6;
 
 export function AudioTimelineLane({
-  beatsPerBar,
   clips,
   regions,
   recordingClipId,
   testId,
   emptyLabel,
+  tempo,
+  beatsPerBar,
+  subdivisionsPerBeat,
   pixelsPerBeat,
   viewportStartBeat,
-  tempo,
   viewportWidth,
   isClipSelected,
-  onClipDragStart,
   onClipClick,
-  onClipDragMove,
   onTrimStart,
   onTrimMove,
-  subdivisionsPerBeat,
+  onClipDragStart,
+  onClipDragMove,
   onSeek,
 }: {
-  beatsPerBar: number;
   clips: readonly AudioClip[];
   regions: readonly ClipRegion[];
-  testId: "audio" | "comp" | "take-lane";
   recordingClipId?: string;
+  testId: "audio" | "comp" | "take-lane";
   emptyLabel?: string;
+  tempo: number;
+  beatsPerBar: number;
+  subdivisionsPerBeat: number;
   pixelsPerBeat: number;
   viewportStartBeat: number;
-  tempo: number;
   viewportWidth: number;
   isClipSelected: (id: string) => boolean;
-  onClipDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
   onClipClick: (id: string, additive: boolean) => void;
-  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   onTrimStart: (id: string, edge: "start" | "end") => RecorderClipTrimSnapshot;
   onTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
-  subdivisionsPerBeat: number;
+  onClipDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
+  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   onSeek: (position: number) => void;
 }) {
   const activeClipIds = new Set(regions.map(({ clip }) => clip.id));
@@ -470,12 +470,12 @@ export function AudioTimelineLane({
     <div
       className="relative overflow-hidden bg-neutral-900"
       {...getTimelineSurfaceProps({
-        beatsPerBar,
-        onSeek,
-        pixelsPerBeat,
         tempo,
-        viewportStartBeat,
+        beatsPerBar,
         subdivisionsPerBeat,
+        pixelsPerBeat,
+        viewportStartBeat,
+        onSeek,
       })}
     >
       {emptyLabel && clips.length === 0 && recordingClipId === undefined && (
@@ -501,10 +501,6 @@ export function AudioTimelineLane({
                 audioView: clip.audioView,
                 testId: isRecording ? "recording" : testId,
               }}
-              pixelsPerBeat={pixelsPerBeat}
-              viewportStartBeat={viewportStartBeat}
-              tempo={tempo}
-              viewportWidth={viewportWidth}
               recording={isRecording}
               joinsPrevious={
                 previous !== undefined &&
@@ -516,6 +512,10 @@ export function AudioTimelineLane({
                 Math.abs(region.timelineEnd - next.timelineStart) <
                   TIMELINE_EPSILON
               }
+              tempo={tempo}
+              pixelsPerBeat={pixelsPerBeat}
+              viewportStartBeat={viewportStartBeat}
+              viewportWidth={viewportWidth}
             />
           );
         })}
@@ -530,17 +530,17 @@ export function AudioTimelineLane({
             offset: clip.timelineOffset + clip.trimStart,
             testId: `${testId}-source`,
           }}
-          pixelsPerBeat={pixelsPerBeat}
-          viewportStartBeat={viewportStartBeat}
-          tempo={tempo}
-          viewportWidth={viewportWidth}
-          onClipDragStart={(additive) => onClipDragStart(clip.id, additive)}
-          onClipClick={(additive) => onClipClick(clip.id, additive)}
-          onClipDragMove={onClipDragMove}
-          onTrimStart={(edge) => onTrimStart(clip.id, edge)}
-          onTrimMove={onTrimMove}
           selected={isClipSelected(clip.id)}
           hidePresentation
+          tempo={tempo}
+          pixelsPerBeat={pixelsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          viewportWidth={viewportWidth}
+          onClipClick={(additive) => onClipClick(clip.id, additive)}
+          onTrimStart={(edge) => onTrimStart(clip.id, edge)}
+          onTrimMove={onTrimMove}
+          onClipDragStart={(additive) => onClipDragStart(clip.id, additive)}
+          onClipDragMove={onClipDragMove}
         />
       ))}
     </div>
@@ -550,35 +550,35 @@ export function AudioTimelineLane({
 export function ReferenceTimelineRow({
   referenceVideo,
   position,
+  muted,
+  selected,
+  tempo,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
-  tempo,
   viewportStartBeat,
   viewportWidth,
-  onSeek,
-  selected,
   onClipClick,
   onClipDragStart,
   onClipDragMove,
-  muted,
+  onSeek,
   onMutedChange,
   onRemove,
 }: {
   referenceVideo: ReferenceVideoState;
   position: number;
+  muted: boolean;
+  selected: boolean;
+  tempo: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
-  tempo: number;
   viewportStartBeat: number;
   viewportWidth: number;
-  onSeek: (position: number) => void;
-  selected: boolean;
   onClipClick: (additive: boolean) => void;
   onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
   onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-  muted: boolean;
+  onSeek: (position: number) => void;
   onMutedChange: (muted: boolean) => void;
   onRemove: () => void;
 }) {
@@ -630,12 +630,12 @@ export function ReferenceTimelineRow({
       <div
         className="relative overflow-hidden bg-neutral-900"
         {...getTimelineSurfaceProps({
-          beatsPerBar,
-          onSeek,
-          pixelsPerBeat,
           tempo,
-          viewportStartBeat,
+          beatsPerBar,
           subdivisionsPerBeat,
+          pixelsPerBeat,
+          viewportStartBeat,
+          onSeek,
         })}
       >
         <TimelineClip
@@ -646,11 +646,11 @@ export function ReferenceTimelineRow({
             testId: "reference",
             variant: "reference",
           }}
-          pixelsPerBeat={pixelsPerBeat}
+          selected={selected}
           tempo={tempo}
+          pixelsPerBeat={pixelsPerBeat}
           viewportStartBeat={viewportStartBeat}
           viewportWidth={viewportWidth}
-          selected={selected}
           onClipClick={onClipClick}
           onClipDragStart={onClipDragStart}
           onClipDragMove={onClipDragMove}
@@ -662,36 +662,36 @@ export function ReferenceTimelineRow({
 
 function TimelineClip({
   clip,
-  pixelsPerBeat,
-  viewportStartBeat,
-  tempo,
-  viewportWidth,
-  onClipDragStart,
-  onClipClick,
-  onClipDragMove,
-  onTrimStart,
-  onTrimMove,
-  joinsPrevious = false,
-  joinsNext = false,
   recording = false,
   selected = false,
+  joinsPrevious = false,
+  joinsNext = false,
   hidePresentation = false,
+  tempo,
+  pixelsPerBeat,
+  viewportStartBeat,
+  viewportWidth,
+  onClipClick,
+  onTrimStart,
+  onTrimMove,
+  onClipDragStart,
+  onClipDragMove,
 }: {
   clip: RecorderTimelineClip;
-  pixelsPerBeat: number;
-  viewportStartBeat: number;
-  tempo: number;
-  viewportWidth: number;
-  onClipDragStart?: (additive: boolean) => RecorderClipMoveSnapshot;
-  onClipClick?: (additive: boolean) => void;
-  onClipDragMove?: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-  onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
-  onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
-  joinsPrevious?: boolean;
-  joinsNext?: boolean;
   recording?: boolean;
   selected?: boolean;
+  joinsPrevious?: boolean;
+  joinsNext?: boolean;
   hidePresentation?: boolean;
+  tempo: number;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  viewportWidth: number;
+  onClipClick?: (additive: boolean) => void;
+  onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
+  onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
+  onClipDragStart?: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipDragMove?: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = usePointerGesture({
@@ -858,14 +858,14 @@ function TimelineClip({
 
 function getTimelineGridStyle({
   beatsPerBar,
+  subdivisionsPerBeat,
   pixelsPerBeat,
   viewportStartBeat,
-  subdivisionsPerBeat,
 }: {
   beatsPerBar: number;
+  subdivisionsPerBeat: number;
   pixelsPerBeat: number;
   viewportStartBeat: number;
-  subdivisionsPerBeat: number;
 }): React.CSSProperties {
   return getTimelineGridBackground({
     beatsPerBar,
@@ -882,25 +882,25 @@ function getTimelineGridStyle({
 }
 
 function getTimelineSurfaceProps({
-  beatsPerBar,
-  onSeek,
-  pixelsPerBeat,
-  subdivisionsPerBeat,
   tempo,
+  beatsPerBar,
+  subdivisionsPerBeat,
+  pixelsPerBeat,
   viewportStartBeat,
+  onSeek,
 }: {
-  beatsPerBar: number;
-  onSeek: (position: number) => void;
-  pixelsPerBeat: number;
-  subdivisionsPerBeat: number;
   tempo: number;
+  beatsPerBar: number;
+  subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
   viewportStartBeat: number;
+  onSeek: (position: number) => void;
 }): React.HTMLAttributes<HTMLElement> {
   return {
     style: getTimelineGridStyle({
       beatsPerBar,
-      pixelsPerBeat,
       subdivisionsPerBeat,
+      pixelsPerBeat,
       viewportStartBeat,
     }),
     onPointerDown: (event) => {

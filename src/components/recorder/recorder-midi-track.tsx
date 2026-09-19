@@ -54,27 +54,27 @@ const PITCHES = Array.from(
 export function MidiTrackRow({
   track,
   runtime,
-  pixelsPerBeat,
+  midiInteraction,
+  effectsOpen,
   beatsPerBar,
   subdivisionsPerBeat,
+  pixelsPerBeat,
   viewportStartBeat,
-  effectsOpen,
   onEffectsToggle,
   onRemove,
-  midiInteraction,
   onTranscribe,
   onScorePreview,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
-  pixelsPerBeat: number;
+  midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
+  effectsOpen: boolean;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
   viewportStartBeat: number;
-  effectsOpen: boolean;
   onEffectsToggle: () => void;
   onRemove: () => void;
-  midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
   onScorePreview: () => void;
 }) {
@@ -82,20 +82,20 @@ export function MidiTrackRow({
   return (
     <div onFocus={midiInteraction.activate}>
       <TrackRow
+        title={track.name}
         data-testid="recorder-midi-track-row"
         // Keep controls at their content height so the piano keyboard shows below.
         controlsClassName="h-fit"
-        title={track.name}
         height={track.height}
         gain={track.gain}
         muted={track.muted}
         soloed={track.soloed}
         effectsOpen={effectsOpen}
-        onEffectsToggle={onEffectsToggle}
+        onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
         onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
         onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
         onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
-        onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
+        onEffectsToggle={onEffectsToggle}
         action={
           <MidiTrackActions
             label={track.name}
@@ -110,9 +110,9 @@ export function MidiTrackRow({
           track={track}
           runtime={runtime}
           midiInteraction={midiInteraction}
-          pixelsPerBeat={pixelsPerBeat}
           beatsPerBar={beatsPerBar}
           subdivisionsPerBeat={subdivisionsPerBeat}
+          pixelsPerBeat={pixelsPerBeat}
           viewportStartBeat={viewportStartBeat}
         />
       </TrackRow>
@@ -130,15 +130,15 @@ export function MidiTrackRow({
 function MidiTrackActions({
   label,
   onRemove,
-  onInstrumentOpen,
   onTranscribe,
   onScorePreview,
+  onInstrumentOpen,
 }: {
   label: string;
   onRemove: () => void;
-  onInstrumentOpen: () => void;
   onTranscribe: () => void;
   onScorePreview: () => void;
+  onInstrumentOpen: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -177,17 +177,17 @@ function MidiTrackEditor({
   track,
   runtime,
   midiInteraction,
-  pixelsPerBeat,
   beatsPerBar,
   subdivisionsPerBeat,
+  pixelsPerBeat,
   viewportStartBeat,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
-  pixelsPerBeat: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
   viewportStartBeat: number;
 }) {
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
@@ -570,8 +570,8 @@ function MidiNote({
   viewportStartBeat,
 }: {
   note: MidiTrackState["notes"][number];
-  selected: boolean;
   annotation?: TabAnnotationDisplay;
+  selected: boolean;
   pixelsPerBeat: number;
   viewportStartBeat: number;
 }) {

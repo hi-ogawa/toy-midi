@@ -73,12 +73,12 @@ export function TrackRow({
   muted,
   soloed,
   effectsOpen,
-  onEffectsToggle,
-  action,
+  onHeightChange,
   onGainChange,
   onMutedChange,
   onSoloedChange,
-  onHeightChange,
+  onEffectsToggle,
+  action,
   children,
 }: {
   title: string;
@@ -89,12 +89,12 @@ export function TrackRow({
   muted: boolean;
   soloed: boolean;
   effectsOpen: boolean;
-  onEffectsToggle: () => void;
-  action: React.ReactNode;
+  onHeightChange: (height: number) => void;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
-  onHeightChange: (height: number) => void;
+  onEffectsToggle: () => void;
+  action: React.ReactNode;
   children: React.ReactNode;
 }) {
   const resizeRef = usePointerDrag({
@@ -164,50 +164,50 @@ export function TrackRow({
 }
 
 export function CaptureTrackRow({
-  route,
-  routeNeedsSetup,
   height,
   gain,
+  muted,
+  soloed,
+  effectsOpen,
+  route,
+  routeNeedsSetup,
   inputActive,
   inputAnalyser,
   inputMonitoring,
   inputToggleDisabled,
   tunerOpen,
-  muted,
-  soloed,
-  effectsOpen,
-  onEffectsToggle,
+  onHeightChange,
   onGainChange,
-  onInputSetup,
-  onInputMonitoringChange,
-  onInputToggle,
-  onTunerToggle,
   onMutedChange,
   onSoloedChange,
-  onHeightChange,
+  onEffectsToggle,
+  onInputSetup,
+  onInputToggle,
+  onInputMonitoringChange,
+  onTunerToggle,
   children,
 }: {
-  route: string;
-  routeNeedsSetup: boolean;
   height: number;
   gain: number;
+  muted: boolean;
+  soloed: boolean;
+  effectsOpen: boolean;
+  route: string;
+  routeNeedsSetup: boolean;
   inputActive: boolean;
   inputAnalyser?: AudioAnalyser;
   inputMonitoring: boolean;
   inputToggleDisabled: boolean;
   tunerOpen: boolean;
-  muted: boolean;
-  soloed: boolean;
-  effectsOpen: boolean;
-  onEffectsToggle: () => void;
+  onHeightChange: (height: number) => void;
   onGainChange: (gain: number) => void;
-  onInputSetup: () => void;
-  onInputMonitoringChange: (monitoring: boolean) => void;
-  onInputToggle: () => void;
-  onTunerToggle: () => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
-  onHeightChange: (height: number) => void;
+  onEffectsToggle: () => void;
+  onInputSetup: () => void;
+  onInputToggle: () => void;
+  onInputMonitoringChange: (monitoring: boolean) => void;
+  onTunerToggle: () => void;
   children: React.ReactNode;
 }) {
   const resizeRef = usePointerDrag({
@@ -350,12 +350,12 @@ export function CaptureTrackRow({
 }
 
 export function TakesDisclosureRow({
-  expanded,
   takeCount,
+  expanded,
   onExpandedChange,
 }: {
-  expanded: boolean;
   takeCount: number;
+  expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
 }) {
   return (

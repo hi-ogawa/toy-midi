@@ -52,76 +52,76 @@ import type { SaveStatus } from "./use-recorder-project";
 export function RecorderHeader({
   title,
   saveStatus,
-  referenceVideoOpen,
+  isExporting,
   isPlaying,
   flags,
-  isExporting,
-  metronomeEnabled,
-  masterGain,
-  loop,
-  punch,
   position,
   playbackRate,
+  loop,
+  punch,
   tempo,
   timeSignature,
   gridDivision,
   autoScrollEnabled,
-  onPlayToggle,
+  metronomeEnabled,
+  masterGain,
+  referenceVideoOpen,
+  mixerOpen,
   onTitleChange,
   onSave,
-  onRecordToggle,
-  onAutoScrollChange,
-  onPlaybackRateChange,
-  onTempoChange,
-  onMetronomeChange,
-  onMasterGainChange,
-  onLoopChange,
-  onPunchChange,
-  onTimeSignatureChange,
-  onGridDivisionChange,
   onExportProject,
   onExportAudio,
+  onPlayToggle,
+  onRecordToggle,
+  onPlaybackRateChange,
+  onLoopChange,
+  onPunchChange,
+  onTempoChange,
+  onTimeSignatureChange,
+  onGridDivisionChange,
+  onAutoScrollChange,
+  onMetronomeChange,
+  onMasterGainChange,
   onReferenceVideoOpenChange,
   onMixerToggle,
   onHelpOpen,
-  mixerOpen,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
   saveStatus: SaveStatus;
-  referenceVideoOpen: boolean;
+  isExporting: boolean;
   isPlaying: boolean;
   flags: RecorderFlags;
-  isExporting: boolean;
-  metronomeEnabled: boolean;
-  masterGain: number;
-  loop: RecorderLoopState;
-  punch: RecorderPunchState;
   position: number;
   playbackRate: number;
+  loop: RecorderLoopState;
+  punch: RecorderPunchState;
   tempo: number;
   timeSignature: TimeSignature;
   gridDivision: GridDivision;
   autoScrollEnabled: boolean;
-  onPlayToggle: () => void;
+  metronomeEnabled: boolean;
+  masterGain: number;
+  referenceVideoOpen: boolean;
+  mixerOpen: boolean;
   onTitleChange: (title: string) => void;
   onSave: () => void;
-  onRecordToggle: () => void;
-  onAutoScrollChange: (enabled: boolean) => void;
-  onPlaybackRateChange: (playbackRate: number) => void;
-  onTempoChange: (tempo: number) => void;
-  onMetronomeChange: (enabled: boolean) => void;
-  onMasterGainChange: (gain: number) => void;
-  onLoopChange: (update: Partial<RecorderLoopState>) => void;
-  onPunchChange: (update: Partial<RecorderPunchState>) => void;
-  onTimeSignatureChange: (value: string) => void;
-  onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
   onExportAudio: () => void;
+  onPlayToggle: () => void;
+  onRecordToggle: () => void;
+  onPlaybackRateChange: (playbackRate: number) => void;
+  onLoopChange: (update: Partial<RecorderLoopState>) => void;
+  onPunchChange: (update: Partial<RecorderPunchState>) => void;
+  onTempoChange: (tempo: number) => void;
+  onTimeSignatureChange: (value: string) => void;
+  onGridDivisionChange: (value: GridDivision) => void;
+  onAutoScrollChange: (enabled: boolean) => void;
+  onMetronomeChange: (enabled: boolean) => void;
+  onMasterGainChange: (gain: number) => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
   onHelpOpen: () => void;
-  mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
