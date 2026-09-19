@@ -596,13 +596,12 @@ export class RecorderRuntime {
   }
 
   removeMidiTrack(id: string): void {
-    const index = this.store
-      .get()
-      .midiTracks.findIndex((track) => track.id === id);
+    const state = this.store.get();
+    const index = state.midiTracks.findIndex((track) => track.id === id);
     if (index === -1) {
       return;
     }
-    const track = this.store.get().midiTracks[index];
+    const track = state.midiTracks[index];
     this.deleteMidiTrack(id);
     this.history.pushMidiTrack({ track, index, reverse: true });
   }
