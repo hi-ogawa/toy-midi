@@ -1,6 +1,6 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
-import { parseRecorderProjectArchive } from "../../lib/recorder/project-archive";
+import { importRecorderProject } from "../../lib/recorder/project-import";
 import {
   type RecorderProjectMetadata,
   recorderProjectStorage,
@@ -27,7 +27,7 @@ export function RecorderProjectList() {
   });
   const importProject = useMutation({
     mutationFn: async (file: File) => {
-      const content = await parseRecorderProjectArchive(file);
+      const content = await importRecorderProject(file);
       return recorderProjectStorage.createWithContent(content);
     },
     onSuccess: (projectId) => {
@@ -84,8 +84,8 @@ export function RecorderProjectList() {
               New recorder project
             </Button>
             <FileDropInput
-              accept=".toymidi.zip"
-              title="Import a .toymidi.zip recorder project archive"
+              accept=".toymidi.zip,.toymidi"
+              title="Import a recorder or legacy MIDI project"
               onFile={(file) => importProject.mutate(file)}
               data-testid="import-recorder-project"
               disabled={createProject.isPending || importProject.isPending}
@@ -93,12 +93,10 @@ export function RecorderProjectList() {
             >
               <span className="grid">
                 <span className="invisible col-start-1 row-start-1">
-                  Import recorder project
+                  Import project
                 </span>
                 <span className="col-start-1 row-start-1">
-                  {importProject.isPending
-                    ? "Importing..."
-                    : "Import recorder project"}
+                  {importProject.isPending ? "Importing..." : "Import project"}
                 </span>
               </span>
             </FileDropInput>

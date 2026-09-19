@@ -1400,8 +1400,8 @@ function createMidiTrackState(number: number): MidiTrackState {
   };
 }
 
-function clampTrackHeight(height: number): number {
-  return Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, height));
+export function clampTrackHeight(height: number): number {
+  return clamp(height, MIN_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
 }
 
 function clampRecordingTrackHeight(height: number): number {
