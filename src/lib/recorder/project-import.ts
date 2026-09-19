@@ -3,6 +3,11 @@ import { parseProjectFile } from "../project-file";
 import { convertLegacyProject } from "./legacy-project";
 import { readRecorderProjectArchive } from "./project-archive";
 
+/**
+ * Read a recorder or legacy .toymidi archive, selecting its format from the manifest.
+ * Converts legacy content in memory without writing legacy assets to storage.
+ * Returns recorder content for the caller to save as a new project.
+ */
 export async function importRecorderProject(file: File) {
   const zip = await JSZip.loadAsync(file);
   const manifestFile = zip.file("manifest.json");

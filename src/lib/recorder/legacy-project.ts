@@ -6,6 +6,11 @@ import {
 } from "./persistence";
 import { createDefaultRecorderRuntimeState } from "./runtime";
 
+/**
+ * Convert a v1/v2 legacy project into recorder content, loading encoded audio by asset key and decoding it to 48 kHz PCM.
+ * Preserves musical content and mix settings while using recorder defaults for settings without equivalents.
+ * Returns unsaved content and rejects if a referenced audio asset is missing or cannot be decoded.
+ */
 export async function convertLegacyProject({
   name,
   project,
