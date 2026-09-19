@@ -11,6 +11,7 @@ import {
   type RecorderClipMove,
   type RecorderClipTrim,
   type AudioTrackState,
+  type ReferenceVideoState,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -218,6 +219,18 @@ export function useRecorderClipInteraction({
     };
   }
 
+  function previewReferenceVideo(
+    referenceVideo: ReferenceVideoState | undefined,
+  ) {
+    const move =
+      edit?.type === "move"
+        ? edit.changes.find((change) => change.type === "reference")
+        : undefined;
+    return referenceVideo && move
+      ? { ...referenceVideo, timelineStart: move.timelineOffset }
+      : referenceVideo;
+  }
+
   function removeSelected(): void {
     setEdit(undefined);
     const selected = getSelectedClips(keys);
@@ -231,21 +244,10 @@ export function useRecorderClipInteraction({
     setKeys(new Set());
   }
 
-  const referenceMove =
-    edit?.type === "move"
-      ? edit.changes.find((move) => move.type === "reference")
-      : undefined;
-
   return {
     audioTracks: state.audioTracks.map(previewTrack),
     recordingTrack: previewTrack(state.recordingTrack),
-    referenceVideo:
-      state.referenceVideo && referenceMove
-        ? {
-            ...state.referenceVideo,
-            timelineStart: referenceMove.timelineOffset,
-          }
-        : state.referenceVideo,
+    referenceVideo: previewReferenceVideo(state.referenceVideo),
     cancelEdit: () => setEdit(undefined),
     clear: () => {
       setEdit(undefined);
