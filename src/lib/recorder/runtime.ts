@@ -4,6 +4,7 @@ import {
   type TimeSignature,
 } from "../../types.ts";
 import { insertAtIndices } from "../../utils/array.ts";
+import { createNumberedName } from "../../utils/name.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
@@ -12,6 +13,7 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
+import { sliceSamples } from "../pcm.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "../pitch-spelling.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
@@ -31,6 +33,7 @@ import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
+  getAudibleItems,
   renderRecorderMix,
   resolveRecorderMix,
 } from "./mix.ts";
@@ -1116,17 +1119,22 @@ export class RecorderRuntime {
       throw new Error("Recording state is incomplete.");
     }
     const samples = pendingRecording.recording.finish(stopFrame);
-    const slice = samples
-      ? sliceRecordingSamples({
-          samples,
-          sampleRate: context.sampleRate,
-          trim: deriveRecordingTrim({
-            duration: samples.length / context.sampleRate,
-            timelineOffset: pendingRecording.timelineOffset,
-            punchRange: pendingRecording.punchRange,
-          }),
+    const trim = samples
+      ? deriveRecordingTrim({
+          duration: samples.length / context.sampleRate,
+          timelineOffset: pendingRecording.timelineOffset,
+          punchRange: pendingRecording.punchRange,
         })
       : undefined;
+    const slice =
+      samples && trim
+        ? sliceSamples({
+            samples,
+            sampleRate: context.sampleRate,
+            start: trim.trimStart,
+            end: trim.trimEnd,
+          })
+        : undefined;
     if (
       !slice ||
       slice.samples.length < MIN_CLIP_DURATION * context.sampleRate
@@ -1190,7 +1198,7 @@ export class RecorderRuntime {
     pendingRecording: PendingRecordingState,
   ): void {
     const previewClipRegions = deriveClipRegions([
-      ...getActiveClips(this.store.get().recordingTrack.clips),
+      ...getAudibleItems(this.store.get().recordingTrack.clips),
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
@@ -1342,12 +1350,7 @@ function updateTrackClips({
 function resolveTrackRegions(
   track: Omit<AudioTrackState, "regions">,
 ): AudioTrackState {
-  return { ...track, regions: deriveClipRegions(getActiveClips(track.clips)) };
-}
-
-function getActiveClips(clips: readonly AudioClip[]): AudioClip[] {
-  const anyClipSoloed = clips.some((clip) => clip.soloed);
-  return clips.filter((clip) => !clip.muted && (!anyClipSoloed || clip.soloed));
+  return { ...track, regions: deriveClipRegions(getAudibleItems(track.clips)) };
 }
 
 function pendingRecordingToTake(
@@ -1385,23 +1388,6 @@ function deriveRecordingTrim({
   return {
     trimStart: Math.max(0, punchRange.start - timelineOffset),
     trimEnd: Math.min(duration, punchRange.end - timelineOffset),
-  };
-}
-
-function sliceRecordingSamples({
-  samples,
-  sampleRate,
-  trim,
-}: {
-  samples: Float32Array;
-  sampleRate: number;
-  trim: { trimStart: number; trimEnd: number };
-}): { samples: Float32Array; startOffset: number } {
-  const sampleStart = Math.round(trim.trimStart * sampleRate);
-  const sampleEnd = Math.round(trim.trimEnd * sampleRate);
-  return {
-    samples: samples.slice(sampleStart, sampleEnd),
-    startOffset: sampleStart / sampleRate,
   };
 }
 
@@ -1456,19 +1442,4 @@ export function clampTrackHeight(height: number): number {
 
 function clampRecordingTrackHeight(height: number): number {
   return clamp(height, MIN_RECORDING_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
-}
-
-function createNumberedName({
-  names,
-  prefix,
-}: {
-  names: readonly string[];
-  prefix: string;
-}): string {
-  const existingNames = new Set(names);
-  let number = names.length + 1;
-  while (existingNames.has(`${prefix} ${number}`)) {
-    number += 1;
-  }
-  return `${prefix} ${number}`;
 }
