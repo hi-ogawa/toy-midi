@@ -154,9 +154,22 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
 });
 
 test("shows empty and single-pitch overviews", async ({ page }) => {
-  // Fold an empty track and keep its mix controls available.
+  // Click through the empty editor hint to create a note, then delete it to restore the hint.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
+  const hint = row.getByText("Click the grid to add notes", { exact: true });
+  await expect(hint).toBeVisible();
+  const hintBox = (await hint.boundingBox())!;
+  await page.mouse.click(
+    hintBox.x + hintBox.width / 2,
+    hintBox.y + hintBox.height / 2,
+  );
+  await expect(row.locator("[data-note-id]")).toHaveCount(1);
+  await expect(hint).toBeHidden();
+  await page.keyboard.press("Delete");
+  await expect(hint).toBeVisible();
+
+  // Fold an empty track and keep its mix controls available.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
     .getByRole("menuitemcheckbox", { name: "Overview", exact: true })
@@ -165,6 +178,7 @@ test("shows empty and single-pitch overviews", async ({ page }) => {
   await expect(
     row.getByRole("img", { name: "MIDI 1 note overview, 0 notes" }),
   ).toBeVisible();
+  await expect(row.getByText("No notes", { exact: true })).toBeVisible();
   await row.getByTitle("Mute MIDI 1", { exact: true }).click();
   await expect(
     row.getByTitle("Unmute MIDI 1", { exact: true }),
@@ -185,6 +199,7 @@ test("shows empty and single-pitch overviews", async ({ page }) => {
   const overview = row.getByRole("img", {
     name: "MIDI 1 note overview, 1 note",
   });
+  await expect(row.getByText("No notes", { exact: true })).toBeHidden();
   const box = (await overview.boundingBox())!;
   const note = (await overview.locator(":scope > div").boundingBox())!;
   // Allow the track border and subpixel rounding when checking visual centering.
