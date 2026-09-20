@@ -15,9 +15,9 @@ export const GRID_SNAP_VALUES: Record<GridSnap, number> = {
   "1/4": 1,
   "1/8": 0.5,
   "1/16": 0.25,
-  "1/4T": 1 / 3,
-  "1/8T": 1 / 6,
-  "1/16T": 1 / 12,
+  "1/4T": 2 / 3,
+  "1/8T": 1 / 3,
+  "1/16T": 1 / 6,
 };
 
 export interface TimeSignature {
