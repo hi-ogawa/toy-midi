@@ -56,7 +56,7 @@ const preferencesSchema = z.object({
 });
 type Preferences = z.infer<typeof preferencesSchema>;
 const DEFAULT_PREFERENCES: Preferences = {
-  projectType: "midi",
+  projectType: "recorder",
   defaultMidiProgram: 0,
 };
 
@@ -309,6 +309,31 @@ export async function seedProjectV1(
 
   project = { ...project, audioAssetKey: assetKey };
   const projectId = projectStorage.create(name, project as any);
+  projectStorage.setLastProjectId(projectId);
+}
+
+// e2e-only: seed a legacy v2 project and its referenced audio assets.
+export async function seedProjectLegacyV2({
+  name,
+  project,
+  audioData,
+}: {
+  name: string;
+  project: SavedProject;
+  audioData: Record<string, Uint8Array<ArrayBuffer>>;
+}): Promise<void> {
+  const audioTracks: SavedProject["audioTracks"] = [];
+  for (const track of project.audioTracks) {
+    const data = audioData[track.id];
+    if (!data) {
+      throw new Error(`Missing seed audio for track "${track.id}"`);
+    }
+    const assetKey = await projectStorage.saveAsset(
+      new File([data], track.fileName, { type: "audio/wav" }),
+    );
+    audioTracks.push({ ...track, assetKey });
+  }
+  const projectId = projectStorage.create(name, { ...project, audioTracks });
   projectStorage.setLastProjectId(projectId);
 }
 

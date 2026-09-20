@@ -2,8 +2,8 @@ import {
   AudioLinesIcon,
   GitForkIcon,
   Music2Icon,
-  PianoIcon,
-  Mic2Icon,
+  ArchiveIcon,
+  FolderOpenIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { projectStorage } from "../lib/project-storage";
@@ -27,7 +27,7 @@ export function Home() {
   return (
     <div
       data-testid="startup-screen"
-      className="fixed inset-0 z-50 overflow-hidden bg-neutral-900"
+      className="fixed inset-0 z-50 overflow-y-auto scrollbar-thin bg-neutral-900"
     >
       {/* Gradient glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
@@ -77,24 +77,24 @@ export function Home() {
             onValueChange={selectProjectType}
             options={[
               {
-                value: "midi",
-                label: (
-                  <>
-                    <PianoIcon aria-hidden="true" className="size-4" />
-                    MIDI
-                  </>
-                ),
-                content: <MidiProjectList />,
-              },
-              {
                 value: "recorder",
                 label: (
                   <>
-                    <Mic2Icon aria-hidden="true" className="size-4" />
-                    Recorder
+                    <FolderOpenIcon aria-hidden="true" className="size-4" />
+                    Projects
                   </>
                 ),
                 content: <RecorderProjectList />,
+              },
+              {
+                value: "midi",
+                label: (
+                  <>
+                    <ArchiveIcon aria-hidden="true" className="size-4" />
+                    Legacy
+                  </>
+                ),
+                content: <MidiProjectList />,
               },
             ]}
           />

@@ -14,9 +14,12 @@ test("uploads and plays a backing track", async ({ page }) => {
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   // The imported clip retains its source filename.
-  const clip = page.getByTestId("recorder-clip-audio");
-  await expect(clip).toContainText("test-audio.wav");
+  const clip = page.getByTestId("recorder-clip-audio-source");
+  await expect(page.getByTestId("recorder-clip-audio")).toContainText(
+    "test-audio.wav",
+  );
 
+  // TODO: Consider consolidating edit assertions with recorder-clip-move.spec.ts and recorder-clip-trim.spec.ts.
   // Move and trim backing audio without changing its source.
   const beforeEdit = await clip.boundingBox();
   expect(beforeEdit).not.toBeNull();

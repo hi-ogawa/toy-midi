@@ -64,20 +64,12 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       }
       return listenPointerDrag({
         element: handle,
-        onStart: (event) => ({
-          x: event.clientX,
-          y: event.clientY,
-          panelRect: panel.getBoundingClientRect(),
-        }),
-        onMove: (event, dragData) => {
+        onStart: () => panel.getBoundingClientRect(),
+        onMove: (_event, { data: panelRect, deltaX, deltaY }) => {
           setScorePreviewSize({
-            width: clamp(
-              dragData.panelRect.width + dragData.x - event.clientX,
-              576,
-              window.innerWidth - 32,
-            ),
+            width: clamp(panelRect.width - deltaX, 576, window.innerWidth - 32),
             height: clamp(
-              dragData.panelRect.height + dragData.y - event.clientY,
+              panelRect.height - deltaY,
               288,
               window.innerHeight - 32,
             ),

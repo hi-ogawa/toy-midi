@@ -3,7 +3,7 @@ import { recorderStorage } from "../../lib/recorder/storage";
 import {
   DEFAULT_GRID_DIVISION,
   getBeatsPerBar,
-  getSubdivisionsPerBeat,
+  GRID_DIVISIONS,
   type GridDivision,
   MAX_PIXELS_PER_BEAT,
   MIN_PIXELS_PER_BEAT,
@@ -25,14 +25,16 @@ export function useRecorderTimeline({
   const [gridDivision, setGridDivision] = useState<GridDivision>(
     DEFAULT_GRID_DIVISION,
   );
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+  const [autoScrollEnabled, setAutoScrollEnabledState] = useState(
+    () => recorderStorage.readPreferences().autoScrollEnabled,
+  );
   const [pixelsPerBeat, setPixelsPerBeat] = useState(
     () => recorderStorage.readPreferences().timelinePixelsPerBeat,
   );
   const [viewportStartBeat, setViewportStartBeat] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
   const beatsPerBar = getBeatsPerBar(timeSignature);
-  const subdivisionsPerBeat = getSubdivisionsPerBeat(gridDivision);
+  const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];
   const playheadX =
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
@@ -58,6 +60,11 @@ export function useRecorderTimeline({
     viewportStartBeat,
     viewportWidth,
   ]);
+
+  function setAutoScrollEnabled(enabled: boolean) {
+    setAutoScrollEnabledState(enabled);
+    recorderStorage.updatePreferences({ autoScrollEnabled: enabled });
+  }
 
   function zoom(nextPixelsPerBeat: number, anchorX: number) {
     const beatAtAnchor = anchorX / pixelsPerBeat + viewportStartBeat;
