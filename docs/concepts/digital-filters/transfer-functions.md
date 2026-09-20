@@ -2,7 +2,7 @@
 
 A filter changes the strength and phase of different frequencies. To understand how, start with one wave and ask what delays and feedback do to it. The same calculation will connect sample recurrences, continuous differential equations, and the geometry of their natural motion.
 
-This is background for [designing a peaking EQ](transfer-function-and-peaking-eq.md). We assume fixed linear, time-invariant filters. For stable filters, startup motion fades and a sustained sinusoidal input leaves a sinusoidal output at the same frequency.
+This is background for [designing a peaking EQ](peaking-eq.md). We assume fixed linear, time-invariant filters. For stable filters, startup motion fades and a sustained sinusoidal input leaves a sinusoidal output at the same frequency.
 
 ## Describe a Wave's Gain and Phase Together
 
@@ -136,6 +136,6 @@ Moving left in the $s$-plane makes decay faster. Its discrete counterpart moves 
 
 The imaginary axis wraps around the circle repeatedly. Frequencies separated by $2\pi/T$ have the same sampled multiplier, which is the mode-level picture of aliasing. The strip $-\pi/T\lt \Omega\lt \pi/T$ supplies one turn of distinct angles.
 
-This exponential relationship describes exact samples of an individual mode. It does not by itself specify a complete digital filter for arbitrary sampled inputs. That requires a choice of how to convert the system. The [bilinear-transform companion](bilinear-transform-and-eq-coefficients.md) makes a different, rational mapping that preserves the decay regions but changes the frequency correspondence.
+This exponential relationship describes exact samples of an individual mode. It does not by itself specify a complete digital filter for arbitrary sampled inputs. That requires a choice of how to convert the system. The [bilinear-transform companion](bilinear-transform.md) makes a different, rational mapping that preserves the decay regions but changes the frequency correspondence.
 
-With these interpretations in place, [the peaking-EQ design](transfer-function-and-peaking-eq.md) can use a continuous quadratic response to arrange the shape before converting it to a sample recurrence.
+With these interpretations in place, [the peaking-EQ design](peaking-eq.md) can use a continuous quadratic response to arrange the shape before converting it to a sample recurrence.

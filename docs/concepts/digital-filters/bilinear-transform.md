@@ -1,8 +1,8 @@
 # From an Analog Response to Digital Coefficients
 
-The [peaking-EQ design](transfer-function-and-peaking-eq.md) gives us an analog response with the desired gain and width. We now need a recurrence that computes output samples. The challenge is to preserve the useful response shape and decaying dynamics while replacing continuous-time operations with sample delays.
+The [peaking-EQ design](peaking-eq.md) gives us an analog response with the desired gain and width. We now need a recurrence that computes output samples. The challenge is to preserve the useful response shape and decaying dynamics while replacing continuous-time operations with sample delays.
 
-The [transfer-function companion](filter-transfer-functions.md) connects continuous modes $e^{st}$ to sampled modes $z^n$. Here we use that geometry to explain the bilinear transform, then apply it to the peaking EQ.
+The [transfer-function companion](transfer-functions.md) connects continuous modes $e^{st}$ to sampled modes $z^n$. Here we use that geometry to explain the bilinear transform, then apply it to the peaking EQ.
 
 ## Choose a System Mapping
 
@@ -155,6 +155,6 @@ $$
 (\gamma_1,\gamma_2)=(-1.895321,0.911675).
 $$
 
-These are the five values computed by [`calculateBiquadEqCoefficients`](../../src/lib/dsp/biquad-eq.ts). The implementation stores the normalized values under the names `b0`, `b1`, `b2`, `a1`, and `a2`. The formula convention follows the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).
+These are the five values computed by [`calculateBiquadEqCoefficients`](../../../src/lib/dsp/biquad-eq.ts). The implementation stores the normalized values under the names `b0`, `b1`, `b2`, `a1`, and `a2`. The formula convention follows the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).
 
 The [interactive derivation](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html) offers additional explorations. These documents cover fixed-filter behavior. Coefficient smoothing, bypass, and state management remain implementation concerns.

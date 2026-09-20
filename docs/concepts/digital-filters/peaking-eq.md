@@ -4,9 +4,9 @@ A peaking EQ raises or lowers a band of frequencies while leaving low and high f
 
 We will construct the response first, then hand it to a separate digital-conversion step. This keeps the design choices visible instead of starting with a coefficient table.
 
-- [Waves, feedback, and transfer functions](filter-transfer-functions.md) explains why filters have polynomial responses and how the continuous $s$-plane relates to the sampled $z$-plane.
+- [Waves, feedback, and transfer functions](transfer-functions.md) explains why filters have polynomial responses and how the continuous $s$-plane relates to the sampled $z$-plane.
 - This document builds the peaking response from its desired shape.
-- [From an analog response to digital coefficients](bilinear-transform-and-eq-coefficients.md) explains the bilinear mapping and derives the five weights used by the sample loop.
+- [From an analog response to digital coefficients](bilinear-transform.md) explains the bilinear mapping and derives the five weights used by the sample loop.
 
 ## Choose the Response We Want
 
@@ -26,7 +26,7 @@ $$
 H_a(s)=\frac{c_2s^2+c_1s+c_0}{s^2+d_1s+d_0}.
 $$
 
-Here $s$ is a complex rate. To measure the response to a sustained tone at angular frequency $\Omega$, evaluate it at $s=j\Omega$. The [transfer-function companion](filter-transfer-functions.md) develops that interpretation from wave motion and feedback.
+Here $s$ is a complex rate. To measure the response to a sustained tone at angular frequency $\Omega$, evaluate it at $s=j\Omega$. The [transfer-function companion](transfer-functions.md) develops that interpretation from wave motion and feedback.
 
 We have chosen second order as a compact family with enough freedom for this shape. The requirements below determine which members are useful for a peaking EQ.
 
@@ -134,6 +134,6 @@ $$
 
 Replacing $M$ with $1/M$ swaps numerator and denominator. A matching boost and cut are therefore exact inverses for fixed parameters, while keeping the same analog halfway bandwidth. This is the peaking-EQ $Q$ convention used by the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).
 
-We now have a response whose parameters have specific meanings. The next step is to [convert it to a digital filter](bilinear-transform-and-eq-coefficients.md). That mapping preserves the center gain and reciprocal relationship, but warps the frequency axis, so the analog bandwidth interpretation needs care at high digital frequencies.
+We now have a response whose parameters have specific meanings. The next step is to [convert it to a digital filter](bilinear-transform.md). That mapping preserves the center gain and reciprocal relationship, but warps the frequency axis, so the analog bandwidth interpretation needs care at high digital frequencies.
 
-The [interactive peaking-EQ explorer](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#peak-goal) provides another way to inspect the controls. The [implementation](../../src/lib/dsp/biquad-eq.ts) also handles parameter changes and bypass, which are separate from this fixed-filter construction.
+The [interactive peaking-EQ explorer](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#peak-goal) provides another way to inspect the controls. The [implementation](../../../src/lib/dsp/biquad-eq.ts) also handles parameter changes and bypass, which are separate from this fixed-filter construction.
