@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@hiogawa/bass-pitch-wasm':
-        specifier: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732
-        version: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732
+        specifier: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@def3d06
+        version: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@def3d06
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.16
         version: 2.1.24(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -335,8 +335,8 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732':
-    resolution: {integrity: sha512-of+7YyBs8soni4hgHLoi0SOpjRmkZCQWhUFhNfqYBBccQol6pcn1UIOf33d4a/WuTWdW/RlhaRQh/BV0iMVgag==, tarball: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732}
+  '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@def3d06':
+    resolution: {integrity: sha512-IdWBIPtaqAigYQJIJMzI4HKuUhGJqucFOh8DP9JIHksMiXyJ2zz+nTsPmoyIRzJyBLQ3WwSU2hFKeAEhzT6hIg==, tarball: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@def3d06}
     version: 0.0.0
 
   '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@7509e21':
@@ -2428,7 +2428,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732': {}
+  '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@def3d06': {}
 
   '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@7509e21(@playwright/test@1.62.1)':
     dependencies:
