@@ -11,9 +11,8 @@ export function insertAtIndices<T>({
   insertions: readonly { item: T; index: number }[];
 }): T[] {
   const result = [...items];
-  for (const { item, index } of insertions.toSorted(
-    (a, b) => a.index - b.index,
-  )) {
+  const sortedInsertions = insertions.toSorted((a, b) => a.index - b.index);
+  for (const { item, index } of sortedInsertions) {
     result.splice(index, 0, item);
   }
   return result;
