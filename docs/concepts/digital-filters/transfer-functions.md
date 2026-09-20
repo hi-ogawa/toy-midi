@@ -39,7 +39,7 @@ The physical wave is the same, but $\omega$ measures its phase advance in radian
 
 What simple computation on these samples could change the balance of frequencies?
 
-## From Averaging Samples to a Transfer Function
+## A Computation That Distinguishes Frequencies
 
 We want a computation that treats frequencies differently. Multiplying each sample by a constant cannot do that, but neighboring samples give us a clue. They are nearly equal in a slowly varying wave and can have opposite signs in a rapidly varying one. Averaging them should therefore preserve slow variation while suppressing some faster variation. Let us test that idea:
 
