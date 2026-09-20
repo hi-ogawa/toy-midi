@@ -749,8 +749,7 @@ function TimelineClip({
       });
     },
     onMove: (_event, { deltaX }) => {
-      const delta = beatsToSeconds(deltaX / pixelsPerBeat, tempo);
-      onEditUpdate!(delta);
+      onEditUpdate!(beatsToSeconds(deltaX / pixelsPerBeat, tempo));
     },
     onEnd: (_event, { deltaX }) => {
       onEditFinish?.(beatsToSeconds(deltaX / pixelsPerBeat, tempo));
@@ -767,8 +766,7 @@ function TimelineClip({
       });
     },
     onMove: (_event, { deltaX }) => {
-      const delta = beatsToSeconds(deltaX / pixelsPerBeat, tempo);
-      onEditUpdate!(delta);
+      onEditUpdate!(beatsToSeconds(deltaX / pixelsPerBeat, tempo));
     },
     onEnd: (_event, { deltaX }) => {
       onEditFinish?.(beatsToSeconds(deltaX / pixelsPerBeat, tempo));
