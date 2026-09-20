@@ -91,55 +91,19 @@ The two positions now have distinct roles. The natural continuation follows the 
 
 During slower playback, natural continuation advances faster than the nominal timeline. Eventually, it leaves the search region, so we select a matching patch earlier in the source. This reuses audio and extends the recording. During faster playback, the nominal timeline advances faster, so matching patches generally jump forward through the source.
 
-## Blend the Windows Without Changing Their Shared Level
+## Blend the Aligned Patches
 
-Waveform search improves alignment, but two selected windows will rarely match exactly. Switching abruptly between them would still expose any mismatch. We therefore fade out the previous window while fading in the new one over their overlap.
+Waveform search improves alignment, but two selected patches will rarely match exactly. We fade out the previous patch while fading in the new one over their overlap.
 
-Let $x[i]$ denote an individual source sample. At position $j$ in the overlap, the previous window contributes $x[n_k+j]$ and the new one contributes $x[s_k+j]$. If they agree, we want the blend to reproduce that common sample. Their weights must therefore sum to one.
-
-Let $a[j]$ be the incoming weight. A complementary blend is
+Let $u[j]$ and $v[j]$ be the outgoing and incoming samples at position $j$ in the overlap. Crossfading interpolates between them:
 
 $$
-y[kH+j]=(1-a[j])x[n_k+j]+a[j]x[s_k+j],
-\qquad 0\le j<H.
+y[j]=(1-a[j])u[j]+a[j]v[j].
 $$
 
-We still have a choice of fade shape. A raised cosine moves smoothly from zero toward one, with zero slope at the ends of the continuous fade:
+As the incoming weight $a$ moves from zero to one, the output moves from the previous patch to the new one. Matching samples pass through unchanged because their weights sum to one. Opposite phases can still cancel, so blending complements the alignment search rather than replacing it.
 
-$$
-a[j]=\frac12\left(1-\cos\frac{\pi j}{H}\right).
-$$
-
-For $W=2H$, this is the first half of a periodic Hann window,
-
-$$
-w[j]=\frac12\left(1-\cos\frac{2\pi j}{W}\right).
-$$
-
-Its second half supplies exactly the complementary outgoing weight because shifting the cosine by half a window adds $\pi$ to its phase:
-
-$$
-\begin{aligned}
-w[j+H]
-&=\frac12\left(1-\cos\left(\frac{2\pi j}{W}+\pi\right)\right)\\
-&=\frac12\left(1+\cos\frac{2\pi j}{W}\right)\\
-&=1-w[j].
-\end{aligned}
-$$
-
-Thus placing Hann-weighted windows one half-window apart produces the blend we wanted:
-
-$$
-y[kH+j]=x[n_k+j]w[j+H]+x[s_k+j]w[j].
-$$
-
-When $s_k=n_k$, both source samples are identical and the weights sum to one, so we reproduce the source exactly through that overlap. When the match is imperfect, we can expose its effect by rearranging the blend:
-
-$$
-y[kH+j]=x[n_k+j]+w[j]\bigl(x[s_k+j]-x[n_k+j]\bigr).
-$$
-
-The second term is the weighted mismatch. This explains why alignment and blending work together. The search seeks a similar waveform, while the fade introduces its difference gradually. Complementary weights alone cannot prevent cancellation between opposite phases or hide a badly matched transient.
+Our implementation uses a Hann-shaped fade. The [Why Hann? appendix](#appendix-why-hann) explains its complementary weights and the signal-processing benefit of its smooth endpoints.
 
 Sustained periodic sounds often provide good matches because similar waveforms recur. Attacks and mixtures of unrelated periods may not, so even the best available alignment can alter the sound.
 
@@ -184,3 +148,65 @@ The overlap equations describe joins between successive windows. At startup, the
 | Complementary Hann blend                  | `createPeriodicHannWindow`, `overlapAddPlanar`             |
 
 The [command-line renderer](../../tools/wsola.ts) supports listening experiments with playback rate, window length, and search width. The [visual companion](https://gisthost.github.io/?109135460ad3d821bc7f7ce66278e0bb/wsola-explainer.html) illustrates how source-window selection and overlap change the output.
+
+## Appendix: Why Hann?
+
+Complementary weights preserve matching samples with many possible fade shapes. Hann is useful because it combines that property with a smooth taper at patch boundaries.
+
+### Complementary Weights at Half-Window Spacing
+
+For an even window length $W$ and hop $H=W/2$, the periodic Hann window is
+
+$$
+w[j]=\frac12\left(1-\cos\frac{2\pi j}{W}\right),
+\qquad 0\le j<W.
+$$
+
+Shifting by half a window adds $\pi$ to the cosine's phase, so
+
+$$
+\begin{aligned}
+w[j+H]
+&=\frac12\left(1-\cos\left(\frac{2\pi j}{W}+\pi\right)\right)\\
+&=\frac12\left(1+\cos\frac{2\pi j}{W}\right)\\
+&=1-w[j],
+\qquad 0\le j<H.
+\end{aligned}
+$$
+
+The incoming half-window supplies $a[j]=w[j]$, while the outgoing half supplies $1-a[j]=w[j+H]$. This is the **constant overlap-add (COLA)** property with sum one. If patches of the same signal are added back at their original positions, these weights reconstruct the original samples wherever the full overlap is present. This exact identity uses the periodic Hann convention. [SciPy's COLA documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.check_COLA.html) distinguishes it from the symmetric Hann window.
+
+WSOLA shifts source patches, so their overlapping samples may differ. COLA still gives complementary weights, but it does not guarantee unchanged amplitude or power for those mismatched waveforms.
+
+### Why Smooth Endpoints Matter
+
+To examine the fade shape, temporarily treat the two patches as differentiable waveforms $u(t)$ and $v(t)$ over an overlap of duration $D$. Rewrite the blend as
+
+$$
+y(t)=u(t)+a(t)\bigl(v(t)-u(t)\bigr).
+$$
+
+Differentiating separates the slopes of the waveforms from the effect of changing their weights:
+
+$$
+y'(t)=(1-a(t))u'(t)+a(t)v'(t)
++a'(t)\bigl(v(t)-u(t)\bigr).
+$$
+
+The last term is a slope contribution caused by changing the blend while the patches differ. Before the overlap, the output follows $u$ alone; afterward, it follows $v$. To meet those outer pieces without an added slope jump for arbitrary patch values, we want $a'(0)=a'(D)=0$ as well as $a(0)=0$ and $a(D)=1$.
+
+A linear fade has nonzero slope throughout the overlap. Its slope switches on and off at the boundaries, so the extra term can introduce a slope discontinuity there. The Hann-shaped fade instead uses
+
+$$
+a(t)=\frac12\left(1-\cos\frac{\pi t}{D}\right),
+\qquad
+a'(t)=\frac{\pi}{2D}\sin\frac{\pi t}{D}.
+$$
+
+The derivative vanishes at both ends. Consequently, the blend meets $u$ with its original slope at the start and meets $v$ with its original slope at the end, even when the two waveforms differ. This continuous-time calculation explains the shape we sample for the discrete fade.
+
+### The Frequency-Domain Connection
+
+Abrupt boundaries introduce broad high-frequency content. Multiplying a signal by a finite window convolves its spectrum with the window's spectrum, so the window's spectral sidelobes determine how much energy spreads away from the original frequencies. Hann's taper reaches zero with zero slope at its outer boundaries, giving much weaker distant sidelobes than an abrupt rectangular cut. The time-domain smoothness and the reduced spectral leakage describe related benefits of the same taper. [Smith's discussion of spectrum-analysis windows](https://www.dsprelated.com/freebooks/SASP/Spectrum_Analysis_Windows.html) develops this frequency-domain view.
+
+Hann is not the only fade with complementary weights and smooth endpoints, and these properties do not make a poor waveform match harmless. They explain why it is a useful choice for introducing the remaining mismatch gradually without adding sharp transition boundaries.
