@@ -199,6 +199,19 @@ export type RecorderClipEdit =
   | { type: "move"; changes: readonly RecorderClipMove[] }
   | { type: "trim-start" | "trim-end"; changes: readonly RecorderClipTrim[] };
 
+export type RecorderClipInsertRemoveSnapshot = {
+  tracks: {
+    trackId: string;
+    clips: { clip: AudioClip; index: number }[];
+  }[];
+  referenceVideo?: ReferenceVideoState;
+};
+
+export type RecorderClipInsertRemove = {
+  operation: "insert" | "remove";
+  snapshot: RecorderClipInsertRemoveSnapshot;
+};
+
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
     title: "Untitled project",
@@ -1186,19 +1199,6 @@ type RecorderRuntimeClipsState = Pick<
   RecorderRuntimeState,
   "audioTracks" | "recordingTrack" | "referenceVideo"
 >;
-
-export type RecorderClipInsertRemoveSnapshot = {
-  tracks: {
-    trackId: string;
-    clips: { clip: AudioClip; index: number }[];
-  }[];
-  referenceVideo?: ReferenceVideoState;
-};
-
-export type RecorderClipInsertRemove = {
-  operation: "insert" | "remove";
-  snapshot: RecorderClipInsertRemoveSnapshot;
-};
 
 /** Derive clip insertion or removal without mutating the supplied state. */
 function deriveClipInsertRemoveState(
