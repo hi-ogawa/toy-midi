@@ -80,7 +80,7 @@ export function RecorderProjectList() {
             : "No matching projects"}
         </p>
       ) : (
-        <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+        <div className="max-h-[22rem] space-y-2 overflow-y-auto scrollbar-thin pr-1">
           {filteredProjects.map((project) => (
             <RecorderProjectListItem
               key={project.id}

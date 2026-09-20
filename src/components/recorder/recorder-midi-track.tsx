@@ -130,6 +130,13 @@ export function MidiTrackRow({
             pitchScroll={pitchScroll}
           />
         )}
+        {track.notes.length === 0 && (
+          <div className="pointer-events-none z-10 col-start-2 row-start-1 grid place-items-center text-xs text-neutral-600">
+            {track.viewMode === "overview"
+              ? "No notes"
+              : "Click the grid to add notes"}
+          </div>
+        )}
       </TrackRow>
       <PortalDialog
         isOpen={isInstrumentOpen}
@@ -456,7 +463,7 @@ function MidiTrackEditor({
   return (
     <div
       data-testid="recorder-midi-pitch-scroll"
-      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain [scrollbar-width:thin] [scrollbar-color:#525252_transparent]"
+      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scrollbar-thin"
       ref={scrollRef}
       onBlur={handleBlur}
     >

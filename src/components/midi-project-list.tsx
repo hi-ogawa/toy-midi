@@ -65,7 +65,7 @@ export function MidiProjectList() {
   return (
     <section className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
       {hasProjects && (
-        <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+        <div className="max-h-[22rem] space-y-2 overflow-y-auto scrollbar-thin pr-1">
           {projects.map((project) => (
             <ProjectListItem
               key={project.id}
