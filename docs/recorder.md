@@ -6,6 +6,7 @@ The recorder is a focused tool for practicing and recording one live instrument 
 
 ## Features
 
+- MIDI tracks with note editing, transcription, TAB annotations, and score previews
 - Multiple backing tracks with waveform display, placement, trimming, sizing, gain, mute, and solo
 - Input selection, level metering, and recording latency compensation
 - Multiple retained takes and non-destructive comping
@@ -22,8 +23,6 @@ Web Audio can route the live input to the output, but it cannot guarantee the lo
 
 Recording latency is handled separately. The recorder stores a compensation value with each project and advances recorded audio by that amount when placing a take. The latency checker measures a looped-back recording setup and helps determine the value.
 
-## Separation From The MIDI Editor
+## Legacy Projects
 
-The recorder is purposefully separate from the MIDI editor, including its projects and editing architecture. The two tools currently serve different workflows: the MIDI editor supports transcription and note editing, while the recorder supports performing against prepared audio.
-
-This separation is also historical and architectural. The recorder was built from scratch around its recording workflow rather than extending the older editor architecture and inheriting its accumulated constraints. Suitable utilities can be shared, but consolidating both tools into one DAW would broaden the product beyond the use case defined here and is not a goal.
+The recorder is now the single project editor. Home exposes manual migration for projects saved by the retired MIDI editor, and archive import accepts legacy projects. Migration creates a new project while retaining the original browser data. Existing recorder and score-viewer URLs remain available, and projects continue to use explicit Save.

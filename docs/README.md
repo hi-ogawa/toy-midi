@@ -6,7 +6,7 @@
 
 ## Product
 
-- [Recorder](recorder.md): use case, features, monitoring assumptions, and separation from the MIDI editor.
+- [Recorder](recorder.md): use case, features, monitoring assumptions, and legacy project migration.
 
 ## Concepts
 

@@ -48,8 +48,7 @@ test("Projects search filters current and legacy projects together", async ({
   await page.goto("/__e2e__/");
   await page.evaluate(() => {
     for (const name of ["Blue archive", "Old song"]) {
-      const id = window.__e2e.projectStorage.createNew();
-      window.__e2e.projectStorage.updateMetadata(id, { name });
+      window.__e2e.seedLegacyProject({ name });
     }
   });
   await page.goto("/");

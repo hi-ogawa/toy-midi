@@ -4,49 +4,33 @@ This document records durable system boundaries and design decisions. Keep imple
 
 ## System Shape
 
-Toy MIDI is a browser-only editor built with React and TypeScript. Zustand owns project and editor state, Tone.js and OxiSynth provide audio playback, and browser storage provides persistence. The application has no server component.
+Toy MIDI is a browser-only editor built with React and TypeScript. The recorder runtime owns project content, Web Audio and OxiSynth provide playback, and IndexedDB stores explicitly saved projects. The application has no server component.
 
-The editor supports one MIDI track and multiple audio tracks on a shared beat-based timeline. Components render and edit state, while library modules own audio, persistence, import, and export behavior.
+Audio tracks, MIDI tracks, and captured takes share one timeline and transport. MIDI notes and locators use beats, while audio clips use seconds.
 
 ## Stable Boundaries
 
-- `src/app.tsx` owns the application shell and routing.
-- `src/components/piano-roll.tsx` owns editor interaction and rendering.
-- `src/lib/project-store.ts` owns project and editor state.
-- `src/lib/audio.ts` owns Tone.js integration and the runtime audio graph.
-- `src/hooks/use-audio.ts` exposes reactive audio state to the UI.
-- `src/lib/project-session.ts` owns the active-project lifecycle.
-- `src/lib/project-storage.ts` owns browser persistence access.
-- `src/components/score-viewer.tsx` owns standalone and project-backed score playback.
+- `src/app.tsx` owns routing, including retirement notices for legacy project URLs.
+- `src/components/recorder/index.tsx` composes the editor and its interactions.
+- `src/lib/recorder/runtime.ts` owns project edits and the audio graph.
+- `src/lib/recorder/transport.ts` owns the playback clock.
+- `src/lib/recorder/history.ts` owns edit history.
+- `src/components/recorder/use-recorder-project.ts` coordinates loading, explicit Save, and unsaved-navigation warnings.
+- `src/lib/recorder/project-storage.ts` owns current project persistence.
+- `src/components/score-viewer.tsx` owns standalone MusicXML viewing, while `src/components/recorder/recorder-score-page.tsx` opens saved project scores.
 
 ## State And Audio Flow
 
-The project store is the source of truth for musical content, mixer settings, selections, and viewport state. Components mutate the store rather than synchronizing directly with audio or persistence.
+The runtime owns musical content and mixer settings. Components keep selection, viewport state, and gesture previews locally, then commit edits through runtime operations. Undo and redo restore recorded project edits, including MIDI edits, track creation and deletion, and captured takes.
 
-MIDI pitch remains canonical for tab annotations. Projects persist open-string pitches and optional intentional per-note string choices, while fret numbers and automatic lowest-fret assignments are derived. The settings UI currently exposes fixed G-D-A-E and G-D-A-E-B presets.
+Audio playback, MIDI synthesis, metronome, capture, and monitoring share the runtime's AudioContext and transport. Per-track playback objects own scheduling and processing. OxiSynth's WASM, worklet, and soundfont assets remain part of MIDI playback.
 
-Projects persist one key signature for notation export. MIDI pitch remains canonical, while MusicXML derives key-aware enharmonic spelling from that signature.
+MIDI pitch remains canonical for tab annotations. Each MIDI track stores open-string pitches, a notation key signature, and optional intentional per-note string choices. Fret numbers, automatic string assignments, and key-aware MusicXML spelling are derived.
 
-Playback state is not project state. The audio manager owns a cached external-store snapshot and transport updates, while UI reads selected values through the audio hook. This keeps high-frequency playback updates out of the editor store.
+## Persistence And Legacy Migration
 
-One audio manager owns the runtime graph for MIDI synthesis, audio-track playback, and the metronome. Project state reaches the audio graph through one synchronization boundary, which applies cheap settings directly and guards expensive rebuilds with state comparisons.
+Projects save explicitly to IndexedDB, including audio PCM. Leaving an editor with unsaved changes prompts the user. Portable archives contain a manifest, project data, and audio assets. Project-backed score pages read saved content without carrying over the retired editor's autosave lifecycle.
 
-Audio readiness is explicit because the editor can mount before audio initialization finishes. Playback operations are safe no-ops until the graph is ready, and initialization failure does not prevent editing.
+The home page also lists retained legacy projects. Their documents and metadata remain in localStorage, with encoded audio assets in the old IndexedDB store. Manual migration normalizes the saved format, converts audio to PCM, and creates a separate current project. It keeps the original project and assets. Legacy archives use the same converter without writing imported assets into legacy storage.
 
-Audio file and ZIP resolution are independent of Tone.js, while decoding stays behind the audio integration boundary. Waveform extraction is skipped for long files so they remain playable without blocking the main thread.
-
-Undo and redo cover note edits only. Other project changes are not currently included in history.
-
-## Persistence And Sessions
-
-Project documents and their metadata index live in localStorage. Binary audio assets live in IndexedDB and may be shared by multiple projects. Deleting a project does not currently garbage-collect assets.
-
-Compatible document changes migrate when a project is loaded. Breaking or lossy storage changes require a new storage layout and a copy-before-delete migration so the previous data remains recoverable until commit.
-
-An active project session coordinates hydration, audio synchronization, autosave, asset restoration, shortcuts, and cleanup. The editor renders from hydrated project data immediately, while audio initialization and restoration continue in the background.
-
-Project score routes read persisted documents directly and generate MusicXML in memory. They do not establish an active project session or mutate editor state; the editor flushes pending autosave before opening a score snapshot.
-
-Portable project files are zip archives containing project data, a manifest, and audio assets. MIDI import and export remain separate from the project-file format.
-
-The standalone recorder keeps project content in `RecorderRuntime` and saves explicitly to IndexedDB or portable project archives. Locators persist stable IDs, labels, and beat positions so tempo changes preserve their musical position. Locator selection remains transient UI state, and projects saved before locator support load with no locators.
+Legacy editor and score URLs show a retirement notice linking home. The legacy editing store, playback engine, session wiring, and archive writer are removed. Saved-format readers, layout migration, conversion, and archive import remain independent of that runtime.

@@ -2,6 +2,7 @@ import { Midi } from "@tonejs/midi";
 import { describe, expect, it } from "vitest";
 import { Note, TimeSignature } from "../types";
 import { exportMidi } from "./midi-export";
+import { importMidiNotes, parseMidiFile } from "./midi-import";
 
 describe("MIDI Export", () => {
   it("should create a valid MIDI file with correct tempo", () => {
@@ -195,4 +196,35 @@ describe("MIDI Export", () => {
     expect(midiData68).toBeInstanceOf(Uint8Array);
     expect(midiData68.byteLength).toBeGreaterThan(0);
   });
+});
+
+it("imports exported MIDI without the legacy editing store", async () => {
+  const notes: Note[] = [
+    { id: "original", pitch: 60, start: 2, duration: 0.5, velocity: 100 },
+  ];
+  const data = exportMidi({
+    notes,
+    tempo: 98,
+    timeSignature: { numerator: 3, denominator: 4 },
+    name: "Round trip",
+    trackName: "Bass",
+  });
+  const file = new File([new Uint8Array(data)], "round-trip.mid");
+  const parsed = await parseMidiFile(file);
+  expect(parsed.tempo).toBe(98);
+  expect(parsed.tracks).toEqual([
+    expect.objectContaining({ name: "Bass", noteCount: 1 }),
+  ]);
+  const imported = await importMidiNotes(file, {
+    trackIndices: [parsed.tracks[0].index],
+    replaceExisting: true,
+    importTempo: true,
+    importTimeSignature: true,
+  });
+  expect(imported.notes).toEqual([
+    { ...notes[0], id: expect.stringMatching(/^note-/) },
+  ]);
+  expect(imported.notes[0].id).not.toBe(notes[0].id);
+  expect(imported.tempo).toBe(98);
+  expect(imported.timeSignature).toEqual({ numerator: 3, denominator: 4 });
 });

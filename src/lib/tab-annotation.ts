@@ -88,11 +88,11 @@ export function getTabAnnotationDisplay({
   }
 }
 
-export function getTabStringColor(tabString: TabString) {
+function getTabStringColor(tabString: TabString) {
   return TAB_STRING_COLORS[tabString - 1];
 }
 
-export function formatTabPosition({
+function formatTabPosition({
   position,
   openStringPitches,
 }: {

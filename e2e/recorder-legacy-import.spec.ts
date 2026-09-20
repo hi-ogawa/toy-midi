@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import type { SavedProject } from "../src/lib/project-store";
 import {
   exportProjectFile,
   exportProjectFileV1,
-} from "../src/lib/project-file";
-import type { SavedProject } from "../src/lib/project-store";
+} from "./legacy-project-archive";
 import { getRecorderMidiNote, getRecorderPosition } from "./recorder-helpers";
 
 for (const version of [1, 2] as const) {
