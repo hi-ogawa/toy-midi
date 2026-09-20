@@ -37,7 +37,17 @@ const DEFAULT_PREFERENCES: RecorderPreferences = {
 
 class RecorderPreferenceStore {
   // All consumers share one snapshot, including when browser storage is unavailable.
-  readonly store = createStore(readPreferences);
+  readonly store = createStore<RecorderPreferences>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
+      return recorderPreferencesSchema.parse({
+        ...DEFAULT_PREFERENCES,
+        ...stored,
+      });
+    } catch {
+      return DEFAULT_PREFERENCES;
+    }
+  });
 
   update(updates: Partial<RecorderPreferences>): void {
     this.store.update(updates);
@@ -50,15 +60,3 @@ class RecorderPreferenceStore {
 }
 
 export const recorderPreferences = new RecorderPreferenceStore();
-
-function readPreferences(): RecorderPreferences {
-  try {
-    const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
-    return recorderPreferencesSchema.parse({
-      ...DEFAULT_PREFERENCES,
-      ...stored,
-    });
-  } catch {
-    return DEFAULT_PREFERENCES;
-  }
-}
