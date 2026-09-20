@@ -119,7 +119,7 @@ turn the result into
 $$
 \frac{P_c(d)}{K^2+1}
 =\left(1+\frac{c\sin\omega_0}{2}\right)
--2\cos\omega_0\,d
+-2\cos\omega_0\cdot d
 +\left(1-\frac{c\sin\omega_0}{2}\right)d^2.
 $$
 

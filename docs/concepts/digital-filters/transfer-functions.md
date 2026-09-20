@@ -88,7 +88,7 @@ One real feedback coefficient gives geometric decay, possibly with alternating s
 
 $$
 y[n]=-a_1y[n-1]-a_2y[n-2]
-\quad\xrightarrow{\ y[n]=z^n\ }\quad
+\quad\xrightarrow{y[n]=z^n}\quad
 z^2+a_1z+a_2=0.
 $$
 
