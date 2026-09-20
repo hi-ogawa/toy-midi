@@ -1,12 +1,12 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
-import { projectStorage } from "../lib/legacy-project-storage";
-import { importRecorderProject } from "../lib/project-import";
 import {
   type RecorderProjectMetadata,
   recorderProjectStorage,
-} from "../lib/project-storage";
+} from "../lib/editor-project-storage";
+import { importRecorderProject } from "../lib/project-import";
+import { projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { toResult } from "../utils/result";
 import { FileDropInput } from "./file-drop-input";

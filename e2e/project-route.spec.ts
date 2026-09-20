@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createDefaultSavedProject } from "../src/lib/legacy-project-format";
+import { createDefaultSavedProject } from "../src/lib/project-store";
 
 for (const suffix of ["", "/score"]) {
   test(`legacy ${suffix || "editor"} link directs users home for migration`, async ({

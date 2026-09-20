@@ -1,11 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
+import { recorderProjectStorage } from "../lib/editor-project-storage";
 import { convertLegacyProject } from "../lib/legacy-project";
-import {
-  type ProjectMetadata,
-  projectStorage,
-} from "../lib/legacy-project-storage";
-import { recorderProjectStorage } from "../lib/project-storage";
+import { type ProjectMetadata, projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
 

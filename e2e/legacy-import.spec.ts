@@ -4,7 +4,7 @@ import {
   exportProjectFile,
   exportProjectFileV1,
 } from "../src/lib/legacy-project-file";
-import type { SavedProject } from "../src/lib/legacy-project-format";
+import type { SavedProject } from "../src/lib/project-store";
 import { getRecorderMidiNote, getRecorderPosition } from "./editor-helpers";
 
 for (const version of [1, 2] as const) {

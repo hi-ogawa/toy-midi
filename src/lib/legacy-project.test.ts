@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convertLegacyProject } from "./legacy-project";
-import {
-  createDefaultSavedProject,
-  type SavedProject,
-} from "./legacy-project-format";
+import { createDefaultSavedProject, type SavedProject } from "./project-store";
 
 vi.hoisted(() => {
   vi.stubGlobal("AudioWorkletNode", class {});

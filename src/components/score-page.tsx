@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { recorderProjectStorage } from "../lib/editor-project-storage";
 import { exportMusicXml } from "../lib/musicxml/render";
 import { DEFAULT_KEY_SIGNATURE } from "../lib/pitch-spelling";
-import { recorderProjectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../lib/tab-annotation";
 import { RouteError } from "./route-error";

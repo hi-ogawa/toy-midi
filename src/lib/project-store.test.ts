@@ -1,8 +1,5 @@
 import { expect, it } from "vitest";
-import {
-  createDefaultSavedProject,
-  fromSavedProject,
-} from "./legacy-project-format";
+import { createDefaultSavedProject, fromSavedProject } from "./project-store";
 
 it("defaults old projects to unity gain", () => {
   const project = createDefaultSavedProject();

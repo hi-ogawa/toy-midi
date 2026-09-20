@@ -1,7 +1,4 @@
-import {
-  projectStorage,
-  seedProjectLegacyV2,
-} from "./lib/legacy-project-storage";
+import { projectStorage, seedProjectLegacyV2 } from "./lib/project-storage";
 
 const utils = { projectStorage, seedProjectLegacyV2 };
 
