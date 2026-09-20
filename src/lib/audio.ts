@@ -1,10 +1,12 @@
 import { toast } from "sonner";
 import * as Tone from "tone";
+import oxisynthWasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
+import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
+import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
 import type { Note } from "../types";
 import { range } from "../utils/array";
 import { type AudioView, createAudioView } from "./audio-view";
 import { Metronome } from "./metronome";
-import { midiAssetUrls, waitForMidiAssets } from "./midi-assets";
 import { clampGain } from "./music";
 import { OxiSynthSynth } from "./oxisynth-synth";
 import type { AudioTrack, ProjectState } from "./project-store";
@@ -72,7 +74,6 @@ class AudioManager {
   }
 
   private async initInner(): Promise<void> {
-    await waitForMidiAssets();
     const context = Tone.getContext();
 
     this.masterChannel = new Tone.Channel(0).toDestination();
@@ -80,13 +81,13 @@ class AudioManager {
     // OxiSynth (Rust/WASM) for SF2 playback
     this.midiSynth = new OxiSynthSynth(context);
     await this.midiSynth.init({
-      workletUrl: midiAssetUrls.workletUrl,
-      wasmUrl: midiAssetUrls.wasmUrl,
+      workletUrl: oxisynthWorkletUrl,
+      wasmUrl: oxisynthWasmUrl,
     });
-    const sf2Response = await fetch(midiAssetUrls.soundfontUrl);
+    const sf2Response = await fetch(soundfontUrl);
     await this.midiSynth.addSoundFont(
       await sf2Response.arrayBuffer(),
-      midiAssetUrls.soundfontUrl,
+      soundfontUrl,
     );
 
     // Connect synth output to Channel for volume control
