@@ -482,13 +482,13 @@ export class RecorderRuntime {
         ? { reference: state.referenceVideo }
         : {}),
     };
-    this.applyClipsChange({ operation: "remove", snapshot });
+    this.applyClipInsertRemove({ operation: "remove", snapshot });
     this.history.pushClips({ snapshot, reverse: true });
   }
 
   /** @internal for undo */
-  applyClipsChange(change: RecorderClipsChange): void {
-    this.updateClips((state) => deriveClipsChangeState(state, change));
+  applyClipInsertRemove(change: RecorderClipInsertRemove): void {
+    this.updateClips((state) => deriveClipInsertRemoveState(state, change));
   }
 
   /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
@@ -1194,7 +1194,7 @@ type RecorderClipsSnapshot = {
   reference?: ReferenceVideoState;
 };
 
-type RecorderClipsChange = {
+type RecorderClipInsertRemove = {
   operation: "insert" | "remove";
   snapshot: RecorderClipsSnapshot;
 };
@@ -1209,7 +1209,7 @@ type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
   | { type: "midi-track-insert"; track: MidiTrackState; index: number }
   | { type: "midi-track-delete"; trackId: string }
-  | ({ type: "clips" } & RecorderClipsChange);
+  | ({ type: "clips" } & RecorderClipInsertRemove);
 
 // TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 class RecorderHistory {
@@ -1284,7 +1284,7 @@ class RecorderHistory {
         break;
       }
       case "clips": {
-        this.runtime.applyClipsChange(change);
+        this.runtime.applyClipInsertRemove(change);
         break;
       }
     }
@@ -1296,9 +1296,9 @@ class RecorderHistory {
 }
 
 /** Derive clip insertion or removal without mutating the supplied state. */
-function deriveClipsChangeState(
+function deriveClipInsertRemoveState(
   state: RecorderRuntimeState,
-  { operation, snapshot }: RecorderClipsChange,
+  { operation, snapshot }: RecorderClipInsertRemove,
 ): RecorderRuntimeClipsState {
   function applyTrack(track: AudioTrackState): AudioTrackState {
     const edits = snapshot.tracks.find((entry) => entry.trackId === track.id);
