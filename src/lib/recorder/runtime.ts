@@ -479,7 +479,7 @@ export class RecorderRuntime {
         return clips.length > 0 ? [{ trackId: track.id, clips }] : [];
       }),
       ...(clipIds.has(REFERENCE_VIDEO_CLIP_ID) && state.referenceVideo
-        ? { reference: state.referenceVideo }
+        ? { referenceVideo: state.referenceVideo }
         : {}),
     };
     this.applyClipInsertRemove({ operation: "remove", snapshot });
@@ -1191,7 +1191,7 @@ type RecorderClipInsertRemoveSnapshot = {
     trackId: string;
     clips: { clip: AudioClip; index: number }[];
   }[];
-  reference?: ReferenceVideoState;
+  referenceVideo?: ReferenceVideoState;
 };
 
 type RecorderClipInsertRemove = {
@@ -1323,10 +1323,10 @@ function deriveClipInsertRemoveState(
     });
   }
   function updateReferenceVideo() {
-    if (!snapshot.reference) {
+    if (!snapshot.referenceVideo) {
       return state.referenceVideo;
     }
-    return operation === "insert" ? snapshot.reference : undefined;
+    return operation === "insert" ? snapshot.referenceVideo : undefined;
   }
   return {
     audioTracks: state.audioTracks.map(updateTrack),
