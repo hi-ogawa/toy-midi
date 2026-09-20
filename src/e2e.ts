@@ -1,7 +1,7 @@
 import {
   legacyProjectStorage,
   seedProjectLegacyV2,
-} from "./lib/legacy-project-storage";
+} from "./lib/project-storage";
 
 const utils = { legacyProjectStorage, seedProjectLegacyV2 };
 

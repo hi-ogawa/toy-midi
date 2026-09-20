@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import {
   createDefaultLegacySavedProject,
   normalizeLegacySavedProject,
-} from "./legacy-project-format";
+} from "./project-store";
 
 it("defaults old projects to unity gain", () => {
   const project = createDefaultLegacySavedProject();

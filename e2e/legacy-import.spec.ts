@@ -4,7 +4,7 @@ import {
   exportLegacyProjectFile,
   exportLegacyProjectFileV1,
 } from "../src/lib/legacy-project-file";
-import type { LegacySavedProject } from "../src/lib/legacy-project-format";
+import type { LegacySavedProject } from "../src/lib/project-store";
 import { getMidiNote, getPosition } from "./editor-helpers";
 
 for (const version of [1, 2] as const) {

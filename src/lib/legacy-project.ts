@@ -1,12 +1,12 @@
 import { createDefaultMultibandEq } from "./dsp/biquad-eq-node";
 import {
-  type AnyLegacySavedProject,
-  normalizeLegacySavedProject,
-} from "./legacy-project-format";
-import {
   serializeRuntimeState,
   type SerializedRuntimeState,
 } from "./persistence";
+import {
+  type AnyLegacySavedProject,
+  normalizeLegacySavedProject,
+} from "./project-store";
 import { clampTrackHeight, createDefaultRuntimeState } from "./runtime";
 
 export async function convertLegacyProject({

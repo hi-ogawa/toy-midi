@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import type { LegacySavedProject } from "../src/lib/legacy-project-format";
+import type { LegacySavedProject } from "../src/lib/project-store";
 import { getMidiNote } from "./editor-helpers";
 
 const LEGACY_PROJECT: LegacySavedProject = {

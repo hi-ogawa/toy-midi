@@ -1,11 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
+import { projectStorage } from "../lib/editor-project-storage";
 import { convertLegacyProject } from "../lib/legacy-project";
 import {
   type LegacyProjectMetadata,
   legacyProjectStorage,
-} from "../lib/legacy-project-storage";
-import { projectStorage } from "../lib/project-storage";
+} from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
 

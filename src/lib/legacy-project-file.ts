@@ -1,11 +1,11 @@
 import JSZip from "jszip";
+import { legacyProjectStorage } from "./project-storage";
 import {
   type AnyLegacySavedProject,
   migrateLegacySavedProject,
   type LegacySavedProject,
   type LegacySavedProjectV1,
-} from "./legacy-project-format";
-import { legacyProjectStorage } from "./legacy-project-storage";
+} from "./project-store";
 
 type AnyLegacyProjectManifest = LegacyProjectManifest | LegacyProjectManifestV1;
 
