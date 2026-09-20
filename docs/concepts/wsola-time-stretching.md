@@ -8,7 +8,9 @@ These nominal positions give us the desired timing, but the waveforms may line u
 
 Take patches of length $W$ and place one every $H$ output samples. This spacing is called the **hop**. We use $H=W/2$, so neighboring patches overlap by half their length. These patches are also called source windows.
 
-For a concrete example, use 40-sample patches and a 20-sample output hop. At $0.75\times$ speed, advance only 15 samples through the source for each new patch:
+Our renderer uses 20 ms patches with a 10 ms output hop, and searches within a 30 ms region around each nominal position. At 48 kHz, these correspond to $W=960$, $H=480$, and a search width of $S=1440$ samples.
+
+To make the positions easy to follow, use smaller illustrative counts of 40-sample patches and a 20-sample output hop. At $0.75\times$ speed, advance only 15 samples through the source for each new patch:
 
 | Patch | Output start | Nominal source start |
 | ----- | ------------ | -------------------- |
@@ -139,13 +141,7 @@ $$
 
 The second term is the weighted mismatch. This explains why alignment and blending work together. The search seeks a similar waveform, while the fade introduces its difference gradually. Complementary weights alone cannot prevent cancellation between opposite phases or hide a badly matched transient.
 
-## What the Choices Control
-
-The window length $W$ determines how much waveform participates in matching and blending. Longer windows compare more context but may span changes such as note attacks. Shorter windows keep the operation more local but give the comparison less waveform to work with. The search width $S$ separately controls how far the chosen source time may move from the nominal timeline.
-
-Our renderer uses a 20 ms window and a 30 ms search region. At 48 kHz, that gives $W=960$, $H=480$, and $S=1440$ samples. These are practical choices rather than consequences of the equations. The waveform and the requested rate determine how well the available windows match.
-
-The construction preserves sample spacing within each selected segment, but joins can still alter the sound. Sustained periodic material often provides good matches, but attacks, noise, and mixtures of unrelated periods may not. WSOLA searches for useful waveform agreement without explicitly estimating a pitch.
+Sustained periodic sounds often provide good matches because similar waveforms recur. Attacks and mixtures of unrelated periods may not, so even the best available alignment can alter the sound.
 
 ## Trade Duration for Pitch with Resampling
 
