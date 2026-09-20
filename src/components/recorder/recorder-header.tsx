@@ -310,7 +310,7 @@ export function RecorderHeader({
               onGridDivisionChange(value as GridDivision)
             }
           >
-            {GRID_DIVISIONS.map((value) => (
+            {Object.keys(GRID_DIVISIONS).map((value) => (
               <DropdownMenuRadioItem key={value} value={value}>
                 {value}
               </DropdownMenuRadioItem>
