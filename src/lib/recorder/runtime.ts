@@ -442,27 +442,7 @@ export class RecorderRuntime {
   }
 
   commitClipEdit(edit: RecorderClipEdit): void {
-    const state = this.store.get();
-    const next = deriveClipEditState(state, edit);
-    const wasPlaying = state.isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    this.store.update(next);
-    if (next.recordingTrack !== state.recordingTrack) {
-      this.syncTrackPlayback(next.recordingTrack);
-    }
-    if (next.referenceVideo !== state.referenceVideo) {
-      this.syncYouTubePlayer();
-    }
-    for (const [index, track] of next.audioTracks.entries()) {
-      if (track !== state.audioTracks[index]) {
-        this.syncTrackPlayback(track);
-      }
-    }
-    if (wasPlaying) {
-      this.transport.play();
-    }
+    this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
@@ -474,32 +454,18 @@ export class RecorderRuntime {
   }
 
   private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
-    const state = this.store.get();
-    const wasPlaying = state.isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    function updateClips(track: AudioTrackState): AudioTrackState {
+    function updateTrack(track: AudioTrackState): AudioTrackState {
       return updateTrackClips({
         track,
         update: (clips) =>
           clips.map((clip) => (clip.id === id ? update(clip) : clip)),
       });
     }
-    const audioTracks = state.audioTracks.map((track) => updateClips(track));
-    const recordingTrack = updateClips(state.recordingTrack);
-    this.store.update({ recordingTrack, audioTracks });
-    if (recordingTrack !== state.recordingTrack) {
-      this.syncTrackPlayback(recordingTrack);
-    }
-    for (const [index, track] of audioTracks.entries()) {
-      if (track !== state.audioTracks[index]) {
-        this.syncTrackPlayback(track);
-      }
-    }
-    if (wasPlaying) {
-      this.transport.play();
-    }
+    this.updateClips((state) => ({
+      audioTracks: state.audioTracks.map(updateTrack),
+      recordingTrack: updateTrack(state.recordingTrack),
+      referenceVideo: state.referenceVideo,
+    }));
   }
 
   removeClips(ids: readonly string[]): void {
@@ -522,8 +488,19 @@ export class RecorderRuntime {
 
   /** Restore only the described clips, preserving unrelated edits and track settings. */
   applyClipsChange(change: RecorderClipsChange): void {
+    this.updateClips((state) => deriveClipsChangeState(state, change));
+  }
+
+  private updateClips(
+    update: (
+      state: RecorderRuntimeState,
+    ) => Pick<
+      RecorderRuntimeState,
+      "audioTracks" | "recordingTrack" | "referenceVideo"
+    >,
+  ): void {
     const state = this.store.get();
-    const next = deriveClipsChangeState(state, change);
+    const next = update(state);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
