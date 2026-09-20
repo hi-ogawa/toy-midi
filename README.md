@@ -2,6 +2,8 @@
 
 A browser-based tool for practicing with backing tracks, recording an instrument, and transcribing music into MIDI.
 
+![Toy MIDI project editor](docs/assets/demo.png)
+
 ## Features
 
 - Arrange backing audio and record takes with loop and punch recording.
