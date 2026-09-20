@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createStore } from "../../utils/store";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -28,7 +29,7 @@ const recorderPreferencesSchema = z.object({
     })
     .optional(),
 });
-type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
+export type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
 const DEFAULT_PREFERENCES: RecorderPreferences = {
   autoScrollEnabled: true,
@@ -37,7 +38,8 @@ const DEFAULT_PREFERENCES: RecorderPreferences = {
 };
 
 class RecorderStorage {
-  readPreferences(): RecorderPreferences {
+  // All consumers share one snapshot, including when browser storage is unavailable.
+  readonly store = createStore<RecorderPreferences>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
       return recorderPreferencesSchema.parse({
@@ -47,18 +49,15 @@ class RecorderStorage {
     } catch {
       return DEFAULT_PREFERENCES;
     }
-  }
+  });
 
-  writePreferences(preferences: RecorderPreferences): void {
+  update(updates: Partial<RecorderPreferences>): void {
+    this.store.update(updates);
     try {
-      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(this.store.get()));
     } catch {
       // Storage can be disabled without preventing recording.
     }
-  }
-
-  updatePreferences(updates: Partial<RecorderPreferences>): void {
-    this.writePreferences({ ...this.readPreferences(), ...updates });
   }
 }
 
