@@ -12,10 +12,6 @@ A browser-based tool for practicing with backing tracks, recording an instrument
 - Mix tracks and export audio as WAV.
 - Save projects in your browser and import or export portable project archives.
 
-The home screen opens the current editor under **Projects**. The original MIDI editor remains available under **Legacy**.
-
-Use Save or Ctrl/Cmd+S to save a project in your browser. Export a `.toymidi.zip` archive to back it up or move it between browsers.
-
 ## Development
 
 ```bash
@@ -31,5 +27,3 @@ pnpm test-e2e    # E2E tests against a fresh production build
 ```
 
 Application development uses a prebuilt pitch-detection WASM package. See [Rust development](docs/rust-development.md) for working on the Rust implementation. The lint command also runs `cargo fmt`, which requires a Rust toolchain.
-
-See [Documentation](docs/README.md) for architecture, recording, pitch detection, and development details.
