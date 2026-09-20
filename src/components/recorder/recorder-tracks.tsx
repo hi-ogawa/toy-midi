@@ -102,16 +102,16 @@ export function TrackRow({
   const resizeRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
-      return { startClientY: event.clientY, startHeight: height };
+      return height;
     },
-    onMove: (event, drag) => {
-      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+    onMove: (_event, { data: startHeight, deltaY }) => {
+      onHeightChange(startHeight + deltaY);
     },
   });
   return (
     <div
       data-testid={testId}
-      className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
+      className="relative grid grid-cols-[15rem_1fr]"
       style={{ height }}
     >
       <div
@@ -163,7 +163,7 @@ export function TrackRow({
       {children}
       <div
         ref={resizeRef}
-        className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
+        className="absolute inset-x-0 bottom-0 z-30 h-px cursor-ns-resize border-b border-neutral-700 after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title={`Resize ${title}`}
       />
     </div>
