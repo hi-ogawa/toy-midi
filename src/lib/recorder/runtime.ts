@@ -83,6 +83,7 @@ export interface MidiTrackState {
   program: number;
   eq: MultibandEqParameters;
   height: number;
+  viewMode: "editor" | "overview";
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -594,7 +595,10 @@ export class RecorderRuntime {
     settings: Partial<
       Pick<
         MidiTrackState,
-        "keySignature" | "tabAnnotationEnabled" | "tabOpenStringPitches"
+        | "viewMode"
+        | "keySignature"
+        | "tabAnnotationEnabled"
+        | "tabOpenStringPitches"
       >
     >,
   ): void {
@@ -1427,6 +1431,7 @@ function createMidiTrackState(name: string): MidiTrackState {
     program: 0,
     eq: createDefaultMultibandEq(),
     height: 300,
+    viewMode: "editor",
     gain: 1,
     muted: false,
     soloed: false,

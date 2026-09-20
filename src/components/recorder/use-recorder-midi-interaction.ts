@@ -401,7 +401,7 @@ export function useRecorderMidiInteraction({
     const track = state.midiTracks.find(
       (entry) => entry.id === clipboard.trackId,
     );
-    if (!track) {
+    if (!track || track.viewMode === "overview") {
       return false;
     }
     cancelEdit();
@@ -481,6 +481,19 @@ export function useRecorderMidiInteraction({
     return true;
   }
 
+  function toggleViewMode(trackId: string) {
+    const track = state.midiTracks.find((entry) => entry.id === trackId);
+    if (!track) {
+      return;
+    }
+    if (hasTrackSelection(trackId)) {
+      clear();
+    }
+    runtime.setMidiTrackSettings(trackId, {
+      viewMode: track.viewMode === "overview" ? "editor" : "overview",
+    });
+  }
+
   return {
     activate: onSelect,
     clear,
@@ -506,6 +519,7 @@ export function useRecorderMidiInteraction({
     copySelected,
     paste,
     handleTabAnnotationShortcut,
+    toggleViewMode,
   };
 }
 
