@@ -1,9 +1,7 @@
-import oxisynthWasmUrl from "../../assets/oxisynth/oxisynth.wasm?url";
-import oxisynthWorkletUrl from "../../assets/oxisynth/worklet.js?url";
-import soundfontUrl from "../../assets/soundfonts/A320U.sf2?url";
 import type { Note } from "../../types.ts";
 import { startInterval } from "../../utils/timing.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
+import { midiAssetUrls, waitForMidiAssets } from "../runtime-assets";
 import { beatsToSeconds } from "../timeline.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { MidiTrackState } from "./runtime.ts";
@@ -171,6 +169,7 @@ class RecorderMidiSynth {
   }
 
   async init(program: number): Promise<void> {
+    await waitForMidiAssets();
     await ensureRecorderMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, "oxisynth", {
       numberOfOutputs: 1,
@@ -180,21 +179,21 @@ class RecorderMidiSynth {
     node.connect(this.output);
     node.port.onmessage = (event) => this.handleMessage(event.data);
 
-    const wasm = await fetch(oxisynthWasmUrl).then((response) =>
+    const wasm = await fetch(midiAssetUrls.wasmUrl).then((response) =>
       response.arrayBuffer(),
     );
     await this.sendMessage("init", { wasmBytes: wasm }, "ready", [wasm]);
 
-    const soundfont = await fetch(soundfontUrl).then((response) =>
+    const soundfont = await fetch(midiAssetUrls.soundfontUrl).then((response) =>
       response.arrayBuffer(),
     );
     await this.sendMessage(
       "addSoundfont",
-      { name: soundfontUrl, data: soundfont },
+      { name: midiAssetUrls.soundfontUrl, data: soundfont },
       "soundfontAdded",
       [soundfont],
     );
-    this.soundfontId = soundfontUrl;
+    this.soundfontId = midiAssetUrls.soundfontUrl;
     await this.setProgram(program);
   }
 
@@ -294,7 +293,7 @@ const workletPromises = new WeakMap<AudioContext, Promise<void>>();
 function ensureRecorderMidiWorklet(context: AudioContext): Promise<void> {
   let promise = workletPromises.get(context);
   if (!promise) {
-    promise = context.audioWorklet.addModule(oxisynthWorkletUrl);
+    promise = context.audioWorklet.addModule(midiAssetUrls.workletUrl);
     workletPromises.set(context, promise);
   }
   return promise;
