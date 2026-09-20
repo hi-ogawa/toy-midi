@@ -134,7 +134,7 @@ $$
 
 As in the recurrence, the denominator determines the natural motion and the numerator determines how the input drives it. On the imaginary axis $s=j\Omega$, the exponential is a sustained tone, so $H_a(j\Omega)$ gives its gain and phase. This axis plays the role of the unit circle in the discrete response.
 
-### Connect the Two Planes by Sampling a Mode
+### The s-Plane and z-Plane
 
 To relate a continuous rate $s=\sigma+j\Omega$ to a per-sample multiplier, sample its exponential at $t=nT$:
 
