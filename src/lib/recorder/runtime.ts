@@ -1300,7 +1300,7 @@ function deriveClipInsertRemoveState(
   state: RecorderRuntimeState,
   { operation, snapshot }: RecorderClipInsertRemove,
 ): RecorderRuntimeClipsState {
-  function applyTrack(track: AudioTrackState): AudioTrackState {
+  function updateTrack(track: AudioTrackState): AudioTrackState {
     const edits = snapshot.tracks.find((entry) => entry.trackId === track.id);
     if (!edits) {
       return track;
@@ -1322,14 +1322,17 @@ function deriveClipInsertRemoveState(
       },
     });
   }
-  const audioTracks = state.audioTracks.map(applyTrack);
-  const recordingTrack = applyTrack(state.recordingTrack);
-  const referenceVideo = snapshot.reference
-    ? operation === "insert"
-      ? snapshot.reference
-      : undefined
-    : state.referenceVideo;
-  return { audioTracks, recordingTrack, referenceVideo };
+  function updateReferenceVideo() {
+    if (!snapshot.reference) {
+      return state.referenceVideo;
+    }
+    return operation === "insert" ? snapshot.reference : undefined;
+  }
+  return {
+    audioTracks: state.audioTracks.map(updateTrack),
+    recordingTrack: updateTrack(state.recordingTrack),
+    referenceVideo: updateReferenceVideo(),
+  };
 }
 
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
