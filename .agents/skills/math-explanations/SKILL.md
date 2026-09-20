@@ -56,8 +56,4 @@ Check equations in the target Markdown renderer when possible. Valid LaTeX is no
 
 ## Calibration Examples
 
-Read examples only when they help decide the explanatory approach. Treat them as illustrations of these criteria, not fixed templates.
-
-- [Digital filters](../../../docs/concepts/digital-filters/README.md) develops unfamiliar DSP constructions for a mathematically fluent reader through sample averaging, generalization, and response design. Its phasor figure makes interference visible without tracing individual samples.
-- [WSOLA time stretching](../../../docs/concepts/wsola-time-stretching.md) uses patch placement and alignment to motivate a compact mathematical model. Its Hann appendix gives one focused reason for a design choice.
-- `docs/concepts/biquad-filter-prototypes.md`, introduced in [PR #472](https://github.com/hi-ogawa/toy-midi/pull/472), builds filter forms from desired response properties. Its constraint-driven derivation is appropriate because each algebraic step narrows the design. The file may not be present in every checkout.
+Read relevant examples in [docs/concepts](../../../docs/concepts) when they help choose an explanatory approach. Treat them as illustrations, not fixed templates.
