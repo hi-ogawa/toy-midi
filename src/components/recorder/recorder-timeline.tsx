@@ -13,6 +13,7 @@ import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import { clamp, snapToGrid } from "../../lib/music";
 import type { AudioClip, ClipRegion } from "../../lib/recorder/audio-clip";
+import { REFERENCE_VIDEO_CLIP_ID } from "../../lib/recorder/runtime";
 import type {
   RecorderLoopRange,
   RecorderLoopState,
@@ -399,6 +400,7 @@ function TimelineRange({
 }
 
 type RecorderTimelineClip = {
+  id?: string;
   label: string;
   /** Visible clip length on the timeline, in seconds. */
   duration: number;
@@ -473,6 +475,7 @@ export function AudioTimelineLane({
   );
   return (
     <div
+      data-clip-selection-lane=""
       className="relative overflow-hidden bg-neutral-900"
       {...getTimelineSurfaceProps({
         beatsPerBar,
@@ -530,6 +533,7 @@ export function AudioTimelineLane({
         <TimelineClip
           key={clip.id}
           clip={{
+            id: clip.id,
             label: clip.name,
             duration: clip.trimEnd - clip.trimStart,
             offset: clip.timelineOffset + clip.trimStart,
@@ -638,6 +642,7 @@ export function ReferenceTimelineRow({
         </div>
       </div>
       <div
+        data-clip-selection-lane=""
         className="relative overflow-hidden bg-neutral-900"
         {...getTimelineSurfaceProps({
           beatsPerBar,
@@ -650,6 +655,7 @@ export function ReferenceTimelineRow({
       >
         <TimelineClip
           clip={{
+            id: REFERENCE_VIDEO_CLIP_ID,
             label: referenceVideo.title ?? "YouTube reference",
             offset: referenceVideo.timelineStart,
             duration: referenceVideo.duration,
@@ -802,6 +808,7 @@ function TimelineClip({
   return (
     <div
       data-testid={`recorder-clip-${clip.testId}`}
+      data-clip-selection-id={clip.id}
       data-selected={selected ? "true" : undefined}
       ref={onEditUpdate ? dragRef : undefined}
       className={cn(
@@ -920,6 +927,12 @@ function getTimelineSurfaceProps({
       viewportStartBeat,
     }),
     onPointerDown: (event) => {
+      if (
+        event.shiftKey &&
+        event.currentTarget.hasAttribute("data-clip-selection-lane")
+      ) {
+        return;
+      }
       const rect = event.currentTarget.getBoundingClientRect();
       const beat = snapToGrid(
         (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,

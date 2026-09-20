@@ -5,6 +5,7 @@ import {
 } from "../utils/pointer-gesture";
 
 export function usePointerGesture<T>(options: PointerGestureOptions<T>) {
+  const shouldStart = useEffectEvent(options.shouldStart ?? (() => true));
   const onStart = useEffectEvent(options.onStart);
   const onClick = useEffectEvent(options.onClick ?? (() => {}));
   const onDragStart = useEffectEvent(options.onDragStart ?? (() => {}));
@@ -18,6 +19,7 @@ export function usePointerGesture<T>(options: PointerGestureOptions<T>) {
     }
     return listenPointerGesture({
       element,
+      shouldStart,
       onStart,
       onClick,
       onDragStart,

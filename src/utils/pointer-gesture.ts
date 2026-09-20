@@ -5,6 +5,7 @@ const DRAG_THRESHOLD = 4;
 export type PointerGesture<T> = PointerDrag<T>;
 
 export type PointerGestureOptions<T> = {
+  shouldStart?: (event: PointerEvent) => boolean;
   onStart: (event: PointerEvent) => T;
   onClick?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onDragStart?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
@@ -19,6 +20,7 @@ export type PointerGestureOptions<T> = {
 
 export function listenPointerGesture<T>({
   element,
+  shouldStart,
   onStart,
   onClick,
   onDragStart,
@@ -33,6 +35,7 @@ export function listenPointerGesture<T>({
 
   return listenPointerDrag({
     element,
+    shouldStart,
     onStart: (event): State => ({ data: onStart(event), dragged: false }),
     onMove: (event, { data: state, deltaX, deltaY }) => {
       const gesture = { data: state.data, deltaX, deltaY };

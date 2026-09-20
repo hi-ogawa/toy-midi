@@ -163,6 +163,11 @@ export function useRecorderClipInteraction({
       setSelectedIds(new Set());
     },
     hasSelection: selectedIds.size > 0,
+    activate: onSelect,
+    selectMany: (ids: Set<string>) => {
+      onSelect();
+      setSelectedIds(ids);
+    },
     isSelected,
     isEditing,
     select,

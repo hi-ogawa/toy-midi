@@ -69,9 +69,19 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   await expect(audio).toBeVisible();
   await expect(marker).toBeVisible();
 
-  // Selecting a waveform after a locator makes Delete remove only the clip.
+  // Box-selecting after a locator makes Delete remove only the clip.
   await marker.click();
-  await audio.click();
+  const clipBox = (await audio.boundingBox())!;
+  await page.keyboard.down("Shift");
+  await page.mouse.move(clipBox.x + clipBox.width + 15, clipBox.y + 1);
+  await page.mouse.down();
+  await page.mouse.move(
+    clipBox.x + clipBox.width / 2,
+    clipBox.y + clipBox.height / 2,
+    { steps: 4 },
+  );
+  await page.mouse.up();
+  await page.keyboard.up("Shift");
   await expect(marker).toHaveAttribute("aria-pressed", "false");
   await page.keyboard.press("Delete");
   await expect(audio).toHaveCount(0);
