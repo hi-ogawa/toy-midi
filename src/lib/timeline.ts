@@ -4,7 +4,15 @@ export const DEFAULT_PIXELS_PER_BEAT = 80;
 export const MIN_PIXELS_PER_BEAT = 1;
 export const MAX_PIXELS_PER_BEAT = 400;
 
-export const GRID_DIVISIONS = ["1/4", "1/8", "1/16", "1/32"] as const;
+export const GRID_DIVISIONS = [
+  "1/4",
+  "1/4T",
+  "1/8",
+  "1/8T",
+  "1/16",
+  "1/16T",
+  "1/32",
+] as const;
 export type GridDivision = (typeof GRID_DIVISIONS)[number];
 export const DEFAULT_GRID_DIVISION: GridDivision = "1/16";
 
@@ -22,7 +30,15 @@ export function getBeatsPerBar(timeSignature: TimeSignature): number {
 }
 
 export function getSubdivisionsPerBeat(gridDivision: GridDivision): number {
-  return Number(gridDivision.slice(2)) / 4;
+  return {
+    "1/4": 1,
+    "1/4T": 1.5,
+    "1/8": 2,
+    "1/8T": 3,
+    "1/16": 4,
+    "1/16T": 6,
+    "1/32": 8,
+  }[gridDivision];
 }
 
 export function formatBarBeat(bar: number, beat: number): string {
