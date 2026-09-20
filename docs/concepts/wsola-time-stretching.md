@@ -52,7 +52,7 @@ Following that continuation forever would simply reproduce the source at its ori
 Allow candidate starts $q$ within a region of width $S$ centered on the nominal position:
 
 $$
-|q-p_k|\le\frac{S}{2}.
+q\in\left[p_k-\frac{S}{2},\;p_k+\frac{S}{2}\right).
 $$
 
 This expresses the compromise. The nominal position controls progress through the recording, while the search region allows local adjustments for waveform alignment. A larger region offers more possible matches but also permits material from farther away in source time.
@@ -61,21 +61,20 @@ If the natural continuation lies in this region, we can select it immediately. O
 
 ### Score the Candidate Matches
 
-A good candidate puts peaks near peaks and troughs near troughs in the reference waveform. We measure that agreement with a normalized correlation, also called **cosine similarity**. Let $x[i]$ be the source sample at position $i$. For a candidate starting at $q$, the score is
+A good candidate puts peaks near peaks and troughs near troughs in the reference waveform. Treat each window as a vector: let $\mathbf{x}(q)$ be the vector of $W$ source samples beginning at $q$. We compare it with the natural continuation using **cosine similarity**:
 
 $$
 \rho(n_k,q)=
-\frac{\displaystyle\sum_{j=0}^{W-1}x[n_k+j]x[q+j]}
-{\displaystyle\sqrt{\sum_{j=0}^{W-1}x[n_k+j]^2}
-\sqrt{\sum_{j=0}^{W-1}x[q+j]^2}}.
+\frac{\langle\mathbf{x}(n_k),\mathbf{x}(q)\rangle}
+{\|\mathbf{x}(n_k)\|\,\|\mathbf{x}(q)\|}.
 $$
 
-The numerator adds products of corresponding samples. Samples with matching signs contribute positively, while opposite signs contribute negatively. The denominator normalizes the amplitudes so a candidate does not win simply because it is louder. Matching shapes with the same polarity score 1, while opposite-polarity shapes score -1. Our implementation compares full windows, so both the immediate overlap and the following half-window contribute to the choice.
+This is the cosine of the angle between the two window vectors. Matching waveform shapes with the same polarity point in the same direction and score 1, even if their amplitudes differ. Opposite-polarity shapes point in opposite directions and score -1. The comparison uses full windows, so both the immediate overlap and the following half-window contribute to the choice.
 
 We can now express the selection rule. Let $s_k$ be the source start we select for hop $k$:
 
 $$
-s_k=\underset{|q-p_k|\le S/2}{\arg\max}\;\rho(n_k,q).
+s_k=\underset{q\in[p_k-S/2,\;p_k+S/2)}{\arg\max}\;\rho(n_k,q).
 $$
 
 For a nonzero reference, selecting $q=n_k$ scores 1, which explains why we can take the natural continuation directly whenever it is allowed. Other starts may match equally well, particularly for a periodic waveform. Choosing the natural continuation preserves the original samples through the overlap.
@@ -102,7 +101,7 @@ The particular match depends on the audio. A nearly periodic signal offers simil
 
 Waveform search improves alignment, but two selected windows will rarely match exactly. Switching abruptly between them would still expose any mismatch. We therefore fade out the previous window while fading in the new one over their overlap.
 
-At position $j$ in the overlap, the previous window contributes $x[n_k+j]$ and the new one contributes $x[s_k+j]$. If they agree, we want the blend to reproduce that common sample. Their weights must therefore sum to one.
+Let $x[i]$ denote an individual source sample. At position $j$ in the overlap, the previous window contributes $x[n_k+j]$ and the new one contributes $x[s_k+j]$. If they agree, we want the blend to reproduce that common sample. Their weights must therefore sum to one.
 
 Let $a[j]$ be the incoming weight. A complementary blend is
 
