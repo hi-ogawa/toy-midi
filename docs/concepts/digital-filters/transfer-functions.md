@@ -1,26 +1,58 @@
 # Waves, Feedback, and Transfer Functions
 
-A filter changes the strength and phase of different frequencies. To understand how, start with one wave and ask what delays and feedback do to it. The same calculation will connect sample recurrences, continuous differential equations, and the geometry of their natural motion.
+Imagine an unknown but fixed audio circuit. We could play individual inputs and record their outputs, but we want something more useful than a catalog of experiments. We want a model of the system itself that predicts how it transforms an input.
 
-This is background for [designing a peaking EQ](peaking-eq.md). We assume fixed linear, time-invariant filters. For stable filters, startup motion fades and a sustained sinusoidal input leaves a sinusoidal output at the same frequency.
+This article develops that model by investigating waves, delays, and feedback. The goal is to understand how a sample computation acquires a frequency response and how its remembered values can sustain a decaying oscillation. Those ideas will give us the machinery to [design a peaking EQ](peaking-eq.md) from the response we want.
 
-## Describe a Wave's Gain and Phase Together
+## Find a Useful Probe for the System
 
-A cosine can leave a filter with a different amplitude and phase. A complex exponential packages both changes into one multiplier:
+A steady tone gives us a simple experiment. Send in a cosine at angular frequency $\Omega$ and observe the output after startup motion has faded:
+
+$$
+x(t)=\cos(\Omega t)
+\quad\longrightarrow\quad
+y(t)=M\cos(\Omega t+\phi).
+$$
+
+The output has the same frequency, but its amplitude and phase may differ. The amplitude ratio $M$ and phase shift $\phi$ describe what the system does at this frequency. Repeating the experiment at different frequencies traces its **frequency response**.
+
+Why does the frequency stay the same, and why should these experiments tell us about other inputs? We assume a **linear, time-invariant system**, or LTI system. Linearity means that scaling and adding inputs scales and adds their outputs. Time invariance means that delaying an input only delays its output. Together, these properties make a sustained sinusoid retain its frequency. They also let us understand a complicated signal as a combination of waves and combine the corresponding outputs.
+
+We also assume the system is stable, so motion caused by its initial stored energy or remembered values fades. The displayed cosine is the **steady-state response**. Switching the tone on can produce an additional transient, which we will return to when we investigate feedback. These assumptions describe a fixed filter, with its controls held constant.
+
+## Represent Gain and Phase with One Multiplier
+
+A phase-shifted cosine is a mixture of cosine and sine. We could track both components separately, but a complex exponential carries them together:
 
 $$
 e^{j\Omega t}=\cos(\Omega t)+j\sin(\Omega t),
-\qquad
-H_a(j\Omega)=Me^{j\phi}.
+\qquad j^2=-1.
 $$
 
-Multiplying gives $Me^{j(\Omega t+\phi)}$. Taking its real part recovers the output cosine. The magnitude of $H_a$ is the amplitude ratio and its angle is the phase shift. Varying $\Omega$ traces the **frequency response**.
+Multiplying by a complex number scales and rotates this wave. Write the system's multiplier as $H_a(j\Omega)=Me^{j\phi}$, where the subscript $a$ identifies the continuous-time, analog response. Then
 
-Samples arrive every $T=1/F_s$ seconds. At sample $n$, the same wave is $e^{j\Omega nT}=e^{j\omega n}$, where $\omega=\Omega T$ is radians per sample. At 48 kHz, a 12 kHz tone has $\omega=\pi/2$, so each sample advances its phase by a quarter turn.
+$$
+H_a(j\Omega)e^{j\Omega t}=Me^{j(\Omega t+\phi)}.
+$$
+
+Taking the real part recovers the output cosine from our experiment. The magnitude of $H_a$ is its amplitude ratio and the angle is its phase shift. Complex notation lets us carry both changes through one calculation.
+
+## Keep the Wave, but Count Samples
+
+To connect this description to an audio program, sample the wave every $T=1/F_s$ seconds, where $F_s$ is the sample rate. At sample $n$,
+
+$$
+x[n]=x(nT)=e^{j\Omega nT}=e^{j\omega n},
+\qquad \omega=\Omega T.
+$$
+
+The physical wave is the same, but $\omega$ measures its phase advance in radians per sample. At 48 kHz, a 12 kHz tone has $\omega=\pi/2$, so each sample advances its phase by a quarter turn.
+
+A discrete-time LTI filter likewise multiplies this wave by a complex response, which we will write as $H_d(e^{j\omega})$. The argument $e^{j\omega}$ is the wave's multiplier from one sample to the next. We can now investigate how a computation on samples produces that response.
 
 ## Combine a Wave with a Delayed Copy
 
-A one-sample delay rotates the sampled wave:
+Multiplying every sample by a constant changes all frequencies equally. To treat frequencies differently, the computation must relate values from different times. Start with the simplest memory, a delay of one sample. On our wave, that delay becomes a rotation:
 
 $$
 x[n-1]=e^{j\omega(n-1)}=e^{-j\omega}x[n].
@@ -36,19 +68,27 @@ $$
 
 A slow wave changes little between samples, so its average stays close to its original value. At $\omega=\pi$, successive samples have opposite signs, so the average vanishes. The relative angle between the copies makes the same computation treat different frequencies differently.
 
-More generally, weighted delays give $y[n]=\sum_k b_kx[n-k]$. Their frequency response is the corresponding weighted sum of rotations, $\sum_k b_ke^{-jk\omega}$.
+The average used equal weights. Choosing different weights lets us shape the interference:
+
+$$
+y[n]=b_0x[n]+b_1x[n-1]
+\quad\Longrightarrow\quad
+H_d(e^{j\omega})=b_0+b_1e^{-j\omega}.
+$$
+
+The coefficients $b_0$ and $b_1$ say how much of the current and previous input to combine. Adding more delayed copies extends the same idea, with each delay contributing another rotation.
 
 ## Feedback Introduces a Denominator
 
-Now let a previous output influence the next one:
+So far, we have remembered only inputs. Once the input and its delayed copies are gone, the output stops. Remembering an output changes that behavior because earlier outputs can keep producing later ones. Add one previous output to the computation:
 
 $$
 y[n]=b_0x[n]+b_1x[n-1]-a_1y[n-1].
 $$
 
-To include decay as well as sustained oscillation, use the probe $x[n]=z^n$. Writing $z=re^{j\theta}$ gives $z^n=r^ne^{jn\theta}$, so radius controls growth or decay and angle controls oscillation. A delay still multiplies the probe by $z^{-1}$.
+To describe that continuing motion, we need to include decay as well as sustained oscillation. Extend our probe to $x[n]=z^n$. Writing $z=re^{j\theta}$ gives $z^n=r^ne^{jn\theta}$, so radius controls growth or decay and angle controls oscillation. A delay multiplies this more general probe by $z^{-1}$.
 
-Try a particular output of the same shape, $y[n]=H_d(z)z^n$. Substitution gives
+A delay still preserves the shape of this exponential, so try a particular output of the same shape, $y[n]=H_d(z)z^n$. Substitution gives
 
 $$
 H_d=b_0+b_1z^{-1}-a_1H_dz^{-1},
@@ -62,7 +102,14 @@ Feedback also lets the output continue after the input ends. With $x=0$, this re
 
 ## Two Delays Can Hold a Decaying Oscillation
 
-With two input delays and two output delays, the same reasoning gives
+One remembered output can decay, but it cannot hold a freely chosen oscillation frequency. What becomes possible with one more remembered value? Extend the recurrence to two delays on each path:
+
+$$
+y[n]=b_0x[n]+b_1x[n-1]+b_2x[n-2]
+-a_1y[n-1]-a_2y[n-2].
+$$
+
+Substituting the same exponential probe and collecting the output terms gives
 
 $$
 H_d(z)=\frac{b_0+b_1z^{-1}+b_2z^{-2}}
@@ -86,31 +133,53 @@ The corresponding real motion is proportional to $r^n\cos(n\theta+\phi)$. For $r
 
 ## Continuous Motion Uses Rates Instead of Multipliers
 
-In continuous time, use $e^{st}$ with $s=\sigma+j\Omega$:
+The remembered outputs gave us decay and oscillation in discrete time. A continuous system can exhibit the same behavior, but describes change through rates instead of sample updates. Connecting the two will let us design a response in whichever setting makes its properties easier to arrange.
+
+Start with an output that moves toward its input at a rate proportional to their difference:
+
+$$
+\tau y'(t)=x(t)-y(t),
+\qquad \tau>0.
+$$
+
+The response time $\tau$ sets how quickly it follows. For a constant input $x(t)=X$, the mismatch decays as $y(t)-X=[y(0)-X]e^{-t/\tau}$. Feedback has a physical meaning here because the current output determines how much further it needs to move.
+
+To find the response to a moving input, use the same exponential idea in continuous time. Write $x(t)=e^{st}$ with $s=\sigma+j\Omega$, so
 
 $$
 e^{st}=e^{\sigma t}e^{j\Omega t}.
 $$
 
-The real part $\sigma$ controls growth or decay per unit time, while the imaginary part $\Omega$ controls angular frequency. Differentiation multiplies this mode by $s$, just as a delay multiplies a sampled mode by $z^{-1}$.
+The real part $\sigma$ controls growth or decay per unit time, while the imaginary part $\Omega$ controls angular frequency. Differentiation multiplies this exponential by $s$, just as a delay multiplies the sampled probe by $z^{-1}$. Trying $y(t)=H_a(s)e^{st}$ in the follower equation therefore gives
 
-For example, the second-order equation
+$$
+\tau sH_a=1-H_a,
+\qquad H_a(s)=\frac{1}{1+\tau s}.
+$$
+
+At $s=j\Omega$, this is the multiplier for a sustained tone. When $\Omega\tau$ is small, the output closely follows the input. At higher frequencies, its finite response time produces attenuation and phase lag. The denominator root $s=-1/\tau$ is also the decay rate of the initial mismatch. The forced response and the fading startup motion come from the same equation.
+
+Adding a second derivative introduces the possibility of oscillation:
+
+$$
+y''+d_1y'+d_0y=x.
+$$
+
+For a mechanical picture, think of $y$ as displacement and $x$ as applied force, with mass scaled to one. The terms $d_1y'$ and $d_0y$ describe damping and restoring force. The system can now overshoot and return, producing the continuous counterpart of the discrete oscillation.
+
+We can also shape how the input drives this motion by allowing a weighted combination of $x$ and its derivatives. With primes denoting derivatives in time, the same exponential substitution gives
 
 $$
 y''+d_1y'+d_0y=c_2x''+c_1x'+c_0x
-$$
-
-therefore has transfer function
-
-$$
+\quad\Longrightarrow\quad
 H_a(s)=\frac{c_2s^2+c_1s+c_0}{s^2+d_1s+d_0}.
 $$
 
-The denominator also describes the motion with zero input. A pair of roots $-\gamma\pm j\Omega_d$ gives a decaying oscillation $e^{-\gamma t}\cos(\Omega_dt+\phi)$. We have the same behavior as the discrete pole pair, expressed with a rate rather than a per-sample multiplier.
+Once again we have a ratio of quadratics. Setting the input to zero leaves the denominator as the equation for natural motion. A pair of roots $-\gamma\pm j\Omega_d$ gives a decaying oscillation $e^{-\gamma t}\cos(\Omega_dt+\phi)$ for $\gamma>0$. Compare this with $r^n\cos(n\theta+\phi)$ from the discrete pole pair. One describes decay and oscillation through a continuous rate, the other through a per-sample multiplier.
 
 ## Connect the Two Planes by Sampling a Mode
 
-Sample that continuous mode at times $t=nT$:
+We now have two descriptions of a decaying oscillation. To relate them directly, sample the continuous mode at times $t=nT$:
 
 $$
 e^{snT}=(e^{sT})^n.
