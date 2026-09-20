@@ -12,7 +12,6 @@ import {
   useRef,
   useState,
   type FocusEvent,
-  type RefObject,
 } from "react";
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
@@ -81,7 +80,6 @@ export function MidiTrackRow({
   onScorePreview: () => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
-  const pitchScroll = useRef<number>(undefined);
   return (
     <div onFocus={midiInteraction.activate}>
       <TrackRow
@@ -131,7 +129,6 @@ export function MidiTrackRow({
             beatsPerBar={beatsPerBar}
             subdivisionsPerBeat={subdivisionsPerBeat}
             viewportStartBeat={viewportStartBeat}
-            pitchScroll={pitchScroll}
           />
         )}
         {track.notes.length === 0 && (
@@ -276,7 +273,6 @@ function MidiTrackEditor({
   beatsPerBar,
   subdivisionsPerBeat,
   viewportStartBeat,
-  pitchScroll,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -285,7 +281,6 @@ function MidiTrackEditor({
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
-  pitchScroll: RefObject<number | undefined>;
 }) {
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
@@ -306,9 +301,8 @@ function MidiTrackEditor({
       if (!element) {
         return;
       }
-      // Restore the editor after compact mode, or center the initial pitch.
+      // Center the initial pitch when the scroll container mounts.
       element.scrollTop =
-        pitchScroll.current ??
         (MAX_PITCH - initialPitch) * KEY_HEIGHT - element.clientHeight / 2;
 
       // Keep native vertical pitch scrolling local. Let horizontal gestures,
@@ -319,12 +313,9 @@ function MidiTrackEditor({
         }
       };
       element.addEventListener("wheel", handleWheel);
-      return () => {
-        pitchScroll.current = element.scrollTop;
-        element.removeEventListener("wheel", handleWheel);
-      };
+      return () => element.removeEventListener("wheel", handleWheel);
     },
-    [initialPitch, pitchScroll],
+    [initialPitch],
   );
 
   function getPointerPosition(event: PointerEvent) {

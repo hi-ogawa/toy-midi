@@ -35,9 +35,8 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   await notes.first().click();
   await page.keyboard.press("ControlOrMeta+c");
   const scroll = row.getByTestId("recorder-midi-pitch-scroll");
-  const scrollTop = await scroll.evaluate((element) => {
+  await scroll.evaluate((element) => {
     element.scrollTop += 36;
-    return element.scrollTop;
   });
   await saveRecorderProject(page);
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
@@ -112,7 +111,7 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
     "saved",
   );
 
-  // Reopen the piano roll at the shared height and previous pitch scroll, with editing still available.
+  // Reopen the piano roll at the shared height, recenter on the first note, and keep editing.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await expect(overviewToggle).toBeChecked();
   await overviewToggle.click();
@@ -120,7 +119,11 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   await page.keyboard.press("Escape");
   await expect(grid).toBeVisible();
   expect((await row.boundingBox())!.height).toBe(overviewHeight);
-  expect(await scroll.evaluate((element) => element.scrollTop)).toBe(scrollTop);
+  const pitchViewport = (await scroll.boundingBox())!;
+  const firstNote = (await notes.first().boundingBox())!;
+  expect(
+    Math.abs(firstNote.y - (pitchViewport.y + pitchViewport.height / 2)),
+  ).toBeLessThanOrEqual(1);
   await expect(notes).toHaveCount(2);
   await createRecorderMidiNote(page, row, { beat: 1, pitch: "D4" });
   await expect(notes).toHaveCount(3);
