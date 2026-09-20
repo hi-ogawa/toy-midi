@@ -1,6 +1,5 @@
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
-import { getAudibleItems } from "../mute-solo.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
@@ -134,4 +133,12 @@ export function deriveTrackMix({
       audibleTracks.has(track) ? track.gain : 0,
     ]),
   );
+}
+
+/** Muted items stay silent; any soloed item suppresses all non-soloed items in the group. */
+export function getAudibleItems<T extends { muted: boolean; soloed: boolean }>(
+  items: readonly T[],
+): T[] {
+  const anySoloed = items.some((item) => item.soloed);
+  return items.filter((item) => !item.muted && (!anySoloed || item.soloed));
 }

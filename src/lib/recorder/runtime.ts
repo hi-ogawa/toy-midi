@@ -13,7 +13,6 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
-import { getAudibleItems } from "../mute-solo.ts";
 import { sliceSamples } from "../pcm.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "../pitch-spelling.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
@@ -34,6 +33,7 @@ import { RecorderMetronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
+  getAudibleItems,
   renderRecorderMix,
   resolveRecorderMix,
 } from "./mix.ts";
