@@ -1286,7 +1286,7 @@ function generateVerticalGridLayers(
     layers.push([
       `linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
       `${subBeatWidth}px 100%`,
-      `${-(scrollX * beatWidth) % subBeatWidth}px 0`,
+      `${offsetX}px 0`,
     ]);
   }
 

@@ -36,8 +36,8 @@ pub struct Params {
     pub offset: f64,
     /// Project tempo in quarter-note beats per minute.
     pub bpm: f64,
-    /// Number of decision cells in one quarter-note beat (1.5 for quarter-note triplets).
-    pub cells_per_beat: f64,
+    /// Number of decision cells in one quarter-note beat.
+    pub cells_per_beat: u32,
     /// Project time, in seconds, of grid boundary zero.
     pub grid_origin: f64,
     /// dBFS threshold below which an active run ends.
@@ -453,10 +453,10 @@ fn make_grid_cells(
     excerpt_end: f64,
     offset: f64,
     bpm: f64,
-    cells_per_beat: f64,
+    cells_per_beat: u32,
     grid_origin: f64,
 ) -> Vec<GridCell> {
-    let cell_duration = 60.0 / bpm / cells_per_beat;
+    let cell_duration = 60.0 / bpm / cells_per_beat as f64;
     let source_origin = grid_origin - offset;
     let epsilon = 1e-9;
     let first_index = ((excerpt_start - source_origin - epsilon) / cell_duration).ceil() as i64;

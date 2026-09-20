@@ -64,7 +64,10 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
         throw new Error("Audio is still loading");
       }
       const { tempo, gridSnap, replaceAllNotes } = useProjectStore.getState();
-      const cellsPerBeat = 1 / GRID_SNAP_VALUES[gridSnap];
+      const cellsPerBeat = Math.max(
+        1,
+        Math.round(1 / GRID_SNAP_VALUES[gridSnap]),
+      );
       const transcribed = await bassPitchClient.transcribe(
         buffer,
         makeGridTranscribeParams({

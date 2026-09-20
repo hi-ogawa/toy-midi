@@ -33,8 +33,8 @@ struct Args {
     #[arg(long, default_value_t = 120.0)]
     bpm: f64,
     /// Grid cells per quarter-note beat
-    #[arg(long, default_value_t = 2.0)]
-    cells_per_beat: f64,
+    #[arg(long, default_value_t = 2)]
+    cells_per_beat: u32,
     /// Project-seconds position of grid cell boundary zero
     #[arg(long, default_value_t = 0.0)]
     grid_origin: f64,
@@ -158,10 +158,7 @@ fn validate_args(args: &Args) -> Result<Params> {
         ensure!(duration > 0.0, "--duration must be positive");
     }
     ensure!(args.bpm > 0.0, "--bpm must be positive");
-    ensure!(
-        args.cells_per_beat.is_finite() && args.cells_per_beat > 0.0,
-        "--cells-per-beat must be positive and finite"
-    );
+    ensure!(args.cells_per_beat > 0, "--cells-per-beat must be positive");
     ensure!(
         args.activity_off_db <= args.activity_on_db,
         "--activity-off-db must be less than or equal to --activity-on-db"
