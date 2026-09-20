@@ -1,10 +1,10 @@
 # Architecture Overview
 
-This document records durable system boundaries and design decisions. Keep implementation inventories and subsystem details in the code.
+This document records durable system boundaries and design decisions. Describe responsibilities rather than specific code entities, and keep implementation inventories and subsystem details in the code.
 
 ## System Shape
 
-Toy MIDI is a browser-only editor built with React and TypeScript. `RecorderRuntime` owns project state and coordinates Web Audio playback and recording, while browser storage provides persistence. The application has no server component.
+Toy MIDI is a browser-only editor built with React and TypeScript. A project runtime owns project state and coordinates Web Audio playback and recording, while browser storage provides persistence. The application has no server component.
 
 ## Recorder
 
@@ -14,7 +14,7 @@ The recorder was built from scratch around practicing and recording one live ins
 
 ### State And Persistence
 
-The recorder keeps project content in `RecorderRuntime` and saves explicitly to IndexedDB or portable project archives. Locators persist stable IDs, labels, and beat positions so tempo changes preserve their musical position. Locator selection remains transient UI state, and projects saved before locator support load with no locators.
+Project content lives in memory during editing and is saved explicitly to IndexedDB or portable project archives. Locators persist stable IDs, labels, and beat positions so tempo changes preserve their musical position. Locator selection remains transient UI state, and projects saved before locator support load with no locators.
 
 ### Monitoring And Latency
 
