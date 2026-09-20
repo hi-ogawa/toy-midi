@@ -27,6 +27,7 @@ import {
   type TabAnnotationDisplay,
 } from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import type { Note } from "../../types";
 import { Button } from "../ui/button";
 import { PortalDialog } from "../ui/dialog";
 import {
@@ -232,6 +233,17 @@ function MidiTrackOverview({
   const PADDING = 12;
   const availableHeight = track.height - PADDING * 2 - NOTE_HEIGHT;
 
+  function getNoteStyle(note: Note) {
+    return {
+      left: (note.start - viewportStartBeat) * pixelsPerBeat,
+      top:
+        (-(note.pitch - centerPitch) / pitchRange + 0.5) * availableHeight +
+        PADDING,
+      width: Math.max(2, note.duration * pixelsPerBeat),
+      height: NOTE_HEIGHT,
+    };
+  }
+
   return (
     <div
       data-testid="recorder-midi-overview"
@@ -251,15 +263,7 @@ function MidiTrackOverview({
         <div
           key={note.id}
           className="pointer-events-none absolute rounded-sm bg-blue-400/70"
-          style={{
-            left: (note.start - viewportStartBeat) * pixelsPerBeat,
-            top:
-              (-(note.pitch - centerPitch) / pitchRange + 0.5) *
-                availableHeight +
-              PADDING,
-            width: Math.max(2, note.duration * pixelsPerBeat),
-            height: NOTE_HEIGHT,
-          }}
+          style={getNoteStyle(note)}
         />
       ))}
     </div>
