@@ -190,4 +190,19 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takesToggle).toHaveCount(0);
   await expect(take).toHaveCount(0);
   await expect(takeRows).toHaveCount(0);
+
+  // Undo restores both source lanes in their original order and rebuilds Capture.
+  await page.keyboard.press("Control+z");
+  await expect(takeRows).toHaveCount(2);
+  await expect(takeRows.nth(0)).toContainText("Take 1");
+  await expect(takeRows.nth(1)).toContainText("Take 2");
+  await expect(take).toHaveCount(2);
+  await expect(compRegion.filter({ hasText: "Take 1" })).toBeVisible();
+  await expect(compRegion.filter({ hasText: "Take 2" })).toBeVisible();
+
+  // Redo removes both restored takes with one history action.
+  await page.keyboard.press("Control+Shift+z");
+  await expect(take).toHaveCount(0);
+  await expect(takeRows).toHaveCount(0);
+  await expect(compRegion).toHaveCount(0);
 });
