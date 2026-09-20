@@ -57,7 +57,7 @@ Move snapping and proposed note updates into a pure `calculateDragUpdate` helper
 
 **Path and range**
 
-- `/home/hiroshi/code/personal/toy-midi/src/lib/project-file.ts:123-212`
+- `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-file.ts:123-212`
 
 **Confidence:** Very high  
 **Impact:** High
@@ -92,7 +92,7 @@ At minimum, validate every manifest reference before the first `saveAsset`. This
 
 - `/home/hiroshi/code/personal/toy-midi/src/components/settings.tsx:127-169`
 - A second deletion path exists at `/home/hiroshi/code/personal/toy-midi/src/components/piano-roll.tsx:309-318`
-- Shared-asset contract: `/home/hiroshi/code/personal/toy-midi/src/lib/project-storage.ts:1-5,239-241`
+- Shared-asset contract: `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-storage.ts:1-5,239-241`
 
 **Confidence:** Very high  
 **Impact:** High

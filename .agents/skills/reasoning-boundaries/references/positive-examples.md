@@ -59,7 +59,7 @@ The test organization follows the same split. Musical cases are extensively char
 - Session orchestration and lifecycle: `/home/hiroshi/code/personal/toy-midi/src/lib/project-session.ts:41-130`
 - Parallel loading followed by sequential reconciliation: `/home/hiroshi/code/personal/toy-midi/src/lib/project-session.ts:133-178`
 - Effect-free asset loading helper: `/home/hiroshi/code/personal/toy-midi/src/lib/project-session.ts:180-188`
-- Persistence facade used by the session: `/home/hiroshi/code/personal/toy-midi/src/lib/project-storage.ts:73-231`
+- Persistence facade used by the session: `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-storage.ts:73-231`
 
 **Review domains and correctness arguments**
 
@@ -154,12 +154,12 @@ The split is confirmed by an end-to-end test phrased in product terms: one-step 
 
 **Key boundaries**
 
-- Storage-tier policy and concurrency assumptions: `/home/hiroshi/code/personal/toy-midi/src/lib/project-storage.ts:33-47`
-- Project-facing storage facade: `/home/hiroshi/code/personal/toy-midi/src/lib/project-storage.ts:73-231`
-- Copy-before-delete layout migration: `/home/hiroshi/code/personal/toy-midi/src/lib/project-storage.ts:243-291`
+- Storage-tier policy and concurrency assumptions: `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-storage.ts:33-47`
+- Project-facing storage facade: `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-storage.ts:73-231`
+- Copy-before-delete layout migration: `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-storage.ts:243-291`
 - Generic IndexedDB transaction wrapper: `/home/hiroshi/code/personal/toy-midi/src/lib/idb.ts:1-68`
-- Saved document contract and defaults: `/home/hiroshi/code/personal/toy-midi/src/lib/project-store.ts:678-755`
-- Pure serialization, schema migration, and hydration: `/home/hiroshi/code/personal/toy-midi/src/lib/project-store.ts:757-866`
+- Saved document contract and defaults: `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-format.ts:678-755`
+- Pure serialization, schema migration, and hydration: `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-format.ts:757-866`
 
 **Review domains and correctness arguments**
 
@@ -184,7 +184,7 @@ The test suite mirrors the domains: value persistence in `/home/hiroshi/code/per
 
 **Caveats**
 
-- Loaded project JSON is cast to `AnySavedProject` at `/home/hiroshi/code/personal/toy-midi/src/lib/project-storage.ts:164` rather than runtime-validated.
+- Loaded project JSON is cast to `AnySavedProject` at `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-storage.ts:164` rather than runtime-validated.
 - The accepted multi-tab race limitations are explicit at lines 43-46.
 - Asset garbage collection is intentionally absent, and project deletion therefore does not remove unreferenced binaries.
 - Persistence schema and live editor state share the large `project-store.ts` module. The pure conversion boundary is good, but physical module ownership is less clean than the conceptual boundary.

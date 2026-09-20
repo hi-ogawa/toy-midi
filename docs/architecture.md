@@ -4,20 +4,20 @@ This document records durable system boundaries and design decisions. Keep imple
 
 ## System Shape
 
-Toy MIDI is a browser-only editor built with React and TypeScript. The recorder runtime owns project content, Web Audio and OxiSynth provide playback, and IndexedDB stores explicitly saved projects. The application has no server component.
+Toy MIDI is a browser-only editor built with React and TypeScript. The runtime owns project content, Web Audio and OxiSynth provide playback, and IndexedDB stores explicitly saved projects. The application has no server component.
 
 Audio tracks, MIDI tracks, and captured takes share one timeline and transport. MIDI notes and locators use beats, while audio clips use seconds.
 
 ## Stable Boundaries
 
 - `src/app.tsx` owns routing, including retirement notices for legacy project URLs.
-- `src/components/recorder/index.tsx` composes the editor and its interactions.
-- `src/lib/recorder/runtime.ts` owns project edits and the audio graph.
-- `src/lib/recorder/transport.ts` owns the playback clock.
-- `src/lib/recorder/history.ts` owns edit history.
-- `src/components/recorder/use-recorder-project.ts` coordinates loading, explicit Save, and unsaved-navigation warnings.
-- `src/lib/recorder/project-storage.ts` owns current project persistence.
-- `src/components/score-viewer.tsx` owns standalone MusicXML viewing, while `src/components/recorder/recorder-score-page.tsx` opens saved project scores.
+- `src/components/editor.tsx` composes the editor and its interactions.
+- `src/lib/runtime.ts` owns project edits and the audio graph.
+- `src/lib/transport.ts` owns the playback clock.
+- `src/lib/history.ts` owns edit history.
+- `src/components/use-project.ts` coordinates loading, explicit Save, and unsaved-navigation warnings.
+- `src/lib/project-storage.ts` owns current project persistence.
+- `src/components/score-viewer.tsx` owns standalone MusicXML viewing, while `src/components/score-page.tsx` opens saved project scores.
 
 ## State And Audio Flow
 

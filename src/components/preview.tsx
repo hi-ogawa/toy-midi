@@ -1,20 +1,20 @@
 import { routes } from "../lib/routes";
-import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
-import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
-import { RecorderTunerPreview } from "./recorder/recorder-tuner-preview";
+import { EffectsPreview } from "./effects-preview";
+import { HelpPreview } from "./help-preview";
+import { TunerPreview } from "./tuner-preview";
 
 const PREVIEWS = [
   {
     label: "Recorder effects",
-    component: RecorderEffectsPreview,
+    component: EffectsPreview,
   },
   {
     label: "Recorder help dialog",
-    component: RecorderHelpPreview,
+    component: HelpPreview,
   },
   {
     label: "Recorder tuner",
-    component: RecorderTunerPreview,
+    component: TunerPreview,
   },
 ].map((entry) => ({
   ...entry,

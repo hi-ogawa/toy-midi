@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createDefaultSavedProject } from "../src/lib/project-store";
+import { createDefaultLegacySavedProject } from "../src/lib/legacy-project-format";
 
 for (const suffix of ["", "/score"]) {
   test(`legacy ${suffix || "editor"} link directs users home for migration`, async ({
@@ -10,7 +10,7 @@ for (const suffix of ["", "/score"]) {
     const projectId = await page.evaluate(
       (project) =>
         window.__e2e.seedLegacyProject({ name: "Bookmarked song", project }),
-      createDefaultSavedProject(),
+      createDefaultLegacySavedProject(),
     );
     await page.goto(`/project/${projectId}${suffix}`);
     await expect(

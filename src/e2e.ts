@@ -1,15 +1,15 @@
 import { IdbStore } from "./lib/idb";
 import {
-  createDefaultSavedProject,
-  type SavedProject,
-} from "./lib/project-store";
+  createDefaultLegacySavedProject,
+  type LegacySavedProject,
+} from "./lib/legacy-project-format";
 
 function seedLegacyProject({
   name,
-  project = createDefaultSavedProject(),
+  project = createDefaultLegacySavedProject(),
 }: {
   name: string;
-  project?: SavedProject;
+  project?: LegacySavedProject;
 }) {
   const id = crypto.randomUUID();
   const now = Date.now();
@@ -27,7 +27,7 @@ async function seedProjectLegacyV2({
   audioData,
 }: {
   name: string;
-  project: SavedProject;
+  project: LegacySavedProject;
   audioData: Record<string, Uint8Array<ArrayBuffer>>;
 }) {
   const assets = new IdbStore<{ key: string; blob: Blob }>({
@@ -36,7 +36,7 @@ async function seedProjectLegacyV2({
     version: 1,
     keyPath: "key",
   });
-  const audioTracks: SavedProject["audioTracks"] = [];
+  const audioTracks: LegacySavedProject["audioTracks"] = [];
   for (const track of project.audioTracks) {
     const data = audioData[track.id];
     if (!data) {

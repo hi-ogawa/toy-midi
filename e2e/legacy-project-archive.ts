@@ -1,6 +1,9 @@
 import JSZip from "jszip";
-import type { SavedProject, SavedProjectV1 } from "../src/lib/project-store";
-interface ProjectManifest {
+import type {
+  LegacySavedProject,
+  LegacySavedProjectV1,
+} from "../src/lib/legacy-project-format";
+interface LegacyProjectManifest {
   formatVersion: 2;
   exportedAt: string; // ISO timestamp
   name: string;
@@ -10,7 +13,10 @@ interface ProjectManifest {
   };
 }
 
-type ProjectManifestV1 = Omit<ProjectManifest, "formatVersion" | "files"> & {
+type LegacyProjectManifestV1 = Omit<
+  LegacyProjectManifest,
+  "formatVersion" | "files"
+> & {
   formatVersion: 1;
   files: {
     project: "project.json";
@@ -18,14 +24,14 @@ type ProjectManifestV1 = Omit<ProjectManifest, "formatVersion" | "files"> & {
   };
 };
 
-const CURRENT_FORMAT_VERSION: ProjectManifest["formatVersion"] = 2;
+const CURRENT_FORMAT_VERSION: LegacyProjectManifest["formatVersion"] = 2;
 
 /**
  * Export a project to a .toymidi ZIP file
  */
-export async function exportProjectFile(
+export async function exportLegacyProjectFile(
   projectName: string,
-  projectData: SavedProject,
+  projectData: LegacySavedProject,
   {
     loadAsset,
   }: {
@@ -37,7 +43,7 @@ export async function exportProjectFile(
 ): Promise<Blob> {
   const zip = new JSZip();
 
-  const audioEntries: ProjectManifest["files"]["audio"] = [];
+  const audioEntries: LegacyProjectManifest["files"]["audio"] = [];
 
   // Bundle each track's audio asset and record its path in the manifest
   const tracks = projectData.audioTracks;
@@ -56,7 +62,7 @@ export async function exportProjectFile(
   }
 
   // Prepare manifest
-  const manifest: ProjectManifest = {
+  const manifest: LegacyProjectManifest = {
     formatVersion: CURRENT_FORMAT_VERSION,
     exportedAt: new Date().toISOString(),
     name: projectName,
@@ -76,9 +82,9 @@ export async function exportProjectFile(
 }
 
 // for test migration
-export async function exportProjectFileV1(
+export async function exportLegacyProjectFileV1(
   projectName: string,
-  projectData: SavedProjectV1,
+  projectData: LegacySavedProjectV1,
   audioData: Uint8Array,
 ): Promise<Blob> {
   const zip = new JSZip();
@@ -89,7 +95,7 @@ export async function exportProjectFileV1(
 
   const audioPath = `audio/${projectData.audioFileName}`;
 
-  const manifest: ProjectManifestV1 = {
+  const manifest: LegacyProjectManifestV1 = {
     formatVersion: 1,
     exportedAt: new Date().toISOString(),
     name: projectName,

@@ -1,0 +1,102 @@
+import { useMutation } from "@tanstack/react-query";
+import { matchKeyboardEvent } from "../lib/keyboard";
+import type { Runtime, RuntimeState } from "../lib/runtime";
+import { useLocatorInteraction } from "./locators";
+import { useClipInteraction } from "./use-clip-interaction";
+import { useMidiInteraction } from "./use-midi-interaction";
+
+export function useInteraction({
+  runtime,
+  state,
+  isRecording,
+  subdivisionsPerBeat,
+}: {
+  runtime: Runtime;
+  state: RuntimeState;
+  isRecording: boolean;
+  subdivisionsPerBeat: number;
+}) {
+  const clipInteraction = useClipInteraction({
+    runtime,
+    state,
+    onSelect: () => {
+      locatorInteraction.select(undefined);
+      midiInteraction.clear();
+    },
+  });
+
+  const locatorInteraction = useLocatorInteraction({
+    runtime,
+    state,
+    subdivisionsPerBeat,
+    onSelect: () => {
+      clipInteraction.clear();
+      midiInteraction.clear();
+    },
+  });
+
+  const midiInteraction = useMidiInteraction({
+    runtime,
+    state,
+    subdivisionsPerBeat,
+    onSelect: () => {
+      clipInteraction.clear();
+      locatorInteraction.select(undefined);
+    },
+  });
+
+  function clearSelection() {
+    const hadSelection =
+      clipInteraction.hasSelection ||
+      locatorInteraction.selectedId !== undefined ||
+      midiInteraction.hasSelection;
+    clipInteraction.clear();
+    locatorInteraction.select(undefined);
+    midiInteraction.clear();
+    return hadSelection;
+  }
+
+  function deleteSelection() {
+    if (clipInteraction.hasSelection) {
+      clipInteraction.removeSelected();
+    } else if (locatorInteraction.selectedId !== undefined) {
+      locatorInteraction.removeSelected();
+    } else if (midiInteraction.hasSelection) {
+      midiInteraction.removeSelected();
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  const historyMutation = useMutation({
+    mutationFn: (direction: "undo" | "redo") => runtime[direction](),
+  });
+
+  function handleUndoRedoShortcut(event: KeyboardEvent): boolean {
+    const undo = matchKeyboardEvent(event, "Ctrl+Z");
+    const redo =
+      matchKeyboardEvent(event, "Ctrl+Shift+Z") ||
+      matchKeyboardEvent(event, "Ctrl+Y");
+    if (!undo && !redo) {
+      return false;
+    }
+    // Consume the shortcut without replaying history while capture is in flight,
+    // keeping the recording track stable until the take and its history entry are finalized.
+    if (isRecording) {
+      return true;
+    }
+    clearSelection();
+    historyMutation.mutate(undo ? "undo" : "redo");
+    return true;
+  }
+
+  return {
+    clipInteraction,
+    locatorInteraction,
+    midiInteraction,
+    clearSelection,
+    deleteSelection,
+    handleUndoRedoShortcut,
+  };
+}

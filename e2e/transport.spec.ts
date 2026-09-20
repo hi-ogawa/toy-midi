@@ -1,0 +1,121 @@
+import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import {
+  createProject,
+  enableInput,
+  getBeat,
+  getPosition,
+  seekByPixels,
+} from "./editor-helpers";
+import { createCheckpoint, useFakeAudioInput } from "./helpers";
+
+useFakeAudioInput();
+
+test("snaps recorder timeline seeking to the selected grid", async ({
+  page,
+}) => {
+  await createProject(page);
+
+  const position = page.getByTestId("recorder-position");
+
+  // The default 1/16 grid has four subdivisions per beat, so 0.9 beats snaps
+  // to beat 1 rather than the adjacent 0.75-beat grid point.
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.9);
+  await expect.poll(() => getBeat(page)).toBe(1);
+  // Keep explicit coverage of the combined musical and elapsed-time display.
+  await expect(position).toHaveText("01|02 - 00:00.500");
+
+  // On the 1/4 grid, 0.4 beats rounds back to beat 0 rather than seeking to
+  // the raw pointer position.
+  await page.getByRole("button", { name: "1/16" }).click();
+  await page.getByRole("menuitemradio", { name: "1/4" }).click();
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.4);
+  await expect.poll(() => getBeat(page)).toBe(0);
+});
+
+test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
+  await createProject(page);
+
+  // Plain arrows move in five-second steps and clamp at the timeline start.
+  await page.getByTestId("recorder-position").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => getPosition(page)).toBe(5);
+
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(() => getPosition(page)).toBe(0);
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(() => getPosition(page)).toBe(0);
+
+  // Focused text controls retain their native arrow-key behavior.
+  const tempoInput = page.getByTestId("recorder-tempo-input");
+  await tempoInput.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => getPosition(page)).toBe(0);
+
+  // Seeking during playback restarts participants and keeps the transport rolling.
+  await tempoInput.blur();
+  const playButton = page.getByTestId("recorder-play-button");
+  await playButton.click();
+  await expect(playButton).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("ArrowRight");
+  await expect(playButton).toHaveAttribute("aria-pressed", "true");
+  await playButton.click();
+  await expect.poll(() => getPosition(page)).toBeGreaterThan(5);
+
+  // Recording owns transport timing, so arrows cannot seek an active capture.
+  await enableInput(page);
+  const recordButton = page.getByTestId("recorder-record-button");
+  await recordButton.click();
+  await expect(recordButton).toHaveAttribute("aria-pressed", "true");
+  const positionBeforeSeek = await getPosition(page);
+  await page.keyboard.press("ArrowRight");
+  await expect
+    .poll(() => getPosition(page))
+    .toBeLessThan(positionBeforeSeek + 5);
+  await recordButton.click();
+});
+
+for (const playbackRate of [0.5, 1.5]) {
+  test(`advances recorder position at ${playbackRate}x`, async ({ page }) => {
+    const checkpoint = createCheckpoint();
+    await createProject(page);
+
+    await page.getByTestId("recorder-playback-rate").click();
+    await page.getByRole("menuitemradio", { name: `${playbackRate}x` }).click();
+    const position = page.getByTestId("recorder-position");
+    const sample = () =>
+      position.evaluate((element) => ({
+        wallTime: performance.now() / 1_000,
+        position: Number(element.dataset.position),
+      }));
+
+    await page.getByTestId("recorder-play-button").click();
+    // Exclude the transport's scheduling lead from the playback-rate measurement.
+    await expect.poll(() => getPosition(page)).toBeGreaterThan(0.1);
+    checkpoint("playback advancing");
+    const start = await sample();
+    await page.waitForTimeout(1_000);
+    const end = await sample();
+
+    const observedRate =
+      (end.position - start.position) / (end.wallTime - start.wallTime);
+    checkpoint(
+      `sample playback clocks: expected ${playbackRate}, observed ${observedRate}`,
+    );
+    expect(observedRate).toBeCloseTo(playbackRate, 1);
+  });
+}
+
+test("steps playback speed with angle brackets", async ({ page }) => {
+  // Open a recorder and step through the same rates as the dropdown, stopping at each end.
+  await createProject(page);
+  const rate = page.getByTestId("recorder-playback-rate");
+  for (const expected of [1.25, 1.5, 1.5]) {
+    await page.keyboard.press("Shift+>");
+    await expect(rate).toHaveText(`${expected}x`);
+  }
+  for (const expected of [1.25, 1, 0.75, 0.5, 0.5]) {
+    await page.keyboard.press("Shift+<");
+    await expect(rate).toHaveText(`${expected}x`);
+  }
+});

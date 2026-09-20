@@ -1,0 +1,63 @@
+import { z } from "zod";
+import {
+  DEFAULT_PIXELS_PER_BEAT,
+  MAX_PIXELS_PER_BEAT,
+  MIN_PIXELS_PER_BEAT,
+} from "./timeline.ts";
+
+const PREFERENCES_KEY = "toy-midi:recorder-preferences";
+
+const preferencesSchema = z.object({
+  autoScrollEnabled: z.boolean(),
+  timelinePixelsPerBeat: z
+    .number()
+    .min(MIN_PIXELS_PER_BEAT)
+    .max(MAX_PIXELS_PER_BEAT),
+  referenceVideoSize: z
+    .object({
+      width: z.number().positive(),
+      height: z.number().positive(),
+    })
+    .optional(),
+  input: z
+    .object({
+      deviceId: z.string(),
+      channel: z.number().int().nonnegative(),
+      latencyCompensation: z.number().nonnegative().optional(),
+    })
+    .optional(),
+});
+type Preferences = z.infer<typeof preferencesSchema>;
+
+const DEFAULT_PREFERENCES: Preferences = {
+  autoScrollEnabled: true,
+  timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
+};
+
+class PreferencesStorage {
+  readPreferences(): Preferences {
+    try {
+      const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
+      return preferencesSchema.parse({
+        ...DEFAULT_PREFERENCES,
+        ...stored,
+      });
+    } catch {
+      return DEFAULT_PREFERENCES;
+    }
+  }
+
+  writePreferences(preferences: Preferences): void {
+    try {
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+    } catch {
+      // Storage can be disabled without preventing recording.
+    }
+  }
+
+  updatePreferences(updates: Partial<Preferences>): void {
+    this.writePreferences({ ...this.readPreferences(), ...updates });
+  }
+}
+
+export const preferencesStorage = new PreferencesStorage();
