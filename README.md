@@ -6,10 +6,10 @@ A browser-based tool for practicing with backing tracks, recording an instrument
 
 ## Features
 
-- Arrange backing audio and record takes with loop and punch recording.
-- Edit MIDI notes in a piano roll, convert audio to MIDI, and preview notation and tablature.
+- Arrange and trim backing audio, record multiple takes with loop and punch recording, and comp takes non-destructively.
+- Convert audio to MIDI and edit notes in a piano roll with notation and tablature previews.
 - Practice with variable playback speed, a metronome, locators, and synchronized YouTube reference video.
-- Mix tracks and export audio as WAV.
+- Mix tracks with gain, mute, solo, and parametric EQ, then export audio as WAV.
 - Save projects in your browser and import or export portable project archives.
 
 ## Development
