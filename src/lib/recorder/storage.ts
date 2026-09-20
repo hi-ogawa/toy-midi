@@ -35,7 +35,7 @@ const DEFAULT_PREFERENCES: RecorderPreferences = {
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
 };
 
-class RecorderPreferenceStore {
+class RecorderStorage {
   // All consumers share one snapshot, including when browser storage is unavailable.
   readonly store = createStore<RecorderPreferences>(() => {
     try {
@@ -59,4 +59,4 @@ class RecorderPreferenceStore {
   }
 }
 
-export const recorderPreferences = new RecorderPreferenceStore();
+export const recorderStorage = new RecorderStorage();

@@ -1,6 +1,6 @@
 import { useSyncExternalStore, type SetStateAction } from "react";
 import {
-  recorderPreferences,
+  recorderStorage,
   type RecorderPreferences,
 } from "../../lib/recorder/storage";
 
@@ -8,15 +8,15 @@ export function useRecorderPreference<Key extends keyof RecorderPreferences>(
   key: Key,
 ) {
   const value = useSyncExternalStore(
-    recorderPreferences.store.subscribe,
-    () => recorderPreferences.store.get()[key],
+    recorderStorage.store.subscribe,
+    () => recorderStorage.store.get()[key],
   );
 
   function setValue(next: SetStateAction<RecorderPreferences[Key]>) {
-    recorderPreferences.update({
+    recorderStorage.update({
       [key]:
         typeof next === "function"
-          ? next(recorderPreferences.store.get()[key])
+          ? next(recorderStorage.store.get()[key])
           : next,
     });
   }

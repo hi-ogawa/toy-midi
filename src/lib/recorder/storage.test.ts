@@ -16,7 +16,7 @@ test("merges independent preference edits and restores them after reload", async
       saved = value;
     },
   });
-  const { recorderPreferences: preferences } = await import("./storage");
+  const { recorderStorage: preferences } = await import("./storage");
   expect(preferences.store.get().autoScrollEnabled).toBe(false);
   expect(preferences.store.get().timelinePixelsPerBeat).toBeGreaterThan(0);
   const listener = vi.fn();
@@ -37,7 +37,7 @@ test("merges independent preference edits and restores them after reload", async
   });
 
   vi.resetModules();
-  const reloaded = (await import("./storage")).recorderPreferences;
+  const reloaded = (await import("./storage")).recorderStorage;
   expect(reloaded.store.get()).toEqual(expected);
 });
 
@@ -50,7 +50,7 @@ test("keeps updates and subscriptions working when storage is unavailable", asyn
       throw new Error("blocked");
     },
   });
-  const { recorderPreferences: preferences } = await import("./storage");
+  const { recorderStorage: preferences } = await import("./storage");
   const listener = vi.fn();
   preferences.store.subscribe(listener);
   preferences.update({ autoScrollEnabled: false });
@@ -64,6 +64,6 @@ test("keeps updates and subscriptions working when storage is unavailable", asyn
 
 test("falls back to defaults for malformed saved preferences", async () => {
   vi.stubGlobal("localStorage", { getItem: () => "{broken" });
-  const { recorderPreferences } = await import("./storage");
-  expect(recorderPreferences.store.get().autoScrollEnabled).toBe(true);
+  const { recorderStorage } = await import("./storage");
+  expect(recorderStorage.store.get().autoScrollEnabled).toBe(true);
 });
