@@ -164,15 +164,15 @@ $$
 
 Shifting by half a window adds $\pi$ to the cosine's phase, so
 
-$$
+```math
 \begin{aligned}
 w[j+H]
 &=\frac12\left(1-\cos\left(\frac{2\pi j}{W}+\pi\right)\right)\\
 &=\frac12\left(1+\cos\frac{2\pi j}{W}\right)\\
 &=1-w[j],
-\qquad 0\le j<H.
+\qquad 0\le j\lt H.
 \end{aligned}
-$$
+```
 
 The incoming half-window supplies $a[j]=w[j]$, while the outgoing half supplies $1-a[j]=w[j+H]$. This is the **constant overlap-add (COLA)** property with sum one. If patches of the same signal are added back at their original positions, these weights reconstruct the original samples wherever the full overlap is present. This exact identity uses the periodic Hann convention. [SciPy's COLA documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.check_COLA.html) distinguishes it from the symmetric Hann window.
 
