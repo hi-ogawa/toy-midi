@@ -35,21 +35,24 @@ const DEFAULT_PREFERENCES: RecorderPreferences = {
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
 };
 
-// All consumers share one snapshot, including when browser storage is unavailable.
-const store = createStore(readPreferences);
+class RecorderPreferenceStore {
+  // All consumers share one snapshot, including when browser storage is unavailable.
+  private readonly store = createStore(readPreferences);
 
-export const recorderPreferences = {
-  get: store.get,
-  subscribe: store.subscribe,
+  get = this.store.get;
+  subscribe = this.store.subscribe;
+
   update(updates: Partial<RecorderPreferences>): void {
-    store.update(updates);
+    this.store.update(updates);
     try {
-      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(store.get()));
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(this.store.get()));
     } catch {
       // Storage can be disabled without preventing recording.
     }
-  },
-};
+  }
+}
+
+export const recorderPreferences = new RecorderPreferenceStore();
 
 function readPreferences(): RecorderPreferences {
   try {
