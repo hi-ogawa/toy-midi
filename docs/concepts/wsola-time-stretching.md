@@ -1,215 +1,207 @@
 # WSOLA Time Stretching
 
-WSOLA changes audio duration by joining short source segments whose waveforms line up at their boundaries. Each segment keeps its original sample spacing, so its local oscillations keep their pitch. Playback speed changes through the choice of segments and how much source time they cover.
+We want to change how long a recording lasts while keeping its pitch. Simply playing its samples more slowly stretches both the recording and every oscillation inside it, so the pitch falls too. How can we change the overall duration while leaving those local oscillations intact?
 
-This document explains the implementation in [`src/lib/dsp/wsola.ts`](../../src/lib/dsp/wsola.ts). `WsolaProcessor` reads an entire immutable source, while `StreamingWsola` accepts incoming PCM blocks. Both use the same window selection and overlap-add calculations.
+WSOLA builds the output from short source segments, keeping the sample spacing within each segment unchanged. The questions are which segments to choose and how to join them. We will develop those choices from the timing and waveform requirements, then connect the resulting equations to [our implementation](../../src/lib/dsp/wsola.ts).
 
-## Frames, Windows, and Playback Rate
+## Separate Local Oscillation from Overall Progress
 
-An audio frame contains one sample from each channel. Let $x_c[i]$ be the source sample at frame $i$ in channel $c$. The source is planar, so each channel has its own array and all channels share frame indices.
-
-The algorithm uses three frame distances:
-
-| Symbol  | Code           | Meaning                                                    |
-| ------- | -------------- | ---------------------------------------------------------- |
-| $W$     | `windowFrames` | Length of each selected source segment                     |
-| $H=W/2$ | `hopFrames`    | Output frames generated per step                           |
-| $S$     | `searchFrames` | Number of candidate start positions in the search interval |
-
-The constructor converts the window and search durations to frames using the sample rate. It rounds the window length to at least two frames and increases odd lengths by one, giving an even $W$ and an integer half-window hop. The search length is rounded to at least one frame.
-
-The command-line renderer and pitch-shifter worklet use a 20 ms window and a 30 ms search interval. At 48 kHz, these give
+Let $x[i]$ be a source signal sampled at $F_s$ samples per second. A sinusoid of frequency $f$ has the form
 
 $$
-W=48000\times0.020=960,
-\qquad H=480,
-\qquad S=48000\times0.030=1440.
+x[i]=\cos\left(\frac{2\pi f}{F_s}i\right).
 $$
 
-Let $r$ be `playbackRate`, measured as nominal source frames per output frame. At $r=0.75$, one second of output covers about 0.75 seconds of source audio. At $r=1.5$, it covers about 1.5 seconds. For a finite source of $N$ frames, the output length is
+If we advance through the source by $r$ samples per output sample, resampling gives
 
 $$
-N_{\mathrm{out}}=\left\lceil\frac{N}{r}\right\rceil.
+y[m]=x[rm]
+=\cos\left(\frac{2\pi rf}{F_s}m\right).
 $$
 
-## Nominal Source Position
+The frequency becomes $rf$. At $r=0.75$, the recording lasts longer, but every frequency also falls to three quarters of its original value.
 
-Number the generated output hops with $k=0,1,2,\ldots$. Hop $k$ starts at output frame $kH$. Its **nominal source position** follows the requested playback rate:
-
-$$
-p_k=\mathrm{round}(rkH).
-$$
-
-This is `nominalSourcePosition`. The difference between successive nominal positions is approximately $rH$, while each output hop always advances by $H$ frames.
-
-## Choose a Source Window
-
-The nominal position tells us how far playback should have progressed through the source. Starting each window exactly there, however, can bring different phases of the waveform together in the overlap and disturb the sound. We therefore look near the nominal position for a window that matches the preceding window's continuation.
-
-There is one source position where the overlapping samples agree exactly. Each output hop advances by $H$ frames, so starting the next source window $H$ frames after the previous window's start aligns its first half with the previous window's second half. Both halves then contain the same source samples. We call this position the **natural continuation**, $n_k$, corresponding to `naturalSourcePosition`. For the first hop, set $n_0=0$.
-
-Always following natural continuation would advance through the source at the output rate, regardless of the requested playback rate. To keep the selected windows near the intended source time, we restrict their starting positions to a search interval around $p_k$.
-
-### Search Near the Nominal Position
-
-The search interval is centered approximately on the nominal position:
+Instead, copy a short segment starting at source position $q$. Within that segment,
 
 $$
-a_k=p_k-\left\lfloor\frac{S}{2}\right\rfloor,
-\qquad b_k=a_k+S.
+x[q+j]=\cos\left(\frac{2\pi f}{F_s}j+\frac{2\pi f}{F_s}q\right).
 $$
 
-Candidate starts are the integer frames from $a_k$ through $b_k-1$. The end $b_k$ is exclusive, and $S$ describes the entire interval width.
+Choosing $q$ changes the phase, while the frequency with respect to the local index $j$ remains $f$. This gives us a way to separate two decisions. Preserve the samples within each segment, and change the overall progress through the recording by choosing where successive segments begin.
 
-Let $s_k$ denote the source start selected for hop $k$. If the natural continuation lies inside this interval, the implementation selects it directly:
+## Set the Source Timeline
+
+Take source windows of length $W$ and place one every $H$ output samples. The distance $H$ is called the **hop**. We will use $H=W/2$, so neighboring windows overlap by half their length and can be blended together.
+
+Window $k$ begins at output position $kH$. If the requested playback rate is $r$ source samples per output sample, its intended source position is
 
 $$
-a_k\le n_k\lt b_k
-\quad\Longrightarrow\quad
-s_k=n_k.
+p_k=rkH.
 $$
 
-Otherwise, it compares candidate windows with the full $W$-frame window beginning at $n_k$. The search favors the candidate with the highest waveform similarity. The reference is source audio at the natural continuation, and the comparison includes both halves of the window.
+We call $p_k$ the **nominal source position**. At $r=0.75$, successive output windows are $H$ samples apart, while their nominal source positions advance by only $0.75H$. We cover less source audio over the same output duration, so a source of duration $T$ becomes approximately $T/r$ long.
 
-After selecting a window, the next hop's natural continuation is
+For now, this establishes only where each window should come from in time. It does not tell us whether the waveforms will join well. We use ideal positions in the equations and leave rounding to sample indices to the implementation.
+
+## Find a Window That Continues the Waveform
+
+Starting every window exactly at $p_k$ keeps the requested timing, but the overlapping pieces can have different phases. Two copies of the same tone can even cancel when blended if a peak in one aligns with a trough in the other. We need some freedom to adjust the source start while staying near the intended time.
+
+### Identify an Exact Continuation
+
+Consider the window we used on the previous hop. Its second half will overlap the next window's first half. If the next source window begins $H$ samples after the previous one's start, those halves contain exactly the same source samples.
+
+Call this position the **natural continuation**, $n_k$. It gives us both a perfect overlap and a reference waveform for evaluating other starts.
+
+Following that continuation forever would simply reproduce the source at its original rate. Each output hop would advance by $H$ samples in both source and output, regardless of $r$. To change duration, we must sometimes leave this exact continuation and find a similar waveform elsewhere.
+
+### Keep the Search Near the Intended Time
+
+Allow candidate starts $q$ within a region of width $S$ centered on the nominal position:
+
+$$
+|q-p_k|\le\frac{S}{2}.
+$$
+
+This expresses the compromise. The nominal position controls progress through the recording, while the search region allows local adjustments for waveform alignment. A larger region offers more possible matches but also permits material from farther away in source time.
+
+If the natural continuation lies in this region, we can select it immediately. Otherwise, we need a measure of how closely each candidate resembles it.
+
+### Compare Waveform Shape
+
+Write the reference and candidate windows as vectors:
+
+$$
+u_j=x[n_k+j],
+\qquad v_j=x[q+j],
+\qquad 0\le j<W.
+$$
+
+A direct measure of mismatch is the squared distance $\sum_j(u_j-v_j)^2$. But two windows may have the same waveform shape at different amplitudes, and we would still like to recognize their alignment. Normalize each nonzero vector to unit length before comparing them:
+
+$$
+\begin{aligned}
+\left\|\frac{u}{\|u\|}-\frac{v}{\|v\|}\right\|^2
+&=\frac{\|u\|^2}{\|u\|^2}+\frac{\|v\|^2}{\|v\|^2}
+-2\frac{u\cdot v}{\|u\|\|v\|}\\
+&=2-2\frac{u\cdot v}{\|u\|\|v\|}.
+\end{aligned}
+$$
+
+Minimizing this distance is therefore equivalent to maximizing the normalized dot product, also called **cosine similarity**:
+
+$$
+\rho(n_k,q)=
+\frac{\displaystyle\sum_{j=0}^{W-1}x[n_k+j]x[q+j]}
+{\displaystyle\sqrt{\sum_{j=0}^{W-1}x[n_k+j]^2}
+\sqrt{\sum_{j=0}^{W-1}x[q+j]^2}}.
+$$
+
+Matching shapes with the same polarity score 1, while opposite-polarity shapes score -1. Normalization lets us compare their alignment without favoring a candidate simply because it is louder. Our implementation compares full windows, so both the immediate overlap and the following half-window contribute to the choice.
+
+We can now express the selection rule. Let $s_k$ be the source start we select for hop $k$:
+
+$$
+s_k=\underset{|q-p_k|\le S/2}{\arg\max}\;\rho(n_k,q).
+$$
+
+For a nonzero reference, selecting $q=n_k$ scores 1, which explains why we can take the natural continuation directly whenever it is allowed. Other starts may match equally well, particularly for a periodic waveform. Choosing the natural continuation preserves the original samples through the overlap.
+
+Once we have selected the window, its second half determines the next natural continuation:
 
 $$
 n_{k+1}=s_k+H.
 $$
 
-This update follows the window we actually selected. The nominal position, however, is recomputed from output time on every hop and continues to follow $rkH$. This keeps successive alignment adjustments from accumulating into an unintended playback rate.
+The two positions now have distinct roles. The natural continuation follows the window actually chosen, while the nominal position always comes from output time through $p_k=rkH$. A local alignment adjustment therefore does not shift the nominal timeline of every later window.
 
-### Similarity Score
+## See How a Slower Rate Reuses Audio
 
-For a candidate start $q$, the score is the cosine similarity of the reference and candidate samples across all channels:
+Use small sample counts to make the positions easy to follow. Let $W=40$, $H=20$, $S=34$, and $r=0.75$. Start at source position zero. The nominal position advances by 15 samples per hop, while natural continuation advances by 20 until a search changes the selected window.
 
-$$
-\rho(q)=
-\frac{\displaystyle\sum_c\sum_{j=0}^{W-1}x_c[n_k+j]x_c[q+j]}
-{\displaystyle
-\sqrt{\left(\sum_c\sum_{j=0}^{W-1}x_c[n_k+j]^2\right)
-      \left(\sum_c\sum_{j=0}^{W-1}x_c[q+j]^2\right)}}.
-$$
+| Hop $k$ | Output position $kH$ | Nominal position $p_k$ | Natural continuation $n_k$ | Selected start $s_k$ |
+| ------- | -------------------- | ---------------------- | -------------------------- | -------------------- |
+| 0       | 0                    | 0                      | 0                          | 0                    |
+| 1       | 20                   | 15                     | 20                         | 20                   |
+| 2       | 40                   | 30                     | 40                         | 40                   |
+| 3       | 60                   | 45                     | 60                         | 60                   |
 
-The numerator measures agreement between corresponding samples. The denominator normalizes their overall amplitudes. Identical nonzero windows score 1, opposite-polarity windows score -1, and windows with a zero dot product score 0. If either window has zero energy, the implementation returns 0.
+At hop 4, output position is 80, nominal source position is 60, and natural continuation is 80. The natural continuation is now 20 samples away from the nominal position, outside the 17-sample search radius. We must choose an earlier matching window to stay near the requested timeline.
 
-All channels contribute to one score and use one selected start. This preserves their relative timing through each splice. A separate search for each channel could select different waveform cycles and shift the stereo image.
+Suppose the waveform gives a good match at source position 56. The selected start moves back by 24 samples from the natural continuation of 80. We revisit source material while adding another hop to the output, which extends the recording. The next natural continuation is $56+20=76$, while the next nominal position is $0.75\times100=75$.
 
-`findBestCandidate` first evaluates every fifth candidate start. It then evaluates every individual start within five frames of the coarse winner, clipped to the search interval. Each score still uses all $W$ samples per channel. This reduces the number of evaluated candidates, so the result approximates an exhaustive search. Equal scores keep the first candidate evaluated with that score.
+The particular match depends on the audio. A nearly periodic signal offers similar windows separated by roughly whole periods, so revisiting one can add duration without substantially changing its local oscillation. At faster rates, the nominal timeline moves ahead of natural continuation, and matching jumps generally skip source material instead.
 
-### Example at 0.75× Speed
+## Blend the Windows Without Changing Their Shared Level
 
-Use a small illustrative sample rate of 1 kHz, with the same 20 ms window and 30 ms search settings. Then $W=20$, $H=10$, and $S=30$.
+Waveform search improves alignment, but two selected windows will rarely match exactly. Switching abruptly between them would still expose any mismatch. We therefore fade out the previous window while fading in the new one over their overlap.
 
-| Hop $k$ | Output start $kH$ | Nominal start $p_k$ | Search interval | Natural start $n_k$ | Selected start $s_k$ |
-| ------- | ----------------: | ------------------: | --------------- | ------------------: | -------------------: |
-| 0       |                 0 |                   0 | $[-15,15)$      |                   0 |                    0 |
-| 1       |                10 |                   8 | $[-7,23)$       |                  10 |                   10 |
-| 2       |                20 |                  15 | $[0,30)$        |                  20 |                   20 |
-| 3       |                30 |                  23 | $[8,38)$        |                  30 |                   30 |
-| 4       |                40 |                  30 | $[15,45)$       |                  40 |                   40 |
-| 5       |                50 |                  38 | $[23,53)$       |                  50 |                   50 |
-| 6       |                60 |                  45 | $[30,60)$       |                  60 | 48, for this example |
-| 7       |                70 |                  53 | $[38,68)$       |                  58 |                   58 |
+At position $j$ in the overlap, the previous window contributes $x[n_k+j]$ and the new one contributes $x[s_k+j]$. If they agree, we want the blend to reproduce that common sample. Their weights must therefore sum to one.
 
-The first six hops use natural continuation. At hop 6, frame 60 lies at the excluded end of the search interval, so a similarity search runs. Suppose the waveform makes frame 48 the selected candidate. This choice is illustrative because the actual winner depends on the audio.
-
-The next natural start becomes $48+10=58$, while the next nominal start is still $\mathrm{round}(0.75\times70)=53$. Moving back from the expected continuation of 60 to 48 revisits source material, extending its duration. At faster playback rates, alignment jumps generally skip source material instead.
-
-## Join the Selected Windows
-
-The implementation uses a periodic Hann window:
+Let $a[j]$ be the incoming weight. A complementary blend is
 
 $$
-w[j]=\frac{1}{2}\left(1-\cos\frac{2\pi j}{W}\right),
-\qquad 0\le j\lt W.
+y[kH+j]=(1-a[j])x[n_k+j]+a[j]x[s_k+j],
+\qquad 0\le j<H.
 $$
 
-With $H=W/2$, shifting the cosine by half a window adds $\pi$ to its phase and reverses its sign. Therefore
+We still have a choice of fade shape. A raised cosine moves smoothly from zero toward one, with zero slope at the ends of the continuous fade:
 
 $$
-w[j]+w[j+H]=1,
-\qquad 0\le j\lt H.
+a[j]=\frac12\left(1-\cos\frac{\pi j}{H}\right).
 $$
 
-For hop $k$, let $C_c[j]$ be the unweighted second half carried from the previous selected window. The next $H$ output samples are
+For $W=2H$, this is the first half of a periodic Hann window,
 
 $$
-y_c[kH+j]=C_c[j]w[j+H]+x_c[s_k+j]w[j],
-\qquad 0\le j\lt H.
+w[j]=\frac12\left(1-\cos\frac{2\pi j}{W}\right).
 $$
 
-The carry is then replaced with the new window's second half:
+Its second half supplies exactly the complementary outgoing weight because shifting the cosine by half a window adds $\pi$ to its phase:
 
 $$
-C_c[j]\leftarrow x_c[s_k+H+j].
+\begin{aligned}
+w[j+H]
+&=\frac12\left(1-\cos\left(\frac{2\pi j}{W}+\pi\right)\right)\\
+&=\frac12\left(1+\cos\frac{2\pi j}{W}\right)\\
+&=1-w[j].
+\end{aligned}
 $$
 
-At natural continuation, both terms in the output equation refer to the same source sample. Their weights sum to 1, reproducing that sample. After a search jump, the two terms come from different source positions. Correlation seeks a close waveform match so their weighted blend forms a smooth join. For poorly matched windows, the blend can still change the sound.
-
-The first carry contains zeros. The first output hop therefore fades in with the first half of the Hann window. The unit-sum identity describes the join once both contributions are present.
-
-## Output Blocks and Source Boundaries
-
-Window generation and output consumption use separate cursors. `generatedOutputPosition` advances by $H$ whenever a hop is generated. `hopOutputOffset` records how much of that hop the consumer has read. A request for 128 output frames can consume part of a 480-frame hop, and the next request resumes from the remaining samples.
-
-`WsolaProcessor` reads an immutable finite source. Similarity and overlap-add treat samples outside that source as zero. The consumer receives exactly $\lceil N/r\rceil$ output frames, even when the last internally generated hop extends beyond that length. Completion follows this output-frame count.
-
-`StreamingWsola` receives input incrementally. It waits for future samples instead of assuming that missing input is silence. A pull can return a partial block or zero when the next hop is not ready. It has no end-of-stream signal, so finite callers own the final output length and supply zero padding when they need to render the tail.
-
-## Streaming Readiness and Retention
-
-Let $L$ be the total number of source frames received so far, using an exclusive end index. Natural continuation requires the window through $n_k+W$. A search also requires all candidate windows, including the last start at $b_k-1$. The required exclusive end is
+Thus placing Hann-weighted windows one half-window apart produces the blend we wanted:
 
 $$
-E_k=
-\begin{cases}
-n_k+W, & a_k\le n_k\lt b_k,\\
-\max(n_k+W,\ b_k-1+W), & \text{otherwise}.
-\end{cases}
+y[kH+j]=x[n_k+j]w[j+H]+x[s_k+j]w[j].
 $$
 
-`canGenerateHop` permits generation when $E_k\le L$. Checking only the candidate windows would omit the reference window needed to score them.
-
-Before the first pull, the processor also waits for `latencyFrames` source frames:
+When $s_k=n_k$, both source samples are identical and the weights sum to one, so we reproduce the source exactly through that overlap. When the match is imperfect, we can expose its effect by rearranging the blend:
 
 $$
-B=W+\left\lceil\frac{S}{2}\right\rceil
-  +\left\lceil\max(0,(1-r)H)\right\rceil+1.
+y[kH+j]=x[n_k+j]+w[j]\bigl(x[s_k+j]-x[n_k+j]\bigr).
 $$
 
-The window and half-search terms reserve future samples beyond a nominal start. The extra $(1-r)H$ term accounts for natural continuation advancing by $H$ while the nominal position advances by about $rH$. This matters during slow playback, when the natural reference can reach farther ahead. The final frame provides rounding headroom. At 48 kHz and $r=0.75$, the reserve is $960+720+120+1=1801$ source frames, about 37.5 ms.
+The second term is the weighted mismatch. This explains why alignment and blending work together. The search seeks a similar waveform, while the fade introduces its difference gradually. Complementary weights alone cannot prevent cancellation between opposite phases or hide a badly matched transient.
 
-The separate `lookaheadFrames` value is $W+S$. Callers use this allowance when padding a finite source. Actual per-hop readiness is still determined by $E_k$.
+## What the Choices Control
 
-After a hop, the streaming processor retains the source needed by the next natural continuation or search. Its discard boundary is the earlier of those two starts, clamped to frame zero:
+The window length $W$ determines how much waveform participates in matching and blending. Longer windows compare more context but may span changes such as note attacks. Shorter windows keep the operation more local but give the comparison less waveform to work with. The search width $S$ separately controls how far the chosen source time may move from the nominal timeline.
 
-$$
-\max\bigl(0,\min(n_{k+1},a_{k+1})\bigr).
-$$
+Our renderer uses a 20 ms window and a 30 ms search region. At 48 kHz, that gives $W=960$, $H=480$, and $S=1440$ samples. These are practical choices rather than consequences of the equations. The waveform and the requested rate determine how well the available windows match.
 
-The stream buffer keeps absolute source indices as old storage is reused. It also enforces its fixed capacity, and `push` throws if the producer supplies more input than the retained buffer can hold.
+The construction preserves sample spacing within each selected segment, but joins can still alter the sound. Sustained periodic material often provides good matches, but attacks, noise, and mixtures of unrelated periods may not. WSOLA searches for useful waveform agreement without explicitly estimating a pitch.
 
-## Relationship to Pitch Shifting
+## Connect the Formulation to the Code
 
-[`StreamingPitchShifter`](../../src/lib/dsp/pitch-shifter.ts) combines WSOLA with resampling. For a requested pitch ratio $p$, it runs WSOLA at $r=1/p$, producing approximately $p$ times as many frames. Its resampler then consumes $p$ stretched frames per output frame. The durations cancel while resampling shifts pitch by $p$.
+[`WsolaProcessor` and `StreamingWsola`](../../src/lib/dsp/wsola.ts) use the same selection and blending calculations. The first reads a complete source, while the second waits until incoming audio supplies the reference and candidate windows needed for a hop.
 
-The WSOLA alignment search itself estimates which source segments join well. It operates directly on waveform similarity, with the window and search lengths controlling how much audio participates in each comparison.
+The equations describe the central window-selection problem. The code rounds positions to sample indices and approximates the maximum with a coarse search followed by local refinement. For silent windows, where cosine normalization is undefined, it assigns a similarity score of zero. For multiple channels, it combines all channels into one comparison and selects a shared source start, preserving their relative timing.
 
-## Code Map
+The overlap equations describe joins between successive windows. At startup, the implementation has no preceding window and fades in from silence. Source boundaries, output block sizes, and streaming buffer management are handled separately in the code.
 
-| Concept                                                | Implementation                                             |
-| ------------------------------------------------------ | ---------------------------------------------------------- |
-| Nominal timeline and natural continuation              | `WsolaProcessor.generateHop`, `StreamingWsola.generateHop` |
-| Candidate interval in the streaming path               | `StreamingWsola.getSearchStart`                            |
-| Coarse search and local refinement                     | `findBestCandidate`                                        |
-| Multichannel cosine similarity                         | `calculateSimilarity`                                      |
-| Hann weights and carried half-window                   | `createPeriodicHannWindow`, `overlapAddPlanar`             |
-| Future input and retained history                      | `StreamingWsola.canGenerateHop`, `PlanarStreamBuffer`      |
-| Block-size independence and finite/streaming agreement | [`wsola.test.ts`](../../src/lib/dsp/wsola.test.ts)         |
+| Mathematical role                         | Implementation                                             |
+| ----------------------------------------- | ---------------------------------------------------------- |
+| Nominal timeline and natural continuation | `WsolaProcessor.generateHop`, `StreamingWsola.generateHop` |
+| Approximate similarity maximum            | `findBestCandidate`, `calculateSimilarity`                 |
+| Complementary Hann blend                  | `createPeriodicHannWindow`, `overlapAddPlanar`             |
 
-The implementation's opening comments document its relationship to Chromium's audio renderer and the choices made when adapting it. The [command-line renderer](../../tools/wsola.ts) supports listening experiments with playback rate, window length, and search length.
-
-## Visual Companion
-
-The [WSOLA visual explainer](https://gisthost.github.io/?109135460ad3d821bc7f7ce66278e0bb/wsola-explainer.html) introduces the algorithm through high-level visual intuition. It complements the equations and implementation details in this document.
+The [command-line renderer](../../tools/wsola.ts) supports listening experiments with playback rate, window length, and search width. The [visual companion](https://gisthost.github.io/?109135460ad3d821bc7f7ce66278e0bb/wsola-explainer.html) illustrates how source-window selection and overlap change the output.
