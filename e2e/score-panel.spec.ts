@@ -1,18 +1,18 @@
 import { expect, test } from "@playwright/test";
 import {
-  createRecorderProject,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  saveRecorderProject,
+  createProject,
+  addMidiTrack,
+  createMidiNote,
+  saveProject,
 } from "./editor-helpers";
 
 test("previews a MIDI note and opens its saved score in the viewer", async ({
   page,
 }) => {
   // Create a MIDI track and add a C4 note at the first beat.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
-  const note = await createRecorderMidiNote(page, row, {
+  await createProject(page);
+  const row = await addMidiTrack(page);
+  const note = await createMidiNote(page, row, {
     beat: 0,
     pitch: "C4",
   });
@@ -41,7 +41,7 @@ test("previews a MIDI note and opens its saved score in the viewer", async ({
   await expect(tooltip).toHaveText("Please save before opening score view");
 
   // Save the project and open its track in the score viewer.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await expect(openScore).toBeEnabled();
   const popupPromise = page.waitForEvent("popup");
   await openScore.click();

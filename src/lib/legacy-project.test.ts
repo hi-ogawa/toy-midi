@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { convertLegacyProject } from "./legacy-project";
 import {
-  createDefaultSavedProject,
-  type SavedProject,
+  createDefaultLegacySavedProject,
+  type LegacySavedProject,
 } from "./legacy-project-format";
 
 vi.hoisted(() => {
@@ -33,8 +33,8 @@ function mockDecoder() {
 
 describe("legacy recorder conversion", () => {
   it("copies MIDI, annotations, timing, and mix", async () => {
-    const project: SavedProject = {
-      ...createDefaultSavedProject(),
+    const project: LegacySavedProject = {
+      ...createDefaultLegacySavedProject(),
       notes: [
         {
           id: "note",
@@ -92,7 +92,7 @@ describe("legacy recorder conversion", () => {
     const result = await convertLegacyProject({
       name: "Audio",
       project: {
-        ...createDefaultSavedProject(),
+        ...createDefaultLegacySavedProject(),
         audioTracks: [
           {
             id: "backing",
@@ -125,7 +125,7 @@ describe("legacy recorder conversion", () => {
     const result = await convertLegacyProject({
       name: "Stored v1",
       project: {
-        ...createDefaultSavedProject(),
+        ...createDefaultLegacySavedProject(),
         version: 1,
         audioFileName: "backing.wav",
         audioAssetKey: "stored-audio",

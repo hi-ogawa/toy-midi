@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
-  addRecorderAudio,
-  createRecorderProject,
+  addAudio,
+  createProject,
   enableInput,
-  seekRecorderByPixels,
+  seekByPixels,
   waitForRecordingSamples,
 } from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
@@ -12,15 +12,15 @@ import { useFakeAudioInput } from "./helpers";
 useFakeAudioInput();
 
 test("selects and moves audio and take clips together", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
 
   // Import a backing track.
-  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  await addAudio(page, "e2e/fixtures/test-audio.wav");
   const audio = page.getByTestId("recorder-clip-audio-source");
 
   // Record a take away from zero.
   await enableInput(page);
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));

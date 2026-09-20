@@ -1,26 +1,26 @@
 import { expect, test } from "@playwright/test";
 import {
-  createRecorderProject,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  saveRecorderProject,
-  getRecorderMidiGridPoint,
+  createProject,
+  addMidiTrack,
+  createMidiNote,
+  saveProject,
+  getMidiGridPoint,
 } from "./editor-helpers";
 
 test("moves a MIDI note with a cancellable preview and saves on release", async ({
   page,
 }) => {
   // Create a C4 note and save it so the dirty indicator distinguishes preview from commit.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
+  await createProject(page);
+  const row = await addMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const note = grid.locator("[data-note-id]");
-  await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
+  await createMidiNote(page, row, { beat: 0, pitch: "C4" });
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
   const save = page.getByTestId("recorder-save-button");
-  await saveRecorderProject(page);
-  const from = await getRecorderMidiGridPoint(row, { beat: 0, pitch: "C4" });
-  const to = await getRecorderMidiGridPoint(row, { beat: 0.5, pitch: "D4" });
+  await saveProject(page);
+  const from = await getMidiGridPoint(row, { beat: 0, pitch: "C4" });
+  const to = await getMidiGridPoint(row, { beat: 0.5, pitch: "D4" });
   const original = (await note.boundingBox())!;
   const startX = original.x + original.width / 2;
   const startY = original.y + original.height / 2;
@@ -59,7 +59,7 @@ test("moves a MIDI note with a cancellable preview and saves on release", async 
   expect((await note.boundingBox())!.width).toBe(original.width);
 
   // Save and reload the moved note to verify its final position persists.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await page.reload();
   await expect(note).toHaveAttribute("aria-label", "D4, beat 1.5");
   expect((await note.boundingBox())!.width).toBe(original.width);

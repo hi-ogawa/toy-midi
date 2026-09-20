@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { KEY_SIGNATURE_OPTION_GROUPS } from "../lib/pitch-spelling";
-import type { MidiTrackState, RecorderRuntime } from "../lib/runtime";
+import type { MidiTrackState, Runtime } from "../lib/runtime";
 import {
   resolveTabStringPreset,
   TAB_STRING_PRESETS,
@@ -12,7 +12,7 @@ export function MidiInstrument({
   runtime,
 }: {
   track: MidiTrackState;
-  runtime: RecorderRuntime;
+  runtime: Runtime;
 }) {
   const programMutation = useMutation({
     mutationFn: (program: number) =>

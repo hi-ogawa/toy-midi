@@ -2,7 +2,7 @@ import { XIcon } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "./ui/utils";
 
-export function RecorderPanel({
+export function Panel({
   title,
   headerActions,
   closeLabel,

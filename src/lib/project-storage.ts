@@ -1,17 +1,17 @@
 import { IdbStore } from "./idb.ts";
 import {
-  type SerializedRecorderRuntimeState,
-  serializeRecorderRuntimeState,
+  type SerializedRuntimeState,
+  serializeRuntimeState,
 } from "./persistence.ts";
-import { createDefaultRecorderRuntimeState } from "./runtime.ts";
+import { createDefaultRuntimeState } from "./runtime.ts";
 
-interface StoredRecorderProject {
+interface StoredProject {
   id: string;
   updatedAt: number;
-  content: SerializedRecorderRuntimeState;
+  content: SerializedRuntimeState;
 }
 
-export interface RecorderProjectMetadata {
+export interface ProjectMetadata {
   id: string;
   updatedAt: number;
   title: string;
@@ -24,31 +24,29 @@ const storeOptions = {
   storeNames: ["projects", "metadata"],
 };
 
-const projects = new IdbStore<StoredRecorderProject>({
+const projects = new IdbStore<StoredProject>({
   ...storeOptions,
   storeName: "projects",
 });
-const metadata = new IdbStore<RecorderProjectMetadata>({
+const metadata = new IdbStore<ProjectMetadata>({
   ...storeOptions,
   storeName: "metadata",
 });
 
-export const recorderProjectStorage = {
-  async list(): Promise<RecorderProjectMetadata[]> {
+export const projectStorage = {
+  async list(): Promise<ProjectMetadata[]> {
     return (await metadata.getAll()).sort((a, b) => b.updatedAt - a.updatedAt);
   },
 
   async create(): Promise<string> {
     return this.createWithContent(
-      serializeRecorderRuntimeState(createDefaultRecorderRuntimeState()),
+      serializeRuntimeState(createDefaultRuntimeState()),
     );
   },
 
-  async createWithContent(
-    content: SerializedRecorderRuntimeState,
-  ): Promise<string> {
+  async createWithContent(content: SerializedRuntimeState): Promise<string> {
     const id = crypto.randomUUID();
-    const project: StoredRecorderProject = {
+    const project: StoredProject = {
       id,
       updatedAt: Date.now(),
       content,
@@ -58,7 +56,7 @@ export const recorderProjectStorage = {
     return id;
   },
 
-  async load(id: string): Promise<SerializedRecorderRuntimeState> {
+  async load(id: string): Promise<SerializedRuntimeState> {
     const project = await projects.get(id);
     if (!project) {
       throw new Error(`Recorder project ${id} not found.`);
@@ -71,9 +69,9 @@ export const recorderProjectStorage = {
     content,
   }: {
     id: string;
-    content: SerializedRecorderRuntimeState;
+    content: SerializedRuntimeState;
   }): Promise<void> {
-    const project: StoredRecorderProject = {
+    const project: StoredProject = {
       id,
       updatedAt: Date.now(),
       content,
@@ -88,7 +86,7 @@ export const recorderProjectStorage = {
   },
 };
 
-function toMetadata(project: StoredRecorderProject): RecorderProjectMetadata {
+function toMetadata(project: StoredProject): ProjectMetadata {
   return {
     id: project.id,
     updatedAt: project.updatedAt,

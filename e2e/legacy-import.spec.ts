@@ -1,11 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import {
-  exportProjectFile,
-  exportProjectFileV1,
+  exportLegacyProjectFile,
+  exportLegacyProjectFileV1,
 } from "../src/lib/legacy-project-file";
-import type { SavedProject } from "../src/lib/legacy-project-format";
-import { getRecorderMidiNote, getRecorderPosition } from "./editor-helpers";
+import type { LegacySavedProject } from "../src/lib/legacy-project-format";
+import { getMidiNote, getPosition } from "./editor-helpers";
 
 for (const version of [1, 2] as const) {
   test(`imports a legacy v${version} archive into the recorder`, async ({
@@ -26,7 +26,7 @@ for (const version of [1, 2] as const) {
     await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
     const projectUrl = page.url();
     const row = page.getByTestId("recorder-midi-track-row");
-    const note = getRecorderMidiNote(row, { beat: 1, pitch: "C4" });
+    const note = getMidiNote(row, { beat: 1, pitch: "C4" });
     await expect(page.getByTestId("recorder-project-name")).toHaveText(
       `Legacy v${version}`,
     );
@@ -42,7 +42,7 @@ for (const version of [1, 2] as const) {
 
     // Play the imported project past the backing track's offset.
     await page.getByTestId("recorder-play-button").click();
-    await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0.6);
+    await expect.poll(() => getPosition(page)).toBeGreaterThan(0.6);
     await page.getByTestId("recorder-play-button").click();
 
     // Reload the new recorder copy and retain its note annotations and waveform.
@@ -80,7 +80,7 @@ const LEGACY_MUSICAL_DATA = {
   masterVolume: 0.75,
   metronomeEnabled: false,
   metronomeVolume: 0.25,
-} satisfies Omit<SavedProject, "version" | "audioTracks">;
+} satisfies Omit<LegacySavedProject, "version" | "audioTracks">;
 
 async function createLegacyArchive(version: 1 | 2) {
   const audio = await readFile(
@@ -89,7 +89,7 @@ async function createLegacyArchive(version: 1 | 2) {
   const name = `Legacy v${version}`;
   const blob =
     version === 1
-      ? await exportProjectFileV1(
+      ? await exportLegacyProjectFileV1(
           name,
           {
             ...LEGACY_MUSICAL_DATA,
@@ -103,7 +103,7 @@ async function createLegacyArchive(version: 1 | 2) {
           },
           audio,
         )
-      : await exportProjectFile(
+      : await exportLegacyProjectFile(
           name,
           {
             ...LEGACY_MUSICAL_DATA,

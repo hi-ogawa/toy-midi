@@ -1,10 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
-  addRecorderAudio,
-  createRecorderProject,
+  addAudio,
+  createProject,
   enableInput,
-  seekRecorderByPixels,
+  seekByPixels,
   waitForRecordingSamples,
 } from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
@@ -12,21 +12,21 @@ import { useFakeAudioInput } from "./helpers";
 useFakeAudioInput();
 
 test("exports and imports a recorder project archive", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
 
   // Build an editable project with backing audio and two retained takes.
-  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  await addAudio(page, "e2e/fixtures/test-audio.wav");
 
   await enableInput(page);
   const recordButton = page.getByTestId("recorder-record-button");
   for (const beat of [2, 4]) {
-    await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
+    await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
     await recordButton.click();
     await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
     await recordButton.click();
   }
   await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
-  const clipGeometry = await getRecorderClipGeometry(page);
+  const clipGeometry = await getClipGeometry(page);
   await page.getByTestId("recorder-mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
   await masterLevel.fill("-6");
@@ -59,14 +59,14 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
   await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
-  await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
+  await expect.poll(() => getClipGeometry(page)).toEqual(clipGeometry);
   await page.getByTestId("recorder-mixer-button").click();
   await expect(
     page.getByRole("textbox", { name: "Master level in dB" }),
   ).toHaveValue("-6.0");
 });
 
-async function getRecorderClipGeometry(page: Page) {
+async function getClipGeometry(page: Page) {
   const geometry = await Promise.all(
     (["audio-source", "comp-source", "comp"] as const).map(async (variant) => ({
       variant,

@@ -1,22 +1,22 @@
 import { useMutation } from "@tanstack/react-query";
 import { matchKeyboardEvent } from "../lib/keyboard";
-import type { RecorderRuntime, RecorderRuntimeState } from "../lib/runtime";
-import { useRecorderLocatorInteraction } from "./locators";
-import { useRecorderClipInteraction } from "./use-clip-interaction";
-import { useRecorderMidiInteraction } from "./use-midi-interaction";
+import type { Runtime, RuntimeState } from "../lib/runtime";
+import { useLocatorInteraction } from "./locators";
+import { useClipInteraction } from "./use-clip-interaction";
+import { useMidiInteraction } from "./use-midi-interaction";
 
-export function useRecorderInteraction({
+export function useInteraction({
   runtime,
   state,
   isRecording,
   subdivisionsPerBeat,
 }: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
+  runtime: Runtime;
+  state: RuntimeState;
   isRecording: boolean;
   subdivisionsPerBeat: number;
 }) {
-  const clipInteraction = useRecorderClipInteraction({
+  const clipInteraction = useClipInteraction({
     runtime,
     state,
     onSelect: () => {
@@ -25,7 +25,7 @@ export function useRecorderInteraction({
     },
   });
 
-  const locatorInteraction = useRecorderLocatorInteraction({
+  const locatorInteraction = useLocatorInteraction({
     runtime,
     state,
     subdivisionsPerBeat,
@@ -35,7 +35,7 @@ export function useRecorderInteraction({
     },
   });
 
-  const midiInteraction = useRecorderMidiInteraction({
+  const midiInteraction = useMidiInteraction({
     runtime,
     state,
     subdivisionsPerBeat,

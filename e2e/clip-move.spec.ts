@@ -1,19 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import {
-  addRecorderAudio,
-  createRecorderProject,
-  dragBy,
-  saveRecorderProject,
-} from "./editor-helpers";
+import { addAudio, createProject, dragBy, saveProject } from "./editor-helpers";
 
 test("previews a clip move, cancels through release, and persists a committed move", async ({
   page,
 }) => {
   // Load and save audio so the save indicator distinguishes preview from commit.
-  await createRecorderProject(page);
-  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  await saveRecorderProject(page);
+  await createProject(page);
+  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await saveProject(page);
   const clip = page.getByTestId("recorder-clip-audio-source");
   const save = page.getByTestId("recorder-save-button");
   const original = (await clip.boundingBox())!;
@@ -42,7 +37,7 @@ test("previews a clip move, cancels through release, and persists a committed mo
   await expect(save).toHaveAttribute("data-status", "unsaved");
 
   // Save and reload to retain the committed position and duration.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await page.reload();
   await expect(clip).toBeVisible();
   expect((await clip.boundingBox())!.x).toBeCloseTo(preview.x, 0);

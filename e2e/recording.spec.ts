@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
-  createRecorderProject,
+  createProject,
   dragBy,
   enableInput,
-  getRecorderPosition,
-  seekRecorderByPixels,
+  getPosition,
+  seekByPixels,
   waitForRecordingSamples,
 } from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
@@ -13,7 +13,7 @@ import { useFakeAudioInput } from "./helpers";
 useFakeAudioInput();
 
 test("records, plays, and manages multiple takes", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
 
   // Connect the browser input before recording is available.
   await enableInput(page);
@@ -26,7 +26,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(monitorButton).toHaveAttribute("aria-pressed", "true");
 
   // Place the playhead away from zero to exercise take placement.
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
 
   // Recording starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
@@ -101,7 +101,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await playButton.click();
 
   // Move later in the song and record another attempt.
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await recordButton.click();
   const secondRecording = page.getByTestId("recorder-clip-recording");
   await expect(secondRecording).toContainText("Recording...");
@@ -174,11 +174,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows).toHaveCount(2);
 
   // Selecting a source take does not seek, and Escape clears the selection.
-  const positionBeforeSelection = await getRecorderPosition(page);
+  const positionBeforeSelection = await getPosition(page);
   await take.nth(0).click();
-  await expect
-    .poll(() => getRecorderPosition(page))
-    .toBe(positionBeforeSelection);
+  await expect.poll(() => getPosition(page)).toBe(positionBeforeSelection);
   await expect(take.nth(0)).toHaveAttribute("data-selected", "true");
   await page.keyboard.press("Escape");
   await expect(take.nth(0)).not.toHaveAttribute("data-selected", "true");

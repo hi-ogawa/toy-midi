@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { A4_FREQUENCY_HZ, hzToMidi, MIN_DB } from "../lib/music";
 import { spellChromaticPitch } from "../lib/pitch-spelling";
 import type { TunerAnalyser, TunerAnalysis } from "../lib/tuner-analyser";
-import { RecorderPanel } from "./panel";
+import { Panel } from "./panel";
 
 const CENT_TICKS = [-50, -25, 0, 25, 50];
 const IN_TUNE_CENTS = 5;
 const SILENT_ANALYSIS: TunerAnalysis = { status: "silent", levelDb: MIN_DB };
 
-export function RecorderTuner({
+export function Tuner({
   analyser,
   onClose,
 }: {
@@ -23,23 +23,19 @@ export function RecorderTuner({
   }, [analyser]);
 
   return (
-    <RecorderPanel
+    <Panel
       title="Tuner"
       closeLabel="Close Tuner"
       onClose={onClose}
       data-testid="recorder-tuner-panel"
       className="pointer-events-auto w-80 shrink-0"
     >
-      <RecorderTunerContent analysis={analysis} />
-    </RecorderPanel>
+      <TunerContent analysis={analysis} />
+    </Panel>
   );
 }
 
-export function RecorderTunerContent({
-  analysis,
-}: {
-  analysis: TunerAnalysis;
-}) {
+export function TunerContent({ analysis }: { analysis: TunerAnalysis }) {
   const frequencyHz = useDebouncedValue({
     value: analysis.status === "pitched" ? analysis.frequencyHz : undefined,
     delayMs: analysis.status === "pitched" ? 0 : 300,

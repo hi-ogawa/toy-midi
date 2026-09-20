@@ -1,9 +1,9 @@
 import JSZip from "jszip";
 import { convertLegacyProject } from "./legacy-project";
-import { parseProjectFile } from "./legacy-project-file";
-import { readRecorderProjectArchive } from "./project-archive";
+import { parseLegacyProjectFile } from "./legacy-project-file";
+import { readProjectArchive } from "./project-archive";
 
-export async function importRecorderProject(file: File) {
+export async function importProject(file: File) {
   // Use the manifest to distinguish native recorder archives from legacy projects.
   const zip = await JSZip.loadAsync(file);
   const manifestFile = zip.file("manifest.json");
@@ -12,7 +12,7 @@ export async function importRecorderProject(file: File) {
   }
   const manifest = JSON.parse(await manifestFile.async("text"));
   if (manifest.projectType === "recorder") {
-    return readRecorderProjectArchive(zip);
+    return readProjectArchive(zip);
   }
   if (manifest.projectType !== undefined) {
     throw new Error("Unsupported project type");
@@ -20,7 +20,7 @@ export async function importRecorderProject(file: File) {
 
   // Keep legacy audio in memory for conversion instead of saving it to the old asset store.
   const assets = new Map<string, File>();
-  const parsed = await parseProjectFile(file, {
+  const parsed = await parseLegacyProjectFile(file, {
     saveAsset: async (audio) => {
       const assetKey = crypto.randomUUID();
       assets.set(assetKey, audio);

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, enableInput } from "./editor-helpers";
+import { createProject, enableInput } from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
 
 // Loop the 3-second 440 Hz fixture throughout the test.
@@ -7,7 +7,7 @@ useFakeAudioInput({ audioFilePath: "e2e/fixtures/test-audio.wav" });
 
 test("opens the tuner and detects the input pitch", async ({ page }) => {
   // Open the tuner before enabling input and show the no-signal state.
-  await createRecorderProject(page);
+  await createProject(page);
   await page.getByRole("button", { name: "Open tuner", exact: true }).click();
   const panel = page.getByTestId("recorder-tuner-panel");
   await expect(panel.getByText("No signal", { exact: true })).toBeVisible();

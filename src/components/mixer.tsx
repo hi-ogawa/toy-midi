@@ -2,20 +2,20 @@ import { GaugeIcon, Mic2Icon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../lib/music";
-import type { RecorderRuntime, RecorderRuntimeState } from "../lib/runtime";
-import { RecorderEffectsToggle } from "./effects-toggle";
+import type { Runtime, RuntimeState } from "../lib/runtime";
+import { EffectsToggle } from "./effects-toggle";
 import { MetronomeIcon } from "./icons";
-import { RecorderMixToggle } from "./mix-toggle";
+import { MixToggle } from "./mix-toggle";
 import { Slider } from "./ui/slider";
 
-export function RecorderMixer({
+export function Mixer({
   runtime,
   state,
   openEffects,
   onEffectsToggle,
 }: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
+  runtime: Runtime;
+  state: RuntimeState;
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
@@ -38,7 +38,7 @@ export function RecorderMixer({
         data-testid="recorder-mixer-master"
       />
       {state.audioTracks.map((track, index) => (
-        <RecorderTrackChannel
+        <TrackChannel
           key={track.id}
           effectsOpen={openEffects.has(track.id)}
           onEffectsToggle={() => onEffectsToggle(track.id)}
@@ -52,7 +52,7 @@ export function RecorderMixer({
         />
       ))}
       {state.midiTracks.map((track) => (
-        <RecorderTrackChannel
+        <TrackChannel
           key={track.id}
           effectsOpen={openEffects.has(track.id)}
           onEffectsToggle={() => onEffectsToggle(track.id)}
@@ -66,7 +66,7 @@ export function RecorderMixer({
           onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
         />
       ))}
-      <RecorderTrackChannel
+      <TrackChannel
         label="Capture"
         effectsOpen={openEffects.has("capture")}
         onEffectsToggle={() => onEffectsToggle("capture")}
@@ -92,7 +92,7 @@ export function RecorderMixer({
         inputProps={metronomeInput.props}
         data-testid="recorder-mixer-metro"
         action={
-          <RecorderMixToggle
+          <MixToggle
             active={!state.metronomeEnabled}
             kind="mute"
             onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
@@ -105,7 +105,7 @@ export function RecorderMixer({
   );
 }
 
-function RecorderTrackChannel({
+function TrackChannel({
   label,
   gain,
   muted,
@@ -139,21 +139,21 @@ function RecorderTrackChannel({
       data-testid={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
         <div className="flex flex-col gap-1">
-          <RecorderMixToggle
+          <MixToggle
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           />
-          <RecorderMixToggle
+          <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           />
-          <RecorderEffectsToggle
+          <EffectsToggle
             label={label}
             open={effectsOpen}
             onClick={onEffectsToggle}
@@ -207,7 +207,7 @@ function MixerChannel({
           {label}
         </span>
       </div>
-      <RecorderGainSlider
+      <GainSlider
         label={`${label === "Metro" ? "Metronome" : label} gain`}
         gain={gain}
         onGainChange={onGainChange}
@@ -229,7 +229,7 @@ function MixerChannel({
   );
 }
 
-export function RecorderGainSlider({
+export function GainSlider({
   label,
   gain,
   onGainChange,

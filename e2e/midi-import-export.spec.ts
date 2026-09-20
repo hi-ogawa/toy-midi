@@ -1,18 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import midiPackage from "@tonejs/midi";
-import {
-  addRecorderMidiTrack,
-  createRecorderProject,
-  getRecorderMidiNote,
-} from "./editor-helpers";
+import { addMidiTrack, createProject, getMidiNote } from "./editor-helpers";
 
 const { Midi } = midiPackage;
 
 test("imports and exports a MIDI file from track actions", async ({ page }) => {
   // Create an empty MIDI track and a file containing one C4 note.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
+  await createProject(page);
+  const row = await addMidiTrack(page);
   const source = new Midi();
   source.addTrack().addNote({
     midi: 60,
@@ -35,9 +31,7 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
     mimeType: "audio/midi",
     buffer: Buffer.from(source.toArray()),
   });
-  await expect(
-    getRecorderMidiNote(row, { beat: 1, pitch: "C4" }),
-  ).toBeVisible();
+  await expect(getMidiNote(row, { beat: 1, pitch: "C4" })).toBeVisible();
 
   // Export the track and verify the downloaded MIDI contains the imported note.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();

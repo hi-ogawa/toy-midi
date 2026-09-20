@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { exportMusicXml } from "../lib/musicxml/render";
 import { DEFAULT_KEY_SIGNATURE } from "../lib/pitch-spelling";
-import { recorderProjectStorage } from "../lib/project-storage";
+import { projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../lib/tab-annotation";
 import { RouteError } from "./route-error";
 import { ScoreViewer } from "./score-viewer";
 
-export function RecorderScorePage({
+export function ScorePage({
   projectId,
   trackId,
 }: {
@@ -17,7 +17,7 @@ export function RecorderScorePage({
   // Keep a saved snapshot for this page, as with the legacy score route.
   const score = useQuery({
     queryKey: ["recorder-project-score", projectId, trackId],
-    queryFn: () => getRecorderProjectScoreSource({ projectId, trackId }),
+    queryFn: () => getProjectScoreSource({ projectId, trackId }),
     staleTime: Infinity,
     retry: false,
   });
@@ -26,7 +26,7 @@ export function RecorderScorePage({
     return (
       <RouteError
         error={score.error}
-        backHref={routes.recorderProject.href({ projectId })}
+        backHref={routes.project.href({ projectId })}
         backLabel="Back to project"
       />
     );
@@ -37,14 +37,14 @@ export function RecorderScorePage({
   return <ScoreViewer initialSource={score.data} />;
 }
 
-async function getRecorderProjectScoreSource({
+async function getProjectScoreSource({
   projectId,
   trackId,
 }: {
   projectId: string;
   trackId: string;
 }) {
-  const project = await recorderProjectStorage.load(projectId);
+  const project = await projectStorage.load(projectId);
   const track = project.midiTracks?.find((track) => track.id === trackId);
   if (!track) {
     throw new Error(`MIDI track ${trackId} not found.`);

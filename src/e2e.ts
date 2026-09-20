@@ -1,9 +1,9 @@
 import {
-  projectStorage,
+  legacyProjectStorage,
   seedProjectLegacyV2,
 } from "./lib/legacy-project-storage";
 
-const utils = { projectStorage, seedProjectLegacyV2 };
+const utils = { legacyProjectStorage, seedProjectLegacyV2 };
 
 window.__e2e = utils;
 

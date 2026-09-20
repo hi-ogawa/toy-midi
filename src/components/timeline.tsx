@@ -14,10 +14,10 @@ import type { AudioClip, ClipRegion } from "../lib/audio-clip";
 import { AudioView } from "../lib/audio-view";
 import { clamp, snapToGrid } from "../lib/music";
 import type {
-  RecorderLoopRange,
-  RecorderLoopState,
-  RecorderPunchRange,
-  RecorderPunchState,
+  LoopRange,
+  LoopState,
+  PunchRange,
+  PunchState,
   ReferenceVideoState,
 } from "../lib/runtime";
 import { formatTimeMinutes } from "../lib/time-format";
@@ -29,7 +29,7 @@ import {
 import { getTimelineGridBackground } from "../lib/timeline-grid";
 import { AudioWaveformView } from "./audio-waveform";
 import { openFilePicker } from "./file-drop-input";
-import { RecorderMixToggle } from "./mix-toggle";
+import { MixToggle } from "./mix-toggle";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -71,11 +71,11 @@ export function TimelineHeader({
   onAddMidiTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
-  loop: RecorderLoopState;
-  punch: RecorderPunchState;
-  onLoopRangeChange: (range: RecorderLoopRange) => void;
+  loop: LoopState;
+  punch: PunchState;
+  onLoopRangeChange: (range: LoopRange) => void;
   onLoopRangeClear: () => void;
-  onPunchRangeChange: (range: RecorderPunchRange) => void;
+  onPunchRangeChange: (range: PunchRange) => void;
   onPunchRangeClear: () => void;
 }) {
   return (
@@ -164,11 +164,11 @@ function TimelineRuler({
   subdivisionsPerBeat: number;
   timelineWidth: number;
   onSeek: (position: number) => void;
-  loop: RecorderLoopState;
-  punch: RecorderPunchState;
-  onLoopRangeChange: (range: RecorderLoopRange) => void;
+  loop: LoopState;
+  punch: PunchState;
+  onLoopRangeChange: (range: LoopRange) => void;
   onLoopRangeClear: () => void;
-  onPunchRangeChange: (range: RecorderPunchRange) => void;
+  onPunchRangeChange: (range: PunchRange) => void;
   onPunchRangeClear: () => void;
 }) {
   const labelEveryBars = getVisibleBarInterval({
@@ -246,12 +246,12 @@ function LoopRange({
   onChange,
   onClear,
 }: {
-  range: RecorderLoopRange;
+  range: LoopRange;
   enabled: boolean;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
-  onChange: (range: RecorderLoopRange) => void;
+  onChange: (range: LoopRange) => void;
   onClear: () => void;
 }) {
   return (
@@ -282,7 +282,7 @@ function TimelineRange({
   onChange,
   onClear,
 }: {
-  range: RecorderLoopRange | RecorderPunchRange;
+  range: LoopRange | PunchRange;
   enabled: boolean;
   label: string;
   activeClassName: string;
@@ -290,7 +290,7 @@ function TimelineRange({
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
-  onChange: (range: RecorderLoopRange) => void;
+  onChange: (range: LoopRange) => void;
   onClear: () => void;
 }) {
   const testIdPrefix = `recorder-${label.toLowerCase()}`;
@@ -398,7 +398,7 @@ function TimelineRange({
   );
 }
 
-type RecorderTimelineClip = {
+type TimelineClip = {
   label: string;
   /** Visible clip length on the timeline, in seconds. */
   duration: number;
@@ -618,7 +618,7 @@ export function ReferenceTimelineRow({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <RecorderMixToggle
+          <MixToggle
             data-testid="recorder-reference-video-mute"
             active={muted}
             kind="mute"
@@ -694,7 +694,7 @@ function TimelineClip({
   hidePresentation = false,
   canTrim = false,
 }: {
-  clip: RecorderTimelineClip;
+  clip: TimelineClip;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   tempo: number;

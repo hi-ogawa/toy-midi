@@ -1,19 +1,19 @@
 import { expect, test } from "@playwright/test";
 import {
-  createRecorderProject,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  saveRecorderProject,
+  createProject,
+  addMidiTrack,
+  createMidiNote,
+  saveProject,
 } from "./editor-helpers";
 
 test("updates tab strings for selected MIDI notes together", async ({
   page,
 }) => {
   // Create two notes and enable five-string bass annotations.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
-  const c4 = await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
-  const e4 = await createRecorderMidiNote(page, row, {
+  await createProject(page);
+  const row = await addMidiTrack(page);
+  const c4 = await createMidiNote(page, row, { beat: 0, pitch: "C4" });
+  const e4 = await createMidiNote(page, row, {
     beat: 0.5,
     pitch: "E4",
   });
@@ -48,7 +48,7 @@ test("updates tab strings for selected MIDI notes together", async ({
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");
 
   // Save and reload the project to preserve the reset annotations.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await page.reload();
   await expect(c4.getByTestId("tab-annotation")).toHaveText("G17");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");

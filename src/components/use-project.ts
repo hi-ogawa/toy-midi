@@ -1,19 +1,19 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
-import { recorderProjectStorage } from "../lib/project-storage";
-import { RecorderRuntime } from "../lib/runtime";
+import { projectStorage } from "../lib/project-storage";
+import { Runtime } from "../lib/runtime";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
-export type UseRecorderProjectResult = ReturnType<typeof useRecorderProject>;
+export type UseProjectResult = ReturnType<typeof useProject>;
 
-export function useRecorderProject({
+export function useProject({
   projectId,
   runtime,
 }: {
   projectId: string;
-  runtime: RecorderRuntime;
+  runtime: Runtime;
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
@@ -25,7 +25,7 @@ export function useRecorderProject({
     queryFn: async () => {
       const [, project] = await Promise.all([
         runtime.init(),
-        recorderProjectStorage.load(projectId),
+        projectStorage.load(projectId),
       ]);
       await runtime.deserializeProject(project);
       return true;
@@ -39,7 +39,7 @@ export function useRecorderProject({
         throw new Error("Cannot save before the project has initialized.");
       }
       const revision = revisionRef.current;
-      await recorderProjectStorage.save({
+      await projectStorage.save({
         id: projectId,
         content: runtime.serializeProject(),
       });

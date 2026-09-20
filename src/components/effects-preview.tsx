@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { MultibandEqParameters } from "../lib/dsp/biquad-eq-multiband";
 import { dbToGain } from "../lib/music";
-import { RecorderEffectsContent } from "./effects";
+import { EffectsContent } from "./effects";
 
 const INITIAL_EQ: MultibandEqParameters = {
   bypass: false,
@@ -30,7 +30,7 @@ const INITIAL_EQ: MultibandEqParameters = {
   ],
 };
 
-export function RecorderEffectsPreview() {
+export function EffectsPreview() {
   const [eq, setEq] = useState(INITIAL_EQ);
 
   return (
@@ -38,7 +38,7 @@ export function RecorderEffectsPreview() {
       data-testid="recorder-effects-panel"
       className="h-128 w-96 overflow-auto rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl"
     >
-      <RecorderEffectsContent eq={eq} onChange={setEq} />
+      <EffectsContent eq={eq} onChange={setEq} />
     </div>
   );
 }

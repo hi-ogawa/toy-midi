@@ -104,7 +104,7 @@ const sections: HelpSectionData[] = [
   },
 ];
 
-export function RecorderHelp({
+export function Help({
   isOpen,
   onClose,
 }: {

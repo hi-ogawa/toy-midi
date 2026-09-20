@@ -1,5 +1,5 @@
 import { ChevronDownIcon, Repeat2Icon, ScanLineIcon } from "lucide-react";
-import type { RecorderLoopState } from "../lib/runtime";
+import type { LoopState } from "../lib/runtime";
 import { getBeatsPerBar, secondsToBeats } from "../lib/timeline";
 import type { TimeSignature } from "../types";
 import { Button } from "./ui/button";
@@ -11,7 +11,7 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 
-export function RecorderRangeControl({
+export function RangeControl({
   kind,
   state,
   position,
@@ -20,11 +20,11 @@ export function RecorderRangeControl({
   onChange,
 }: {
   kind: "loop" | "punch";
-  state: RecorderLoopState;
+  state: LoopState;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
-  onChange: (update: Partial<RecorderLoopState>) => void;
+  onChange: (update: Partial<LoopState>) => void;
 }) {
   const label = kind === "loop" ? "Loop" : "Punch";
   const status = !state.range ? "No range" : state.enabled ? "On" : "Off";

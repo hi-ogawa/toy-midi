@@ -6,7 +6,7 @@ import { renderAudioSources } from "./mix.ts";
 import { secondsToBeats } from "./timeline.ts";
 
 /** Transcribe the committed arrangement before channel gain/EQ, keeping project timing. */
-export async function transcribeRecorderAudio({
+export async function transcribeAudio({
   sources,
   tempo,
   cellsPerBeat,

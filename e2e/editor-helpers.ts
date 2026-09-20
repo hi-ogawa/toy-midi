@@ -2,7 +2,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 
 /** Create a recorder project from its index and wait for the recorder app. */
-export async function createRecorderProject(page: Page): Promise<void> {
+export async function createProject(page: Page): Promise<void> {
   await test.step(
     "Create recorder project",
     async () => {
@@ -15,7 +15,7 @@ export async function createRecorderProject(page: Page): Promise<void> {
   );
 }
 
-export async function addRecorderMidiTrack(page: Page) {
+export async function addMidiTrack(page: Page) {
   return await test.step(
     "Add recorder MIDI track",
     async () => {
@@ -31,7 +31,7 @@ export async function addRecorderMidiTrack(page: Page) {
   );
 }
 
-export async function createRecorderMidiNote(
+export async function createMidiNote(
   page: Page,
   track: Locator,
   {
@@ -46,10 +46,10 @@ export async function createRecorderMidiNote(
   return await test.step(
     `Create ${pitch} at beat ${beat}`,
     async () => {
-      const point = await getRecorderMidiGridPoint(track, { beat, pitch });
+      const point = await getMidiGridPoint(track, { beat, pitch });
       // Click inside the cell rather than directly on its boundary.
       await page.mouse.click(point.x + 5, point.y);
-      const note = getRecorderMidiNote(track, { beat, pitch });
+      const note = getMidiNote(track, { beat, pitch });
       await expect(note).toBeVisible();
       return note;
     },
@@ -58,7 +58,7 @@ export async function createRecorderMidiNote(
 }
 
 /** Locate a note by pitch and zero-based beat, using its displayed one-based label. */
-export function getRecorderMidiNote(
+export function getMidiNote(
   track: Locator,
   {
     beat,
@@ -74,7 +74,7 @@ export function getRecorderMidiNote(
 }
 
 /** Convert a zero-based beat and pitch to a point at the default zoom and horizontal origin. */
-export async function getRecorderMidiGridPoint(
+export async function getMidiGridPoint(
   track: Locator,
   {
     beat,
@@ -99,7 +99,7 @@ export async function getRecorderMidiGridPoint(
   };
 }
 
-export async function saveRecorderProject(page: Page) {
+export async function saveProject(page: Page) {
   await test.step(
     "Save recorder project",
     async () => {
@@ -111,10 +111,7 @@ export async function saveRecorderProject(page: Page) {
   );
 }
 
-export async function addRecorderAudio(
-  page: Page,
-  filePath: string,
-): Promise<void> {
+export async function addAudio(page: Page, filePath: string): Promise<void> {
   await test.step(
     "Add recorder audio",
     async () => {
@@ -130,7 +127,7 @@ export async function addRecorderAudio(
   );
 }
 
-export async function seekRecorderByPixels(page: Page, pixels: number) {
+export async function seekByPixels(page: Page, pixels: number) {
   await test.step(
     `Seek recorder to ${pixels}px`,
     async () => {
@@ -143,13 +140,13 @@ export async function seekRecorderByPixels(page: Page, pixels: number) {
   );
 }
 
-export async function getRecorderPosition(page: Page): Promise<number> {
+export async function getPosition(page: Page): Promise<number> {
   return page
     .getByTestId("recorder-position")
     .evaluate((element) => Number(element.dataset.position));
 }
 
-export async function getRecorderBeat(page: Page): Promise<number> {
+export async function getBeat(page: Page): Promise<number> {
   return page
     .getByTestId("recorder-position")
     .evaluate((element) => Number(element.dataset.beat));
