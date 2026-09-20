@@ -3,6 +3,7 @@ import {
   type Note,
   type TimeSignature,
 } from "../../types.ts";
+import { insertAtIndices } from "../../utils/array.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
@@ -1312,13 +1313,13 @@ function deriveClipInsertRemoveState(
       update: (clips) => {
         switch (operation) {
           case "insert": {
-            clips = [...clips];
-            for (const { clip, index } of trackEdits.clips.toSorted(
-              (a, b) => a.index - b.index,
-            )) {
-              clips.splice(index, 0, clip);
-            }
-            return clips;
+            return insertAtIndices({
+              items: clips,
+              insertions: trackEdits.clips.map(({ clip, index }) => ({
+                item: clip,
+                index,
+              })),
+            });
           }
           case "remove": {
             const removeIds = new Set(
