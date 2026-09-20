@@ -479,7 +479,7 @@ export class RecorderRuntime {
         );
         return clips.length > 0 ? [{ trackId: track.id, clips }] : [];
       }),
-      ...(clipIds.has(REFERENCE_VIDEO_CLIP_ID) && state.referenceVideo
+      ...(clipIds.has(REFERENCE_VIDEO_CLIP_ID)
         ? { referenceVideo: state.referenceVideo }
         : {}),
     };
