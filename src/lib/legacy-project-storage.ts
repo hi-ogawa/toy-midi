@@ -7,6 +7,7 @@
 import { IdbStore } from "./idb";
 import {
   type AnyLegacySavedProject,
+  createDefaultLegacySavedProject,
   migrateLegacySavedProject,
   type LegacySavedProject,
 } from "./legacy-project-format";
@@ -84,6 +85,13 @@ class LegacyProjectStorage {
     return projectId;
   }
 
+  createNew(): string {
+    return this.create(
+      this.getDefaultProjectName(),
+      createDefaultLegacySavedProject(),
+    );
+  }
+
   updateMetadata(
     projectId: string,
     updates: Partial<Pick<LegacyProjectMetadata, "name" | "updatedAt">>,
@@ -111,6 +119,14 @@ class LegacyProjectStorage {
     }
     this.writeProjectList(projectList);
     localStorage.removeItem(getProjectKey(projectId));
+  }
+
+  private getDefaultProjectName(): string {
+    const untitledCount = this.listMetadata().filter((p) =>
+      p.name.match(/^Untitled( \d+)?$/),
+    ).length;
+
+    return untitledCount === 0 ? "Untitled" : `Untitled ${untitledCount + 1}`;
   }
 
   load(projectId: string): LegacySavedProject {
