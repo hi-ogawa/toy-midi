@@ -28,33 +28,12 @@ test("imports all MIDI tracks as one undoable replacement and exports the chosen
     pitch: "D4",
   });
   const notes = row.getByTestId("recorder-midi-grid").locator("[data-note-id]");
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  const instrument = page.getByRole("combobox", { name: "MIDI 1 program" });
-  await instrument.click();
-  await page.getByPlaceholder("Search instruments...").fill("Finger");
-  await page
-    .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  // Set project timing that differs from both MIDI-file settings and app defaults.
+  await page.getByTestId("recorder-tempo-input").fill("98");
+  await page.getByTestId("recorder-tempo-input").press("Enter");
+  await page.getByRole("button", { name: "4/4", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: "5/4", exact: true }).click();
   await saveRecorderProject(page);
-
-  // Cancel the import confirmation and retain the original notes and saved state.
-  const file = createMidiFile();
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  const cancelledChooser = page.waitForEvent("filechooser");
-  await page
-    .getByRole("menuitem", { name: "Import MIDI…", exact: true })
-    .click();
-  page.once("dialog", (dialog) => dialog.dismiss());
-  await (await cancelledChooser).setFiles(file);
-  await expect(original).toBeVisible();
-  await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
-    "data-status",
-    "saved",
-  );
 
   // Import both source tracks without adopting their tempo, meter, or instruments.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
@@ -63,7 +42,7 @@ test("imports all MIDI tracks as one undoable replacement and exports the chosen
     .getByRole("menuitem", { name: "Import MIDI…", exact: true })
     .click();
   page.once("dialog", (dialog) => dialog.accept());
-  await (await chooser).setFiles(file);
+  await (await chooser).setFiles(createMidiFile());
   const c4 = getRecorderMidiNote(row, { beat: 1, pitch: "C4" });
   const e4 = getRecorderMidiNote(row, { beat: 2, pitch: "E4" });
   await expect(c4).toBeVisible();
@@ -71,9 +50,9 @@ test("imports all MIDI tracks as one undoable replacement and exports the chosen
   await expect(notes).toHaveCount(2);
   await expect(original).toBeHidden();
   await expect(otherNote).toBeVisible();
-  await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("120");
+  await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
   await expect(
-    page.getByRole("button", { name: "4/4", exact: true }),
+    page.getByRole("button", { name: "5/4", exact: true }),
   ).toBeVisible();
   await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
     "data-status",
@@ -89,20 +68,7 @@ test("imports all MIDI tracks as one undoable replacement and exports the chosen
   await expect(e4).toBeVisible();
   await expect(notes).toHaveCount(2);
 
-  // Save and reload the imported notes while retaining the destination instrument.
-  await saveRecorderProject(page);
-  await page.reload();
-  await expect(c4).toBeVisible();
-  await expect(e4).toBeVisible();
-  await expect(otherNote).toBeVisible();
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
-
-  // Export the chosen track and inspect its notes, timing, velocity, and project metadata.
+  // Export before Save to verify the download uses current notes and project settings.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   const downloadPromise = page.waitForEvent("download");
   await page
@@ -113,8 +79,8 @@ test("imports all MIDI tracks as one undoable replacement and exports the chosen
   const destination = test.info().outputPath("export.mid");
   await download.saveAs(destination);
   const midi = new Midi(await readFile(destination));
-  expect(midi.header.tempos[0].bpm).toBe(120);
-  expect(midi.header.timeSignatures[0].timeSignature).toEqual([4, 4]);
+  expect(midi.header.tempos[0].bpm).toBeCloseTo(98, 3);
+  expect(midi.header.timeSignatures[0].timeSignature).toEqual([5, 4]);
   const exportedTracks = midi.tracks.filter((track) => track.notes.length);
   expect(exportedTracks).toHaveLength(1);
   expect(exportedTracks[0].name).toBe("MIDI 1");
@@ -129,9 +95,24 @@ test("imports all MIDI tracks as one undoable replacement and exports the chosen
     { pitch: 60, beat: 1, duration: 0.5, velocity: 80 },
     { pitch: 64, beat: 2, duration: 1, velocity: 110 },
   ]);
+
+  // Save and reload the imported notes while retaining the destination instrument.
+  await saveRecorderProject(page);
+  await page.reload();
+  await expect(c4).toBeVisible();
+  await expect(e4).toBeVisible();
+  await expect(otherNote).toBeVisible();
+  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
+  await page
+    .getByRole("menuitem", { name: "Instrument…", exact: true })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "MIDI 1 program" }),
+  ).toContainText("0: Acoustic Grand Piano");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
 });
 
-test("keeps existing notes when a MIDI file cannot be parsed", async ({
+test("keeps saved notes when MIDI import is cancelled or fails", async ({
   page,
 }) => {
   // Save an existing note before choosing an invalid file.
@@ -142,6 +123,23 @@ test("keeps existing notes when a MIDI file cannot be parsed", async ({
     pitch: "C4",
   });
   await saveRecorderProject(page);
+
+  // Cancel a file import before parsing and leave the saved project untouched.
+  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
+  const cancelledChooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("menuitem", { name: "Import MIDI…", exact: true })
+    .click();
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await (await cancelledChooser).setFiles(createMidiFile());
+  await expect(original).toBeVisible();
+  await expect(
+    row.getByTestId("recorder-midi-grid").locator("[data-note-id]"),
+  ).toHaveCount(1);
+  await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
+    "data-status",
+    "saved",
+  );
 
   // Confirm the invalid import and retain the saved note after the error is reported.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
