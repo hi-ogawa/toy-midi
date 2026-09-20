@@ -569,11 +569,8 @@ export class RecorderRuntime {
     }
   }
 
-  setMidiTrackViewSettings({
-    id,
-    settings,
-  }: {
-    id: string;
+  setMidiTrackSettings(
+    id: string,
     settings: Partial<
       Pick<
         MidiTrackState,
@@ -582,8 +579,8 @@ export class RecorderRuntime {
         | "tabAnnotationEnabled"
         | "tabOpenStringPitches"
       >
-    >;
-  }): void {
+    >,
+  ): void {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
   }
 
