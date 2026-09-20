@@ -156,6 +156,32 @@ Our renderer uses a 20 ms window and a 30 ms search region. At 48 kHz, that give
 
 The construction preserves sample spacing within each selected segment, but joins can still alter the sound. Sustained periodic material often provides good matches, but attacks, noise, and mixtures of unrelated periods may not. WSOLA searches for useful waveform agreement without explicitly estimating a pitch.
 
+## Trade Duration for Pitch with Resampling
+
+Resampling changes duration and pitch together. Playing samples twice as fast halves the duration and raises pitch by an octave. WSOLA gives us a separate duration control, so we can first create extra time and then trade it for higher pitch.
+
+For example, stretch a recording to twice its duration with WSOLA, keeping its local wave spacing. Then resample that stretched signal at twice the playback rate. Its duration returns to the original length, while its waves become twice as closely spaced. We have raised pitch by an octave without changing the recording's overall duration.
+
+![Three waveforms on the same time scale show WSOLA doubling duration without changing cycle spacing, followed by resampling that restores the original duration and doubles pitch.](images/wsola-stretch-then-resample.svg)
+
+The colors track reused source regions schematically. They do not represent individual WSOLA windows or their overlap fades.
+
+More generally, for a desired pitch multiplier $p$, use WSOLA at playback rate $1/p$ to multiply duration by $p$, then resample at rate $p$. The two duration changes cancel, while only resampling changes pitch:
+
+$$
+\text{duration factor}=p\cdot\frac{1}{p}=1,
+\qquad
+\text{pitch factor}=1\cdot p=p.
+$$
+
+### How Playback Uses This Relationship
+
+Our playback goal is still to change duration while preserving pitch. The integration takes an indirect route because the buffer source controls playback speed, while the pitch-shifter worklet processes an ongoing stream with equal input and output duration.
+
+The [buffer source](../../src/lib/recorder/audio-buffer-playback.ts) plays at rate $r$, which changes duration by $1/r$ and pitch by $r$. The [pitch-shift bus](../../src/lib/recorder/audio-track-playback.ts) then requests the inverse pitch multiplier $p=1/r$. Internally, [`StreamingPitchShifter`](../../src/lib/dsp/pitch-shifter.ts) performs the WSOLA-and-resampling combination above. That stage preserves the already changed duration while restoring pitch, since $r\cdot(1/r)=1$.
+
+At half-speed playback, for example, the buffer source produces audio twice as long and an octave lower. The pitch shifter raises it by an octave without changing that longer duration. In this use case, the diagram's original signal is the already slowed input to the pitch shifter, and its final signal is the pitch-corrected slow playback.
+
 ## Connect the Formulation to the Code
 
 [`WsolaProcessor` and `StreamingWsola`](../../src/lib/dsp/wsola.ts) use the same selection and blending calculations. The first reads a complete source, while the second waits until incoming audio supplies the reference and candidate windows needed for a hop.
