@@ -140,4 +140,4 @@ Replacing $M$ with $1/M$ swaps numerator and denominator. A matching boost and c
 
 We now have a response whose parameters have specific meanings. The next step is to [convert it to a digital filter](bilinear-transform.md). That mapping preserves the center gain and reciprocal relationship, but warps the frequency axis, so the analog bandwidth interpretation needs care at high digital frequencies.
 
-The [interactive peaking-EQ explorer](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#peak-goal) provides another way to inspect the controls. The [implementation](../../../src/lib/dsp/biquad-eq.ts) also handles parameter changes and bypass, which are separate from this fixed-filter construction.
+The [implementation](../../../src/lib/dsp/biquad-eq.ts) also handles parameter changes and bypass, which are separate from this fixed-filter construction.

@@ -9,3 +9,5 @@ The intended reader is comfortable with complex waves and differential equations
 - [From an analog response to digital coefficients](bilinear-transform.md) explains the bilinear transform and frequency warping, then converts the peaking response into sample-loop coefficients.
 
 Start with transfer functions for the foundations, or go directly to the peaking-EQ design if those ideas are familiar. The bilinear-transform article connects the response design to its digital implementation.
+
+The [original interactive derivation](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html) presents the full narrative with waveform and filter-response explorers.

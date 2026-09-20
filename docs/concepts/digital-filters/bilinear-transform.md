@@ -161,4 +161,4 @@ $$
 
 These are the five values computed by [`calculateBiquadEqCoefficients`](../../../src/lib/dsp/biquad-eq.ts). The implementation stores the normalized values under the names `b0`, `b1`, `b2`, `a1`, and `a2`. The formula convention follows the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).
 
-The [interactive derivation](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html) offers additional explorations. These documents cover fixed-filter behavior. Coefficient smoothing, bypass, and state management remain implementation concerns.
+These documents cover fixed-filter behavior. Coefficient smoothing, bypass, and state management remain implementation concerns.
