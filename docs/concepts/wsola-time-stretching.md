@@ -79,7 +79,7 @@ $$
 s_k=\underset{q\in[p_k-S/2,\;p_k+S/2)}{\arg\max}\;\rho(n_k,q).
 $$
 
-For a nonzero reference, selecting $q=n_k$ scores 1, which explains why we can take the natural continuation directly whenever it is allowed. Other starts may match equally well, particularly for a periodic waveform. Choosing the natural continuation preserves the original samples through the overlap.
+The natural continuation scores 1 for a nonzero window, which justifies taking it directly whenever it lies inside the search region.
 
 Once we have selected the window, its second half determines the next natural continuation:
 
@@ -93,7 +93,7 @@ During slower playback, natural continuation advances faster than the nominal ti
 
 ## Blend the Aligned Patches
 
-Waveform search improves alignment, but two selected patches will rarely match exactly. We fade out the previous patch while fading in the new one over their overlap.
+When the search selects a different source position, the overlapping waveforms may still differ. Crossfading introduces that difference gradually by fading out the previous patch while fading in the new one.
 
 Let $f[j]$ and $g[j]$ be the outgoing and incoming samples at position $j$ in the overlap. Crossfading interpolates between them:
 
@@ -127,11 +127,11 @@ $$
 
 ### How Playback Uses This Relationship
 
-Our playback goal is still to change duration while preserving pitch. The integration takes an indirect route because the buffer source controls playback speed, while the pitch-shifter worklet processes an ongoing stream with equal input and output duration.
-
-The [buffer source](../../src/lib/recorder/audio-buffer-playback.ts) plays at rate $r$, which changes duration by $1/r$ and pitch by $r$. The [pitch-shift bus](../../src/lib/recorder/audio-track-playback.ts) then requests the inverse pitch multiplier $p=1/r$. Internally, [`StreamingPitchShifter`](../../src/lib/dsp/pitch-shifter.ts) performs the WSOLA-and-resampling combination above. That stage preserves the already changed duration while restoring pitch, since $r\cdot(1/r)=1$.
+Our player uses this fixed-duration pitch shifter to compensate for the pitch change introduced by playback speed. The buffer source controls speed, and the pitch-shifter worklet restores pitch without changing the resulting duration.
 
 At half-speed playback, for example, the buffer source produces audio twice as long and an octave lower. The pitch shifter raises it by an octave without changing that longer duration. In this use case, the diagram's original signal is the already slowed input to the pitch shifter, and its final signal is the pitch-corrected slow playback.
+
+More generally, the [buffer source](../../src/lib/recorder/audio-buffer-playback.ts) plays at rate $r$, which changes duration by $1/r$ and pitch by $r$. The [pitch-shift bus](../../src/lib/recorder/audio-track-playback.ts) requests the inverse pitch multiplier $p=1/r$. Internally, [`StreamingPitchShifter`](../../src/lib/dsp/pitch-shifter.ts) performs the WSOLA-and-resampling combination above, preserving the already changed duration while restoring pitch because $r\cdot(1/r)=1$.
 
 ## How Much Audio Must Be Available?
 
@@ -143,7 +143,7 @@ $$
 
 With a 20 ms window and a 30 ms search region, this gives $20+30/2=35$ ms.
 
-The natural-continuation window must also be available as the comparison reference. During slow playback it can reach slightly farther ahead, so the implementation reserves extra audio, bringing the estimate to about 37.5 ms at $r=0.75$. This is source lookahead, while the complete pitch shifter's latency also depends on resampling and block buffering.
+The natural-continuation window must also be available as the comparison reference. During slow playback it can reach slightly farther ahead, so the implementation reserves extra audio. This is source lookahead, while the complete pitch shifter's latency also depends on resampling and block buffering.
 
 ## Connect the Formulation to the Code
 
