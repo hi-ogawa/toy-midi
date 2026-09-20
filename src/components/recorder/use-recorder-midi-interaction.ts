@@ -80,19 +80,6 @@ export function useRecorderMidiInteraction({
     }
   }, [state.midiTracks, selection]);
 
-  function toggleViewMode(trackId: string) {
-    const track = state.midiTracks.find((entry) => entry.id === trackId);
-    if (!track) {
-      return;
-    }
-    if (hasTrackSelection(trackId)) {
-      clear();
-    }
-    runtime.setMidiTrackSettings(trackId, {
-      viewMode: track.viewMode === "overview" ? "editor" : "overview",
-    });
-  }
-
   function isSelected(trackId: string, noteId: string) {
     return selection?.trackId === trackId && selection.noteIds.has(noteId);
   }
@@ -494,9 +481,21 @@ export function useRecorderMidiInteraction({
     return true;
   }
 
+  function toggleViewMode(trackId: string) {
+    const track = state.midiTracks.find((entry) => entry.id === trackId);
+    if (!track) {
+      return;
+    }
+    if (hasTrackSelection(trackId)) {
+      clear();
+    }
+    runtime.setMidiTrackSettings(trackId, {
+      viewMode: track.viewMode === "overview" ? "editor" : "overview",
+    });
+  }
+
   return {
     activate: onSelect,
-    toggleViewMode,
     clear,
     hasSelection: selection !== undefined,
     hasTrackSelection,
@@ -520,6 +519,7 @@ export function useRecorderMidiInteraction({
     copySelected,
     paste,
     handleTabAnnotationShortcut,
+    toggleViewMode,
   };
 }
 
