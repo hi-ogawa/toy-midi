@@ -486,7 +486,7 @@ export class RecorderRuntime {
     this.history.pushClips({ snapshot, reverse: true });
   }
 
-  /** Restore only the described clips, preserving unrelated edits and track settings. */
+  /** @internal for undo */
   applyClipsChange(change: RecorderClipsChange): void {
     this.updateClips((state) => deriveClipsChangeState(state, change));
   }
