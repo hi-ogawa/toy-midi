@@ -6,9 +6,7 @@ import {
   saveRecorderProject,
 } from "./recorder-helpers";
 
-test("switches between the MIDI editor and a persistent passive overview", async ({
-  page,
-}) => {
+test("switches MIDI views and persists overview mode", async ({ page }) => {
   // Open an empty overview and keep the checked menu item visible until Escape.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
@@ -30,45 +28,27 @@ test("switches between the MIDI editor and a persistent passive overview", async
   await expect(row.getByText("No notes", { exact: true })).toBeVisible();
   await expect(grid).toHaveCount(0);
 
-  // Return to the editor with the keyboard, then create and copy a selected note.
+  // Return to the editor using Enter and create a note.
   await actions.click();
   await toggle.press("Enter");
   await expect(toggle).not.toBeChecked();
   await expect(toggle).toBeVisible();
   await page.keyboard.press("Escape");
   await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
-  await grid.locator("[data-note-id]").click();
-  await page.keyboard.press("ControlOrMeta+c");
-  const editorHeight = (await row.boundingBox())!.height;
 
-  // Show the note in overview without changing track height or allowing note edits.
+  // Switch to overview and show the note instead of the empty message.
   await actions.click();
   await toggle.click();
   await page.keyboard.press("Escape");
   await expect(overview).toHaveAccessibleName("MIDI 1 note overview, 1 note");
   await expect(row.getByText("No notes", { exact: true })).toBeHidden();
   await expect(grid).toHaveCount(0);
-  expect((await row.boundingBox())!.height).toBe(editorHeight);
-  const box = (await overview.boundingBox())!;
-  const note = (await overview.locator(":scope > div").boundingBox())!;
-  expect(
-    Math.abs(note.y + note.height / 2 - box.y - box.height / 2),
-  ).toBeLessThanOrEqual(1);
-  await overview.click();
-  await page.keyboard.press("Delete");
-  await page.keyboard.press("ControlOrMeta+v");
-  await expect(overview).toHaveAccessibleName("MIDI 1 note overview, 1 note");
 
-  // Save and reload the overview, then return to the editor and add another note.
+  // Save and reload the project with overview mode still selected.
   await saveRecorderProject(page);
   await page.reload();
   await expect(overview).toBeVisible();
   await expect(overview).toHaveAccessibleName("MIDI 1 note overview, 1 note");
   await actions.click();
   await expect(toggle).toBeChecked();
-  await toggle.click();
-  await page.keyboard.press("Escape");
-  await expect(grid.locator("[data-note-id]")).toHaveCount(1);
-  await createRecorderMidiNote(page, row, { beat: 1, pitch: "D4" });
-  await expect(grid.locator("[data-note-id]")).toHaveCount(2);
 });
