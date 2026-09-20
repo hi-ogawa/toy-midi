@@ -118,17 +118,13 @@ $$
 
 This ratio of quadratics is a **biquad**. Its denominator contains the same roots that determine the natural motion. Uncanceled denominator roots are called **poles**, while uncanceled numerator roots are **zeros**. A pole pair near the unit circle can produce a strong response to nearby tones, while a zero on the circle cancels that tone if the denominator is nonzero. We now have a family of sample computations whose response we can shape through these polynomials.
 
-## Connect Continuous and Sampled Motion
+## The Continuous Counterpart of the Sample Recurrence
 
-To design an EQ, it is useful to have the same model in continuous time, where we can arrange response properties before converting them to sample weights. The exponential now has a complex rate $s=\sigma+j\Omega$:
+The zero-input recurrence describes a decaying oscillation through a multiplier applied at each sample. A damped differential equation describes the same kind of motion through a rate of change. Comparing them connects the filter's poles to familiar decay rates and oscillation frequencies.
 
-$$
-e^{st}=e^{\sigma t}e^{j\Omega t}.
-$$
+For the continuous oscillator $y''+d_1y'+d_0y=0$, the trial solution $y=e^{st}$ gives $s^2+d_1s+d_0=0$. A conjugate pair of roots $s=-\gamma\pm j\Omega_d$ produces real motion proportional to $e^{-\gamma t}\cos(\Omega_dt+\phi)$. Compare this with $r^n\cos(n\theta+\phi)$ from the sample recurrence. The roots describe decay and oscillation in both cases, using rates in continuous time and per-step multipliers in discrete time.
 
-The real part sets growth or decay per second, while the imaginary part sets angular frequency. Differentiation multiplies this wave by $s$, just as a sample delay multiplies $z^n$ by $z^{-1}$.
-
-A damped oscillator provides the continuous counterpart of two output delays. Its equation contains acceleration, damping, and restoring terms, $y''+d_1y'+d_0y$. Allowing a weighted input and its derivatives gives
+The response calculation carries over too. Differentiation multiplies $e^{st}$ by $s$, just as a delay multiplies $z^n$ by $z^{-1}$. With a weighted input and its derivatives driving the oscillator, substituting $x=e^{st}$ and $y=H_a(s)e^{st}$ gives
 
 $$
 y''+d_1y'+d_0y=c_2x''+c_1x'+c_0x
@@ -136,11 +132,11 @@ y''+d_1y'+d_0y=c_2x''+c_1x'+c_0x
 H_a(s)=\frac{c_2s^2+c_1s+c_0}{s^2+d_1s+d_0}.
 $$
 
-The ratio follows by substituting $x=e^{st}$ and $y=H_a(s)e^{st}$. As before, the denominator also determines the motion with zero input. Roots $-\gamma\pm j\Omega_d$ give $e^{-\gamma t}\cos(\Omega_dt+\phi)$ up to an amplitude factor. For $\gamma>0$, this is the same decaying oscillation we described with radius and angle in discrete time.
+As in the recurrence, the denominator determines the natural motion and the numerator determines how the input drives it. On the imaginary axis $s=j\Omega$, the exponential is a sustained tone, so $H_a(j\Omega)$ gives its gain and phase. This axis plays the role of the unit circle in the discrete response.
 
 ### Connect the Two Planes by Sampling a Mode
 
-Sampling the continuous exponential at $t=nT$ makes the relationship exact:
+To relate a continuous rate $s=\sigma+j\Omega$ to a per-sample multiplier, sample its exponential at $t=nT$:
 
 $$
 e^{snT}=(e^{sT})^n.
@@ -162,6 +158,4 @@ Moving left in the $s$-plane makes decay faster. Its discrete counterpart moves 
 
 The imaginary axis wraps around the circle repeatedly. Frequencies separated by $2\pi/T$ have the same sampled multiplier, which explains why sampling cannot distinguish them.
 
-Sampling a mode does not yet specify how to convert a complete filter for arbitrary inputs. The [bilinear transform](bilinear-transform.md) makes that conversion with a different mapping, preserving the decay regions while changing the frequency correspondence.
-
-With these interpretations in place, [the peaking-EQ design](peaking-eq.md) can use a continuous quadratic response to arrange the shape before converting it to a sample recurrence.
+We now have continuous and discrete descriptions of second-order dynamics. The [peaking-EQ design](peaking-eq.md) uses the continuous quadratic response to construct the desired gain and width. Turning that response into a sample computation requires a conversion rule for the driven system, beyond sampling its natural modes. The [bilinear-transform article](bilinear-transform.md) develops that next step.
