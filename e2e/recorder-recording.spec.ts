@@ -6,6 +6,7 @@ import {
   dragBy,
   enableInput,
   getRecorderPosition,
+  saveRecorderProject,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
@@ -129,11 +130,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows.nth(1)).toContainText("Take 2");
 
   // Reload the project and retain the preferred lane order.
-  await page.getByTestId("recorder-save-button").click();
-  await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
-    "data-status",
-    "saved",
-  );
+  await saveRecorderProject(page);
   await page.reload();
   await takesToggle.click();
   await expect(takeOrder).toHaveAccessibleName("Order takes newest first");
