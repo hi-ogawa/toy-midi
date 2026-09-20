@@ -1,53 +1,41 @@
 # WSOLA Time Stretching
 
-We want to change how long a recording lasts while keeping its pitch. Simply playing its samples more slowly stretches both the recording and every oscillation inside it, so the pitch falls too. How can we change the overall duration while leaving those local oscillations intact?
+To stretch a recording, take short patches from positions along the source timeline and stitch them into the output. For slower playback, advance less through the source between patches, so neighboring patches reuse some audio. For faster playback, advance farther. Each patch keeps its original sample spacing, which preserves the local oscillations that give the sound its pitch.
 
-WSOLA builds the output from short source segments, keeping the sample spacing within each segment unchanged. The questions are which segments to choose and how to join them. We will develop those choices from the timing and waveform requirements, then connect the resulting equations to [our implementation](../../src/lib/dsp/wsola.ts).
+These nominal positions give us the desired timing, but the waveforms may line up poorly where patches overlap. WSOLA allows each patch to move slightly around its nominal position, searching for a better waveform match before blending the overlap. This document develops that picture and the equations used in [our implementation](../../src/lib/dsp/wsola.ts).
 
-## Separate Local Oscillation from Overall Progress
+## Place Patches Along the Nominal Timeline
 
-Let $x[i]$ be a source signal sampled at $F_s$ samples per second. A sinusoid of frequency $f$ has the form
+Take patches of length $W$ and place one every $H$ output samples. This spacing is called the **hop**. We use $H=W/2$, so neighboring patches overlap by half their length. These patches are also called source windows.
 
-$$
-x[i]=\cos\left(\frac{2\pi f}{F_s}i\right).
-$$
+For a concrete example, use 40-sample patches and a 20-sample output hop. At $0.75\times$ speed, advance only 15 samples through the source for each new patch:
 
-If we advance through the source by $r$ samples per output sample, resampling gives
+| Patch | Output start | Nominal source start |
+| ----- | ------------ | -------------------- |
+| 0     | 0            | 0                    |
+| 1     | 20           | 15                   |
+| 2     | 40           | 30                   |
+| 3     | 60           | 45                   |
 
-$$
-y[m]=x[rm]
-=\cos\left(\frac{2\pi rf}{F_s}m\right).
-$$
+The output progresses 60 samples while the patch starts progress only 45 samples through the recording. Reusing source audio this way makes the output longer without slowing down the samples inside a patch.
 
-The frequency becomes $rf$. At $r=0.75$, the recording lasts longer, but every frequency also falls to three quarters of its original value.
-
-Instead, copy a short segment starting at source position $q$. Within that segment,
-
-$$
-x[q+j]=\cos\left(\frac{2\pi f}{F_s}j+\frac{2\pi f}{F_s}q\right).
-$$
-
-Choosing $q$ changes the phase, while the frequency with respect to the local index $j$ remains $f$. This gives us a way to separate two decisions. Preserve the samples within each segment, and change the overall progress through the recording by choosing where successive segments begin.
-
-## Set the Source Timeline
-
-Take source windows of length $W$ and place one every $H$ output samples. The distance $H$ is called the **hop**. We will use $H=W/2$, so neighboring windows overlap by half their length and can be blended together.
-
-Window $k$ begins at output position $kH$. If the requested playback rate is $r$ source samples per output sample, its intended source position is
+More generally, patch $k$ starts at output position $kH$. For playback rate $r$, its **nominal source position** is
 
 $$
 p_k=rkH.
 $$
 
-We call $p_k$ the **nominal source position**. At $r=0.75$, successive output windows are $H$ samples apart, while their nominal source positions advance by only $0.75H$. We cover less source audio over the same output duration, so a source of duration $T$ becomes approximately $T/r$ long.
+This is the timing plan. A source of duration $T$ becomes approximately $T/r$ long. We still need to make the joins sound continuous.
 
-For now, this establishes only where each window should come from in time. It does not tell us whether the waveforms will join well. We use ideal positions in the equations and leave rounding to sample indices to the implementation.
+## Repair the Alignment at Each Join
 
-## Find a Window That Continues the Waveform
+Consider the first two patches in the example. The first patch's second half starts at source sample 20, but the second patch's first half starts at sample 15. Those two pieces occupy the same output positions, so we will blend source samples that are five samples apart.
 
-Starting every window exactly at $p_k$ keeps the requested timing, but the overlapping pieces can have different phases. Two copies of the same tone can even cancel when blended if a peak in one aligns with a trough in the other. We need some freedom to adjust the source start while staying near the intended time.
+That offset may be harmless, or it may put peaks against troughs. For a tone with a ten-sample period, five samples is half a cycle. At equal blend weights, the two opposite phases cancel. Fading between patches avoids an abrupt switch, but it cannot by itself fix this alignment.
 
-### Identify an Exact Continuation
+We therefore allow the new patch to slide a little around its nominal source position. The timing plan stays the same, while the adjustment gives us a chance to align the waveform before blending it.
+
+### Choose the Waveform to Match
 
 Consider the window we used on the previous hop. Its second half will overlap the next window's first half. If the next source window begins $H$ samples after the previous one's start, those halves contain exactly the same source samples.
 
@@ -67,28 +55,9 @@ This expresses the compromise. The nominal position controls progress through th
 
 If the natural continuation lies in this region, we can select it immediately. Otherwise, we need a measure of how closely each candidate resembles it.
 
-### Compare Waveform Shape
+### Score the Candidate Matches
 
-Write the reference and candidate windows as vectors:
-
-$$
-u_j=x[n_k+j],
-\qquad v_j=x[q+j],
-\qquad 0\le j<W.
-$$
-
-A direct measure of mismatch is the squared distance $\sum_j(u_j-v_j)^2$. But two windows may have the same waveform shape at different amplitudes, and we would still like to recognize their alignment. Normalize each nonzero vector to unit length before comparing them:
-
-$$
-\begin{aligned}
-\left\|\frac{u}{\|u\|}-\frac{v}{\|v\|}\right\|^2
-&=\frac{\|u\|^2}{\|u\|^2}+\frac{\|v\|^2}{\|v\|^2}
--2\frac{u\cdot v}{\|u\|\|v\|}\\
-&=2-2\frac{u\cdot v}{\|u\|\|v\|}.
-\end{aligned}
-$$
-
-Minimizing this distance is therefore equivalent to maximizing the normalized dot product, also called **cosine similarity**:
+A good candidate puts peaks near peaks and troughs near troughs in the reference waveform. We measure that agreement with a normalized correlation, also called **cosine similarity**. Let $x[i]$ be the source sample at position $i$. For a candidate starting at $q$, the score is
 
 $$
 \rho(n_k,q)=
@@ -97,7 +66,7 @@ $$
 \sqrt{\sum_{j=0}^{W-1}x[q+j]^2}}.
 $$
 
-Matching shapes with the same polarity score 1, while opposite-polarity shapes score -1. Normalization lets us compare their alignment without favoring a candidate simply because it is louder. Our implementation compares full windows, so both the immediate overlap and the following half-window contribute to the choice.
+The numerator adds products of corresponding samples. Samples with matching signs contribute positively, while opposite signs contribute negatively. The denominator normalizes the amplitudes so a candidate does not win simply because it is louder. Matching shapes with the same polarity score 1, while opposite-polarity shapes score -1. Our implementation compares full windows, so both the immediate overlap and the following half-window contribute to the choice.
 
 We can now express the selection rule. Let $s_k$ be the source start we select for hop $k$:
 
@@ -115,22 +84,15 @@ $$
 
 The two positions now have distinct roles. The natural continuation follows the window actually chosen, while the nominal position always comes from output time through $p_k=rkH$. A local alignment adjustment therefore does not shift the nominal timeline of every later window.
 
-## See How a Slower Rate Reuses Audio
+### Follow the Adjustment Through a Few Patches
 
-Use small sample counts to make the positions easy to follow. Let $W=40$, $H=20$, $S=34$, and $r=0.75$. Start at source position zero. The nominal position advances by 15 samples per hop, while natural continuation advances by 20 until a search changes the selected window.
+Return to the 40-sample patches, 20-sample output hop, and $0.75\times$ rate. Allow a search radius of 17 samples, so $S=34$. Start the first patch at source position zero.
 
-| Hop $k$ | Output position $kH$ | Nominal position $p_k$ | Natural continuation $n_k$ | Selected start $s_k$ |
-| ------- | -------------------- | ---------------------- | -------------------------- | -------------------- |
-| 0       | 0                    | 0                      | 0                          | 0                    |
-| 1       | 20                   | 15                     | 20                         | 20                   |
-| 2       | 40                   | 30                     | 40                         | 40                   |
-| 3       | 60                   | 45                     | 60                         | 60                   |
+The next natural continuation is 20, only five samples beyond its nominal position of 15. We can take that exact continuation. The following patches can likewise start at 40 and 60, even though their nominal positions are 30 and 45.
 
-At hop 4, output position is 80, nominal source position is 60, and natural continuation is 80. The natural continuation is now 20 samples away from the nominal position, outside the 17-sample search radius. We must choose an earlier matching window to stay near the requested timeline.
+For patch 4, however, the natural continuation reaches 80 while the nominal position is only 60. The 20-sample difference is outside the allowed radius, so we search for another match. Suppose the waveform gives a good match at 56. This revisits audio 24 samples earlier than the uninterrupted continuation, adding duration through the join. The next natural continuation becomes $56+20=76$, close to the next nominal position of $0.75\times100=75$.
 
-Suppose the waveform gives a good match at source position 56. The selected start moves back by 24 samples from the natural continuation of 80. We revisit source material while adding another hop to the output, which extends the recording. The next natural continuation is $56+20=76$, while the next nominal position is $0.75\times100=75$.
-
-The particular match depends on the audio. A nearly periodic signal offers similar windows separated by roughly whole periods, so revisiting one can add duration without substantially changing its local oscillation. At faster rates, the nominal timeline moves ahead of natural continuation, and matching jumps generally skip source material instead.
+The particular match depends on the audio. A nearly periodic signal offers similar patches separated by roughly whole periods. Revisiting one can add duration while keeping the oscillations aligned. At faster rates, the nominal timeline moves ahead of natural continuation, and the adjustments generally skip source material instead.
 
 ## Blend the Windows Without Changing Their Shared Level
 
