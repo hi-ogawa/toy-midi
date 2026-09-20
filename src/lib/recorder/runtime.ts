@@ -516,57 +516,29 @@ export class RecorderRuntime {
         ? { reference: state.referenceVideo }
         : {}),
     };
-    this.applyClips({ operation: "remove", snapshot });
+    this.applyClipsChange({ operation: "remove", snapshot });
     this.history.pushClips({ snapshot, reverse: true });
   }
 
   /** Restore only the described clips, preserving unrelated edits and track settings. */
-  applyClips({ operation, snapshot }: RecorderClipsChange): void {
+  applyClipsChange(change: RecorderClipsChange): void {
     const state = this.store.get();
-    function applyTrack(track: AudioTrackState): AudioTrackState {
-      const edits = snapshot.tracks.find((entry) => entry.trackId === track.id);
-      if (!edits) {
-        return track;
-      }
-      const ids = new Set(edits.clips.map(({ clip }) => clip.id));
-      return updateTrackClips({
-        track,
-        update: (current) => {
-          const clips = current.filter((clip) => !ids.has(clip.id));
-          if (operation === "insert") {
-            // Restore original ordering after removing all targeted clips.
-            for (const { clip, index } of edits.clips.toSorted(
-              (a, b) => a.index - b.index,
-            )) {
-              clips.splice(index, 0, clip);
-            }
-          }
-          return clips;
-        },
-      });
-    }
-    const audioTracks = state.audioTracks.map(applyTrack);
-    const recordingTrack = applyTrack(state.recordingTrack);
-    const referenceVideo = snapshot.reference
-      ? operation === "insert"
-        ? snapshot.reference
-        : undefined
-      : state.referenceVideo;
+    const next = deriveClipsChangeState(state, change);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    this.store.update({ audioTracks, recordingTrack, referenceVideo });
-    if (recordingTrack !== state.recordingTrack) {
-      this.syncTrackPlayback(recordingTrack);
+    this.store.update(next);
+    if (next.recordingTrack !== state.recordingTrack) {
+      this.syncTrackPlayback(next.recordingTrack);
     }
-    for (const [index, track] of audioTracks.entries()) {
+    if (next.referenceVideo !== state.referenceVideo) {
+      this.syncYouTubePlayer();
+    }
+    for (const [index, track] of next.audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
         this.syncTrackPlayback(track);
       }
-    }
-    if (referenceVideo !== state.referenceVideo) {
-      this.syncYouTubePlayer();
     }
     if (wasPlaying) {
       this.transport.play();
@@ -1334,7 +1306,7 @@ class RecorderHistory {
         break;
       }
       case "clips": {
-        this.runtime.applyClips(change);
+        this.runtime.applyClipsChange(change);
         break;
       }
     }
@@ -1343,6 +1315,46 @@ class RecorderHistory {
   clear = () => this.history.clear();
   undo = () => this.history.undo((change) => this.apply(change));
   redo = () => this.history.redo((change) => this.apply(change));
+}
+
+/** Derive clip insertion or removal without mutating the supplied state. */
+function deriveClipsChangeState(
+  state: RecorderRuntimeState,
+  { operation, snapshot }: RecorderClipsChange,
+): Pick<
+  RecorderRuntimeState,
+  "audioTracks" | "recordingTrack" | "referenceVideo"
+> {
+  function applyTrack(track: AudioTrackState): AudioTrackState {
+    const edits = snapshot.tracks.find((entry) => entry.trackId === track.id);
+    if (!edits) {
+      return track;
+    }
+    const ids = new Set(edits.clips.map(({ clip }) => clip.id));
+    return updateTrackClips({
+      track,
+      update: (current) => {
+        const clips = current.filter((clip) => !ids.has(clip.id));
+        if (operation === "insert") {
+          // Restore original ordering after removing all targeted clips.
+          for (const { clip, index } of edits.clips.toSorted(
+            (a, b) => a.index - b.index,
+          )) {
+            clips.splice(index, 0, clip);
+          }
+        }
+        return clips;
+      },
+    });
+  }
+  const audioTracks = state.audioTracks.map(applyTrack);
+  const recordingTrack = applyTrack(state.recordingTrack);
+  const referenceVideo = snapshot.reference
+    ? operation === "insert"
+      ? snapshot.reference
+      : undefined
+    : state.referenceVideo;
+  return { audioTracks, recordingTrack, referenceVideo };
 }
 
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
