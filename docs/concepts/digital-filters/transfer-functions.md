@@ -16,7 +16,7 @@ x(t)=\cos(\Omega t)
 y(t)=M\cos(\Omega t+\phi).
 $$
 
-The amplitude ratio $M$ and phase shift $\phi$ describe the system at angular frequency $\Omega$. Varying $\Omega$ traces its **frequency response**. This answers our modeling question because a complicated signal can be decomposed into waves, and linearity lets us combine their responses. Startup transients are separate from this steady response, and feedback will explain where they come from.
+The amplitude ratio $M$ and phase shift $\phi$ describe the system at angular frequency $\Omega$. Varying $\Omega$ traces its **frequency response**. This answers our modeling question because a complicated signal can be decomposed into waves, and linearity lets us combine their responses. Startup transients are separate from this steady response.
 
 ### Represent Gain and Phase with One Multiplier
 
@@ -36,8 +36,6 @@ x[n]=x(nT)=e^{j\Omega nT}=e^{j\omega n},
 $$
 
 The physical wave is the same, but $\omega$ measures its phase advance in radians per sample. At 48 kHz, a 12 kHz tone has $\omega=\pi/2$, so each sample advances its phase by a quarter turn.
-
-What simple computation on these samples could change the balance of frequencies?
 
 ## A Computation That Distinguishes Frequencies
 
@@ -116,7 +114,7 @@ H_d(z)=\frac{b_0+b_1z^{-1}+b_2z^{-2}}
 {1+a_1z^{-1}+a_2z^{-2}}.
 $$
 
-This ratio of quadratics is a **biquad**. Its denominator contains the same roots that determine the natural motion. Uncanceled denominator roots are called **poles**, while uncanceled numerator roots are **zeros**. A pole pair near the unit circle can produce a strong response to nearby tones, while a zero on the circle cancels that tone if the denominator is nonzero. We now have a family of sample computations whose response we can shape through these polynomials.
+This ratio of quadratics is a **biquad**. Its denominator contains the same roots that determine the natural motion. Uncanceled denominator roots are called **poles**, while uncanceled numerator roots are **zeros**. A pole pair near the unit circle can produce a strong response to nearby tones, while a zero on the circle cancels that tone if the denominator is nonzero.
 
 ## The Continuous Counterpart of the Sample Recurrence
 

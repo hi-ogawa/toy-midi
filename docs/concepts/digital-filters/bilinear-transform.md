@@ -2,11 +2,9 @@
 
 The [peaking-EQ design](peaking-eq.md) gives us an analog response with the desired gain and width. We now need a recurrence that computes output samples. The challenge is to preserve the useful response shape and decaying dynamics while replacing continuous-time operations with sample delays.
 
-The [transfer-function companion](transfer-functions.md) connects continuous modes $e^{st}$ to sampled modes $z^n$. Here we use that geometry to explain the bilinear transform, then apply it to the peaking EQ.
-
 ## Convert Continuous Dynamics into Sample Updates
 
-Exact sampling of a mode gives $z=e^{sT}$, where $T=1/F_s$ is the sample interval. Substituting its inverse $s=\log(z)/T$ into a rational analog response does not generally produce the finite rational function of delays needed for a biquad.
+[Sampling a continuous mode](transfer-functions.md#the-s-plane-and-z-plane) gives $z=e^{sT}$, where $T=1/F_s$ is the sample interval. Substituting its inverse $s=\log(z)/T$ into a rational analog response does not generally produce the finite rational function of delays needed for a biquad.
 
 ### Derive the Bilinear Mapping
 
@@ -65,7 +63,7 @@ Each digital frequency therefore reads the analog response at a corresponding an
 | Imaginary axis     | Wraps repeatedly around the circle | Covers the circle once, approaching $z=-1$ at infinite frequency |
 | Left half-plane    | Maps inside the circle             | Maps inside the circle                                           |
 
-Both preserve the decay region, but they are different mappings. The bilinear map does not reproduce the exact samples of every continuous mode. Its benefit here is a stable rational digital filter whose frequency response follows the analog curve along a warped axis.
+The bilinear map preserves decay and the sequence of frequency-response values, but does not reproduce the exact samples of each continuous mode.
 
 ## Apply the Mapping to the Peaking EQ
 
@@ -77,7 +75,7 @@ $$
 \Omega_0=\frac{2}{T}\tan\frac{\omega_0}{2}.
 $$
 
-This is **prewarping**. It chooses the analog center before conversion so the resulting digital center lands exactly where requested. At low frequencies, $\tan(\omega_0/2)\approx\omega_0/2$, so the correction is small, but near Nyquist it becomes substantial.
+This choice is called **prewarping**. At low frequencies, $\tan(\omega_0/2)\approx\omega_0/2$, so the correction is small, but near Nyquist it becomes substantial.
 
 The peaking prototype uses normalized rate $u=s/\Omega_0$. Substituting the mapping and prewarped center cancels $2/T$:
 
@@ -160,5 +158,3 @@ $$
 $$
 
 These are the five values computed by [`calculateBiquadEqCoefficients`](../../../src/lib/dsp/biquad-eq.ts). The implementation stores the normalized values under the names `b0`, `b1`, `b2`, `a1`, and `a2`. The formula convention follows the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).
-
-These documents cover fixed-filter behavior. Coefficient smoothing, bypass, and state management remain implementation concerns.
