@@ -8,7 +8,7 @@ We will construct the response first, then hand it to a separate digital-convers
 - This document builds the peaking response from its desired shape.
 - [From an analog response to digital coefficients](bilinear-transform.md) explains the bilinear mapping and derives the five weights used by the sample loop.
 
-## Choose the Response We Want
+## Define the Desired Response
 
 Let $M\gt 0$ be the amplitude ratio at the center frequency $\Omega_0$, measured in radians per second. A boost has $M\gt 1$, a cut has $M\lt 1$, and $M=1$ leaves the signal unchanged. For example, $M=2$ doubles the center amplitude, which is approximately $+6$ dB.
 
@@ -18,7 +18,7 @@ Away from the center, the response should return to amplitude one. We also want 
 
 The horizontal axis is frequency relative to the center. The graph uses decibels so reciprocal boosts and cuts appear symmetrically about zero. We will use amplitude ratios in the derivation and give the width parameter its meaning after the shape is established.
 
-## Start with a Second-Order Family
+## Construct a Response with One Peak or Dip
 
 A second-order system can hold a damped oscillation and shape the response around a frequency. Its general continuous transfer function is a ratio of quadratic polynomials:
 
@@ -30,7 +30,7 @@ Here $s$ is a complex rate. To measure the response to a sustained tone at angul
 
 We have chosen second order as a compact family with enough freedom for this shape. The requirements below determine which members are useful for a peaking EQ.
 
-## Preserve Both Ends of the Spectrum
+### Preserve the Endpoints
 
 At zero frequency, only the constant terms remain. At very high frequency, the leading powers dominate:
 
@@ -48,7 +48,7 @@ $$
 
 The numerator and denominator now differ only in their linear terms. Those terms can change the response between the endpoints without changing the endpoints themselves.
 
-## Place the Center and Set Its Gain
+### Set the Center and Gain
 
 On the frequency axis,
 
@@ -73,7 +73,7 @@ $$
 
 For this family, choose $c_z,c_p\gt 0$. Both quadratics then have roots in the left half-plane, so the filter and its reciprocal have decaying natural modes. The gain requirement is $c_z/c_p=M$.
 
-## Check the Shape Between the Endpoints
+### Verify the Shape
 
 Write $\nu=\Omega/\Omega_0$, so a tone is evaluated at $u=j\nu$. Its squared amplitude response is
 
@@ -95,9 +95,13 @@ As frequency approaches the center, $v$ falls to zero, then rises again beyond t
 
 Also, replacing $\nu$ with $1/\nu$ leaves $v$ unchanged. The analog response is therefore symmetric around the center on a logarithmic frequency axis, as in the figure.
 
-## Let the Remaining Freedom Set Width
+## Give the Remaining Freedom a Bandwidth Meaning
 
-The ratio $c_z/c_p$ already fixes the center amplitude $M$. To measure width, choose the level halfway between unity and $M$ in decibels. Its amplitude ratio is the geometric mean $\sqrt M$, so the two crossing frequencies satisfy $|P|^2=M$.
+The ratio $c_z/c_p$ already fixes the center amplitude $M$. We can now use the remaining freedom to set the width.
+
+### Measure the Halfway Bandwidth
+
+To measure width, choose the level halfway between unity and $M$ in decibels. Its amplitude ratio is the geometric mean $\sqrt M$, so the two crossing frequencies satisfy $|P|^2=M$.
 
 For a non-flat response, substituting that level gives
 
@@ -124,7 +128,7 @@ $$
 
 Larger $Q$ gives a narrower correction. The ratio of the two coefficients controls gain, while their product controls width. At $M=1$, the response is flat and there are no distinct halfway crossings, though the coefficient formulas below remain valid.
 
-## Write the Prototype in Terms of the Controls
+### Express the Response Through Gain and Q
 
 Solving $c_z/c_p=M$ and $c_zc_p=1/Q^2$ gives $c_z=\sqrt M/Q$ and $c_p=1/(Q\sqrt M)$. With the abbreviation $A=\sqrt M$, the response becomes
 

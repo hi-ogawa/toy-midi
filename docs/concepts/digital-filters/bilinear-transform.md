@@ -4,9 +4,11 @@ The [peaking-EQ design](peaking-eq.md) gives us an analog response with the desi
 
 The [transfer-function companion](transfer-functions.md) connects continuous modes $e^{st}$ to sampled modes $z^n$. Here we use that geometry to explain the bilinear transform, then apply it to the peaking EQ.
 
-## Choose a System Mapping
+## Convert Continuous Dynamics into Sample Updates
 
 Exact sampling of a mode gives $z=e^{sT}$, where $T=1/F_s$ is the sample interval. Substituting its inverse $s=\log(z)/T$ into a rational analog response does not generally produce the finite rational function of delays needed for a biquad.
+
+### Derive the Bilinear Mapping
 
 Instead, we can approximate the continuous system's integration rule. Let $I'=x$. Over one sample interval, approximate the integral by the interval length times the average of the two endpoint values:
 
@@ -30,7 +32,7 @@ $$
 
 Unlike the exact exponential mapping, this is a rational approximation derived from a chosen integration rule. Substitution into a quadratic analog response produces a quadratic digital response after clearing denominators.
 
-## Preserve Decay, Change the Frequency Coordinate
+### Preserve Decay While Warping Frequency
 
 Let $s=\sigma+j\Omega$. The bilinear map has
 
@@ -65,7 +67,9 @@ Each digital frequency therefore reads the analog response at a corresponding an
 
 Both preserve the decay region, but they are different mappings. The bilinear map does not reproduce the exact samples of every continuous mode. Its benefit here is a stable rational digital filter whose frequency response follows the analog curve along a warped axis.
 
-## Put the Peak at the Requested Digital Frequency
+## Apply the Mapping to the Peaking EQ
+
+### Place the Center with Prewarping
 
 The user chooses a center frequency $f_0$ in hertz. Its digital angle is $\omega_0=2\pi f_0/F_s$. To make the warped analog response peak there, choose the analog center to be
 
@@ -84,7 +88,7 @@ $$
 
 At $z=e^{j\omega_0}$, this gives $u=j$, exactly the prototype's center. Its gain is therefore preserved. The same mapping also preserves the inverse relationship of matching boosts and cuts. Width still undergoes frequency warping, so the analog meaning of $Q$ as reciprocal normalized halfway bandwidth is not an exact digital bandwidth rule.
 
-## Expand Once for Both Numerator and Denominator
+### Recover the Delay Coefficients
 
 The designed prototype is
 
@@ -136,7 +140,7 @@ H_d(z)=\frac{b_0+b_1z^{-1}+b_2z^{-2}}
 {a_0+a_1z^{-1}+a_2z^{-2}}.
 $$
 
-## Return to the Sample Loop
+### Return to the Sample Loop
 
 To compute $y[n]$ explicitly, divide every coefficient by $a_0$. Write $\beta_i=b_i/a_0$ and $\gamma_i=a_i/a_0$. The recurrence is
 
