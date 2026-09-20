@@ -3,6 +3,7 @@ import {
   type Note,
   type TimeSignature,
 } from "../../types.ts";
+import { insertAtIndices } from "../../utils/array.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
@@ -442,27 +443,7 @@ export class RecorderRuntime {
   }
 
   commitClipEdit(edit: RecorderClipEdit): void {
-    const state = this.store.get();
-    const next = deriveClipEditState(state, edit);
-    const wasPlaying = state.isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    this.store.update(next);
-    if (next.recordingTrack !== state.recordingTrack) {
-      this.syncTrackPlayback(next.recordingTrack);
-    }
-    if (next.referenceVideo !== state.referenceVideo) {
-      this.syncYouTubePlayer();
-    }
-    for (const [index, track] of next.audioTracks.entries()) {
-      if (track !== state.audioTracks[index]) {
-        this.syncTrackPlayback(track);
-      }
-    }
-    if (wasPlaying) {
-      this.transport.play();
-    }
+    this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
@@ -474,66 +455,63 @@ export class RecorderRuntime {
   }
 
   private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
-    const state = this.store.get();
-    const wasPlaying = state.isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    function updateClips(track: AudioTrackState): AudioTrackState {
+    function updateTrack(track: AudioTrackState): AudioTrackState {
       return updateTrackClips({
         track,
         update: (clips) =>
           clips.map((clip) => (clip.id === id ? update(clip) : clip)),
       });
     }
-    const audioTracks = state.audioTracks.map((track) => updateClips(track));
-    const recordingTrack = updateClips(state.recordingTrack);
-    this.store.update({ recordingTrack, audioTracks });
-    if (recordingTrack !== state.recordingTrack) {
-      this.syncTrackPlayback(recordingTrack);
-    }
-    for (const [index, track] of audioTracks.entries()) {
-      if (track !== state.audioTracks[index]) {
-        this.syncTrackPlayback(track);
-      }
-    }
-    if (wasPlaying) {
-      this.transport.play();
-    }
+    this.updateClips((state) => ({
+      audioTracks: state.audioTracks.map(updateTrack),
+      recordingTrack: updateTrack(state.recordingTrack),
+      referenceVideo: state.referenceVideo,
+    }));
   }
 
   removeClips(ids: readonly string[]): void {
     const state = this.store.get();
     const clipIds = new Set(ids);
-    const removeReference = clipIds.has(REFERENCE_VIDEO_CLIP_ID);
+    const snapshot: RecorderClipInsertRemoveSnapshot = {
+      tracks: [...state.audioTracks, state.recordingTrack].flatMap((track) => {
+        const clips = track.clips.flatMap((clip, index) =>
+          clipIds.has(clip.id) ? [{ clip, index }] : [],
+        );
+        return clips.length > 0 ? [{ trackId: track.id, clips }] : [];
+      }),
+      ...(clipIds.has(REFERENCE_VIDEO_CLIP_ID)
+        ? { referenceVideo: state.referenceVideo }
+        : {}),
+    };
+    this.applyClipInsertRemove({ operation: "remove", snapshot });
+    this.history.pushClips({ snapshot, reverse: true });
+  }
+
+  /** @internal for undo */
+  applyClipInsertRemove(change: RecorderClipInsertRemove): void {
+    this.updateClips((state) => deriveClipInsertRemoveState(state, change));
+  }
+
+  /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
+  private updateClips(
+    update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
+  ): void {
+    const state = this.store.get();
+    const next = update(state);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    function removeTrackClips(track: AudioTrackState): AudioTrackState {
-      return updateTrackClips({
-        track,
-        update: (clips) => clips.filter((clip) => !clipIds.has(clip.id)),
-      });
+    this.store.update(next);
+    if (next.recordingTrack !== state.recordingTrack) {
+      this.syncTrackPlayback(next.recordingTrack);
     }
-    const audioTracks = state.audioTracks.map((track) =>
-      removeTrackClips(track),
-    );
-    const recordingTrack = removeTrackClips(state.recordingTrack);
-    this.store.update({
-      recordingTrack,
-      audioTracks,
-      ...(removeReference ? { referenceVideo: undefined } : {}),
-    });
-    if (recordingTrack !== state.recordingTrack) {
-      this.syncTrackPlayback(recordingTrack);
-    }
-    for (const [index, track] of audioTracks.entries()) {
+    for (const [index, track] of next.audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
         this.syncTrackPlayback(track);
       }
     }
-    if (removeReference) {
+    if (next.referenceVideo !== state.referenceVideo) {
       this.syncYouTubePlayer();
     }
     if (wasPlaying) {
@@ -926,8 +904,7 @@ export class RecorderRuntime {
   }
 
   removeReferenceVideo(): void {
-    this.store.update({ referenceVideo: undefined });
-    this.syncYouTubePlayer();
+    this.removeClips([REFERENCE_VIDEO_CLIP_ID]);
   }
 
   private syncYouTubePlayer(): void {
@@ -1151,21 +1128,20 @@ export class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
+    const newClip: AudioClip = {
+      ...createAudioClip({
+        id: pendingRecording.id,
+        name: pendingRecording.name,
+        buffer: takeBuffer,
+      }),
+      timelineOffset,
+    };
     const previousTrack = this.store.get().recordingTrack;
+    const newClipIndex = previousTrack.clips.length;
     const recordingTrack = resolveTrackRegions({
       ...previousTrack,
       nextTakeNumber: previousTrack.nextTakeNumber + 1,
-      clips: [
-        ...previousTrack.clips,
-        {
-          ...createAudioClip({
-            id: pendingRecording.id,
-            name: pendingRecording.name,
-            buffer: takeBuffer,
-          }),
-          timelineOffset,
-        },
-      ],
+      clips: [...previousTrack.clips, newClip],
     });
     this.store.update({
       captureStatus: "ready",
@@ -1175,6 +1151,16 @@ export class RecorderRuntime {
     });
     this.syncTrackPlayback(recordingTrack);
     this.syncTrackMix();
+    this.history.pushClips({
+      snapshot: {
+        tracks: [
+          {
+            trackId: RECORDING_TRACK_ID,
+            clips: [{ clip: newClip, index: newClipIndex }],
+          },
+        ],
+      },
+    });
   }
 
   private closeInput(): void {
@@ -1196,6 +1182,24 @@ export class RecorderRuntime {
   redo = () => this.history.redo();
 }
 
+type RecorderRuntimeClipsState = Pick<
+  RecorderRuntimeState,
+  "audioTracks" | "recordingTrack" | "referenceVideo"
+>;
+
+type RecorderClipInsertRemoveSnapshot = {
+  tracks: {
+    trackId: string;
+    clips: { clip: AudioClip; index: number }[];
+  }[];
+  referenceVideo?: ReferenceVideoState;
+};
+
+type RecorderClipInsertRemove = {
+  operation: "insert" | "remove";
+  snapshot: RecorderClipInsertRemoveSnapshot;
+};
+
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
 // editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
 // Capture complete before/after notes for those IDs and migrate callers incrementally.
@@ -1205,7 +1209,8 @@ export class RecorderRuntime {
 type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
   | { type: "midi-track-insert"; track: MidiTrackState; index: number }
-  | { type: "midi-track-delete"; trackId: string };
+  | { type: "midi-track-delete"; trackId: string }
+  | ({ type: "clips" } & RecorderClipInsertRemove);
 
 // TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 class RecorderHistory {
@@ -1243,6 +1248,28 @@ class RecorderHistory {
     );
   }
 
+  pushClips({
+    snapshot,
+    reverse = false,
+  }: {
+    snapshot: RecorderClipInsertRemoveSnapshot;
+    reverse?: boolean;
+  }): void {
+    const before: RecorderChange = {
+      type: "clips",
+      operation: "remove",
+      snapshot,
+    };
+    const after: RecorderChange = {
+      type: "clips",
+      operation: "insert",
+      snapshot,
+    };
+    this.history.push(
+      reverse ? { before: after, after: before } : { before, after },
+    );
+  }
+
   private async apply(change: RecorderChange): Promise<void> {
     switch (change.type) {
       case "midi-notes": {
@@ -1257,6 +1284,10 @@ class RecorderHistory {
         this.runtime.deleteMidiTrack(change.trackId);
         break;
       }
+      case "clips": {
+        this.runtime.applyClipInsertRemove(change);
+        break;
+      }
     }
   }
 
@@ -1265,14 +1296,59 @@ class RecorderHistory {
   redo = () => this.history.redo((change) => this.apply(change));
 }
 
+/** Derive clip insertion or removal without mutating the supplied state. */
+function deriveClipInsertRemoveState(
+  state: RecorderRuntimeState,
+  { operation, snapshot }: RecorderClipInsertRemove,
+): RecorderRuntimeClipsState {
+  function updateTrack(track: AudioTrackState): AudioTrackState {
+    const trackEdits = snapshot.tracks.find(
+      (entry) => entry.trackId === track.id,
+    );
+    if (!trackEdits) {
+      return track;
+    }
+    return updateTrackClips({
+      track,
+      update: (clips) => {
+        switch (operation) {
+          case "insert": {
+            return insertAtIndices({
+              items: clips,
+              insertions: trackEdits.clips.map(({ clip, index }) => ({
+                item: clip,
+                index,
+              })),
+            });
+          }
+          case "remove": {
+            const removeIds = new Set(
+              trackEdits.clips.map(({ clip }) => clip.id),
+            );
+            return clips.filter((clip) => !removeIds.has(clip.id));
+          }
+        }
+      },
+    });
+  }
+  function updateReferenceVideo() {
+    if (!snapshot.referenceVideo) {
+      return state.referenceVideo;
+    }
+    return operation === "insert" ? snapshot.referenceVideo : undefined;
+  }
+  return {
+    audioTracks: state.audioTracks.map(updateTrack),
+    recordingTrack: updateTrack(state.recordingTrack),
+    referenceVideo: updateReferenceVideo(),
+  };
+}
+
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
 export function deriveClipEditState(
   state: RecorderRuntimeState,
   edit: RecorderClipEdit,
-): Pick<
-  RecorderRuntimeState,
-  "audioTracks" | "recordingTrack" | "referenceVideo"
-> {
+): RecorderRuntimeClipsState {
   const moves = edit.type === "move" ? edit.changes : [];
   const trims = edit.type !== "move" ? edit.changes : [];
   function editTrack(track: AudioTrackState): AudioTrackState {

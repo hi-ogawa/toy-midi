@@ -11,10 +11,12 @@ import { useRecorderMidiInteraction } from "./use-recorder-midi-interaction";
 export function useRecorderInteraction({
   runtime,
   state,
+  isRecording,
   subdivisionsPerBeat,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
+  isRecording: boolean;
   subdivisionsPerBeat: number;
 }) {
   const clipInteraction = useRecorderClipInteraction({
@@ -81,6 +83,11 @@ export function useRecorderInteraction({
       matchKeyboardEvent(event, "Ctrl+Y");
     if (!undo && !redo) {
       return false;
+    }
+    // Consume the shortcut without replaying history while capture is in flight,
+    // keeping the recording track stable until the take and its history entry are finalized.
+    if (isRecording) {
+      return true;
     }
     clearSelection();
     historyMutation.mutate(undo ? "undo" : "redo");

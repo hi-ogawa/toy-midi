@@ -82,9 +82,14 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
+  const flags = deriveRecorderFlags({
+    captureStatus: state.captureStatus,
+    project,
+  });
   const recorderInteraction = useRecorderInteraction({
     runtime,
     state,
+    isRecording: flags.isRecording,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
   });
   const { clipInteraction, locatorInteraction, midiInteraction } =
@@ -141,10 +146,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = clipInteraction.recordingTrack.clips;
-  const flags = deriveRecorderFlags({
-    captureStatus: state.captureStatus,
-    project,
-  });
 
   function togglePlay() {
     if (flags.playDisabled) {

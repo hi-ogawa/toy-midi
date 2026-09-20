@@ -65,4 +65,17 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await expect(take).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
   await expect(page.getByTestId("recorder-audio-track-row")).toBeVisible();
+
+  // Undo restores the whole selection at its committed positions in one step.
+  await page.keyboard.press("Control+z");
+  await expect(audio).toHaveCount(1);
+  await expect(take).toHaveCount(1);
+  expect((await audio.boundingBox())!.x).toBeCloseTo(audioAfter!.x, -1);
+  expect((await take.boundingBox())!.x).toBeCloseTo(takeAfter!.x, -1);
+
+  // Redo removes both clips together and keeps the backing track row.
+  await page.keyboard.press("Control+Shift+z");
+  await expect(audio).toHaveCount(0);
+  await expect(take).toHaveCount(0);
+  await expect(page.getByTestId("recorder-audio-track-row")).toBeVisible();
 });
