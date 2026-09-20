@@ -3,10 +3,7 @@
 ## Architecture
 
 - [Architecture overview](architecture.md): application ownership, data flow, persistence, and runtime structure.
-
-## Product
-
-- [Recorder](recorder.md): use case, features, monitoring assumptions, and separation from the MIDI editor.
+- [Recorder architecture](architecture.md#recorder): scope, persistence, monitoring, and latency.
 
 ## Concepts
 

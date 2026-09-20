@@ -6,9 +6,11 @@ This document records durable system boundaries and design decisions. Keep imple
 
 Toy MIDI is a browser-only editor built with React and TypeScript. Zustand owns project and editor state, Tone.js and OxiSynth provide audio playback, and browser storage provides persistence. The application has no server component.
 
-The editor supports one MIDI track and multiple audio tracks on a shared beat-based timeline. Components render and edit state, while library modules own audio, persistence, import, and export behavior.
+The legacy editor supports one MIDI track and multiple audio tracks on a shared beat-based timeline. Components render and edit state, while library modules own audio, persistence, import, and export behavior.
 
-## Stable Boundaries
+## Legacy MIDI Editor
+
+### Stable Boundaries
 
 - `src/app.tsx` owns the application shell and routing.
 - `src/components/piano-roll.tsx` owns editor interaction and rendering.
@@ -19,7 +21,7 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 - `src/lib/project-storage.ts` owns browser persistence access.
 - `src/components/score-viewer.tsx` owns standalone and project-backed score playback.
 
-## State And Audio Flow
+### State And Audio Flow
 
 The project store is the source of truth for musical content, mixer settings, selections, and viewport state. Components mutate the store rather than synchronizing directly with audio or persistence.
 
@@ -37,7 +39,7 @@ Audio file and ZIP resolution are independent of Tone.js, while decoding stays b
 
 Undo and redo cover note edits only. Other project changes are not currently included in history.
 
-## Persistence And Sessions
+### Persistence And Sessions
 
 Project documents and their metadata index live in localStorage. Binary audio assets live in IndexedDB and may be shared by multiple projects. Deleting a project does not currently garbage-collect assets.
 
@@ -49,4 +51,18 @@ Project score routes read persisted documents directly and generate MusicXML in 
 
 Portable project files are zip archives containing project data, a manifest, and audio assets. MIDI import and export remain separate from the project-file format.
 
-The standalone recorder keeps project content in `RecorderRuntime` and saves explicitly to IndexedDB or portable project archives. Locators persist stable IDs, labels, and beat positions so tempo changes preserve their musical position. Locator selection remains transient UI state, and projects saved before locator support load with no locators.
+## Recorder
+
+The home screen lists recorder projects under **Projects** and the original MIDI editor under **Legacy**. The recorder supports MIDI editing and transcription alongside audio recording, while retaining its own project format and editing architecture.
+
+The recorder was built from scratch around practicing and recording one live instrument or microphone against prepared backing audio. It supports retained takes and non-destructive comping without aiming for general DAW feature coverage. It shares suitable utilities with the legacy editor.
+
+### State And Persistence
+
+The recorder keeps project content in `RecorderRuntime` and saves explicitly to IndexedDB or portable project archives. Locators persist stable IDs, labels, and beat positions so tempo changes preserve their musical position. Locator selection remains transient UI state, and projects saved before locator support load with no locators.
+
+### Monitoring And Latency
+
+Web Audio can route the live input to the output, but it cannot guarantee the low and predictable end-to-end latency expected from DAW software monitoring. The recorder therefore does not depend on software monitoring. Its intended practice and recording setup already has the instrument signal available outside the browser, commonly through pedals and an audio interface, so the performer can use direct monitoring instead.
+
+Recording latency is handled separately. The recorder stores a compensation value with each project and advances recorded audio by that amount when placing a take. The latency checker measures a looped-back recording setup and helps determine the value.
