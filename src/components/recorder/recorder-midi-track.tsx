@@ -87,7 +87,11 @@ export function MidiTrackRow({
       <TrackRow
         data-testid="recorder-midi-track-row"
         // Anchor the keyboard’s top edge to the controls so pitch scrolling keeps it visible.
-        controlsClassName="after:pointer-events-none after:absolute after:top-full after:right-0 after:w-[50px] after:border-t after:border-neutral-600"
+        controlsClassName={
+          track.viewMode === "editor"
+            ? "after:pointer-events-none after:absolute after:top-full after:right-0 after:w-[50px] after:border-t after:border-neutral-600"
+            : undefined
+        }
         title={track.name}
         height={track.height}
         gain={track.gain}
