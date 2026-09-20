@@ -61,7 +61,7 @@ export class TunerAnalyser {
 /**
  * Detects one monophonic fundamental from the latest input window.
  *
- * @see {@link file://./../../docs/concepts/tuner-pitch-detection.md} for the mathematical explanation.
+ * @see {@link file://./../../docs/concepts/yin-pitch-detection.md} for the mathematical explanation.
  */
 export function analyzeTunerSamples({
   samples,
