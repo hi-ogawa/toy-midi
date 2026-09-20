@@ -51,7 +51,7 @@ A constant signal passes unchanged, while a signal alternating between $+1$ and 
 
 $$
 y[n]=\frac{e^{j\omega n}+e^{j\omega(n-1)}}{2}
-=\frac{1+e^{-j\omega}}{2}\,x[n].
+=\frac{1+e^{-j\omega}}{2}\cdot x[n].
 $$
 
 The output-to-input multiplier is therefore $H_d(e^{j\omega})=(1+e^{-j\omega})/2$. A delay rotates the wave by $-\omega$, and adding the copies produces frequency-dependent reinforcement or cancellation. In particular, $H_d(1)=1$ at $\omega=0$ and $H_d(-1)=0$ at $\omega=\pi$.
