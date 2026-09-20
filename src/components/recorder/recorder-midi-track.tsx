@@ -381,6 +381,10 @@ function MidiTrackEditor({
               onPreviewStop={preview.stop}
             />
           ))}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-[50px] border border-neutral-600"
+          />
         </div>
         <div
           data-testid="recorder-midi-grid"
