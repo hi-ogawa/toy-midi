@@ -29,10 +29,10 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     | "tabAnnotationEnabled"
     | "tabOpenStringPitches"
     | "keySignature"
-    | "overview"
+    | "viewMode"
   > & {
     // Optional for projects saved before overview mode.
-    overview?: boolean;
+    viewMode?: MidiTrackState["viewMode"];
     tabAnnotationEnabled?: boolean;
     tabOpenStringPitches?: number[];
     keySignature?: MidiTrackState["keySignature"];
@@ -217,7 +217,7 @@ export function deserializeRecorderRuntimeState({
     }),
     midiTracks: (project.midiTracks ?? []).map((track) => ({
       ...track,
-      overview: track.overview ?? false,
+      viewMode: track.viewMode ?? "editor",
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,

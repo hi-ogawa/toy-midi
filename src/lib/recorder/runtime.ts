@@ -80,7 +80,7 @@ export interface MidiTrackState {
   program: number;
   eq: MultibandEqParameters;
   height: number;
-  overview: boolean;
+  viewMode: "editor" | "overview";
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -538,14 +538,14 @@ export class RecorderRuntime {
     }));
   }
 
-  setMidiTrackOverview({
+  setMidiTrackViewMode({
     id,
-    overview,
+    viewMode,
   }: {
     id: string;
-    overview: boolean;
+    viewMode: MidiTrackState["viewMode"];
   }): void {
-    this.updateMidiTrack(id, (track) => ({ ...track, overview }));
+    this.updateMidiTrack(id, (track) => ({ ...track, viewMode }));
   }
 
   removeAudioTrack(id: string): void {
@@ -1548,7 +1548,7 @@ function createMidiTrackState(name: string): MidiTrackState {
     program: 0,
     eq: createDefaultMultibandEq(),
     height: 300,
-    overview: false,
+    viewMode: "editor",
     gain: 1,
     muted: false,
     soloed: false,

@@ -80,7 +80,7 @@ export function useRecorderMidiInteraction({
     }
   }, [state.midiTracks, selection]);
 
-  function toggleOverview(trackId: string) {
+  function toggleViewMode(trackId: string) {
     const track = state.midiTracks.find((entry) => entry.id === trackId);
     if (!track) {
       return;
@@ -88,7 +88,10 @@ export function useRecorderMidiInteraction({
     if (hasTrackSelection(trackId)) {
       clear();
     }
-    runtime.setMidiTrackOverview({ id: trackId, overview: !track.overview });
+    runtime.setMidiTrackViewMode({
+      id: trackId,
+      viewMode: track.viewMode === "overview" ? "editor" : "overview",
+    });
   }
 
   function isSelected(trackId: string, noteId: string) {
@@ -412,7 +415,7 @@ export function useRecorderMidiInteraction({
     const track = state.midiTracks.find(
       (entry) => entry.id === clipboard.trackId,
     );
-    if (!track || track.overview) {
+    if (!track || track.viewMode === "overview") {
       return false;
     }
     cancelEdit();
@@ -494,7 +497,7 @@ export function useRecorderMidiInteraction({
 
   return {
     activate: onSelect,
-    toggleOverview,
+    toggleViewMode,
     clear,
     hasSelection: selection !== undefined,
     hasTrackSelection,

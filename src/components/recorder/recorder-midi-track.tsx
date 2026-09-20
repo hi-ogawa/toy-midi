@@ -102,8 +102,8 @@ export function MidiTrackRow({
         action={
           <MidiTrackActions
             label={track.name}
-            overview={track.overview}
-            onOverviewToggle={() => midiInteraction.toggleOverview(track.id)}
+            viewMode={track.viewMode}
+            onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
             onScorePreview={onScorePreview}
@@ -111,7 +111,7 @@ export function MidiTrackRow({
           />
         }
       >
-        {track.overview ? (
+        {track.viewMode === "overview" ? (
           <MidiTrackOverview
             track={track}
             pixelsPerBeat={pixelsPerBeat}
@@ -144,16 +144,16 @@ export function MidiTrackRow({
 
 function MidiTrackActions({
   label,
-  overview,
-  onOverviewToggle,
+  viewMode,
+  onViewModeToggle,
   onRemove,
   onInstrumentOpen,
   onTranscribe,
   onScorePreview,
 }: {
   label: string;
-  overview: boolean;
-  onOverviewToggle: () => void;
+  viewMode: MidiTrackState["viewMode"];
+  onViewModeToggle: () => void;
   onRemove: () => void;
   onInstrumentOpen: () => void;
   onTranscribe: () => void;
@@ -171,8 +171,8 @@ function MidiTrackActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuCheckboxItem
-          checked={overview}
-          onCheckedChange={onOverviewToggle}
+          checked={viewMode === "overview"}
+          onCheckedChange={onViewModeToggle}
         >
           Overview
         </DropdownMenuCheckboxItem>
