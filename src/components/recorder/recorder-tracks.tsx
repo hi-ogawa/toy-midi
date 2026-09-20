@@ -297,30 +297,47 @@ export function TakesDisclosureRow({
   expanded,
   takeCount,
   onExpandedChange,
+  newestFirst,
+  onNewestFirstChange,
 }: {
   expanded: boolean;
   takeCount: number;
+  newestFirst: boolean;
+  onNewestFirstChange: (newestFirst: boolean) => void;
   onExpandedChange: (expanded: boolean) => void;
 }) {
   return (
     <div className="grid h-9 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
-      <button
-        type="button"
-        data-testid="recorder-takes-toggle"
-        aria-expanded={expanded}
-        onClick={() => onExpandedChange(!expanded)}
-        className="sticky left-0 z-20 flex items-center gap-2 border-r border-neutral-700 bg-neutral-900 px-3 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
-      >
-        {expanded ? (
-          <ChevronDownIcon className="size-3.5 text-neutral-400" />
-        ) : (
-          <ChevronRightIcon className="size-3.5 text-neutral-400" />
-        )}
-        Takes
-        <span className="text-[10px] font-normal text-neutral-500">
-          {takeCount}
-        </span>
-      </button>
+      <div className="flex items-center border-r border-neutral-700 px-3">
+        <button
+          type="button"
+          data-testid="recorder-takes-toggle"
+          aria-expanded={expanded}
+          onClick={() => onExpandedChange(!expanded)}
+          className="flex h-full flex-1 items-center gap-2 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
+        >
+          {expanded ? (
+            <ChevronDownIcon className="size-3.5 text-neutral-400" />
+          ) : (
+            <ChevronRightIcon className="size-3.5 text-neutral-400" />
+          )}
+          Takes
+          <span className="text-[10px] font-normal text-neutral-500">
+            {takeCount}
+          </span>
+        </button>
+        <Button
+          aria-label="Newest takes first"
+          aria-pressed={newestFirst}
+          title={
+            newestFirst ? "Show oldest takes first" : "Show newest takes first"
+          }
+          onClick={() => onNewestFirstChange(!newestFirst)}
+          className="h-6 px-2 text-[10px]"
+        >
+          {newestFirst ? "Newest first" : "Oldest first"}
+        </Button>
+      </div>
       <div />
     </div>
   );

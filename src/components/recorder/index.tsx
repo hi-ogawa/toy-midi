@@ -17,6 +17,7 @@ import {
   RecorderRuntime,
   REFERENCE_VIDEO_CLIP_ID,
 } from "../../lib/recorder/runtime";
+import { recorderStorage } from "../../lib/recorder/storage";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
@@ -62,6 +63,9 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
+  const [takesNewestFirst, setTakesNewestFirst] = useState(
+    () => recorderStorage.readPreferences().takesNewestFirst,
+  );
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useRecorderEffectsUi();
@@ -573,11 +577,18 @@ export function Recorder({ projectId }: { projectId: string }) {
                 expanded={takesExpanded}
                 takeCount={takes.length}
                 onExpandedChange={setTakesExpanded}
+                newestFirst={takesNewestFirst}
+                onNewestFirstChange={(newestFirst) => {
+                  setTakesNewestFirst(newestFirst);
+                  recorderStorage.updatePreferences({
+                    takesNewestFirst: newestFirst,
+                  });
+                }}
               />
             )}
             {takes.length > 0 &&
               takesExpanded &&
-              takes.map((take) => (
+              (takesNewestFirst ? takes.toReversed() : takes).map((take) => (
                 <TakeTrackRow
                   key={take.id}
                   label={take.name}
