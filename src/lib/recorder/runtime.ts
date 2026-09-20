@@ -1301,35 +1301,35 @@ function deriveClipInsertRemoveState(
   { operation, snapshot }: RecorderClipInsertRemove,
 ): RecorderRuntimeClipsState {
   function updateTrack(track: AudioTrackState): AudioTrackState {
-    const trackSnapshot = snapshot.tracks.find(
+    const trackEdits = snapshot.tracks.find(
       (entry) => entry.trackId === track.id,
     );
-    if (!trackSnapshot) {
+    if (!trackEdits) {
       return track;
     }
     return updateTrackClips({
       track,
-      update: (current) => {
-        if (operation === "remove") {
-          const clipIds = new Set(
-            trackSnapshot.clips.map(({ clip }) => clip.id),
-          );
-          return current.filter((clip) => !clipIds.has(clip.id));
+      update: (clips) => {
+        switch (operation) {
+          case "insert": {
+            clips = [...clips];
+            for (const { clip, index } of trackEdits.clips.toSorted(
+              (a, b) => a.index - b.index,
+            )) {
+              clips.splice(index, 0, clip);
+            }
+            return clips;
+          }
+          case "remove": {
+            const removeIds = new Set(
+              trackEdits.clips.map(({ clip }) => clip.id),
+            );
+            return clips.filter((clip) => !removeIds.has(clip.id));
+          }
         }
-
-        const clips = [...current];
-        const insertions = trackSnapshot.clips.toSorted(
-          (a, b) => a.index - b.index,
-        );
-        // Restore earlier positions first so later indices match the original order.
-        for (const { clip, index } of insertions) {
-          clips.splice(index, 0, clip);
-        }
-        return clips;
       },
     });
   }
-
   function updateReferenceVideo() {
     if (!snapshot.referenceVideo) {
       return state.referenceVideo;
