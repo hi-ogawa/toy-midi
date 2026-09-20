@@ -505,7 +505,7 @@ export class RecorderRuntime {
   removeClips(ids: readonly string[]): void {
     const state = this.store.get();
     const clipIds = new Set(ids);
-    const before: RecorderClipsState = {
+    const snapshot: RecorderClipsState = {
       tracks: [...state.audioTracks, state.recordingTrack].flatMap((track) => {
         const clips = track.clips.flatMap((clip, index) =>
           clipIds.has(clip.id)
@@ -518,15 +518,8 @@ export class RecorderRuntime {
         ? { reference: { snapshot: state.referenceVideo } }
         : {}),
     };
-    const after: RecorderClipsState = {
-      tracks: before.tracks.map(({ trackId, clips }) => ({
-        trackId,
-        clips: clips.map(({ clipId }) => ({ clipId })),
-      })),
-      ...(before.reference ? { reference: {} } : {}),
-    };
-    this.applyClips(after);
-    this.history.pushClips({ before, after });
+    this.applyClips(removeClipSnapshots(snapshot));
+    this.history.pushClips({ snapshot, reverse: true });
   }
 
   /** Restore only the described clips, preserving unrelated edits and track settings. */
@@ -1212,10 +1205,7 @@ export class RecorderRuntime {
     this.syncTrackPlayback(recordingTrack);
     this.syncTrackMix();
     this.history.pushClips({
-      before: {
-        tracks: [{ trackId: RECORDING_TRACK_ID, clips: [{ clipId: clip.id }] }],
-      },
-      after: {
+      snapshot: {
         tracks: [
           {
             trackId: RECORDING_TRACK_ID,
@@ -1306,16 +1296,20 @@ class RecorderHistory {
   }
 
   pushClips({
-    before,
-    after,
+    snapshot,
+    reverse = false,
   }: {
-    before: RecorderClipsState;
-    after: RecorderClipsState;
+    snapshot: RecorderClipsState;
+    reverse?: boolean;
   }): void {
-    this.history.push({
-      before: { type: "clips", ...before },
-      after: { type: "clips", ...after },
-    });
+    const before: RecorderChange = {
+      type: "clips",
+      ...removeClipSnapshots(snapshot),
+    };
+    const after: RecorderChange = { type: "clips", ...snapshot };
+    this.history.push(
+      reverse ? { before: after, after: before } : { before, after },
+    );
   }
 
   private async apply(change: RecorderChange): Promise<void> {
@@ -1342,6 +1336,16 @@ class RecorderHistory {
   clear = () => this.history.clear();
   undo = () => this.history.undo((change) => this.apply(change));
   redo = () => this.history.redo((change) => this.apply(change));
+}
+
+function removeClipSnapshots(snapshot: RecorderClipsState): RecorderClipsState {
+  return {
+    tracks: snapshot.tracks.map(({ trackId, clips }) => ({
+      trackId,
+      clips: clips.map(({ clipId }) => ({ clipId })),
+    })),
+    ...(snapshot.reference ? { reference: {} } : {}),
+  };
 }
 
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
