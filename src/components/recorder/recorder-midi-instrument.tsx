@@ -40,7 +40,7 @@ export function MidiInstrument({
           value={`${track.keySignature.fifths}:${track.keySignature.mode}`}
           onChange={(event) => {
             const [fifths, mode] = event.target.value.split(":");
-            runtime.setMidiTrackNotationSettings(track.id, {
+            runtime.setMidiTrackSettings(track.id, {
               keySignature: {
                 fifths: Number(fifths),
                 mode: mode as "major" | "minor",
@@ -72,7 +72,7 @@ export function MidiInstrument({
             const preset = TAB_STRING_PRESETS.find(
               ({ id }) => id === event.target.value,
             )!;
-            runtime.setMidiTrackNotationSettings(track.id, {
+            runtime.setMidiTrackSettings(track.id, {
               tabOpenStringPitches: [...preset.openStringPitches],
             });
           }}
@@ -91,7 +91,7 @@ export function MidiInstrument({
             type="checkbox"
             checked={track.tabAnnotationEnabled}
             onChange={(event) =>
-              runtime.setMidiTrackNotationSettings(track.id, {
+              runtime.setMidiTrackSettings(track.id, {
                 tabAnnotationEnabled: event.target.checked,
               })
             }

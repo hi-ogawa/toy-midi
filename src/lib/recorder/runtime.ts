@@ -589,7 +589,7 @@ export class RecorderRuntime {
     }
   }
 
-  setMidiTrackNotationSettings(
+  setMidiTrackSettings(
     id: string,
     settings: Partial<
       Pick<

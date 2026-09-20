@@ -83,8 +83,8 @@ export function MidiTrackRow({
     <div onFocus={midiInteraction.activate}>
       <TrackRow
         data-testid="recorder-midi-track-row"
-        // Keep controls at their content height so the piano keyboard shows below.
-        controlsClassName="h-fit"
+        // Anchor the keyboard’s top edge to the controls so pitch scrolling keeps it visible.
+        controlsClassName="after:pointer-events-none after:absolute after:top-full after:right-0 after:w-[50px] after:border-t after:border-neutral-600"
         title={track.name}
         height={track.height}
         gain={track.gain}
@@ -379,7 +379,7 @@ function MidiTrackEditor({
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
-        <div className="relative border-r border-neutral-700 bg-neutral-900">
+        <div className="relative border-r border-neutral-700">
           {PITCHES.map((pitch) => (
             <MidiPianoKey
               key={pitch}
@@ -388,6 +388,10 @@ function MidiTrackEditor({
               onPreviewStop={preview.stop}
             />
           ))}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-[50px] border-l border-neutral-600"
+          />
         </div>
         <div
           data-testid="recorder-midi-grid"
@@ -526,7 +530,7 @@ function MidiPianoKey({
       className={cn(
         "absolute right-0 w-[50px] cursor-pointer border-b pr-2 text-right text-xs hover:brightness-110",
         isBlackKey(pitch)
-          ? "border-neutral-700 bg-neutral-800"
+          ? "border-neutral-700 bg-neutral-900"
           : cn(
               "bg-neutral-300 text-neutral-600",
               pitch % 12 === 0 || pitch % 12 === 5
