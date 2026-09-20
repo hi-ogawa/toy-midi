@@ -2,6 +2,8 @@
 
 These articles connect wave motion and feedback to filter response design and the coefficients used by a sample loop. Peaking EQ is the worked example that brings the general ideas together.
 
+The intended reader is comfortable with complex waves and differential equations but new to digital signal processing. We start from simple sample computations and generalize them, using the resulting equations to reconstruct the peaking-EQ design and the coefficients used by the sample loop.
+
 - [Waves, feedback, and transfer functions](transfer-functions.md) develops delays, natural modes, and the relationship between the continuous $s$-plane and sampled $z$-plane.
 - [Designing a peaking EQ](peaking-eq.md) constructs a response from center gain and bandwidth requirements.
 - [From an analog response to digital coefficients](bilinear-transform.md) explains the bilinear transform and frequency warping, then converts the peaking response into sample-loop coefficients.
