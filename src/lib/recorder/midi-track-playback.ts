@@ -1,7 +1,7 @@
 import type { Note } from "../../types.ts";
 import { startInterval } from "../../utils/timing.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
-import { midiAssetUrls, waitForMidiAssets } from "../midi-assets";
+import { midiAssetUrls, waitForMidiAssets } from "../runtime-assets";
 import { beatsToSeconds } from "../timeline.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { MidiTrackState } from "./runtime.ts";

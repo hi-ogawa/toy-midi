@@ -4,8 +4,8 @@ import { createRoot } from "react-dom/client";
 import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
-import { preloadMidiAssets } from "./lib/midi-assets";
 import { flushAutoSave } from "./lib/project-session";
+import { preloadMidiAssets } from "./lib/runtime-assets";
 import "./e2e";
 
 function main() {
