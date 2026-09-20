@@ -1309,12 +1309,24 @@ function deriveClipInsertRemoveState(
     }
     return updateTrackClips({
       track,
-      update: (current) =>
-        insertRemoveTrackClips({
-          current,
-          snapshot: trackSnapshot.clips,
-          operation,
-        }),
+      update: (current) => {
+        if (operation === "remove") {
+          const clipIds = new Set(
+            trackSnapshot.clips.map(({ clip }) => clip.id),
+          );
+          return current.filter((clip) => !clipIds.has(clip.id));
+        }
+
+        const clips = [...current];
+        const insertions = trackSnapshot.clips.toSorted(
+          (a, b) => a.index - b.index,
+        );
+        // Restore earlier positions first so later indices match the original order.
+        for (const { clip, index } of insertions) {
+          clips.splice(index, 0, clip);
+        }
+        return clips;
+      },
     });
   }
 
@@ -1329,30 +1341,6 @@ function deriveClipInsertRemoveState(
     recordingTrack: updateTrack(state.recordingTrack),
     referenceVideo: updateReferenceVideo(),
   };
-}
-
-function insertRemoveTrackClips({
-  current,
-  snapshot,
-  operation,
-}: {
-  current: AudioClip[];
-  snapshot: RecorderClipInsertRemoveSnapshot["tracks"][number]["clips"];
-  operation: RecorderClipInsertRemove["operation"];
-}): AudioClip[] {
-  // Remove targeted IDs first so insertion also replaces any existing copies.
-  const clipIds = new Set(snapshot.map(({ clip }) => clip.id));
-  const clips = current.filter((clip) => !clipIds.has(clip.id));
-  if (operation === "remove") {
-    return clips;
-  }
-
-  // Restore earlier positions first so later indices match the original order.
-  const insertions = snapshot.toSorted((a, b) => a.index - b.index);
-  for (const { clip, index } of insertions) {
-    clips.splice(index, 0, clip);
-  }
-  return clips;
 }
 
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
