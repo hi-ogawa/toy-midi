@@ -47,19 +47,11 @@ export function RecorderScorePanel({
 }) {
   const [size, setSize] = useState({ width: 640, height: 448 });
   const resizeRef = usePointerDrag({
-    onStart: (event) => ({ x: event.clientX, y: event.clientY, size }),
-    onMove: (event, start) =>
+    onStart: () => size,
+    onMove: (_event, { data, deltaX, deltaY }) =>
       setSize({
-        width: clamp(
-          start.size.width + start.x - event.clientX,
-          480,
-          window.innerWidth - 32,
-        ),
-        height: clamp(
-          start.size.height + start.y - event.clientY,
-          288,
-          window.innerHeight - 32,
-        ),
+        width: clamp(data.width - deltaX, 480, window.innerWidth - 32),
+        height: clamp(data.height - deltaY, 288, window.innerHeight - 32),
       }),
   });
 

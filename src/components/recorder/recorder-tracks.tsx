@@ -102,10 +102,10 @@ export function TrackRow({
   const resizeRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
-      return { startClientY: event.clientY, startHeight: height };
+      return height;
     },
-    onMove: (event, drag) => {
-      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+    onMove: (_event, { data: startHeight, deltaY }) => {
+      onHeightChange(startHeight + deltaY);
     },
   });
   return (
