@@ -5,11 +5,11 @@ type HistoryEntry<T> = {
 };
 
 /**
- * Synchronously restore the described state and its runtime effects without recording
- * another history entry. If this throws, history keeps the entry on its original
+ * Restore the described state and its runtime effects without recording
+ * another history entry. If this throws or rejects, history keeps the entry on its original
  * stack, but cannot roll back any state the callback already changed.
  */
-type ApplyChange<T> = (change: T) => void;
+type ApplyChange<T> = (change: T) => void | Promise<void>;
 
 const MAX_HISTORY = 50;
 
@@ -35,37 +35,31 @@ export class UndoRedoHistory<T> {
   }
 
   /**
-   * Call apply(entry.before) for the latest edit, then move the entry to redo.
-   * An empty stack is a no-op. A thrown error propagates without moving the entry.
+   * Await apply(entry.before) for the latest edit, then move the entry to redo.
+   * An empty stack is a no-op. A thrown error or rejection propagates without moving the entry.
    */
-  undo(apply: ApplyChange<T>): void {
+  async undo(apply: ApplyChange<T>): Promise<void> {
     const entry = this.undoStack.at(-1);
     if (!entry) {
       return;
     }
-    apply(entry.before);
+    await apply(entry.before);
     this.undoStack.pop();
     this.redoStack.push(entry);
   }
 
   /**
-   * Call apply(entry.after) for the latest undone edit, then move the entry to undo.
-   * An empty stack is a no-op. A thrown error propagates without moving the entry.
+   * Await apply(entry.after) for the latest undone edit, then move the entry to undo.
+   * An empty stack is a no-op. A thrown error or rejection propagates without moving the entry.
    */
-  redo(apply: ApplyChange<T>): void {
+  async redo(apply: ApplyChange<T>): Promise<void> {
     const entry = this.redoStack.at(-1);
     if (!entry) {
       return;
     }
-    apply(entry.after);
+    await apply(entry.after);
     this.redoStack.pop();
     this.undoStack.push(entry);
-  }
-
-  /** Remove matching entries from both stacks without applying any changes. */
-  prune(matches: (entry: HistoryEntry<T>) => boolean): void {
-    this.undoStack = this.undoStack.filter((entry) => !matches(entry));
-    this.redoStack = this.redoStack.filter((entry) => !matches(entry));
   }
 
   /** Forget both stacks without changing application state, for example on project load. */

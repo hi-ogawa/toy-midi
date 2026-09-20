@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { matchKeyboardEvent } from "../../lib/keyboard";
 import type {
   RecorderRuntime,
@@ -10,10 +11,12 @@ import { useRecorderMidiInteraction } from "./use-recorder-midi-interaction";
 export function useRecorderInteraction({
   runtime,
   state,
+  isRecording,
   subdivisionsPerBeat,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
+  isRecording: boolean;
   subdivisionsPerBeat: number;
 }) {
   const clipInteraction = useRecorderClipInteraction({
@@ -69,6 +72,10 @@ export function useRecorderInteraction({
     return true;
   }
 
+  const historyMutation = useMutation({
+    mutationFn: (direction: "undo" | "redo") => runtime[direction](),
+  });
+
   function handleUndoRedoShortcut(event: KeyboardEvent): boolean {
     const undo = matchKeyboardEvent(event, "Ctrl+Z");
     const redo =
@@ -77,13 +84,13 @@ export function useRecorderInteraction({
     if (!undo && !redo) {
       return false;
     }
-    // Clear selection and previews so an active gesture cannot overwrite replay.
-    midiInteraction.clear();
-    if (undo) {
-      runtime.undo();
-    } else {
-      runtime.redo();
+    // Consume the shortcut without replaying history while capture is in flight,
+    // keeping the recording track stable until the take and its history entry are finalized.
+    if (isRecording) {
+      return true;
     }
+    clearSelection();
+    historyMutation.mutate(undo ? "undo" : "redo");
     return true;
   }
 
