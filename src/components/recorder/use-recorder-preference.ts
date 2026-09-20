@@ -13,9 +13,12 @@ export function useRecorderPreference<Key extends keyof RecorderPreferences>(
   );
 
   function setValue(next: SetStateAction<RecorderPreferences[Key]>) {
-    recorderPreferences.update((current) => ({
-      [key]: typeof next === "function" ? next(current[key]) : next,
-    }));
+    recorderPreferences.update({
+      [key]:
+        typeof next === "function"
+          ? next(recorderPreferences.get()[key])
+          : next,
+    });
   }
 
   return [value, setValue] as const;

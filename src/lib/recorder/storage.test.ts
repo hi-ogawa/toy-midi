@@ -24,9 +24,9 @@ test("merges independent preference edits and restores them after reload", async
 
   preferences.update({ input: { deviceId: "mic", channel: 0 } });
   preferences.update({ timelinePixelsPerBeat: 120 });
-  preferences.update((current) => ({
-    input: { ...current.input!, latencyCompensation: 0.05 },
-  }));
+  preferences.update({
+    input: { ...preferences.get().input!, latencyCompensation: 0.05 },
+  });
   expect(listener).toHaveBeenCalledTimes(3);
   unsubscribe();
   const expected = preferences.get();

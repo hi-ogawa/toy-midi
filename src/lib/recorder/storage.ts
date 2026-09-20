@@ -41,14 +41,8 @@ const store = createStore(readPreferences);
 export const recorderPreferences = {
   get: store.get,
   subscribe: store.subscribe,
-  update(
-    updates:
-      | Partial<RecorderPreferences>
-      | ((current: RecorderPreferences) => Partial<RecorderPreferences>),
-  ): void {
-    store.update(
-      typeof updates === "function" ? updates(store.get()) : updates,
-    );
+  update(updates: Partial<RecorderPreferences>): void {
+    store.update(updates);
     try {
       localStorage.setItem(PREFERENCES_KEY, JSON.stringify(store.get()));
     } catch {
