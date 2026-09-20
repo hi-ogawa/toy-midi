@@ -32,7 +32,7 @@ $$
 N_{\mathrm{out}}=\left\lceil\frac{N}{r}\right\rceil.
 $$
 
-## Nominal Position and Natural Continuation
+## Nominal Source Position
 
 Number the generated output hops with $k=0,1,2,\ldots$. Hop $k$ starts at output frame $kH$. Its **nominal source position** follows the requested playback rate:
 
@@ -42,18 +42,15 @@ $$
 
 This is `nominalSourcePosition`. The difference between successive nominal positions is approximately $rH$, while each output hop always advances by $H$ frames.
 
-Waveform alignment can move the selected source start away from $p_k$. Write that selected start as $s_k$. The **natural continuation** for the next hop is
-
-$$
-n_{k+1}=s_k+H,
-\qquad n_0=0.
-$$
-
-This is `naturalSourcePosition`. It starts at the second half of the previously selected window. Selecting this continuation again makes the overlapping samples agree exactly, so it is a useful reference for the next join.
-
-The nominal position is recomputed from output time on every hop. A local alignment adjustment changes the next natural continuation, while the nominal timeline continues to follow $rkH$. This keeps successive adjustments from accumulating into an unintended playback rate.
-
 ## Choose a Source Window
+
+The nominal position tells us how far playback should have progressed through the source. Starting each window exactly there, however, can bring different phases of the waveform together in the overlap and disturb the sound. We therefore look near the nominal position for a window that matches the preceding window's continuation.
+
+There is one source position where the overlapping samples agree exactly. Each output hop advances by $H$ frames, so starting the next source window $H$ frames after the previous window's start aligns its first half with the previous window's second half. Both halves then contain the same source samples. We call this position the **natural continuation**, $n_k$, corresponding to `naturalSourcePosition`. For the first hop, set $n_0=0$.
+
+Always following natural continuation would advance through the source at the output rate, regardless of the requested playback rate. To keep the selected windows near the intended source time, we restrict their starting positions to a search interval around $p_k$.
+
+### Search Near the Nominal Position
 
 The search interval is centered approximately on the nominal position:
 
@@ -64,7 +61,7 @@ $$
 
 Candidate starts are the integer frames from $a_k$ through $b_k-1$. The end $b_k$ is exclusive, and $S$ describes the entire interval width.
 
-If the natural continuation lies inside this interval, the implementation selects it directly:
+Let $s_k$ denote the source start selected for hop $k$. If the natural continuation lies inside this interval, the implementation selects it directly:
 
 $$
 a_k\le n_k\lt b_k
@@ -73,6 +70,14 @@ s_k=n_k.
 $$
 
 Otherwise, it compares candidate windows with the full $W$-frame window beginning at $n_k$. The search favors the candidate with the highest waveform similarity. The reference is source audio at the natural continuation, and the comparison includes both halves of the window.
+
+After selecting a window, the next hop's natural continuation is
+
+$$
+n_{k+1}=s_k+H.
+$$
+
+This update follows the window we actually selected. The nominal position, however, is recomputed from output time on every hop and continues to follow $rkH$. This keeps successive alignment adjustments from accumulating into an unintended playback rate.
 
 ### Similarity Score
 
