@@ -310,7 +310,7 @@ export function TakesDisclosureRow({
 }) {
   return (
     <div className="grid h-9 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
-      <div className="flex items-center border-r border-neutral-700 pr-3">
+      <div className="flex items-center border-r border-neutral-700">
         <button
           type="button"
           data-testid="recorder-takes-toggle"
@@ -341,7 +341,7 @@ export function TakesDisclosureRow({
               : "Oldest first · Click for newest first"
           }
           onClick={() => onNewestFirstChange(!newestFirst)}
-          className="size-6 shrink-0 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+          className="h-full w-9 shrink-0 rounded-none border-0 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
         >
           {newestFirst ? (
             <ArrowDownWideNarrowIcon className="size-3.5" />
