@@ -4,7 +4,7 @@ Imagine an unknown but fixed audio circuit. Testing individual inputs gives us a
 
 We will build that model from waves, delays, and feedback, then use it to [design a peaking EQ](peaking-eq.md) from the response we want.
 
-## Find a Useful Probe for the System
+## Model the System Through Its Response to Waves
 
 Assume a **linear, time-invariant system** (LTI). Linearity means that scaling and adding inputs scales and adds their outputs. Time invariance means that delaying an input only delays its output. We also assume any motion from the initial state decays, so we can study a settled response with the controls held fixed.
 
@@ -18,7 +18,7 @@ $$
 
 The amplitude ratio $M$ and phase shift $\phi$ describe the system at angular frequency $\Omega$. Varying $\Omega$ traces its **frequency response**. This answers our modeling question because a complicated signal can be decomposed into waves, and linearity lets us combine their responses. Startup transients are separate from this steady response, and feedback will explain where they come from.
 
-## Represent Gain and Phase with One Multiplier
+### Represent Gain and Phase with One Multiplier
 
 A phase-shifted cosine is a mixture of cosine and sine. We could track both components separately, but a complex exponential carries them together:
 
@@ -46,9 +46,11 @@ The physical wave is the same, but $\omega$ measures its phase advance in radian
 
 We write the discrete filter's response as $H_d(e^{j\omega})$, using the wave's per-sample multiplier $e^{j\omega}$ as its argument. How does a sample computation produce this frequency-dependent multiplier?
 
-## How Memory Makes a Filter Frequency-Selective
+## Build Frequency Selection from Memory
 
 We can now describe how a filter responds to each frequency, but what makes those responses differ? Multiplying every sample by a constant gives every frequency the same gain. Remembering a previous sample gives us another possibility. We can combine the wave with a delayed copy whose phase shift depends on frequency.
+
+### Delayed Inputs Produce Interference
 
 For a delay of one sample, that phase shift follows directly from our exponential representation:
 
@@ -68,7 +70,7 @@ A slow wave changes little between samples, so its average stays close to its or
 
 Different weights let us shape this interference. Combining $b_0$ of the current input and $b_1$ of the previous input gives response $b_0+b_1e^{-j\omega}$. Each additional delay contributes another rotation.
 
-## Feedback Introduces a Denominator
+### Feedback Introduces a Denominator
 
 Once the input and its delayed copies are gone, the average stops. Feeding a previous output back into the computation lets motion continue:
 
@@ -90,7 +92,7 @@ This ratio is the **transfer function**. The denominator appears because the out
 
 Once the input and its delayed copy are zero, $y[n]=-a_1y[n-1]$. This **natural motion** depends on the remembered output and decays when $|a_1|\lt 1$. It is the transient we set aside when measuring the steady frequency response.
 
-## Two Delays Can Hold a Decaying Oscillation
+### Two Delays Can Hold a Decaying Oscillation
 
 One real feedback coefficient can produce decay or alternating signs. Adding a second output delay allows an oscillation with a chosen frequency. With up to two delays on each path, the same substitution gives
 
@@ -115,7 +117,7 @@ For $0\lt r\lt 1$, the radius $r$ sets decay and the angle $\theta$ sets oscilla
 
 Uncanceled denominator roots are called **poles**. A pole pair near the unit circle can produce a strong response to nearby sustained frequencies. The numerator's uncanceled roots are **zeros**, and a zero on the unit circle cancels that tone when the denominator is nonzero. These give us ways to shape a response, not just analyze one.
 
-## Continuous Motion Uses Rates Instead of Multipliers
+## Connect Continuous and Sampled Motion
 
 To design an EQ, it is useful to have the same model in continuous time, where we can arrange response properties before converting them to sample weights. The exponential now has a complex rate $s=\sigma+j\Omega$:
 
@@ -135,7 +137,7 @@ $$
 
 The ratio follows by substituting $x=e^{st}$ and $y=H_a(s)e^{st}$. As before, the denominator also determines the motion with zero input. Roots $-\gamma\pm j\Omega_d$ give $e^{-\gamma t}\cos(\Omega_dt+\phi)$ up to an amplitude factor. For $\gamma>0$, this is the same decaying oscillation we described with radius and angle in discrete time.
 
-## Connect the Two Planes by Sampling a Mode
+### Connect the Two Planes by Sampling a Mode
 
 Sampling the continuous exponential at $t=nT$ makes the relationship exact:
 
