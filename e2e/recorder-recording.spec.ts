@@ -121,11 +121,11 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Show the latest take first by default, then reverse only the source lane order.
   await expect(takeRows.nth(0)).toContainText("Take 2");
   await expect(takeRows.nth(1)).toContainText("Take 1");
-  const takeOrder = page.getByRole("button", { name: "Newest takes first" });
-  await expect(takeOrder).toHaveAttribute("aria-pressed", "true");
+  const takeOrder = page.getByTestId("recorder-takes-order");
+  await expect(takeOrder).toHaveAccessibleName("Order takes oldest first");
   const compBeforeReorder = await compRegion.allTextContents();
   await takeOrder.click();
-  await expect(takeOrder).toHaveAttribute("aria-pressed", "false");
+  await expect(takeOrder).toHaveAccessibleName("Order takes newest first");
   await expect(takeRows.nth(0)).toContainText("Take 1");
   await expect(takeRows.nth(1)).toContainText("Take 2");
   await expect(compRegion).toHaveText(compBeforeReorder);
@@ -138,7 +138,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   );
   await page.reload();
   await takesToggle.click();
-  await expect(takeOrder).toHaveAttribute("aria-pressed", "false");
+  await expect(takeOrder).toHaveAccessibleName("Order takes newest first");
   await expect(takeRows.nth(0)).toContainText("Take 1");
   await expect(takeRows.nth(1)).toContainText("Take 2");
   await expect(compRegion).toHaveText(compBeforeReorder);

@@ -329,8 +329,12 @@ export function TakesDisclosureRow({
           </span>
         </button>
         <Button
-          aria-label="Newest takes first"
-          aria-pressed={newestFirst}
+          data-testid="recorder-takes-order"
+          aria-label={
+            newestFirst
+              ? "Order takes oldest first"
+              : "Order takes newest first"
+          }
           title={
             newestFirst
               ? "Newest first · Click for oldest first"
