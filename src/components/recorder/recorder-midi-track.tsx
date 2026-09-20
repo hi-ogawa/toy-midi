@@ -226,11 +226,11 @@ function MidiTrackOverview({
     lowest = Math.min(lowest, note.pitch);
     highest = Math.max(highest, note.pitch);
   }
-  const center = (lowest + highest) / 2;
-  const range = Math.max(12, highest - lowest);
+  const centerPitch = (lowest + highest) / 2;
+  const pitchRange = Math.max(12, highest - lowest);
   const noteHeight = 4;
   const padding = 12;
-  const pitchHeight = track.height - padding * 2 - noteHeight;
+  const availableHeight = track.height - padding * 2 - noteHeight;
 
   return (
     <div
@@ -255,7 +255,7 @@ function MidiTrackOverview({
             left: (note.start - viewportStartBeat) * pixelsPerBeat,
             top:
               padding +
-              ((center + range / 2 - note.pitch) / range) * pitchHeight,
+              (0.5 - (note.pitch - centerPitch) / pitchRange) * availableHeight,
             width: Math.max(2, note.duration * pixelsPerBeat),
             height: noteHeight,
           }}
