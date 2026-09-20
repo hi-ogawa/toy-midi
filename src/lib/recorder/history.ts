@@ -11,6 +11,9 @@ import type {
 // Capture complete before/after notes for those IDs and migrate callers incrementally.
 // Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
 // preserve array ordering when undo restores deleted notes.
+
+// TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
+
 /** A state change that runtime can apply directly, including during undo and redo. */
 type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
@@ -18,7 +21,6 @@ type RecorderChange =
   | { type: "midi-track-delete"; trackId: string }
   | ({ type: "clips" } & RecorderClipInsertRemove);
 
-// TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 export class RecorderHistory {
   private history = new UndoRedoHistory<RecorderChange>();
 
