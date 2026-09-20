@@ -1,3 +1,109 @@
+import type { Note } from "../../types.ts";
+import type {
+  MidiTrackState,
+  RecorderClipInsertRemove,
+  RecorderClipInsertRemoveSnapshot,
+  RecorderRuntime,
+} from "./runtime.ts";
+
+// TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
+// editMidiTrackNotes({ trackId, upsert: changedOrAddedNotes, remove: deletedNoteIds }).
+// Capture complete before/after notes for those IDs and migrate callers incrementally.
+// Keep full snapshots for setMidiTrackNotes replacements such as transcription, and
+// preserve array ordering when undo restores deleted notes.
+
+// TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
+
+/** A state change that runtime can apply directly, including during undo and redo. */
+type RecorderChange =
+  | { type: "midi-notes"; trackId: string; notes: Note[] }
+  | { type: "midi-track-insert"; track: MidiTrackState; index: number }
+  | { type: "midi-track-delete"; trackId: string }
+  | ({ type: "clips" } & RecorderClipInsertRemove);
+
+export class RecorderHistory {
+  private history = new UndoRedoHistory<RecorderChange>();
+
+  constructor(private runtime: RecorderRuntime) {}
+
+  pushMidiNotes(trackId: string, before: Note[], after: Note[]): void {
+    this.history.push({
+      before: { type: "midi-notes", trackId, notes: before },
+      after: { type: "midi-notes", trackId, notes: after },
+    });
+  }
+
+  pushMidiTrack({
+    track,
+    index,
+    reverse = false,
+  }: {
+    track: MidiTrackState;
+    index: number;
+    reverse?: boolean;
+  }): void {
+    const before: RecorderChange = {
+      type: "midi-track-delete",
+      trackId: track.id,
+    };
+    const after: RecorderChange = {
+      type: "midi-track-insert",
+      track,
+      index,
+    };
+    this.history.push(
+      reverse ? { before: after, after: before } : { before, after },
+    );
+  }
+
+  pushClips({
+    snapshot,
+    reverse = false,
+  }: {
+    snapshot: RecorderClipInsertRemoveSnapshot;
+    reverse?: boolean;
+  }): void {
+    const before: RecorderChange = {
+      type: "clips",
+      operation: "remove",
+      snapshot,
+    };
+    const after: RecorderChange = {
+      type: "clips",
+      operation: "insert",
+      snapshot,
+    };
+    this.history.push(
+      reverse ? { before: after, after: before } : { before, after },
+    );
+  }
+
+  private async apply(change: RecorderChange): Promise<void> {
+    switch (change.type) {
+      case "midi-notes": {
+        this.runtime.applyMidiTrackNotes(change.trackId, change.notes);
+        break;
+      }
+      case "midi-track-insert": {
+        await this.runtime.insertMidiTrack(change);
+        break;
+      }
+      case "midi-track-delete": {
+        this.runtime.deleteMidiTrack(change.trackId);
+        break;
+      }
+      case "clips": {
+        this.runtime.applyClipInsertRemove(change);
+        break;
+      }
+    }
+  }
+
+  clear = () => this.history.clear();
+  undo = () => this.history.undo((change) => this.apply(change));
+  redo = () => this.history.redo((change) => this.apply(change));
+}
+
 /** One committed edit, with changes that restore its previous and resulting state. */
 type HistoryEntry<T> = {
   before: T;
@@ -18,7 +124,7 @@ const MAX_HISTORY = 50;
  * The caller owns applying changes. History stores values of T and passes them to the apply callback,
  * so entries and their referenced data must not be mutated after push or replay.
  */
-export class UndoRedoHistory<T> {
+class UndoRedoHistory<T> {
   private undoStack: HistoryEntry<T>[] = [];
   private redoStack: HistoryEntry<T>[] = [];
 
