@@ -2,11 +2,7 @@
 
 ## Architecture
 
-- [Architecture overview](architecture.md): application ownership, data flow, persistence, and runtime structure.
-
-## Product
-
-- [Recorder](recorder.md): use case, features, monitoring assumptions, and legacy project migration.
+- [Architecture overview](architecture.md): project state, persistence, monitoring, and latency.
 
 ## Concepts
 
