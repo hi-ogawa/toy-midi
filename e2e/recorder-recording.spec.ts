@@ -132,6 +132,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Reload the project and retain the preferred lane order.
   await saveRecorderProject(page);
   await page.reload();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await takesToggle.click();
   await expect(takeOrder).toHaveAccessibleName("Order takes newest first");
   await expect(takeRows.nth(0)).toContainText("Take 1");

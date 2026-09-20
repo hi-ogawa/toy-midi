@@ -17,7 +17,6 @@ import {
   RecorderRuntime,
   REFERENCE_VIDEO_CLIP_ID,
 } from "../../lib/recorder/runtime";
-import { recorderStorage } from "../../lib/recorder/storage";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
@@ -55,6 +54,7 @@ import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderInteraction } from "./use-recorder-interaction";
+import { useRecorderPreference } from "./use-recorder-preference";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
 
@@ -63,9 +63,8 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
-  const [takesNewestFirst, setTakesNewestFirst] = useState(
-    () => recorderStorage.readPreferences().takesNewestFirst,
-  );
+  const [takesNewestFirst, setTakesNewestFirst] =
+    useRecorderPreference("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useRecorderEffectsUi();
@@ -578,12 +577,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 takeCount={takes.length}
                 onExpandedChange={setTakesExpanded}
                 newestFirst={takesNewestFirst}
-                onNewestFirstChange={(newestFirst) => {
-                  setTakesNewestFirst(newestFirst);
-                  recorderStorage.updatePreferences({
-                    takesNewestFirst: newestFirst,
-                  });
-                }}
+                onNewestFirstChange={setTakesNewestFirst}
               />
             )}
             {takes.length > 0 &&
