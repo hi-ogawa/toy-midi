@@ -254,8 +254,9 @@ function MidiTrackOverview({
           style={{
             left: (note.start - viewportStartBeat) * pixelsPerBeat,
             top:
-              padding +
-              (0.5 - (note.pitch - centerPitch) / pitchRange) * availableHeight,
+              (-(note.pitch - centerPitch) / pitchRange + 0.5) *
+                availableHeight +
+              padding,
             width: Math.max(2, note.duration * pixelsPerBeat),
             height: noteHeight,
           }}
