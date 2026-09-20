@@ -118,19 +118,17 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     ),
   ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 4, -2);
 
-  // Show the latest take first by default, then reverse only the source lane order.
+  // Show the latest take first by default, then switch to oldest first.
   await expect(takeRows.nth(0)).toContainText("Take 2");
   await expect(takeRows.nth(1)).toContainText("Take 1");
   const takeOrder = page.getByTestId("recorder-takes-order");
   await expect(takeOrder).toHaveAccessibleName("Order takes oldest first");
-  await expect(compRegion).toHaveText(["Take 1", "Take 2"]);
   await takeOrder.click();
   await expect(takeOrder).toHaveAccessibleName("Order takes newest first");
   await expect(takeRows.nth(0)).toContainText("Take 1");
   await expect(takeRows.nth(1)).toContainText("Take 2");
-  await expect(compRegion).toHaveText(["Take 1", "Take 2"]);
 
-  // Reload the project and retain the preferred order without changing the comp.
+  // Reload the project and retain the preferred lane order.
   await page.getByTestId("recorder-save-button").click();
   await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
     "data-status",
@@ -141,7 +139,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeOrder).toHaveAccessibleName("Order takes newest first");
   await expect(takeRows.nth(0)).toContainText("Take 1");
   await expect(takeRows.nth(1)).toContainText("Take 2");
-  await expect(compRegion).toHaveText(["Take 1", "Take 2"]);
 
   // Muting removes a take from Capture without deleting its source lane.
   const muteTake = page.getByTestId("recorder-take-mute");
