@@ -4,6 +4,8 @@ Imagine an unknown but fixed audio circuit. Testing individual inputs gives us a
 
 We will build that model from waves, delays, and feedback, then use it to [design a peaking EQ](peaking-eq.md) from the response we want.
 
+![A steady sinusoid enters a fixed LTI system and leaves at the same frequency with changed amplitude and phase.](images/filter-tone-response.svg)
+
 ## Model the System Through Its Response to Waves
 
 Assume a **linear, time-invariant system** (LTI). Linearity means that scaling and adding inputs scales and adds their outputs. Time invariance means that delaying an input only delays its output. We also assume any motion from the initial state decays, so we can study a settled response with the controls held fixed.
@@ -53,6 +55,8 @@ y[n]=\frac{e^{j\omega n}+e^{j\omega(n-1)}}{2}
 $$
 
 The output-to-input multiplier is therefore $H_d(e^{j\omega})=(1+e^{-j\omega})/2$. A delay rotates the wave by $-\omega$, and adding the copies produces frequency-dependent reinforcement or cancellation. In particular, $H_d(1)=1$ at $\omega=0$ and $H_d(-1)=0$ at $\omega=\pi$.
+
+![Aligned sample plots show a slow wave mostly preserved by averaging adjacent samples, while alternating positive and negative samples cancel.](images/filter-sample-average.svg)
 
 ### Generalize the Weights and Add Feedback
 
