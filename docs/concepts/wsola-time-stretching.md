@@ -17,6 +17,8 @@ For a concrete example, use 40-sample patches and a 20-sample output hop. At $0.
 | 2     | 40           | 30                   |
 | 3     | 60           | 45                   |
 
+![Four waveform patches copied from nominal source positions into more widely spaced output positions](images/wsola-nominal-patches.svg)
+
 The output progresses 60 samples while the patch starts progress only 45 samples through the recording. Reusing source audio this way makes the output longer without slowing down the samples inside a patch.
 
 More generally, patch $k$ starts at output position $kH$. For playback rate $r$, its **nominal source position** is
@@ -32,6 +34,8 @@ This is the timing plan. A source of duration $T$ becomes approximately $T/r$ lo
 Consider the first two patches in the example. The first patch's second half starts at source sample 20, but the second patch's first half starts at sample 15. Those two pieces occupy the same output positions, so we will blend source samples that are five samples apart.
 
 That offset may be harmless, or it may put peaks against troughs. For a tone with a ten-sample period, five samples is half a cycle. At equal blend weights, the two opposite phases cancel. Fading between patches avoids an abrupt switch, but it cannot by itself fix this alignment.
+
+![An opposite-phase nominal overlap cancels during a crossfade, while shifting the incoming patch aligns the waveforms](images/wsola-overlap-alignment.svg)
 
 We therefore allow the new patch to slide a little around its nominal source position. The timing plan stays the same, while the adjustment gives us a chance to align the waveform before blending it.
 
