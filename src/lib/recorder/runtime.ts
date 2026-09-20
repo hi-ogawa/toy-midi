@@ -505,13 +505,13 @@ export class RecorderRuntime {
     if (next.recordingTrack !== state.recordingTrack) {
       this.syncTrackPlayback(next.recordingTrack);
     }
-    if (next.referenceVideo !== state.referenceVideo) {
-      this.syncYouTubePlayer();
-    }
     for (const [index, track] of next.audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
         this.syncTrackPlayback(track);
       }
+    }
+    if (next.referenceVideo !== state.referenceVideo) {
+      this.syncYouTubePlayer();
     }
     if (wasPlaying) {
       this.transport.play();
