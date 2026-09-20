@@ -87,15 +87,7 @@ $$
 
 The two positions now have distinct roles. The natural continuation follows the window actually chosen, while the nominal position always comes from output time through $p_k=rkH$. A local alignment adjustment therefore does not shift the nominal timeline of every later window.
 
-### Follow the Adjustment Through a Few Patches
-
-Return to the 40-sample patches, 20-sample output hop, and $0.75\times$ rate. Allow a search radius of 17 samples, so $S=34$. Start the first patch at source position zero.
-
-The next natural continuation is 20, only five samples beyond its nominal position of 15. We can take that exact continuation. The following patches can likewise start at 40 and 60, even though their nominal positions are 30 and 45.
-
-For patch 4, however, the natural continuation reaches 80 while the nominal position is only 60. The 20-sample difference is outside the allowed radius, so we search for another match. Suppose the waveform gives a good match at 56. This revisits audio 24 samples earlier than the uninterrupted continuation, adding duration through the join. The next natural continuation becomes $56+20=76$, close to the next nominal position of $0.75\times100=75$.
-
-The particular match depends on the audio. A nearly periodic signal offers similar patches separated by roughly whole periods. Revisiting one can add duration while keeping the oscillations aligned. At faster rates, the nominal timeline moves ahead of natural continuation, and the adjustments generally skip source material instead.
+During slower playback, natural continuation advances faster than the nominal timeline. Eventually, it leaves the search region, so we select a matching patch earlier in the source. This reuses audio and extends the recording. During faster playback, the nominal timeline advances faster, so matching patches generally jump forward through the source.
 
 ## Blend the Windows Without Changing Their Shared Level
 
