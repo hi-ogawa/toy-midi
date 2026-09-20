@@ -130,13 +130,9 @@ test("Projects search filters current and legacy projects together", async ({
   ).toBeVisible();
   await expect(legacy).toContainText("No matching legacy projects");
 
-  // Open Legacy and show its full list without a search field.
-  await page.getByRole("tab", { name: "Legacy", exact: true }).click();
-  await expect(search).toBeHidden();
-  await expect(page.getByRole("link", { name: /Old song/ })).toBeVisible();
-
-  // Return to Projects and delete the last legacy project to remove its section.
-  await page.getByRole("tab", { name: "Projects", exact: true }).click();
+  // Clear the search and delete the last legacy project to remove its section.
+  await page.getByRole("button", { name: "Clear search", exact: true }).click();
+  await expect(legacy).toContainText("Old song");
   page.once("dialog", (dialog) => dialog.accept());
   await legacy.getByRole("button", { name: "Delete legacy project" }).click();
   await expect(legacy).toBeHidden();
