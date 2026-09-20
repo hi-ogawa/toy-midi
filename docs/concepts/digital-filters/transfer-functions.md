@@ -78,42 +78,48 @@ $$
 y[n]=b_0x[n]+b_1x[n-1]-a_1y[n-1].
 $$
 
-To describe that continuing motion, we need to include decay as well as sustained oscillation. Extend our probe to $x[n]=z^n$. Writing $z=re^{j\theta}$ gives $z^n=r^ne^{jn\theta}$, so radius controls growth or decay and angle controls oscillation. A delay multiplies this more general probe by $z^{-1}$.
-
-Try a particular output with the same exponential shape, $y[n]=H_d(z)z^n$. Substitution gives
+First, measure its response to the same sustained wave, $x[n]=e^{j\omega n}$. Write the settled output as $y[n]=H_de^{j\omega n}$. Each delay contributes $e^{-j\omega}$, so substitution gives
 
 $$
-H_d=b_0+b_1z^{-1}-a_1H_dz^{-1},
+H_d=b_0+b_1e^{-j\omega}-a_1H_de^{-j\omega},
 \qquad
-H_d(z)=\frac{b_0+b_1z^{-1}}{1+a_1z^{-1}}.
+H_d(e^{j\omega})=\frac{b_0+b_1e^{-j\omega}}{1+a_1e^{-j\omega}}.
 $$
 
-This ratio is the **transfer function**. The denominator appears because the output participates in its own computation. Evaluating on the unit circle, $z=e^{j\omega}$, recovers the response to sustained tones.
+The denominator appears because the output participates in its own computation. We still describe the response to a tone with one complex multiplier.
 
-Once the input and its delayed copy are zero, $y[n]=-a_1y[n-1]$. This **natural motion** depends on the remembered output and decays when $|a_1|\lt 1$. It is the transient we set aside when measuring the steady frequency response.
+Now let the input and its delayed copy become zero. The remaining motion follows $y[n]=-a_1y[n-1]$, so each step multiplies the previous output by $-a_1$. When $|a_1|\lt 1$, this **natural motion** decays. It is the transient we set aside when measuring the steady frequency response. Describing it requires a per-step multiplier whose magnitude can differ from one.
 
 ### Two Delays Can Hold a Decaying Oscillation
 
-One real feedback coefficient can produce decay or alternating signs. Adding a second output delay allows an oscillation with a chosen frequency. With up to two delays on each path, the same substitution gives
+One real feedback coefficient can produce decay or alternating signs. Adding a second output delay allows an oscillation with a chosen frequency. With the input gone, the recurrence is
+
+$$
+y[n]=-a_1y[n-1]-a_2y[n-2].
+$$
+
+To find its natural motion, call the per-step multiplier $z$ and try $y[n]=z^n$. Substitution gives
+
+$$
+z^2+a_1z+a_2=0.
+$$
+
+The roots can now be complex. Writing $z=re^{j\theta}$ gives $z^n=r^ne^{jn\theta}$, so each step scales by $r$ and rotates by $\theta$. A conjugate pair $re^{\pm j\theta}$ combines into real motion
+
+$$
+y[n]=Cr^n\cos(n\theta+\phi).
+$$
+
+For $0\lt r\lt 1$, the radius sets decay and the angle sets oscillation. The conjugate pair lets real feedback coefficients control both.
+
+This broader exponential also extends our response calculation. A delay multiplies $z^n$ by $z^{-1}$, so with up to two input and output delays we obtain the **transfer function**
 
 $$
 H_d(z)=\frac{b_0+b_1z^{-1}+b_2z^{-2}}
 {1+a_1z^{-1}+a_2z^{-2}}.
 $$
 
-This ratio of quadratics is a **biquad**. To find its natural motion, set the input to zero and substitute $y[n]=z^n$. The recurrence reduces to
-
-$$
-z^2+a_1z+a_2=0.
-$$
-
-Its roots are the multipliers of the natural modes. A conjugate pair $re^{\pm j\theta}$ produces real motion of the form
-
-$$
-y[n]=Cr^n\cos(n\theta+\phi).
-$$
-
-For $0\lt r\lt 1$, the radius $r$ sets decay and the angle $\theta$ sets oscillation. Two real coefficients can control both because the conjugate factors combine into a real quadratic.
+This ratio of quadratics is a **biquad**. Evaluating it on the unit circle, $z=e^{j\omega}$, recovers the frequency response. Its denominator gives the same roots we found from the motion with no input.
 
 Uncanceled denominator roots are called **poles**. A pole pair near the unit circle can produce a strong response to nearby sustained frequencies. The numerator's uncanceled roots are **zeros**, and a zero on the unit circle cancels that tone when the denominator is nonzero. These give us ways to shape a response, not just analyze one.
 
