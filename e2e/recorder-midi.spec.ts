@@ -89,18 +89,21 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
 test("creates and deletes a note and persists its instrument", async ({
   page,
 }) => {
-  // Add an empty MIDI track and preview C4 on its piano keyboard.
+  // Add an empty MIDI track, check its hint, and preview C4 on its piano keyboard.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
+  const hint = row.getByText("Click the grid to add notes", { exact: true });
+  await expect(hint).toBeVisible();
   await expect(grid).toBeVisible();
   await expect(notes).toHaveCount(0);
   const key = row.getByRole("button", { name: "Preview C4", exact: true });
   await key.click();
 
-  // Create a C4 note at the first grid cell and verify its pitch and snapped start.
+  // Create a C4 note through the hint overlay and verify its pitch, snapped start, and hidden hint.
   await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
+  await expect(hint).toBeHidden();
   await expect(notes).toHaveCount(1);
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
 
@@ -130,15 +133,17 @@ test("creates and deletes a note and persists its instrument", async ({
   await expect(instrument).toContainText("33: Electric Bass (finger)");
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
-  // Select and delete the restored note, then save and verify the deletion survives reload.
+  // Delete the last note to restore the hint, then save and verify the empty state survives reload.
   await notes.first().click();
   await page.keyboard.press("Delete");
   await expect(notes).toHaveCount(0);
   await expect(row).toBeVisible();
+  await expect(hint).toBeVisible();
   await saveRecorderProject(page);
   await page.reload();
   await expect(grid).toBeVisible();
   await expect(notes).toHaveCount(0);
+  await expect(hint).toBeVisible();
 });
 
 test("transcribes an audio track into MIDI and restores the generated notes", async ({

@@ -115,6 +115,11 @@ export function MidiTrackRow({
           subdivisionsPerBeat={subdivisionsPerBeat}
           viewportStartBeat={viewportStartBeat}
         />
+        {track.notes.length === 0 && (
+          <div className="pointer-events-none z-10 col-start-2 row-start-1 grid place-items-center text-xs text-neutral-600">
+            Click the grid to add notes
+          </div>
+        )}
       </TrackRow>
       <PortalDialog
         isOpen={isInstrumentOpen}
