@@ -3,7 +3,7 @@ import {
   type Note,
   type TimeSignature,
 } from "../../types.ts";
-import { arrayEqual, insertAtIndices } from "../../utils/array.ts";
+import { insertAtIndices } from "../../utils/array.ts";
 import { createNumberedName } from "../../utils/name.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
@@ -1338,7 +1338,10 @@ function updateTrackClips({
   update: (clips: AudioClip[]) => AudioClip[];
 }): AudioTrackState {
   const clips = update(track.clips);
-  if (arrayEqual(clips, track.clips)) {
+  if (
+    clips.length === track.clips.length &&
+    clips.every((clip, index) => clip === track.clips[index])
+  ) {
     return track;
   }
   return resolveTrackRegions({ ...track, clips });
