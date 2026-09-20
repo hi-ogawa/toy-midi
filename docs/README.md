@@ -10,7 +10,7 @@
 - [Filter transfer functions](concepts/filter-transfer-functions.md): delays, feedback, natural modes, and the geometry of the s- and z-planes.
 - [Bilinear transform and EQ coefficients](concepts/bilinear-transform-and-eq-coefficients.md): distinguish exact sampling from system conversion, prewarp the center, and derive the sample weights.
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
-- [Real-time tuner pitch detection](concepts/tuner-pitch-detection.md): YIN difference analysis, period selection, and frequency refinement.
+- [YIN pitch detection](concepts/yin-pitch-detection.md): YIN difference analysis, period selection, and frequency refinement.
 - [WSOLA time stretching](concepts/wsola-time-stretching.md): derive source-window selection, waveform similarity, and complementary fades from the goal of changing duration while preserving pitch.
 
 ## Bass Pitch
