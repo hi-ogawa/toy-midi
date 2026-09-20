@@ -31,11 +31,10 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     | "keySignature"
     | "viewMode"
   > & {
-    // Optional for projects saved before overview mode.
-    viewMode?: MidiTrackState["viewMode"];
     tabAnnotationEnabled?: boolean;
     tabOpenStringPitches?: number[];
     keySignature?: MidiTrackState["keySignature"];
+    viewMode?: MidiTrackState["viewMode"];
   })[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
