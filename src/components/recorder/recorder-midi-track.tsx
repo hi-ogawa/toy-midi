@@ -366,7 +366,7 @@ function MidiTrackEditor({
   return (
     <div
       data-testid="recorder-midi-pitch-scroll"
-      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain [scrollbar-width:thin] [scrollbar-color:#525252_transparent]"
+      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scrollbar-thin"
       ref={scrollRef}
       onBlur={handleBlur}
     >

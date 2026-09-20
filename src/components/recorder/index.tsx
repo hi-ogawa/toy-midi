@@ -344,7 +344,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         />
         <section
           data-testid="recorder-track-scroll"
-          className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#525252_transparent]"
+          className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
         >
           <div
             ref={timeline.viewportRef}
