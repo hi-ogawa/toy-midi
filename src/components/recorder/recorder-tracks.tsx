@@ -114,9 +114,10 @@ export function TrackRow({
       className="relative grid grid-cols-[15rem_1fr]"
       style={{ height }}
     >
+      <div className="sticky left-0 col-start-1 row-start-1 border-r border-neutral-700 bg-neutral-800" />
       <div
         className={cn(
-          "sticky left-0 z-20 col-start-1 row-start-1 grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
+          "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
           input
             ? "grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] gap-y-1"
             : "grid-rows-[1.75rem_auto] gap-y-2",
