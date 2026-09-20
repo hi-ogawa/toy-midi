@@ -51,21 +51,19 @@ export function ReferenceVideoPanel({
         throw new Error("Reference video panel is missing.");
       }
       return {
-        x: event.clientX,
-        y: event.clientY,
         panelRect: panel.getBoundingClientRect(),
         size,
       };
     },
-    onMove: (event, drag) => {
-      drag.size = clampSize({
-        width: drag.panelRect.width + drag.x - event.clientX,
-        height: drag.panelRect.height + drag.y - event.clientY,
+    onMove: (_event, { data, deltaX, deltaY }) => {
+      data.size = clampSize({
+        width: data.panelRect.width - deltaX,
+        height: data.panelRect.height - deltaY,
       });
-      setSize(drag.size);
+      setSize(data.size);
     },
-    onEnd: (_event, drag) => {
-      recorderStorage.updatePreferences({ referenceVideoSize: drag.size });
+    onEnd: (_event, { data }) => {
+      recorderStorage.updatePreferences({ referenceVideoSize: data.size });
     },
   });
 
@@ -107,7 +105,7 @@ export function ReferenceVideoPanel({
       }
       closeLabel="Close Reference Video"
       onClose={onClose}
-      testId="recorder-youtube-reference"
+      data-testid="recorder-youtube-reference"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
       contentClassName="min-h-0 flex-1 p-0"
       style={size}

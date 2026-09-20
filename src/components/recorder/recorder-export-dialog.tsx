@@ -37,7 +37,7 @@ export function RecorderExportDialog({
       isOpen={isOpen}
       onClose={onClose}
       title="Export Audio"
-      testId="recorder-audio-export"
+      data-testid="recorder-audio-export"
     >
       <div className="mb-6 space-y-4">
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">

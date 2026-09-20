@@ -64,20 +64,12 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       }
       return listenPointerDrag({
         element: handle,
-        onStart: (event) => ({
-          x: event.clientX,
-          y: event.clientY,
-          panelRect: panel.getBoundingClientRect(),
-        }),
-        onMove: (event, dragData) => {
+        onStart: () => panel.getBoundingClientRect(),
+        onMove: (_event, { data: panelRect, deltaX, deltaY }) => {
           setScorePreviewSize({
-            width: clamp(
-              dragData.panelRect.width + dragData.x - event.clientX,
-              576,
-              window.innerWidth - 32,
-            ),
+            width: clamp(panelRect.width - deltaX, 576, window.innerWidth - 32),
             height: clamp(
-              dragData.panelRect.height + dragData.y - event.clientY,
+              panelRect.height - deltaY,
               288,
               window.innerHeight - 32,
             ),
@@ -193,7 +185,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           closeLabel="Close Mixer"
           onClose={() => setIsMixerOpen(false)}
           title="Mixer"
-          testId="mixer-panel"
+          data-testid="mixer-panel"
         >
           <Mixer />
         </FloatingPanel>
@@ -215,7 +207,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
               <ExternalLinkIcon className="size-3" />
             </a>
           }
-          testId="score-preview-panel"
+          data-testid="score-preview-panel"
           className="flex flex-col overflow-hidden"
           contentClassName="min-h-0 flex-1 p-0"
           style={scorePreviewSize}
@@ -238,7 +230,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         <FloatingPanel
           closeLabel="Close Audio to MIDI"
           onClose={() => setAudioToMidiTrackId(undefined)}
-          testId="audio-to-midi-panel"
+          data-testid="audio-to-midi-panel"
           title={
             <span className="flex items-center gap-2">
               <SparklesIcon className="size-4" />
@@ -253,7 +245,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         title="Project"
-        testId="settings-dialog"
+        data-testid="settings-dialog"
       >
         <Settings
           projectName={projectName}

@@ -1,8 +1,11 @@
+import path from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import type { useProjectStore } from "../src/lib/project-store";
 
 /** Call at file scope to enable a fake microphone for this test file. */
-export function useFakeAudioInput(): void {
+export function useFakeAudioInput({
+  audioFilePath,
+}: { audioFilePath?: string } = {}): void {
   test.use({
     permissions: ["microphone"],
     launchOptions: {
@@ -11,6 +14,11 @@ export function useFakeAudioInput(): void {
         "--autoplay-policy=no-user-gesture-required",
         "--use-fake-device-for-media-stream",
         "--use-fake-ui-for-media-stream",
+        // Chromium loops WAV input by default (%noloop plays once).
+        // https://chromium.googlesource.com/chromium/src.git/+/cc79060bcce11b0cb6fafa673a2a20dcb12bd077/media/base/media_switches.cc
+        ...(audioFilePath
+          ? [`--use-file-for-fake-audio-capture=${path.resolve(audioFilePath)}`]
+          : []),
       ],
     },
   });
@@ -28,6 +36,7 @@ export function createCheckpoint(): (label: string) => void {
  * Click "New Project" on startup screen to get to main UI with empty state.
  */
 export async function clickNewProject(page: Page): Promise<void> {
+  await page.getByRole("tab", { name: "Legacy", exact: true }).click();
   await page.getByTestId("new-project-button").click();
   await page.getByTestId("transport").waitFor({ state: "visible" });
 }
@@ -59,26 +68,38 @@ export async function loadAudioFile(
   fileName = "test-audio.wav",
   fixtureName = "test-audio.wav",
 ): Promise<void> {
-  // Open settings dialog
-  await page.getByTestId("settings-button").click();
+  await test.step(
+    `Load audio: ${fileName}`,
+    async () => {
+      // Open settings dialog
+      await page.getByTestId("settings-button").click();
 
-  // Find audio file input within settings dialog
-  const fileInput = page.getByTestId("audio-file-input");
-  const fs = await import("fs/promises");
-  const path = await import("path");
-  const testAudioPath = path.join(import.meta.dirname, "fixtures", fixtureName);
-  await fileInput.setInputFiles({
-    name: fileName,
-    mimeType: "audio/wav",
-    buffer: await fs.readFile(testAudioPath),
-  });
-  await expect(
-    page.getByTestId("settings-dialog").getByText(fileName, { exact: true }),
-  ).toBeVisible();
+      // Find audio file input within settings dialog
+      const fileInput = page.getByTestId("audio-file-input");
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const testAudioPath = path.join(
+        import.meta.dirname,
+        "fixtures",
+        fixtureName,
+      );
+      await fileInput.setInputFiles({
+        name: fileName,
+        mimeType: "audio/wav",
+        buffer: await fs.readFile(testAudioPath),
+      });
+      await expect(
+        page
+          .getByTestId("settings-dialog")
+          .getByText(fileName, { exact: true }),
+      ).toBeVisible();
 
-  // Close settings dialog
-  await page.keyboard.press("Escape");
-  await expect(page.getByTestId("settings-dialog")).toBeHidden();
+      // Close settings dialog
+      await page.keyboard.press("Escape");
+      await expect(page.getByTestId("settings-dialog")).toBeHidden();
+    },
+    { box: true },
+  );
 }
 
 /**

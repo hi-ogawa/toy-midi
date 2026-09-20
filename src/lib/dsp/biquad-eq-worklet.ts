@@ -1,10 +1,14 @@
-import { type EqParameters, BiquadEq } from "./biquad-eq.ts";
+import {
+  type MultibandEqParameters,
+  MultibandEq,
+} from "./biquad-eq-multiband.ts";
+import { watchWorkletDisposal } from "./worklet-disposal.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 
 type ProcessorOptions = {
   channelCount: number;
-  parameters: EqParameters;
+  parameters: MultibandEqParameters;
 };
 
 declare const AudioWorkletProcessor: new (
@@ -19,19 +23,23 @@ declare function registerProcessor(
 ): void;
 
 class BiquadEqProcessor extends AudioWorkletProcessor {
-  private readonly eq: BiquadEq;
+  private readonly isDisposed = watchWorkletDisposal(this.port);
+  private readonly eq: MultibandEq;
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
     const { channelCount, parameters } = options!
       .processorOptions as ProcessorOptions;
-    this.eq = new BiquadEq({ sampleRate, channelCount, ...parameters });
-    this.port.onmessage = (event: MessageEvent<Partial<EqParameters>>) => {
+    this.eq = new MultibandEq({ sampleRate, channelCount, parameters });
+    this.port.onmessage = (event: MessageEvent<MultibandEqParameters>) => {
       this.eq.setParameters(event.data);
     };
   }
 
   process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    if (this.isDisposed()) {
+      return false;
+    }
     const input = inputs[0] ?? [];
     const output = outputs[0] ?? [];
     if (input.length === 0 || output.length === 0) {

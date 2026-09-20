@@ -28,7 +28,7 @@ test("snaps recorder timeline seeking to the selected grid", async ({
   // On the 1/4 grid, 0.4 beats rounds back to beat 0 rather than seeking to
   // the raw pointer position.
   await page.getByRole("button", { name: "1/16" }).click();
-  await page.getByRole("menuitemradio", { name: "1/4" }).click();
+  await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.4);
   await expect.poll(() => getRecorderBeat(page)).toBe(0);
 });
@@ -105,3 +105,17 @@ for (const playbackRate of [0.5, 1.5]) {
     expect(observedRate).toBeCloseTo(playbackRate, 1);
   });
 }
+
+test("steps playback speed with angle brackets", async ({ page }) => {
+  // Open a recorder and step through the same rates as the dropdown, stopping at each end.
+  await createRecorderProject(page);
+  const rate = page.getByTestId("recorder-playback-rate");
+  for (const expected of [1.25, 1.5, 1.5]) {
+    await page.keyboard.press("Shift+>");
+    await expect(rate).toHaveText(`${expected}x`);
+  }
+  for (const expected of [1.25, 1, 0.75, 0.5, 0.5]) {
+    await page.keyboard.press("Shift+<");
+    await expect(rate).toHaveText(`${expected}x`);
+  }
+});

@@ -1,20 +1,21 @@
 import { Editor } from "./components/editor";
+import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
-import { ProjectListView } from "./components/project-list-view";
+import { Preview } from "./components/preview";
 import { Recorder } from "./components/recorder";
-import { RecorderProjectList } from "./components/recorder/project-list";
+import { RecorderScorePage } from "./components/recorder/recorder-score-page";
+import { RouteError } from "./components/route-error";
 import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
-import { projectStorage } from "./lib/project-storage";
 import { matchRoute, routes } from "./lib/routes";
 
 export function App() {
   const match = matchRoute(window.location.href);
 
   switch (match?.data) {
-    case "recorder": {
-      return <RecorderProjectList />;
+    case "preview": {
+      return <Preview />;
     }
     case "recorderProject": {
       return <Recorder projectId={match.params.projectId} />;
@@ -23,7 +24,7 @@ export function App() {
       return <LatencyChecker />;
     }
     case "scoreViewer": {
-      return <ScoreViewer />;
+      return <ScoreViewerRoute />;
     }
     case "projectScore": {
       return <ProjectScoreRoute projectId={match.params.projectId} />;
@@ -33,9 +34,28 @@ export function App() {
     }
     case "home":
     default: {
-      return <StartupApp />;
+      return <Home />;
     }
   }
+}
+
+function ScoreViewerRoute() {
+  const params = new URL(window.location.href).searchParams;
+  const projectId = params.get("projectId");
+  const trackId = params.get("trackId");
+  if (projectId && trackId) {
+    return <RecorderScorePage projectId={projectId} trackId={trackId} />;
+  }
+  if (params.has("projectId") || params.has("trackId")) {
+    return (
+      <RouteError
+        error="Both projectId and trackId are required to open a recorder score."
+        backHref={routes.scoreViewer.href()}
+        backLabel="Back to score viewer"
+      />
+    );
+  }
+  return <ScoreViewer />;
 }
 
 function ProjectScoreRoute({ projectId }: { projectId: string }) {
@@ -52,12 +72,6 @@ function ProjectScoreRoute({ projectId }: { projectId: string }) {
   }
 
   return <ScoreViewer initialSource={score.value} />;
-}
-
-// All project opens are full-page navigation; ProjectRoute is the only way
-// into the editor.
-function openProject(projectId: string) {
-  window.location.href = routes.project.href({ projectId });
 }
 
 // Deep-link entry: load the project named by the URL directly, no startup
@@ -88,34 +102,6 @@ function ProjectRoute({ projectId }: { projectId: string }) {
     <Editor
       projectId={session.value.projectId}
       initialProjectName={session.value.projectName}
-    />
-  );
-}
-
-function RouteError({
-  error,
-  backHref,
-  backLabel,
-}: {
-  error: unknown;
-  backHref: string;
-  backLabel: string;
-}) {
-  return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center gap-4 bg-neutral-900 text-neutral-400">
-      {String(error)}
-      <a href={backHref} className="text-emerald-400 hover:text-emerald-300">
-        {backLabel}
-      </a>
-    </div>
-  );
-}
-
-function StartupApp() {
-  return (
-    <ProjectListView
-      onSelectProject={openProject}
-      onNewProject={() => openProject(projectStorage.createNew())}
     />
   );
 }

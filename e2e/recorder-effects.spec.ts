@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  dragBy,
+} from "./recorder-helpers";
 
 test("edits and persists independent Audio and Capture EQ settings", async ({
   page,
@@ -7,7 +11,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   // Open independent effects panels for backing audio and Capture.
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  await page.getByTestId("recorder-mixer-button").click();
   await page
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
@@ -32,11 +35,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("1");
   await expect(
-    audio.getByRole("combobox", { name: "Filter type" }),
-  ).toHaveValue("peaking");
-
-  await expect(
-    audio.getByRole("checkbox", { name: "Bypass" }),
+    audio.getByRole("checkbox", { name: "Bypass" }).first(),
   ).not.toBeChecked();
 
   // Set different EQ values for Audio and Capture.
@@ -48,7 +47,9 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     .press("Enter");
   await audio.getByRole("textbox", { name: "Q", exact: true }).fill("2");
   await audio.getByRole("textbox", { name: "Q", exact: true }).press("Enter");
+  // Filter types expose only their applicable controls and keep stored values.
   const filterType = audio.getByRole("combobox", { name: "Filter type" });
+  await expect(filterType).toHaveValue("peaking");
   await filterType.selectOption("low-shelf");
   await expect(
     audio.getByRole("textbox", { name: "Gain", exact: true }),
@@ -64,11 +65,18 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("2");
   await filterType.selectOption("low-shelf");
-  await audio.getByRole("checkbox", { name: "Bypass" }).check();
+  await audio.getByRole("button", { name: "Add band" }).click();
+  await audio.getByRole("textbox", { name: "Frequency" }).fill("3000");
+  await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
+  await audio.getByRole("checkbox", { name: "Bypass" }).first().check();
   await capture.getByRole("textbox", { name: "Gain", exact: true }).fill("-4");
   await capture
     .getByRole("textbox", { name: "Gain", exact: true })
     .press("Enter");
+
+  await capture
+    .getByRole("combobox", { name: "Filter type" })
+    .selectOption("high-shelf");
 
   // Save and reload the independent EQ settings.
   const save = page.getByTestId("recorder-save-button");
@@ -76,10 +84,13 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
-  await page.getByTestId("recorder-mixer-button").click();
   await page
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
+  await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
+  await audio.getByRole("button", { name: "Select band 1" }).click();
+  await expect(filterType).toHaveValue("low-shelf");
+  await filterType.selectOption("peaking");
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
@@ -89,24 +100,30 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(
     audio.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("6");
-  await expect(filterType).toHaveValue("low-shelf");
-  await expect(
-    audio.getByRole("textbox", { name: "Q", exact: true }),
-  ).toHaveCount(0);
-  await filterType.selectOption("peaking");
   await expect(
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("2");
-  await expect(audio.getByRole("checkbox", { name: "Bypass" })).toBeChecked();
+  await expect(
+    audio.getByRole("checkbox", { name: "Bypass" }).first(),
+  ).toBeChecked();
+  await filterType.selectOption("low-shelf");
+  await audio.getByRole("button", { name: "Select band 2" }).click();
+  await expect(filterType).toHaveValue("peaking");
+  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+    "3000",
+  );
   await expect(
     capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
-  await expect(save).toHaveAttribute("data-status", "unsaved");
+  await expect(
+    capture.getByRole("combobox", { name: "Filter type" }),
+  ).toHaveValue("high-shelf");
+
   await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
 
   // Resetting Audio leaves Capture unchanged and dirties the project.
-  await audio.getByRole("button", { name: "Reset" }).click();
+  await audio.getByRole("button", { name: "Reset EQ" }).click();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
   );
@@ -117,170 +134,12 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("1");
   await expect(
-    audio.getByRole("checkbox", { name: "Bypass" }),
+    audio.getByRole("checkbox", { name: "Bypass" }).first(),
   ).not.toBeChecked();
   await expect(
     capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "unsaved");
-  await page.screenshot({ path: test.info().outputPath("effects.png") });
-});
-
-test("loads persisted EQ settings without a filter type as peaking", async ({
-  page,
-}) => {
-  await createRecorderProject(page);
-  const projectId = page.url().split("/").at(-1)!;
-  await page.evaluate(async (projectId) => {
-    const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("toy-midi-recorder", 3);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    const transaction = database.transaction("projects", "readwrite");
-    const store = transaction.objectStore("projects");
-    const project = await new Promise<{
-      content: {
-        audioTracks: { eq?: { type?: string } }[];
-        recordingTrack: { eq?: { type?: string } };
-      };
-    }>((resolve, reject) => {
-      const request = store.get(projectId);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    for (const track of project.content.audioTracks) {
-      if (track.eq) {
-        delete track.eq.type;
-      }
-    }
-    if (project.content.recordingTrack.eq) {
-      delete project.content.recordingTrack.eq.type;
-    }
-    store.put(project);
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    });
-    database.close();
-  }, projectId);
-
-  await page.reload();
-  await page.getByTestId("recorder-mixer-button").click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
-  await expect(page.getByRole("combobox", { name: "Filter type" })).toHaveValue(
-    "peaking",
-  );
-});
-
-test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
-  // Open Capture effects with the default EQ settings.
-  await createRecorderProject(page);
-  await page.getByTestId("recorder-mixer-button").click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
-  const panel = page.getByTestId("recorder-effects-panel");
-  await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
-
-  // Click above and to the right of the point to increase frequency and gain.
-  const point = await panel.getByTestId("eq-response-point").boundingBox();
-  expect(point).toBeTruthy();
-  await page.mouse.click(point!.x + point!.width / 2 + 30, point!.y - 20);
-  const frequencyInput = panel.getByRole("textbox", { name: "Frequency" });
-  const gainInput = panel.getByRole("textbox", { name: "Gain", exact: true });
-  await expect
-    .poll(async () => Number(await frequencyInput.inputValue()))
-    .toBeGreaterThan(1000);
-  await expect
-    .poll(async () => Number(await gainInput.inputValue()))
-    .toBeGreaterThan(0);
-  const frequency = await frequencyInput.inputValue();
-  const gain = await gainInput.inputValue();
-
-  // Positive wheel delta increases Q, matching the timeline pan direction.
-  const qInput = panel.getByRole("textbox", { name: "Q", exact: true });
-  await page.mouse.wheel(0, 100);
-  await expect
-    .poll(async () => Number(await qInput.inputValue()))
-    .toBeGreaterThan(1);
-  await page.mouse.wheel(0, -100);
-  await expect(qInput).toHaveValue("1");
-  await expect(frequencyInput).toHaveValue(frequency);
-  await expect(gainInput).toHaveValue(gain);
-
-  // Bypass dims the configured response curve.
-  await panel.getByRole("checkbox", { name: "Bypass" }).check();
-  await expect(panel.getByTestId("eq-response-curve")).toHaveClass(
-    /stroke-blue-400\/35/,
-  );
-  await panel.getByRole("checkbox", { name: "Bypass" }).uncheck();
-
-  // Optional sliders can be shown and hidden beside the graph controls.
-  await expect(panel.getByRole("slider")).toHaveCount(0);
-  await panel
-    .getByRole("button", { name: "Show sliders", exact: true })
-    .click();
-  await expect(panel.getByRole("slider")).toHaveCount(3);
-  await panel
-    .getByRole("button", { name: "Hide sliders", exact: true })
-    .click();
-  await expect(panel.getByRole("slider")).toHaveCount(0);
-});
-
-test("toggles multiple track panels and closes them with the mixer or track", async ({
-  page,
-}) => {
-  // Open effects for multiple tracks at once from the mixer.
-  await createRecorderProject(page);
-  await page.getByTitle("Add empty audio track").click();
-  await page.getByTitle("Add empty audio track").click();
-  const mixerToggle = page.getByTestId("recorder-mixer-button");
-  const panels = page.getByTestId("recorder-effects-panel");
-  const audioFx = page.getByRole("button", {
-    name: "Audio 1 effects",
-    exact: true,
-  });
-  await mixerToggle.click();
-  await audioFx.click();
-  await page
-    .getByRole("button", { name: "Audio 2 effects", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
-  await expect(panels).toHaveCount(3);
-
-  // Toggle or explicitly close an individual effects panel.
-  await audioFx.click();
-  await expect(panels).toHaveCount(2);
-  await audioFx.click();
-  await page
-    .getByRole("button", { name: "Close Audio 1 Effects", exact: true })
-    .click();
-  await expect(audioFx).toHaveAttribute("aria-pressed", "false");
-
-  // Closing the mixer clears its effects panels instead of restoring them later.
-  await mixerToggle.click();
-  await expect(panels).toHaveCount(0);
-  await mixerToggle.click();
-  await expect(panels).toHaveCount(0);
-  await audioFx.click();
-  await page.getByRole("button", { name: "Close Mixer", exact: true }).click();
-  await mixerToggle.click();
-  await expect(panels).toHaveCount(0);
-
-  // Removing a track also removes its open effects panel.
-  await audioFx.click();
-  const firstTrack = page.getByTestId("recorder-audio-track-row").first();
-  await firstTrack.getByTitle("Audio 1 actions").click();
-  await page
-    .getByRole("menuitem", { name: "Remove track", exact: true })
-    .click();
-  await expect(panels).toHaveCount(0);
-  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(1);
 });
 
 test("keeps the mixer usable with many effects panels open", async ({
@@ -295,6 +154,7 @@ test("keeps the mixer usable with many effects panels open", async ({
   await page.getByTestId("recorder-mixer-button").click();
   for (let index = 1; index <= 5; index++) {
     await page
+      .getByTestId("recorder-mixer-panel")
       .getByRole("button", { name: `Audio ${index} effects`, exact: true })
       .click();
   }
@@ -322,3 +182,116 @@ test("keeps the mixer usable with many effects panels open", async ({
   await mixer.getByRole("button", { name: "Close Mixer", exact: true }).click();
   await expect(mixer).toHaveCount(0);
 });
+
+test("resizes an effects panel", async ({ page }) => {
+  // Open Capture effects with room to grow the panel.
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await createRecorderProject(page);
+  await page
+    .getByRole("button", { name: "Capture effects", exact: true })
+    .click();
+  const panel = page.getByTestId("recorder-effects-panel");
+  const initial = (await panel.boundingBox())!;
+
+  // Drag the top-left corner to increase the panel's width and height.
+  await dragBy(
+    page,
+    panel.getByRole("button", { name: "Resize Capture Effects" }),
+    -100,
+    { deltaY: -100 },
+  );
+  const resized = (await panel.boundingBox())!;
+  expect(resized.width).toBeCloseTo(initial.width + 100, 0);
+  expect(resized.height).toBeCloseTo(initial.height + 100, 0);
+
+  // Shorten the panel and check that the graph shrinks with it.
+  const graph = panel.getByTestId("eq-response-graph");
+  const before = (await graph.boundingBox())!;
+  await dragBy(
+    page,
+    panel.getByRole("button", { name: "Resize Capture Effects" }),
+    0,
+    { deltaY: 150 },
+  );
+  expect((await graph.boundingBox())!.height).toBeLessThan(before.height);
+});
+
+for (const format of ["single", "multiband"] as const) {
+  test(`loads ${format} EQ settings without filter types as peaking`, async ({
+    page,
+  }) => {
+    // Save an Audio track and Capture, then emulate their pre-type persisted shape.
+    await createRecorderProject(page);
+    await page.getByTitle("Add empty audio track").click();
+    const save = page.getByTestId("recorder-save-button");
+    await save.click();
+    await expect(save).toHaveAttribute("data-status", "saved");
+    const projectId = page.url().split("/").at(-1)!;
+    await page.evaluate(
+      async ({ projectId, format }) => {
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open("toy-midi-recorder", 3);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const transaction = database.transaction("projects", "readwrite");
+        const store = transaction.objectStore("projects");
+        const project = await new Promise<{
+          content: {
+            audioTracks: { eq: unknown }[];
+            recordingTrack: { eq: unknown };
+          };
+        }>((resolve, reject) => {
+          const request = store.get(projectId);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const oldBand = { frequency: 750, gain: 2, q: 1.5, bypass: false };
+        const eq =
+          format === "single"
+            ? oldBand
+            : {
+                bypass: false,
+                bands: [{ id: "legacy-band", ...oldBand }],
+              };
+        for (const track of project.content.audioTracks) {
+          track.eq = eq;
+        }
+        project.content.recordingTrack.eq = eq;
+        store.put(project);
+        await new Promise<void>((resolve, reject) => {
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+        database.close();
+      },
+      { projectId, format },
+    );
+
+    // Reload both channels and preserve values while supplying the peaking default.
+    await page.reload();
+    for (const label of ["Audio 1", "Capture"]) {
+      await page
+        .getByRole("button", { name: `${label} effects`, exact: true })
+        .click();
+      const panel = page.getByTestId("recorder-effects-panel").filter({
+        has: page.getByRole("heading", {
+          name: `${label} Effects`,
+          exact: true,
+        }),
+      });
+      await expect(
+        panel.getByRole("combobox", { name: "Filter type" }),
+      ).toHaveValue("peaking");
+      await expect(
+        panel.getByRole("textbox", { name: "Frequency" }),
+      ).toHaveValue("750");
+      await expect(
+        panel.getByRole("textbox", { name: "Gain", exact: true }),
+      ).toHaveValue("6.02");
+      await expect(
+        panel.getByRole("textbox", { name: "Q", exact: true }),
+      ).toHaveValue("1.5");
+    }
+  });
+}

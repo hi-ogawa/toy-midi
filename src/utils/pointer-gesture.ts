@@ -1,13 +1,10 @@
-import { listenPointerDrag } from "./pointer-drag.ts";
+import { listenPointerDrag, type PointerDrag } from "./pointer-drag.ts";
 
-export type PointerGesture<T> = {
-  data: T;
-  deltaX: number;
-  deltaY: number;
-};
+const DRAG_THRESHOLD = 4;
+
+export type PointerGesture<T> = PointerDrag<T>;
 
 export type PointerGestureOptions<T> = {
-  threshold?: number;
   onStart: (event: PointerEvent) => T;
   onClick?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onDragStart?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
@@ -22,7 +19,6 @@ export type PointerGestureOptions<T> = {
 
 export function listenPointerGesture<T>({
   element,
-  threshold = 4,
   onStart,
   onClick,
   onDragStart,
@@ -31,33 +27,18 @@ export function listenPointerGesture<T>({
   onCancel,
 }: PointerGestureOptions<T> & { element: HTMLElement }) {
   type State = {
-    startX: number;
-    startY: number;
     data: T;
     dragged: boolean;
   };
-  const createGesture = (
-    event: PointerEvent,
-    state: State,
-  ): PointerGesture<T> => ({
-    data: state.data,
-    deltaX: event.clientX - state.startX,
-    deltaY: event.clientY - state.startY,
-  });
 
   return listenPointerDrag({
     element,
-    onStart: (event): State => ({
-      startX: event.clientX,
-      startY: event.clientY,
-      data: onStart(event),
-      dragged: false,
-    }),
-    onMove: (event, state) => {
-      const gesture = createGesture(event, state);
+    onStart: (event): State => ({ data: onStart(event), dragged: false }),
+    onMove: (event, { data: state, deltaX, deltaY }) => {
+      const gesture = { data: state.data, deltaX, deltaY };
       if (
         !state.dragged &&
-        gesture.deltaX ** 2 + gesture.deltaY ** 2 >= threshold ** 2
+        gesture.deltaX ** 2 + gesture.deltaY ** 2 >= DRAG_THRESHOLD ** 2
       ) {
         state.dragged = true;
         onDragStart?.(event, gesture);
@@ -66,16 +47,16 @@ export function listenPointerGesture<T>({
         onDragMove(event, gesture);
       }
     },
-    onEnd: (event, state) => {
-      const gesture = createGesture(event, state);
+    onEnd: (event, { data: state, deltaX, deltaY }) => {
+      const gesture = { data: state.data, deltaX, deltaY };
       if (state.dragged) {
         onDragEnd?.(event, gesture);
       } else {
         onClick?.(event, gesture);
       }
     },
-    onCancel: (event, state) => {
-      onCancel?.(event, createGesture(event, state), state.dragged);
+    onCancel: (event, { data: state, deltaX, deltaY }) => {
+      onCancel?.(event, { data: state.data, deltaX, deltaY }, state.dragged);
     },
   });
 }

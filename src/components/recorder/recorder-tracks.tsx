@@ -1,4 +1,5 @@
 import {
+  AudioWaveformIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   HeadphonesIcon,
@@ -21,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderEffectsToggle } from "./recorder-effects-toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 import { RecorderGainSlider } from "./recorder-mixer";
 
@@ -43,7 +45,7 @@ export function AudioTrackActions({
           <MoreVerticalIcon className="size-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent>
         <DropdownMenuItem
           onSelect={() =>
             openFilePicker({ accept: "audio/*,.wav", onFile: onFileChange })
@@ -64,11 +66,16 @@ export function AudioTrackActions({
 
 export function TrackRow({
   title,
+  "data-testid": testId,
+  controlsClassName,
   height,
   gain,
   muted,
   soloed,
+  effectsOpen,
+  onEffectsToggle,
   action,
+  input,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -76,11 +83,16 @@ export function TrackRow({
   children,
 }: {
   title: string;
+  "data-testid"?: string;
+  controlsClassName?: string;
   height: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
-  action: React.ReactNode;
+  effectsOpen: boolean;
+  onEffectsToggle: () => void;
+  action?: React.ReactNode;
+  input?: TrackInputControls;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -90,24 +102,34 @@ export function TrackRow({
   const resizeRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
-      return { startClientY: event.clientY, startHeight: height };
+      return height;
     },
-    onMove: (event, drag) => {
-      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+    onMove: (_event, { data: startHeight, deltaY }) => {
+      onHeightChange(startHeight + deltaY);
     },
   });
   return (
     <div
-      data-testid="recorder-audio-track-row"
-      className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
+      data-testid={testId}
+      className="relative grid grid-cols-[15rem_1fr]"
       style={{ height }}
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+      <div className="sticky left-0 col-start-1 row-start-1 border-r border-neutral-700 bg-neutral-800" />
+      <div
+        className={cn(
+          "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
+          input
+            ? "grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] gap-y-1"
+            : "grid-rows-[1.75rem_auto] gap-y-2",
+          controlsClassName,
+        )}
+      >
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           {title}
         </div>
         <div className="flex self-center gap-1">
           {action}
+          {input && <TrackInputToggle {...input} />}
           <RecorderMixToggle
             active={muted}
             kind="mute"
@@ -122,7 +144,14 @@ export function TrackRow({
             className="size-7"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
+          <RecorderEffectsToggle
+            label={title}
+            open={effectsOpen}
+            onClick={onEffectsToggle}
+            className="size-7"
+          />
         </div>
+        {input && <TrackInputRoute {...input} />}
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
             label={`${title} gain`}
@@ -135,167 +164,132 @@ export function TrackRow({
       {children}
       <div
         ref={resizeRef}
-        className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
+        className="absolute inset-x-0 bottom-0 z-30 h-px cursor-ns-resize border-b border-neutral-700 after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title={`Resize ${title}`}
       />
     </div>
   );
 }
 
-export function CaptureTrackRow({
-  route,
-  routeNeedsSetup,
-  height,
-  gain,
-  inputActive,
-  inputAnalyser,
-  inputMonitoring,
-  inputToggleDisabled,
-  muted,
-  soloed,
-  onGainChange,
-  onInputSetup,
-  onInputMonitoringChange,
-  onInputToggle,
-  onMutedChange,
-  onSoloedChange,
-  onHeightChange,
-  children,
-}: {
+interface TrackInputControls {
   route: string;
   routeNeedsSetup: boolean;
-  height: number;
-  gain: number;
   inputActive: boolean;
   inputAnalyser?: AudioAnalyser;
   inputMonitoring: boolean;
   inputToggleDisabled: boolean;
-  muted: boolean;
-  soloed: boolean;
-  onGainChange: (gain: number) => void;
+  tunerOpen: boolean;
   onInputSetup: () => void;
   onInputMonitoringChange: (monitoring: boolean) => void;
   onInputToggle: () => void;
-  onMutedChange: (muted: boolean) => void;
-  onSoloedChange: (soloed: boolean) => void;
-  onHeightChange: (height: number) => void;
-  children: React.ReactNode;
-}) {
-  const resizeRef = usePointerDrag({
-    onStart: (event) => {
-      event.preventDefault();
-      return { startClientY: event.clientY, startHeight: height };
-    },
-    onMove: (event, drag) => {
-      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
-    },
-  });
+  onTunerToggle: () => void;
+}
+
+function TrackInputToggle({
+  inputActive,
+  inputToggleDisabled,
+  onInputToggle,
+}: TrackInputControls) {
   return (
-    <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] content-start gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
-        <div className="min-w-0 self-center truncate text-xs font-semibold">
-          Capture
-        </div>
-        <div className="flex self-center gap-1">
-          <Button
-            data-testid="recorder-input-toggle"
-            disabled={inputToggleDisabled}
-            onClick={onInputToggle}
-            className={
-              inputActive
-                ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
-                : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
-            }
-            title={inputActive ? "Disarm capture" : "Arm capture"}
-            aria-label={inputActive ? "Disarm capture" : "Arm capture"}
-            aria-pressed={inputActive}
-          >
-            R
-          </Button>
-          <RecorderMixToggle
-            active={muted}
-            kind="mute"
-            onClick={() => onMutedChange(!muted)}
-            className="size-7"
-            title={muted ? "Unmute Capture" : "Mute Capture"}
-          />
-          <RecorderMixToggle
-            active={soloed}
-            kind="solo"
-            onClick={() => onSoloedChange(!soloed)}
-            className="size-7"
-            title={soloed ? "Disable Capture solo" : "Solo Capture"}
-          />
-        </div>
-        <div className="col-span-2 flex min-w-0 items-center gap-1">
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate text-[11px]",
-              routeNeedsSetup
-                ? "font-medium text-orange-300"
-                : "text-neutral-400",
-            )}
-          >
-            {route}
-          </span>
-          <button
-            type="button"
-            aria-label="Configure audio input"
-            title="Configure audio input"
-            onClick={onInputSetup}
-            className={cn(
-              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
-              routeNeedsSetup && "text-orange-300 hover:text-orange-200",
-            )}
-          >
-            <Settings2Icon className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            data-testid="recorder-input-monitor"
-            disabled={!inputActive}
-            aria-label={
-              inputMonitoring
+    <Button
+      data-testid="recorder-input-toggle"
+      disabled={inputToggleDisabled}
+      onClick={onInputToggle}
+      className={
+        inputActive
+          ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
+          : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
+      }
+      title={inputActive ? "Disarm capture" : "Arm capture"}
+      aria-label={inputActive ? "Disarm capture" : "Arm capture"}
+      aria-pressed={inputActive}
+    >
+      R
+    </Button>
+  );
+}
+
+function TrackInputRoute({
+  route,
+  routeNeedsSetup,
+  inputActive,
+  inputAnalyser,
+  inputMonitoring,
+  onInputSetup,
+  onInputMonitoringChange,
+  tunerOpen,
+  onTunerToggle,
+}: TrackInputControls) {
+  return (
+    <>
+      <div className="col-span-2 flex min-w-0 items-center gap-1">
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate text-[11px]",
+            routeNeedsSetup
+              ? "font-medium text-orange-300"
+              : "text-neutral-400",
+          )}
+        >
+          {route}
+        </span>
+        <button
+          type="button"
+          aria-label="Configure audio input"
+          title="Configure audio input"
+          onClick={onInputSetup}
+          className={cn(
+            "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            routeNeedsSetup && "text-orange-300 hover:text-orange-200",
+          )}
+        >
+          <Settings2Icon className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          data-testid="recorder-input-monitor"
+          disabled={!inputActive}
+          aria-label={
+            inputMonitoring
+              ? "Disable input monitoring"
+              : "Enable input monitoring"
+          }
+          aria-pressed={inputMonitoring}
+          title={
+            inputActive
+              ? inputMonitoring
                 ? "Disable input monitoring"
-                : "Enable input monitoring"
-            }
-            aria-pressed={inputMonitoring}
-            title={
-              inputActive
-                ? inputMonitoring
-                  ? "Disable input monitoring"
-                  : "Enable input monitoring (use headphones to avoid feedback)"
-                : "Enable input first to monitor"
-            }
-            onClick={() => onInputMonitoringChange(!inputMonitoring)}
-            className={cn(
-              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
-              inputMonitoring &&
-                "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
-            )}
-          >
-            <HeadphonesIcon className="size-3.5" />
-          </button>
-        </div>
-        <div className="col-span-2">
-          <InputMeter active={inputActive} analyser={inputAnalyser} compact />
-        </div>
-        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
-          <RecorderGainSlider
-            label="Capture gain"
-            gain={gain}
-            onGainChange={onGainChange}
-          />
-          <span className="text-right font-mono">{formatGainDb(gain)}</span>
-        </label>
+                : "Enable input monitoring (use headphones to avoid feedback)"
+              : "Enable input first to monitor"
+          }
+          onClick={() => onInputMonitoringChange(!inputMonitoring)}
+          className={cn(
+            "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
+            inputMonitoring && "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
+          )}
+        >
+          <HeadphonesIcon className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          aria-label={tunerOpen ? "Close tuner" : "Open tuner"}
+          aria-pressed={tunerOpen}
+          title={tunerOpen ? "Close tuner" : "Open tuner"}
+          onClick={onTunerToggle}
+          className={cn(
+            "grid size-6 shrink-0 place-items-center rounded",
+            tunerOpen
+              ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-700"
+              : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+          )}
+        >
+          <AudioWaveformIcon className="size-3.5" />
+        </button>
       </div>
-      {children}
-      <div
-        ref={resizeRef}
-        className="absolute inset-x-0 bottom-0 z-30 h-px cursor-ns-resize border-b border-neutral-700 after:absolute after:inset-x-0 after:-top-1 after:h-2"
-        title="Resize Capture"
-      />
-    </div>
+      <div className="col-span-2">
+        <InputMeter active={inputActive} analyser={inputAnalyser} compact />
+      </div>
+    </>
   );
 }
 
@@ -333,7 +327,7 @@ export function TakesDisclosureRow({
 }
 
 export function TakeTrackRow({
-  number,
+  label,
   muted,
   soloed,
   onMutedChange,
@@ -341,7 +335,7 @@ export function TakeTrackRow({
   onDelete,
   children,
 }: {
-  number: number;
+  label: string;
   muted: boolean;
   soloed: boolean;
   onMutedChange: (muted: boolean) => void;
@@ -355,14 +349,14 @@ export function TakeTrackRow({
       className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 flex items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
-        <span className="mr-auto px-4">Take {number}</span>
+        <span className="mr-auto px-4">{label}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button aria-label={`Take ${number} actions`} className="size-7">
+            <Button aria-label={`${label} actions`} className="size-7">
               <MoreVerticalIcon className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent>
             <DropdownMenuItem onSelect={onDelete}>
               <Trash2Icon />
               Delete take
@@ -371,7 +365,7 @@ export function TakeTrackRow({
         </DropdownMenu>
         <RecorderMixToggle
           data-testid="recorder-take-mute"
-          aria-label={`Mute Take ${number}`}
+          aria-label={`Mute ${label}`}
           active={muted}
           kind="mute"
           onClick={() => onMutedChange(!muted)}
@@ -380,7 +374,7 @@ export function TakeTrackRow({
         />
         <RecorderMixToggle
           data-testid="recorder-take-solo"
-          aria-label={`Solo Take ${number}`}
+          aria-label={`Solo ${label}`}
           active={soloed}
           kind="solo"
           onClick={() => onSoloedChange(!soloed)}

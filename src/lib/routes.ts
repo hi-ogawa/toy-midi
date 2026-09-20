@@ -6,7 +6,7 @@ import { createMultiMatcher, type Match } from "@remix-run/route-pattern/match";
 
 export const routes = route({
   home: "/",
-  recorder: "/recorder",
+  preview: "/_preview",
   recorderProject: "/recorder/:projectId",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
@@ -35,4 +35,11 @@ export function matchRoute(url: string | URL) {
   // MultiMatcher tracks pattern and data as independent unions. These entries
   // are registered together above, so restore their correlation for callers.
   return matcher.match(url) as RouteMatch | null;
+}
+
+export function getRecorderScoreHref(params: {
+  projectId: string;
+  trackId: string;
+}) {
+  return `${routes.scoreViewer.href()}?${new URLSearchParams(params)}`;
 }

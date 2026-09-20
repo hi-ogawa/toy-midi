@@ -324,7 +324,7 @@ export function ScoreViewer({
           closeLabel="Close Score Settings"
           onClose={() => setIsSettingsOpen(false)}
           title="Score settings"
-          testId="score-settings-panel"
+          data-testid="score-settings-panel"
         >
           <ScoreSettings settings={settings} onChange={changeSettings} />
         </FloatingPanel>

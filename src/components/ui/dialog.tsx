@@ -1,5 +1,6 @@
 import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "./utils";
 
 type DialogProps = {
@@ -7,16 +8,37 @@ type DialogProps = {
   onClose: () => void;
   title: string;
   children: ReactNode;
-  testId?: string;
+  "data-testid"?: string;
   size?: "default" | "wide";
 };
+
+export function PortalDialog(props: DialogProps) {
+  // TODO: Move focus into the dialog, trap it, and restore it on close.
+  // Keyboard isolation currently only works while focus is inside the portal.
+  if (!props.isOpen) {
+    return;
+  }
+  return createPortal(
+    <div
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === "Escape") {
+          props.onClose();
+        }
+      }}
+    >
+      <Dialog {...props} />
+    </div>,
+    document.body,
+  );
+}
 
 export function Dialog({
   isOpen,
   onClose,
   title,
   children,
-  testId,
+  "data-testid": testId,
   size = "default",
 }: DialogProps) {
   if (!isOpen) {

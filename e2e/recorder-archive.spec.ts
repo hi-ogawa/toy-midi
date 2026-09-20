@@ -25,7 +25,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
     await recordButton.click();
   }
-  await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
+  await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
   const clipGeometry = await getRecorderClipGeometry(page);
   await page.getByTestId("recorder-mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
@@ -45,7 +45,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await download.saveAs(archivePath);
 
   // Import from the project list, which opens a newly created local project.
-  await page.goto("/recorder");
+  await page.goto("/");
   const importChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("import-recorder-project").click();
   await (await importChooserPromise).setFiles(archivePath);
@@ -57,7 +57,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(
     page.getByTestId("recorder-clip-audio").locator("svg"),
   ).toBeVisible();
-  await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
+  await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
   await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
   await page.getByTestId("recorder-mixer-button").click();
@@ -68,7 +68,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
 
 async function getRecorderClipGeometry(page: Page) {
   const geometry = await Promise.all(
-    (["audio", "take", "comp"] as const).map(async (variant) => ({
+    (["audio-source", "comp-source", "comp"] as const).map(async (variant) => ({
       variant,
       clips: await page
         .getByTestId(`recorder-clip-${variant}`)

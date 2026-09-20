@@ -1,5 +1,5 @@
-import { GaugeIcon, Mic2Icon, Volume2Icon } from "lucide-react";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import { GaugeIcon, Mic2Icon, Music2Icon, Volume2Icon } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
 import type {
@@ -8,53 +8,8 @@ import type {
 } from "../../lib/recorder/runtime";
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
+import { RecorderEffectsToggle } from "./recorder-effects-toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
-
-export function useRecorderMixerUi() {
-  const [isOpen, setIsOpen] = useState(false);
-  // Audio track UUIDs and the singleton Capture channel identify panels.
-  const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
-
-  function close() {
-    setIsOpen(false);
-    setOpenEffects(new Set());
-  }
-
-  function toggle() {
-    if (isOpen) {
-      close();
-    } else {
-      setIsOpen(true);
-    }
-  }
-
-  function toggleEffects(id: string) {
-    setOpenEffects((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  function closeEffects(id: string) {
-    setOpenEffects((current) => {
-      if (!current.has(id)) {
-        return current;
-      }
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
-
-  return { isOpen, openEffects, toggle, close, toggleEffects, closeEffects };
-}
 
 export function RecorderMixer({
   runtime,
@@ -83,7 +38,7 @@ export function RecorderMixer({
         gain={state.masterGain}
         onGainChange={(gain) => runtime.setMasterGain(gain)}
         inputProps={masterInput.props}
-        testId="recorder-mixer-master"
+        data-testid="recorder-mixer-master"
       />
       {state.audioTracks.map((track, index) => (
         <RecorderTrackChannel
@@ -91,17 +46,27 @@ export function RecorderMixer({
           effectsOpen={openEffects.has(track.id)}
           onEffectsToggle={() => onEffectsToggle(track.id)}
           label={`Audio ${index + 1}`}
-          labelTitle={track.clip?.name}
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}
-          onGainChange={(gain) => runtime.setAudioTrackMix(track.id, { gain })}
-          onMutedChange={(muted) =>
-            runtime.setAudioTrackMix(track.id, { muted })
-          }
-          onSoloedChange={(soloed) =>
-            runtime.setAudioTrackMix(track.id, { soloed })
-          }
+          onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+          onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
+          onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
+        />
+      ))}
+      {state.midiTracks.map((track) => (
+        <RecorderTrackChannel
+          key={track.id}
+          effectsOpen={openEffects.has(track.id)}
+          onEffectsToggle={() => onEffectsToggle(track.id)}
+          label={track.name}
+          gain={track.gain}
+          muted={track.muted}
+          soloed={track.soloed}
+          icon={<Music2Icon className="size-4 text-muted-foreground" />}
+          onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+          onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
+          onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
         />
       ))}
       <RecorderTrackChannel
@@ -112,9 +77,15 @@ export function RecorderMixer({
         muted={state.recordingTrack.muted}
         soloed={state.recordingTrack.soloed}
         icon={<Mic2Icon className="size-4 text-muted-foreground" />}
-        onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
-        onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
-        onSoloedChange={(soloed) => runtime.setRecordingTrackMix({ soloed })}
+        onGainChange={(gain) =>
+          runtime.setTrackMix(state.recordingTrack.id, { gain })
+        }
+        onMutedChange={(muted) =>
+          runtime.setTrackMix(state.recordingTrack.id, { muted })
+        }
+        onSoloedChange={(soloed) =>
+          runtime.setTrackMix(state.recordingTrack.id, { soloed })
+        }
       />
       <MixerChannel
         icon={<MetronomeIcon className="size-4 text-muted-foreground" />}
@@ -122,7 +93,7 @@ export function RecorderMixer({
         gain={state.metronomeGain}
         onGainChange={(gain) => runtime.setMetronomeGain(gain)}
         inputProps={metronomeInput.props}
-        testId="recorder-mixer-metro"
+        data-testid="recorder-mixer-metro"
         action={
           <RecorderMixToggle
             active={!state.metronomeEnabled}
@@ -139,7 +110,6 @@ export function RecorderMixer({
 
 function RecorderTrackChannel({
   label,
-  labelTitle,
   gain,
   muted,
   soloed,
@@ -151,7 +121,6 @@ function RecorderTrackChannel({
   onEffectsToggle,
 }: {
   label: string;
-  labelTitle?: string;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -167,11 +136,10 @@ function RecorderTrackChannel({
     <MixerChannel
       icon={icon}
       label={label}
-      labelTitle={labelTitle}
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
-      testId={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
+      data-testid={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
         <div className="flex flex-col gap-1">
           <RecorderMixToggle
@@ -188,14 +156,12 @@ function RecorderTrackChannel({
             aria-label={`Toggle ${label} solo`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           />
-          <button
-            aria-label={`${label} effects`}
-            aria-pressed={effectsOpen}
+          <RecorderEffectsToggle
+            label={label}
+            open={effectsOpen}
             onClick={onEffectsToggle}
-            className="h-8 min-w-8 rounded border border-neutral-600 px-1.5 text-xs font-semibold hover:bg-neutral-700 aria-pressed:border-blue-400 aria-pressed:text-blue-300"
-          >
-            FX
-          </button>
+            className="h-8 min-w-8 px-1.5"
+          />
         </div>
       }
     />
@@ -219,20 +185,18 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
 function MixerChannel({
   icon,
   label,
-  labelTitle,
   gain,
   onGainChange,
   inputProps,
-  testId,
+  "data-testid": testId,
   action,
 }: {
   icon: ReactNode;
   label: string;
-  labelTitle?: string;
   gain: number;
   onGainChange: (gain: number) => void;
   inputProps: ComponentProps<"input">;
-  testId: string;
+  "data-testid": string;
   action?: ReactNode;
 }) {
   return (
@@ -242,10 +206,7 @@ function MixerChannel({
     >
       <div className="flex items-center gap-2">
         {icon}
-        <span
-          className="max-w-24 truncate text-xs font-medium text-neutral-300"
-          title={labelTitle}
-        >
+        <span className="max-w-24 truncate text-xs font-medium text-neutral-300">
           {label}
         </span>
       </div>
