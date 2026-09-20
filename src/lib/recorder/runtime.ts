@@ -491,6 +491,7 @@ export class RecorderRuntime {
     this.updateClips((state) => deriveClipsChangeState(state, change));
   }
 
+  /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
   private updateClips(
     update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
   ): void {
