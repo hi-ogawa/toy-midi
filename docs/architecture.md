@@ -1,17 +1,15 @@
 # Architecture Overview
 
-This document records durable system boundaries and design decisions. Describe responsibilities rather than specific code entities, and keep implementation inventories and subsystem details in the code.
-
 ## System Shape
 
 Toy MIDI is a browser-based DAW built with React and TypeScript. It combines audio arrangement and recording, MIDI editing, and transcription in one project. A project runtime owns project state and coordinates Web Audio playback and recording, while browser storage provides persistence. The application has no server component.
 
 ## State And Persistence
 
-Project content lives in memory during editing and is saved explicitly to IndexedDB or portable project archives. Locators persist stable IDs, labels, and beat positions so tempo changes preserve their musical position. Locator selection remains transient UI state, and projects saved before locator support load with no locators.
+Editing updates the active project in memory. Saving writes the project to IndexedDB in the browser, while exporting creates a portable archive containing the project and its audio assets.
 
 ## Monitoring And Latency
 
-Web Audio can route the live input to the output, but it cannot guarantee the low and predictable end-to-end latency expected from DAW software monitoring. The DAW therefore does not depend on software monitoring. Its intended practice and recording setup already has the instrument signal available outside the browser, commonly through pedals and an audio interface, so the performer can use direct monitoring instead.
+Direct monitoring through an audio interface or external equipment lets the performer hear their instrument without waiting for browser audio processing. Browser monitoring depends on device and processing latency, so the recording workflow is designed around direct monitoring.
 
-Recording latency is handled separately. The DAW stores a compensation value with each project and advances recorded audio by that amount when placing a take. The latency checker measures a looped-back recording setup and helps determine the value.
+Recording latency compensation aligns takes with the backing audio. Each project stores a compensation value, which shifts recorded audio earlier when placing a take on the timeline. The latency checker measures a looped-back recording setup to help determine this value.
