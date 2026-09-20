@@ -95,15 +95,15 @@ During slower playback, natural continuation advances faster than the nominal ti
 
 Waveform search improves alignment, but two selected patches will rarely match exactly. We fade out the previous patch while fading in the new one over their overlap.
 
-Let $u[j]$ and $v[j]$ be the outgoing and incoming samples at position $j$ in the overlap. Crossfading interpolates between them:
+Let $f[j]$ and $g[j]$ be the outgoing and incoming samples at position $j$ in the overlap. Crossfading interpolates between them:
 
 $$
-y[j]=(1-a[j])u[j]+a[j]v[j].
+y[j]=f[j]+a[j]\bigl(g[j]-f[j]\bigr).
 $$
 
-As the incoming weight $a$ moves from zero to one, the output moves from the previous patch to the new one. Matching samples pass through unchanged because their weights sum to one. Opposite phases can still cancel, so blending complements the alignment search rather than replacing it.
+As the incoming weight $a$ moves from zero to one, the output moves from the previous patch to the new one. Matching samples pass through unchanged because their difference is zero. Opposite phases can still cancel, so blending complements the alignment search rather than replacing it.
 
-Our implementation uses a Hann-shaped fade. The [Why Hann? appendix](#appendix-why-hann) explains its complementary weights and the signal-processing benefit of its smooth endpoints.
+Our implementation uses a Hann-shaped fade. The [Why Hann? appendix](#appendix-why-hann) shows the fade shape and explains why its flat endpoints help.
 
 Sustained periodic sounds often provide good matches because similar waveforms recur. Attacks and mixtures of unrelated periods may not, so even the best available alignment can alter the sound.
 
@@ -157,62 +157,21 @@ The [command-line renderer](../../tools/wsola.ts) supports listening experiments
 
 ## Appendix: Why Hann?
 
-Complementary weights preserve matching samples with many possible fade shapes. Hann is useful because it combines that property with a smooth taper at patch boundaries.
-
-### Complementary Weights at Half-Window Spacing
-
-For an even window length $W$ and hop $H=W/2$, the periodic Hann window is
+The incoming weight is the rising half of a Hann window:
 
 $$
-w[j]=\frac12\left(1-\cos\frac{2\pi j}{W}\right),
-\qquad 0\le j<W.
+a(t)=\frac12\left(1-\cos\frac{2\pi t}{W}\right),
+\qquad 0\le t\le W/2.
 $$
 
-Shifting by half a window adds $\pi$ to the cosine's phase, so
+![The Hann interpolation weight rises from zero to one across the overlap, with flat slopes at both endpoints](images/wsola-hann-fade.svg)
 
-```math
-\begin{aligned}
-w[j+H]
-&=\frac12\left(1-\cos\left(\frac{2\pi j}{W}+\pi\right)\right)\\
-&=\frac12\left(1+\cos\frac{2\pi j}{W}\right)\\
-&=1-w[j],
-\qquad 0\le j\lt H.
-\end{aligned}
-```
-
-The incoming half-window supplies $a[j]=w[j]$, while the outgoing half supplies $1-a[j]=w[j+H]$. This is the **constant overlap-add (COLA)** property with sum one. If patches of the same signal are added back at their original positions, these weights reconstruct the original samples wherever the full overlap is present. This exact identity uses the periodic Hann convention. [SciPy's COLA documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.check_COLA.html) distinguishes it from the symmetric Hann window.
-
-WSOLA shifts source patches, so their overlapping samples may differ. COLA still gives complementary weights, but it does not guarantee unchanged amplitude or power for those mismatched waveforms.
-
-### Why Smooth Endpoints Matter
-
-To examine the fade shape, temporarily treat the two patches as differentiable waveforms $u(t)$ and $v(t)$ over an overlap of duration $D$. Rewrite the blend as
+The flat endpoints have a useful consequence. Treat the patches as differentiable waveforms for a moment. Differentiating $y=f+a(g-f)$ gives
 
 $$
-y(t)=u(t)+a(t)\bigl(v(t)-u(t)\bigr).
+y'=f'+a(g'-f')+a'(g-f).
 $$
 
-Differentiating separates the slopes of the waveforms from the effect of changing their weights:
+The last term comes from changing the weight while the patches differ. With a linear fade, it switches on and off abruptly at the overlap boundaries. Here $a'$ is zero at both ends, so the blend meets the outgoing waveform's slope at the start and the incoming waveform's slope at the finish, without an added slope jump.
 
-$$
-y'(t)=(1-a(t))u'(t)+a(t)v'(t)
-+a'(t)\bigl(v(t)-u(t)\bigr).
-$$
-
-The last term is a slope contribution caused by changing the blend while the patches differ. Before the overlap, the output follows $u$ alone; afterward, it follows $v$. To meet those outer pieces without an added slope jump for arbitrary patch values, we want $a'(0)=a'(D)=0$ as well as $a(0)=0$ and $a(D)=1$.
-
-A linear fade has nonzero slope throughout the overlap. Its slope switches on and off at the boundaries, so the extra term can introduce a slope discontinuity there. The Hann-shaped fade instead uses
-
-$$
-a(t)=\frac12\left(1-\cos\frac{\pi t}{D}\right),
-\qquad
-a'(t)=\frac{\pi}{2D}\sin\frac{\pi t}{D}.
-$$
-
-The derivative vanishes at both ends. Consequently, the blend meets $u$ with its original slope at the start and meets $v$ with its original slope at the end, even when the two waveforms differ. This continuous-time calculation explains the shape we sample for the discrete fade.
-
-### The Frequency-Domain Connection
-
-Abrupt boundaries introduce broad high-frequency content. Multiplying a signal by a finite window convolves its spectrum with the window's spectrum, so the window's spectral sidelobes determine how much energy spreads away from the original frequencies. Hann's taper reaches zero with zero slope at its outer boundaries, giving much weaker distant sidelobes than an abrupt rectangular cut. The time-domain smoothness and the reduced spectral leakage describe related benefits of the same taper. [Smith's discussion of spectrum-analysis windows](https://www.dsprelated.com/freebooks/SASP/Spectrum_Analysis_Windows.html) develops this frequency-domain view.
-
-Hann is not the only fade with complementary weights and smooth endpoints, and these properties do not make a poor waveform match harmless. They explain why it is a useful choice for introducing the remaining mismatch gradually without adding sharp transition boundaries.
+Avoiding these sharp boundaries helps limit high-frequency artifacts. Hann is one useful choice with this property, though it cannot repair a poor waveform match. For the related spectral view, see [Smith's discussion of window sidelobes](https://www.dsprelated.com/freebooks/SASP/Spectrum_Analysis_Windows.html).
