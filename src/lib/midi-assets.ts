@@ -13,7 +13,7 @@ export function waitForMidiAssets(): Promise<void> {
   return (demandPromise ??= (async () => {
     let toastId: string | number | undefined;
     const timer = setTimeout(() => {
-      toastId = toast.loading("Loading instrument sounds…");
+      toastId = toast.loading("Loading MIDI soundfont…");
     }, 300);
     try {
       await preloadMidiAssets();

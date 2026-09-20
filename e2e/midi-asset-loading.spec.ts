@@ -17,7 +17,7 @@ test("shows asset loading only when MIDI is requested before preload finishes", 
   });
   await createRecorderProject(page);
   await soundfontRequested.promise;
-  const loading = page.getByText("Loading instrument sounds…", { exact: true });
+  const loading = page.getByText("Loading MIDI soundfont…", { exact: true });
   // Observe beyond the 300 ms feedback delay while no MIDI has been requested.
   await page.waitForTimeout(500);
   await expect(loading).not.toBeVisible();
@@ -53,7 +53,7 @@ test("keeps MIDI demand quiet after the background preload finishes", async ({
       ),
     )
     .toBe(true);
-  const loading = page.getByText("Loading instrument sounds…", { exact: true });
+  const loading = page.getByText("Loading MIDI soundfont…", { exact: true });
   await expect(loading).not.toBeVisible();
 
   // Add a track with preloaded assets and wait past the feedback delay.
