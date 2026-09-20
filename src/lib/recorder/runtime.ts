@@ -471,7 +471,7 @@ export class RecorderRuntime {
   removeClips(ids: readonly string[]): void {
     const state = this.store.get();
     const clipIds = new Set(ids);
-    const snapshot: RecorderClipsSnapshot = {
+    const snapshot: RecorderClipInsertRemoveSnapshot = {
       tracks: [...state.audioTracks, state.recordingTrack].flatMap((track) => {
         const clips = track.clips.flatMap((clip, index) =>
           clipIds.has(clip.id) ? [{ clip, index }] : [],
@@ -1186,7 +1186,7 @@ type RecorderRuntimeClipsState = Pick<
   "audioTracks" | "recordingTrack" | "referenceVideo"
 >;
 
-type RecorderClipsSnapshot = {
+type RecorderClipInsertRemoveSnapshot = {
   tracks: {
     trackId: string;
     clips: { clip: AudioClip; index: number }[];
@@ -1196,7 +1196,7 @@ type RecorderClipsSnapshot = {
 
 type RecorderClipInsertRemove = {
   operation: "insert" | "remove";
-  snapshot: RecorderClipsSnapshot;
+  snapshot: RecorderClipInsertRemoveSnapshot;
 };
 
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
@@ -1251,7 +1251,7 @@ class RecorderHistory {
     snapshot,
     reverse = false,
   }: {
-    snapshot: RecorderClipsSnapshot;
+    snapshot: RecorderClipInsertRemoveSnapshot;
     reverse?: boolean;
   }): void {
     const before: RecorderChange = {
