@@ -747,24 +747,13 @@ function TimelineClip({
         type: "trim-start",
         additive: event.ctrlKey || event.metaKey,
       });
-      return {
-        startClientX: event.clientX,
-      };
     },
-    onMove: (event, drag) => {
-      const delta = beatsToSeconds(
-        (event.clientX - drag.startClientX) / pixelsPerBeat,
-        tempo,
-      );
+    onMove: (_event, { deltaX }) => {
+      const delta = beatsToSeconds(deltaX / pixelsPerBeat, tempo);
       onEditUpdate!(delta);
     },
-    onEnd: (event, drag) => {
-      onEditFinish?.(
-        beatsToSeconds(
-          (event.clientX - drag.startClientX) / pixelsPerBeat,
-          tempo,
-        ),
-      );
+    onEnd: (_event, { deltaX }) => {
+      onEditFinish?.(beatsToSeconds(deltaX / pixelsPerBeat, tempo));
     },
     onCancel: onEditCancel,
   });
@@ -776,24 +765,13 @@ function TimelineClip({
         type: "trim-end",
         additive: event.ctrlKey || event.metaKey,
       });
-      return {
-        startClientX: event.clientX,
-      };
     },
-    onMove: (event, drag) => {
-      const delta = beatsToSeconds(
-        (event.clientX - drag.startClientX) / pixelsPerBeat,
-        tempo,
-      );
+    onMove: (_event, { deltaX }) => {
+      const delta = beatsToSeconds(deltaX / pixelsPerBeat, tempo);
       onEditUpdate!(delta);
     },
-    onEnd: (event, drag) => {
-      onEditFinish?.(
-        beatsToSeconds(
-          (event.clientX - drag.startClientX) / pixelsPerBeat,
-          tempo,
-        ),
-      );
+    onEnd: (_event, { deltaX }) => {
+      onEditFinish?.(beatsToSeconds(deltaX / pixelsPerBeat, tempo));
     },
     onCancel: onEditCancel,
   });
