@@ -492,7 +492,7 @@ export class RecorderRuntime {
   }
 
   private updateClips(
-    update: (state: RecorderRuntimeState) => RecorderClipsState,
+    update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
   ): void {
     const state = this.store.get();
     const next = update(state);
@@ -1180,7 +1180,7 @@ export class RecorderRuntime {
   redo = () => this.history.redo();
 }
 
-type RecorderClipsState = Pick<
+type RecorderRuntimeClipsState = Pick<
   RecorderRuntimeState,
   "audioTracks" | "recordingTrack" | "referenceVideo"
 >;
@@ -1298,7 +1298,7 @@ class RecorderHistory {
 function deriveClipsChangeState(
   state: RecorderRuntimeState,
   { operation, snapshot }: RecorderClipsChange,
-): RecorderClipsState {
+): RecorderRuntimeClipsState {
   function applyTrack(track: AudioTrackState): AudioTrackState {
     const edits = snapshot.tracks.find((entry) => entry.trackId === track.id);
     if (!edits) {
@@ -1335,7 +1335,7 @@ function deriveClipsChangeState(
 export function deriveClipEditState(
   state: RecorderRuntimeState,
   edit: RecorderClipEdit,
-): RecorderClipsState {
+): RecorderRuntimeClipsState {
   const moves = edit.type === "move" ? edit.changes : [];
   const trims = edit.type !== "move" ? edit.changes : [];
   function editTrack(track: AudioTrackState): AudioTrackState {
