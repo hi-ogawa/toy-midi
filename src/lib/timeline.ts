@@ -32,11 +32,11 @@ export function getBeatsPerBar(timeSignature: TimeSignature): number {
 export function getSubdivisionsPerBeat(gridDivision: GridDivision): number {
   return {
     "1/4": 1,
-    "1/4T": 3,
+    "1/4T": 1.5,
     "1/8": 2,
-    "1/8T": 6,
+    "1/8T": 3,
     "1/16": 4,
-    "1/16T": 12,
+    "1/16T": 6,
     "1/32": 8,
   }[gridDivision];
 }

@@ -105,7 +105,7 @@ test.describe("Piano Roll", () => {
 
     await evaluateStore(page, (store) => {
       const state = store.getState();
-      state.setGridSnap("1/8T");
+      state.setGridSnap("1/16T");
       state.setScrollX((50 - 1) * 4);
     });
 
