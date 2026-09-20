@@ -6,9 +6,8 @@
 
 ## Concepts
 
+- [Digital filters](concepts/digital-filters/README.md): transfer functions, continuous and sampled dynamics, and analog-to-digital conversion, with worked peaking, low-pass, and shelf designs.
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
-- [Transfer functions and peaking EQ](concepts/transfer-function-and-peaking-eq.md): from waves, delays, and feedback to the peaking EQ's digital coefficients.
-- [Analog biquad filter prototypes](concepts/biquad-filter-prototypes.md): working from desired responses toward the recorder EQ's analog filter prototypes.
 - [YIN pitch detection](concepts/yin-pitch-detection.md): YIN difference analysis, period selection, and frequency refinement.
 - [WSOLA time stretching](concepts/wsola-time-stretching.md): derive source-window selection, waveform similarity, and complementary fades from the goal of changing duration while preserving pitch.
 

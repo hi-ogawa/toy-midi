@@ -54,7 +54,7 @@ Following that continuation forever would simply reproduce the source at its ori
 Allow candidate starts $q$ within a region of width $S$ centered on the nominal position:
 
 $$
-q\in\left[p_k-\frac{S}{2},\;p_k+\frac{S}{2}\right).
+q\in\left[p_k-\frac{S}{2},\quad p_k+\frac{S}{2}\right).
 $$
 
 This expresses the compromise. The nominal position controls progress through the recording, while the search region allows local adjustments for waveform alignment. A larger region offers more possible matches but also permits material from farther away in source time.
@@ -68,7 +68,7 @@ A good candidate puts peaks near peaks and troughs near troughs in the reference
 $$
 \rho(n_k,q)=
 \frac{\langle\mathbf{x}(n_k),\mathbf{x}(q)\rangle}
-{\|\mathbf{x}(n_k)\|\,\|\mathbf{x}(q)\|}.
+{\|\mathbf{x}(n_k)\|\cdot \|\mathbf{x}(q)\|}.
 $$
 
 This is the cosine of the angle between the two window vectors. Matching waveform shapes with the same polarity point in the same direction and score 1, even if their amplitudes differ. Opposite-polarity shapes point in opposite directions and score -1. The comparison uses full windows, so both the immediate overlap and the following half-window contribute to the choice.
@@ -76,7 +76,7 @@ This is the cosine of the angle between the two window vectors. Matching wavefor
 We can now express the selection rule. Let $s_k$ be the source start we select for hop $k$:
 
 $$
-s_k=\underset{q\in[p_k-S/2,\;p_k+S/2)}{\arg\max}\;\rho(n_k,q).
+s_k=\underset{q\in[p_k-S/2,\quad p_k+S/2)}{\arg\max}\quad \rho(n_k,q).
 $$
 
 The natural continuation scores 1 for a nonzero window, which justifies taking it directly whenever it lies inside the search region.

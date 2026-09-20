@@ -2,7 +2,7 @@
 
 The recorder EQ implements several second-order filters with one sample loop. Their coefficients are commonly presented as a table, but a table hides the interesting question: if we started only with the response we wanted, how would we invent each filter?
 
-This document picks up from the continuous second-order system developed in [Modeling an audio effect as a transfer function](transfer-function-and-peaking-eq.md). We will work through one response at a time, inspect exactly what each requirement decides, and avoid assuming the final filter family in advance.
+This document picks up from the continuous second-order system developed in [Waves, feedback, and transfer functions](transfer-functions.md#connect-continuous-and-sampled-motion). We will work through one response at a time, inspect exactly what each requirement decides, and avoid assuming the final filter family in advance.
 
 Our starting point is the general continuous second-order response developed in the companion. After scaling the leading denominator coefficient to one, it has the form
 
@@ -190,7 +190,7 @@ This differs from the peaking EQ in the companion, where gain sets the center le
 
 ### Derive the Digital Coefficients
 
-To convert this analog response into a digital filter, use the bilinear substitution from the [peaking-EQ derivation](transfer-function-and-peaking-eq.md#10-expand-the-mapping-until-the-runtime-coefficients-appear). For the requested digital frequency $\omega_0=2\pi f_0/F_s$, it is
+To convert this analog response into a digital filter, use the bilinear substitution from the [digital-conversion article](bilinear-transform.md#place-the-center-with-prewarping). For the requested digital frequency $\omega_0=2\pi f_0/F_s$, it is
 
 $$
 s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},

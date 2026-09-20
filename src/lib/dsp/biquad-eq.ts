@@ -1,7 +1,7 @@
 /**
- * RBJ biquad filters derived from analog prototypes with center-frequency
- * prewarping. See docs/concepts/biquad-filter-prototypes.md for the prototype
- * investigation and https://www.w3.org/TR/audio-eq-cookbook/ for the coefficient table.
+ * RBJ biquad filters derived from analog prototypes with center-frequency prewarping.
+ * See [Digital filters](../../../docs/concepts/digital-filters/README.md) for the response design and coefficient derivations,
+ * and the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/) for the coefficient table.
  */
 
 import { clamp, dbToGain } from "../music.ts";
