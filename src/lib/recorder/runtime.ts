@@ -1126,7 +1126,7 @@ export class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
-    const clip: AudioClip = {
+    const newClip: AudioClip = {
       ...createAudioClip({
         id: pendingRecording.id,
         name: pendingRecording.name,
@@ -1135,11 +1135,11 @@ export class RecorderRuntime {
       timelineOffset,
     };
     const previousTrack = this.store.get().recordingTrack;
-    const index = previousTrack.clips.length;
+    const newClipIndex = previousTrack.clips.length;
     const recordingTrack = resolveTrackRegions({
       ...previousTrack,
       nextTakeNumber: previousTrack.nextTakeNumber + 1,
-      clips: [...previousTrack.clips, clip],
+      clips: [...previousTrack.clips, newClip],
     });
     this.store.update({
       captureStatus: "ready",
@@ -1154,7 +1154,7 @@ export class RecorderRuntime {
         tracks: [
           {
             trackId: RECORDING_TRACK_ID,
-            clips: [{ clip, index }],
+            clips: [{ clip: newClip, index: newClipIndex }],
           },
         ],
       },
