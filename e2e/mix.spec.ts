@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { addAudio, createProject } from "./editor-helpers";
+import { addRecorderAudio, createRecorderProject } from "./editor-helpers";
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
-  await createProject(page);
+  await createRecorderProject(page);
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page
     .getByRole("menuitem", { name: "Export Audio", exact: true })
@@ -25,7 +25,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   await modal.getByRole("button", { name: "Close", exact: true }).click();
 
   // Add backing audio and name the project for the downloaded file.
-  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   page.once("dialog", (dialog) => dialog.accept("Final mix"));
   await page.getByTestId("recorder-project-name").click();
 

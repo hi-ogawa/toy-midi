@@ -3,20 +3,24 @@ import { CheckIcon } from "lucide-react";
 import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getClipSources } from "../lib/audio-sources";
-import { transcribeAudio } from "../lib/audio-to-midi";
+import { transcribeRecorderAudio } from "../lib/audio-to-midi";
 import { bassPitchClient } from "../lib/bass-pitch/client";
 import {
   DEFAULT_GRID_ACTIVITY_DB,
   DEFAULT_GRID_SPLIT_THRESHOLD,
 } from "../lib/bass-pitch/transcription";
-import type { MidiTrackState, Runtime, RuntimeState } from "../lib/runtime";
-import { Panel } from "./panel";
+import type {
+  MidiTrackState,
+  RecorderRuntime,
+  RecorderRuntimeState,
+} from "../lib/runtime";
+import { RecorderPanel } from "./panel";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 
 const CONVERSION_CANCELLED_ERROR = new Error("Conversion cancelled");
 
-export function useAudioToMidiUi() {
+export function useRecorderAudioToMidiUi() {
   const [openTranscriptions, setOpenTranscriptions] = useState<
     ReadonlySet<string>
   >(new Set());
@@ -43,15 +47,15 @@ export function useAudioToMidiUi() {
   return { openTranscriptions, openTranscription, closeTranscription };
 }
 
-export function AudioToMidi({
+export function RecorderAudioToMidi({
   runtime,
   state,
   track,
   cellsPerBeat,
   onClose,
 }: {
-  runtime: Runtime;
-  state: RuntimeState;
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
   track: MidiTrackState;
   cellsPerBeat: number;
   onClose: () => void;
@@ -84,7 +88,7 @@ export function AudioToMidi({
       if (!destination || !source) {
         throw new Error("The source or destination track is missing.");
       }
-      const notes = await transcribeAudio({
+      const notes = await transcribeRecorderAudio({
         sources: getClipSources(source.regions),
         tempo: state.tempo,
         cellsPerBeat,
@@ -129,7 +133,7 @@ export function AudioToMidi({
           : "A successful conversion replaces all existing notes in this MIDI track.";
 
   return (
-    <Panel
+    <RecorderPanel
       closeLabel="Close Audio to MIDI"
       className="pointer-events-auto w-[440px] shrink-0"
       contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-4 py-3"
@@ -240,11 +244,11 @@ export function AudioToMidi({
           </p>
         </section>
       </div>
-    </Panel>
+    </RecorderPanel>
   );
 }
 
-function getTranscriptionSources(state: RuntimeState) {
+function getTranscriptionSources(state: RecorderRuntimeState) {
   return [
     ...state.audioTracks.map((source, index) => ({
       track: source,

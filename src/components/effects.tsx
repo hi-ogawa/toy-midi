@@ -11,10 +11,10 @@ import { createDefaultEqBand } from "../lib/dsp/biquad-eq-node";
 import { clamp, dbToGain, gainToDb } from "../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
-import { Panel } from "./panel";
+import { RecorderPanel } from "./panel";
 import { Slider } from "./ui/slider";
 
-export function useEffectsUi() {
+export function useRecorderEffectsUi() {
   // Audio track UUIDs and the singleton Capture channel identify panels.
   const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
     new Set(),
@@ -46,7 +46,7 @@ export function useEffectsUi() {
   return { openEffects, toggleEffects, closeEffects };
 }
 
-export function Effects({
+export function RecorderEffects({
   label,
   eq,
   onChange,
@@ -73,7 +73,7 @@ export function Effects({
   });
 
   return (
-    <Panel
+    <RecorderPanel
       title={`${label} Effects`}
       closeLabel={`Close ${label} Effects`}
       onClose={onClose}
@@ -90,8 +90,8 @@ export function Effects({
       >
         <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
       </button>
-      <EffectsContent eq={eq} onChange={onChange} />
-    </Panel>
+      <RecorderEffectsContent eq={eq} onChange={onChange} />
+    </RecorderPanel>
   );
 }
 
@@ -108,7 +108,7 @@ function clampEffectsSize({
   };
 }
 
-export function EffectsContent({
+export function RecorderEffectsContent({
   eq,
   onChange,
 }: {

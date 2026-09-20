@@ -6,13 +6,13 @@
 
 import { IdbStore } from "./idb";
 import {
-  type AnyLegacySavedProject,
-  createDefaultLegacySavedProject,
-  migrateLegacySavedProject,
-  type LegacySavedProject,
+  type AnySavedProject,
+  createDefaultSavedProject,
+  migrateSavedProject,
+  type SavedProject,
 } from "./legacy-project-format";
 
-export interface LegacyProjectMetadata {
+export interface ProjectMetadata {
   id: string;
   name: string;
   createdAt: number;
@@ -44,11 +44,11 @@ const LEGACY_PROJECT_KEY_PREFIX = "toy-midi-project-";
 // Single JSON: the metadata list (cheap enumeration for the list view) plus
 // the last-opened pointer.
 interface ProjectList {
-  projects: LegacyProjectMetadata[];
+  projects: ProjectMetadata[];
   lastProjectId?: string;
 }
 
-class LegacyProjectStorage {
+class ProjectStorage {
   private readProjectList(): ProjectList {
     migrateLayoutV1();
     const json = localStorage.getItem(PROJECT_LIST_KEY);
@@ -62,16 +62,16 @@ class LegacyProjectStorage {
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projectList));
   }
 
-  listMetadata(): LegacyProjectMetadata[] {
+  listMetadata(): ProjectMetadata[] {
     return this.readProjectList().projects.sort(
       (a, b) => b.updatedAt - a.updatedAt,
     );
   }
 
-  create(name: string, data: LegacySavedProject): string {
+  create(name: string, data: SavedProject): string {
     const projectId = crypto.randomUUID();
     const now = Date.now();
-    const metadata: LegacyProjectMetadata = {
+    const metadata: ProjectMetadata = {
       id: projectId,
       name,
       createdAt: now,
@@ -88,13 +88,13 @@ class LegacyProjectStorage {
   createNew(): string {
     return this.create(
       this.getDefaultProjectName(),
-      createDefaultLegacySavedProject(),
+      createDefaultSavedProject(),
     );
   }
 
   updateMetadata(
     projectId: string,
-    updates: Partial<Pick<LegacyProjectMetadata, "name" | "updatedAt">>,
+    updates: Partial<Pick<ProjectMetadata, "name" | "updatedAt">>,
   ): void {
     const projectList = this.readProjectList();
     const index = projectList.projects.findIndex((p) => p.id === projectId);
@@ -129,16 +129,16 @@ class LegacyProjectStorage {
     return untitledCount === 0 ? "Untitled" : `Untitled ${untitledCount + 1}`;
   }
 
-  load(projectId: string): LegacySavedProject {
+  load(projectId: string): SavedProject {
     migrateLayoutV1();
     const json = localStorage.getItem(getProjectKey(projectId));
     if (!json) {
       throw new Error(`Project ${projectId} not found in storage`);
     }
-    return migrateLegacySavedProject(JSON.parse(json) as AnyLegacySavedProject);
+    return migrateSavedProject(JSON.parse(json) as AnySavedProject);
   }
 
-  save(projectId: string, data: LegacySavedProject): void {
+  save(projectId: string, data: SavedProject): void {
     localStorage.setItem(getProjectKey(projectId), JSON.stringify(data));
     this.updateMetadata(projectId, { updatedAt: Date.now() });
   }
@@ -175,7 +175,7 @@ class LegacyProjectStorage {
   }
 }
 
-export const legacyProjectStorage = new LegacyProjectStorage();
+export const projectStorage = new ProjectStorage();
 
 function getProjectKey(projectId: string): string {
   return `${PROJECT_KEY_PREFIX}${projectId}`;
@@ -205,8 +205,8 @@ function migrateLayoutV1(): void {
     return; // fresh install
   }
 
-  const legacyList = JSON.parse(legacyJson) as LegacyProjectMetadata[];
-  const projects: LegacyProjectMetadata[] = [];
+  const legacyList = JSON.parse(legacyJson) as ProjectMetadata[];
+  const projects: ProjectMetadata[] = [];
   const copiedLegacyKeys: string[] = [];
   for (const entry of legacyList) {
     const doc = localStorage.getItem(LEGACY_PROJECT_KEY_PREFIX + entry.id);
@@ -242,23 +242,20 @@ export async function seedProjectLegacyV2({
   audioData,
 }: {
   name: string;
-  project: LegacySavedProject;
+  project: SavedProject;
   audioData: Record<string, Uint8Array<ArrayBuffer>>;
 }): Promise<void> {
-  const audioTracks: LegacySavedProject["audioTracks"] = [];
+  const audioTracks: SavedProject["audioTracks"] = [];
   for (const track of project.audioTracks) {
     const data = audioData[track.id];
     if (!data) {
       throw new Error(`Missing seed audio for track "${track.id}"`);
     }
-    const assetKey = await legacyProjectStorage.saveAsset(
+    const assetKey = await projectStorage.saveAsset(
       new File([data], track.fileName, { type: "audio/wav" }),
     );
     audioTracks.push({ ...track, assetKey });
   }
-  const projectId = legacyProjectStorage.create(name, {
-    ...project,
-    audioTracks,
-  });
-  legacyProjectStorage.setLastProjectId(projectId);
+  const projectId = projectStorage.create(name, { ...project, audioTracks });
+  projectStorage.setLastProjectId(projectId);
 }

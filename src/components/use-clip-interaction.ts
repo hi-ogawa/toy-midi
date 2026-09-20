@@ -5,11 +5,11 @@ import {
   deriveClipEditState,
   MIN_CLIP_DURATION,
   REFERENCE_VIDEO_CLIP_ID,
-  type ClipMove,
-  type ClipTrim,
+  type RecorderClipMove,
+  type RecorderClipTrim,
   type ReferenceVideoState,
-  Runtime,
-  RuntimeState,
+  RecorderRuntime,
+  RecorderRuntimeState,
 } from "../lib/runtime";
 
 type ClipEditStart = {
@@ -21,22 +21,22 @@ type ClipEditStart = {
 type ClipEdit =
   | {
       type: "move";
-      changes: ClipMove[];
-      getChanges: (delta: number) => ClipMove[];
+      changes: RecorderClipMove[];
+      getChanges: (delta: number) => RecorderClipMove[];
     }
   | {
       type: "trim-start" | "trim-end";
-      changes: ClipTrim[];
-      getChanges: (delta: number) => ClipTrim[];
+      changes: RecorderClipTrim[];
+      getChanges: (delta: number) => RecorderClipTrim[];
     };
 
-export function useClipInteraction({
+export function useRecorderClipInteraction({
   runtime,
   state,
   onSelect,
 }: {
-  runtime: Runtime;
-  state: RuntimeState;
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
   /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
 }) {
@@ -179,8 +179,8 @@ function createMoveGetChanges({
 }: {
   clips: AudioClip[];
   referenceVideo?: ReferenceVideoState;
-}): (delta: number) => ClipMove[] {
-  const originals: ClipMove[] = [
+}): (delta: number) => RecorderClipMove[] {
+  const originals: RecorderClipMove[] = [
     ...clips.map((clip) => ({
       id: clip.id,
       timelineOffset: clip.timelineOffset,
@@ -209,7 +209,7 @@ function createMoveGetChanges({
 
 function createTrimStartGetChanges(
   clips: AudioClip[],
-): (delta: number) => ClipTrim[] {
+): (delta: number) => RecorderClipTrim[] {
   const minStart = Math.min(...clips.map((clip) => clip.trimStart));
   const minDuration = Math.min(
     ...clips.map((clip) => clip.trimEnd - clip.trimStart),
@@ -229,7 +229,7 @@ function createTrimStartGetChanges(
 
 function createTrimEndGetChanges(
   clips: AudioClip[],
-): (delta: number) => ClipTrim[] {
+): (delta: number) => RecorderClipTrim[] {
   const minDuration = Math.min(
     ...clips.map((clip) => clip.trimEnd - clip.trimStart),
   );

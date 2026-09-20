@@ -1,6 +1,6 @@
 import { cn } from "./ui/utils";
 
-export function EffectsToggle({
+export function RecorderEffectsToggle({
   label,
   open,
   onClick,

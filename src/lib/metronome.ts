@@ -9,7 +9,7 @@ import type {
 const SCHEDULE_AHEAD_SECONDS = 0.1;
 const SCHEDULER_INTERVAL_SECONDS = 0.025;
 
-export class Metronome implements TransportParticipant {
+export class RecorderMetronome implements TransportParticipant {
   private readonly output: GainNode;
   private disposeScheduling?: () => void;
   private nextClickIndex = 0;

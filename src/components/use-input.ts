@@ -1,19 +1,19 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { getCaptureInputs, requestCaptureAccess } from "../lib/capture-input";
-import { preferencesStorage } from "../lib/preferences";
-import { Runtime, RuntimeState } from "../lib/runtime";
+import { recorderStorage } from "../lib/preferences";
+import { RecorderRuntime, RecorderRuntimeState } from "../lib/runtime";
 
-export function useInput({
+export function useRecorderInput({
   runtime,
   state,
 }: {
-  runtime: Runtime;
-  state: RuntimeState;
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
   const [preference, setPreference] = useState(() =>
-    preferencesStorage.readPreferences(),
+    recorderStorage.readPreferences(),
   );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(preference.input?.deviceId);
@@ -47,7 +47,7 @@ export function useInput({
           : undefined,
       };
       setPreference(nextPreference);
-      preferencesStorage.writePreferences(nextPreference);
+      recorderStorage.writePreferences(nextPreference);
     }
   }
 
@@ -129,7 +129,7 @@ export function useInput({
         input: { ...preference.input, deviceId, channel },
       };
       setPreference(nextPreference);
-      preferencesStorage.writePreferences(nextPreference);
+      recorderStorage.writePreferences(nextPreference);
     },
     setLatencyCompensation: (latencyCompensation: number) => {
       runtime.setLatencyCompensation(latencyCompensation);
@@ -141,7 +141,7 @@ export function useInput({
         input: { ...preference.input, latencyCompensation },
       };
       setPreference(nextPreference);
-      preferencesStorage.writePreferences(nextPreference);
+      recorderStorage.writePreferences(nextPreference);
     },
     toggle: () => {
       if (!hasAccess) {

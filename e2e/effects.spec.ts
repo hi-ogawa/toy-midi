@@ -1,12 +1,16 @@
 import { expect, test } from "@playwright/test";
-import { addAudio, createProject, dragBy } from "./editor-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  dragBy,
+} from "./editor-helpers";
 
 test("edits and persists independent Audio and Capture EQ settings", async ({
   page,
 }) => {
   // Open independent effects panels for backing audio and Capture.
-  await createProject(page);
-  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await createRecorderProject(page);
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   await page
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
@@ -112,7 +116,7 @@ test("keeps the mixer usable with many effects panels open", async ({
 }) => {
   // Fill the effects area beyond the available viewport width.
   await page.setViewportSize({ width: 1280, height: 900 });
-  await createProject(page);
+  await createRecorderProject(page);
   for (let index = 0; index < 5; index++) {
     await page.getByTitle("Add empty audio track").click();
   }
@@ -151,7 +155,7 @@ test("keeps the mixer usable with many effects panels open", async ({
 test("resizes an effects panel", async ({ page }) => {
   // Open Capture effects with room to grow the panel.
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await createProject(page);
+  await createRecorderProject(page);
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();

@@ -1,12 +1,17 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import { addAudio, createProject, dragBy, getPosition } from "./editor-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  dragBy,
+  getRecorderPosition,
+} from "./editor-helpers";
 
 test("uploads and plays a backing track", async ({ page }) => {
-  await createProject(page);
+  await createRecorderProject(page);
 
   // Load a backing track through the recorder's file picker.
-  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   // The imported clip retains its source filename.
   const clip = page.getByTestId("recorder-clip-audio-source");
@@ -44,10 +49,10 @@ test("uploads and plays a backing track", async ({ page }) => {
 
   // Playback rolls the shared transport and can be paused from its new position.
   const playButton = page.getByTestId("recorder-play-button");
-  await expect.poll(() => getPosition(page)).toBe(0);
+  await expect.poll(() => getRecorderPosition(page)).toBe(0);
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(() => getPosition(page)).toBeGreaterThan(0);
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0);
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 
@@ -64,7 +69,7 @@ test("uploads and plays a backing track", async ({ page }) => {
 test("scrolls overflowing tracks from the track list", async ({ page }) => {
   // Fill a short desktop viewport until the capture track sits below the fold.
   await page.setViewportSize({ width: 1280, height: 400 });
-  await createProject(page);
+  await createRecorderProject(page);
 
   const addTrack = page.getByTitle("Add empty audio track");
   for (let index = 0; index < 4; index++) {
@@ -86,10 +91,10 @@ test("scrolls overflowing tracks from the track list", async ({ page }) => {
 });
 
 test("mixes recorder outputs in a floating panel", async ({ page }) => {
-  await createProject(page);
+  await createRecorderProject(page);
 
   // Load backing audio so its channel appears in the mixer.
-  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   // Master gain stays available without opening the mixer and steps by 0.5 dB.
   const masterGain = page.getByRole("slider", { name: "Master gain" });

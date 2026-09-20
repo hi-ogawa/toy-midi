@@ -13,7 +13,7 @@ const DEFAULT_WAVEFORM_HEIGHT = 60;
 
 const STORAGE_VERSION = 2;
 
-export interface LegacySavedProject {
+export interface SavedProject {
   version: 2;
   notes: Note[];
   tempo: number;
@@ -23,7 +23,7 @@ export interface LegacySavedProject {
   tabAnnotationEnabled?: boolean;
   tabOpenStringPitches?: number[];
   locators?: Locator[]; // Optional for backward compatibility
-  audioTracks: (Omit<LegacySavedAudioTrack, "waveformHeight"> & {
+  audioTracks: (Omit<SavedAudioTrack, "waveformHeight"> & {
     waveformHeight?: number; // Optional for backward compatibility
   })[];
   masterVolume?: number;
@@ -43,7 +43,7 @@ export interface LegacySavedProject {
   waveformHeight?: number;
 }
 
-interface LegacySavedAudioTrack {
+interface SavedAudioTrack {
   id: string;
   fileName: string;
   assetKey: string;
@@ -55,10 +55,7 @@ interface LegacySavedAudioTrack {
   waveformHeight: number;
 }
 
-export type LegacySavedProjectV1 = Omit<
-  LegacySavedProject,
-  "version" | "audioTracks"
-> & {
+export type SavedProjectV1 = Omit<SavedProject, "version" | "audioTracks"> & {
   version: 1;
   audioFileName: string | null;
   audioAssetKey: string | null;
@@ -68,7 +65,7 @@ export type LegacySavedProjectV1 = Omit<
   audioMuted?: boolean; // Optional for backward compatibility
 };
 
-export type AnyLegacySavedProject = LegacySavedProjectV1 | LegacySavedProject;
+export type AnySavedProject = SavedProjectV1 | SavedProject;
 
 // Default values for new/missing fields
 const DEFAULTS = {
@@ -95,15 +92,13 @@ const DEFAULTS = {
   scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
   pixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   pixelsPerKey: 20,
-} satisfies Omit<LegacySavedProject, "version">;
+} satisfies Omit<SavedProject, "version">;
 
-export function createDefaultLegacySavedProject(): LegacySavedProject {
+export function createDefaultSavedProject(): SavedProject {
   return { version: STORAGE_VERSION, ...DEFAULTS };
 }
 
-export function migrateLegacySavedProject(
-  data: AnyLegacySavedProject,
-): LegacySavedProject {
+export function migrateSavedProject(data: AnySavedProject): SavedProject {
   if (data.version === 1) {
     return {
       ...data,
@@ -130,13 +125,13 @@ export function migrateLegacySavedProject(
 }
 
 // Normalize saved legacy fields for conversion.
-export function normalizeLegacySavedProject(data: AnyLegacySavedProject) {
+export function fromSavedProject(data: AnySavedProject) {
   // Version check: only reject if major breaking change
   if (data.version > STORAGE_VERSION) {
     console.warn("Project from newer version, some data may be lost");
   }
 
-  const migrated = migrateLegacySavedProject(data);
+  const migrated = migrateSavedProject(data);
 
   // Merge with defaults (handles new fields gracefully)
   const merged = { ...DEFAULTS, ...migrated };

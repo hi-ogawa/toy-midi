@@ -1,14 +1,19 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import { addAudio, createProject, dragBy, saveProject } from "./editor-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  dragBy,
+  saveRecorderProject,
+} from "./editor-helpers";
 
 test("adds a clip while trimming and previews shared limits on both edges", async ({
   page,
 }) => {
   // Load two clips and give the second less visible audio and more room to extend.
-  await createProject(page);
-  await addAudio(page, "e2e/fixtures/test-audio.wav");
-  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await createRecorderProject(page);
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   const clips = page.getByTestId("recorder-clip-audio-source");
   const first = clips.nth(0);
   const second = clips.nth(1);
@@ -26,7 +31,7 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
     second.getByTestId("recorder-take-trim-end"),
     -trimPixels * 2,
   );
-  await saveProject(page);
+  await saveRecorderProject(page);
   const save = page.getByTestId("recorder-save-button");
   const firstBeforeBox = (await first.boundingBox())!;
   const secondBeforeBox = (await second.boundingBox())!;
@@ -64,7 +69,7 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   expect((await first.boundingBox())!.x).toBeCloseTo(firstStartTrimBox.x, 0);
   expect((await second.boundingBox())!.x).toBeCloseTo(secondStartTrimBox.x, 0);
   await expect(save).toHaveAttribute("data-status", "unsaved");
-  await saveProject(page);
+  await saveRecorderProject(page);
 
   // Extend both end edges without a modifier and clamp at the first clip's source end.
   await dragBy(
@@ -97,7 +102,7 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   await expect(save).toHaveAttribute("data-status", "unsaved");
 
   // Save and reload to retain both clips' final trimmed bounds.
-  await saveProject(page);
+  await saveRecorderProject(page);
   await page.reload();
   await expect(clips).toHaveCount(2);
   await expect(first).toBeVisible();

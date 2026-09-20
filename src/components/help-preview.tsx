@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Help } from "./help";
+import { RecorderHelp } from "./help";
 import { Button } from "./ui/button";
 
-export function HelpPreview() {
+export function RecorderHelpPreview() {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -13,7 +13,7 @@ export function HelpPreview() {
       >
         Open recorder help
       </Button>
-      <Help isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <RecorderHelp isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 }

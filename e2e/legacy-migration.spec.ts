@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import type { LegacySavedProject } from "../src/lib/legacy-project-format";
-import { getMidiNote } from "./editor-helpers";
+import type { SavedProject } from "../src/lib/legacy-project-format";
+import { getRecorderMidiNote } from "./editor-helpers";
 
-const LEGACY_PROJECT: LegacySavedProject = {
+const LEGACY_PROJECT: SavedProject = {
   version: 2,
   notes: [
     {
@@ -67,10 +67,10 @@ test("manually migrates a stored legacy project and retains the original", async
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Legacy song",
   );
-  const note = getMidiNote(page.getByTestId("recorder-midi-track-row"), {
-    beat: 1,
-    pitch: "C4",
-  });
+  const note = getRecorderMidiNote(
+    page.getByTestId("recorder-midi-track-row"),
+    { beat: 1, pitch: "C4" },
+  );
   await expect(note.getByTestId("tab-annotation")).toHaveText("G17");
   await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
   await expect(

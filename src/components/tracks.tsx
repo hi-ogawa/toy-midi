@@ -11,11 +11,11 @@ import {
 import { usePointerDrag } from "../hooks/use-pointer-drag";
 import type { AudioAnalyser } from "../lib/audio-analyser";
 import { formatGainDb } from "../lib/music";
-import { EffectsToggle } from "./effects-toggle";
+import { RecorderEffectsToggle } from "./effects-toggle";
 import { openFilePicker } from "./file-drop-input";
 import { InputMeter } from "./input-meter";
-import { MixToggle } from "./mix-toggle";
-import { GainSlider } from "./mixer";
+import { RecorderMixToggle } from "./mix-toggle";
+import { RecorderGainSlider } from "./mixer";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -130,21 +130,21 @@ export function TrackRow({
         <div className="flex self-center gap-1">
           {action}
           {input && <TrackInputToggle {...input} />}
-          <MixToggle
+          <RecorderMixToggle
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
             className="size-7"
             title={muted ? `Unmute ${title}` : `Mute ${title}`}
           />
-          <MixToggle
+          <RecorderMixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             className="size-7"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
-          <EffectsToggle
+          <RecorderEffectsToggle
             label={title}
             open={effectsOpen}
             onClick={onEffectsToggle}
@@ -153,7 +153,7 @@ export function TrackRow({
         </div>
         {input && <TrackInputRoute {...input} />}
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
-          <GainSlider
+          <RecorderGainSlider
             label={`${title} gain`}
             gain={gain}
             onGainChange={onGainChange}
@@ -363,7 +363,7 @@ export function TakeTrackRow({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <MixToggle
+        <RecorderMixToggle
           data-testid="recorder-take-mute"
           aria-label={`Mute ${label}`}
           active={muted}
@@ -372,7 +372,7 @@ export function TakeTrackRow({
           className="size-7"
           title="Mute take"
         />
-        <MixToggle
+        <RecorderMixToggle
           data-testid="recorder-take-solo"
           aria-label={`Solo ${label}`}
           active={soloed}

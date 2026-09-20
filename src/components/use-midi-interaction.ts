@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { matchKeyboardEvent } from "../lib/keyboard";
 import { clamp, clampPitch, MAX_PITCH, snapToGrid } from "../lib/music";
-import type { Runtime, RuntimeState } from "../lib/runtime";
+import type { RecorderRuntime, RecorderRuntimeState } from "../lib/runtime";
 import { getFret, moveTabString } from "../lib/tab-annotation";
 import type { Note } from "../types";
 
@@ -30,14 +30,14 @@ type MidiBoxSelection = {
   current: MidiGridPosition;
 };
 
-export function useMidiInteraction({
+export function useRecorderMidiInteraction({
   runtime,
   state,
   subdivisionsPerBeat,
   onSelect,
 }: {
-  runtime: Runtime;
-  state: RuntimeState;
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
   /** Only coordinates selection domains by clearing selection in the other domains. */
   onSelect: () => void;

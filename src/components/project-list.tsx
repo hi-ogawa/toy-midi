@@ -1,41 +1,44 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
-import { legacyProjectStorage } from "../lib/legacy-project-storage";
-import { importProject } from "../lib/project-import";
-import { type ProjectMetadata, projectStorage } from "../lib/project-storage";
+import { projectStorage } from "../lib/legacy-project-storage";
+import { importRecorderProject } from "../lib/project-import";
+import {
+  type RecorderProjectMetadata,
+  recorderProjectStorage,
+} from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { toResult } from "../utils/result";
 import { FileDropInput } from "./file-drop-input";
 import { LegacyProjectList } from "./legacy-project-list";
 import { Button } from "./ui/button";
 
-export function ProjectList() {
+export function RecorderProjectList() {
   const [query, setQuery] = useState("");
   const [legacyProjects, setLegacyProjects] = useState(() =>
-    legacyProjectStorage.listMetadata(),
+    projectStorage.listMetadata(),
   );
   const projects = useSuspenseQuery({
     queryKey: ["recorder-projects"],
-    queryFn: () => toResult(projectStorage.list()),
+    queryFn: () => toResult(recorderProjectStorage.list()),
   });
   const createProject = useMutation({
-    mutationFn: () => projectStorage.create(),
+    mutationFn: () => recorderProjectStorage.create(),
     onSuccess: (projectId) => {
-      window.location.href = routes.project.href({ projectId });
+      window.location.href = routes.recorderProject.href({ projectId });
     },
   });
   const deleteProject = useMutation({
-    mutationFn: (projectId: string) => projectStorage.delete(projectId),
+    mutationFn: (projectId: string) => recorderProjectStorage.delete(projectId),
     onSuccess: () => projects.refetch(),
   });
-  const importProjectMutation = useMutation({
+  const importProject = useMutation({
     mutationFn: async (file: File) => {
-      const content = await importProject(file);
-      return projectStorage.createWithContent(content);
+      const content = await importRecorderProject(file);
+      return recorderProjectStorage.createWithContent(content);
     },
     onSuccess: (projectId) => {
-      window.location.href = routes.project.href({ projectId });
+      window.location.href = routes.recorderProject.href({ projectId });
     },
   });
 
@@ -79,7 +82,7 @@ export function ProjectList() {
       ) : (
         <div className="max-h-[22rem] space-y-2 overflow-y-auto scrollbar-thin pr-1">
           {filteredProjects.map((project) => (
-            <ProjectListItem
+            <RecorderProjectListItem
               key={project.id}
               project={project}
               deletePending={deleteProject.isPending}
@@ -94,9 +97,7 @@ export function ProjectList() {
             <Button
               data-testid="new-recorder-project-button"
               onClick={() => createProject.mutate()}
-              disabled={
-                createProject.isPending || importProjectMutation.isPending
-              }
+              disabled={createProject.isPending || importProject.isPending}
               className={
                 projects.data.value.length > 0
                   ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
@@ -108,11 +109,9 @@ export function ProjectList() {
             <FileDropInput
               accept=".toymidi.zip,.toymidi"
               title="Import a project archive"
-              onFile={(file) => importProjectMutation.mutate(file)}
+              onFile={(file) => importProject.mutate(file)}
               data-testid="import-recorder-project"
-              disabled={
-                createProject.isPending || importProjectMutation.isPending
-              }
+              disabled={createProject.isPending || importProject.isPending}
               className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
             >
               <span className="grid">
@@ -120,9 +119,7 @@ export function ProjectList() {
                   Import project
                 </span>
                 <span className="col-start-1 row-start-1">
-                  {importProjectMutation.isPending
-                    ? "Importing..."
-                    : "Import project"}
+                  {importProject.isPending ? "Importing..." : "Import project"}
                 </span>
               </span>
             </FileDropInput>
@@ -132,28 +129,26 @@ export function ProjectList() {
       {projects.data.ok && legacyProjects.length > 0 && (
         <LegacyProjectList
           projects={filteredLegacyProjects}
-          onDelete={() =>
-            setLegacyProjects(legacyProjectStorage.listMetadata())
-          }
+          onDelete={() => setLegacyProjects(projectStorage.listMetadata())}
         />
       )}
     </div>
   );
 }
 
-function ProjectListItem({
+function RecorderProjectListItem({
   project,
   deletePending,
   onDelete,
 }: {
-  project: ProjectMetadata;
+  project: RecorderProjectMetadata;
   deletePending: boolean;
   onDelete: () => void;
 }) {
   return (
     <div className="group flex h-[4.5rem] w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800">
       <a
-        href={routes.project.href({ projectId: project.id })}
+        href={routes.recorderProject.href({ projectId: project.id })}
         className="min-w-0 flex-1"
       >
         <div className="truncate font-medium">{project.title}</div>

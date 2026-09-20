@@ -9,24 +9,24 @@ import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { snapToGrid } from "../lib/music";
 import { getNextPlaybackRate } from "../lib/playback-rate";
-import { exportProjectArchive } from "../lib/project-archive";
-import { getScoreHref, routes } from "../lib/routes";
-import { Runtime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
+import { exportRecorderProjectArchive } from "../lib/project-archive";
+import { getRecorderScoreHref, routes } from "../lib/routes";
+import { RecorderRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
 import { beatsToSeconds, secondsToBeats } from "../lib/timeline";
 import { parseTimeSignature } from "../types";
-import { AudioToMidi, useAudioToMidiUi } from "./audio-to-midi";
-import { Effects, useEffectsUi } from "./effects";
-import { ExportDialog } from "./export-dialog";
-import { deriveEditorFlags } from "./flags";
-import { Header } from "./header";
-import { Help } from "./help";
+import { RecorderAudioToMidi, useRecorderAudioToMidiUi } from "./audio-to-midi";
+import { RecorderEffects, useRecorderEffectsUi } from "./effects";
+import { RecorderExportDialog } from "./export-dialog";
+import { deriveRecorderFlags } from "./flags";
+import { RecorderHeader } from "./header";
+import { RecorderHelp } from "./help";
 import { InputSetup } from "./input";
-import { LocatorRow } from "./locators";
+import { RecorderLocatorRow } from "./locators";
 import { MidiTrackRow } from "./midi-track";
-import { Mixer } from "./mixer";
-import { Panel } from "./panel";
+import { RecorderMixer } from "./mixer";
+import { RecorderPanel } from "./panel";
 import { ReferenceVideoPanel } from "./reference-video";
-import { ScorePanel, useScorePanelUi } from "./score-panel";
+import { RecorderScorePanel, useRecorderScorePanelUi } from "./score-panel";
 import {
   ReferenceTimelineRow,
   TimelineHeader,
@@ -38,51 +38,52 @@ import {
   TakeTrackRow,
   TrackRow,
 } from "./tracks";
-import { Tuner } from "./tuner";
+import { RecorderTuner } from "./tuner";
 import { Dialog } from "./ui/dialog";
-import { useInput } from "./use-input";
-import { useInteraction } from "./use-interaction";
-import { useProject } from "./use-project";
-import { useTimeline } from "./use-timeline";
+import { useRecorderInput } from "./use-input";
+import { useRecorderInteraction } from "./use-interaction";
+import { useRecorderProject } from "./use-project";
+import { useRecorderTimeline } from "./use-timeline";
 
-export function Editor({ projectId }: { projectId: string }) {
-  const [runtime] = useState(() => new Runtime());
+export function Recorder({ projectId }: { projectId: string }) {
+  const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
-  const effects = useEffectsUi();
+  const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
   );
-  const input = useInput({
+  const input = useRecorderInput({
     runtime,
     state,
   });
-  const timeline = useTimeline({
+  const timeline = useRecorderTimeline({
     isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
-  const project = useProject({ projectId, runtime });
-  const flags = deriveEditorFlags({
+  const project = useRecorderProject({ projectId, runtime });
+  const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
     project,
   });
-  const interaction = useInteraction({
+  const recorderInteraction = useRecorderInteraction({
     runtime,
     state,
     isRecording: flags.isRecording,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
   });
-  const { clipInteraction, locatorInteraction, midiInteraction } = interaction;
-  const transcriptions = useAudioToMidiUi();
-  const scoreUi = useScorePanelUi();
+  const { clipInteraction, locatorInteraction, midiInteraction } =
+    recorderInteraction;
+  const transcriptions = useRecorderAudioToMidiUi();
+  const scoreUi = useRecorderScorePanelUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -119,7 +120,9 @@ export function Editor({ projectId }: { projectId: string }) {
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
-      const blob = await exportProjectArchive(runtime.serializeProject());
+      const blob = await exportRecorderProjectArchive(
+        runtime.serializeProject(),
+      );
       downloadBlob(
         blob,
         buildExportFileName({
@@ -179,7 +182,7 @@ export function Editor({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (interaction.handleUndoRedoShortcut(event)) {
+    if (recorderInteraction.handleUndoRedoShortcut(event)) {
       event.preventDefault();
       return;
     }
@@ -229,12 +232,15 @@ export function Editor({ projectId }: { projectId: string }) {
     if (
       (matchKeyboardEvent(event, "Delete") ||
         matchKeyboardEvent(event, "Backspace")) &&
-      interaction.deleteSelection()
+      recorderInteraction.deleteSelection()
     ) {
       event.preventDefault();
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && interaction.clearSelection()) {
+    if (
+      matchKeyboardEvent(event, "Escape") &&
+      recorderInteraction.clearSelection()
+    ) {
       event.preventDefault();
       return;
     }
@@ -269,7 +275,7 @@ export function Editor({ projectId }: { projectId: string }) {
       inert={project.initError !== undefined}
       className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100"
     >
-      <Header
+      <RecorderHeader
         title={project.ready ? state.title : undefined}
         saveStatus={project.saveStatus}
         referenceVideoOpen={isReferenceVideoOpen}
@@ -314,9 +320,9 @@ export function Editor({ projectId }: { projectId: string }) {
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <LocatorRow
+        <RecorderLocatorRow
           locatorInteraction={locatorInteraction}
-          onClearSelection={interaction.clearSelection}
+          onClearSelection={recorderInteraction.clearSelection}
           pixelsPerBeat={timeline.pixelsPerBeat}
           viewportStartBeat={timeline.viewportStartBeat}
           subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -355,7 +361,7 @@ export function Editor({ projectId }: { projectId: string }) {
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => {
-                interaction.clearSelection();
+                recorderInteraction.clearSelection();
                 runtime.seek(position);
               }}
               loop={state.loop}
@@ -380,7 +386,7 @@ export function Editor({ projectId }: { projectId: string }) {
                 tempo={timeline.tempo}
                 viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => {
-                  interaction.clearSelection();
+                  recorderInteraction.clearSelection();
                   runtime.seek(position);
                 }}
                 selected={clipInteraction.isSelected(REFERENCE_VIDEO_CLIP_ID)}
@@ -454,7 +460,7 @@ export function Editor({ projectId }: { projectId: string }) {
                   onEditFinish={clipInteraction.finishEdit}
                   onEditCancel={clipInteraction.cancelEdit}
                   onSeek={(position) => {
-                    interaction.clearSelection();
+                    recorderInteraction.clearSelection();
                     runtime.seek(position);
                   }}
                 />
@@ -545,7 +551,7 @@ export function Editor({ projectId }: { projectId: string }) {
                 onEditFinish={clipInteraction.finishEdit}
                 onEditCancel={clipInteraction.cancelEdit}
                 onSeek={(position) => {
-                  interaction.clearSelection();
+                  recorderInteraction.clearSelection();
                   runtime.seek(position);
                 }}
               />
@@ -591,7 +597,7 @@ export function Editor({ projectId }: { projectId: string }) {
                     onEditFinish={clipInteraction.finishEdit}
                     onEditCancel={clipInteraction.cancelEdit}
                     onSeek={(position) => {
-                      interaction.clearSelection();
+                      recorderInteraction.clearSelection();
                       runtime.seek(position);
                     }}
                   />
@@ -600,8 +606,11 @@ export function Editor({ projectId }: { projectId: string }) {
           </div>
         </section>
 
-        <Help isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-        <ExportDialog
+        <RecorderHelp
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+        />
+        <RecorderExportDialog
           runtime={runtime}
           state={state}
           isOpen={isAudioExportOpen}
@@ -650,7 +659,7 @@ export function Editor({ projectId }: { projectId: string }) {
             {state.audioTracks.map(
               (track, index) =>
                 effects.openEffects.has(track.id) && (
-                  <Effects
+                  <RecorderEffects
                     key={track.id}
                     label={`Audio ${index + 1}`}
                     eq={track.eq}
@@ -662,7 +671,7 @@ export function Editor({ projectId }: { projectId: string }) {
             {state.midiTracks.map(
               (track) =>
                 effects.openEffects.has(track.id) && (
-                  <Effects
+                  <RecorderEffects
                     key={track.id}
                     label={track.name}
                     eq={track.eq}
@@ -672,7 +681,7 @@ export function Editor({ projectId }: { projectId: string }) {
                 ),
             )}
             {effects.openEffects.has("capture") && (
-              <Effects
+              <RecorderEffects
                 label="Capture"
                 eq={state.recordingTrack.eq}
                 onChange={(eq) =>
@@ -686,7 +695,7 @@ export function Editor({ projectId }: { projectId: string }) {
         {state.midiTracks.map(
           (track) =>
             scoreUi.openTracks.has(track.id) && (
-              <ScorePanel
+              <RecorderScorePanel
                 key={track.id}
                 runtime={runtime}
                 state={state}
@@ -696,7 +705,7 @@ export function Editor({ projectId }: { projectId: string }) {
                   project.ready &&
                   project.saveStatus === "saved" &&
                   !flags.isRecording
-                    ? getScoreHref({
+                    ? getRecorderScoreHref({
                         projectId,
                         trackId: track.id,
                       })
@@ -708,7 +717,7 @@ export function Editor({ projectId }: { projectId: string }) {
         {state.midiTracks.map(
           (track) =>
             transcriptions.openTranscriptions.has(track.id) && (
-              <AudioToMidi
+              <RecorderAudioToMidi
                 key={track.id}
                 runtime={runtime}
                 state={state}
@@ -719,7 +728,7 @@ export function Editor({ projectId }: { projectId: string }) {
             ),
         )}
         {isTunerOpen && (
-          <Tuner
+          <RecorderTuner
             analyser={
               // TODO: Make the capture input reactive if compiler memoization can
               // retain this mutable runtime field across input changes.
@@ -729,20 +738,20 @@ export function Editor({ projectId }: { projectId: string }) {
           />
         )}
         {isMixerOpen && (
-          <Panel
+          <RecorderPanel
             closeLabel="Close Mixer"
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
             data-testid="recorder-mixer-panel"
             className="pointer-events-auto min-w-80 flex-1"
           >
-            <Mixer
+            <RecorderMixer
               runtime={runtime}
               state={state}
               openEffects={effects.openEffects}
               onEffectsToggle={effects.toggleEffects}
             />
-          </Panel>
+          </RecorderPanel>
         )}
         {isReferenceVideoOpen && (
           <ReferenceVideoPanel
@@ -754,7 +763,7 @@ export function Editor({ projectId }: { projectId: string }) {
       </div>
       {project.initError &&
         createPortal(
-          <EditorInitError error={project.initError} />,
+          <RecorderInitError error={project.initError} />,
           document.body,
         )}
     </main>
@@ -763,7 +772,7 @@ export function Editor({ projectId }: { projectId: string }) {
 
 // Rendered outside the inert editor so the notice stays interactive while
 // everything beneath it is blocked from pointer and keyboard access.
-function EditorInitError({ error }: { error: Error }) {
+function RecorderInitError({ error }: { error: Error }) {
   return (
     <div
       role="alertdialog"

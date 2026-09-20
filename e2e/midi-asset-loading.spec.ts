@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createProject } from "./editor-helpers";
+import { createRecorderProject } from "./editor-helpers";
 
 test("shows loading feedback while adding MIDI waits for the soundfont", async ({
   page,
@@ -12,7 +12,7 @@ test("shows loading feedback while adding MIDI waits for the soundfont", async (
     await releaseSoundfont.promise;
     await route.continue();
   });
-  await createProject(page);
+  await createRecorderProject(page);
   await soundfontRequested.promise;
   const loading = page.getByText("Loading MIDI soundfont…", { exact: true });
 

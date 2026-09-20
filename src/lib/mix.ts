@@ -3,9 +3,9 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-node.ts";
-import type { RuntimeState } from "./runtime.ts";
+import type { RecorderRuntimeState } from "./runtime.ts";
 
-interface Mix {
+interface RecorderMix {
   tracks: {
     eq: MultibandEqParameters;
     gain: number;
@@ -16,9 +16,9 @@ interface Mix {
 }
 
 /** Snapshot committed audio at 1x, independent of transport and reference audio. */
-export function resolveMix(state: RuntimeState): Mix {
+export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   const gains = deriveTrackMix(state);
-  const tracks: Mix["tracks"] = [
+  const tracks: RecorderMix["tracks"] = [
     ...state.audioTracks,
     state.recordingTrack,
   ].map((track) => ({
@@ -39,11 +39,11 @@ export function resolveMix(state: RuntimeState): Mix {
 }
 
 /** Render floats without normalization or clipping; PCM encoding owns clipping. */
-export async function renderMix({
+export async function renderRecorderMix({
   mix,
   sampleRate,
 }: {
-  mix: Mix;
+  mix: RecorderMix;
   sampleRate: number;
 }): Promise<AudioBuffer> {
   if (mix.duration <= 0) {
@@ -121,10 +121,10 @@ export function deriveTrackMix({
   audioTracks,
   midiTracks,
   recordingTrack,
-}: Pick<RuntimeState, "audioTracks" | "midiTracks" | "recordingTrack">): Map<
-  string,
-  number
-> {
+}: Pick<
+  RecorderRuntimeState,
+  "audioTracks" | "midiTracks" | "recordingTrack"
+>): Map<string, number> {
   const tracks = [...audioTracks, ...midiTracks, recordingTrack];
   const audibleTracks = new Set(getAudibleItems(tracks));
   return new Map(

@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
-  createProject,
+  createRecorderProject,
   dragBy,
   enableInput,
-  seekByPixels,
+  seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
@@ -13,7 +13,7 @@ import { useFakeAudioInput } from "./helpers";
 useFakeAudioInput();
 
 test("records only the punched interval into the comp", async ({ page }) => {
-  await createProject(page);
+  await createRecorderProject(page);
   await enableInput(page);
 
   const recordButton = page.getByTestId("recorder-record-button");
@@ -38,7 +38,7 @@ test("records only the punched interval into the comp", async ({ page }) => {
   assert(punchBox);
 
   // Capture surrounding audio, while only its overlap with Punch joins Capture.
-  await seekByPixels(page, 0);
+  await seekRecorderByPixels(page, 0);
   await recordButton.click();
   const pendingComp = page.getByTestId("recorder-clip-recording");
   await waitForRecordingSamples(pendingComp);

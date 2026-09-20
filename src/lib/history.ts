@@ -1,9 +1,9 @@
 import type { Note } from "../types.ts";
 import type {
   MidiTrackState,
-  ClipInsertRemove,
-  ClipInsertRemoveSnapshot,
-  Runtime,
+  RecorderClipInsertRemove,
+  RecorderClipInsertRemoveSnapshot,
+  RecorderRuntime,
 } from "./runtime.ts";
 
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
@@ -15,16 +15,16 @@ import type {
 // TODO: Coordinate async replay with overlapping undo/redo, edits, and project loading.
 
 /** A state change that runtime can apply directly, including during undo and redo. */
-type Change =
+type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
   | { type: "midi-track-insert"; track: MidiTrackState; index: number }
   | { type: "midi-track-delete"; trackId: string }
-  | ({ type: "clips" } & ClipInsertRemove);
+  | ({ type: "clips" } & RecorderClipInsertRemove);
 
-export class History {
-  private history = new UndoRedoHistory<Change>();
+export class RecorderHistory {
+  private history = new UndoRedoHistory<RecorderChange>();
 
-  constructor(private runtime: Runtime) {}
+  constructor(private runtime: RecorderRuntime) {}
 
   pushMidiNotes(trackId: string, before: Note[], after: Note[]): void {
     this.history.push({
@@ -42,11 +42,11 @@ export class History {
     index: number;
     reverse?: boolean;
   }): void {
-    const before: Change = {
+    const before: RecorderChange = {
       type: "midi-track-delete",
       trackId: track.id,
     };
-    const after: Change = {
+    const after: RecorderChange = {
       type: "midi-track-insert",
       track,
       index,
@@ -60,15 +60,15 @@ export class History {
     snapshot,
     reverse = false,
   }: {
-    snapshot: ClipInsertRemoveSnapshot;
+    snapshot: RecorderClipInsertRemoveSnapshot;
     reverse?: boolean;
   }): void {
-    const before: Change = {
+    const before: RecorderChange = {
       type: "clips",
       operation: "remove",
       snapshot,
     };
-    const after: Change = {
+    const after: RecorderChange = {
       type: "clips",
       operation: "insert",
       snapshot,
@@ -78,7 +78,7 @@ export class History {
     );
   }
 
-  private async apply(change: Change): Promise<void> {
+  private async apply(change: RecorderChange): Promise<void> {
     switch (change.type) {
       case "midi-notes": {
         this.runtime.applyMidiTrackNotes(change.trackId, change.notes);

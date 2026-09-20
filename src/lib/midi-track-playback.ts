@@ -19,7 +19,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   private nextNoteIndex = 0;
   private tempo = 120;
   private disposeScheduling?: () => void;
-  private readonly synth: MidiSynth;
+  private readonly synth: RecorderMidiSynth;
   private readonly unregister: () => void;
   private readonly transport: AudioContextTransport;
 
@@ -34,7 +34,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     track: MidiTrackState;
     tempo: number;
   }): Promise<MidiTrackPlayback> {
-    const synth = new MidiSynth(transport.context);
+    const synth = new RecorderMidiSynth(transport.context);
     try {
       await synth.init(track.program);
       return new MidiTrackPlayback({ transport, output, track, tempo, synth });
@@ -55,7 +55,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     output: AudioNode;
     track: MidiTrackState;
     tempo: number;
-    synth: MidiSynth;
+    synth: RecorderMidiSynth;
   }) {
     this.synth = synth;
     this.channel = new AudioChannel({
@@ -158,7 +158,7 @@ interface OxiSynthState {
   }>;
 }
 
-class MidiSynth {
+class RecorderMidiSynth {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
   private soundfontId?: string;
@@ -170,7 +170,7 @@ class MidiSynth {
 
   async init(program: number): Promise<void> {
     await waitForMidiAssets();
-    await ensureMidiWorklet(this.context);
+    await ensureRecorderMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, "oxisynth", {
       numberOfOutputs: 1,
       outputChannelCount: [2],
@@ -290,7 +290,7 @@ class MidiSynth {
 
 const workletPromises = new WeakMap<AudioContext, Promise<void>>();
 
-function ensureMidiWorklet(context: AudioContext): Promise<void> {
+function ensureRecorderMidiWorklet(context: AudioContext): Promise<void> {
   let promise = workletPromises.get(context);
   if (!promise) {
     promise = context.audioWorklet.addModule(midiAssetUrls.workletUrl);

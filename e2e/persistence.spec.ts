@@ -1,9 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { addAudio, createProject, getPosition } from "./editor-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  getRecorderPosition,
+} from "./editor-helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
   // Create a project and give it a recognizable name.
-  await createProject(page);
+  await createRecorderProject(page);
   const projectUrl = page.url();
   const saveButton = page.getByTestId("recorder-save-button");
   await expect(saveButton).toHaveAttribute("data-status", "saved");
@@ -19,7 +23,7 @@ test("saves and restores a recorder project", async ({ page }) => {
 
   // Transport updates are session state and do not stale persisted state.
   await page.getByTestId("recorder-play-button").click();
-  await expect.poll(() => getPosition(page)).toBeGreaterThan(0);
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0);
   await page.getByTestId("recorder-play-button").click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
@@ -30,7 +34,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   );
 
   // Load a backing track, including its decoded waveform.
-  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   const clip = page.getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("test-audio.wav");
 

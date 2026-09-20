@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
 
-export function MixToggle({
+export function RecorderMixToggle({
   active,
   kind,
   className,
