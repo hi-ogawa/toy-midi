@@ -1,5 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  DownloadIcon,
+  UploadIcon,
   MoreVerticalIcon,
   Music2Icon,
   FileMusicIcon,
@@ -16,6 +18,9 @@ import {
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { useWindowEvent } from "../../hooks/use-window-event";
+import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
+import { exportMidi } from "../../lib/midi-export";
+import { importMidiNotes, parseMidiFile } from "../../lib/midi-import";
 import { isBlackKey, MAX_PITCH } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
@@ -28,6 +33,7 @@ import {
 } from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import type { Note } from "../../types";
+import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import { PortalDialog } from "../ui/dialog";
 import {
@@ -81,6 +87,45 @@ export function MidiTrackRow({
   onScorePreview: () => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
+  const importMidiMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const parsed = await parseMidiFile(file);
+      const { notes } = await importMidiNotes(file, {
+        trackIndices: parsed.tracks.map((source) => source.index),
+        replaceExisting: true,
+        importTempo: false,
+        importTimeSignature: false,
+      });
+      runtime.setMidiTrackNotes(track.id, notes);
+      return notes.length;
+    },
+    onSuccess: (count) =>
+      toast.success(`Imported ${count} notes from MIDI file`),
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to import MIDI file");
+    },
+  });
+  const exportMidiMutation = useMutation({
+    mutationFn: async () => {
+      const state = runtime.store.get();
+      const data = exportMidi({
+        notes: track.notes,
+        tempo: state.tempo,
+        timeSignature: state.timeSignature,
+        name: state.title,
+        trackName: track.name,
+      });
+      downloadBlob(
+        new Blob([new Uint8Array(data)], { type: "audio/midi" }),
+        buildExportFileName({
+          baseName: `${state.title}-${track.name}`,
+          extension: "mid",
+        }),
+      );
+    },
+  });
+
   return (
     <div onFocus={midiInteraction.activate}>
       <TrackRow
@@ -111,6 +156,22 @@ export function MidiTrackRow({
             onTranscribe={onTranscribe}
             onScorePreview={onScorePreview}
             onInstrumentOpen={() => setIsInstrumentOpen(true)}
+            isImporting={importMidiMutation.isPending}
+            onImportMidi={() =>
+              openFilePicker({
+                accept: ".mid,.midi",
+                onFile: (file) => {
+                  if (
+                    confirm(
+                      `Import MIDI into ${track.name}? This will replace all notes in this track. Project tempo, time signature, and instrument will stay unchanged.`,
+                    )
+                  ) {
+                    importMidiMutation.mutate(file);
+                  }
+                },
+              })
+            }
+            onExportMidi={() => exportMidiMutation.mutate()}
           />
         }
       >
@@ -152,6 +213,9 @@ export function MidiTrackRow({
 }
 
 function MidiTrackActions({
+  isImporting,
+  onImportMidi,
+  onExportMidi,
   label,
   viewMode,
   onViewModeToggle,
@@ -160,6 +224,9 @@ function MidiTrackActions({
   onTranscribe,
   onScorePreview,
 }: {
+  isImporting: boolean;
+  onImportMidi: () => void;
+  onExportMidi: () => void;
   label: string;
   viewMode: MidiTrackState["viewMode"];
   onViewModeToggle: () => void;
@@ -198,6 +265,15 @@ function MidiTrackActions({
         <DropdownMenuItem onSelect={onTranscribe}>
           <Music2Icon />
           Audio to MIDI
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onImportMidi} disabled={isImporting}>
+          <UploadIcon />
+          {isImporting ? "Importing MIDI…" : "Import MIDI…"}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onExportMidi}>
+          <DownloadIcon />
+          Export MIDI
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
