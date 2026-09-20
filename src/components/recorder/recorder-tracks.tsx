@@ -310,13 +310,13 @@ export function TakesDisclosureRow({
 }) {
   return (
     <div className="grid h-9 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
-      <div className="flex items-center border-r border-neutral-700 px-3">
+      <div className="flex items-center border-r border-neutral-700 pr-3">
         <button
           type="button"
           data-testid="recorder-takes-toggle"
           aria-expanded={expanded}
           onClick={() => onExpandedChange(!expanded)}
-          className="flex h-full flex-1 items-center gap-2 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
+          className="flex h-full flex-1 items-center gap-2 px-3 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
         >
           {expanded ? (
             <ChevronDownIcon className="size-3.5 text-neutral-400" />
