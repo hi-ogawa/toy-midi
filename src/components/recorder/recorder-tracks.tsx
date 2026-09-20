@@ -1,4 +1,6 @@
 import {
+  ArrowDownWideNarrowIcon,
+  ArrowUpNarrowWideIcon,
   AudioWaveformIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -330,12 +332,18 @@ export function TakesDisclosureRow({
           aria-label="Newest takes first"
           aria-pressed={newestFirst}
           title={
-            newestFirst ? "Show oldest takes first" : "Show newest takes first"
+            newestFirst
+              ? "Newest first · Click for oldest first"
+              : "Oldest first · Click for newest first"
           }
           onClick={() => onNewestFirstChange(!newestFirst)}
-          className="h-6 px-2 text-[10px]"
+          className="size-6 shrink-0 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
         >
-          {newestFirst ? "Newest first" : "Oldest first"}
+          {newestFirst ? (
+            <ArrowDownWideNarrowIcon className="size-3.5" />
+          ) : (
+            <ArrowUpNarrowWideIcon className="size-3.5" />
+          )}
         </Button>
       </div>
       <div />
