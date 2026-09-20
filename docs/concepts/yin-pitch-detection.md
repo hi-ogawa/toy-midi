@@ -24,9 +24,9 @@ $$
 
 A good alignment makes this distance small. Repeating the comparison at successive lags produces a curve with troughs at plausible periods.
 
-![A periodic waveform aligns with its shifted copy after one period, and its mismatch curve has troughs at one and two periods](images/yin-shift-and-difference.svg)
+![Stacked decaying sine waves show poor alignment at a half-period shift and matching peaks at a full-period shift, with their corresponding mismatch scores below](images/yin-shift-and-difference.svg)
 
-The figure uses an ideal repeating signal. A recording's cycles can differ in amplitude or shape, so its troughs need not reach zero. Each lag uses the same comparison length, keeping the amount of evidence consistent across the curve.
+The figure uses a sine wave with exaggerated decay. At half a period, peaks meet troughs. At one period, the peaks align, but the later samples are quieter, so the mismatch remains above zero. The curve below is computed from the same signal. Each lag uses the same comparison length, keeping the amount of evidence consistent across the curve.
 
 ## Make Trough Depth Comparable
 
