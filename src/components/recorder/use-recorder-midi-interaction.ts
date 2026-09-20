@@ -88,9 +88,11 @@ export function useRecorderMidiInteraction({
     if (hasTrackSelection(trackId)) {
       clear();
     }
-    runtime.setMidiTrackViewMode({
+    runtime.setMidiTrackViewSettings({
       id: trackId,
-      viewMode: track.viewMode === "overview" ? "editor" : "overview",
+      settings: {
+        viewMode: track.viewMode === "overview" ? "editor" : "overview",
+      },
     });
   }
 

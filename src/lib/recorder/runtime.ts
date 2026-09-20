@@ -538,16 +538,6 @@ export class RecorderRuntime {
     }));
   }
 
-  setMidiTrackViewMode({
-    id,
-    viewMode,
-  }: {
-    id: string;
-    viewMode: MidiTrackState["viewMode"];
-  }): void {
-    this.updateMidiTrack(id, (track) => ({ ...track, viewMode }));
-  }
-
   removeAudioTrack(id: string): void {
     if (id === RECORDING_TRACK_ID) {
       throw new Error("The recording track cannot be removed.");
@@ -579,15 +569,21 @@ export class RecorderRuntime {
     }
   }
 
-  setMidiTrackNotationSettings(
-    id: string,
+  setMidiTrackViewSettings({
+    id,
+    settings,
+  }: {
+    id: string;
     settings: Partial<
       Pick<
         MidiTrackState,
-        "keySignature" | "tabAnnotationEnabled" | "tabOpenStringPitches"
+        | "viewMode"
+        | "keySignature"
+        | "tabAnnotationEnabled"
+        | "tabOpenStringPitches"
       >
-    >,
-  ): void {
+    >;
+  }): void {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
   }
 

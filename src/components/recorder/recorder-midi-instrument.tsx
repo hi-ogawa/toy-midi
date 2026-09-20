@@ -40,10 +40,13 @@ export function MidiInstrument({
           value={`${track.keySignature.fifths}:${track.keySignature.mode}`}
           onChange={(event) => {
             const [fifths, mode] = event.target.value.split(":");
-            runtime.setMidiTrackNotationSettings(track.id, {
-              keySignature: {
-                fifths: Number(fifths),
-                mode: mode as "major" | "minor",
+            runtime.setMidiTrackViewSettings({
+              id: track.id,
+              settings: {
+                keySignature: {
+                  fifths: Number(fifths),
+                  mode: mode as "major" | "minor",
+                },
               },
             });
           }}
@@ -72,8 +75,11 @@ export function MidiInstrument({
             const preset = TAB_STRING_PRESETS.find(
               ({ id }) => id === event.target.value,
             )!;
-            runtime.setMidiTrackNotationSettings(track.id, {
-              tabOpenStringPitches: [...preset.openStringPitches],
+            runtime.setMidiTrackViewSettings({
+              id: track.id,
+              settings: {
+                tabOpenStringPitches: [...preset.openStringPitches],
+              },
             });
           }}
           className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
@@ -91,8 +97,11 @@ export function MidiInstrument({
             type="checkbox"
             checked={track.tabAnnotationEnabled}
             onChange={(event) =>
-              runtime.setMidiTrackNotationSettings(track.id, {
-                tabAnnotationEnabled: event.target.checked,
+              runtime.setMidiTrackViewSettings({
+                id: track.id,
+                settings: {
+                  tabAnnotationEnabled: event.target.checked,
+                },
               })
             }
             className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary"
