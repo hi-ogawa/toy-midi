@@ -135,7 +135,13 @@ At half-speed playback, for example, the buffer source produces audio twice as l
 
 ## How Much Audio Must Be Available?
 
-A candidate can start about half a search region ahead of the nominal position, and comparing it requires a full window beyond that start. With a 20 ms window and a 30 ms search region, this means roughly $20+30/2=35$ ms of source lookahead.
+A candidate can start about half a search region ahead of the nominal position, and comparing it requires a full window beyond that start. At sample rate $F_s$, the source lookahead is roughly
+
+$$
+\text{lookahead scale}\approx\frac{W+S/2}{F_s}.
+$$
+
+With a 20 ms window and a 30 ms search region, this gives $20+30/2=35$ ms.
 
 The natural-continuation window must also be available as the comparison reference. During slow playback it can reach slightly farther ahead, so the implementation reserves extra audio, bringing the estimate to about 37.5 ms at $r=0.75$. This is source lookahead, while the complete pitch shifter's latency also depends on resampling and block buffering.
 
