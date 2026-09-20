@@ -8,15 +8,15 @@ export function useRecorderPreference<Key extends keyof RecorderPreferences>(
   key: Key,
 ) {
   const value = useSyncExternalStore(
-    recorderPreferences.subscribe,
-    () => recorderPreferences.get()[key],
+    recorderPreferences.store.subscribe,
+    () => recorderPreferences.store.get()[key],
   );
 
   function setValue(next: SetStateAction<RecorderPreferences[Key]>) {
     recorderPreferences.update({
       [key]:
         typeof next === "function"
-          ? next(recorderPreferences.get()[key])
+          ? next(recorderPreferences.store.get()[key])
           : next,
     });
   }

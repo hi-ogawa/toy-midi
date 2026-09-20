@@ -17,19 +17,19 @@ test("merges independent preference edits and restores them after reload", async
     },
   });
   const { recorderPreferences: preferences } = await import("./storage");
-  expect(preferences.get().autoScrollEnabled).toBe(false);
-  expect(preferences.get().timelinePixelsPerBeat).toBeGreaterThan(0);
+  expect(preferences.store.get().autoScrollEnabled).toBe(false);
+  expect(preferences.store.get().timelinePixelsPerBeat).toBeGreaterThan(0);
   const listener = vi.fn();
-  const unsubscribe = preferences.subscribe(listener);
+  const unsubscribe = preferences.store.subscribe(listener);
 
   preferences.update({ input: { deviceId: "mic", channel: 0 } });
   preferences.update({ timelinePixelsPerBeat: 120 });
   preferences.update({
-    input: { ...preferences.get().input!, latencyCompensation: 0.05 },
+    input: { ...preferences.store.get().input!, latencyCompensation: 0.05 },
   });
   expect(listener).toHaveBeenCalledTimes(3);
   unsubscribe();
-  const expected = preferences.get();
+  const expected = preferences.store.get();
   expect(expected).toMatchObject({
     autoScrollEnabled: false,
     timelinePixelsPerBeat: 120,
@@ -38,7 +38,7 @@ test("merges independent preference edits and restores them after reload", async
 
   vi.resetModules();
   const reloaded = (await import("./storage")).recorderPreferences;
-  expect(reloaded.get()).toEqual(expected);
+  expect(reloaded.store.get()).toEqual(expected);
 });
 
 test("keeps updates and subscriptions working when storage is unavailable", async () => {
@@ -52,10 +52,10 @@ test("keeps updates and subscriptions working when storage is unavailable", asyn
   });
   const { recorderPreferences: preferences } = await import("./storage");
   const listener = vi.fn();
-  preferences.subscribe(listener);
+  preferences.store.subscribe(listener);
   preferences.update({ autoScrollEnabled: false });
   preferences.update({ input: { deviceId: "mic", channel: 1 } });
-  expect(preferences.get()).toMatchObject({
+  expect(preferences.store.get()).toMatchObject({
     autoScrollEnabled: false,
     input: { deviceId: "mic", channel: 1 },
   });
@@ -65,5 +65,5 @@ test("keeps updates and subscriptions working when storage is unavailable", asyn
 test("falls back to defaults for malformed saved preferences", async () => {
   vi.stubGlobal("localStorage", { getItem: () => "{broken" });
   const { recorderPreferences } = await import("./storage");
-  expect(recorderPreferences.get().autoScrollEnabled).toBe(true);
+  expect(recorderPreferences.store.get().autoScrollEnabled).toBe(true);
 });

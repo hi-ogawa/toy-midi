@@ -37,10 +37,7 @@ const DEFAULT_PREFERENCES: RecorderPreferences = {
 
 class RecorderPreferenceStore {
   // All consumers share one snapshot, including when browser storage is unavailable.
-  private readonly store = createStore(readPreferences);
-
-  get = this.store.get;
-  subscribe = this.store.subscribe;
+  readonly store = createStore(readPreferences);
 
   update(updates: Partial<RecorderPreferences>): void {
     this.store.update(updates);

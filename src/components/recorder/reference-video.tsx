@@ -39,7 +39,9 @@ export function ReferenceVideoPanel({
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampSize(recorderPreferences.get().referenceVideoSize ?? DEFAULT_SIZE),
+    clampSize(
+      recorderPreferences.store.get().referenceVideoSize ?? DEFAULT_SIZE,
+    ),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
