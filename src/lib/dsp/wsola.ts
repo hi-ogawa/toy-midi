@@ -1,7 +1,7 @@
 import { clamp } from "../music.ts";
 import { PlanarStreamBuffer } from "./stream-buffer.ts";
 
-// For window selection and overlap-add math, see:
+// WSOLA Time Stretching
 // ../../../docs/concepts/wsola-time-stretching.md
 //
 // Algorithm structure and default parameters follow Chromium's media renderer:
