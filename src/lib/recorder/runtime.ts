@@ -212,6 +212,11 @@ export type RecorderClipInsertRemove = {
   snapshot: RecorderClipInsertRemoveSnapshot;
 };
 
+type RecorderRuntimeClipsState = Pick<
+  RecorderRuntimeState,
+  "audioTracks" | "recordingTrack" | "referenceVideo"
+>;
+
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
     title: "Untitled project",
@@ -1194,11 +1199,6 @@ export class RecorderRuntime {
   undo = () => this.history.undo();
   redo = () => this.history.redo();
 }
-
-type RecorderRuntimeClipsState = Pick<
-  RecorderRuntimeState,
-  "audioTracks" | "recordingTrack" | "referenceVideo"
->;
 
 /** Derive clip insertion or removal without mutating the supplied state. */
 function deriveClipInsertRemoveState(
