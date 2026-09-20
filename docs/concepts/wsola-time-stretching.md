@@ -133,6 +133,32 @@ The [buffer source](../../src/lib/recorder/audio-buffer-playback.ts) plays at ra
 
 At half-speed playback, for example, the buffer source produces audio twice as long and an octave lower. The pitch shifter raises it by an octave without changing that longer duration. In this use case, the diagram's original signal is the already slowed input to the pitch shifter, and its final signal is the pitch-corrected slow playback.
 
+## How Much Audio Must Be Available?
+
+Window selection needs audio beyond the nominal source position. A candidate can begin up to about $S/2$ samples ahead of $p_k$, and comparing it requires another $W$ samples for the full window. The search therefore needs source audio through approximately $p_k+S/2+W$.
+
+The natural-continuation window must also be available because it supplies the reference for the comparison. A streaming processor waits until the received audio reaches the farther end of the reference and candidate windows. When natural continuation can be selected directly, only that window is needed.
+
+At sample rate $F_s$ samples per second, this gives a useful scale for the required source lookahead:
+
+$$
+\text{source lookahead}\approx\frac{W+S/2}{F_s}.
+$$
+
+With a 20 ms window and a 30 ms search region, that is about $20+15=35$ ms of source audio. The search width contributes half its duration because it extends on both sides of the nominal position, while a candidate's entire window extends forward from its start.
+
+### Allow for the Next Natural Continuation
+
+Readiness of the first window alone does not guarantee that later hops will be ready. Natural continuation advances by $H$ from the previous selected start, while the nominal position advances by $rH$. During slow playback, the reference can therefore reach another $(1-r)H$ samples ahead of the new search region. The startup reserve includes this allowance when $r<1$.
+
+For a 20 ms window, the half-window hop is 10 ms. At $r=0.75$, the extra allowance is $(1-0.75)\times10=2.5$ ms, giving roughly 37.5 ms of source audio in reserve. The implementation also adds rounding headroom and checks actual window availability before generating each hop.
+
+### Distinguish Source Lookahead from End-to-End Latency
+
+These estimates describe how much source audio must be available ahead of the nominal position. They are not the complete pitch shifter's input-to-output delay, which also depends on resampling and block buffering. Likewise, having the samples available does not guarantee that the search finishes within an audio callback's CPU budget. The implementation uses a coarse search followed by local refinement to reduce that computation.
+
+For a prerecorded source, future samples already exist and can be supplied as needed. For a live source, buffering can provide local lookahead, but it cannot sustain a permanent mismatch between input and output rates with bounded delay. Slower consumption accumulates a backlog, while faster consumption eventually exhausts one. Our pitch shifter avoids that long-term mismatch because its internal stretching and resampling have cancelling duration factors.
+
 ## Connect the Formulation to the Code
 
 [`WsolaProcessor` and `StreamingWsola`](../../src/lib/dsp/wsola.ts) use the same selection and blending calculations. The first reads a complete source, while the second waits until incoming audio supplies the reference and candidate windows needed for a hop.
