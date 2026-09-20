@@ -41,13 +41,13 @@ What simple computation on these samples could change the balance of frequencies
 
 ## From Averaging Samples to a Transfer Function
 
-Start by replacing each sample with the average of itself and its predecessor:
+We want a computation that treats frequencies differently. Multiplying each sample by a constant cannot do that, but neighboring samples give us a clue. They are nearly equal in a slowly varying wave and can have opposite signs in a rapidly varying one. Averaging them should therefore preserve slow variation while suppressing some faster variation. Let us test that idea:
 
 $$
 y[n]=\frac{x[n]+x[n-1]}{2}.
 $$
 
-A slowly varying signal barely changes under this operation. A signal alternating between $+1$ and $-1$ disappears. This already behaves like a filter. To find what it does at every frequency, substitute $x[n]=e^{j\omega n}$:
+A constant signal passes unchanged, while a signal alternating between $+1$ and $-1$ disappears. To find what happens between these extremes, substitute $x[n]=e^{j\omega n}$:
 
 $$
 y[n]=\frac{e^{j\omega n}+e^{j\omega(n-1)}}{2}
