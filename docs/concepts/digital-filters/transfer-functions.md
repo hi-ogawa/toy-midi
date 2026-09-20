@@ -56,7 +56,7 @@ $$
 
 The output-to-input multiplier is therefore $H_d(e^{j\omega})=(1+e^{-j\omega})/2$. A delay rotates the wave by $-\omega$, and adding the copies produces frequency-dependent reinforcement or cancellation. In particular, $H_d(1)=1$ at $\omega=0$ and $H_d(-1)=0$ at $\omega=\pi$.
 
-![Aligned sample plots show a slow wave mostly preserved by averaging adjacent samples, while alternating positive and negative samples cancel.](images/filter-sample-average.svg)
+![Nearly aligned original and delayed phasors have a nearly unchanged average, while opposite phasors cancel.](images/filter-sample-average.svg)
 
 ### Generalize the Weights and Add Feedback
 
