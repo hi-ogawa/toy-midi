@@ -52,7 +52,7 @@ Appendices still need a clear payoff for their length. A graph and one derivativ
 - Do examples and figures add understanding rather than repeat prose or expose bookkeeping?
 - Does the full document still flow after local edits, including contributions made in parallel?
 
-Check equations in the target Markdown renderer when possible. Valid LaTeX is not sufficient evidence of correct rendering, and lint does not check the result. In GitHub Markdown, punctuation-based spacing commands such as `\,` and `\;` have appeared as literal punctuation. Prefer explicit multiplication or supported spacing commands where needed, and sweep related equations when a rendering issue is found.
+Avoid `\,` and `\;` in GitHub Markdown math. We have observed them rendering as literal punctuation. Use `\cdot` for explicit multiplication and `\quad` when extra spacing is needed.
 
 ## Calibration Examples
 
