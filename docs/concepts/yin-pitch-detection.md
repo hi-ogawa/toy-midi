@@ -1,4 +1,4 @@
-# Real-Time Tuner Pitch Detection
+# YIN Pitch Detection
 
 A sustained note produces a waveform that approximately repeats. The tuner uses YIN to find how far we can shift a short recording before the waveform lines up with itself. That shift reveals the period, which gives the frequency.
 
