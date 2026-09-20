@@ -203,3 +203,24 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
     "test-tones.wav",
   );
 });
+
+test("shows an empty MIDI track hint without blocking note creation", async ({
+  page,
+}) => {
+  // Add an empty MIDI track and find its editor hint.
+  await createRecorderProject(page);
+  const row = await addRecorderMidiTrack(page);
+  const hint = row.getByText("Click the grid to add notes", { exact: true });
+  await expect(hint).toBeVisible();
+
+  // Click through the hint to create a note and hide the empty state.
+  const box = (await hint.boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(row.locator("[data-note-id]")).toHaveCount(1);
+  await expect(hint).toBeHidden();
+
+  // Delete the last note and show the hint again.
+  await page.keyboard.press("Delete");
+  await expect(row.locator("[data-note-id]")).toHaveCount(0);
+  await expect(hint).toBeVisible();
+});
