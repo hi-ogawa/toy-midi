@@ -162,24 +162,23 @@ export async function dragBy(
   {
     deltaY = 0,
     anchorXOffset,
-  }: { deltaY?: number; anchorXOffset?: number } = {},
+    release = true,
+  }: { deltaY?: number; anchorXOffset?: number; release?: boolean } = {},
 ) {
-  await test.step(
-    `Drag by ${deltaX}px, ${deltaY}px`,
+  return await test.step(
+    `Drag by ${deltaX}px, ${deltaY}px${release ? "" : " without releasing"}`,
     async () => {
       const box = await locator.boundingBox();
       expect(box).not.toBeNull();
       const startX = box!.x + (anchorXOffset ?? box!.width / 2);
-      await page.mouse.move(startX, box!.y + box!.height / 2);
+      const startY = box!.y + box!.height / 2;
+      await page.mouse.move(startX, startY);
       await page.mouse.down();
-      await page.mouse.move(
-        startX + deltaX,
-        box!.y + box!.height / 2 + deltaY,
-        {
-          steps: 4,
-        },
-      );
-      await page.mouse.up();
+      await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 4 });
+      if (release) {
+        await page.mouse.up();
+      }
+      return { x: startX, y: startY };
     },
     { box: true },
   );

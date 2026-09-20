@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Native scrollbars still occupy layout space when the browser/OS uses non-overlay scrollbars. */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #525252 transparent;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

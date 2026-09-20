@@ -27,11 +27,13 @@ import {
   type TabAnnotationDisplay,
 } from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import type { Note } from "../../types";
 import { Button } from "../ui/button";
 import { PortalDialog } from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -83,8 +85,12 @@ export function MidiTrackRow({
     <div onFocus={midiInteraction.activate}>
       <TrackRow
         data-testid="recorder-midi-track-row"
-        // Keep controls at their content height so the piano keyboard shows below.
-        controlsClassName="h-fit"
+        // Anchor the keyboard’s top edge to the controls so pitch scrolling keeps it visible.
+        controlsClassName={
+          track.viewMode === "editor"
+            ? "after:pointer-events-none after:absolute after:top-full after:right-0 after:w-[50px] after:border-t after:border-neutral-600"
+            : undefined
+        }
         title={track.name}
         height={track.height}
         gain={track.gain}
@@ -99,6 +105,8 @@ export function MidiTrackRow({
         action={
           <MidiTrackActions
             label={track.name}
+            viewMode={track.viewMode}
+            onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
             onScorePreview={onScorePreview}
@@ -106,15 +114,31 @@ export function MidiTrackRow({
           />
         }
       >
-        <MidiTrackEditor
-          track={track}
-          runtime={runtime}
-          midiInteraction={midiInteraction}
-          pixelsPerBeat={pixelsPerBeat}
-          beatsPerBar={beatsPerBar}
-          subdivisionsPerBeat={subdivisionsPerBeat}
-          viewportStartBeat={viewportStartBeat}
-        />
+        {track.viewMode === "overview" ? (
+          <MidiTrackOverview
+            track={track}
+            pixelsPerBeat={pixelsPerBeat}
+            beatsPerBar={beatsPerBar}
+            viewportStartBeat={viewportStartBeat}
+          />
+        ) : (
+          <MidiTrackEditor
+            track={track}
+            runtime={runtime}
+            midiInteraction={midiInteraction}
+            pixelsPerBeat={pixelsPerBeat}
+            beatsPerBar={beatsPerBar}
+            subdivisionsPerBeat={subdivisionsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+          />
+        )}
+        {track.notes.length === 0 && (
+          <div className="pointer-events-none z-10 col-start-2 row-start-1 grid place-items-center text-xs text-neutral-600">
+            {track.viewMode === "overview"
+              ? "No notes"
+              : "Click the grid to add notes"}
+          </div>
+        )}
       </TrackRow>
       <PortalDialog
         isOpen={isInstrumentOpen}
@@ -129,12 +153,16 @@ export function MidiTrackRow({
 
 function MidiTrackActions({
   label,
+  viewMode,
+  onViewModeToggle,
   onRemove,
   onInstrumentOpen,
   onTranscribe,
   onScorePreview,
 }: {
   label: string;
+  viewMode: MidiTrackState["viewMode"];
+  onViewModeToggle: () => void;
   onRemove: () => void;
   onInstrumentOpen: () => void;
   onTranscribe: () => void;
@@ -151,6 +179,14 @@ function MidiTrackActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuCheckboxItem
+          checked={viewMode === "overview"}
+          onCheckedChange={onViewModeToggle}
+          onSelect={(event) => event.preventDefault()}
+        >
+          Overview
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onInstrumentOpen}>
           <Settings2Icon />
           Instrument…
@@ -170,6 +206,66 @@ function MidiTrackActions({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function MidiTrackOverview({
+  track,
+  pixelsPerBeat,
+  beatsPerBar,
+  viewportStartBeat,
+}: {
+  track: MidiTrackState;
+  pixelsPerBeat: number;
+  beatsPerBar: number;
+  viewportStartBeat: number;
+}) {
+  let lowest = track.notes[0]?.pitch ?? 60;
+  let highest = lowest;
+  for (const note of track.notes) {
+    lowest = Math.min(lowest, note.pitch);
+    highest = Math.max(highest, note.pitch);
+  }
+  const centerPitch = (lowest + highest) / 2;
+  const pitchRange = Math.max(12, highest - lowest);
+  const NOTE_HEIGHT = 4;
+  const PADDING = 12;
+  const availableHeight = track.height - PADDING * 2 - NOTE_HEIGHT;
+
+  function getNoteStyle(note: Note) {
+    return {
+      left: (note.start - viewportStartBeat) * pixelsPerBeat,
+      top:
+        (-(note.pitch - centerPitch) / pitchRange + 0.5) * availableHeight +
+        PADDING,
+      width: Math.max(2, note.duration * pixelsPerBeat),
+      height: NOTE_HEIGHT,
+    };
+  }
+
+  return (
+    <div
+      data-testid="recorder-midi-overview"
+      role="img"
+      aria-label={`${track.name} note overview, ${track.notes.length} ${track.notes.length === 1 ? "note" : "notes"}`}
+      className="relative col-start-2 row-start-1 overflow-hidden bg-neutral-900"
+      style={getTimelineGridBackground({
+        beatsPerBar,
+        pixelsPerBeat,
+        viewportStartBeat,
+        subdivisionsPerBeat: 1,
+        minimumPixelSpacing: 8,
+        colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
+      })}
+    >
+      {track.notes.map((note) => (
+        <div
+          key={note.id}
+          className="pointer-events-none absolute rounded-sm bg-blue-400/70"
+          style={getNoteStyle(note)}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -366,7 +462,7 @@ function MidiTrackEditor({
   return (
     <div
       data-testid="recorder-midi-pitch-scroll"
-      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain [scrollbar-width:thin] [scrollbar-color:#525252_transparent]"
+      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scrollbar-thin"
       ref={scrollRef}
       onBlur={handleBlur}
     >
@@ -374,7 +470,7 @@ function MidiTrackEditor({
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
-        <div className="relative border-r border-neutral-700 bg-neutral-900">
+        <div className="relative border-r border-neutral-700">
           {PITCHES.map((pitch) => (
             <MidiPianoKey
               key={pitch}
@@ -383,6 +479,10 @@ function MidiTrackEditor({
               onPreviewStop={preview.stop}
             />
           ))}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-[50px] border-l border-neutral-600"
+          />
         </div>
         <div
           data-testid="recorder-midi-grid"
@@ -521,7 +621,7 @@ function MidiPianoKey({
       className={cn(
         "absolute right-0 w-[50px] cursor-pointer border-b pr-2 text-right text-xs hover:brightness-110",
         isBlackKey(pitch)
-          ? "border-neutral-700 bg-neutral-800"
+          ? "border-neutral-700 bg-neutral-900"
           : cn(
               "bg-neutral-300 text-neutral-600",
               pitch % 12 === 0 || pitch % 12 === 5

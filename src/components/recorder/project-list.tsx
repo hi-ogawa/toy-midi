@@ -1,5 +1,7 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { Trash2Icon } from "lucide-react";
+import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import { projectStorage } from "../../lib/project-storage";
 import { importRecorderProject } from "../../lib/recorder/project-import";
 import {
   type RecorderProjectMetadata,
@@ -12,6 +14,10 @@ import { Button } from "../ui/button";
 import { LegacyProjectList } from "./legacy-project-list";
 
 export function RecorderProjectList() {
+  const [query, setQuery] = useState("");
+  const [legacyProjects, setLegacyProjects] = useState(() =>
+    projectStorage.listMetadata(),
+  );
   const projects = useSuspenseQuery({
     queryKey: ["recorder-projects"],
     queryFn: () => toResult(recorderProjectStorage.list()),
@@ -36,22 +42,46 @@ export function RecorderProjectList() {
     },
   });
 
+  const filteredProjects = projects.data.ok
+    ? projects.data.value.filter((project) =>
+        matchesProjectSearch({ name: project.title, query }),
+      )
+    : [];
+
+  const filteredLegacyProjects = legacyProjects.filter((project) =>
+    matchesProjectSearch({ name: project.name, query }),
+  );
+
   return (
     <div className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
+      {projects.data.ok && (
+        <ProjectListSearch
+          query={query}
+          onQueryChange={setQuery}
+          total={projects.data.value.length + legacyProjects.length}
+          count={filteredProjects.length + filteredLegacyProjects.length}
+        />
+      )}
       {!projects.data.ok ? (
         <div className="p-8 text-center text-sm text-orange-300">
           {String(projects.data.error)}
         </div>
-      ) : projects.data.value.length === 0 ? (
+      ) : projects.data.value.length === 0 && legacyProjects.length === 0 ? (
         <div className="flex min-h-36 flex-col items-center justify-center text-center">
           <p className="font-medium text-neutral-300">No projects yet</p>
           <p className="mt-1 text-sm text-neutral-500">
             Create a project to begin.
           </p>
         </div>
+      ) : filteredProjects.length === 0 ? (
+        <p className="mb-4 py-3 text-center text-sm text-neutral-500">
+          {projects.data.value.length === 0
+            ? "No projects yet"
+            : "No matching projects"}
+        </p>
       ) : (
-        <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
-          {projects.data.value.map((project) => (
+        <div className="max-h-[22rem] space-y-2 overflow-y-auto scrollbar-thin pr-1">
+          {filteredProjects.map((project) => (
             <RecorderProjectListItem
               key={project.id}
               project={project}
@@ -62,13 +92,7 @@ export function RecorderProjectList() {
         </div>
       )}
       {projects.data.ok && (
-        <div
-          className={
-            projects.data.value.length > 0
-              ? "mt-4 border-t border-neutral-700/70 pt-4"
-              : ""
-          }
-        >
+        <div className={projects.data.value.length > 0 ? "mt-4" : ""}>
           <div className="flex gap-2">
             <Button
               data-testid="new-recorder-project-button"
@@ -102,7 +126,12 @@ export function RecorderProjectList() {
           </div>
         </div>
       )}
-      {projects.data.ok && <LegacyProjectList />}
+      {projects.data.ok && legacyProjects.length > 0 && (
+        <LegacyProjectList
+          projects={filteredLegacyProjects}
+          onDelete={() => setLegacyProjects(projectStorage.listMetadata())}
+        />
+      )}
     </div>
   );
 }
@@ -146,4 +175,76 @@ function RecorderProjectListItem({
       </Button>
     </div>
   );
+}
+
+function ProjectListSearch({
+  query,
+  onQueryChange,
+  count,
+  total,
+}: {
+  query: string;
+  onQueryChange: (query: string) => void;
+  count: number;
+  total: number;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  function clear() {
+    onQueryChange("");
+    inputRef.current?.focus();
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
+        <SearchIcon
+          aria-hidden="true"
+          className="size-4 shrink-0 text-neutral-500"
+        />
+        <input
+          ref={inputRef}
+          type="text"
+          aria-label="Search projects"
+          placeholder="Search projects…"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              clear();
+            }
+          }}
+          className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-200 outline-none"
+        />
+        {query && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={clear}
+            className="rounded p-1 text-neutral-400 hover:text-neutral-200"
+          >
+            <XIcon aria-hidden="true" className="size-4" />
+          </button>
+        )}
+      </div>
+      <p role="status" className="mt-2 text-xs text-neutral-500">
+        {count} of {total} projects
+      </p>
+    </div>
+  );
+}
+
+function matchesProjectSearch({
+  name,
+  query,
+}: {
+  name: string;
+  query: string;
+}) {
+  const normalizedName = name.toLowerCase();
+  return query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .every((word) => normalizedName.includes(word));
 }
