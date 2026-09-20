@@ -27,7 +27,7 @@ export function Home() {
   return (
     <div
       data-testid="startup-screen"
-      className="fixed inset-0 z-50 overflow-y-auto bg-neutral-900"
+      className="fixed inset-0 z-50 overflow-y-auto scrollbar-thin bg-neutral-900"
     >
       {/* Gradient glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
