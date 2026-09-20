@@ -83,6 +83,8 @@ export function MidiTrackRow({
     <div onFocus={midiInteraction.activate}>
       <TrackRow
         data-testid="recorder-midi-track-row"
+        // Anchor the keyboard’s top edge to the controls so pitch scrolling keeps it visible.
+        controlsClassName="after:pointer-events-none after:absolute after:top-full after:right-0 after:w-[50px] after:border-t after:border-neutral-600"
         title={track.name}
         height={track.height}
         gain={track.gain}
@@ -383,7 +385,7 @@ function MidiTrackEditor({
           ))}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-[50px] border border-neutral-600"
+            className="pointer-events-none absolute inset-y-0 right-0 w-[50px] border-l border-neutral-600"
           />
         </div>
         <div

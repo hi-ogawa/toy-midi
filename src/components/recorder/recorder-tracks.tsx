@@ -67,6 +67,7 @@ export function AudioTrackActions({
 export function TrackRow({
   title,
   "data-testid": testId,
+  controlsClassName,
   height,
   gain,
   muted,
@@ -83,6 +84,7 @@ export function TrackRow({
 }: {
   title: string;
   "data-testid"?: string;
+  controlsClassName?: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -119,6 +121,7 @@ export function TrackRow({
           input
             ? "grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] gap-y-1"
             : "grid-rows-[1.75rem_auto] gap-y-2",
+          controlsClassName,
         )}
       >
         <div className="min-w-0 self-center truncate text-xs font-semibold">
