@@ -1,4 +1,4 @@
-# toy-midi
+# Toy MIDI
 
 A browser-based tool for practicing with backing tracks, recording an instrument, and transcribing music into MIDI.
 
