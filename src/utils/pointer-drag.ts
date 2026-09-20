@@ -5,6 +5,7 @@ export type PointerDrag<T> = {
 };
 
 export type PointerDragOptions<T> = {
+  shouldStart?: (event: PointerEvent) => boolean;
   onStart: (event: PointerEvent) => T;
   onMove: (event: PointerEvent, drag: PointerDrag<T>) => void;
   onEnd?: (event: PointerEvent, drag: PointerDrag<T>) => void;
@@ -13,6 +14,7 @@ export type PointerDragOptions<T> = {
 
 export function listenPointerDrag<T>({
   element,
+  shouldStart,
   onStart,
   onMove,
   onEnd,
@@ -33,7 +35,7 @@ export function listenPointerDrag<T>({
   });
 
   const handlePointerDown = (event: PointerEvent) => {
-    if (event.button !== 0 || state) {
+    if (event.button !== 0 || state || shouldStart?.(event) === false) {
       return;
     }
     state = {

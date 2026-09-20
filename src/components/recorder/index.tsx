@@ -26,6 +26,7 @@ import {
   RecorderAudioToMidi,
   useRecorderAudioToMidiUi,
 } from "./recorder-audio-to-midi";
+import { RecorderClipBoxSelection } from "./recorder-clip-box-selection";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
@@ -350,7 +351,10 @@ export function Recorder({ projectId }: { projectId: string }) {
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
           />
-          <div className="relative">
+          <RecorderClipBoxSelection
+            onStart={clipInteraction.activate}
+            onSelect={clipInteraction.selectMany}
+          >
             {timeline.showPlayhead && (
               <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
                 <div
@@ -615,7 +619,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   />
                 </TakeTrackRow>
               ))}
-          </div>
+          </RecorderClipBoxSelection>
         </section>
 
         <RecorderHelp

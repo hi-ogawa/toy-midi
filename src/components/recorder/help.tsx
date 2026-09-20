@@ -32,6 +32,7 @@ const sections: HelpSectionData[] = [
     title: "Clips",
     items: [
       { action: "Select a clip", gesture: "Click clip" },
+      { action: "Select clips in an area", gesture: "Shift + drag empty lane" },
       {
         action: "Add / remove from selection",
         keys: "Ctrl / Cmd",
