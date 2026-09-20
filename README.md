@@ -18,12 +18,3 @@ A browser-based tool for practicing with backing tracks, recording an instrument
 pnpm install
 pnpm dev
 ```
-
-```bash
-pnpm build       # Production build
-pnpm lint        # Format, lint, and typecheck
-pnpm test        # Unit tests
-pnpm test-e2e    # E2E tests against a fresh production build
-```
-
-Application development uses a prebuilt pitch-detection WASM package. See [Rust development](docs/rust-development.md) for working on the Rust implementation. The lint command also runs `cargo fmt`, which requires a Rust toolchain.
