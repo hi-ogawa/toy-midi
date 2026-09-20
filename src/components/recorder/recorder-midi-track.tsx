@@ -228,9 +228,9 @@ function MidiTrackOverview({
   }
   const centerPitch = (lowest + highest) / 2;
   const pitchRange = Math.max(12, highest - lowest);
-  const noteHeight = 4;
-  const padding = 12;
-  const availableHeight = track.height - padding * 2 - noteHeight;
+  const NOTE_HEIGHT = 4;
+  const PADDING = 12;
+  const availableHeight = track.height - PADDING * 2 - NOTE_HEIGHT;
 
   return (
     <div
@@ -256,9 +256,9 @@ function MidiTrackOverview({
             top:
               (-(note.pitch - centerPitch) / pitchRange + 0.5) *
                 availableHeight +
-              padding,
+              PADDING,
             width: Math.max(2, note.duration * pixelsPerBeat),
-            height: noteHeight,
+            height: NOTE_HEIGHT,
           }}
         />
       ))}
