@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createDefaultLegacySavedProject } from "../src/lib/legacy-project-format";
 
 test("home creates and reopens recorder projects without project-type tabs", async ({
   page,
@@ -46,11 +47,11 @@ test("Projects search filters current and legacy projects together", async ({
 }) => {
   // Seed legacy projects and create a named project in the new editor.
   await page.goto("/__e2e__/");
-  await page.evaluate(() => {
+  await page.evaluate((project) => {
     for (const name of ["Blue archive", "Old song"]) {
-      window.__e2e.seedLegacyProject({ name });
+      window.__e2e.legacyProjectStorage.create(name, project);
     }
-  });
+  }, createDefaultLegacySavedProject());
   await page.goto("/");
   await page.getByTestId("new-recorder-project-button").click();
   page.once("dialog", (dialog) => dialog.accept("Blue session"));

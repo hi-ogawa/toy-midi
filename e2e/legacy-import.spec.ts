@@ -1,11 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import type { LegacySavedProject } from "../src/lib/legacy-project-format";
-import { getMidiNote, getPosition } from "./editor-helpers";
 import {
   exportLegacyProjectFile,
   exportLegacyProjectFileV1,
-} from "./legacy-project-archive";
+} from "../src/lib/legacy-project-file";
+import type { LegacySavedProject } from "../src/lib/legacy-project-format";
+import { getMidiNote, getPosition } from "./editor-helpers";
 
 for (const version of [1, 2] as const) {
   test(`imports a legacy v${version} archive into the recorder`, async ({

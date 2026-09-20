@@ -9,7 +9,7 @@ for (const suffix of ["", "/score"]) {
     await page.goto("/__e2e__/");
     const projectId = await page.evaluate(
       (project) =>
-        window.__e2e.seedLegacyProject({ name: "Bookmarked song", project }),
+        window.__e2e.legacyProjectStorage.create("Bookmarked song", project),
       createDefaultLegacySavedProject(),
     );
     await page.goto(`/project/${projectId}${suffix}`);

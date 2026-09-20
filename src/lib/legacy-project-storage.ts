@@ -67,6 +67,40 @@ class LegacyProjectStorage {
     );
   }
 
+  create(name: string, data: LegacySavedProject): string {
+    const projectId = crypto.randomUUID();
+    const now = Date.now();
+    const metadata: LegacyProjectMetadata = {
+      id: projectId,
+      name,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const projectList = this.readProjectList();
+    projectList.projects.push(metadata);
+    this.writeProjectList(projectList);
+    this.save(projectId, data);
+    return projectId;
+  }
+
+  updateMetadata(
+    projectId: string,
+    updates: Partial<Pick<LegacyProjectMetadata, "name" | "updatedAt">>,
+  ): void {
+    const projectList = this.readProjectList();
+    const index = projectList.projects.findIndex((p) => p.id === projectId);
+    if (index === -1) {
+      throw new Error(`Project ${projectId} not found`);
+    }
+
+    projectList.projects[index] = {
+      ...projectList.projects[index],
+      ...updates,
+    };
+    this.writeProjectList(projectList);
+  }
+
   delete(projectId: string): void {
     const projectList = this.readProjectList();
     projectList.projects = projectList.projects.filter(
@@ -88,6 +122,17 @@ class LegacyProjectStorage {
     return migrateLegacySavedProject(JSON.parse(json) as AnyLegacySavedProject);
   }
 
+  save(projectId: string, data: LegacySavedProject): void {
+    localStorage.setItem(getProjectKey(projectId), JSON.stringify(data));
+    this.updateMetadata(projectId, { updatedAt: Date.now() });
+  }
+
+  setLastProjectId(projectId: string): void {
+    const projectList = this.readProjectList();
+    projectList.lastProjectId = projectId;
+    this.writeProjectList(projectList);
+  }
+
   // binary audio assets
   private assetStore = new IdbStore<StoredAsset>({
     dbName: "toy-midi",
@@ -95,6 +140,19 @@ class LegacyProjectStorage {
     version: 1,
     keyPath: "key",
   });
+
+  async saveAsset(file: File): Promise<string> {
+    const key = generateAssetKey(file);
+    await this.assetStore.put({
+      key,
+      blob: file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      addedAt: Date.now(),
+    });
+    return key;
+  }
 
   async loadAsset(key: string): Promise<StoredAsset | undefined> {
     return this.assetStore.get(key);
@@ -105,6 +163,10 @@ export const legacyProjectStorage = new LegacyProjectStorage();
 
 function getProjectKey(projectId: string): string {
   return `${PROJECT_KEY_PREFIX}${projectId}`;
+}
+
+function generateAssetKey(file: File): string {
+  return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
 // One-time layout v1 → v2 migration: strip the legacy "project-" id prefix
@@ -155,4 +217,32 @@ function migrateLayoutV1(): void {
   for (const key of copiedLegacyKeys) {
     localStorage.removeItem(key);
   }
+}
+
+// e2e-only: seed a legacy v2 project and its referenced audio assets.
+export async function seedProjectLegacyV2({
+  name,
+  project,
+  audioData,
+}: {
+  name: string;
+  project: LegacySavedProject;
+  audioData: Record<string, Uint8Array<ArrayBuffer>>;
+}): Promise<void> {
+  const audioTracks: LegacySavedProject["audioTracks"] = [];
+  for (const track of project.audioTracks) {
+    const data = audioData[track.id];
+    if (!data) {
+      throw new Error(`Missing seed audio for track "${track.id}"`);
+    }
+    const assetKey = await legacyProjectStorage.saveAsset(
+      new File([data], track.fileName, { type: "audio/wav" }),
+    );
+    audioTracks.push({ ...track, assetKey });
+  }
+  const projectId = legacyProjectStorage.create(name, {
+    ...project,
+    audioTracks,
+  });
+  legacyProjectStorage.setLastProjectId(projectId);
 }
