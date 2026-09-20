@@ -46,7 +46,15 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
     exact: true,
   });
   await expect(overviewToggle).not.toBeChecked();
+  // Toggle Overview repeatedly without closing the menu, then dismiss it with Escape.
   await overviewToggle.click();
+  await expect(overviewToggle).toBeChecked();
+  await overviewToggle.press("Enter");
+  await expect(overviewToggle).not.toBeChecked();
+  await overviewToggle.press("Enter");
+  await expect(overviewToggle).toBeChecked();
+  await page.keyboard.press("Escape");
+  await expect(overviewToggle).not.toBeVisible();
 
   // Verify the overview retains track height and note timing while removing the piano roll.
   const overview = row.getByRole("img", {
@@ -108,6 +116,8 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await expect(overviewToggle).toBeChecked();
   await overviewToggle.click();
+  await expect(overviewToggle).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(grid).toBeVisible();
   expect((await row.boundingBox())!.height).toBe(overviewHeight);
   expect(await scroll.evaluate((element) => element.scrollTop)).toBe(scrollTop);
@@ -118,6 +128,8 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   // Return to the resized overview, save, and reload its mode and shared height.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await overviewToggle.click();
+  await expect(overviewToggle).toBeVisible();
+  await page.keyboard.press("Escape");
   expect((await row.boundingBox())!.height).toBe(overviewHeight);
   await saveRecorderProject(page);
   await page.reload();
@@ -131,6 +143,8 @@ test("switches a MIDI track to a passive overview and restores its editor", asyn
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await expect(overviewToggle).toBeChecked();
   await overviewToggle.click();
+  await expect(overviewToggle).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(grid).toBeVisible();
   expect((await row.boundingBox())!.height).toBe(overviewHeight);
   await saveRecorderProject(page);
@@ -147,6 +161,7 @@ test("shows empty and single-pitch overviews", async ({ page }) => {
   await page
     .getByRole("menuitemcheckbox", { name: "Overview", exact: true })
     .click();
+  await page.keyboard.press("Escape");
   await expect(
     row.getByRole("img", { name: "MIDI 1 note overview, 0 notes" }),
   ).toBeVisible();
@@ -160,11 +175,13 @@ test("shows empty and single-pitch overviews", async ({ page }) => {
   await page
     .getByRole("menuitemcheckbox", { name: "Overview", exact: true })
     .click();
+  await page.keyboard.press("Escape");
   await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
     .getByRole("menuitemcheckbox", { name: "Overview", exact: true })
     .click();
+  await page.keyboard.press("Escape");
   const overview = row.getByRole("img", {
     name: "MIDI 1 note overview, 1 note",
   });

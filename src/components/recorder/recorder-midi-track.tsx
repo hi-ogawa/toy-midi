@@ -173,6 +173,7 @@ function MidiTrackActions({
         <DropdownMenuCheckboxItem
           checked={viewMode === "overview"}
           onCheckedChange={onViewModeToggle}
+          onSelect={(event) => event.preventDefault()}
         >
           Overview
         </DropdownMenuCheckboxItem>
