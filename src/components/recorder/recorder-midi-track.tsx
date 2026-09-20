@@ -220,7 +220,6 @@ function MidiTrackOverview({
   beatsPerBar: number;
   viewportStartBeat: number;
 }) {
-  // Use the whole track so horizontal navigation never changes the pitch scale.
   let lowest = track.notes[0]?.pitch ?? 60;
   let highest = lowest;
   for (const note of track.notes) {
