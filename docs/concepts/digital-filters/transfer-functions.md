@@ -136,26 +136,14 @@ As in the recurrence, the denominator determines the natural motion and the nume
 
 ### The s-Plane and z-Plane
 
-To relate a continuous rate $s=\sigma+j\Omega$ to a per-sample multiplier, sample its exponential at $t=nT$:
+Sampling $e^{st}$ at $t=nT$ gives $(e^{sT})^n$, so the rate $s=\sigma+j\Omega$ corresponds to the per-sample multiplier
 
 $$
-e^{snT}=(e^{sT})^n.
+z=e^{sT}=e^{\sigma T}e^{j\Omega T}.
 $$
 
-Its per-sample multiplier is therefore
-
-$$
-z=e^{sT},
-\qquad |z|=e^{\sigma T},
-\qquad \arg z=\Omega T\pmod{2\pi}.
-$$
+The imaginary axis maps to the unit circle, the left half-plane to its interior, and the right half-plane to its exterior. Decay becomes radius and frequency becomes angle, modulo $2\pi$.
 
 ![Exact sampling maps a conjugate pair in the left half of the s-plane to a pair inside the z-plane unit circle. A decaying waveform and its samples show the same motion.](images/filter-mode-planes.svg)
 
-The imaginary axis $s=j\Omega$ maps to the unit circle because sustained oscillation has unit magnitude per step. The left half-plane maps inside the circle because decay has magnitude less than one. The right half-plane maps outside it because growth has magnitude greater than one.
-
-Moving left in the $s$-plane makes decay faster. Its discrete counterpart moves toward the center of the unit circle. Moving vertically changes continuous frequency, which corresponds to changing the angle around the circle.
-
-The imaginary axis wraps around the circle repeatedly. Frequencies separated by $2\pi/T$ have the same sampled multiplier, which explains why sampling cannot distinguish them.
-
-We now have continuous and discrete descriptions of second-order dynamics. The [peaking-EQ design](peaking-eq.md) uses the continuous quadratic response to construct the desired gain and width. Turning that response into a sample computation requires a conversion rule for the driven system, beyond sampling its natural modes. The [bilinear-transform article](bilinear-transform.md) develops that next step.
+The [peaking-EQ design](peaking-eq.md) uses the continuous response to arrange gain and width. Converting the driven filter into a sample computation requires more than sampling its natural modes, which is the task of the [bilinear transform](bilinear-transform.md).
