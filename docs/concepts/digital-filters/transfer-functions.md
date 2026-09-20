@@ -46,9 +46,11 @@ The physical wave is the same, but $\omega$ measures its phase advance in radian
 
 We write the discrete filter's response as $H_d(e^{j\omega})$, using the wave's per-sample multiplier $e^{j\omega}$ as its argument. How does a sample computation produce this frequency-dependent multiplier?
 
-## Combine a Wave with a Delayed Copy
+## How Memory Makes a Filter Frequency-Selective
 
-Multiplying every sample by a constant changes all frequencies equally. To treat frequencies differently, the computation must relate values from different times. Start with the simplest memory, a delay of one sample. On our wave, that delay becomes a rotation:
+We can now describe how a filter responds to each frequency, but what makes those responses differ? Multiplying every sample by a constant gives every frequency the same gain. Remembering a previous sample gives us another possibility. We can combine the wave with a delayed copy whose phase shift depends on frequency.
+
+For a delay of one sample, that phase shift follows directly from our exponential representation:
 
 $$
 x[n-1]=e^{j\omega(n-1)}=e^{-j\omega}x[n].
