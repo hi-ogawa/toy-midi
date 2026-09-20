@@ -7,7 +7,7 @@ import {
   RecorderRuntime,
   type ReferenceVideoState,
 } from "../../lib/recorder/runtime";
-import { recorderStorage } from "../../lib/recorder/storage";
+import { recorderPreferences } from "../../lib/recorder/storage";
 import {
   createYouTubePlayer,
   loadYouTubeApi,
@@ -39,9 +39,7 @@ export function ReferenceVideoPanel({
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampSize(
-      recorderStorage.readPreferences().referenceVideoSize ?? DEFAULT_SIZE,
-    ),
+    clampSize(recorderPreferences.get().referenceVideoSize ?? DEFAULT_SIZE),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
@@ -63,7 +61,7 @@ export function ReferenceVideoPanel({
       setSize(data.size);
     },
     onEnd: (_event, { data }) => {
-      recorderStorage.updatePreferences({ referenceVideoSize: data.size });
+      recorderPreferences.update({ referenceVideoSize: data.size });
     },
   });
 

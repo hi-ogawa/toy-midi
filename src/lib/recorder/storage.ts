@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createStore } from "../../utils/store";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -27,37 +28,43 @@ const recorderPreferencesSchema = z.object({
     })
     .optional(),
 });
-type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
+export type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
 const DEFAULT_PREFERENCES: RecorderPreferences = {
   autoScrollEnabled: true,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
 };
 
-class RecorderStorage {
-  readPreferences(): RecorderPreferences {
-    try {
-      const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
-      return recorderPreferencesSchema.parse({
-        ...DEFAULT_PREFERENCES,
-        ...stored,
-      });
-    } catch {
-      return DEFAULT_PREFERENCES;
-    }
-  }
+// All consumers share one snapshot, including when browser storage is unavailable.
+const store = createStore(readPreferences);
 
-  writePreferences(preferences: RecorderPreferences): void {
+export const recorderPreferences = {
+  get: store.get,
+  subscribe: store.subscribe,
+  update(
+    updates:
+      | Partial<RecorderPreferences>
+      | ((current: RecorderPreferences) => Partial<RecorderPreferences>),
+  ): void {
+    store.update(
+      typeof updates === "function" ? updates(store.get()) : updates,
+    );
     try {
-      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(store.get()));
     } catch {
       // Storage can be disabled without preventing recording.
     }
-  }
+  },
+};
 
-  updatePreferences(updates: Partial<RecorderPreferences>): void {
-    this.writePreferences({ ...this.readPreferences(), ...updates });
+function readPreferences(): RecorderPreferences {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
+    return recorderPreferencesSchema.parse({
+      ...DEFAULT_PREFERENCES,
+      ...stored,
+    });
+  } catch {
+    return DEFAULT_PREFERENCES;
   }
 }
-
-export const recorderStorage = new RecorderStorage();
