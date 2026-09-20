@@ -44,84 +44,66 @@ $$
 
 The physical wave is the same, but $\omega$ measures its phase advance in radians per sample. At 48 kHz, a 12 kHz tone has $\omega=\pi/2$, so each sample advances its phase by a quarter turn.
 
-We write the discrete filter's response as $H_d(e^{j\omega})$, using the wave's per-sample multiplier $e^{j\omega}$ as its argument. How does a sample computation produce this frequency-dependent multiplier?
+To find the response multiplier for a particular filter, substitute the exponential into its sample recurrence.
 
-## Build Frequency Selection from Memory
+## From a Sample Recurrence to a Transfer Function
 
-We can now describe how a filter responds to each frequency, but what makes those responses differ? Multiplying every sample by a constant gives every frequency the same gain. Remembering a previous sample gives us another possibility. We can combine the wave with a delayed copy whose phase shift depends on frequency.
+Consider a filter that combines the current input with two previous inputs and outputs:
 
-### Delayed Inputs Produce Interference
+```math
+\begin{aligned}
+y[n]={}&b_0x[n]+b_1x[n-1]+b_2x[n-2]\\
+&-a_1y[n-1]-a_2y[n-2].
+\end{aligned}
+```
 
-For a delay of one sample, that phase shift follows directly from our exponential representation:
-
-$$
-x[n-1]=e^{j\omega(n-1)}=e^{-j\omega}x[n].
-$$
-
-The delay alone changes phase but not amplitude. Combining the delayed copy with the original can reinforce or cancel it. For example,
-
-$$
-y[n]=\frac{x[n]+x[n-1]}{2}
-\quad\Longrightarrow\quad
-H_d(e^{j\omega})=\frac{1+e^{-j\omega}}{2}.
-$$
-
-A slow wave changes little between samples, so its average stays close to its original value. At $\omega=\pi$, successive samples have opposite signs, so the average vanishes. The relative angle between the copies makes the same computation treat different frequencies differently.
-
-Different weights let us shape this interference. Combining $b_0$ of the current input and $b_1$ of the previous input gives response $b_0+b_1e^{-j\omega}$. Each additional delay contributes another rotation.
-
-### Feedback Introduces a Denominator
-
-Once the input and its delayed copies are gone, the average stops. Feeding a previous output back into the computation lets motion continue:
+An exponential turns this recurrence into algebra. For $x[n]=z^n$ with a complex per-step multiplier $z$, each delay contributes a factor $z^{-1}$. Try a particular output $y[n]=H_d(z)z^n$ and divide through by $z^n$:
 
 $$
-y[n]=b_0x[n]+b_1x[n-1]-a_1y[n-1].
+H_d=b_0+b_1z^{-1}+b_2z^{-2}
+-a_1H_dz^{-1}-a_2H_dz^{-2}.
 $$
 
-First, measure its response to the same sustained wave, $x[n]=e^{j\omega n}$. Write the settled output as $y[n]=H_de^{j\omega n}$. Each delay contributes $e^{-j\omega}$, so substitution gives
-
-$$
-H_d=b_0+b_1e^{-j\omega}-a_1H_de^{-j\omega},
-\qquad
-H_d(e^{j\omega})=\frac{b_0+b_1e^{-j\omega}}{1+a_1e^{-j\omega}}.
-$$
-
-The denominator appears because the output participates in its own computation. We still describe the response to a tone with one complex multiplier.
-
-Now let the input and its delayed copy become zero. The remaining motion follows $y[n]=-a_1y[n-1]$, so each step multiplies the previous output by $-a_1$. When $|a_1|\lt 1$, this **natural motion** decays. It is the transient we set aside when measuring the steady frequency response. Describing it requires a per-step multiplier whose magnitude can differ from one.
-
-### Two Delays Can Hold a Decaying Oscillation
-
-One real feedback coefficient can produce decay or alternating signs. Adding a second output delay allows an oscillation with a chosen frequency. With the input gone, the recurrence is
-
-$$
-y[n]=-a_1y[n-1]-a_2y[n-2].
-$$
-
-To find its natural motion, call the per-step multiplier $z$ and try $y[n]=z^n$. Substitution gives
-
-$$
-z^2+a_1z+a_2=0.
-$$
-
-The roots can now be complex. Writing $z=re^{j\theta}$ gives $z^n=r^ne^{jn\theta}$, so each step scales by $r$ and rotates by $\theta$. A conjugate pair $re^{\pm j\theta}$ combines into real motion
-
-$$
-y[n]=Cr^n\cos(n\theta+\phi).
-$$
-
-For $0\lt r\lt 1$, the radius sets decay and the angle sets oscillation. The conjugate pair lets real feedback coefficients control both.
-
-This broader exponential also extends our response calculation. A delay multiplies $z^n$ by $z^{-1}$, so with up to two input and output delays we obtain the **transfer function**
+Solving for the output-to-input multiplier gives the **transfer function**:
 
 $$
 H_d(z)=\frac{b_0+b_1z^{-1}+b_2z^{-2}}
 {1+a_1z^{-1}+a_2z^{-2}}.
 $$
 
-This ratio of quadratics is a **biquad**. Evaluating it on the unit circle, $z=e^{j\omega}$, recovers the frequency response. Its denominator gives the same roots we found from the motion with no input.
+The input weights form the numerator. Feedback puts the unknown output on both sides of the recurrence, which produces the denominator. This ratio of quadratics is a **biquad**.
 
-Uncanceled denominator roots are called **poles**. A pole pair near the unit circle can produce a strong response to nearby sustained frequencies. The numerator's uncanceled roots are **zeros**, and a zero on the unit circle cancels that tone when the denominator is nonzero. These give us ways to shape a response, not just analyze one.
+### Read the Frequency Response on the Unit Circle
+
+For a sustained tone, $z=e^{j\omega}$. Evaluating $H_d$ there gives the gain and phase multiplier from our original experiment. As $\omega$ varies, $z$ travels around the unit circle.
+
+For example, averaging two adjacent samples has $b_0=b_1=1/2$ and all other coefficients zero:
+
+$$
+H_d(e^{j\omega})=\frac{1+e^{-j\omega}}{2}.
+$$
+
+At low frequency, the two copies are nearly aligned and reinforce each other. At $\omega=\pi$, they have opposite signs and cancel. The formula shows how the same sample weights give different gains at different frequencies.
+
+### Read the Natural Motion from the Denominator
+
+The particular response leaves out motion due to the initial state. Set the input to zero and try the same exponential in the homogeneous recurrence:
+
+$$
+y[n]=-a_1y[n-1]-a_2y[n-2]
+\quad\Longrightarrow\quad
+z^2+a_1z+a_2=0.
+$$
+
+Its roots are the per-step multipliers of the natural motion. Writing $z=re^{j\theta}$ makes their meaning explicit, since $z^n=r^ne^{jn\theta}$. A conjugate pair combines into real motion
+
+$$
+y[n]=Cr^n\cos(n\theta+\phi).
+$$
+
+For $0\lt r\lt 1$, the radius sets decay and the angle sets oscillation. This is the fading transient we excluded when measuring the steady response.
+
+The same roots occur in the transfer-function denominator. Uncanceled denominator roots are called **poles**, while uncanceled numerator roots are **zeros**. A pole pair near the unit circle can produce a strong response to nearby tones, while a zero on the circle cancels that tone if the denominator is nonzero. The recurrence's natural motion and its frequency response are thus connected through the same polynomial.
 
 ## Connect Continuous and Sampled Motion
 
