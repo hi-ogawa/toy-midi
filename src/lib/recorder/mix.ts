@@ -1,5 +1,6 @@
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
+import { getAudibleItems } from "../mute-solo.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
@@ -126,11 +127,11 @@ export function deriveTrackMix({
   "audioTracks" | "midiTracks" | "recordingTrack"
 >): Map<string, number> {
   const tracks = [...audioTracks, ...midiTracks, recordingTrack];
-  const anyTrackSoloed = tracks.some((track) => track.soloed);
+  const audibleTracks = new Set(getAudibleItems(tracks));
   return new Map(
     tracks.map((track) => [
       track.id,
-      track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
+      audibleTracks.has(track) ? track.gain : 0,
     ]),
   );
 }
