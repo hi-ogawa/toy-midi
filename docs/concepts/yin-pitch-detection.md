@@ -6,7 +6,7 @@ The useful match is not always the deepest one. A waveform also lines up after t
 
 ## Find Repetition by Shifting the Waveform
 
-A **lag** $\tau$ is a shift measured in samples. If the waveform repeats after $\tau$ samples at sample rate $F_s$, its frequency is
+A **lag** $\tau$ is a shift measured in samples. If the waveform repeats after $\tau$ samples at sample rate $`F_s`$, its frequency is
 
 $$
 f=\frac{F_s}{\tau}.
@@ -16,7 +16,7 @@ At 48 kHz, a 110 Hz note repeats about every 436 samples. A longer period means 
 
 Our tuner reads 4096 samples per update, about 85 ms at 48 kHz. That contains roughly nine cycles of a 110 Hz note, but only about three and a half cycles of a 41.2 Hz bass E. We need enough audio to see repetition, while a longer window also retains more of the previous sound after a note changes.
 
-To test a lag, compare a segment with a copy starting $\tau$ samples later. Treat those equal-length segments as vectors $\mathbf{x}_0$ and $\mathbf{x}_\tau$. Their squared distance is the **difference function**:
+To test a lag, compare a segment with a copy starting $\tau$ samples later. Treat those equal-length segments as vectors $`\mathbf{x}_0`$ and $`\mathbf{x}_\tau`$. Their squared distance is the **difference function**:
 
 $$
 d(\tau)=\|\mathbf{x}_0-\mathbf{x}_\tau\|^2.
@@ -71,7 +71,7 @@ Use the selected trough and its two neighbors to fit a small parabola. Its verte
 
 ![A parabola through three mismatch scores places the estimated minimum between integer lag positions](images/yin-parabolic-refinement.svg)
 
-Write the three scores as $y_-=d'(\tau-1)$, $y_0=d'(\tau)$, and $y_+=d'(\tau+1)$. The vertex is at
+Write the three scores as $`y_-=d'(\tau-1)`$, $`y_0=d'(\tau)`$, and $`y_+=d'(\tau+1)`$. The vertex is at
 
 $$
 \hat\tau=\tau+\frac{y_--y_+}{2(y_--2y_0+y_+)}.
@@ -112,7 +112,7 @@ Note naming and cents offset happen outside the detector, using 12-tone equal te
 
 ## Appendix: Parabolic Interpolation Derivation
 
-Let $u$ measure the offset from the selected integer lag $\tau$. The three neighboring scores then have coordinates $(-1,y_-)$, $(0,y_0)$, and $(1,y_+)$. Approximate the curve between them with
+Let $u$ measure the offset from the selected integer lag $\tau$. The three neighboring scores then have coordinates $`(-1,y_-)`$, $`(0,y_0)`$, and $`(1,y_+)`$. Approximate the curve between them with
 
 $$
 q(u)=Au^2+Bu+C.
@@ -141,6 +141,6 @@ u=-\frac{B}{2A}
 =\frac{y_- -y_+}{2(y_- -2y_0+y_+)}.
 $$
 
-The refined lag is $\hat{\tau}=\tau+u$. When the two neighboring scores are equal, $y_-=y_+$, the offset is zero. When the right neighbor has a lower score than the left, the offset is positive, moving the estimated minimum toward the right.
+The refined lag is $\hat{\tau}=\tau+u$. When the two neighboring scores are equal, $`y_-=y_+`$, the offset is zero. When the right neighbor has a lower score than the left, the offset is positive, moving the estimated minimum toward the right.
 
 The parabola provides a local approximation to the trough, allowing an estimate between the sampled lag positions.
