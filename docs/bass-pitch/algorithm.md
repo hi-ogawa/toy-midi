@@ -1,14 +1,14 @@
 # Grid-Guided Bass Transcription
 
-The project already knows the tempo, grid origin, and audio offset. If the recording contains one bass line, we can use that timing to restrict note boundaries to grid cells instead of searching for arbitrary start and end times. Transcription then becomes three ordered decisions: find sounding cells, split them at fresh attacks, and assign a pitch to each resulting region.
+Looking at a bass waveform against toy-midi’s grid, many attacks and gaps already suggest where to cut it into notes. The project knows the tempo, grid origin, and audio offset, so we can turn that visual intuition into a computation. For a monophonic bass line, restrict note boundaries to grid cells instead of searching for arbitrary start and end times. Transcription then becomes three ordered decisions: find sounding cells, split them at fresh attacks, and assign a pitch to each resulting region.
 
 Each decision needs different evidence. A repeated note can have a new attack without changing pitch, while a clearly audible note can have an uncertain pitch estimate. Loudness establishes activity, spectral changes suggest articulation, and pYIN supplies pitch candidates.
 
 ## One Bar Through the Pipeline
 
-The figure uses bar 11 of the Demucs-separated bass stem from Primrose’s “Ring” at 105 BPM. The stem has a synth-like bass sound. Each sixteenth-note cell lasts about 143 ms and contains roughly 12 analysis frames. All rows share the same time axis. The outlined regions are spans established by activity and onset evidence before any pitch is assigned. The pitch dots and probability bars below them show the measured voiced frames. Only frames inside a region participate in its vote, so estimates in gray inactive cells are ignored.
+The figure uses bar 11 of the Demucs-separated bass stem from Primrose’s “Ring” at 105 BPM. The stem has a synth-like bass sound. Each sixteenth-note cell lasts about 143 ms and contains roughly 12 analysis frames. The input waveform and all decision rows share the same time axis. The waveform is scaled for display, while the RMS row retains the measured dBFS values. The outlined regions are spans established by activity and onset evidence before any pitch is assigned. The pitch dots and probability bars below them show the measured voiced frames. Only frames inside a region participate in its vote, so estimates in gray inactive cells are ignored.
 
-![Demucs-separated bass stem showing cell loudness against the activity threshold, onset peaks against the split threshold, regions before pitch voting, voiced frame pitches and probabilities, and seven resulting notes. Four D1 notes are separated despite sharing a pitch, and cell 4 retains a decay tail.](images/transcription-grid.svg)
+![Demucs-separated bass stem waveform aligned with cell loudness against the activity threshold, onset peaks against the split threshold, regions before pitch voting, voiced frame pitches and probabilities, and seven resulting notes. Four D1 notes are separated despite sharing a pitch, and cell 4 retains a decay tail.](images/transcription-grid.svg)
 
 ### Loudness Defines Active Runs
 
