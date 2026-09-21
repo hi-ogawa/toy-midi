@@ -38,7 +38,7 @@ $$
 F_t=\frac{1}{B}\sum_{b=1}^{B}\max\bigl(0,\ell_t(b)-\ell_{t-1}(b)\bigr).
 $$
 
-This is the **spectral flux** used here. Replacing negative changes with zero is called **rectification**.
+This is the **spectral flux** used here. In signal processing, “flux” refers to spectral change between frames, not physical energy flow. Replacing negative changes with zero is called **rectification**.
 
 ![Two successive log-power spectra in four illustrative bands, followed by their positive differences. A three-decibel fall contributes zero, while rises of six and three decibels survive.](images/onset-spectral-flux.svg)
 
