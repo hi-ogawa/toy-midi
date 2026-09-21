@@ -14,22 +14,27 @@ This example uses troughs at $T$ and $2T$, corresponding to 110 Hz and 55 Hz, wi
 
 ### Assign Weights to the Possible Pitches
 
-The audio supplies each trough’s mismatch depth $d'(\tau_i)$. A threshold $\theta$ is a hypothetical acceptance cutoff on that same scale, so trough $i$ qualifies when $d'(\tau_i)<\theta$. To turn the measured depths into pitch weights, pYIN averages this acceptance-and-sharing rule over a chosen distribution of cutoffs. It does not estimate a single threshold from the audio.
+For a trough depth $d$ between 0 and 1, the simple confidence rule $1-d$ has a useful interpretation. It is the area above $d$ under a uniform probability density on $[0,1]$. More generally, define its **acceptance probability** by
 
-The implementation considers cutoffs in $[0,1]$ and divides that range into 100 equal intervals. This bounds the cutoffs, not the normalized difference function, which can exceed 1. Each interval receives probability weight $w_k$ from the threshold density $p(\theta)$. The implementation chooses Beta(2, 18) as its model, concentrated near low mismatch thresholds with mean 0.1.
+$$
+a(d)=\int_d^1 p(\theta) d\theta,\qquad 0\le d\le1.
+$$
+
+Deeper troughs have smaller $d$ and receive more area. The implementation makes the specific modeling choice of a Beta(2, 18) density, replacing the linear $1-d$ mapping with a curve that favors low mismatch depths. Depths at or above 1 receive zero acceptance probability.
+
+Here $\theta$ represents possible YIN acceptance cutoffs: a trough passes whenever $d<\theta$. The tail area averages that decision over the chosen density.
 
 ![Beta threshold density with equal-width strips, one labeled w_k. Shaded areas show the weight of thresholds accepting neither trough, only 2T, or both.](images/pyin-threshold-mass.svg)
 
-The weight $w_k$ is the area of its strip under the curve:
+For our two troughs, the area above 0.12 is about 0.317, while the area above 0.04 is about 0.825. But these acceptance probabilities overlap. Above 0.12 both troughs qualify, so pYIN shares that area between them rather than counting it fully for each.
+
+The implementation computes this sharing over 100 equal intervals. Each strip contributes its area
 
 $$
-w_k=\int_{\theta_{k-1}}^{\theta_k}p(\theta) d\theta,
-\qquad \sum_k w_k=1.
+w_k=\int_{\theta_{k-1}}^{\theta_k}p(\theta) d\theta.
 $$
 
-The upper boundary $\theta_k$ is the threshold tested for that strip. Taller strips carry more weight.
-
-For this example, roughly 17.5% of the threshold mass accepts neither trough, 50.8% accepts only $2T$, and 31.7% accepts both. We now need to distribute each threshold’s mass among the troughs it accepts. When several qualify, pYIN retains a preference for shorter periods. Rank the qualifying troughs by lag, starting at zero, and give candidate $i$ the share
+At the strip’s upper boundary $\theta_k$, rank the qualifying troughs by lag, starting at zero. Candidate $i$ receives the share
 
 $$
 q_{i,k}=\frac{e^{-\lambda r_{i,k}}}{\sum_{j\text{ qualifying}}e^{-\lambda r_{j,k}}},
