@@ -223,7 +223,7 @@ type RecorderRuntimeClipsState = Pick<
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
-    title: "Untitled project",
+    title: "Untitled",
     locators: [],
     position: 0,
     isPlaying: false,
