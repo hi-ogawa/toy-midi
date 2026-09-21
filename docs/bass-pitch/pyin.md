@@ -14,7 +14,9 @@ This example uses troughs at $T$ and $2T$, corresponding to 110 Hz and 55 Hz, wi
 
 ### Assign Weights to the Possible Pitches
 
-Divide the threshold range $[0,1]$ into 100 equal intervals. Each interval receives probability weight $w_k$ from the threshold density $p(\theta)$. The implementation chooses Beta(2, 18) as its model, concentrated near low mismatch thresholds with mean 0.1.
+The audio supplies each trough’s mismatch depth $d'(\tau_i)$. A threshold $\theta$ is a hypothetical acceptance cutoff on that same scale, so trough $i$ qualifies when $d'(\tau_i)<\theta$. To turn the measured depths into pitch weights, pYIN averages this acceptance-and-sharing rule over a chosen distribution of cutoffs. It does not estimate a single threshold from the audio.
+
+The implementation considers cutoffs in $[0,1]$ and divides that range into 100 equal intervals. This bounds the cutoffs, not the normalized difference function, which can exceed 1. Each interval receives probability weight $w_k$ from the threshold density $p(\theta)$. The implementation chooses Beta(2, 18) as its model, concentrated near low mismatch thresholds with mean 0.1.
 
 ![Beta threshold density with equal-width strips, one labeled w_k. Shaded areas show the weight of thresholds accepting neither trough, only 2T, or both.](images/pyin-threshold-mass.svg)
 
@@ -36,7 +38,7 @@ $$
 
 Thus two qualifying troughs share the threshold's mass in proportions about 0.881 and 0.119. This is a soft version of YIN's first-trough preference. The rank is among qualifying troughs, so it can change with the threshold.
 
-Nonqualifying candidates receive zero. If none qualifies, our implementation gives just 1% of that bin's mass to the deepest trough and leaves the rest unassigned. With those rules included in $q_{i,k}$, add the contributions from all thresholds to obtain each candidate’s weight
+Nonqualifying candidates receive zero. If none qualifies, our implementation gives just 1% of that bin's mass to the deepest trough and leaves the rest unassigned. With those rules included in $q_{i,k}$, average the shares over the threshold distribution to obtain each candidate’s weight
 
 $$
 p_i=\sum_k w_kq_{i,k}.
