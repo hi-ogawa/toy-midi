@@ -60,7 +60,8 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  const [defaultMidiProgram] = useRecorderPreference("defaultMidiProgram");
+  const [defaultMidiProgram, setDefaultMidiProgram] =
+    useRecorderPreference("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
@@ -499,6 +500,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 midiInteraction={midiInteraction}
                 onTranscribe={() => transcriptions.openTranscription(track.id)}
                 onScorePreview={() => scoreUi.open(track.id)}
+                onProgramSelected={setDefaultMidiProgram}
               />
             ))}
 
