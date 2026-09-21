@@ -4,6 +4,7 @@ import {
   addRecorderMidiTrack,
   createRecorderMidiNote,
   saveRecorderProject,
+  openRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 test("updates tab strings for selected MIDI notes together", async ({
@@ -18,15 +19,14 @@ test("updates tab strings for selected MIDI notes together", async ({
     pitch: "E4",
   });
 
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  await page.getByRole("checkbox", { name: "Show string annotations" }).check();
-  await page
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await instrument
+    .getByRole("checkbox", { name: "Show string annotations" })
+    .check();
+  await instrument
     .getByRole("combobox", { name: "Tuning", exact: true })
     .selectOption({ label: "5-string bass (BEADG)" });
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await expect(c4.getByTestId("tab-annotation")).toHaveText("G17");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");
 
