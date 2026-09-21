@@ -176,16 +176,21 @@ test("auto-scroll follows playback only while enabled", async ({ page }) => {
   await page.keyboard.press("f");
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
   const ruler = page.getByTestId("recorder-timeline-ruler");
-  const initial = await ruler.textContent();
+  await expect(ruler).toHaveAttribute("data-viewport-start-beat", "0");
   await page.getByTestId("recorder-play-button").click();
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(10);
-  await expect(ruler).toHaveText(initial!);
+  await expect(ruler).toHaveAttribute("data-viewport-start-beat", "0");
 
   // Enable following and bring the playing position into view.
   await page.keyboard.press("f");
   await expect(autoScroll).toHaveAttribute("aria-pressed", "true");
-  await expect(ruler).not.toHaveText(initial!);
+  await expect
+    .poll(() =>
+      ruler.evaluate((element) => Number(element.dataset.viewportStartBeat)),
+    )
+    .toBeGreaterThan(0);
+  await expect(page.getByTestId("recorder-playhead")).toBeVisible();
   await page.getByTestId("recorder-play-button").click();
 });
