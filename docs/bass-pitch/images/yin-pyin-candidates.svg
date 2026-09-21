@@ -1,34 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="410" viewBox="0 0 1000 410" role="img" aria-labelledby="title desc">
-<title id="title">YIN chooses one trough; pYIN retains weighted alternatives</title><desc id="desc">The same schematic difference curve has troughs at T with depth 0.12 and 2T with depth 0.04. YIN with threshold 0.15 selects T, the first qualifying trough. pYIN varies the threshold and assigns weights to both troughs, about 0.279 to T and 0.548 to 2T.</desc>
+<title id="title">YIN chooses one pitch; pYIN retains several possible pitches</title><desc id="desc">The same schematic difference curve has troughs at T with depth 0.12 and 2T with depth 0.04. YIN with threshold 0.15 selects T, the first qualifying trough. pYIN varies the threshold and assigns weights to both troughs, about 0.279 to T and 0.548 to 2T.</desc>
 <rect width="1000" height="410" fill="white"/>
 <g font-family="sans-serif" font-size="14" fill="#334155">
-<text x="30" y="30" font-size="19" font-weight="bold">YIN: choose one period</text>
-<text x="530" y="30" font-size="19" font-weight="bold">pYIN: retain weighted candidates</text>
+<text x="30" y="30" font-size="19" font-weight="bold">YIN: one pitch estimate</text>
+<text x="530" y="30" font-size="19" font-weight="bold">pYIN: several possible pitches</text>
 <text x="30" y="57">First trough below a fixed threshold</text>
-<text x="530" y="57">Vary the threshold and accumulate weights</text>
+<text x="530" y="57">Each pitch carries its own weight</text>
 <path d="M500 20V390" stroke="#e2e8f0"/>
 
 <text x="30" y="85" fill="#64748b">Normalized mismatch d′(τ) · lower is better</text>
 <path d="M65 98V280H460" stroke="#94a3b8" fill="none"/><text x="53" y="285" text-anchor="end">0</text>
 <path d="M65 235H460" stroke="#ea580c" stroke-dasharray="5 4"/><text x="70" y="226" fill="#c2410c">threshold 0.15</text>
 <path d="M65 110 C107 110 143 244 185 244 C225 244 232 125 278 125 C325 125 333 268 370 268 C405 268 435 165 460 130" stroke="#475569" stroke-width="2.5" fill="none"/>
-<circle cx="185" cy="244" r="5" fill="#0f766e" stroke="#0f766e" stroke-width="2"/><text x="185" y="304" text-anchor="middle">T: 0.12</text>
-<circle cx="370" cy="268" r="5" fill="white" stroke="#475569" stroke-width="2"/><text x="370" y="304" text-anchor="middle">2T: 0.04</text>
-<text x="460" y="322" text-anchor="end" fill="#64748b">Period shift τ →</text>
+<circle cx="185" cy="244" r="5" fill="#0f766e" stroke="#0f766e" stroke-width="2"/><text x="185" y="304" text-anchor="middle">T → 110 Hz</text>
+<circle cx="370" cy="268" r="5" fill="white" stroke="#475569" stroke-width="2"/><text x="370" y="304" text-anchor="middle">2T → 55 Hz</text>
+<text x="460" y="322" text-anchor="end" fill="#64748b">Lag τ →</text>
 <text x="530" y="85" fill="#64748b">Normalized mismatch d′(τ) · lower is better</text>
 <path d="M565 98V280H960" stroke="#94a3b8" fill="none"/><text x="553" y="285" text-anchor="end">0</text>
-<path d="M565 220H960" stroke="#cbd5e1" stroke-dasharray="4 4"/>
-<path d="M565 235H960" stroke="#cbd5e1" stroke-dasharray="4 4"/>
-<path d="M565 250H960" stroke="#cbd5e1" stroke-dasharray="4 4"/>
-<path d="M565 265H960" stroke="#cbd5e1" stroke-dasharray="4 4"/>
-<path d="M565 275H960" stroke="#cbd5e1" stroke-dasharray="4 4"/>
 <path d="M565 110 C607 110 643 244 685 244 C725 244 732 125 778 125 C825 125 833 268 870 268 C905 268 935 165 960 130" stroke="#475569" stroke-width="2.5" fill="none"/>
-<circle cx="685" cy="244" r="5" fill="#0f766e" stroke="#0f766e" stroke-width="2"/><text x="685" y="304" text-anchor="middle">T: 0.12</text>
-<circle cx="870" cy="268" r="5" fill="#0f766e" stroke="#0f766e" stroke-width="2"/><text x="870" y="304" text-anchor="middle">2T: 0.04</text>
-<text x="960" y="322" text-anchor="end" fill="#64748b">Period shift τ →</text>
-<rect x="100" y="335" width="320" height="35" rx="5" fill="#ccfbf1"/><text x="260" y="358" text-anchor="middle" font-weight="bold">Output: T</text>
-<text x="30" y="394" fill="#64748b">At threshold 0.10, the choice would instead be 2T.</text>
-<rect x="570" y="335" width="180" height="35" rx="5" fill="#ccfbf1"/><text x="660" y="358" text-anchor="middle" font-weight="bold">T: weight ≈ 0.279</text>
-<rect x="770" y="335" width="200" height="35" rx="5" fill="#ccfbf1"/><text x="870" y="358" text-anchor="middle" font-weight="bold">2T: weight ≈ 0.548</text>
+<circle cx="685" cy="244" r="5" fill="#0f766e" stroke="#0f766e" stroke-width="2"/><text x="685" y="304" text-anchor="middle">T → 110 Hz</text>
+<circle cx="870" cy="268" r="5" fill="#0f766e" stroke="#0f766e" stroke-width="2"/><text x="870" y="304" text-anchor="middle">2T → 55 Hz</text>
+<text x="960" y="322" text-anchor="end" fill="#64748b">Lag τ →</text>
+<rect x="100" y="335" width="320" height="35" rx="5" fill="#ccfbf1"/><text x="260" y="358" text-anchor="middle" font-weight="bold">Output: 110 Hz</text>
+<text x="30" y="394" fill="#64748b">The fixed threshold selects one trough.</text>
+<rect x="570" y="335" width="180" height="35" rx="5" fill="#ccfbf1"/><text x="660" y="358" text-anchor="middle" font-weight="bold">110 Hz: ≈ 0.279</text>
+<rect x="770" y="335" width="200" height="35" rx="5" fill="#ccfbf1"/><text x="870" y="358" text-anchor="middle" font-weight="bold">55 Hz: ≈ 0.548</text>
 <text x="530" y="394" fill="#64748b">Schematic curve; weights follow the calculation below.</text>
 </g></svg>

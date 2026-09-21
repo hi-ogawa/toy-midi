@@ -1,16 +1,16 @@
 # pYIN: From Ambiguous Periods to a Pitch Sequence
 
-A bass waveform can line up with itself after one period or two, and the deeper match can change during an attack. Choosing one pitch independently in each frame can therefore turn small changes in the waveform into octave jumps. We want to retain plausible alternatives until neighboring frames can help distinguish them.
+One short audio frame can suggest several possible pitches. Choosing one immediately can make the estimate jump between them as the waveform changes. pYIN keeps those possibilities until neighboring frames can help choose a consistent pitch sequence.
 
-[YIN](../concepts/yin-pitch-detection.md) supplies the starting point. Its normalized difference curve measures how well a waveform matches a delayed copy, and its first trough below a threshold is the period estimate. pYIN replaces that single decision with weighted candidates, then chooses a sequence that balances those candidates against continuity in pitch.
+[YIN](../concepts/yin-pitch-detection.md) supplies the starting point. Its normalized difference curve measures how well a waveform matches a copy shifted by lag $\tau$. A trough suggests a period of $\tau$ samples, or frequency $f=F_s/\tau$ at sample rate $F_s$. Longer lags therefore mean lower pitches.
 
-## Ambiguous Periods Within a Frame
+## Possible Pitches Within a Frame
 
-For one frame, start with YIN’s normalized difference curve. Its troughs propose candidate periods. YIN commits to the first trough below its threshold; pYIN keeps multiple troughs and assigns each a weight before choosing a path across frames.
+YIN selects the first trough below a fixed threshold. pYIN keeps several possible pitches and gives each a weight expressing the frame’s support for it. The sequence decoder chooses among them later.
 
-![The same difference curve under YIN and pYIN. YIN selects the first trough below a fixed threshold, while pYIN retains weighted candidates at T and 2T.](images/yin-pyin-candidates.svg)
+![YIN selects one pitch from a difference-curve trough. pYIN retains both illustrated pitches, 110 Hz and 55 Hz, with separate weights.](images/yin-pyin-candidates.svg)
 
-Here the troughs at $T$ and $2T$ have depths 0.12 and 0.04. A threshold of 0.15 makes YIN choose $T$; lowering it to 0.10 changes the choice to $2T$, one octave lower. pYIN turns this threshold sensitivity into weights for both candidates.
+This example uses troughs at $T$ and $2T$, corresponding to 110 Hz and 55 Hz, with mismatch depths 0.12 and 0.04. Their octave relationship is a common ambiguity, not a restriction on the possible pitches. Other trough locations give other frequencies. We call each possible pitch a **candidate**.
 
 ### Average Over Threshold Uncertainty
 
