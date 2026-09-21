@@ -35,19 +35,17 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
   )
     ? latencies.reduce<number>((sum, value) => sum + value!, 0)
     : undefined;
-  const rows = [
+  const contextRows = [
     ["Context", context.state],
     ["Context sample rate", formatRate(context.sampleRate)],
     ["Base latency", formatLatency(context.baseLatency)],
     ["Output latency", formatLatency(context.outputLatency)],
     ["Input latency", formatLatency(settings?.latency)],
     ["Base + Output + Input", formatLatency(candidateLatency)],
-    ["Input", track ? track.label || "Unlabeled input" : "Input disabled"],
-    ["Input sample rate", formatRate(settings?.sampleRate)],
-    [
-      "Selected channel",
-      track ? String(state.selectedChannel + 1) : "Unavailable",
-    ],
+  ];
+  const inputRows = [
+    ["Device", track ? track.label || "Unlabeled input" : "Input disabled"],
+    ["Sample rate", formatRate(settings?.sampleRate)],
     [
       "Reported / observed channels",
       track
@@ -60,14 +58,22 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
   ];
   return (
     <section aria-label="Audio debug readings" className="mt-3 space-y-3">
-      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2">
-        {rows.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-neutral-400">{label}</dt>
-            <dd className="break-words text-neutral-200">{value}</dd>
-          </div>
-        ))}
-      </dl>
+      {[
+        { title: "Context and latency", rows: contextRows },
+        { title: "Input", rows: inputRows },
+      ].map(({ title, rows }) => (
+        <div key={title}>
+          <h4 className="mb-2 font-medium text-neutral-200">{title}</h4>
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2">
+            {rows.map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-neutral-400">{label}</dt>
+                <dd className="break-words text-neutral-200">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
     </section>
   );
 }
