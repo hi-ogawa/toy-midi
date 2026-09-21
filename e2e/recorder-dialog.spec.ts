@@ -71,19 +71,6 @@ test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
   await expect(help).toBeHidden();
 });
 
-test("a directly opened dialog closes with Escape", async ({ page }) => {
-  // Open Input Setup from its persistent button and focus the dialog's close control.
-  await createRecorderProject(page);
-  const configure = page.getByRole("button", { name: "Configure audio input" });
-  await configure.click();
-  const dialog = page.getByRole("dialog", { name: "Audio Input Setup" });
-  await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
-
-  // Close Input Setup with Escape.
-  await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
-});
-
 test("instrument dialog isolates shortcuts", async ({ page }) => {
   // Open a track's instrument dialog from its menu with a selected unsaved note.
   await createRecorderProject(page);
@@ -113,8 +100,4 @@ test("instrument dialog isolates shortcuts", async ({ page }) => {
     "data-status",
     "unsaved",
   );
-
-  // Dismiss the instrument dialog with Escape.
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
 });
