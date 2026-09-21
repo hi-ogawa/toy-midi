@@ -21,6 +21,7 @@ import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
+import { RecorderHelp } from "./help";
 import {
   RecorderAudioToMidi,
   useRecorderAudioToMidiUi,
@@ -70,6 +71,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -322,6 +324,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
+        onHelpOpen={() => setIsHelpOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -611,6 +614,10 @@ export function Recorder({ projectId }: { projectId: string }) {
           </div>
         </section>
 
+        <RecorderHelp
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+        />
         <RecorderExportDialog
           runtime={runtime}
           state={state}

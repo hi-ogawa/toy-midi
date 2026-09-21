@@ -16,7 +16,6 @@ import {
   VideoIcon,
   SlidersVerticalIcon,
 } from "lucide-react";
-import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { formatGainDb } from "../../lib/music";
@@ -45,7 +44,6 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
-import { RecorderHelp } from "./help";
 import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
@@ -85,6 +83,7 @@ export function RecorderHeader({
   onExportAudio,
   onReferenceVideoOpenChange,
   onMixerToggle,
+  onHelpOpen,
   mixerOpen,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
@@ -121,9 +120,9 @@ export function RecorderHeader({
   onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
+  onHelpOpen: () => void;
   mixerOpen: boolean;
 }) {
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
     value: tempo,
@@ -398,7 +397,7 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setIsHelpOpen(true)}>
+          <DropdownMenuItem onSelect={onHelpOpen}>
             <CircleHelpIcon />
             Help & Shortcuts
           </DropdownMenuItem>
@@ -435,7 +434,6 @@ export function RecorderHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <RecorderHelp isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </header>
   );
 }
