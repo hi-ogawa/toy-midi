@@ -19,26 +19,6 @@ const traceEnabled =
 
 export default defineConfig({
   testDir: "./e2e",
-  // Legacy editor routes now open migration. Retain these suites until #574's code-removal step.
-  testIgnore: [
-    "**/audio-to-midi.spec.ts",
-    "**/audio-tracks.spec.ts",
-    "**/copy-paste.spec.ts",
-    "**/help-overlay.spec.ts",
-    "**/locators.spec.ts",
-    "**/multiple-projects.spec.ts",
-    "**/mute-shortcuts.spec.ts",
-    "**/persistence.spec.ts",
-    "**/piano-roll.spec.ts",
-    "**/project-migration.spec.ts",
-    "**/quantize.spec.ts",
-    "**/score-preview.spec.ts",
-    "**/settings-export.spec.ts",
-    "**/startup-screen.spec.ts",
-    "**/tab-annotation.spec.ts",
-    "**/transport.spec.ts",
-    "**/undo-redo.spec.ts",
-  ],
   webServer: {
     command:
       server === "dev"
@@ -46,10 +26,6 @@ export default defineConfig({
         : `pnpm build-app && pnpm preview --port ${port} --strictPort`,
     url: `http://localhost:${port}`,
     reuseExistingServer: false,
-    env: {
-      // Vite embeds this value during the build as well as in dev mode.
-      VITE_AUTO_SAVE_DEBOUNCE_MS: "50",
-    },
   },
   use: {
     baseURL: `http://localhost:${port}`,
