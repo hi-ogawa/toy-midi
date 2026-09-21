@@ -168,11 +168,16 @@ test("toggles the metronome by button and shortcut without intercepting text inp
 });
 
 test("auto-scroll follows playback only while enabled", async ({ page }) => {
-  // Disable following and seek beyond the initial viewport while playback runs.
+  // Open a project with the stopped playhead in view at beat zero.
   await createRecorderProject(page);
   const autoScroll = page.getByRole("button", {
     name: "Toggle auto-scroll (F)",
   });
+  const playhead = page.getByTestId("recorder-playhead");
+  await expect.poll(() => getRecorderBeat(page)).toBe(0);
+  await expect(playhead).toBeInViewport();
+
+  // Disable following and seek beyond the initial viewport while playback runs.
   await page.keyboard.press("f");
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
   const ruler = page.getByTestId("recorder-timeline-ruler");
@@ -180,7 +185,7 @@ test("auto-scroll follows playback only while enabled", async ({ page }) => {
   await page.getByTestId("recorder-play-button").click();
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
-  await expect(page.getByTestId("recorder-playhead")).not.toBeVisible();
+  await expect(playhead).not.toBeInViewport();
   await expect(ruler).toHaveAttribute("data-viewport-start-beat", "0");
 
   // Enable following and bring the playing position into view.
@@ -191,6 +196,6 @@ test("auto-scroll follows playback only while enabled", async ({ page }) => {
       ruler.evaluate((element) => Number(element.dataset.viewportStartBeat)),
     )
     .toBeGreaterThan(0);
-  await expect(page.getByTestId("recorder-playhead")).toBeVisible();
+  await expect(playhead).toBeInViewport();
   await page.getByTestId("recorder-play-button").click();
 });
