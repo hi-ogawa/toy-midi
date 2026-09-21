@@ -47,23 +47,24 @@ export async function openRecorderMidiInstrument({
       await page
         .getByRole("menuitem", { name: "Instrument…", exact: true })
         .click();
-      return page.getByRole("combobox", { name: `${name} program` });
+      return page.getByTestId("recorder-midi-instrument");
     },
     { box: true },
   );
 }
 
 export async function selectRecorderMidiInstrument({
-  program,
+  instrument,
   option,
 }: {
-  program: Locator;
+  instrument: Locator;
   option: string;
 }) {
   await test.step(
     `Select ${option}`,
     async () => {
-      const page = program.page();
+      const page = instrument.page();
+      const program = instrument.getByRole("combobox", { name: / program$/ });
       await program.click();
       await page
         .getByPlaceholder("Search instruments...")
