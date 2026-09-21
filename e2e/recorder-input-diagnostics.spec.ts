@@ -14,6 +14,10 @@ test("inspect live editor input diagnostics", async ({ page }) => {
   await setup.getByText("Audio debug", { exact: true }).click();
   await expect(readings).toContainText("Input disabled");
   await expect(
+    readings.locator("dt", { hasText: "Context sample rate" }).locator("+ dd"),
+  ).toHaveText(/^[1-9]\d* Hz$/);
+
+  await expect(
     readings
       .locator("dt", { hasText: "Base + Output + Input" })
       .locator("+ dd"),
@@ -25,7 +29,7 @@ test("inspect live editor input diagnostics", async ({ page }) => {
     .click();
   await expect(readings).toContainText("Fake Default Audio Input");
   await expect(
-    readings.locator("dt", { hasText: "Context sample rate" }).locator("+ dd"),
+    readings.locator("dt", { hasText: /^Sample rate$/ }).locator("+ dd"),
   ).toHaveText(/^[1-9]\d* Hz$/);
   await expect(
     readings.locator("dt", { hasText: "Echo cancellation" }).locator("+ dd"),
