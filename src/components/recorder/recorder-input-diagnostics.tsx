@@ -41,12 +41,7 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
     ["Base latency", formatLatency(context.baseLatency)],
     ["Output latency", formatLatency(context.outputLatency)],
     ["Input latency", formatLatency(settings?.latency)],
-    [
-      "Candidate estimate",
-      candidateLatency === undefined
-        ? "Incomplete"
-        : formatLatency(candidateLatency),
-    ],
+    ["Base + Output + Input", formatLatency(candidateLatency)],
     ["Input", track ? track.label || "Unlabeled input" : "Input disabled"],
     ["Input sample rate", formatRate(settings?.sampleRate)],
     [

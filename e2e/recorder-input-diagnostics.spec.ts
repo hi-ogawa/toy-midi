@@ -13,7 +13,11 @@ test("inspect live editor input diagnostics", async ({ page }) => {
   await expect(readings).toHaveCount(0);
   await setup.getByText("Audio debug", { exact: true }).click();
   await expect(readings).toContainText("Input disabled");
-  await expect(readings).toContainText("Incomplete");
+  await expect(
+    readings
+      .locator("dt", { hasText: "Base + Output + Input" })
+      .locator("+ dd"),
+  ).toHaveText("Unavailable");
 
   // Enable capture and show settings from the active input.
   await setup
@@ -30,7 +34,11 @@ test("inspect live editor input diagnostics", async ({ page }) => {
     .getByRole("button", { name: "Disable input", exact: true })
     .click();
   await expect(readings).toContainText("Input disabled");
-  await expect(readings).toContainText("Incomplete");
+  await expect(
+    readings
+      .locator("dt", { hasText: "Base + Output + Input" })
+      .locator("+ dd"),
+  ).toHaveText("Unavailable");
   await expect(readings).not.toContainText("Fake Default Audio Input");
 
   // Collapse the panel, then reopen the dialog with debug hidden by default.
