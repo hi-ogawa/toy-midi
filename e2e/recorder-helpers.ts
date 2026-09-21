@@ -64,7 +64,7 @@ export async function selectRecorderMidiInstrument({
     `Select ${option}`,
     async () => {
       const page = instrument.page();
-      const program = instrument.getByRole("combobox", { name: / program$/ });
+      const program = instrument.getByTestId("instrument-select");
       await program.click();
       await page
         .getByPlaceholder("Search instruments...")
