@@ -28,6 +28,17 @@ Each frame with a finite, decoded voiced pitch votes for its nearest MIDI note. 
 
 The positive weight floor keeps low-confidence estimates in the vote. It does not guarantee that every active region receives a pitch. If no frame supplies a finite voiced estimate, the region remains visible in the activity and onset diagnostics but is omitted from the final pitched output.
 
+## Controls in toy-midi
+
+The Audio to MIDI panel exposes the two thresholds illustrated above:
+
+| Control                | Default  | Effect of increasing                                                                                       |
+| ---------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| **Activity threshold** | −25 dBFS | Keeps fewer cells active. This can trim decay tails but also lose quiet or short notes.                    |
+| **Split threshold**    | 0.40     | Creates fewer splits within active runs. This can suppress extra boundaries but also merge repeated notes. |
+
+Tempo and grid come from the project, and the selected source track's audio offset aligns its samples with that grid. Pitch-analysis settings are fixed internally. The panel's **Reset to defaults** button restores both thresholds.
+
 ## What the Example Establishes
 
 The illustrated settings retain the seven desired attacks in this bar. A stricter −20 dBFS activity threshold lost short notes in the original evaluation. Pitch probability was also a poor substitute for loudness, as a 0.5 probability gate accepted only 823 of 10,500 decoded voiced frames in the full-stem evaluation.
