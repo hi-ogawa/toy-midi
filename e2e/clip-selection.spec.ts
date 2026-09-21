@@ -4,6 +4,7 @@ import {
   addRecorderAudio,
   createRecorderProject,
   enableInput,
+  getRecorderPosition,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./editor-helpers";
@@ -31,6 +32,13 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   // Ctrl-click adds the take to the selected backing track.
   await audio.click();
   await take.click({ modifiers: ["Control"] });
+  await expect(audio).toHaveAttribute("data-selected", "true");
+  await expect(take).toHaveAttribute("data-selected", "true");
+
+  // Seek to the start with the time ruler while keeping both clips selected.
+  expect(await getRecorderPosition(page)).toBeGreaterThan(0);
+  await seekRecorderByPixels(page, 0);
+  await expect.poll(() => getRecorderPosition(page)).toBe(0);
   await expect(audio).toHaveAttribute("data-selected", "true");
   await expect(take).toHaveAttribute("data-selected", "true");
 

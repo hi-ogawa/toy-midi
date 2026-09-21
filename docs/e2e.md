@@ -11,7 +11,9 @@ Local runs record DOM traces in `test-results/trace-pack.html` by default. Use `
 
 ## E2E traces on GitHub Actions
 
-Run selected E2E tests on a branch, including `main` or a branch without a PR. The result and a **View E2E trace** link appear in the workflow summary and as comments on open PRs headed by that branch.
+Add the `e2e-trace` label to a same-repository PR to trace changed E2E specs. It runs when labeled and on subsequent pushes, and posts the trace link in a PR comment. Remove the label to stop automatic runs.
+
+To trace existing specs that the PR does not change, or test a branch manually:
 
 ```sh
 gh workflow run e2e-trace.yml --ref main \

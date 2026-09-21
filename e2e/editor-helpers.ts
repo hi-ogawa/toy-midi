@@ -185,14 +185,22 @@ export async function dragBy(
 }
 
 export async function waitForRecordingSamples(recording: Locator) {
-  const initialWidth = await recording.evaluate(
-    (element) => element.getBoundingClientRect().width,
+  await test.step(
+    "Wait for recording samples",
+    async () => {
+      const initialWidth = await recording.evaluate(
+        (element) => element.getBoundingClientRect().width,
+      );
+      await expect
+        .poll(() =>
+          recording.evaluate(
+            (element) => element.getBoundingClientRect().width,
+          ),
+        )
+        .toBeGreaterThan(initialWidth);
+    },
+    { box: true },
   );
-  await expect
-    .poll(() =>
-      recording.evaluate((element) => element.getBoundingClientRect().width),
-    )
-    .toBeGreaterThan(initialWidth);
 }
 
 export async function enableInput(page: Page) {

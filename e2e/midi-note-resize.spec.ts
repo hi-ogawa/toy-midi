@@ -72,6 +72,26 @@ test("resizes both MIDI note edges with a cancellable preview and minimum durati
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1.5");
   expect((await note.boundingBox())!.width).toBe(cellWidth * 2);
 
+  // Undo each edge edit independently, then redo both with the same pitch and durations.
+  await page.keyboard.press("Control+z");
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(cellWidth * 4);
+  await page.keyboard.press("Control+z");
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(cellWidth);
+  await page.keyboard.press("Control+Shift+z");
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(cellWidth * 4);
+  await page.keyboard.press("Control+Shift+z");
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1.5");
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(cellWidth * 2);
+
   // Snap the left edge to the nearest grid point in either direction.
   const trimmedBox = (await note.boundingBox())!;
   const startBox = (await startEdge.boundingBox())!;
