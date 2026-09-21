@@ -113,7 +113,7 @@ export function InputSetup({
           className={cn(
             "h-8 w-full justify-start gap-2 px-2 text-xs",
             inputsInitialized && !hasAccess
-              ? "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-600"
+              ? "border-orange-500/60 bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 hover:text-orange-200"
               : "border-neutral-600 bg-neutral-900 text-neutral-200 hover:bg-neutral-700",
           )}
         >
