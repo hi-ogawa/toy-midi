@@ -83,6 +83,4 @@ jobs:
     uses: ./.github/workflows/e2e-trace.yml
     with:
       ref: ${{ github.event.pull_request.head.ref }}
-      sha: ${{ github.event.pull_request.head.sha }}
       tests: ${{ needs.select.outputs.tests }}
-      pr-number: ${{ github.event.pull_request.number }}
