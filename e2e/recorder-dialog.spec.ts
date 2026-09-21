@@ -6,7 +6,7 @@ import {
   createRecorderMidiNote,
 } from "./recorder-helpers";
 
-test("menu dialogs contain keyboard focus and return to the editor menu", async ({
+test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
   page,
 }) => {
   // Open Help by keyboard and leave the dropdown closed behind the dialog.
@@ -38,10 +38,9 @@ test("menu dialogs contain keyboard focus and return to the editor menu", async 
     page.getByTitle("Toggle metronome (M)", { exact: true }),
   ).toHaveAttribute("aria-pressed", "false");
 
-  // Dismiss Help with Escape and restore focus to the persistent menu button.
+  // Dismiss Help with Escape and leave the menu closed.
   await page.keyboard.press("Escape");
   await expect(help).toBeHidden();
-  await expect(menuButton).toBeFocused();
   await expect(menu).toBeHidden();
 
   // Open Export by pointer and cycle focus through both dialog buttons.
@@ -60,10 +59,9 @@ test("menu dialogs contain keyboard focus and return to the editor menu", async 
   await page.keyboard.press("Tab");
   await expect(exportClose).toBeFocused();
 
-  // Click the backdrop to dismiss Export and return focus to the editor menu button.
+  // Click the backdrop to dismiss Export.
   await page.mouse.click(4, 4);
   await expect(exportDialog).toBeHidden();
-  await expect(menuButton).toBeFocused();
 
   // Reopen Help and close it through the shared dialog's close control.
   await menuButton.click();
@@ -71,12 +69,9 @@ test("menu dialogs contain keyboard focus and return to the editor menu", async 
   await expect(close).toBeFocused();
   await close.click();
   await expect(help).toBeHidden();
-  await expect(menuButton).toBeFocused();
 });
 
-test("a directly opened dialog restores focus without an explicit target", async ({
-  page,
-}) => {
+test("a directly opened dialog closes with Escape", async ({ page }) => {
   // Open Input Setup from its persistent button and focus the dialog's close control.
   await createRecorderProject(page);
   const configure = page.getByRole("button", { name: "Configure audio input" });
@@ -86,15 +81,12 @@ test("a directly opened dialog restores focus without an explicit target", async
     dialog.getByRole("button", { name: "Close", exact: true }),
   ).toBeFocused();
 
-  // Close with Escape and restore focus to the original control.
+  // Close Input Setup with Escape.
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expect(configure).toBeFocused();
 });
 
-test("instrument dialog isolates shortcuts and restores its track menu trigger", async ({
-  page,
-}) => {
+test("instrument dialog isolates shortcuts", async ({ page }) => {
   // Open a track's instrument dialog from its menu with a selected unsaved note.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
@@ -128,8 +120,7 @@ test("instrument dialog isolates shortcuts and restores its track menu trigger",
     "unsaved",
   );
 
-  // Dismiss with Escape and return focus to the persistent track action button.
+  // Dismiss the instrument dialog with Escape.
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
-  await expect(actions).toBeFocused();
 });

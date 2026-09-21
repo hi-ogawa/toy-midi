@@ -14,7 +14,6 @@ import {
   useRef,
   useState,
   type FocusEvent,
-  type RefObject,
 } from "react";
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
@@ -90,7 +89,6 @@ export function MidiTrackRow({
   onProgramSelected: (program: number) => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const programMutation = useMutation({
     mutationFn: (program: number) =>
       runtime.setMidiTrackProgram(track.id, program),
@@ -160,8 +158,6 @@ export function MidiTrackRow({
           <MidiTrackActions
             label={track.name}
             viewMode={track.viewMode}
-            menuButtonRef={menuButtonRef}
-            isInstrumentOpen={isInstrumentOpen}
             onInstrumentOpen={() => setIsInstrumentOpen(true)}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
             onRemove={onRemove}
@@ -217,7 +213,6 @@ export function MidiTrackRow({
         isOpen={isInstrumentOpen}
         title={`${track.name} instrument`}
         onClose={() => setIsInstrumentOpen(false)}
-        returnFocusRef={menuButtonRef}
       >
         <MidiInstrument
           track={track}
@@ -238,8 +233,6 @@ function MidiTrackActions({
   onExportMidi,
   label,
   viewMode,
-  menuButtonRef,
-  isInstrumentOpen,
   onInstrumentOpen,
   onViewModeToggle,
   onRemove,
@@ -251,8 +244,6 @@ function MidiTrackActions({
   onExportMidi: () => void;
   label: string;
   viewMode: MidiTrackState["viewMode"];
-  menuButtonRef: RefObject<HTMLButtonElement | null>;
-  isInstrumentOpen: boolean;
   onInstrumentOpen: () => void;
   onViewModeToggle: () => void;
   onRemove: () => void;
@@ -263,7 +254,6 @@ function MidiTrackActions({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          ref={menuButtonRef}
           className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
           title={`${label} actions`}
           aria-label={`${label} actions`}
@@ -271,13 +261,7 @@ function MidiTrackActions({
           <MoreVerticalIcon className="size-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        onCloseAutoFocus={(event) => {
-          if (isInstrumentOpen) {
-            event.preventDefault();
-          }
-        }}
-      >
+      <DropdownMenuContent>
         <DropdownMenuCheckboxItem
           checked={viewMode === "overview"}
           onCheckedChange={onViewModeToggle}

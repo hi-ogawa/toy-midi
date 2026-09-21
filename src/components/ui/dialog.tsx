@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
-import { useRef, type RefObject, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { matchKeyboardEvent } from "../../lib/keyboard";
 import { cn } from "./utils";
 
@@ -11,8 +11,6 @@ type DialogProps = {
   children: ReactNode;
   "data-testid"?: string;
   size?: "default" | "wide";
-  /** Use a persistent control when the opening element unmounts, such as a menu item. */
-  returnFocusRef?: RefObject<HTMLElement | null>;
 };
 
 export function Dialog({
@@ -22,10 +20,7 @@ export function Dialog({
   children,
   "data-testid": testId,
   size = "default",
-  returnFocusRef,
 }: DialogProps) {
-  const previousFocus = useRef<HTMLElement | undefined>(undefined);
-
   return (
     <DialogPrimitive.Root
       open={isOpen}
@@ -44,16 +39,6 @@ export function Dialog({
             "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-neutral-800 rounded-lg shadow-2xl w-[calc(100%-2rem)]",
             size === "wide" ? "max-w-[960px]" : "max-w-md",
           )}
-          onOpenAutoFocus={() => {
-            previousFocus.current =
-              document.activeElement instanceof HTMLElement
-                ? document.activeElement
-                : undefined;
-          }}
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
-            (returnFocusRef?.current ?? previousFocus.current)?.focus();
-          }}
           onKeyDown={(event) => {
             event.stopPropagation();
             if (matchKeyboardEvent(event, "Ctrl+S")) {

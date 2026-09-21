@@ -16,7 +16,7 @@ import {
   VideoIcon,
   SlidersVerticalIcon,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { formatGainDb } from "../../lib/music";
@@ -415,14 +415,12 @@ function RecorderMenu({
   onExportProject: () => void;
 }) {
   const [dialog, setDialog] = useState<"help" | "export">();
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            ref={menuButtonRef}
             title="Editor menu"
             aria-label="Editor menu"
             className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -430,15 +428,7 @@ function RecorderMenu({
             <MoreVerticalIcon className="size-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          onCloseAutoFocus={(event) => {
-            // Let the opening dialog take focus instead of returning to the menu button.
-            if (dialog) {
-              event.preventDefault();
-            }
-          }}
-        >
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setDialog("help")}>
             <CircleHelpIcon />
             Help & Shortcuts
@@ -481,7 +471,6 @@ function RecorderMenu({
         onClose={() => setDialog(undefined)}
         title="Editor quick reference"
         size="wide"
-        returnFocusRef={menuButtonRef}
       >
         <RecorderHelp />
       </Dialog>
@@ -490,7 +479,6 @@ function RecorderMenu({
         onClose={() => setDialog(undefined)}
         title="Export Audio"
         data-testid="recorder-audio-export"
-        returnFocusRef={menuButtonRef}
       >
         <RecorderExportAudio
           onExport={onExportAudio}
