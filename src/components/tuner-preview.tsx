@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { midiToHz, MIN_DB } from "../lib/music";
 import { startThrottledAnimationFrameLoop } from "../utils/timing";
-import { RecorderTunerContent } from "./tuner";
+import { TunerContent } from "./tuner";
 
 const PRESETS = [
   { label: "Animated", content: <AnimatedTunerPreview /> },
   {
     label: "In tune",
     content: (
-      <RecorderTunerContent
+      <TunerContent
         analysis={{
           status: "pitched",
           confidence: 1,
@@ -21,7 +21,7 @@ const PRESETS = [
   {
     label: "Flat",
     content: (
-      <RecorderTunerContent
+      <TunerContent
         analysis={{
           status: "pitched",
           confidence: 1,
@@ -34,7 +34,7 @@ const PRESETS = [
   {
     label: "Sharp",
     content: (
-      <RecorderTunerContent
+      <TunerContent
         analysis={{
           status: "pitched",
           confidence: 1,
@@ -46,21 +46,19 @@ const PRESETS = [
   },
   {
     label: "No signal",
-    content: (
-      <RecorderTunerContent analysis={{ status: "silent", levelDb: MIN_DB }} />
-    ),
+    content: <TunerContent analysis={{ status: "silent", levelDb: MIN_DB }} />,
   },
   {
     label: "Unstable",
     content: (
-      <RecorderTunerContent
+      <TunerContent
         analysis={{ status: "unstable", confidence: 0.4, levelDb: -18.4 }}
       />
     ),
   },
 ];
 
-export function RecorderTunerPreview() {
+export function TunerPreview() {
   const [preset, setPreset] = useState(PRESETS[1]);
   return (
     <div className="space-y-4">
@@ -97,7 +95,7 @@ function AnimatedTunerPreview() {
 
   // Sweep E1 by ±40 cents every eight seconds while the level varies separately.
   return (
-    <RecorderTunerContent
+    <TunerContent
       analysis={{
         status: "pitched",
         confidence: 1,

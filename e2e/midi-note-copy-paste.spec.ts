@@ -1,28 +1,28 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
-  createRecorderProject,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  saveRecorderProject,
-  getRecorderMidiNote,
-  getRecorderBeat,
-  seekRecorderByPixels,
+  createProject,
+  addMidiTrack,
+  createMidiNote,
+  saveProject,
+  getMidiNote,
+  getBeat,
+  seekByPixels,
 } from "./editor-helpers";
 
 test("copies selected MIDI notes and pastes them at the playhead", async ({
   page,
 }) => {
   // Create two notes and select them as one clipboard group.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
+  await createProject(page);
+  const row = await addMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
-  const originalC4 = await createRecorderMidiNote(page, row, {
+  const originalC4 = await createMidiNote(page, row, {
     beat: 0,
     pitch: "C4",
   });
-  const originalE4 = await createRecorderMidiNote(page, row, {
+  const originalE4 = await createMidiNote(page, row, {
     beat: 0.5,
     pitch: "E4",
   });
@@ -33,16 +33,16 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
 
   // Copy the notes, then coarsen the grid so pasting must snap an off-grid playhead.
   await page.keyboard.press("Control+c");
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2.25);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2.25);
   await page.getByTestId("recorder-grid-snap-select").click();
   await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
-  await expect.poll(() => getRecorderBeat(page)).toBe(2.25);
+  await expect.poll(() => getBeat(page)).toBe(2.25);
   await page.keyboard.press("Control+v");
 
   // Keep the copied timing and select only the newly pasted notes.
   await expect(notes).toHaveCount(4);
-  const pastedC4 = getRecorderMidiNote(row, { pitch: "C4", beat: 2 });
-  const pastedE4 = getRecorderMidiNote(row, { pitch: "E4", beat: 2.5 });
+  const pastedC4 = getMidiNote(row, { pitch: "C4", beat: 2 });
+  const pastedE4 = getMidiNote(row, { pitch: "E4", beat: 2.5 });
   await expect(pastedC4).toHaveAttribute("data-selected", "true");
   await expect(pastedE4).toHaveAttribute("data-selected", "true");
   await expect(originalC4).toHaveAttribute("data-selected", "false");
@@ -63,7 +63,7 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
   // Save and reload the project to preserve the pasted notes.
   const save = page.getByTestId("recorder-save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
-  await saveRecorderProject(page);
+  await saveProject(page);
   await page.reload();
   await expect(notes).toHaveCount(4);
   await expect(pastedC4).toBeVisible();
@@ -74,11 +74,11 @@ test("keeps note clipboard separate from selected text and focused inputs", asyn
   page,
 }) => {
   // Copy C4, then create E4 to distinguish the note clipboard from the current selection.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
-  const c4 = await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
+  await createProject(page);
+  const row = await addMidiTrack(page);
+  const c4 = await createMidiNote(page, row, { beat: 0, pitch: "C4" });
   await page.keyboard.press("Control+c");
-  const e4 = await createRecorderMidiNote(page, row, { beat: 1, pitch: "E4" });
+  const e4 = await createMidiNote(page, row, { beat: 1, pitch: "E4" });
   await expect(e4).toHaveAttribute("data-selected", "true");
   const notes = row.locator("[data-note-id]");
 
@@ -89,12 +89,10 @@ test("keeps note clipboard separate from selected text and focused inputs", asyn
     .toBe("Tracks");
   await expect(e4).toHaveAttribute("data-selected", "false");
   await page.keyboard.press("Control+c");
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   await page.keyboard.press("Control+v");
   await expect(notes).toHaveCount(3);
-  await expect(
-    getRecorderMidiNote(row, { beat: 2, pitch: "C4" }),
-  ).toBeVisible();
+  await expect(getMidiNote(row, { beat: 2, pitch: "C4" })).toBeVisible();
 
   // Copy and paste inside the tempo input without editing notes or replacing their clipboard.
   await e4.click();
@@ -106,11 +104,9 @@ test("keeps note clipboard separate from selected text and focused inputs", asyn
   await expect(tempo).toHaveValue("120");
   await expect(notes).toHaveCount(3);
   await tempo.blur();
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
   await page.keyboard.press("Control+v");
   await expect(notes).toHaveCount(4);
-  await expect(
-    getRecorderMidiNote(row, { beat: 3, pitch: "C4" }),
-  ).toBeVisible();
+  await expect(getMidiNote(row, { beat: 3, pitch: "C4" })).toBeVisible();
   await expect(c4).toBeVisible();
 });

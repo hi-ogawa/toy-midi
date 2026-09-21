@@ -1,8 +1,11 @@
 import { expect, it } from "vitest";
-import { createDefaultSavedProject, fromSavedProject } from "./project-store";
+import {
+  createDefaultLegacySavedProject,
+  normalizeLegacySavedProject,
+} from "./project-store";
 
 it("defaults old projects to unity gain", () => {
-  const project = createDefaultSavedProject();
+  const project = createDefaultLegacySavedProject();
   delete project.masterVolume;
-  expect(fromSavedProject(project).masterVolume).toBe(1);
+  expect(normalizeLegacySavedProject(project).masterVolume).toBe(1);
 });

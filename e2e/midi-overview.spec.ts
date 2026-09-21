@@ -1,15 +1,15 @@
 import { expect, test } from "@playwright/test";
 import {
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  createRecorderProject,
-  saveRecorderProject,
+  addMidiTrack,
+  createMidiNote,
+  createProject,
+  saveProject,
 } from "./editor-helpers";
 
 test("switches MIDI views and persists overview mode", async ({ page }) => {
   // Open an empty overview and keep the checked menu item visible until Escape.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
+  await createProject(page);
+  const row = await addMidiTrack(page);
   const actions = row.getByRole("button", { name: "MIDI 1 actions" });
   const toggle = page.getByRole("menuitemcheckbox", {
     name: "Overview",
@@ -34,7 +34,7 @@ test("switches MIDI views and persists overview mode", async ({ page }) => {
   await expect(toggle).not.toBeChecked();
   await expect(toggle).toBeVisible();
   await page.keyboard.press("Escape");
-  await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
+  await createMidiNote(page, row, { beat: 0, pitch: "C4" });
 
   // Switch to overview and show the note instead of the empty message.
   await actions.click();
@@ -45,7 +45,7 @@ test("switches MIDI views and persists overview mode", async ({ page }) => {
   await expect(grid).toHaveCount(0);
 
   // Save and reload the project with overview mode still selected.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await page.reload();
   await expect(overview).toBeVisible();
   await expect(overview).toHaveAccessibleName("MIDI 1 note overview, 1 note");

@@ -1,4 +1,4 @@
-# Recorder signal flow
+# Editor signal flow
 
 The diagram shows how audio flows from sources through processing to recording and output.
 

@@ -1,14 +1,14 @@
 import { expect, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
-  addRecorderAudio,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  getRecorderMidiNote,
-  getRecorderBeat,
-  createRecorderProject,
+  addAudio,
+  addMidiTrack,
+  createMidiNote,
+  getMidiNote,
+  getBeat,
+  createProject,
   enableInput,
-  seekRecorderByPixels,
+  seekByPixels,
   waitForRecordingSamples,
 } from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
@@ -16,21 +16,21 @@ import { useFakeAudioInput } from "./helpers";
 useFakeAudioInput();
 
 test("exports and imports a recorder project archive", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
 
   // Build an editable project with backing audio and two retained takes.
-  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  await addAudio(page, "e2e/fixtures/test-audio.wav");
 
   await enableInput(page);
   const recordButton = page.getByTestId("recorder-record-button");
   for (const beat of [2, 4]) {
-    await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
+    await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
     await recordButton.click();
     await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
     await recordButton.click();
   }
   await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
-  const clipGeometry = await getRecorderClipGeometry(page);
+  const clipGeometry = await getClipGeometry(page);
   await page.getByTestId("recorder-mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
   await masterLevel.fill("-6");
@@ -38,8 +38,8 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await page.getByRole("button", { name: "Close Mixer" }).click();
 
   // Add MIDI content and non-default instrument, annotation, and locator settings.
-  const row = await addRecorderMidiTrack(page);
-  const note = await createRecorderMidiNote(page, row, {
+  const row = await addMidiTrack(page);
+  const note = await createMidiNote(page, row, {
     beat: 1,
     pitch: "C4",
   });
@@ -61,7 +61,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await note.click();
   await page.keyboard.press("5");
   await expect(note.getByTestId("tab-annotation")).toHaveText("B37");
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
   await page.getByRole("button", { name: "Add locator at playhead" }).click();
   page.once("dialog", (dialog) => dialog.accept("Verse"));
   await page.getByRole("button", { name: "Rename Section 1" }).click();
@@ -98,7 +98,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
   await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
-  await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
+  await expect.poll(() => getClipGeometry(page)).toEqual(clipGeometry);
   await page.getByTestId("recorder-mixer-button").click();
   await expect(
     page.getByRole("textbox", { name: "Master level in dB" }),
@@ -108,12 +108,12 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   // Restore the MIDI note's assigned string, instrument, tuning, and locator beat.
   const importedRow = page.getByTestId("recorder-midi-track-row");
   await expect(
-    getRecorderMidiNote(importedRow, { beat: 1, pitch: "C4" }).getByTestId(
+    getMidiNote(importedRow, { beat: 1, pitch: "C4" }).getByTestId(
       "tab-annotation",
     ),
   ).toHaveText("B37");
   await page.getByRole("button", { name: "Verse", exact: true }).click();
-  await expect.poll(() => getRecorderBeat(page)).toBe(3);
+  await expect.poll(() => getBeat(page)).toBe(3);
   await importedRow.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
     .getByRole("menuitem", { name: "Instrument…", exact: true })
@@ -127,7 +127,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toHaveValue("fiveStringBass");
 });
 
-async function getRecorderClipGeometry(page: Page) {
+async function getClipGeometry(page: Page) {
   const geometry = await Promise.all(
     (["audio-source", "comp-source", "comp"] as const).map(async (variant) => ({
       variant,

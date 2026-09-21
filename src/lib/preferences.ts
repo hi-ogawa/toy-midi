@@ -8,7 +8,7 @@ import {
 
 const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
-const recorderPreferencesSchema = z.object({
+const preferencesSchema = z.object({
   autoScrollEnabled: z.boolean(),
   takesNewestFirst: z.boolean(),
   timelinePixelsPerBeat: z
@@ -29,20 +29,20 @@ const recorderPreferencesSchema = z.object({
     })
     .optional(),
 });
-export type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
+export type Preferences = z.infer<typeof preferencesSchema>;
 
-const DEFAULT_PREFERENCES: RecorderPreferences = {
+const DEFAULT_PREFERENCES: Preferences = {
   autoScrollEnabled: true,
   takesNewestFirst: true,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
 };
 
-class RecorderStorage {
+class PreferencesStorage {
   // All consumers share one snapshot, including when browser storage is unavailable.
-  readonly store = createStore<RecorderPreferences>(() => {
+  readonly store = createStore<Preferences>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
-      return recorderPreferencesSchema.parse({
+      return preferencesSchema.parse({
         ...DEFAULT_PREFERENCES,
         ...stored,
       });
@@ -51,7 +51,7 @@ class RecorderStorage {
     }
   });
 
-  update(updates: Partial<RecorderPreferences>): void {
+  update(updates: Partial<Preferences>): void {
     this.store.update(updates);
     try {
       localStorage.setItem(PREFERENCES_KEY, JSON.stringify(this.store.get()));
@@ -61,4 +61,4 @@ class RecorderStorage {
   }
 }
 
-export const recorderStorage = new RecorderStorage();
+export const preferencesStorage = new PreferencesStorage();

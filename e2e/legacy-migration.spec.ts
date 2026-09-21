@@ -1,9 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import type { SavedProject, SavedProjectV1 } from "../src/lib/project-store";
-import { getRecorderMidiNote } from "./editor-helpers";
+import type {
+  LegacySavedProject,
+  LegacySavedProjectV1,
+} from "../src/lib/project-store";
+import { getMidiNote } from "./editor-helpers";
 
-const LEGACY_PROJECT: SavedProject = {
+const LEGACY_PROJECT: LegacySavedProject = {
   version: 2,
   notes: [
     {
@@ -56,7 +59,7 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
         } else if (format === "v1") {
           const { audioTracks, ...settings } = project;
           const track = audioTracks[0];
-          const legacy: SavedProjectV1 = {
+          const legacy: LegacySavedProjectV1 = {
             ...settings,
             version: 1,
             audioFileName: track.fileName,
@@ -66,12 +69,12 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
             audioVolume: track.volume,
             audioMuted: track.muted,
           };
-          await window.__e2e.seedProjectV1("Legacy song", legacy, audio);
+          await window.__e2e.seedProjectLegacyV1("Legacy song", legacy, audio);
         } else {
-          const assetKey = await window.__e2e.projectStorage.saveAsset(
+          const assetKey = await window.__e2e.legacyProjectStorage.saveAsset(
             new File([audio], "legacy-audio.wav", { type: "audio/wav" }),
           );
-          window.__e2e.seedLayoutV1Project("Legacy song", {
+          window.__e2e.seedLegacyLayoutV1Project("Legacy song", {
             ...project,
             audioTracks: project.audioTracks.map((track) => ({
               ...track,
@@ -97,10 +100,10 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
     await expect(page.getByTestId("recorder-project-name")).toHaveText(
       "Legacy song",
     );
-    const note = getRecorderMidiNote(
-      page.getByTestId("recorder-midi-track-row"),
-      { beat: 1, pitch: "C4" },
-    );
+    const note = getMidiNote(page.getByTestId("recorder-midi-track-row"), {
+      beat: 1,
+      pitch: "C4",
+    });
     await expect(note.getByTestId("tab-annotation")).toHaveText("G17");
     await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
     await expect(

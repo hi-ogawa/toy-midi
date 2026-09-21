@@ -1,24 +1,24 @@
 import { expect, test } from "@playwright/test";
 import {
-  createRecorderProject,
+  createProject,
   dragBy,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  saveRecorderProject,
+  addMidiTrack,
+  createMidiNote,
+  saveProject,
 } from "./editor-helpers";
 
 test("resizes both MIDI note edges with a cancellable preview and minimum duration", async ({
   page,
 }) => {
   // Create and save a one-cell note, leaving both edges available around its move target.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
+  await createProject(page);
+  const row = await addMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const note = grid.locator("[data-note-id]");
-  await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
+  await createMidiNote(page, row, { beat: 0, pitch: "C4" });
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
   const save = page.getByTestId("recorder-save-button");
-  await saveRecorderProject(page);
+  await saveProject(page);
   const cellWidth = (await note.boundingBox())!.width;
   const startEdge = note.locator('[data-note-edge="start"]');
   const endEdge = note.locator('[data-note-edge="end"]');
@@ -125,7 +125,7 @@ test("resizes both MIDI note edges with a cancellable preview and minimum durati
   expect((await note.boundingBox())!.width).toBe(cellWidth);
 
   // Save and reload the resized note with its final start and duration.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await page.reload();
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1.75");
   expect((await note.boundingBox())!.width).toBe(cellWidth);

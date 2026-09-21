@@ -3,15 +3,15 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { usePointerDrag } from "../hooks/use-pointer-drag";
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { clamp } from "../lib/music";
-import { recorderStorage } from "../lib/preferences";
-import { RecorderRuntime, type ReferenceVideoState } from "../lib/runtime";
+import { preferencesStorage } from "../lib/preferences";
+import { Runtime, type ReferenceVideoState } from "../lib/runtime";
 import {
   createYouTubePlayer,
   loadYouTubeApi,
   parseYouTubeVideoId,
   type YouTubePlayerApi,
 } from "../lib/youtube";
-import { RecorderPanel } from "./panel";
+import { Panel } from "./panel";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
@@ -32,11 +32,13 @@ export function ReferenceVideoPanel({
   onClose,
 }: {
   referenceVideo?: ReferenceVideoState;
-  runtime: RecorderRuntime;
+  runtime: Runtime;
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampSize(recorderStorage.store.get().referenceVideoSize ?? DEFAULT_SIZE),
+    clampSize(
+      preferencesStorage.store.get().referenceVideoSize ?? DEFAULT_SIZE,
+    ),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
@@ -58,12 +60,12 @@ export function ReferenceVideoPanel({
       setSize(data.size);
     },
     onEnd: (_event, { data }) => {
-      recorderStorage.update({ referenceVideoSize: data.size });
+      preferencesStorage.update({ referenceVideoSize: data.size });
     },
   });
 
   return (
-    <RecorderPanel
+    <Panel
       title={
         <span className="flex items-center gap-2">
           Reference video
@@ -118,7 +120,7 @@ export function ReferenceVideoPanel({
         referenceVideo={referenceVideo}
         runtime={runtime}
       />
-    </RecorderPanel>
+    </Panel>
   );
 }
 
@@ -127,7 +129,7 @@ function YouTubeReferencePanel({
   runtime,
 }: {
   referenceVideo?: ReferenceVideoState;
-  runtime: RecorderRuntime;
+  runtime: Runtime;
 }) {
   const [candidateVideoId, setCandidateVideoId] = useState<string>();
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
@@ -230,7 +232,7 @@ function YouTubeReference({
   runtime,
 }: {
   videoId: string;
-  runtime: RecorderRuntime;
+  runtime: Runtime;
 }) {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
@@ -296,7 +298,7 @@ function mountYouTubeReference({
 }: {
   element: HTMLElement;
   videoId: string;
-  runtime: RecorderRuntime;
+  runtime: Runtime;
   onReady: () => void;
   onPlaying: () => void;
   onError: (error: Error) => void;

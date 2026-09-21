@@ -1,6 +1,6 @@
 import { AudioLinesIcon, GitForkIcon, Music2Icon } from "lucide-react";
 import { routes } from "../lib/routes";
-import { RecorderProjectList } from "./project-list";
+import { ProjectList } from "./project-list";
 
 export function Home() {
   return (
@@ -50,7 +50,7 @@ export function Home() {
         </header>
 
         <main className="mt-14 min-h-0 flex-1 overflow-y-auto">
-          <RecorderProjectList />
+          <ProjectList />
         </main>
       </div>
     </div>

@@ -1,8 +1,5 @@
 import JSZip from "jszip";
-import type {
-  RecorderPcm,
-  SerializedRecorderRuntimeState,
-} from "./persistence.ts";
+import type { Pcm, SerializedRuntimeState } from "./persistence.ts";
 
 // .toymidi.zip
 // ├── manifest.json  { formatVersion: 1, projectType: "recorder", ... }
@@ -12,25 +9,25 @@ import type {
 //     ├── tracks/0/channel-0.f32
 //     └── takes/0/channel-0.f32
 //
-// project.json serializes SerializedRecorderRuntimeState<string>, replacing
+// project.json serializes SerializedRuntimeState<string>, replacing
 // each PCM channel's Float32Array with its ZIP entry path. The samples are
 // stored separately in the referenced .f32 files.
 
-const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
+const CURRENT_FORMAT_VERSION: ProjectManifest["formatVersion"] = 1;
 const MANIFEST_PATH = "manifest.json";
 const PROJECT_PATH = "project.json";
 
-interface RecorderProjectManifest {
+interface ProjectManifest {
   formatVersion: 1;
   projectType: "recorder";
   exportedAt: string;
 }
 
-export async function exportRecorderProjectArchive(
-  content: SerializedRecorderRuntimeState,
+export async function exportProjectArchive(
+  content: SerializedRuntimeState,
 ): Promise<Blob> {
   const zip = new JSZip();
-  const manifest: RecorderProjectManifest = {
+  const manifest: ProjectManifest = {
     formatVersion: CURRENT_FORMAT_VERSION,
     projectType: "recorder",
     exportedAt: new Date().toISOString(),
@@ -40,10 +37,10 @@ export async function exportRecorderProjectArchive(
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
-export async function readRecorderProjectArchive(
+export async function readProjectArchive(
   zip: JSZip,
-): Promise<SerializedRecorderRuntimeState> {
-  const manifest = await readJson<RecorderProjectManifest>(zip, MANIFEST_PATH);
+): Promise<SerializedRuntimeState> {
+  const manifest = await readJson<ProjectManifest>(zip, MANIFEST_PATH);
   if (manifest.projectType !== "recorder") {
     throw new Error("This is not a recorder project archive.");
   }
@@ -58,7 +55,7 @@ export async function readRecorderProjectArchive(
       `Recorder project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
     );
   }
-  const project = await readJson<SerializedRecorderRuntimeState<string>>(
+  const project = await readJson<SerializedRuntimeState<string>>(
     zip,
     PROJECT_PATH,
   );
@@ -67,8 +64,8 @@ export async function readRecorderProjectArchive(
 
 function writeProjectContent(
   zip: JSZip,
-  content: SerializedRecorderRuntimeState,
-): SerializedRecorderRuntimeState<string> {
+  content: SerializedRuntimeState,
+): SerializedRuntimeState<string> {
   return {
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
@@ -96,8 +93,8 @@ function writeProjectContent(
 
 async function readProjectContent(
   zip: JSZip,
-  content: SerializedRecorderRuntimeState<string>,
-): Promise<SerializedRecorderRuntimeState> {
+  content: SerializedRuntimeState<string>,
+): Promise<SerializedRuntimeState> {
   return {
     ...content,
     audioTracks: await Promise.all(
@@ -125,9 +122,9 @@ async function readProjectContent(
 
 function writeProjectPcm(
   zip: JSZip,
-  pcm: RecorderPcm<Float32Array>,
+  pcm: Pcm<Float32Array>,
   path: string,
-): RecorderPcm<string> {
+): Pcm<string> {
   return {
     sampleRate: pcm.sampleRate,
     channels: pcm.channels.map((channel, channelIndex) => {
@@ -144,8 +141,8 @@ function writeProjectPcm(
 
 async function readProjectPcm(
   zip: JSZip,
-  pcm: RecorderPcm<string>,
-): Promise<RecorderPcm<Float32Array>> {
+  pcm: Pcm<string>,
+): Promise<Pcm<Float32Array>> {
   const channels = await Promise.all(
     pcm.channels.map(async (path) => {
       const entry = zip.file(path);

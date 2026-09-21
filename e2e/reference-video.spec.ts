@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import { createRecorderProject, dragBy } from "./editor-helpers";
+import { createProject, dragBy } from "./editor-helpers";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
 
   // The musician opens the reference panel and resizes it around their workspace.
   const toggle = page.getByTestId("recorder-reference-video-button");

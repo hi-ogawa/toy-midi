@@ -1,20 +1,20 @@
 import { expect, test } from "@playwright/test";
 import {
-  createRecorderProject,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  saveRecorderProject,
-  getRecorderBeat,
-  seekRecorderByPixels,
+  createProject,
+  addMidiTrack,
+  createMidiNote,
+  saveProject,
+  getBeat,
+  seekByPixels,
 } from "./editor-helpers";
 
 test("previews a MIDI note and opens its saved score in the viewer", async ({
   page,
 }) => {
   // Create a MIDI track and add a C4 note at the first beat.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
-  const note = await createRecorderMidiNote(page, row, {
+  await createProject(page);
+  const row = await addMidiTrack(page);
+  const note = await createMidiNote(page, row, {
     beat: 0,
     pitch: "C4",
   });
@@ -43,7 +43,7 @@ test("previews a MIDI note and opens its saved score in the viewer", async ({
   await expect(tooltip).toHaveText("Please save before opening score view");
 
   // Save the project and open its track in the score viewer.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await expect(openScore).toBeEnabled();
   const popupPromise = page.waitForEvent("popup");
   await openScore.click();
@@ -70,10 +70,10 @@ test("syncs seeking between the score preview and recorder timeline", async ({
   page,
 }) => {
   // Place notes in the first and third measures so both seek targets render.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
-  await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
-  await createRecorderMidiNote(page, row, { beat: 8, pitch: "E4" });
+  await createProject(page);
+  const row = await addMidiTrack(page);
+  await createMidiNote(page, row, { beat: 0, pitch: "C4" });
+  await createMidiNote(page, row, { beat: 8, pitch: "E4" });
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
     .getByRole("menuitem", { name: "Score preview", exact: true })
@@ -87,14 +87,14 @@ test("syncs seeking between the score preview and recorder timeline", async ({
   await score
     .locator('[data-measure-index="2"]')
     .click({ position: { x: 20, y: 20 } });
-  await expect.poll(() => getRecorderBeat(page)).toBe(8);
+  await expect.poll(() => getBeat(page)).toBe(8);
   await expect
     .poll(() => cursor.evaluate((element) => element.style.transform))
     .not.toBe(initial);
 
   // Seek back from the timeline and restore the first-measure score cursor.
-  await seekRecorderByPixels(page, 0);
-  await expect.poll(() => getRecorderBeat(page)).toBe(0);
+  await seekByPixels(page, 0);
+  await expect.poll(() => getBeat(page)).toBe(0);
   await expect
     .poll(() => cursor.evaluate((element) => element.style.transform))
     .toBe(initial);

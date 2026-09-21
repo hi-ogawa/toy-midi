@@ -1,7 +1,7 @@
-import type { RecorderRuntimeState } from "../lib/runtime";
-import type { UseRecorderProjectResult } from "./use-project";
+import type { RuntimeState } from "../lib/runtime";
+import type { UseProjectResult } from "./use-project";
 
-export interface RecorderFlags {
+export interface EditorFlags {
   /** Covers the stop tail too, since the take lands only after the worklet finalizes. */
   isRecording: boolean;
   playDisabled: boolean;
@@ -9,13 +9,13 @@ export interface RecorderFlags {
   saveDisabled: boolean;
 }
 
-export function deriveRecorderFlags({
+export function deriveEditorFlags({
   captureStatus,
   project,
 }: {
-  captureStatus: RecorderRuntimeState["captureStatus"];
-  project: UseRecorderProjectResult;
-}): RecorderFlags {
+  captureStatus: RuntimeState["captureStatus"];
+  project: UseProjectResult;
+}): EditorFlags {
   const isRecording =
     captureStatus === "recording" || captureStatus === "processing";
   return {

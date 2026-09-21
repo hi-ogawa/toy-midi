@@ -7,9 +7,9 @@ import {
 import type { EqParameters } from "./dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
-  type PersistableRecorderRuntimeState,
-  type RecorderRuntimeState,
-  type RecorderLocator,
+  type PersistableRuntimeState,
+  type RuntimeState,
+  type ProjectLocator,
   type MidiTrackState,
 } from "./runtime.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
@@ -18,10 +18,10 @@ import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
  * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
  * path (`string`) in project archives.
  */
-export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
+export interface SerializedRuntimeState<ChannelData = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
-  locators?: RecorderLocator[];
+  locators?: ProjectLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
   // Optional for recorder projects saved before MIDI track support.
   midiTracks?: (Omit<
@@ -86,7 +86,7 @@ interface SerializedAudioTrackState<ChannelData> {
   height: number;
   clip?: {
     name: string;
-    pcm: RecorderPcm<ChannelData>;
+    pcm: Pcm<ChannelData>;
   };
   gain: number;
   muted: boolean;
@@ -107,17 +107,17 @@ interface SerializedAudioClip<ChannelData> {
   timelineOffset: number;
   trimStart?: number;
   trimEnd?: number;
-  pcm: RecorderPcm<ChannelData>;
+  pcm: Pcm<ChannelData>;
 }
 
-export interface RecorderPcm<ChannelData> {
+export interface Pcm<ChannelData> {
   sampleRate: number;
   channels: ChannelData[];
 }
 
-export function serializeRecorderRuntimeState(
-  state: RecorderRuntimeState,
-): SerializedRecorderRuntimeState {
+export function serializeRuntimeState(
+  state: RuntimeState,
+): SerializedRuntimeState {
   return {
     title: state.title,
     locators: state.locators,
@@ -176,13 +176,13 @@ export function serializeRecorderRuntimeState(
   };
 }
 
-export function deserializeRecorderRuntimeState({
+export function deserializeRuntimeState({
   context,
   project,
 }: {
   context: AudioContext;
-  project: SerializedRecorderRuntimeState;
-}): PersistableRecorderRuntimeState {
+  project: SerializedRuntimeState;
+}): PersistableRuntimeState {
   return {
     title: project.title,
     locators: project.locators ?? [],
@@ -276,7 +276,7 @@ function deserializeEq(
   };
 }
 
-function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm<Float32Array> {
+function serializeAudioBuffer(buffer: AudioBuffer): Pcm<Float32Array> {
   return {
     sampleRate: buffer.sampleRate,
     channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
@@ -287,7 +287,7 @@ function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm<Float32Array> {
 
 function deserializeAudioBuffer(
   context: AudioContext,
-  pcm: RecorderPcm<Float32Array>,
+  pcm: Pcm<Float32Array>,
 ): AudioBuffer {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {
     throw new Error("Recorder audio has an invalid sample rate.");

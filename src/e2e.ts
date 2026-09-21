@@ -1,15 +1,15 @@
 import {
-  projectStorage,
+  legacyProjectStorage,
   seedProjectLegacyV2,
-  seedProjectV1,
-  seedLayoutV1Project,
+  seedProjectLegacyV1,
+  seedLegacyLayoutV1Project,
 } from "./lib/project-storage";
 
 const utils = {
-  projectStorage,
+  legacyProjectStorage,
   seedProjectLegacyV2,
-  seedProjectV1,
-  seedLayoutV1Project,
+  seedProjectLegacyV1,
+  seedLegacyLayoutV1Project,
 };
 
 window.__e2e = utils;

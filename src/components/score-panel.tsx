@@ -5,19 +5,15 @@ import { toast } from "sonner";
 import { usePointerDrag } from "../hooks/use-pointer-drag";
 import { clamp } from "../lib/music";
 import { exportMusicXml } from "../lib/musicxml/render";
-import type {
-  MidiTrackState,
-  RecorderRuntime,
-  RecorderRuntimeState,
-} from "../lib/runtime";
-import { RecorderPanel } from "./panel";
+import type { MidiTrackState, Runtime, RuntimeState } from "../lib/runtime";
+import { Panel } from "./panel";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
   type ScoreViewerClock,
   ScoreViewerRuntime,
 } from "./score-viewer-runtime";
 
-export function useRecorderScorePanelUi() {
+export function useScorePanelUi() {
   const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
   function open(id: string) {
     setOpenTracks((current) => new Set([...current, id]));
@@ -32,15 +28,15 @@ export function useRecorderScorePanelUi() {
   return { openTracks, open, close };
 }
 
-export function RecorderScorePanel({
+export function ScorePanel({
   runtime,
   state,
   track,
   onClose,
   scoreViewerHref,
 }: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
+  runtime: Runtime;
+  state: RuntimeState;
   track: MidiTrackState;
   onClose: () => void;
   scoreViewerHref?: string;
@@ -56,9 +52,9 @@ export function RecorderScorePanel({
   });
 
   return (
-    <RecorderPanel
+    <Panel
       title={`Score preview · ${track.name}`}
-      headerActions={<RecorderScoreLink href={scoreViewerHref} />}
+      headerActions={<ScoreLink href={scoreViewerHref} />}
       closeLabel={`Close score preview for ${track.name}`}
       onClose={onClose}
       data-testid="recorder-score-preview"
@@ -74,12 +70,12 @@ export function RecorderScorePanel({
       >
         <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500" />
       </button>
-      <RecorderScorePreview runtime={runtime} state={state} track={track} />
-    </RecorderPanel>
+      <ScorePreview runtime={runtime} state={state} track={track} />
+    </Panel>
   );
 }
 
-function RecorderScoreLink({ href }: { href?: string }) {
+function ScoreLink({ href }: { href?: string }) {
   const tooltipId = useId();
   return (
     <div className="group/score-link relative">
@@ -109,13 +105,13 @@ function RecorderScoreLink({ href }: { href?: string }) {
   );
 }
 
-function RecorderScorePreview({
-  runtime: recorder,
+function ScorePreview({
+  runtime: editorRuntime,
   state,
   track,
 }: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
+  runtime: Runtime;
+  state: RuntimeState;
   track: MidiTrackState;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -124,7 +120,7 @@ function RecorderScorePreview({
   const [runtime] = useState(
     () =>
       new ScoreViewerRuntime({
-        clock: createRecorderScoreClock(recorder),
+        clock: createScoreClock(editorRuntime),
         presentation: { scale: 1, viewportPadding: 12 },
       }),
   );
@@ -221,17 +217,17 @@ function RecorderScorePreview({
   );
 }
 
-function createRecorderScoreClock(recorder: RecorderRuntime): ScoreViewerClock {
+function createScoreClock(editorRuntime: Runtime): ScoreViewerClock {
   return {
     getSnapshot: () => {
-      const state = recorder.store.get();
+      const state = editorRuntime.store.get();
       return { currentTime: state.position, isPlaying: state.isPlaying };
     },
-    subscribe: recorder.store.subscribe,
-    seek: (position) => recorder.seek(position),
+    subscribe: editorRuntime.store.subscribe,
+    seek: (position) => editorRuntime.seek(position),
     play: () => {
-      recorder.play().catch((error) => toast.error(String(error)));
+      editorRuntime.play().catch((error) => toast.error(String(error)));
     },
-    pause: () => recorder.pause(),
+    pause: () => editorRuntime.pause(),
   };
 }

@@ -1,15 +1,10 @@
 import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import {
-  createRecorderProject,
-  dragBy,
-  getRecorderBeat,
-  seekRecorderByPixels,
-} from "./editor-helpers";
+import { createProject, dragBy, getBeat, seekByPixels } from "./editor-helpers";
 
 test("creates and edits a persisted loop range", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
 
   const toggle = page.getByTestId("recorder-loop-toggle");
   const range = page.getByTestId("recorder-loop-range");
@@ -29,13 +24,13 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await expect
-    .poll(() => getRecorderBeat(page), {
+    .poll(() => getBeat(page), {
       intervals: [50],
       timeout: 1_500,
     })
     .toBeGreaterThanOrEqual(2);
   await expect
-    .poll(() => getRecorderBeat(page), {
+    .poll(() => getBeat(page), {
       intervals: [50],
       timeout: 1_500,
     })
@@ -47,8 +42,8 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   const movedBox = await range.boundingBox();
   assert(movedBox);
   expect(movedBox.x).toBeCloseTo(initialBox.x + DEFAULT_PIXELS_PER_BEAT, -1);
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
-  await expect.poll(() => getRecorderBeat(page)).toBe(4);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
+  await expect.poll(() => getBeat(page)).toBe(4);
 
   // Disabling playback keeps the edited range available for later use.
   await toggle.click();

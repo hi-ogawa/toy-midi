@@ -1,14 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import {
-  createRecorderProject,
-  dragBy,
-  getRecorderBeat,
-  seekRecorderByPixels,
-} from "./editor-helpers";
+import { createProject, dragBy, getBeat, seekByPixels } from "./editor-helpers";
 
 test("edits, seeks, and selects recorder locators", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
   const add = page.getByRole("button", { name: "Add locator at playhead" });
   const first = page.getByRole("button", { name: "Section 1", exact: true });
   const renameFirst = page.getByRole("button", { name: "Rename Section 1" });
@@ -17,23 +12,23 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   const renameVerse = page.getByRole("button", { name: "Rename Verse" });
 
   // Both creation controls use the snapped playhead and select the new marker.
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.9);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.9);
   await page.keyboard.press("l");
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await add.click();
   await expect(second).toHaveAttribute("aria-pressed", "true");
   await expect(first).toHaveAttribute("aria-pressed", "false");
   await first.click();
-  await expect.poll(() => getRecorderBeat(page)).toBe(1);
+  await expect.poll(() => getBeat(page)).toBe(1);
 
   // Rename commits without seeking; cancelling keeps the existing label.
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
   page.once("dialog", (dialog) => dialog.accept("Verse"));
   // Playwright can click the opacity-hidden rename action, avoiding hover setup here.
   await renameFirst.click();
   await expect(verse).toBeVisible();
-  await expect.poll(() => getRecorderBeat(page)).toBe(3);
+  await expect.poll(() => getBeat(page)).toBe(3);
   page.once("dialog", (dialog) => dialog.dismiss());
   await renameVerse.click();
   await expect(verse).toBeVisible();
@@ -57,10 +52,10 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
     position: { x: laneBox!.width - 10, y: laneBox!.height / 2 },
   });
   await expect(verse).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(() => getRecorderBeat(page)).toBe(1);
+  await expect.poll(() => getBeat(page)).toBe(1);
 
   // Dragging snaps the marker to beat 2.5 without moving the playhead.
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 6);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 6);
   const beforeDrag = await verse.boundingBox();
   expect(beforeDrag).not.toBeNull();
   await dragBy(page, verse, DEFAULT_PIXELS_PER_BEAT * 1.375);
@@ -68,21 +63,21 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
     .poll(async () => (await verse.boundingBox())?.x)
     .toBeCloseTo(beforeDrag!.x + DEFAULT_PIXELS_PER_BEAT * 1.5, 1);
   await expect(verse).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(() => getRecorderBeat(page)).toBe(6);
+  await expect.poll(() => getBeat(page)).toBe(6);
   await verse.click();
-  await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
+  await expect.poll(() => getBeat(page)).toBe(2.5);
 
   // Locator beats remain stable when tempo changes.
   await page.getByTestId("recorder-tempo-input").fill("90");
   await page.getByTestId("recorder-tempo-input").press("Enter");
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
-  await expect.poll(() => getRecorderBeat(page)).toBe(4);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
+  await expect.poll(() => getBeat(page)).toBe(4);
   await verse.click();
-  await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
+  await expect.poll(() => getBeat(page)).toBe(2.5);
 });
 
 test("persists recorder locator edits and deletion", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
   const first = page.getByRole("button", { name: "Section 1", exact: true });
   const firstRenamed = page.getByRole("button", {
     name: "Renamed 1",
@@ -94,9 +89,9 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   const saveButton = page.getByTestId("recorder-save-button");
 
   // Create locators at beats 2.5 and 5.
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2.5);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2.5);
   await page.keyboard.press("l");
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 5);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 5);
   await page.keyboard.press("l");
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
 
@@ -108,7 +103,7 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await page.reload();
   await expect(first).toHaveAttribute("aria-pressed", "false");
   await first.click();
-  await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
+  await expect.poll(() => getBeat(page)).toBe(2.5);
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Renaming dirties the project.
@@ -126,7 +121,7 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await page.reload();
   await expect(firstRenamed).toHaveAttribute("aria-pressed", "false");
   await firstRenamed.click();
-  await expect.poll(() => getRecorderBeat(page)).toBe(3);
+  await expect.poll(() => getBeat(page)).toBe(3);
 
   // Deleting a locator dirties the project and persists its removal.
   await page.keyboard.press("Delete");

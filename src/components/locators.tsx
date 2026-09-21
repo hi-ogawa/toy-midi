@@ -3,23 +3,23 @@ import { useState } from "react";
 import { usePointerGesture } from "../hooks/use-pointer-gesture";
 import { snapToGrid } from "../lib/music";
 import type {
-  RecorderRuntime,
-  RecorderRuntimeState,
-  RecorderLocator,
-  RecorderLocatorUpdate,
+  Runtime,
+  RuntimeState,
+  ProjectLocator,
+  ProjectLocatorUpdate,
 } from "../lib/runtime";
 import { secondsToBeats } from "../lib/timeline";
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
 
-export function useRecorderLocatorInteraction({
+export function useLocatorInteraction({
   runtime,
   state,
   subdivisionsPerBeat,
   onSelect,
 }: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
+  runtime: Runtime;
+  state: RuntimeState;
   subdivisionsPerBeat: number;
   /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
@@ -44,7 +44,7 @@ export function useRecorderLocatorInteraction({
     setSelectedId(id);
   }
 
-  function update(update: RecorderLocatorUpdate) {
+  function update(update: ProjectLocatorUpdate) {
     runtime.updateLocator(update);
   }
 
@@ -65,7 +65,7 @@ export function useRecorderLocatorInteraction({
   };
 }
 
-export function RecorderLocatorRow({
+export function LocatorRow({
   locatorInteraction,
   onClearSelection,
   pixelsPerBeat,
@@ -73,7 +73,7 @@ export function RecorderLocatorRow({
   subdivisionsPerBeat,
   onSeekBeat,
 }: {
-  locatorInteraction: ReturnType<typeof useRecorderLocatorInteraction>;
+  locatorInteraction: ReturnType<typeof useLocatorInteraction>;
   onClearSelection: () => void;
   pixelsPerBeat: number;
   viewportStartBeat: number;
@@ -132,14 +132,14 @@ function LocatorMarker({
   onSeek,
   onUpdate,
 }: {
-  locator: RecorderLocator;
+  locator: ProjectLocator;
   selected: boolean;
   left: number;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   onSelect: () => void;
   onSeek: () => void;
-  onUpdate: (changes: Omit<RecorderLocatorUpdate, "id">) => void;
+  onUpdate: (changes: Omit<ProjectLocatorUpdate, "id">) => void;
 }) {
   const [dragging, setDragging] = useState(false);
   const dragRef = usePointerGesture({

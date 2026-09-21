@@ -1,18 +1,18 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { getCaptureInputs, requestCaptureAccess } from "../lib/capture-input";
-import { RecorderRuntime, RecorderRuntimeState } from "../lib/runtime";
-import { useRecorderPreference } from "./use-preference";
+import { Runtime, RuntimeState } from "../lib/runtime";
+import { usePreference } from "./use-preference";
 
-export function useRecorderInput({
+export function useInput({
   runtime,
   state,
 }: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
+  runtime: Runtime;
+  state: RuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
-  const [inputPreference, setInputPreference] = useRecorderPreference("input");
+  const [inputPreference, setInputPreference] = usePreference("input");
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(inputPreference?.deviceId);
 

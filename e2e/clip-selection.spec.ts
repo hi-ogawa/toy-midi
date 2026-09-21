@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
-  addRecorderAudio,
-  createRecorderProject,
+  addAudio,
+  createProject,
   enableInput,
-  getRecorderPosition,
-  seekRecorderByPixels,
+  getPosition,
+  seekByPixels,
   waitForRecordingSamples,
 } from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
@@ -13,15 +13,15 @@ import { useFakeAudioInput } from "./helpers";
 useFakeAudioInput();
 
 test("selects and moves audio and take clips together", async ({ page }) => {
-  await createRecorderProject(page);
+  await createProject(page);
 
   // Import a backing track.
-  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  await addAudio(page, "e2e/fixtures/test-audio.wav");
   const audio = page.getByTestId("recorder-clip-audio-source");
 
   // Record a take away from zero.
   await enableInput(page);
-  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
@@ -36,9 +36,9 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await expect(take).toHaveAttribute("data-selected", "true");
 
   // Seek to the start with the time ruler while keeping both clips selected.
-  expect(await getRecorderPosition(page)).toBeGreaterThan(0);
-  await seekRecorderByPixels(page, 0);
-  await expect.poll(() => getRecorderPosition(page)).toBe(0);
+  expect(await getPosition(page)).toBeGreaterThan(0);
+  await seekByPixels(page, 0);
+  await expect.poll(() => getPosition(page)).toBe(0);
   await expect(audio).toHaveAttribute("data-selected", "true");
   await expect(take).toHaveAttribute("data-selected", "true");
 

@@ -1,19 +1,19 @@
 import { useMutation } from "@tanstack/react-query";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
-import type { RecorderRuntime, RecorderRuntimeState } from "../lib/runtime";
+import type { Runtime, RuntimeState } from "../lib/runtime";
 import { encodeWav } from "../lib/wav";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
 
-export function RecorderExportDialog({
+export function ExportDialog({
   runtime,
   state,
   isOpen,
   onClose,
   disabled,
 }: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
+  runtime: Runtime;
+  state: RuntimeState;
   isOpen: boolean;
   onClose: () => void;
   disabled: boolean;

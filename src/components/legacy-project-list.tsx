@@ -1,8 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
-import { recorderProjectStorage } from "../lib/editor-project-storage";
+import { projectStorage } from "../lib/editor-project-storage";
 import { convertLegacyProject } from "../lib/legacy-project";
-import { type ProjectMetadata, projectStorage } from "../lib/project-storage";
+import {
+  type LegacyProjectMetadata,
+  legacyProjectStorage,
+} from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
 
@@ -10,22 +13,22 @@ export function LegacyProjectList({
   projects,
   onDelete,
 }: {
-  projects: ProjectMetadata[];
+  projects: LegacyProjectMetadata[];
   onDelete: () => void;
 }) {
   const migrate = useMutation({
-    mutationFn: async (project: ProjectMetadata) => {
+    mutationFn: async (project: LegacyProjectMetadata) => {
       // Convert stored data and audio before saving a separate recorder copy.
       const content = await convertLegacyProject({
         name: project.name,
-        project: projectStorage.load(project.id),
+        project: legacyProjectStorage.load(project.id),
         loadAudio: async (assetKey) =>
-          (await projectStorage.loadAsset(assetKey))?.blob,
+          (await legacyProjectStorage.loadAsset(assetKey))?.blob,
       });
-      return recorderProjectStorage.createWithContent(content);
+      return projectStorage.createWithContent(content);
     },
     onSuccess: (projectId) => {
-      window.location.href = routes.recorderProject.href({ projectId });
+      window.location.href = routes.project.href({ projectId });
     },
   });
 
@@ -63,7 +66,7 @@ export function LegacyProjectList({
                 if (
                   confirm("Delete this project? This action cannot be undone.")
                 ) {
-                  projectStorage.delete(project.id);
+                  legacyProjectStorage.delete(project.id);
                   onDelete();
                 }
               }}

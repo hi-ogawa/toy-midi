@@ -23,7 +23,7 @@ import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, parseMidiFile } from "../lib/midi-import";
 import { isBlackKey, MAX_PITCH } from "../lib/music";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
-import type { MidiTrackState, RecorderRuntime } from "../lib/runtime";
+import type { MidiTrackState, Runtime } from "../lib/runtime";
 import {
   getTabAnnotationDisplay,
   type TabAnnotationDisplay,
@@ -45,7 +45,7 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 import {
-  useRecorderMidiInteraction,
+  useMidiInteraction,
   getMidiGridPosition,
   getMidiBoxSelectionRect,
 } from "./use-midi-interaction";
@@ -71,7 +71,7 @@ export function MidiTrackRow({
   onScorePreview,
 }: {
   track: MidiTrackState;
-  runtime: RecorderRuntime;
+  runtime: Runtime;
   pixelsPerBeat: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
@@ -79,7 +79,7 @@ export function MidiTrackRow({
   effectsOpen: boolean;
   onEffectsToggle: () => void;
   onRemove: () => void;
-  midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
+  midiInteraction: ReturnType<typeof useMidiInteraction>;
   onTranscribe: () => void;
   onScorePreview: () => void;
 }) {
@@ -352,8 +352,8 @@ function MidiTrackEditor({
   viewportStartBeat,
 }: {
   track: MidiTrackState;
-  runtime: RecorderRuntime;
-  midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
+  runtime: Runtime;
+  midiInteraction: ReturnType<typeof useMidiInteraction>;
   pixelsPerBeat: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
@@ -633,7 +633,7 @@ function useMidiNotePreview({
   runtime,
   trackId,
 }: {
-  runtime: RecorderRuntime;
+  runtime: Runtime;
   trackId: string;
 }) {
   const previewPitch = useRef<number>(undefined);

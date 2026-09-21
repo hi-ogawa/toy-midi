@@ -1,10 +1,13 @@
 import { createDefaultMultibandEq } from "./dsp/biquad-eq-node";
 import {
-  serializeRecorderRuntimeState,
-  type SerializedRecorderRuntimeState,
+  serializeRuntimeState,
+  type SerializedRuntimeState,
 } from "./persistence";
-import { type AnySavedProject, fromSavedProject } from "./project-store";
-import { clampTrackHeight, createDefaultRecorderRuntimeState } from "./runtime";
+import {
+  type AnyLegacySavedProject,
+  normalizeLegacySavedProject,
+} from "./project-store";
+import { clampTrackHeight, createDefaultRuntimeState } from "./runtime";
 
 export async function convertLegacyProject({
   name,
@@ -12,18 +15,16 @@ export async function convertLegacyProject({
   loadAudio,
 }: {
   name: string;
-  project: AnySavedProject;
+  project: AnyLegacySavedProject;
   loadAudio: (assetKey: string) => Promise<Blob | undefined>;
-}): Promise<SerializedRecorderRuntimeState> {
+}): Promise<SerializedRuntimeState> {
   if (project.version !== 1 && project.version !== 2) {
     throw new Error("Unsupported legacy project version");
   }
 
   // Apply legacy defaults and copy project settings onto a fresh recorder project.
-  const legacy = fromSavedProject(project);
-  const content = serializeRecorderRuntimeState(
-    createDefaultRecorderRuntimeState(),
-  );
+  const legacy = normalizeLegacySavedProject(project);
+  const content = serializeRuntimeState(createDefaultRuntimeState());
   content.title = name;
   content.tempo = legacy.tempo;
   content.timeSignature = legacy.timeSignature;

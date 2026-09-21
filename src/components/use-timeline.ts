@@ -9,9 +9,9 @@ import {
   secondsToBeats,
 } from "../lib/timeline";
 import type { TimeSignature } from "../types";
-import { useRecorderPreference } from "./use-preference";
+import { usePreference } from "./use-preference";
 
-export function useRecorderTimeline({
+export function useTimeline({
   isPlaying,
   position,
   tempo,
@@ -26,8 +26,8 @@ export function useRecorderTimeline({
     DEFAULT_GRID_DIVISION,
   );
   const [autoScrollEnabled, setAutoScrollEnabled] =
-    useRecorderPreference("autoScrollEnabled");
-  const [pixelsPerBeat, setPixelsPerBeat] = useRecorderPreference(
+    usePreference("autoScrollEnabled");
+  const [pixelsPerBeat, setPixelsPerBeat] = usePreference(
     "timelinePixelsPerBeat",
   );
   const [viewportStartBeat, setViewportStartBeat] = useState(0);

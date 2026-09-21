@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import {
-  addRecorderAudio,
-  createRecorderProject,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  saveRecorderProject,
+  addAudio,
+  createProject,
+  addMidiTrack,
+  createMidiNote,
+  saveProject,
 } from "./editor-helpers";
 import { createCheckpoint } from "./helpers";
 
@@ -12,9 +12,9 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
   page,
 }) => {
   // Load the known four-note audio fixture and add an empty destination MIDI track.
-  await createRecorderProject(page);
-  await addRecorderAudio(page, "e2e/fixtures/test-tones.wav");
-  const row = await addRecorderMidiTrack(page);
+  await createProject(page);
+  await addAudio(page, "e2e/fixtures/test-tones.wav");
+  const row = await addMidiTrack(page);
   const notes = row.locator("[data-note-id]");
   await expect(row).toBeVisible();
   await expect(notes).toHaveCount(0);
@@ -58,7 +58,7 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
   await panel.getByRole("button", { name: "Close Audio to MIDI" }).click();
 
   // Save and reload the generated notes alongside their source audio.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await page.reload();
   await expect(notes).toHaveCount(createdCount);
   expect(
@@ -82,10 +82,10 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
     await gate.promise;
     await route.continue();
   });
-  await createRecorderProject(page);
-  await addRecorderAudio(page, "e2e/fixtures/test-tones.wav");
-  const row = await addRecorderMidiTrack(page);
-  const original = await createRecorderMidiNote(page, row, {
+  await createProject(page);
+  await addAudio(page, "e2e/fixtures/test-tones.wav");
+  const row = await addMidiTrack(page);
+  const original = await createMidiNote(page, row, {
     beat: 1,
     pitch: "D4",
   });

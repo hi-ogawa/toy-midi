@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, enableInput } from "./editor-helpers";
+import { createProject, enableInput } from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
 
 useFakeAudioInput();
@@ -8,7 +8,7 @@ test("input edits preserve newer timeline preferences across projects", async ({
   page,
 }) => {
   // Enable the default input before changing the timeline preference.
-  await createRecorderProject(page);
+  await createProject(page);
   await enableInput(page);
 
   // Disable auto-scroll, then choose a different input device.
@@ -27,6 +27,6 @@ test("input edits preserve newer timeline preferences across projects", async ({
   // Reload to verify the persisted preference, then carry it into another project.
   await page.reload();
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
-  await createRecorderProject(page);
+  await createProject(page);
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
 });

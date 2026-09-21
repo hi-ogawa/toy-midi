@@ -1,26 +1,26 @@
 import { expect, test } from "@playwright/test";
 import {
-  createRecorderProject,
-  addRecorderMidiTrack,
-  createRecorderMidiNote,
-  saveRecorderProject,
+  createProject,
+  addMidiTrack,
+  createMidiNote,
+  saveProject,
 } from "./editor-helpers";
 
 test("selects and deletes multiple MIDI notes", async ({ page }) => {
   // Create three notes and save the project before changing selection.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
+  await createProject(page);
+  const row = await addMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
-  const c4 = await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
-  const d4 = await createRecorderMidiNote(page, row, {
+  const c4 = await createMidiNote(page, row, { beat: 0, pitch: "C4" });
+  const d4 = await createMidiNote(page, row, {
     beat: 0.5,
     pitch: "D4",
   });
-  const e4 = await createRecorderMidiNote(page, row, { beat: 1, pitch: "E4" });
+  const e4 = await createMidiNote(page, row, { beat: 1, pitch: "E4" });
   await expect(notes).toHaveCount(3);
   const save = page.getByTestId("recorder-save-button");
-  await saveRecorderProject(page);
+  await saveProject(page);
 
   // Ctrl/Cmd-click toggles notes without changing the project.
   await c4.click({ modifiers: ["Control"] });
@@ -118,7 +118,7 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await expect(e4).toBeVisible();
 
   // Save and reload with only the unselected note retained.
-  await saveRecorderProject(page);
+  await saveProject(page);
   await page.reload();
   await expect(notes).toHaveCount(1);
   await expect(e4).toBeVisible();

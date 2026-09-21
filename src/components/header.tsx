@@ -21,7 +21,7 @@ import { useTapTempo } from "../hooks/use-tap-tempo";
 import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
 import { routes } from "../lib/routes";
-import type { RecorderLoopState, RecorderPunchState } from "../lib/runtime";
+import type { LoopState, PunchState } from "../lib/runtime";
 import { formatTimeWithMilliseconds } from "../lib/time-format";
 import {
   formatBarBeatAtTime,
@@ -30,10 +30,10 @@ import {
   GRID_DIVISIONS,
 } from "../lib/timeline";
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../types";
-import type { RecorderFlags } from "./flags";
+import type { EditorFlags } from "./flags";
 import { MetronomeIcon } from "./icons";
-import { RecorderGainSlider } from "./mixer";
-import { RecorderRangeControl } from "./range-control";
+import { GainSlider } from "./mixer";
+import { RangeControl } from "./range-control";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -46,7 +46,7 @@ import {
 import { cn } from "./ui/utils";
 import type { SaveStatus } from "./use-project";
 
-export function RecorderHeader({
+export function Header({
   title,
   saveStatus,
   referenceVideoOpen,
@@ -88,12 +88,12 @@ export function RecorderHeader({
   saveStatus: SaveStatus;
   referenceVideoOpen: boolean;
   isPlaying: boolean;
-  flags: RecorderFlags;
+  flags: EditorFlags;
   isExporting: boolean;
   metronomeEnabled: boolean;
   masterGain: number;
-  loop: RecorderLoopState;
-  punch: RecorderPunchState;
+  loop: LoopState;
+  punch: PunchState;
   position: number;
   playbackRate: number;
   tempo: number;
@@ -109,8 +109,8 @@ export function RecorderHeader({
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
   onMasterGainChange: (gain: number) => void;
-  onLoopChange: (update: Partial<RecorderLoopState>) => void;
-  onPunchChange: (update: Partial<RecorderPunchState>) => void;
+  onLoopChange: (update: Partial<LoopState>) => void;
+  onPunchChange: (update: Partial<PunchState>) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
@@ -175,7 +175,7 @@ export function RecorderHeader({
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
-      <RecorderRangeControl
+      <RangeControl
         kind="loop"
         state={loop}
         position={position}
@@ -183,7 +183,7 @@ export function RecorderHeader({
         timeSignature={timeSignature}
         onChange={onLoopChange}
       />
-      <RecorderRangeControl
+      <RangeControl
         kind="punch"
         state={punch}
         position={position}
@@ -321,7 +321,7 @@ export function RecorderHeader({
       <div className="h-5 w-px bg-neutral-600" />
       <label className="flex items-center gap-2 text-[10px] text-neutral-400">
         <span className="font-medium uppercase tracking-wide">Master</span>
-        <RecorderGainSlider
+        <GainSlider
           data-testid="recorder-master-gain"
           label="Master gain"
           gain={masterGain}
@@ -333,7 +333,7 @@ export function RecorderHeader({
         </span>
       </label>
       <div className="flex-1" />
-      <RecorderSaveButton status={saveStatus} onSave={onSave} />
+      <SaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"
         data-testid="recorder-project-name"
@@ -435,7 +435,7 @@ export function RecorderHeader({
   );
 }
 
-function RecorderSaveButton({
+function SaveButton({
   status,
   onSave,
 }: {

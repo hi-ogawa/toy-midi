@@ -22,21 +22,21 @@ import {
   ensureBiquadEqWorklet,
 } from "./dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-node.ts";
-import { RecorderHistory } from "./history.ts";
-import { RecorderMetronome } from "./metronome.ts";
+import { History } from "./history.ts";
+import { Metronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
   getAudibleItems,
-  renderRecorderMix,
-  resolveRecorderMix,
+  renderMix,
+  resolveMix,
 } from "./mix.ts";
 import { clamp } from "./music.ts";
 import { sliceSamples } from "./pcm.ts";
 import {
-  deserializeRecorderRuntimeState,
-  type SerializedRecorderRuntimeState,
-  serializeRecorderRuntimeState,
+  deserializeRuntimeState,
+  type SerializedRuntimeState,
+  serializeRuntimeState,
 } from "./persistence.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "./pitch-spelling.ts";
 import { ActiveRecording } from "./recording.ts";
@@ -92,23 +92,23 @@ export interface MidiTrackState {
   keySignature: KeySignature;
 }
 
-export interface RecorderLoopRange {
+export interface LoopRange {
   startBeat: number;
   endBeat: number;
 }
 
-export interface RecorderLoopState {
-  range?: RecorderLoopRange;
+export interface LoopState {
+  range?: LoopRange;
   enabled: boolean;
 }
 
-export interface RecorderPunchRange {
+export interface PunchRange {
   startBeat: number;
   endBeat: number;
 }
 
-export interface RecorderPunchState {
-  range?: RecorderPunchRange;
+export interface PunchState {
+  range?: PunchRange;
   enabled: boolean;
 }
 
@@ -128,21 +128,21 @@ export interface ReferenceVideoState {
   duration: number;
 }
 
-export interface RecorderLocator {
+export interface ProjectLocator {
   id: string;
   beat: number;
   label: string;
 }
 
-export type RecorderLocatorUpdate = {
+export type ProjectLocatorUpdate = {
   id: string;
   beat?: number;
   label?: string;
 };
 
-export interface RecorderRuntimeState {
+export interface RuntimeState {
   title: string;
-  locators: RecorderLocator[];
+  locators: ProjectLocator[];
   // Transport
   position: number;
   isPlaying: boolean;
@@ -150,8 +150,8 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
-  loop: RecorderLoopState;
-  punch: RecorderPunchState;
+  loop: LoopState;
+  punch: PunchState;
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -169,8 +169,8 @@ export interface RecorderRuntimeState {
   inputMonitoring: boolean;
 }
 
-export type PersistableRecorderRuntimeState = Pick<
-  RecorderRuntimeState,
+export type PersistableRuntimeState = Pick<
+  RuntimeState,
   | "title"
   | "locators"
   | "tempo"
@@ -189,21 +189,21 @@ export type PersistableRecorderRuntimeState = Pick<
 
 export const REFERENCE_VIDEO_CLIP_ID = "__reference_video__";
 
-export type RecorderClipMove = {
+export type ClipMove = {
   id: string;
   timelineOffset: number;
 };
 
-export type RecorderClipTrim = {
+export type ClipTrim = {
   id: string;
   value: number;
 };
 
-export type RecorderClipEdit =
-  | { type: "move"; changes: readonly RecorderClipMove[] }
-  | { type: "trim-start" | "trim-end"; changes: readonly RecorderClipTrim[] };
+export type ClipEdit =
+  | { type: "move"; changes: readonly ClipMove[] }
+  | { type: "trim-start" | "trim-end"; changes: readonly ClipTrim[] };
 
-export type RecorderClipInsertRemoveSnapshot = {
+export type ClipInsertRemoveSnapshot = {
   tracks: {
     trackId: string;
     clips: { clip: AudioClip; index: number }[];
@@ -211,17 +211,17 @@ export type RecorderClipInsertRemoveSnapshot = {
   referenceVideo?: ReferenceVideoState;
 };
 
-export type RecorderClipInsertRemove = {
+export type ClipInsertRemove = {
   operation: "insert" | "remove";
-  snapshot: RecorderClipInsertRemoveSnapshot;
+  snapshot: ClipInsertRemoveSnapshot;
 };
 
-type RecorderRuntimeClipsState = Pick<
-  RecorderRuntimeState,
+type RuntimeClipsState = Pick<
+  RuntimeState,
   "audioTracks" | "recordingTrack" | "referenceVideo"
 >;
 
-export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
+export function createDefaultRuntimeState(): RuntimeState {
   return {
     title: "Untitled project",
     locators: [],
@@ -246,8 +246,8 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   };
 }
 
-export class RecorderRuntime {
-  readonly store = createStore(createDefaultRecorderRuntimeState);
+export class Runtime {
+  readonly store = createStore(createDefaultRuntimeState);
 
   private readonly context = new AudioContext();
   private readonly masterOutput: GainNode;
@@ -260,14 +260,14 @@ export class RecorderRuntime {
     player: YouTubePlayerApi;
     playback: YouTubePlayerPlayback;
   };
-  private readonly metronome: RecorderMetronome;
-  private readonly history = new RecorderHistory(this);
+  private readonly metronome: Metronome;
+  private readonly history = new History(this);
 
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
     this.transport = new AudioContextTransport(this.context);
-    this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
+    this.metronome = new Metronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
     this.metronome.setTempo(this.store.get().tempo);
@@ -464,7 +464,7 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  commitClipEdit(edit: RecorderClipEdit): void {
+  commitClipEdit(edit: ClipEdit): void {
     this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
@@ -494,7 +494,7 @@ export class RecorderRuntime {
   removeClips(ids: readonly string[]): void {
     const state = this.store.get();
     const clipIds = new Set(ids);
-    const snapshot: RecorderClipInsertRemoveSnapshot = {
+    const snapshot: ClipInsertRemoveSnapshot = {
       tracks: [...state.audioTracks, state.recordingTrack].flatMap((track) => {
         const clips = track.clips.flatMap((clip, index) =>
           clipIds.has(clip.id) ? [{ clip, index }] : [],
@@ -510,13 +510,13 @@ export class RecorderRuntime {
   }
 
   /** @internal for undo */
-  applyClipInsertRemove(change: RecorderClipInsertRemove): void {
+  applyClipInsertRemove(change: ClipInsertRemove): void {
     this.updateClips((state) => deriveClipInsertRemoveState(state, change));
   }
 
   /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
   private updateClips(
-    update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
+    update: (state: RuntimeState) => RuntimeClipsState,
   ): void {
     const state = this.store.get();
     const next = update(state);
@@ -810,14 +810,14 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
-  setLoop(update: Partial<RecorderLoopState>): void {
+  setLoop(update: Partial<LoopState>): void {
     this.store.update({
       loop: { ...this.store.get().loop, ...update },
     });
     this.syncLoopRange();
   }
 
-  setPunch(update: Partial<RecorderPunchState>): void {
+  setPunch(update: Partial<PunchState>): void {
     this.store.update({
       punch: { ...this.store.get().punch, ...update },
     });
@@ -846,7 +846,7 @@ export class RecorderRuntime {
     return locator.id;
   }
 
-  updateLocator({ id, ...changes }: RecorderLocatorUpdate): void {
+  updateLocator({ id, ...changes }: ProjectLocatorUpdate): void {
     const { locators } = this.store.get();
     this.store.update({
       locators: locators.map((locator) =>
@@ -963,21 +963,19 @@ export class RecorderRuntime {
     ) {
       throw new Error("Cannot render a mix while capture is in progress.");
     }
-    return renderRecorderMix({
-      mix: resolveRecorderMix(state),
+    return renderMix({
+      mix: resolveMix(state),
       sampleRate: 48000,
     });
   }
 
-  serializeProject(): SerializedRecorderRuntimeState {
-    return serializeRecorderRuntimeState(this.store.get());
+  serializeProject(): SerializedRuntimeState {
+    return serializeRuntimeState(this.store.get());
   }
 
-  async deserializeProject(
-    project: SerializedRecorderRuntimeState,
-  ): Promise<void> {
+  async deserializeProject(project: SerializedRuntimeState): Promise<void> {
     await this.replacePersistableState(
-      deserializeRecorderRuntimeState({
+      deserializeRuntimeState({
         context: this.context,
         project,
       }),
@@ -985,7 +983,7 @@ export class RecorderRuntime {
   }
 
   private async replacePersistableState(
-    project: PersistableRecorderRuntimeState,
+    project: PersistableRuntimeState,
   ): Promise<void> {
     if (
       this.store.get().captureStatus === "recording" ||
@@ -1077,7 +1075,7 @@ export class RecorderRuntime {
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,
           referenceVideo: state.referenceVideo,
-        }) satisfies PersistableRecorderRuntimeState,
+        }) satisfies PersistableRuntimeState,
       listener,
       equals: shallowEqual,
     });
@@ -1214,9 +1212,9 @@ export class RecorderRuntime {
 
 /** Derive clip insertion or removal without mutating the supplied state. */
 function deriveClipInsertRemoveState(
-  state: RecorderRuntimeState,
-  { operation, snapshot }: RecorderClipInsertRemove,
-): RecorderRuntimeClipsState {
+  state: RuntimeState,
+  { operation, snapshot }: ClipInsertRemove,
+): RuntimeClipsState {
   function updateTrack(track: AudioTrackState): AudioTrackState {
     const trackEdits = snapshot.tracks.find(
       (entry) => entry.trackId === track.id,
@@ -1262,9 +1260,9 @@ function deriveClipInsertRemoveState(
 
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
 export function deriveClipEditState(
-  state: RecorderRuntimeState,
-  edit: RecorderClipEdit,
-): RecorderRuntimeClipsState {
+  state: RuntimeState,
+  edit: ClipEdit,
+): RuntimeClipsState {
   const moves = edit.type === "move" ? edit.changes : [];
   const trims = edit.type !== "move" ? edit.changes : [];
   function editTrack(track: AudioTrackState): AudioTrackState {
