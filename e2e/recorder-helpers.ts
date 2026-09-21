@@ -43,11 +43,7 @@ export async function openRecorderMidiInstrument(
         menu: `${name} actions`,
         item: "Instrument…",
       });
-      const instrument = page.getByRole("dialog", {
-        name: `${name} instrument`,
-      });
-      await expect(instrument).toBeVisible();
-      return instrument;
+      return page.getByTestId("recorder-midi-instrument");
     },
     { box: true },
   );

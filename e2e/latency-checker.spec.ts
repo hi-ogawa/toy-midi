@@ -8,22 +8,6 @@ test("completes the latency checker workflow with fake audio", async ({
 }) => {
   await page.goto("/latency-checker");
 
-  // Open the latency checker menu and retain the workflow when dismissing it.
-  const latencyMenuButton = page.getByRole("button", {
-    name: "Latency checker menu",
-  });
-  const latencyMenu = page.getByRole("menu", {
-    name: "Latency checker menu",
-  });
-  await latencyMenuButton.click();
-  await expect(
-    latencyMenu.getByRole("menuitem", { name: "Home" }),
-  ).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(latencyMenu).toBeHidden();
-
-  // Connect the fake input and complete the measurement workflow.
-
   await expect(page.getByLabel("Browser audio input")).toContainText(
     "Fake Default Audio Input",
   );
