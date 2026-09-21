@@ -45,10 +45,9 @@ test("remembers the instrument preference without changing saved tracks", async 
   await createRecorderProject(page);
   const firstUrl = page.url();
   await addRecorderMidiTrack(page);
-  await openRecorderMidiInstrument({ page, name: "MIDI 1" });
+  const program = await openRecorderMidiInstrument({ page, name: "MIDI 1" });
   await selectRecorderMidiInstrument({
-    page,
-    name: "MIDI 1",
+    program,
     option: "33: Electric Bass (finger)",
   });
   await page.getByRole("button", { name: "Close", exact: true }).click();
@@ -58,12 +57,9 @@ test("remembers the instrument preference without changing saved tracks", async 
   await createRecorderProject(page);
   await addRecorderMidiTrack(page);
   await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await expect(
-    page.getByRole("combobox", { name: "MIDI 1 program" }),
-  ).toContainText("33: Electric Bass (finger)");
+  await expect(program).toContainText("33: Electric Bass (finger)");
   await selectRecorderMidiInstrument({
-    page,
-    name: "MIDI 1",
+    program,
     option: "40: Violin",
   });
   await page.getByRole("button", { name: "Close", exact: true }).click();
@@ -72,15 +68,11 @@ test("remembers the instrument preference without changing saved tracks", async 
   // Reload the bass project and preserve its saved instrument.
   await page.goto(firstUrl);
   await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await expect(
-    page.getByRole("combobox", { name: "MIDI 1 program" }),
-  ).toContainText("33: Electric Bass (finger)");
+  await expect(program).toContainText("33: Electric Bass (finger)");
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
   // Add a track with the persisted violin preference despite loading the bass track.
   await addRecorderMidiTrack(page);
-  await openRecorderMidiInstrument({ page, name: "MIDI 2" });
-  await expect(
-    page.getByRole("combobox", { name: "MIDI 2 program" }),
-  ).toContainText("40: Violin");
+  const newProgram = await openRecorderMidiInstrument({ page, name: "MIDI 2" });
+  await expect(newProgram).toContainText("40: Violin");
 });
