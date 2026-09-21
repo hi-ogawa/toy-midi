@@ -45,34 +45,43 @@ test("remembers the instrument preference without changing saved tracks", async 
   await createRecorderProject(page);
   const firstUrl = page.url();
   await addRecorderMidiTrack(page);
-  const program = await openRecorderMidiInstrument({ page, name: "MIDI 1" });
+  const instrument = await openRecorderMidiInstrument({ page, name: "MIDI 1" });
   await selectRecorderMidiInstrument({
-    program,
+    instrument,
     option: "33: Electric Bass (finger)",
   });
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await saveRecorderProject(page);
 
   // Create a track in another project with bass, then select violin as the new default.
   await createRecorderProject(page);
   await addRecorderMidiTrack(page);
   await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await expect(program).toContainText("33: Electric Bass (finger)");
+  await expect(
+    instrument.getByRole("combobox", { name: / program$/ }),
+  ).toContainText("33: Electric Bass (finger)");
   await selectRecorderMidiInstrument({
-    program,
+    instrument,
     option: "40: Violin",
   });
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await saveRecorderProject(page);
 
   // Reload the bass project and preserve its saved instrument.
   await page.goto(firstUrl);
   await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await expect(program).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(
+    instrument.getByRole("combobox", { name: / program$/ }),
+  ).toContainText("33: Electric Bass (finger)");
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Add a track with the persisted violin preference despite loading the bass track.
   await addRecorderMidiTrack(page);
-  const newProgram = await openRecorderMidiInstrument({ page, name: "MIDI 2" });
-  await expect(newProgram).toContainText("40: Violin");
+  const newInstrument = await openRecorderMidiInstrument({
+    page,
+    name: "MIDI 2",
+  });
+  await expect(
+    newInstrument.getByRole("combobox", { name: / program$/ }),
+  ).toContainText("40: Violin");
 });

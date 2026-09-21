@@ -209,6 +209,7 @@ export function MidiTrackRow({
         )}
       </TrackRow>
       <PortalDialog
+        data-testid="recorder-midi-instrument"
         isOpen={isInstrumentOpen}
         title={`${track.name} instrument`}
         onClose={() => setIsInstrumentOpen(false)}
