@@ -29,10 +29,8 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
     context.outputLatency,
     settings?.latency,
   ];
-  const candidateLatency = latencies.every(
-    (value) => value !== undefined && Number.isFinite(value) && value >= 0,
-  )
-    ? latencies.reduce<number>((sum, value) => sum + value!, 0)
+  const candidateLatency = latencies.every(isLatency)
+    ? sum(latencies)
     : undefined;
   const contextRows = [
     ["Context", context.state],
@@ -81,7 +79,7 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
 }
 
 function formatLatency(seconds?: number) {
-  return seconds !== undefined && Number.isFinite(seconds) && seconds >= 0
+  return isLatency(seconds)
     ? `${(seconds * 1000).toFixed(3)} ms`
     : "Unavailable";
 }
@@ -98,4 +96,12 @@ function formatSetting(value?: boolean | string | number) {
         ? "On"
         : "Off"
       : String(value);
+}
+
+function isLatency(value: number | undefined): value is number {
+  return value !== undefined && Number.isFinite(value) && value >= 0;
+}
+
+function sum(values: number[]) {
+  return values.reduce((total, value) => total + value, 0);
 }
