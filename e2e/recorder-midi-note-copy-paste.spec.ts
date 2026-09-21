@@ -73,7 +73,7 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
 test("keeps note clipboard separate from selected text and focused inputs", async ({
   page,
 }) => {
-  // Copy C4, then select E4 so accidental note-copy handling would replace the clipboard.
+  // Copy C4, then create E4 to distinguish the note clipboard from the current selection.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
   const c4 = await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
@@ -82,16 +82,13 @@ test("keeps note clipboard separate from selected text and focused inputs", asyn
   await expect(e4).toHaveAttribute("data-selected", "true");
   const notes = row.locator("[data-note-id]");
 
-  // Copy rendered text without overwriting the note clipboard.
-  await page.getByTestId("recorder-project-name").evaluate((element) => {
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const selection = window.getSelection()!;
-    selection.removeAllRanges();
-    selection.addRange(range);
-  });
+  // Select the Tracks label with the mouse, clearing note selection while retaining the clipboard.
+  await page.getByText("Tracks", { exact: true }).dblclick();
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString()))
+    .toBe("Tracks");
+  await expect(e4).toHaveAttribute("data-selected", "false");
   await page.keyboard.press("Control+c");
-  await page.evaluate(() => window.getSelection()!.removeAllRanges());
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   await page.keyboard.press("Control+v");
   await expect(notes).toHaveCount(3);
