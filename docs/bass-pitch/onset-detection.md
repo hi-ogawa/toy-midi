@@ -46,9 +46,9 @@ The changes $(-3,0,6,3)$ become $(0,0,6,3)$, giving $F_t=2.25$ dB. Growth in som
 
 ## Use Spectral Flux to Split Notes
 
-Our pipeline divides spectral flux $F_t$ by the excerpt's 95th percentile of positive flux values and clips the result to $[0,1]$. Within an active region, a grid cell starts a new note when its maximum normalized flux reaches the [split threshold](algorithm.md#controls-in-toy-midi).
+Our pipeline divides spectral flux $F_t$ by the 95th percentile of positive flux values in RMS-active grid cells and clips the result to $[0,1]$. Within an active region, a grid cell starts a new note when its maximum normalized flux reaches the [split threshold](algorithm.md#controls-in-toy-midi).
 
-This normalization is an empirical choice from the evaluation harness, not part of librosa’s `onset_strength`. Different surrounding material can change a local split decision, and even weak fluctuations can normalize to 1. [Issue #253](https://github.com/hi-ogawa/toy-midi/issues/253) tracks this unresolved calibration question.
+This normalization is a pipeline heuristic, not part of librosa’s `onset_strength`. Using active cells keeps inactive-cell residue out of the percentile reference.
 
 ## Implementation Details
 

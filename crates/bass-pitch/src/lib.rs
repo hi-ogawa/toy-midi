@@ -71,7 +71,7 @@ pub struct Frames {
     pub times: Vec<f64>,
     /// Root mean square (RMS) amplitude for each analysis window.
     pub rms: Vec<f64>,
-    /// Onset novelty normalized against the excerpt's 95th percentile.
+    /// Raw onset flux from `analyze`, normalized using active cells in `run_pipeline`.
     pub onset: Vec<f64>,
     /// pYIN fundamental frequency estimates in hertz, or NaN when unvoiced.
     pub f0: Vec<f64>,
@@ -175,7 +175,7 @@ pub fn run_pipeline(
     params: &Params,
     on_progress: &mut dyn FnMut(ChunkProgress),
 ) -> Pipeline {
-    let frames = analyze(audio, params, on_progress);
+    let mut frames = analyze(audio, params, on_progress);
     let excerpt_end = params.start + audio.len() as f64 / params.sample_rate as f64;
     let cells = make_grid_cells(
         params.start,
@@ -191,6 +191,7 @@ pub fn run_pipeline(
         db_to_gain(params.activity_off_db),
         db_to_gain(params.activity_on_db),
     );
+    normalize_onset_strength(&mut frames, &activity_cells);
     let activity_notes = make_activity_notes(&activity_cells, params.activity_pitch);
     let onset_notes = make_activity_onset_notes(
         &cells,
@@ -211,7 +212,7 @@ pub fn run_pipeline(
 }
 
 /// Computes aligned root mean square (RMS), onset, and pYIN frame series from
-/// mono input samples.
+/// mono input samples. Onset flux remains unnormalized until activity is known.
 ///
 /// Feature implementations can produce slightly different lengths, so output
 /// arrays are truncated to their common prefix before frame times are assigned.
@@ -360,32 +361,34 @@ fn calculate_onset_strength(
     let shift = frame_length / (2 * hop_length);
     let mut shifted = vec![0.0; shift.min(n_frames)];
     shifted.extend_from_slice(&flux[..n_frames - shifted.len()]);
-    // Scale flux by its positive-value percentile for the configured split threshold.
-    normalize_onset_strength(&shifted)
+    // Normalize after RMS activity detection, using only active-cell flux.
+    shifted
 }
 
-/// Scales onset strength by the 95th percentile of its positive finite values,
-/// then clamps it to 0 through 1 so thresholds are relative to the excerpt.
-/// Returns zeros when no positive finite onset value exists. The percentile is
-/// an empirical policy retained from the Python evaluation harness.
-fn normalize_onset_strength(values: &[f64]) -> Vec<f64> {
-    let mut positive: Vec<f64> = values
+/// Use positive flux in RMS-active cells as the percentile reference. Inactive
+/// residue and frames outside complete grid cells cannot set the split scale.
+/// Keep the normalization on all frames for diagnostics, but only active cells
+/// can split notes. With no positive reference, there is no onset evidence.
+fn normalize_onset_strength(frames: &mut Frames, activity_cells: &[ActivityCell]) {
+    let mut positive: Vec<f64> = activity_cells
         .iter()
-        .copied()
+        .filter(|cell| cell.active)
+        .flat_map(|cell| frames.indices_in_range(cell.source_start, cell.source_end))
+        .map(|index| frames.onset[index])
         .filter(|value| value.is_finite() && *value > 0.0)
         .collect();
     if positive.is_empty() {
-        return vec![0.0; values.len()];
+        frames.onset.fill(0.0);
+        return;
     }
     positive.sort_by(f64::total_cmp);
     let rank = 0.95 * (positive.len() - 1) as f64;
     let low = positive[rank.floor() as usize];
     let high = positive[rank.ceil() as usize];
     let scale = low + (high - low) * rank.fract();
-    values
-        .iter()
-        .map(|value| (value / scale).clamp(0.0, 1.0))
-        .collect()
+    for value in &mut frames.onset {
+        *value = (*value / scale).clamp(0.0, 1.0);
+    }
 }
 
 const PYIN_CHUNK_SECONDS: usize = 10;
