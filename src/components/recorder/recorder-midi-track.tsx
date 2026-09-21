@@ -35,7 +35,7 @@ import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import type { Note } from "../../types";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
-import { PortalDialog } from "../ui/dialog";
+import { Dialog } from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -208,7 +208,7 @@ export function MidiTrackRow({
           </div>
         )}
       </TrackRow>
-      <PortalDialog
+      <Dialog
         data-testid="recorder-midi-instrument"
         isOpen={isInstrumentOpen}
         title={`${track.name} instrument`}
@@ -222,7 +222,7 @@ export function MidiTrackRow({
             runtime.setMidiTrackSettings(track.id, settings)
           }
         />
-      </PortalDialog>
+      </Dialog>
     </div>
   );
 }
