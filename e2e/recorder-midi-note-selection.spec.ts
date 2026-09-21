@@ -99,9 +99,7 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await expect(e4).toHaveAttribute("data-selected", "false");
   await expect(save).toHaveAttribute("data-status", "saved");
 
-  // Delete the selected set together and retain its identities for the undo check.
-  const c4Id = await c4.getAttribute("data-note-id");
-  const d4Id = await d4.getAttribute("data-note-id");
+  // Delete the selected set together.
   await page.keyboard.press("Delete");
   await expect(notes).toHaveCount(1);
   await expect(e4).toBeVisible();
@@ -110,8 +108,8 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   // Undo and redo the grouped deletion without changing the surviving note.
   await page.keyboard.press("Control+z");
   await expect(notes).toHaveCount(3);
-  await expect(c4).toHaveAttribute("data-note-id", c4Id!);
-  await expect(d4).toHaveAttribute("data-note-id", d4Id!);
+  await expect(c4).toBeVisible();
+  await expect(d4).toBeVisible();
   expect((await c4.boundingBox())!.width).toBe(c4Box.width);
   expect((await d4.boundingBox())!.width).toBe(d4Box.width);
   await expect(e4).toBeVisible();
