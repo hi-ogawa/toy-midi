@@ -31,7 +31,8 @@ test("opens a MusicXML file from the More menu", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("opens the latest project state as a score in a new tab", async ({
+// Legacy editor entry points are retired. Remove this scenario with the old editor in #574.
+test.skip("opens the latest project state as a score in a new tab", async ({
   page,
 }) => {
   await page.goto("/");

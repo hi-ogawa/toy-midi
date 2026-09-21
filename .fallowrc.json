@@ -1,3 +1,9 @@
 {
-  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json"
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "src/components/editor.tsx",
+    "src/components/midi-project-list.tsx",
+    "src/lib/project-score.ts",
+    "src/lib/project-session.ts"
+  ]
 }
