@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from "react";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
+import { startInterval } from "../../utils/timing";
 
 export function InputDiagnostics({ runtime }: { runtime: RecorderRuntime }) {
   const [open, setOpen] = useState(false);
@@ -16,10 +17,7 @@ export function InputDiagnostics({ runtime }: { runtime: RecorderRuntime }) {
 
 function Readings({ runtime }: { runtime: RecorderRuntime }) {
   const [, refresh] = useReducer((value: number) => value + 1, 0);
-  useEffect(() => {
-    const timer = window.setInterval(refresh, 1000);
-    return () => window.clearInterval(timer);
-  }, []);
+  useEffect(() => startInterval(refresh, 1000), []);
   const state = runtime.store.get();
   const context = runtime.context;
   const track = runtime.captureInput?.stream.getAudioTracks()[0];
