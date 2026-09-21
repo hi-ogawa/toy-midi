@@ -31,6 +31,52 @@ export async function addRecorderMidiTrack(page: Page) {
   );
 }
 
+export async function openRecorderMidiInstrument({
+  page,
+  name,
+}: {
+  page: Page;
+  name: string;
+}) {
+  await test.step(
+    `Open ${name} instrument`,
+    async () => {
+      await page
+        .getByRole("button", { name: `${name} actions`, exact: true })
+        .click();
+      await page
+        .getByRole("menuitem", { name: "Instrument…", exact: true })
+        .click();
+    },
+    { box: true },
+  );
+}
+
+export async function selectRecorderMidiInstrument({
+  page,
+  name,
+  option,
+}: {
+  page: Page;
+  name: string;
+  option: string;
+}) {
+  await test.step(
+    `Select ${option} for ${name}`,
+    async () => {
+      const program = page.getByRole("combobox", { name: `${name} program` });
+      await program.click();
+      await page
+        .getByPlaceholder("Search instruments...")
+        .fill(option.split(": ")[1]);
+      await page.getByRole("option", { name: option, exact: true }).click();
+      await expect(program).toContainText(option);
+      await expect(program).toBeEnabled();
+    },
+    { box: true },
+  );
+}
+
 export async function createRecorderMidiNote(
   page: Page,
   track: Locator,
