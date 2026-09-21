@@ -60,4 +60,6 @@ The [Rust core](../../crates/bass-pitch/src/lib.rs) analyzes mono audio at 22.05
 
 Pitch voting currently uses weight $0.1+0.9v$ for voiced probability $v$, and ties choose the lower MIDI note. The 0.1 floor is a heuristic that retains a small contribution from every eligible frame.
 
-pYIN runs in roughly 10-second chunks with 32 context frames on each side, which are discarded after decoding. This permits progress reporting but limits the sequence model's context. RMS and onset analysis use the whole excerpt, including the excerpt-wide onset normalization. The [guide](README.md#development-and-diagnostics) describes the CLI, intermediate MIDI, and CSV diagnostics used to inspect each decision.
+pYIN tracks local pitch and voicing continuity, so there is little practical reason to wait for a whole-song decode. Roughly 10-second chunks bound decoder working memory and provide regular progress updates. Each chunk includes 32 extra context frames on each side to support decisions near its boundaries, then discards those context outputs. In the original full Ring comparison, chunked and whole-excerpt analysis differed in just one frame record out of 14,022 and produced identical note decisions.
+
+RMS and onset analysis are inexpensive and use the whole excerpt, including the excerpt-wide onset normalization. The [guide](README.md#development-and-diagnostics) describes the CLI, intermediate MIDI, and CSV diagnostics used to inspect each decision.
