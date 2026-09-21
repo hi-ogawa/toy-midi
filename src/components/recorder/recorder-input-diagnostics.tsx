@@ -23,6 +23,7 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
   const state = runtime.store.get();
   const context = runtime.context;
   const track = runtime.captureInput?.stream.getAudioTracks()[0];
+  // Browsers can report capture latency, but TypeScript’s DOM types omit it.
   const settings: (MediaTrackSettings & { latency?: number }) | undefined =
     track?.getSettings();
   const latencies = [
