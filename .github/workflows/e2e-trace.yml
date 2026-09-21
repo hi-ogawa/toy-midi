@@ -152,8 +152,8 @@ jobs:
               }
               const start = "<!-- e2e-trace:start -->";
               const end = "<!-- e2e-trace:end -->";
-              const link = ARTIFACT_URL ? `[E2E trace](${ARTIFACT_URL})` : "E2E trace (no trace pack)";
-              const section = `${start}\n${link} · ${TEST_RESULT} · [${TEST_SHA.slice(0, 8)}](${commitUrl}) · [run](${runUrl})\n${end}`;
+              const link = ARTIFACT_URL ? `[view artifact](${ARTIFACT_URL})` : "no trace pack";
+              const section = `${start}\n> E2E trace CI: ${link} - [action run](${runUrl}) - commit [\`${TEST_SHA.slice(0, 8)}\`](${commitUrl})\n${end}`;
               const description = current.body ?? "";
               const marker = /<!-- e2e-trace:start -->[\s\S]*?<!-- e2e-trace:end -->/;
               await github.rest.pulls.update({
