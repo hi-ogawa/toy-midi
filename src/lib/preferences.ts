@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createStore } from "../utils/store";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -9,6 +10,7 @@ const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
 const preferencesSchema = z.object({
   autoScrollEnabled: z.boolean(),
+  takesNewestFirst: z.boolean(),
   timelinePixelsPerBeat: z
     .number()
     .min(MIN_PIXELS_PER_BEAT)
@@ -27,15 +29,17 @@ const preferencesSchema = z.object({
     })
     .optional(),
 });
-type Preferences = z.infer<typeof preferencesSchema>;
+export type Preferences = z.infer<typeof preferencesSchema>;
 
 const DEFAULT_PREFERENCES: Preferences = {
   autoScrollEnabled: true,
+  takesNewestFirst: true,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
 };
 
 class PreferencesStorage {
-  readPreferences(): Preferences {
+  // All consumers share one snapshot, including when browser storage is unavailable.
+  readonly store = createStore<Preferences>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
       return preferencesSchema.parse({
@@ -45,18 +49,15 @@ class PreferencesStorage {
     } catch {
       return DEFAULT_PREFERENCES;
     }
-  }
+  });
 
-  writePreferences(preferences: Preferences): void {
+  update(updates: Partial<Preferences>): void {
+    this.store.update(updates);
     try {
-      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(this.store.get()));
     } catch {
       // Storage can be disabled without preventing recording.
     }
-  }
-
-  updatePreferences(updates: Partial<Preferences>): void {
-    this.writePreferences({ ...this.readPreferences(), ...updates });
   }
 }
 

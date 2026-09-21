@@ -1,6 +1,9 @@
 import { clamp } from "../music.ts";
 import { PlanarStreamBuffer } from "./stream-buffer.ts";
 
+// For the motivation and intuition behind WSOLA, see:
+// docs/concepts/wsola-time-stretching.md
+//
 // Algorithm structure and default parameters follow Chromium's media renderer:
 // https://chromium.googlesource.com/chromium/src/+/main/media/filters/audio_renderer_algorithm.cc
 //

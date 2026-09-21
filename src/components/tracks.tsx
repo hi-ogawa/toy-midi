@@ -1,4 +1,6 @@
 import {
+  ArrowDownWideNarrowIcon,
+  ArrowUpNarrowWideIcon,
   AudioWaveformIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -297,30 +299,57 @@ export function TakesDisclosureRow({
   expanded,
   takeCount,
   onExpandedChange,
+  newestFirst,
+  onNewestFirstChange,
 }: {
   expanded: boolean;
   takeCount: number;
+  newestFirst: boolean;
+  onNewestFirstChange: (newestFirst: boolean) => void;
   onExpandedChange: (expanded: boolean) => void;
 }) {
   return (
     <div className="grid h-9 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
-      <button
-        type="button"
-        data-testid="recorder-takes-toggle"
-        aria-expanded={expanded}
-        onClick={() => onExpandedChange(!expanded)}
-        className="sticky left-0 z-20 flex items-center gap-2 border-r border-neutral-700 bg-neutral-900 px-3 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
-      >
-        {expanded ? (
-          <ChevronDownIcon className="size-3.5 text-neutral-400" />
-        ) : (
-          <ChevronRightIcon className="size-3.5 text-neutral-400" />
-        )}
-        Takes
-        <span className="text-[10px] font-normal text-neutral-500">
-          {takeCount}
-        </span>
-      </button>
+      <div className="relative border-r border-neutral-700">
+        <button
+          type="button"
+          data-testid="recorder-takes-toggle"
+          aria-expanded={expanded}
+          onClick={() => onExpandedChange(!expanded)}
+          className="flex h-full w-full items-center gap-2 pl-3 pr-12 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
+        >
+          {expanded ? (
+            <ChevronDownIcon className="size-3.5 text-neutral-400" />
+          ) : (
+            <ChevronRightIcon className="size-3.5 text-neutral-400" />
+          )}
+          Takes
+          <span className="text-[10px] font-normal text-neutral-500">
+            {takeCount}
+          </span>
+        </button>
+        <Button
+          data-testid="recorder-takes-order"
+          aria-label={
+            newestFirst
+              ? "Order takes oldest first"
+              : "Order takes newest first"
+          }
+          title={
+            newestFirst
+              ? "Newest first · Click for oldest first"
+              : "Oldest first · Click for newest first"
+          }
+          onClick={() => onNewestFirstChange(!newestFirst)}
+          className="absolute right-3 top-1/2 size-6 -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+        >
+          {newestFirst ? (
+            <ArrowDownWideNarrowIcon className="size-3.5" />
+          ) : (
+            <ArrowUpNarrowWideIcon className="size-3.5" />
+          )}
+        </Button>
+      </div>
       <div />
     </div>
   );

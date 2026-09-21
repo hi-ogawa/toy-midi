@@ -42,6 +42,7 @@ import { Tuner } from "./tuner";
 import { Dialog } from "./ui/dialog";
 import { useInput } from "./use-input";
 import { useInteraction } from "./use-interaction";
+import { usePreference } from "./use-preference";
 import { useProject } from "./use-project";
 import { useTimeline } from "./use-timeline";
 
@@ -50,6 +51,8 @@ export function Editor({ projectId }: { projectId: string }) {
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
+  const [takesNewestFirst, setTakesNewestFirst] =
+    usePreference("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useEffectsUi();
@@ -555,11 +558,13 @@ export function Editor({ projectId }: { projectId: string }) {
                 expanded={takesExpanded}
                 takeCount={takes.length}
                 onExpandedChange={setTakesExpanded}
+                newestFirst={takesNewestFirst}
+                onNewestFirstChange={setTakesNewestFirst}
               />
             )}
             {takes.length > 0 &&
               takesExpanded &&
-              takes.map((take) => (
+              (takesNewestFirst ? takes.toReversed() : takes).map((take) => (
                 <TakeTrackRow
                   key={take.id}
                   label={take.name}

@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { getCaptureInputs, requestCaptureAccess } from "../lib/capture-input";
-import { preferencesStorage } from "../lib/preferences";
 import { Runtime, RuntimeState } from "../lib/runtime";
+import { usePreference } from "./use-preference";
 
 export function useInput({
   runtime,
@@ -12,20 +12,18 @@ export function useInput({
   state: RuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
-  const [preference, setPreference] = useState(() =>
-    preferencesStorage.readPreferences(),
-  );
+  const [inputPreference, setInputPreference] = usePreference("input");
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState(preference.input?.deviceId);
+  const [deviceId, setDeviceId] = useState(inputPreference?.deviceId);
 
   async function refresh() {
     const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
     selectDevice(
       nextDevices.some(
-        (device) => device.deviceId === preference.input?.deviceId,
+        (device) => device.deviceId === inputPreference?.deviceId,
       )
-        ? preference.input?.deviceId
+        ? inputPreference?.deviceId
         : nextDevices[0]?.deviceId,
       { remember: false },
     );
@@ -40,14 +38,9 @@ export function useInput({
     }
     setDeviceId(nextDeviceId);
     if (remember) {
-      const nextPreference = {
-        ...preference,
-        input: nextDeviceId
-          ? { deviceId: nextDeviceId, channel: 0 }
-          : undefined,
-      };
-      setPreference(nextPreference);
-      preferencesStorage.writePreferences(nextPreference);
+      setInputPreference(
+        nextDeviceId ? { deviceId: nextDeviceId, channel: 0 } : undefined,
+      );
     }
   }
 
@@ -71,11 +64,9 @@ export function useInput({
         deviceId: nextDeviceId,
       });
       runtime.selectChannel(
-        Math.min(preference.input?.channel ?? 0, channelCount - 1),
+        Math.min(inputPreference?.channel ?? 0, channelCount - 1),
       );
-      runtime.setLatencyCompensation(
-        preference.input?.latencyCompensation ?? 0,
-      );
+      runtime.setLatencyCompensation(inputPreference?.latencyCompensation ?? 0);
     },
   });
 
@@ -124,24 +115,13 @@ export function useInput({
       if (!deviceId) {
         return;
       }
-      const nextPreference = {
-        ...preference,
-        input: { ...preference.input, deviceId, channel },
-      };
-      setPreference(nextPreference);
-      preferencesStorage.writePreferences(nextPreference);
+      setInputPreference((current) => ({ ...current, deviceId, channel }));
     },
     setLatencyCompensation: (latencyCompensation: number) => {
       runtime.setLatencyCompensation(latencyCompensation);
-      if (!preference.input) {
-        return;
-      }
-      const nextPreference = {
-        ...preference,
-        input: { ...preference.input, latencyCompensation },
-      };
-      setPreference(nextPreference);
-      preferencesStorage.writePreferences(nextPreference);
+      setInputPreference((current) =>
+        current ? { ...current, latencyCompensation } : undefined,
+      );
     },
     toggle: () => {
       if (!hasAccess) {
