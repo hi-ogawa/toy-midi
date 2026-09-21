@@ -11,13 +11,9 @@ Local runs record DOM traces in `test-results/trace-pack.html` by default. Use `
 
 ## E2E traces on GitHub Actions
 
-Add the `e2e-trace` label to a same-repository PR to trace its added, modified, or renamed `e2e/**/*.spec.ts` files against a production build. Adding the label starts a run, and subsequent pushes or reopening the PR start fresh runs while the label remains. Selection uses the whole PR diff, so a follow-up fix still traces specs changed in earlier commits. Deleted specs are excluded.
+Add the `e2e-trace` label to a same-repository PR to trace changed E2E specs. It runs when labeled and on subsequent pushes, and posts the trace link in a PR comment. Remove the label to stop automatic runs.
 
-The trace workflow resolves the branch head when its test job starts and posts a PR comment with the selected files, tested commit, and trace link. A newer run cancels the previous automatic run for that PR. If no specs changed, the workflow skips testing and explains how to choose existing specs manually. Removing the label stops future automatic runs.
-
-The label trigger and PR diff selection live in `e2e-trace-pr.yml`. It checks out the PR head with full history and uses `git diff` from the merge base to select specs, then calls `e2e-trace.yml` with those files and the PR branch name. The shared workflow also supports manual dispatch.
-
-Run selected E2E tests on a branch, including `main` or a branch without a PR. The result and a **View E2E trace** link appear in the workflow summary and as comments on open PRs headed by that branch.
+To trace existing specs that the PR does not change, or test a branch manually:
 
 ```sh
 gh workflow run e2e-trace.yml --ref main \
