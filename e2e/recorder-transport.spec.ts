@@ -159,7 +159,7 @@ test("toggles the metronome by button and shortcut without intercepting text inp
   await page.keyboard.press("m");
   await expect(metronome).toHaveAttribute("aria-pressed", "false");
 
-  // Keep the shortcut local to the tempo input while it has focus.
+  // Ignore the metronome shortcut while a text input is focused.
   const tempo = page.getByTestId("recorder-tempo-input");
   await tempo.focus();
   await page.keyboard.press("m");
