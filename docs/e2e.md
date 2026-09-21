@@ -15,6 +15,8 @@ Add the `e2e-trace` label to a same-repository PR to trace its added, modified, 
 
 Each run tests the PR head commit and updates one PR comment with the selected files, tested commit, and trace link. A newer run cancels the previous automatic run for that PR. If no specs changed, the workflow skips testing and explains how to choose existing specs manually. Removing the label stops future automatic runs.
 
+The label trigger and PR diff selection live in `e2e-trace-pr.yml`, which calls `e2e-trace.yml` with explicit specs and the PR head SHA. The shared workflow also supports manual dispatch.
+
 Run selected E2E tests on a branch, including `main` or a branch without a PR. The result and a **View E2E trace** link appear in the workflow summary and as comments on open PRs headed by that branch.
 
 ```sh
