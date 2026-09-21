@@ -208,3 +208,75 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
     "test-tones.wav",
   );
 });
+
+test("cancels transcription, closes an active retry, and undoes a successful retry", async ({
+  page,
+}) => {
+  // Gate model loading so both cancellations occur during active conversions.
+  const gate = Promise.withResolvers<void>();
+  let requests = 0;
+  await page.route("**/bass_pitch_bg*.wasm", async (route) => {
+    requests++;
+    await gate.promise;
+    await route.continue();
+  });
+  await createRecorderProject(page);
+  await addRecorderAudio(page, "e2e/fixtures/test-tones.wav");
+  const row = await addRecorderMidiTrack(page);
+  const original = await createRecorderMidiNote(page, row, {
+    beat: 1,
+    pitch: "D4",
+  });
+  const originalId = await original.getAttribute("data-note-id");
+  const notes = row.locator("[data-note-id]");
+  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
+  await page
+    .getByRole("menuitem", { name: "Audio to MIDI", exact: true })
+    .click();
+  const panel = page.getByTestId("recorder-audio-to-midi");
+  const convert = panel.getByRole("button", {
+    name: "Convert to MIDI",
+    exact: true,
+  });
+  await expect.poll(() => requests).toBe(1);
+
+  // Cancel without replacing the destination note or showing an error toast.
+  await convert.click();
+  await panel.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(panel.getByRole("status")).toHaveText("Conversion cancelled");
+  await expect(notes).toHaveCount(1);
+  await expect(original).toHaveAttribute("data-note-id", originalId!);
+  await expect(
+    page.locator('[data-sonner-toast][data-type="error"]'),
+  ).toHaveCount(0);
+
+  // Close a second active conversion and release its abandoned model request.
+  await convert.click();
+  await expect.poll(() => requests).toBe(2);
+  await panel.getByRole("button", { name: "Close Audio to MIDI" }).click();
+  await expect(panel).toHaveCount(0);
+  gate.resolve();
+  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
+  await page
+    .getByRole("menuitem", { name: "Audio to MIDI", exact: true })
+    .click();
+  await expect.poll(() => requests).toBe(3);
+  await expect(notes).toHaveCount(1);
+  await expect(original).toHaveAttribute("data-note-id", originalId!);
+  await expect(
+    page.locator('[data-sonner-toast][data-type="error"]'),
+  ).toHaveCount(0);
+
+  // Complete a fresh conversion and restore the original note with one undo.
+  const checkpoint = createCheckpoint();
+  await convert.click();
+  await expect(panel.getByRole("status")).toHaveText(
+    /^Created [1-9]\d* notes in MIDI 1\.$/,
+  );
+  checkpoint("transcription retry completed");
+  await expect(original).toHaveCount(0);
+  await panel.getByRole("button", { name: "Close Audio to MIDI" }).click();
+  await page.keyboard.press("Control+z");
+  await expect(notes).toHaveCount(1);
+  await expect(original).toHaveAttribute("data-note-id", originalId!);
+});

@@ -119,3 +119,50 @@ test("steps playback speed with angle brackets", async ({ page }) => {
     await expect(rate).toHaveText(`${expected}x`);
   }
 });
+
+test("clamps tempo edits and sets tempo from evenly spaced taps", async ({
+  page,
+}) => {
+  // Clamp committed tempo edits at the recorder's supported bounds.
+  await createRecorderProject(page);
+  const tempo = page.getByTestId("recorder-tempo-input");
+  await tempo.fill("10");
+  await tempo.press("Enter");
+  await expect(tempo).toHaveValue("30");
+  await tempo.fill("400");
+  await tempo.press("Enter");
+  await expect(tempo).toHaveValue("300");
+  await tempo.blur();
+
+  // Advance a controlled browser clock between taps to produce exactly 100 BPM.
+  await page.clock.install();
+  await page.clock.pauseAt(new Date());
+  const tap = page.getByTestId("recorder-tap-tempo-button");
+  await tap.click();
+  await page.clock.runFor(600);
+  await tap.click();
+  await expect(tempo).toHaveValue("100");
+  await page.clock.runFor(600);
+  await tap.click();
+  await expect(tempo).toHaveValue("100");
+});
+
+test("toggles the metronome by button and shortcut without intercepting text input", async ({
+  page,
+}) => {
+  // Enable the metronome from the toolbar, then disable it with its shortcut.
+  await createRecorderProject(page);
+  const metronome = page.getByTitle("Toggle metronome (M)", { exact: true });
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+  await metronome.click();
+  await expect(metronome).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("m");
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+
+  // Keep the shortcut local to the tempo input while it has focus.
+  const tempo = page.getByTestId("recorder-tempo-input");
+  await tempo.focus();
+  await page.keyboard.press("m");
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+  await tempo.press("Escape");
+});

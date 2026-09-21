@@ -177,3 +177,39 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("MIDI 2");
 });
+
+test("undoes and redoes note resizing and deletion", async ({ page }) => {
+  // Create one note and retain its identity and original duration.
+  await createRecorderProject(page);
+  const row = await addRecorderMidiTrack(page);
+  const note = await createRecorderMidiNote(page, row, {
+    beat: 1,
+    pitch: "C4",
+  });
+  const id = await note.getAttribute("data-note-id");
+  const width = (await note.boundingBox())!.width;
+
+  // Extend the note and restore each duration with a single history action.
+  await dragBy(page, note.locator('[data-note-edge="end"]'), width * 2);
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(width * 3);
+  await page.keyboard.press("Control+z");
+  await expect.poll(async () => (await note.boundingBox())!.width).toBe(width);
+  await page.keyboard.press("Control+Shift+z");
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(width * 3);
+
+  // Delete the resized note, then undo and redo without losing its identity or duration.
+  await note.click();
+  await page.keyboard.press("Delete");
+  await expect(note).toHaveCount(0);
+  await page.keyboard.press("Control+z");
+  await expect(note).toHaveAttribute("data-note-id", id!);
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(width * 3);
+  await page.keyboard.press("Control+Shift+z");
+  await expect(note).toHaveCount(0);
+});
