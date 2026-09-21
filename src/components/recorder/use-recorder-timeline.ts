@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { recorderStorage } from "../../lib/recorder/storage";
 import {
   DEFAULT_GRID_DIVISION,
   getBeatsPerBar,
@@ -10,6 +9,7 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import type { TimeSignature } from "../../types";
+import { useRecorderPreference } from "./use-recorder-preference";
 
 export function useRecorderTimeline({
   isPlaying,
@@ -25,11 +25,10 @@ export function useRecorderTimeline({
   const [gridDivision, setGridDivision] = useState<GridDivision>(
     DEFAULT_GRID_DIVISION,
   );
-  const [autoScrollEnabled, setAutoScrollEnabledState] = useState(
-    () => recorderStorage.readPreferences().autoScrollEnabled,
-  );
-  const [pixelsPerBeat, setPixelsPerBeat] = useState(
-    () => recorderStorage.readPreferences().timelinePixelsPerBeat,
+  const [autoScrollEnabled, setAutoScrollEnabled] =
+    useRecorderPreference("autoScrollEnabled");
+  const [pixelsPerBeat, setPixelsPerBeat] = useRecorderPreference(
+    "timelinePixelsPerBeat",
   );
   const [viewportStartBeat, setViewportStartBeat] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -61,17 +60,9 @@ export function useRecorderTimeline({
     viewportWidth,
   ]);
 
-  function setAutoScrollEnabled(enabled: boolean) {
-    setAutoScrollEnabledState(enabled);
-    recorderStorage.updatePreferences({ autoScrollEnabled: enabled });
-  }
-
   function zoom(nextPixelsPerBeat: number, anchorX: number) {
     const beatAtAnchor = anchorX / pixelsPerBeat + viewportStartBeat;
     setPixelsPerBeat(nextPixelsPerBeat);
-    recorderStorage.updatePreferences({
-      timelinePixelsPerBeat: nextPixelsPerBeat,
-    });
     setViewportStartBeat(
       Math.max(0, beatAtAnchor - anchorX / nextPixelsPerBeat),
     );
