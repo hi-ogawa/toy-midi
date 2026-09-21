@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -60,6 +60,8 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  const [defaultMidiProgram, setDefaultMidiProgram] =
+    useRecorderPreference("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
@@ -74,6 +76,10 @@ export function Recorder({ projectId }: { projectId: string }) {
     runtime.store.subscribe,
     runtime.store.get,
   );
+  useEffect(() => {
+    document.title = `${state.title} - Toy MIDI`;
+  }, [state.title]);
+
   const input = useRecorderInput({
     runtime,
     state,
@@ -131,7 +137,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
   const addMidiMutation = useMutation({
-    mutationFn: () => runtime.addMidiTrack(),
+    mutationFn: () => runtime.addMidiTrack({ program: defaultMidiProgram }),
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
@@ -172,19 +178,6 @@ export function Recorder({ projectId }: { projectId: string }) {
 
   useWindowEvent("keydown", (event) => {
     if (project.initError) {
-      return;
-    }
-    if (isHelpOpen) {
-      if (!event.repeat && matchKeyboardEvent(event, "Escape")) {
-        event.preventDefault();
-        setIsHelpOpen(false);
-      }
-      if (matchKeyboardEvent(event, "Ctrl+S")) {
-        event.preventDefault();
-      }
-      return;
-    }
-    if (isAudioExportOpen) {
       return;
     }
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
@@ -498,6 +491,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 midiInteraction={midiInteraction}
                 onTranscribe={() => transcriptions.openTranscription(track.id)}
                 onScorePreview={() => scoreUi.open(track.id)}
+                onProgramSelected={setDefaultMidiProgram}
               />
             ))}
 

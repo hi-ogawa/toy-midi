@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { selectMenuItem } from "./helpers";
 
 /** Create a recorder project from its index and wait for the recorder app. */
 export async function createRecorderProject(page: Page): Promise<void> {
@@ -26,6 +27,44 @@ export async function addRecorderMidiTrack(page: Page) {
       const track = tracks.nth(count);
       await expect(track.getByTestId("recorder-midi-grid")).toBeVisible();
       return track;
+    },
+    { box: true },
+  );
+}
+
+export async function openRecorderMidiInstrument(
+  page: Page,
+  { name }: { name: string },
+) {
+  return await test.step(
+    `Open ${name} instrument`,
+    async () => {
+      await selectMenuItem(page, {
+        menu: `${name} actions`,
+        item: "Instrument…",
+      });
+      return page.getByTestId("recorder-midi-instrument");
+    },
+    { box: true },
+  );
+}
+
+export async function selectRecorderMidiInstrument(
+  instrument: Locator,
+  { option }: { option: string },
+) {
+  await test.step(
+    `Select ${option}`,
+    async () => {
+      const page = instrument.page();
+      const program = instrument.getByTestId("instrument-select");
+      await program.click();
+      await page
+        .getByPlaceholder("Search instruments...")
+        .fill(option.split(": ")[1]);
+      await page.getByRole("option", { name: option, exact: true }).click();
+      await expect(program).toContainText(option);
+      await expect(program).toBeEnabled();
     },
     { box: true },
   );

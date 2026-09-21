@@ -5,6 +5,7 @@ import { routes } from "../../lib/routes";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { cn } from "../ui/utils";
 
 export function InputSetup({
   devices,
@@ -109,7 +110,12 @@ export function InputSetup({
             disabled || !inputsInitialized || (hasAccess && !selectedDevice)
           }
           onClick={onInputToggle}
-          className="h-8 w-full justify-start gap-2 border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
+          className={cn(
+            "h-8 w-full justify-start gap-2 px-2 text-xs",
+            inputsInitialized && !hasAccess
+              ? "border-neutral-600 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20"
+              : "border-neutral-600 bg-neutral-900 text-neutral-200 hover:bg-neutral-700",
+          )}
         >
           <Mic2Icon className="size-3.5" />
           {inputTogglePending
@@ -120,7 +126,7 @@ export function InputSetup({
                 ? inputActive
                   ? "Disable input"
                   : "Enable input"
-                : "Grant access"}
+                : "Grant microphone access"}
         </Button>
         <label className="block text-[11px] font-medium text-neutral-400">
           Level

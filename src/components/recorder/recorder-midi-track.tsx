@@ -35,7 +35,7 @@ import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import type { Note } from "../../types";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
-import { PortalDialog } from "../ui/dialog";
+import { Dialog } from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,6 +72,7 @@ export function MidiTrackRow({
   midiInteraction,
   onTranscribe,
   onScorePreview,
+  onProgramSelected,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -85,8 +86,14 @@ export function MidiTrackRow({
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
   onScorePreview: () => void;
+  onProgramSelected: (program: number) => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
+  const programMutation = useMutation({
+    mutationFn: (program: number) =>
+      runtime.setMidiTrackProgram(track.id, program),
+    onSuccess: (_data, program) => onProgramSelected(program),
+  });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseMidiFile(file);
@@ -201,13 +208,21 @@ export function MidiTrackRow({
           </div>
         )}
       </TrackRow>
-      <PortalDialog
+      <Dialog
+        data-testid="recorder-midi-instrument"
         isOpen={isInstrumentOpen}
         title={`${track.name} instrument`}
         onClose={() => setIsInstrumentOpen(false)}
       >
-        <MidiInstrument track={track} runtime={runtime} />
-      </PortalDialog>
+        <MidiInstrument
+          track={track}
+          programPending={programMutation.isPending}
+          onProgramChange={(program) => programMutation.mutate(program)}
+          onSettingsChange={(settings) =>
+            runtime.setMidiTrackSettings(track.id, settings)
+          }
+        />
+      </Dialog>
     </div>
   );
 }
@@ -241,6 +256,7 @@ function MidiTrackActions({
         <Button
           className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
           title={`${label} actions`}
+          aria-label={`${label} actions`}
         >
           <MoreVerticalIcon className="size-3.5" />
         </Button>

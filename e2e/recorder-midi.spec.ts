@@ -1,10 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import {
   createRecorderProject,
   addRecorderMidiTrack,
   createRecorderMidiNote,
   saveRecorderProject,
   getRecorderPosition,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
@@ -65,13 +68,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await expect(save).toHaveAttribute("data-status", "saved");
 
   // Remove the second track and verify its row and mixer channel disappear independently.
-  await rows
-    .nth(1)
-    .getByRole("button", { name: "MIDI 2 actions", exact: true })
-    .click();
-  await page
-    .getByRole("menuitem", { name: "Remove track", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 2 actions", item: "Remove track" });
   await expect(rows).toHaveCount(1);
   await expect(secondChannel).toHaveCount(0);
   await expect(firstChannel).toBeVisible();
@@ -106,30 +103,22 @@ test("creates and deletes a note and persists its instrument", async ({
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
 
   // Select a bass program through the track actions.
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  const instrument = page.getByRole("combobox", { name: "MIDI 1 program" });
-  await instrument.click();
-  await page.getByPlaceholder("Search instruments...").fill("Finger");
-  await page
-    .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
-    .click();
-  await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await selectRecorderMidiInstrument(instrument, {
+    option: "33: Electric Bass (finger)",
+  });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Save and reload the note and instrument, then reopen the program selector.
   await saveRecorderProject(page);
   await page.reload();
   await expect(notes).toHaveCount(1);
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Delete the last note to restore the hint, then save and verify the empty state survives reload.
   await notes.first().click();

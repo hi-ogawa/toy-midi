@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import { useFakeAudioInput } from "./helpers";
+import { useFakeAudioInput, selectMenuItem } from "./helpers";
 import {
   addRecorderAudio,
   addRecorderMidiTrack,
@@ -11,6 +11,8 @@ import {
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 useFakeAudioInput();
@@ -43,21 +45,17 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     beat: 1,
     pitch: "C4",
   });
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  const program = page.getByRole("combobox", { name: "MIDI 1 program" });
-  await program.click();
-  await page.getByPlaceholder("Search instruments...").fill("Finger");
-  await page
-    .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
-    .click();
-  await page.getByRole("checkbox", { name: "Show string annotations" }).check();
-  await page
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await selectRecorderMidiInstrument(instrument, {
+    option: "33: Electric Bass (finger)",
+  });
+  await instrument
+    .getByRole("checkbox", { name: "Show string annotations" })
+    .check();
+  await instrument
     .getByRole("combobox", { name: "Tuning", exact: true })
     .selectOption("fiveStringBass");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await note.click();
   await page.keyboard.press("5");
   await expect(note.getByTestId("tab-annotation")).toHaveText("B37");
@@ -70,8 +68,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   page.once("dialog", (dialog) => dialog.accept("Archived recording"));
   await page.getByTestId("recorder-project-name").click();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "More" }).click();
-  await page.getByTestId("recorder-export-project").click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Project" });
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.toymidi\.zip$/);
   const archivePath = test.info().outputPath("recorder.toymidi.zip");
@@ -114,16 +111,15 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toHaveText("B37");
   await page.getByRole("button", { name: "Verse", exact: true }).click();
   await expect.poll(() => getRecorderBeat(page)).toBe(3);
-  await importedRow.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  await expect(program).toContainText("33: Electric Bass (finger)");
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
   await expect(
-    page.getByRole("checkbox", { name: "Show string annotations" }),
+    instrument.getByRole("checkbox", { name: "Show string annotations" }),
   ).toBeChecked();
   await expect(
-    page.getByRole("combobox", { name: "Tuning", exact: true }),
+    instrument.getByRole("combobox", { name: "Tuning", exact: true }),
   ).toHaveValue("fiveStringBass");
 });
 
