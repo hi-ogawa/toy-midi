@@ -11,8 +11,11 @@ import {
 test("keeps notes, audio, and tempo isolated between saved projects", async ({
   page,
 }) => {
-  // Save the first project with C4, backing audio, and a distinct tempo.
+  // Create Untitled and save it with C4, backing audio, and a distinct tempo.
   await createRecorderProject(page);
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Untitled",
+  );
   const firstUrl = page.url();
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   let row = await addRecorderMidiTrack(page);
@@ -22,8 +25,11 @@ test("keeps notes, audio, and tempo isolated between saved projects", async ({
   await tempo.press("Enter");
   await saveRecorderProject(page);
 
-  // Save another project with E4 and its own tempo, without inheriting audio.
+  // Create Untitled 2 and save it with E4 and its own tempo, without inheriting audio.
   await createRecorderProject(page);
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Untitled 2",
+  );
   const secondUrl = page.url();
   expect(secondUrl).not.toBe(firstUrl);
   await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(0);
