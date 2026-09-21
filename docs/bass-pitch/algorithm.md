@@ -6,9 +6,9 @@ Each decision needs different evidence. A repeated note can have a new attack wi
 
 ## One Bar Through the Pipeline
 
-The figure uses bar 11 of the Demucs-separated bass stem from Primrose’s “Ring” at 105 BPM. The stem has a synth-like bass sound. Each sixteenth-note cell lasts about 143 ms and contains roughly 12 analysis frames. All rows share the same time axis.
+The figure uses bar 11 of the Demucs-separated bass stem from Primrose’s “Ring” at 105 BPM. The stem has a synth-like bass sound. Each sixteenth-note cell lasts about 143 ms and contains roughly 12 analysis frames. All rows share the same time axis. The outlined regions are spans established by activity and onset evidence before any pitch is assigned. The pitch dots and probability bars below them show the measured voiced frames. Only frames inside a region participate in its vote, so estimates in gray inactive cells are ignored.
 
-![Demucs-separated bass stem showing cell loudness against the activity threshold, onset peaks against the split threshold, and seven resulting notes. Four D1 notes are separated despite sharing a pitch, and cell 4 retains a decay tail.](images/transcription-grid.svg)
+![Demucs-separated bass stem showing cell loudness against the activity threshold, onset peaks against the split threshold, regions before pitch voting, voiced frame pitches and probabilities, and seven resulting notes. Four D1 notes are separated despite sharing a pitch, and cell 4 retains a decay tail.](images/transcription-grid.svg)
 
 ### Loudness Defines Active Runs
 
@@ -18,13 +18,13 @@ Activity is deliberately permissive. Cell 4 contains a decay tail at −21.4 dBF
 
 ### Fresh Attacks Split the Runs
 
-An active run always starts a region. Within the run, a cell starts another region when its maximum onset score reaches 0.4. Using a maximum preserves brief attacks, but also leaves the decision sensitive to spurious peaks. In the figure, accepted boundaries separate four D1 articulations before the final A1, B1, and C♯2 notes.
+A region is a consecutive span of active cells that will receive one note label. An active run always starts a region. Within the run, a cell starts another region when its maximum onset score reaches 0.4. Using a maximum preserves brief attacks, but also leaves the decision sensitive to spurious peaks. In the figure, accepted boundaries separate four D1 articulations before the final A1, B1, and C♯2 notes.
 
 The onset score measures positive changes in log spectral power, grouped into frequency bands. Its scale is relative to the excerpt, with 1 representing values at or above the 95th percentile of positive flux. The [onset-detection article](onset-detection.md) develops why banding, logarithms, and positive differences help recognize a new attack.
 
 ### Pitch Labels Each Region
 
-Within each region, round the voiced frame estimates to MIDI notes and group them by note. Add their confidence-derived weights within each group, then use the note with the largest total for the entire region. Several agreeing frames can therefore outweigh one stronger vote for a different pitch.
+For example, region R2 spans cells 2–4, so all eligible frames across those three cells participate in one vote. Within each region, round the voiced frame estimates to MIDI notes and group them by note. Add their confidence-derived weights within each group, then use the note with the largest total for the entire region. Several agreeing frames can therefore outweigh one stronger vote for a different pitch.
 
 ![Three illustrative frame votes are grouped by note. Two D1 votes with weights 0.8 and 0.6 total 1.4, beating one D2 vote with weight 0.9. The whole region is labeled D1.](images/region-pitch-vote.svg)
 
