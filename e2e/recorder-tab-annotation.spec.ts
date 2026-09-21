@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   createRecorderProject,
+  openRecorderMidiInstrument,
   addRecorderMidiTrack,
   createRecorderMidiNote,
   saveRecorderProject,
@@ -11,9 +12,6 @@ test("assigns MIDI note strings and persists annotation settings", async ({
 }) => {
   // Create a C4 note at the first grid cell with annotations initially hidden.
   await createRecorderProject(page);
-  const instrumentDialog = page.getByRole("dialog", {
-    name: "MIDI 1 instrument",
-  });
   const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const note = grid.locator("[data-note-id]");
@@ -24,11 +22,9 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   const originalWidth = (await note.boundingBox())!.width;
 
   // Enable annotations and choose five-string bass tuning to expose the fifth string.
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  const instrumentDialog = await openRecorderMidiInstrument(page, {
+    name: "MIDI 1",
+  });
   const enabled = instrumentDialog.getByRole("checkbox", {
     name: "Show string annotations",
   });
@@ -62,11 +58,7 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   await expect(annotation).toHaveText("G17");
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
   expect((await note.boundingBox())!.width).toBe(originalWidth);
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
   await expect(enabled).toBeChecked();
   await expect(tuning).toHaveValue("fiveStringBass");
 });

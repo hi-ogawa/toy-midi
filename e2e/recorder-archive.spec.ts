@@ -8,6 +8,8 @@ import {
   getRecorderMidiNote,
   getRecorderBeat,
   createRecorderProject,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
@@ -17,9 +19,6 @@ useFakeAudioInput();
 
 test("exports and imports a recorder project archive", async ({ page }) => {
   await createRecorderProject(page);
-  const instrumentDialog = page.getByRole("dialog", {
-    name: "MIDI 1 instrument",
-  });
 
   // Build an editable project with backing audio and two retained takes.
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
@@ -46,19 +45,15 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     beat: 1,
     pitch: "C4",
   });
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  const instrumentDialog = await openRecorderMidiInstrument(page, {
+    name: "MIDI 1",
+  });
   const program = instrumentDialog.getByRole("combobox", {
     name: "MIDI 1 program",
   });
-  await program.click();
-  await page.getByPlaceholder("Search instruments...").fill("Finger");
-  await page
-    .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
-    .click();
+  await selectRecorderMidiInstrument(instrumentDialog, {
+    option: "33: Electric Bass (finger)",
+  });
   await instrumentDialog
     .getByRole("checkbox", { name: "Show string annotations" })
     .check();
@@ -124,11 +119,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toHaveText("B37");
   await page.getByRole("button", { name: "Verse", exact: true }).click();
   await expect.poll(() => getRecorderBeat(page)).toBe(3);
-  await importedRow.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
   await expect(program).toContainText("33: Electric Bass (finger)");
   await expect(
     instrumentDialog.getByRole("checkbox", {

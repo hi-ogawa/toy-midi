@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   createRecorderProject,
+  openRecorderMidiInstrument,
   addRecorderMidiTrack,
   createRecorderMidiNote,
   saveRecorderProject,
@@ -11,9 +12,6 @@ test("updates tab strings for selected MIDI notes together", async ({
 }) => {
   // Create two notes and enable five-string bass annotations.
   await createRecorderProject(page);
-  const instrumentDialog = page.getByRole("dialog", {
-    name: "MIDI 1 instrument",
-  });
   const row = await addRecorderMidiTrack(page);
   const c4 = await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
   const e4 = await createRecorderMidiNote(page, row, {
@@ -21,11 +19,9 @@ test("updates tab strings for selected MIDI notes together", async ({
     pitch: "E4",
   });
 
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  const instrumentDialog = await openRecorderMidiInstrument(page, {
+    name: "MIDI 1",
+  });
   await instrumentDialog
     .getByRole("checkbox", { name: "Show string annotations" })
     .check();

@@ -4,6 +4,8 @@ import {
   addRecorderMidiTrack,
   createRecorderMidiNote,
   createRecorderProject,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
   dragBy,
   getRecorderMidiNote,
   saveRecorderProject,
@@ -98,9 +100,6 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
 }) => {
   // Create a note on the first track, then add a second track after it.
   await createRecorderProject(page);
-  const instrumentDialog = page.getByRole("dialog", {
-    name: "MIDI 1 instrument",
-  });
   const rows = page.getByTestId("recorder-midi-track-row");
   const first = await addRecorderMidiTrack(page);
   const note = await createRecorderMidiNote(page, first, {
@@ -111,20 +110,15 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await addRecorderMidiTrack(page);
 
   // Set the first track's instrument and gain so deletion must preserve both settings.
-  await first.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  const instrumentDialog = await openRecorderMidiInstrument(page, {
+    name: "MIDI 1",
+  });
   const instrument = instrumentDialog.getByRole("combobox", {
     name: "MIDI 1 program",
   });
-  await instrument.click();
-  await page.getByPlaceholder("Search instruments...").fill("Finger");
-  await page
-    .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
-    .click();
-  await expect(instrument).toContainText("33: Electric Bass (finger)");
+  await selectRecorderMidiInstrument(instrumentDialog, {
+    option: "33: Electric Bass (finger)",
+  });
   await instrumentDialog
     .getByRole("button", { name: "Close", exact: true })
     .click();
@@ -151,11 +145,7 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await expect(rows.nth(1)).toContainText("MIDI 2");
   await expect(note).toHaveAttribute("data-note-id", noteId!);
   await expect(first).toContainText("-6.0 dB");
-  await first.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
   await expect(instrument).toContainText("33: Electric Bass (finger)");
   await instrumentDialog
     .getByRole("button", { name: "Close", exact: true })
