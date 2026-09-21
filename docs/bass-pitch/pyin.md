@@ -12,9 +12,9 @@ YIN selects the first trough below a fixed threshold. pYIN keeps several possibl
 
 This example uses troughs at $T$ and $2T$, corresponding to 110 Hz and 55 Hz, with mismatch depths 0.12 and 0.04. Their octave relationship is a common ambiguity, not a restriction on the possible pitches. Other trough locations give other frequencies. We call each possible pitch a **candidate**.
 
-### Average Over Threshold Uncertainty
+### Assign Weights to the Possible Pitches
 
-Imagine sliding a horizontal threshold across the curve and noting which troughs qualify at each height. Give those threshold heights a probability distribution, so each contributes a share of the candidate weights. Our implementation uses a Beta(2, 18) prior on $[0,1]$, with mean 0.1. This favors convincing, low-mismatch matches without making 0.1 a hard cutoff.
+Imagine sliding a horizontal threshold across the curve. At each height, distribute that threshold’s weight among the troughs it accepts, then add each trough’s contributions across all thresholds. A probability distribution determines how much weight each threshold contributes. Our implementation uses a Beta(2, 18) prior on $[0,1]$, with mean 0.1. This favors convincing, low-mismatch matches without making 0.1 a hard cutoff.
 
 The code approximates that distribution with 100 threshold bins. For bin $k$, let $w_k$ be its probability mass and $\theta_k$ its upper boundary. If the density is $b$, then
 
@@ -25,13 +25,7 @@ $$
 
 ![Threshold probability is divided into regions where neither trough, only the longer-period trough, or both troughs qualify](images/pyin-threshold-mass.svg)
 
-For this example, roughly 17.5% of the threshold mass accepts neither trough, 50.8% accepts only $2T$, and 31.7% accepts both. The threshold prior turns the trough depths into amounts of evidence.
-
-### Share the Evidence Between Qualifying Troughs
-
-The weighting below follows the software implementation, which differs from the original paper’s formulation.
-
-When several troughs qualify, pYIN retains a preference for shorter periods. Rank the qualifying troughs by lag, starting at zero, and give candidate $i$ the normalized weight
+For this example, roughly 17.5% of the threshold mass accepts neither trough, 50.8% accepts only $2T$, and 31.7% accepts both. We now need to distribute each threshold’s mass among the troughs it accepts. When several qualify, pYIN retains a preference for shorter periods. Rank the qualifying troughs by lag, starting at zero, and give candidate $i$ the share
 
 $$
 q_{i,k}=\frac{e^{-\lambda r_{i,k}}}{\sum_{j\text{ qualifying}}e^{-\lambda r_{j,k}}},
@@ -40,13 +34,13 @@ $$
 
 Thus two qualifying troughs share the threshold's mass in proportions about 0.881 and 0.119. This is a soft version of YIN's first-trough preference. The rank is among qualifying troughs, so it can change with the threshold.
 
-Nonqualifying candidates receive zero. If none qualifies, our implementation gives just 1% of that bin's mass to the deepest trough and leaves the rest unassigned. With those rules included in $q_{i,k}$, each candidate receives
+Nonqualifying candidates receive zero. If none qualifies, our implementation gives just 1% of that bin's mass to the deepest trough and leaves the rest unassigned. With those rules included in $q_{i,k}$, add the contributions from all thresholds to obtain each candidate’s weight
 
 $$
 p_i=\sum_k w_kq_{i,k}.
 $$
 
-In the example, $p_T\approx0.279$ and $p_{2T}\approx0.548$, leaving about 0.173 unassigned. The longer period has stronger frame evidence, but the shorter one remains available. These weights come from chosen priors and the mismatch curve, so they are model evidence rather than a guarantee that a pitch is correct.
+In the example, $p_T\approx0.279$ and $p_{2T}\approx0.548$, leaving about 0.173 unassigned. The longer period has stronger frame evidence, but the shorter one remains available. These weighting rules follow the software implementation, which differs from the original paper’s formulation.
 
 Refine each candidate period using the same [parabolic interpolation as YIN](../concepts/yin-pitch-detection.md#refine-the-period-between-samples), convert it to frequency, and map it to a pitch bin on the decoder’s logarithmic grid, which has ten bins per semitone. Place the candidate’s weight $p_i$ in that bin.
 
