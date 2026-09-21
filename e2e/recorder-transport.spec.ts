@@ -180,7 +180,7 @@ test("auto-scroll follows playback only while enabled", async ({ page }) => {
   await page.getByTestId("recorder-play-button").click();
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
-  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(10);
+  await expect(page.getByTestId("recorder-playhead")).not.toBeVisible();
   await expect(ruler).toHaveAttribute("data-viewport-start-beat", "0");
 
   // Enable following and bring the playing position into view.
