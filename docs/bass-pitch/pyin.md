@@ -14,16 +14,18 @@ This example uses troughs at $T$ and $2T$, corresponding to 110 Hz and 55 Hz, wi
 
 ### Assign Weights to the Possible Pitches
 
-Imagine sliding a horizontal threshold across the curve. At each height, distribute that threshold’s weight among the troughs it accepts, then add each trough’s contributions across all thresholds. A probability distribution determines how much weight each threshold contributes. Our implementation uses a Beta(2, 18) prior on $[0,1]$, with mean 0.1. This favors convincing, low-mismatch matches without making 0.1 a hard cutoff.
+Imagine sliding a horizontal threshold across the difference curve. At each height, distribute some weight among the troughs it accepts. The density $b(\theta)$ below determines how much weight each threshold contributes. Its shape is a chosen Beta(2, 18) distribution, concentrated near low mismatch thresholds with mean 0.1.
 
-The code approximates that distribution with 100 threshold bins. For bin $k$, let $w_k$ be its probability mass and $\theta_k$ its upper boundary. If the density is $b$, then
+![Beta threshold density with equal-width strips, one labeled w_k. Shaded areas show the weight of thresholds accepting neither trough, only 2T, or both.](images/pyin-threshold-mass.svg)
+
+The code divides $[0,1]$ into 100 equal threshold intervals. Each interval contributes its area under the curve, not just the curve’s height:
 
 $$
 w_k=\int_{\theta_{k-1}}^{\theta_k}b(\theta) d\theta,
 \qquad \sum_k w_k=1.
 $$
 
-![Threshold probability is divided into regions where neither trough, only the longer-period trough, or both troughs qualify](images/pyin-threshold-mass.svg)
+The upper boundary $\theta_k$ is the threshold tested for that strip. Taller strips carry more weight, so the choice of density controls which thresholds matter most.
 
 For this example, roughly 17.5% of the threshold mass accepts neither trough, 50.8% accepts only $2T$, and 31.7% accepts both. We now need to distribute each threshold’s mass among the troughs it accepts. When several qualify, pYIN retains a preference for shorter periods. Rank the qualifying troughs by lag, starting at zero, and give candidate $i$ the share
 
