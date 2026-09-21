@@ -5,6 +5,7 @@ Bass Pitch turns a monophonic bass recording into editable, grid-aligned MIDI. I
 ## Reading Guide
 
 - [Algorithm](algorithm.md) explains the complete pipeline and why activity, segmentation, and pitch use separate evidence.
+- [Onset detection](onset-detection.md) develops spectral flux from the problem of recognizing a fresh attack at the same pitch.
 - [pYIN](pyin.md) develops weighted period candidates and sequence decoding for a reader comfortable with mathematical reasoning but new to pitch-estimation algorithms.
 - [YIN pitch detection](../concepts/yin-pitch-detection.md) supplies the shared waveform-matching and period-refinement foundations.
 
