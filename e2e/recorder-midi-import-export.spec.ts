@@ -5,6 +5,8 @@ import {
   addRecorderMidiTrack,
   createRecorderProject,
   getRecorderMidiNote,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 const { Midi } = midiPackage;
@@ -13,17 +15,12 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   // Create a bass track and a violin MIDI file containing one C4 note.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  const program = page.getByRole("combobox", { name: "MIDI 1 program" });
-  await program.click();
-  await page.getByPlaceholder("Search instruments...").fill("Finger");
-  await page
-    .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
-    .click();
-  await expect(program).toContainText("33: Electric Bass (finger)");
+  await openRecorderMidiInstrument({ page, name: "MIDI 1" });
+  await selectRecorderMidiInstrument({
+    page,
+    name: "MIDI 1",
+    option: "33: Electric Bass (finger)",
+  });
   await page.getByRole("button", { name: "Close", exact: true }).click();
   const source = new Midi();
   const sourceTrack = source.addTrack();
@@ -54,11 +51,10 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   ).toBeVisible();
 
   // Keep the destination's bass instrument despite the imported violin program.
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  await expect(program).toContainText("33: Electric Bass (finger)");
+  await openRecorderMidiInstrument({ page, name: "MIDI 1" });
+  await expect(
+    page.getByRole("combobox", { name: "MIDI 1 program" }),
+  ).toContainText("33: Electric Bass (finger)");
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
   // Export the track and verify the downloaded MIDI contains the imported note.
