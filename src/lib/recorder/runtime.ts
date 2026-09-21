@@ -249,7 +249,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
-  private readonly context = new AudioContext();
+  readonly context = new AudioContext();
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
@@ -336,38 +336,6 @@ export class RecorderRuntime {
       inputMonitoring: false,
     });
     return { channelCount };
-  }
-
-  getInputDiagnostics() {
-    const state = this.store.get();
-    const input = this.captureInput?.getDiagnostics();
-    const { baseLatency, outputLatency, sampleRate } = this.context;
-    const latencies = [baseLatency, outputLatency, input?.latency];
-    const candidateLatency = latencies.every(
-      (value) => value !== undefined && Number.isFinite(value) && value >= 0,
-    )
-      ? latencies.reduce<number>((sum, value) => sum + value!, 0)
-      : undefined;
-    return {
-      capturedAt: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      units:
-        "Latencies are seconds; sample rates are Hz; selectedChannel is zero-based. Missing readings are unavailable.",
-      context: {
-        state: this.context.state,
-        sampleRate,
-        baseLatency,
-        outputLatency,
-      },
-      outputRoute: "System default (resolved output device not reported)",
-      input,
-      captureStatus: state.captureStatus,
-      selectedChannel: state.selectedChannel,
-      observedChannelCount: state.inputChannelCount,
-      inputMonitoring: state.inputMonitoring,
-      candidateLatency,
-      latencyCompensation: state.latencyCompensation,
-    };
   }
 
   stopInput(): void {

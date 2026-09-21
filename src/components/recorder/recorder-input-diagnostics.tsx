@@ -17,17 +17,17 @@ export function InputDiagnostics({ runtime }: { runtime: RecorderRuntime }) {
 }
 
 function Readings({ runtime }: { runtime: RecorderRuntime }) {
-  const [report, setReport] = useState(() => runtime.getInputDiagnostics());
+  const [report, setReport] = useState(() => readReport(runtime));
   useEffect(() => {
     const timer = window.setInterval(
-      () => setReport(runtime.getInputDiagnostics()),
+      () => setReport(readReport(runtime)),
       1000,
     );
     return () => window.clearInterval(timer);
   }, [runtime]);
   const copy = useMutation({
     mutationFn: () => {
-      const latest = runtime.getInputDiagnostics();
+      const latest = readReport(runtime);
       setReport(latest);
       return navigator.clipboard.writeText(
         JSON.stringify(latest, undefined, 2),
@@ -103,6 +103,53 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
       )}
     </section>
   );
+}
+
+function readReport(runtime: RecorderRuntime) {
+  const state = runtime.store.get();
+  const track = runtime.captureInput?.stream.getAudioTracks()[0];
+  const settings: (MediaTrackSettings & { latency?: number }) | undefined =
+    track?.getSettings();
+  // Keep device/group identifiers out of the copyable report.
+  const input =
+    track && settings
+      ? {
+          label: track.label,
+          latency: settings.latency,
+          sampleRate: settings.sampleRate,
+          channelCount: settings.channelCount,
+          echoCancellation: settings.echoCancellation,
+          noiseSuppression: settings.noiseSuppression,
+          autoGainControl: settings.autoGainControl,
+        }
+      : undefined;
+  const { baseLatency, outputLatency, sampleRate } = runtime.context;
+  const latencies = [baseLatency, outputLatency, input?.latency];
+  const candidateLatency = latencies.every(
+    (value) => value !== undefined && Number.isFinite(value) && value >= 0,
+  )
+    ? latencies.reduce<number>((sum, value) => sum + value!, 0)
+    : undefined;
+  return {
+    capturedAt: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    units:
+      "Latencies are seconds; sample rates are Hz; selectedChannel is zero-based. Missing readings are unavailable.",
+    context: {
+      state: runtime.context.state,
+      sampleRate,
+      baseLatency,
+      outputLatency,
+    },
+    outputRoute: "System default (resolved output device not reported)",
+    input,
+    captureStatus: state.captureStatus,
+    selectedChannel: state.selectedChannel,
+    observedChannelCount: state.inputChannelCount,
+    inputMonitoring: state.inputMonitoring,
+    candidateLatency,
+    latencyCompensation: state.latencyCompensation,
+  };
 }
 
 function formatLatency(seconds?: number) {

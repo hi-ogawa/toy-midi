@@ -21,7 +21,7 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
-  private readonly stream: MediaStream;
+  readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
@@ -103,22 +103,6 @@ export class CaptureInput {
       .connect(this.analyser.node)
       .connect(this.monitorGain)
       .connect(output);
-  }
-
-  getDiagnostics() {
-    const track = this.stream.getAudioTracks()[0];
-    const settings: MediaTrackSettings & { latency?: number } =
-      track.getSettings();
-    // Select fields explicitly so reports never include device/group identifiers.
-    return {
-      label: track.label,
-      latency: settings.latency,
-      sampleRate: settings.sampleRate,
-      channelCount: settings.channelCount,
-      echoCancellation: settings.echoCancellation,
-      noiseSuppression: settings.noiseSuppression,
-      autoGainControl: settings.autoGainControl,
-    };
   }
 
   setChannel(channel: number): void {
