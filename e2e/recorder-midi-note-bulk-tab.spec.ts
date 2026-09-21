@@ -11,6 +11,10 @@ test("updates tab strings for selected MIDI notes together", async ({
 }) => {
   // Create two notes and enable five-string bass annotations.
   await createRecorderProject(page);
+  const instrumentDialog = page.getByRole("dialog", {
+    name: "MIDI 1 instrument",
+    exact: true,
+  });
   const row = await addRecorderMidiTrack(page);
   const c4 = await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
   const e4 = await createRecorderMidiNote(page, row, {
@@ -20,13 +24,18 @@ test("updates tab strings for selected MIDI notes together", async ({
 
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
-  await page.getByRole("checkbox", { name: "Show string annotations" }).check();
-  await page
+  await instrumentDialog
+    .getByRole("checkbox", { name: "Show string annotations", exact: true })
+    .check();
+  await instrumentDialog
     .getByRole("combobox", { name: "Tuning", exact: true })
     .selectOption({ label: "5-string bass (BEADG)" });
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrumentDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
   await expect(c4.getByTestId("tab-annotation")).toHaveText("G17");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");
 

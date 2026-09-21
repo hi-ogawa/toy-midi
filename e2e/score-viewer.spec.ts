@@ -7,18 +7,24 @@ test("navigates between projects and the score viewer", async ({ page }) => {
   await expect(page).toHaveURL(/\/score-viewer$/);
   await expect(page).toHaveTitle("Score Viewer - Toy MIDI");
 
-  await page.getByRole("button", { name: "More" }).click();
-  await page.getByTestId("home-menu-item").click();
+  await page.getByRole("button", { name: "Score viewer menu" }).click();
+  await page
+    .getByRole("menu", { name: "Score viewer menu", exact: true })
+    .getByRole("menuitem", { name: "Home", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("startup-screen")).toBeVisible();
 });
 
-test("opens a MusicXML file from the More menu", async ({ page }) => {
+test("opens a MusicXML file from the score viewer menu", async ({ page }) => {
   await page.goto("/score-viewer");
-  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "Score viewer menu" }).click();
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("menuitem", { name: "Open" }).click(),
+    page
+      .getByRole("menu", { name: "Score viewer menu", exact: true })
+      .getByRole("menuitem", { name: "Open", exact: true })
+      .click(),
   ]);
   await fileChooser.setFiles(
     path.resolve("src/lib/musicxml/__snapshots__/five-string-tab.musicxml"),
@@ -270,8 +276,13 @@ test("uses MusicXML time signatures for seeking", async ({ page }) => {
 });
 
 async function loadSample(page: Page, name: string) {
-  await page.getByRole("button", { name: "Samples" }).click();
-  await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
+  await page
+    .getByRole("button", { name: "Score samples", exact: true })
+    .click();
+  await page
+    .getByRole("menu", { name: "Score samples", exact: true })
+    .getByRole("menuitem", { name: new RegExp(`^${name}`) })
+    .click();
 }
 
 async function openScoreSettings(page: Page) {

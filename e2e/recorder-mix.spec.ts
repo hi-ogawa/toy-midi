@@ -5,8 +5,17 @@ import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
   await createRecorderProject(page);
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page
+  const editorMenuButton = page.getByRole("button", {
+    name: "Editor menu",
+    exact: true,
+  });
+  const editorMenu = page.getByRole("menu", {
+    name: "Editor menu",
+    exact: true,
+  });
+  await editorMenuButton.click();
+  await expect(editorMenu).toBeVisible();
+  await editorMenu
     .getByRole("menuitem", { name: "Export Audio", exact: true })
     .click();
   const modal = page.getByTestId("recorder-audio-export");
@@ -30,8 +39,9 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   await page.getByTestId("recorder-project-name").click();
 
   // Reopen the dialog and export the mix.
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page
+  await editorMenuButton.click();
+  await expect(editorMenu).toBeVisible();
+  await editorMenu
     .getByRole("menuitem", { name: "Export Audio", exact: true })
     .click();
   await expect(exportButton).toBeEnabled();

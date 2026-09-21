@@ -22,6 +22,7 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
   // Choose the imported source and run the real transcription worker.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Audio to MIDI", exact: true })
     .click();
   const panel = page.getByTestId("recorder-audio-to-midi");
@@ -93,6 +94,7 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
   const notes = row.locator("[data-note-id]");
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Audio to MIDI", exact: true })
     .click();
   const panel = page.getByTestId("recorder-audio-to-midi");
@@ -122,6 +124,7 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
   gate.resolve();
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Audio to MIDI", exact: true })
     .click();
   await expect.poll(() => requests).toBe(3);

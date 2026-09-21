@@ -4,10 +4,23 @@ import { createRecorderProject } from "./recorder-helpers";
 test("opens and dismisses Help while keeping editor shortcuts inactive", async ({
   page,
 }) => {
-  // Open the editor reference from More and inspect its shortcut content.
+  // Open the editor reference from the editor menu and inspect its shortcut content.
   await createRecorderProject(page);
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Help & Shortcuts" }).click();
+  const editorMenuButton = page.getByRole("button", {
+    name: "Editor menu",
+    exact: true,
+  });
+  const editorMenu = page.getByRole("menu", {
+    name: "Editor menu",
+    exact: true,
+  });
+  await editorMenuButton.click();
+  await expect(editorMenu).toBeVisible();
+  await editorMenu.getByRole("menuitem", { name: "Help & Shortcuts" }).click();
+  const helpDialog = page.getByRole("dialog", {
+    name: "Editor quick reference",
+    exact: true,
+  });
   const heading = page.getByRole("heading", { name: "Editor quick reference" });
   await expect(heading).toBeVisible();
   await expect(
@@ -22,9 +35,10 @@ test("opens and dismisses Help while keeping editor shortcuts inactive", async (
   await expect(heading).toHaveCount(0);
 
   // Reopen Help and dismiss it through the visible close control.
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Help & Shortcuts" }).click();
+  await editorMenuButton.click();
+  await expect(editorMenu).toBeVisible();
+  await editorMenu.getByRole("menuitem", { name: "Help & Shortcuts" }).click();
   await expect(heading).toBeVisible();
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await helpDialog.getByRole("button", { name: "Close", exact: true }).click();
   await expect(heading).toHaveCount(0);
 });

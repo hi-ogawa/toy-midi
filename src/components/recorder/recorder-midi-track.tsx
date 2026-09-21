@@ -241,6 +241,7 @@ function MidiTrackActions({
         <Button
           className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
           title={`${label} actions`}
+          aria-label={`${label} actions`}
         >
           <MoreVerticalIcon className="size-3.5" />
         </Button>

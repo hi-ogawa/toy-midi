@@ -11,6 +11,10 @@ test("assigns MIDI note strings and persists annotation settings", async ({
 }) => {
   // Create a C4 note at the first grid cell with annotations initially hidden.
   await createRecorderProject(page);
+  const instrumentDialog = page.getByRole("dialog", {
+    name: "MIDI 1 instrument",
+    exact: true,
+  });
   const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const note = grid.locator("[data-note-id]");
@@ -23,15 +27,22 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   // Enable annotations and choose five-string bass tuning to expose the fifth string.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
-  const enabled = page.getByRole("checkbox", {
+  const enabled = instrumentDialog.getByRole("checkbox", {
     name: "Show string annotations",
+    exact: true,
   });
-  const tuning = page.getByRole("combobox", { name: "Tuning", exact: true });
+  const tuning = instrumentDialog.getByRole("combobox", {
+    name: "Tuning",
+    exact: true,
+  });
   await enabled.check();
   await tuning.selectOption({ label: "5-string bass (BEADG)" });
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrumentDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
   await expect(annotation).toHaveText("G17");
 
   // Assign the fifth string and verify only the string label changes.
@@ -55,6 +66,7 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   expect((await note.boundingBox())!.width).toBe(originalWidth);
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   await expect(enabled).toBeChecked();

@@ -2,8 +2,13 @@ import { expect, test } from "@playwright/test";
 
 test("capture score viewer sample cursor", async ({ page }) => {
   await page.goto("/score-viewer");
-  await page.getByRole("button", { name: "Samples" }).click();
-  await page.getByRole("menuitem", { name: /^Cursor and wrapping/ }).click();
+  await page
+    .getByRole("button", { name: "Score samples", exact: true })
+    .click();
+  await page
+    .getByRole("menu", { name: "Score samples", exact: true })
+    .getByRole("menuitem", { name: /^Cursor and wrapping/ })
+    .click();
   const playButton = page.getByRole("button", { name: "Play" });
   await playButton.waitFor({ state: "visible" });
   await page.screenshot({
@@ -18,8 +23,13 @@ test("capture score viewer sample cursor", async ({ page }) => {
 
 test("capture paged score PDF", async ({ page }) => {
   await page.goto("/score-viewer");
-  await page.getByRole("button", { name: "Samples" }).click();
-  await page.getByRole("menuitem", { name: /^Long score/ }).click();
+  await page
+    .getByRole("button", { name: "Score samples", exact: true })
+    .click();
+  await page
+    .getByRole("menu", { name: "Score samples", exact: true })
+    .getByRole("menuitem", { name: /^Long score/ })
+    .click();
   await page.getByRole("button", { name: "Score settings" }).click();
   await page.getByLabel("Layout").selectOption("paged");
 

@@ -1,5 +1,5 @@
 import { XIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "./utils";
 
@@ -41,6 +41,7 @@ export function Dialog({
   "data-testid": testId,
   size = "default",
 }: DialogProps) {
+  const titleId = useId();
   if (!isOpen) {
     return null;
   }
@@ -52,6 +53,8 @@ export function Dialog({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-labelledby={titleId}
         className={cn(
           "bg-neutral-800 rounded-lg shadow-2xl w-full",
           size === "wide" ? "max-w-[960px]" : "max-w-md",
@@ -60,7 +63,9 @@ export function Dialog({
       >
         {/* Header */}
         <div className="border-b border-neutral-700 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-neutral-100">{title}</h2>
+          <h2 id={titleId} className="text-lg font-semibold text-neutral-100">
+            {title}
+          </h2>
           <button
             onClick={onClose}
             className="text-neutral-400 hover:text-neutral-200"

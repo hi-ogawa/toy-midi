@@ -98,6 +98,10 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
 }) => {
   // Create a note on the first track, then add a second track after it.
   await createRecorderProject(page);
+  const instrumentDialog = page.getByRole("dialog", {
+    name: "MIDI 1 instrument",
+    exact: true,
+  });
   const rows = page.getByTestId("recorder-midi-track-row");
   const first = await addRecorderMidiTrack(page);
   const note = await createRecorderMidiNote(page, first, {
@@ -110,16 +114,22 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   // Set the first track's instrument and gain so deletion must preserve both settings.
   await first.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
-  const instrument = page.getByRole("combobox", { name: "MIDI 1 program" });
+  const instrument = instrumentDialog.getByRole("combobox", {
+    name: "MIDI 1 program",
+    exact: true,
+  });
   await instrument.click();
   await page.getByPlaceholder("Search instruments...").fill("Finger");
   await page
     .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
     .click();
   await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrumentDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
   await page.getByTestId("recorder-mixer-button").click();
   const level = page.getByRole("textbox", { name: "MIDI 1 level in dB" });
   await level.fill("-6");
@@ -130,6 +140,7 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   // Delete the first track and leave only the second track visible.
   await first.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Remove track", exact: true })
     .click();
   await expect(rows).toHaveCount(1);
@@ -144,10 +155,13 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await expect(first).toContainText("-6.0 dB");
   await first.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrumentDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
 
   // Undo the second track's creation, the note edit, and the first track's creation.
   await page.keyboard.press("Control+z");

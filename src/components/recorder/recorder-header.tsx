@@ -389,8 +389,8 @@ export function RecorderHeader({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            title="More"
-            aria-label="More"
+            title="Editor menu"
+            aria-label="Editor menu"
             className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
             <MoreVerticalIcon className="size-5" />

@@ -110,7 +110,10 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
 
   // The reference can be removed from its track actions.
   await page.getByRole("button", { name: "Reference actions" }).click();
-  await page.getByRole("menuitem", { name: "Remove reference video" }).click();
+  await page
+    .getByRole("menu", { name: "Reference actions", exact: true })
+    .getByRole("menuitem", { name: "Remove reference video", exact: true })
+    .click();
   await expect(reference.locator("iframe")).toHaveCount(0);
   await expect(referenceTrack).toHaveCount(0);
 

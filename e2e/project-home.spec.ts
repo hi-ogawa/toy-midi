@@ -28,8 +28,11 @@ test("home creates and reopens recorder projects without project-type tabs", asy
   await page.getByTestId("new-recorder-project-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   const projectUrl = page.url();
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Home", exact: true }).click();
+  await page.getByRole("button", { name: "Editor menu", exact: true }).click();
+  await page
+    .getByRole("menu", { name: "Editor menu", exact: true })
+    .getByRole("menuitem", { name: "Home", exact: true })
+    .click();
   await expect(page).toHaveURL("/");
   const project = page.locator(`a[href="${new URL(projectUrl).pathname}"]`);
   await expect(project).toBeVisible();
@@ -64,8 +67,11 @@ test("Projects search filters current and legacy projects together", async ({
     "data-status",
     "saved",
   );
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Home", exact: true }).click();
+  await page.getByRole("button", { name: "Editor menu", exact: true }).click();
+  await page
+    .getByRole("menu", { name: "Editor menu", exact: true })
+    .getByRole("menuitem", { name: "Home", exact: true })
+    .click();
   const search = page.getByRole("textbox", { name: "Search projects" });
   const status = page.getByRole("status");
   const current = page.getByRole("link", { name: /Blue session/ });

@@ -25,6 +25,7 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   const chooser = page.waitForEvent("filechooser");
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Import MIDI…", exact: true })
     .click();
   page.once("dialog", (dialog) => dialog.accept());
@@ -43,6 +44,7 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   const downloadPromise = page.waitForEvent("download");
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Export MIDI", exact: true })
     .click();
   const download = await downloadPromise;

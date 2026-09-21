@@ -70,6 +70,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
     .getByRole("button", { name: "MIDI 2 actions", exact: true })
     .click();
   await page
+    .getByRole("menu", { name: "MIDI 2 actions", exact: true })
     .getByRole("menuitem", { name: "Remove track", exact: true })
     .click();
   await expect(rows).toHaveCount(1);
@@ -89,6 +90,10 @@ test("creates and deletes a note and persists its instrument", async ({
 }) => {
   // Add an empty MIDI track, check its hint, and preview C4 on its piano keyboard.
   await createRecorderProject(page);
+  const instrumentDialog = page.getByRole("dialog", {
+    name: "MIDI 1 instrument",
+    exact: true,
+  });
   const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
   const notes = grid.locator("[data-note-id]");
@@ -108,16 +113,22 @@ test("creates and deletes a note and persists its instrument", async ({
   // Select a bass program through the track actions.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
-  const instrument = page.getByRole("combobox", { name: "MIDI 1 program" });
+  const instrument = instrumentDialog.getByRole("combobox", {
+    name: "MIDI 1 program",
+    exact: true,
+  });
   await instrument.click();
   await page.getByPlaceholder("Search instruments...").fill("Finger");
   await page
     .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
     .click();
   await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrumentDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
 
   // Save and reload the note and instrument, then reopen the program selector.
   await saveRecorderProject(page);
@@ -126,10 +137,13 @@ test("creates and deletes a note and persists its instrument", async ({
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
+    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrumentDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
 
   // Delete the last note to restore the hint, then save and verify the empty state survives reload.
   await notes.first().click();
