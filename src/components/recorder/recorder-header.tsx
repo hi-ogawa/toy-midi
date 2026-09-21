@@ -16,6 +16,7 @@ import {
   VideoIcon,
   SlidersVerticalIcon,
 } from "lucide-react";
+import { useRef } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { formatGainDb } from "../../lib/music";
@@ -123,6 +124,8 @@ export function RecorderHeader({
   onHelpOpen: () => void;
   mixerOpen: boolean;
 }) {
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const pendingDialog = useRef<(() => void) | undefined>(undefined);
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
     value: tempo,
@@ -389,6 +392,7 @@ export function RecorderHeader({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            ref={menuButtonRef}
             title="Editor menu"
             aria-label="Editor menu"
             className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -396,14 +400,32 @@ export function RecorderHeader({
             <MoreVerticalIcon className="size-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onHelpOpen}>
+        <DropdownMenuContent
+          align="end"
+          onCloseAutoFocus={(event) => {
+            const openDialog = pendingDialog.current;
+            if (openDialog) {
+              event.preventDefault();
+              pendingDialog.current = undefined;
+              // Let the native dialog remember the persistent button, not the removed menu item.
+              menuButtonRef.current?.focus();
+              openDialog();
+            }
+          }}
+        >
+          <DropdownMenuItem
+            onSelect={() => {
+              pendingDialog.current = onHelpOpen;
+            }}
+          >
             <CircleHelpIcon />
             Help & Shortcuts
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={flags.isRecording}
-            onSelect={onExportAudio}
+            onSelect={() => {
+              pendingDialog.current = onExportAudio;
+            }}
           >
             <DownloadIcon />
             Export Audio
