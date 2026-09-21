@@ -53,7 +53,9 @@ In the example, $p_T\approx0.279$ and $p_{2T}\approx0.548$, leaving about 0.173 
 
 ## Pitch Continuity Across Frames
 
-A sequence gives us another source of evidence. An isolated pitch change is less plausible than a sustained one, especially when the individual frame is ambiguous. We need a score that combines how well each pitch fits its frame with how plausibly successive pitches connect.
+An ambiguous frame can be resolved by its neighbors. Model pitch and voicing as a **hidden Markov model**, with frame evidence at each state and transition weights favoring continuity. **Viterbi decoding** chooses the highest-scoring path through this lattice.
+
+![Each pitch bin has voiced and unvoiced states. In a three-frame example restricted to two voiced states, Viterbi stays at A despite stronger middle-frame evidence for B because switching twice incurs a transition cost.](images/pyin-state-lattice.svg)
 
 ### Keep Pitch and Voicing Separate
 
@@ -90,8 +92,6 @@ $$
 
 Our pitch transition $T$ is a normalized triangular distribution centered on the previous pitch. With the bass settings, its support spans $\pm2.5$ semitones per 11.6 ms hop. The voicing-switch probability is $\rho=0.01$. These are continuity assumptions, so they can suppress implausible jumps but can also resist a real abrupt change.
 
-This construction is a **hidden Markov model**. The hidden state is pitch plus voicing, the observations supply frame evidence, and the transition depends only on the preceding state.
-
 ### Choose the Whole Path
 
 For a path through $L$ frames, combine the initial distribution $\pi$, transition weights, and observation weights:
@@ -101,15 +101,7 @@ $$
 =\pi(s_0)O_0(s_0)\prod_{t=1}^{L-1}A(s_{t-1},s_t)O_t(s_t).
 $$
 
-To see the tradeoff, temporarily consider just two nearby voiced pitches, A and B:
-
-| Frame | A   | B   |
-| ----- | --- | --- |
-| 0     | 0.9 | 0.1 |
-| 1     | 0.4 | 0.6 |
-| 2     | 0.9 | 0.1 |
-
-Suppose the initial pitches are equally likely, staying has probability 0.9, and switching has probability 0.1. These are illustrative values. Omitting the common initial factor,
+In the figure's two-voiced-state example, staying has probability 0.9 and switching has probability 0.1. Omitting the common initial factor,
 
 ```math
 \begin{aligned}
