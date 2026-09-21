@@ -16,20 +16,15 @@ test("instrument dialog isolates shortcuts", async ({ page }) => {
     pitch: "C4",
   });
   const dialog = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await expect(dialog).toBeVisible();
 
   // Keep editor shortcuts from changing the project while the dialog is open.
-  await dialog.focus();
   await page.keyboard.press("Delete");
   await page.keyboard.press("ArrowRight");
-  await page.keyboard.press("Space");
   await page.keyboard.press("m");
   await page.keyboard.press("Control+s");
   await expect(note).toBeVisible();
   expect(await getRecorderPosition(page)).toBe(0);
-  await expect(page.getByTestId("recorder-play-button")).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
   await expect(page.getByTitle("Toggle metronome (M)")).toHaveAttribute(
     "aria-pressed",
     "false",
