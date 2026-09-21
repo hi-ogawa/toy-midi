@@ -49,7 +49,7 @@ test("previews a MIDI note and opens its saved score in the viewer", async ({
   await openScore.click();
   const scorePage = await popupPromise;
   await expect(scorePage.getByTestId("score-name")).toHaveText(
-    "Untitled project - MIDI 1.musicxml",
+    "Untitled - MIDI 1.musicxml",
   );
   await expect(
     scorePage.getByTestId("score-viewer-renderer").locator("svg"),
