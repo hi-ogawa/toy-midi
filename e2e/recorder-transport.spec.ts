@@ -27,7 +27,7 @@ test("snaps recorder timeline seeking to the selected grid", async ({
 
   // On the 1/4 grid, 0.4 beats rounds back to beat 0 rather than seeking to
   // the raw pointer position.
-  await page.getByRole("button", { name: "1/16" }).click();
+  await page.getByTestId("recorder-grid-snap-select").click();
   await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.4);
   await expect.poll(() => getRecorderBeat(page)).toBe(0);

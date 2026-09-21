@@ -34,7 +34,7 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
   // Copy the notes, then coarsen the grid so pasting must snap an off-grid playhead.
   await page.keyboard.press("Control+c");
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2.25);
-  await page.getByRole("button", { name: "1/16", exact: true }).click();
+  await page.getByTestId("recorder-grid-snap-select").click();
   await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.25);
   await page.keyboard.press("Control+v");

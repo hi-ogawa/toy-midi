@@ -298,7 +298,10 @@ export function RecorderHeader({
       </DropdownMenu>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
+          <Button
+            data-testid="recorder-grid-snap-select"
+            className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
+          >
             {gridDivision}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
