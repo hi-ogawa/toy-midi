@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import {
   createRecorderProject,
-  openRecorderMidiInstrument,
   addRecorderMidiTrack,
   createRecorderMidiNote,
   saveRecorderProject,
+  openRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 test("updates tab strings for selected MIDI notes together", async ({
@@ -19,18 +19,14 @@ test("updates tab strings for selected MIDI notes together", async ({
     pitch: "E4",
   });
 
-  const instrumentDialog = await openRecorderMidiInstrument(page, {
-    name: "MIDI 1",
-  });
-  await instrumentDialog
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await instrument
     .getByRole("checkbox", { name: "Show string annotations" })
     .check();
-  await instrumentDialog
+  await instrument
     .getByRole("combobox", { name: "Tuning", exact: true })
     .selectOption({ label: "5-string bass (BEADG)" });
-  await instrumentDialog
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await expect(c4.getByTestId("tab-annotation")).toHaveText("G17");
   await expect(e4.getByTestId("tab-annotation")).toHaveText("G21");
 

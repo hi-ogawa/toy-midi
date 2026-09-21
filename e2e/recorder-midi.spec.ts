@@ -2,12 +2,12 @@ import { expect, test } from "@playwright/test";
 import { selectMenuItem } from "./helpers";
 import {
   createRecorderProject,
-  openRecorderMidiInstrument,
-  selectRecorderMidiInstrument,
   addRecorderMidiTrack,
   createRecorderMidiNote,
   saveRecorderProject,
   getRecorderPosition,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
@@ -103,18 +103,11 @@ test("creates and deletes a note and persists its instrument", async ({
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
 
   // Select a bass program through the track actions.
-  const instrumentDialog = await openRecorderMidiInstrument(page, {
-    name: "MIDI 1",
-  });
-  const instrument = instrumentDialog.getByRole("combobox", {
-    name: "MIDI 1 program",
-  });
-  await selectRecorderMidiInstrument(instrumentDialog, {
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await selectRecorderMidiInstrument(instrument, {
     option: "33: Electric Bass (finger)",
   });
-  await instrumentDialog
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Save and reload the note and instrument, then reopen the program selector.
   await saveRecorderProject(page);
@@ -122,10 +115,10 @@ test("creates and deletes a note and persists its instrument", async ({
   await expect(notes).toHaveCount(1);
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
   await openRecorderMidiInstrument(page, { name: "MIDI 1" });
-  await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await instrumentDialog
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Delete the last note to restore the hint, then save and verify the empty state survives reload.
   await notes.first().click();

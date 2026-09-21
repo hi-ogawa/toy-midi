@@ -8,11 +8,11 @@ import {
   getRecorderMidiNote,
   getRecorderBeat,
   createRecorderProject,
-  openRecorderMidiInstrument,
-  selectRecorderMidiInstrument,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 useFakeAudioInput();
@@ -45,24 +45,17 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     beat: 1,
     pitch: "C4",
   });
-  const instrumentDialog = await openRecorderMidiInstrument(page, {
-    name: "MIDI 1",
-  });
-  const program = instrumentDialog.getByRole("combobox", {
-    name: "MIDI 1 program",
-  });
-  await selectRecorderMidiInstrument(instrumentDialog, {
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await selectRecorderMidiInstrument(instrument, {
     option: "33: Electric Bass (finger)",
   });
-  await instrumentDialog
+  await instrument
     .getByRole("checkbox", { name: "Show string annotations" })
     .check();
-  await instrumentDialog
+  await instrument
     .getByRole("combobox", { name: "Tuning", exact: true })
     .selectOption("fiveStringBass");
-  await instrumentDialog
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await note.click();
   await page.keyboard.press("5");
   await expect(note.getByTestId("tab-annotation")).toHaveText("B37");
@@ -119,14 +112,14 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await page.getByRole("button", { name: "Verse", exact: true }).click();
   await expect.poll(() => getRecorderBeat(page)).toBe(3);
   await openRecorderMidiInstrument(page, { name: "MIDI 1" });
-  await expect(program).toContainText("33: Electric Bass (finger)");
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
   await expect(
-    instrumentDialog.getByRole("checkbox", {
-      name: "Show string annotations",
-    }),
+    instrument.getByRole("checkbox", { name: "Show string annotations" }),
   ).toBeChecked();
   await expect(
-    instrumentDialog.getByRole("combobox", { name: "Tuning", exact: true }),
+    instrument.getByRole("combobox", { name: "Tuning", exact: true }),
   ).toHaveValue("fiveStringBass");
 });
 

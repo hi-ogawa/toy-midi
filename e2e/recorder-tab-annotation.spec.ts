@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import {
   createRecorderProject,
-  openRecorderMidiInstrument,
   addRecorderMidiTrack,
   createRecorderMidiNote,
   saveRecorderProject,
+  openRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 test("assigns MIDI note strings and persists annotation settings", async ({
@@ -22,21 +22,17 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   const originalWidth = (await note.boundingBox())!.width;
 
   // Enable annotations and choose five-string bass tuning to expose the fifth string.
-  const instrumentDialog = await openRecorderMidiInstrument(page, {
-    name: "MIDI 1",
-  });
-  const enabled = instrumentDialog.getByRole("checkbox", {
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  const enabled = instrument.getByRole("checkbox", {
     name: "Show string annotations",
   });
-  const tuning = instrumentDialog.getByRole("combobox", {
+  const tuning = instrument.getByRole("combobox", {
     name: "Tuning",
     exact: true,
   });
   await enabled.check();
   await tuning.selectOption({ label: "5-string bass (BEADG)" });
-  await instrumentDialog
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await expect(annotation).toHaveText("G17");
 
   // Assign the fifth string and verify only the string label changes.

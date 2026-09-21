@@ -5,11 +5,11 @@ import {
   addRecorderMidiTrack,
   createRecorderMidiNote,
   createRecorderProject,
-  openRecorderMidiInstrument,
-  selectRecorderMidiInstrument,
   dragBy,
   getRecorderMidiNote,
   saveRecorderProject,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 test("undoes and redoes MIDI groups while cancelling drafts and clearing stale history", async ({
@@ -111,18 +111,11 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await addRecorderMidiTrack(page);
 
   // Set the first track's instrument and gain so deletion must preserve both settings.
-  const instrumentDialog = await openRecorderMidiInstrument(page, {
-    name: "MIDI 1",
-  });
-  const instrument = instrumentDialog.getByRole("combobox", {
-    name: "MIDI 1 program",
-  });
-  await selectRecorderMidiInstrument(instrumentDialog, {
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await selectRecorderMidiInstrument(instrument, {
     option: "33: Electric Bass (finger)",
   });
-  await instrumentDialog
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByTestId("recorder-mixer-button").click();
   const level = page.getByRole("textbox", { name: "MIDI 1 level in dB" });
   await level.fill("-6");
@@ -143,10 +136,10 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await expect(note).toHaveAttribute("data-note-id", noteId!);
   await expect(first).toContainText("-6.0 dB");
   await openRecorderMidiInstrument(page, { name: "MIDI 1" });
-  await expect(instrument).toContainText("33: Electric Bass (finger)");
-  await instrumentDialog
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Undo the second track's creation, the note edit, and the first track's creation.
   await page.keyboard.press("Control+z");
