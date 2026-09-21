@@ -26,15 +26,13 @@ Summing before comparing frames lets redistribution within a band cancel. Two bi
 
 ## Measure Relative Growth and Discard Decay
 
-Raw power differences favor strong bands. Log power, $\ell_t(b)=10\log_{10}P_t(b)$, instead measures proportional growth:
+Express band power in decibels, $\ell_t(b)=10\log_{10}P_t(b)$. Its change between frames is the gain in dB:
 
 $$
 \ell_t(b)-\ell_{t-1}(b)=10\log_{10}\frac{P_t(b)}{P_{t-1}(b)}.
 $$
 
-Doubling a band's power contributes about 3 dB regardless of its starting level, so weak upper harmonics can contribute alongside a strong fundamental. Constant recording gain cancels from the ratio. Near silence, power must be floored to prevent tiny values from producing large log differences.
-
-A fading band should neither count as a fresh attack nor cancel growth elsewhere. Keep each band's positive change and average:
+For onset evidence, keep increases and discard decreases, so a fading band does not cancel a rising one. Average these positive dB changes:
 
 $$
 F_t=\frac{1}{B}\sum_{b=1}^{B}\max\bigl(0,\ell_t(b)-\ell_{t-1}(b)\bigr).
