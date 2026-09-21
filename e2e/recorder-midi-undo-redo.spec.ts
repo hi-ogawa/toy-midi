@@ -100,7 +100,6 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await createRecorderProject(page);
   const instrumentDialog = page.getByRole("dialog", {
     name: "MIDI 1 instrument",
-    exact: true,
   });
   const rows = page.getByTestId("recorder-midi-track-row");
   const first = await addRecorderMidiTrack(page);
@@ -114,12 +113,11 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   // Set the first track's instrument and gain so deletion must preserve both settings.
   await first.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   const instrument = instrumentDialog.getByRole("combobox", {
     name: "MIDI 1 program",
-    exact: true,
   });
   await instrument.click();
   await page.getByPlaceholder("Search instruments...").fill("Finger");
@@ -140,7 +138,7 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   // Delete the first track and leave only the second track visible.
   await first.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Remove track", exact: true })
     .click();
   await expect(rows).toHaveCount(1);
@@ -155,7 +153,7 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await expect(first).toContainText("-6.0 dB");
   await first.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   await expect(instrument).toContainText("33: Electric Bass (finger)");

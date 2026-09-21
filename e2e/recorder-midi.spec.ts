@@ -70,7 +70,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
     .getByRole("button", { name: "MIDI 2 actions", exact: true })
     .click();
   await page
-    .getByRole("menu", { name: "MIDI 2 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 2 actions" })
     .getByRole("menuitem", { name: "Remove track", exact: true })
     .click();
   await expect(rows).toHaveCount(1);
@@ -92,7 +92,6 @@ test("creates and deletes a note and persists its instrument", async ({
   await createRecorderProject(page);
   const instrumentDialog = page.getByRole("dialog", {
     name: "MIDI 1 instrument",
-    exact: true,
   });
   const row = await addRecorderMidiTrack(page);
   const grid = row.getByTestId("recorder-midi-grid");
@@ -113,12 +112,11 @@ test("creates and deletes a note and persists its instrument", async ({
   // Select a bass program through the track actions.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   const instrument = instrumentDialog.getByRole("combobox", {
     name: "MIDI 1 program",
-    exact: true,
   });
   await instrument.click();
   await page.getByPlaceholder("Search instruments...").fill("Finger");
@@ -137,7 +135,7 @@ test("creates and deletes a note and persists its instrument", async ({
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   await expect(instrument).toContainText("33: Electric Bass (finger)");

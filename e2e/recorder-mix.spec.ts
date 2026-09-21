@@ -11,7 +11,6 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   });
   const editorMenu = page.getByRole("menu", {
     name: "Editor menu",
-    exact: true,
   });
   await editorMenuButton.click();
   await expect(editorMenu).toBeVisible();

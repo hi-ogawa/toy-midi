@@ -11,15 +11,13 @@ test("completes the latency checker workflow with fake audio", async ({
   // Open the latency checker menu and retain the workflow when dismissing it.
   const latencyMenuButton = page.getByRole("button", {
     name: "Latency checker menu",
-    exact: true,
   });
   const latencyMenu = page.getByRole("menu", {
     name: "Latency checker menu",
-    exact: true,
   });
   await latencyMenuButton.click();
   await expect(
-    latencyMenu.getByRole("menuitem", { name: "Home", exact: true }),
+    latencyMenu.getByRole("menuitem", { name: "Home" }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(latencyMenu).toBeHidden();

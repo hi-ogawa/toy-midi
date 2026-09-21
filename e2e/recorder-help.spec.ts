@@ -12,14 +12,12 @@ test("opens and dismisses Help while keeping editor shortcuts inactive", async (
   });
   const editorMenu = page.getByRole("menu", {
     name: "Editor menu",
-    exact: true,
   });
   await editorMenuButton.click();
   await expect(editorMenu).toBeVisible();
   await editorMenu.getByRole("menuitem", { name: "Help & Shortcuts" }).click();
   const helpDialog = page.getByRole("dialog", {
     name: "Editor quick reference",
-    exact: true,
   });
   const heading = page.getByRole("heading", { name: "Editor quick reference" });
   await expect(heading).toBeVisible();

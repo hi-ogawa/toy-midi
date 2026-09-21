@@ -25,7 +25,7 @@ test("previews a MIDI note and opens its saved score in the viewer", async ({
     .getByRole("button", { name: "MIDI 1 actions", exact: true })
     .click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Score preview", exact: true })
     .click();
   const score = page.getByTestId("recorder-score-preview");
@@ -77,7 +77,7 @@ test("syncs seeking between the score preview and recorder timeline", async ({
   await createRecorderMidiNote(page, row, { beat: 8, pitch: "E4" });
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Score preview", exact: true })
     .click();
   const score = page.getByTestId("recorder-score-preview");

@@ -30,7 +30,7 @@ test("home creates and reopens recorder projects without project-type tabs", asy
   const projectUrl = page.url();
   await page.getByRole("button", { name: "Editor menu", exact: true }).click();
   await page
-    .getByRole("menu", { name: "Editor menu", exact: true })
+    .getByRole("menu", { name: "Editor menu" })
     .getByRole("menuitem", { name: "Home", exact: true })
     .click();
   await expect(page).toHaveURL("/");
@@ -69,7 +69,7 @@ test("Projects search filters current and legacy projects together", async ({
   );
   await page.getByRole("button", { name: "Editor menu", exact: true }).click();
   await page
-    .getByRole("menu", { name: "Editor menu", exact: true })
+    .getByRole("menu", { name: "Editor menu" })
     .getByRole("menuitem", { name: "Home", exact: true })
     .click();
   const search = page.getByRole("textbox", { name: "Search projects" });

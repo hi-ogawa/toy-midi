@@ -19,7 +19,6 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await createRecorderProject(page);
   const instrumentDialog = page.getByRole("dialog", {
     name: "MIDI 1 instrument",
-    exact: true,
   });
 
   // Build an editable project with backing audio and two retained takes.
@@ -49,12 +48,11 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   });
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   const program = instrumentDialog.getByRole("combobox", {
     name: "MIDI 1 program",
-    exact: true,
   });
   await program.click();
   await page.getByPlaceholder("Search instruments...").fill("Finger");
@@ -62,7 +60,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
     .click();
   await instrumentDialog
-    .getByRole("checkbox", { name: "Show string annotations", exact: true })
+    .getByRole("checkbox", { name: "Show string annotations" })
     .check();
   await instrumentDialog
     .getByRole("combobox", { name: "Tuning", exact: true })
@@ -128,14 +126,13 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect.poll(() => getRecorderBeat(page)).toBe(3);
   await importedRow.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menu", { name: "MIDI 1 actions", exact: true })
+    .getByRole("menu", { name: "MIDI 1 actions" })
     .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   await expect(program).toContainText("33: Electric Bass (finger)");
   await expect(
     instrumentDialog.getByRole("checkbox", {
       name: "Show string annotations",
-      exact: true,
     }),
   ).toBeChecked();
   await expect(

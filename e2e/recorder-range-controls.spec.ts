@@ -20,7 +20,6 @@ for (const kind of ["loop", "punch"] as const) {
 
     const rangeMenu = page.getByRole("menu", {
       name: `${label} range actions`,
-      exact: true,
     });
 
     // With no range to clear, New creates and enables one bar at the playhead.

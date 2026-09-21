@@ -9,8 +9,8 @@ test("navigates between projects and the score viewer", async ({ page }) => {
 
   await page.getByRole("button", { name: "Score viewer menu" }).click();
   await page
-    .getByRole("menu", { name: "Score viewer menu", exact: true })
-    .getByRole("menuitem", { name: "Home", exact: true })
+    .getByRole("menu", { name: "Score viewer menu" })
+    .getByRole("menuitem", { name: "Home" })
     .click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("startup-screen")).toBeVisible();
@@ -22,8 +22,8 @@ test("opens a MusicXML file from the score viewer menu", async ({ page }) => {
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
     page
-      .getByRole("menu", { name: "Score viewer menu", exact: true })
-      .getByRole("menuitem", { name: "Open", exact: true })
+      .getByRole("menu", { name: "Score viewer menu" })
+      .getByRole("menuitem", { name: "Open" })
       .click(),
   ]);
   await fileChooser.setFiles(
@@ -276,11 +276,9 @@ test("uses MusicXML time signatures for seeking", async ({ page }) => {
 });
 
 async function loadSample(page: Page, name: string) {
+  await page.getByRole("button", { name: "Score samples" }).click();
   await page
-    .getByRole("button", { name: "Score samples", exact: true })
-    .click();
-  await page
-    .getByRole("menu", { name: "Score samples", exact: true })
+    .getByRole("menu", { name: "Score samples" })
     .getByRole("menuitem", { name: new RegExp(`^${name}`) })
     .click();
 }
