@@ -1,29 +1,36 @@
-import { useMutation } from "@tanstack/react-query";
 import { KEY_SIGNATURE_OPTION_GROUPS } from "../../lib/pitch-spelling";
-import type {
-  MidiTrackState,
-  RecorderRuntime,
-} from "../../lib/recorder/runtime";
+import type { MidiTrackState } from "../../lib/recorder/runtime";
 import {
   resolveTabStringPreset,
   TAB_STRING_PRESETS,
 } from "../../lib/tab-annotation";
 import { InstrumentCombobox } from "../instrument-combobox";
-import { useRecorderPreference } from "./use-recorder-preference";
 
 export function MidiInstrument({
   track,
-  runtime,
+  programPending,
+  onProgramChange,
+  onSettingsChange,
 }: {
-  track: MidiTrackState;
-  runtime: RecorderRuntime;
+  track: Pick<
+    MidiTrackState,
+    | "name"
+    | "program"
+    | "keySignature"
+    | "tabAnnotationEnabled"
+    | "tabOpenStringPitches"
+  >;
+  programPending: boolean;
+  onProgramChange: (program: number) => void;
+  onSettingsChange: (
+    settings: Partial<
+      Pick<
+        MidiTrackState,
+        "keySignature" | "tabAnnotationEnabled" | "tabOpenStringPitches"
+      >
+    >,
+  ) => void;
 }) {
-  const [, setDefaultMidiProgram] = useRecorderPreference("defaultMidiProgram");
-  const programMutation = useMutation({
-    mutationFn: (program: number) =>
-      runtime.setMidiTrackProgram(track.id, program),
-    onSuccess: (_data, program) => setDefaultMidiProgram(program),
-  });
   return (
     <div className="grid w-96 grid-cols-[64px_1fr] items-center gap-x-4 gap-y-4">
       <div className="contents">
@@ -32,8 +39,8 @@ export function MidiInstrument({
           className="w-full!"
           aria-label={`${track.name} program`}
           value={track.program}
-          disabled={programMutation.isPending}
-          onValueChange={(program) => programMutation.mutate(program)}
+          disabled={programPending}
+          onValueChange={onProgramChange}
         />
       </div>
       <label className="contents">
@@ -43,7 +50,7 @@ export function MidiInstrument({
           value={`${track.keySignature.fifths}:${track.keySignature.mode}`}
           onChange={(event) => {
             const [fifths, mode] = event.target.value.split(":");
-            runtime.setMidiTrackSettings(track.id, {
+            onSettingsChange({
               keySignature: {
                 fifths: Number(fifths),
                 mode: mode as "major" | "minor",
@@ -75,7 +82,7 @@ export function MidiInstrument({
             const preset = TAB_STRING_PRESETS.find(
               ({ id }) => id === event.target.value,
             )!;
-            runtime.setMidiTrackSettings(track.id, {
+            onSettingsChange({
               tabOpenStringPitches: [...preset.openStringPitches],
             });
           }}
@@ -94,7 +101,7 @@ export function MidiInstrument({
             type="checkbox"
             checked={track.tabAnnotationEnabled}
             onChange={(event) =>
-              runtime.setMidiTrackSettings(track.id, {
+              onSettingsChange({
                 tabAnnotationEnabled: event.target.checked,
               })
             }

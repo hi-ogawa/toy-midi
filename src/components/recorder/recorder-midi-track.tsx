@@ -52,6 +52,7 @@ import {
   getMidiGridPosition,
   getMidiBoxSelectionRect,
 } from "./use-recorder-midi-interaction";
+import { useRecorderPreference } from "./use-recorder-preference";
 
 const KEY_HEIGHT = 18;
 const PITCHES = Array.from(
@@ -87,6 +88,12 @@ export function MidiTrackRow({
   onScorePreview: () => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
+  const [, setDefaultMidiProgram] = useRecorderPreference("defaultMidiProgram");
+  const programMutation = useMutation({
+    mutationFn: (program: number) =>
+      runtime.setMidiTrackProgram(track.id, program),
+    onSuccess: (_data, program) => setDefaultMidiProgram(program),
+  });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseMidiFile(file);
@@ -206,7 +213,14 @@ export function MidiTrackRow({
         title={`${track.name} instrument`}
         onClose={() => setIsInstrumentOpen(false)}
       >
-        <MidiInstrument track={track} runtime={runtime} />
+        <MidiInstrument
+          track={track}
+          programPending={programMutation.isPending}
+          onProgramChange={(program) => programMutation.mutate(program)}
+          onSettingsChange={(settings) =>
+            runtime.setMidiTrackSettings(track.id, settings)
+          }
+        />
       </PortalDialog>
     </div>
   );
