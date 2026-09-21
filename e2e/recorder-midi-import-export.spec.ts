@@ -15,12 +15,12 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   // Create a bass track and a violin MIDI file containing one C4 note.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
-  const program = await openRecorderMidiInstrument({ page, name: "MIDI 1" });
+  const instrument = await openRecorderMidiInstrument({ page, name: "MIDI 1" });
   await selectRecorderMidiInstrument({
-    program,
+    instrument,
     option: "33: Electric Bass (finger)",
   });
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   const source = new Midi();
   const sourceTrack = source.addTrack();
   sourceTrack.instrument.number = 40;
@@ -51,8 +51,10 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
 
   // Keep the destination's bass instrument despite the imported violin program.
   await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await expect(program).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(
+    instrument.getByRole("combobox", { name: / program$/ }),
+  ).toContainText("33: Electric Bass (finger)");
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Export the track and verify the downloaded MIDI contains the imported note.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
