@@ -39,9 +39,7 @@ export function ReferenceVideoPanel({
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampSize(
-      recorderStorage.readPreferences().referenceVideoSize ?? DEFAULT_SIZE,
-    ),
+    clampSize(recorderStorage.store.get().referenceVideoSize ?? DEFAULT_SIZE),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
@@ -51,21 +49,19 @@ export function ReferenceVideoPanel({
         throw new Error("Reference video panel is missing.");
       }
       return {
-        x: event.clientX,
-        y: event.clientY,
         panelRect: panel.getBoundingClientRect(),
         size,
       };
     },
-    onMove: (event, drag) => {
-      drag.size = clampSize({
-        width: drag.panelRect.width + drag.x - event.clientX,
-        height: drag.panelRect.height + drag.y - event.clientY,
+    onMove: (_event, { data, deltaX, deltaY }) => {
+      data.size = clampSize({
+        width: data.panelRect.width - deltaX,
+        height: data.panelRect.height - deltaY,
       });
-      setSize(drag.size);
+      setSize(data.size);
     },
-    onEnd: (_event, drag) => {
-      recorderStorage.updatePreferences({ referenceVideoSize: drag.size });
+    onEnd: (_event, { data }) => {
+      recorderStorage.update({ referenceVideoSize: data.size });
     },
   });
 

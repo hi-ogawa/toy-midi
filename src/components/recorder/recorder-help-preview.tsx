@@ -17,7 +17,7 @@ export function RecorderHelpPreview() {
       <Dialog
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        title="Recorder quick reference"
+        title="Editor quick reference"
         size="wide"
       >
         <RecorderHelp />

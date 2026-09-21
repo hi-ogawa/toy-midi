@@ -2,28 +2,34 @@ import net from "node:net";
 import type { TracePackReporterOptions } from "@hiogawa/playwright-trace-pack/reporter";
 import { defineConfig, devices } from "@playwright/test";
 
+const server = process.env.E2E_SERVER ?? "build";
+if (server !== "build" && server !== "dev") {
+  throw new Error(`Invalid E2E_SERVER: ${server}. Expected build or dev.`);
+}
+
 // Resolve the port once and share it with Playwright workers.
 const port = process.env.E2E_PORT
   ? Number(process.env.E2E_PORT)
   : await getFreePort(5183);
 process.env.E2E_PORT = String(port);
 
+const traceEnabled =
+  process.env.E2E_TRACE === "1" ||
+  (!process.env.CI && process.env.E2E_TRACE !== "0");
+
 export default defineConfig({
   testDir: "./e2e",
   webServer: {
-    command: `pnpm dev --port ${port} --strictPort`,
+    command:
+      server === "dev"
+        ? `pnpm dev --port ${port} --strictPort`
+        : `pnpm build-app && pnpm preview --port ${port} --strictPort`,
     url: `http://localhost:${port}`,
     reuseExistingServer: false,
-    env: {
-      VITE_AUTO_SAVE_DEBOUNCE_MS: "50",
-    },
   },
   use: {
     baseURL: `http://localhost:${port}`,
-    trace:
-      process.env.E2E_TRACE === "1"
-        ? { mode: "on", screenshots: false }
-        : "off",
+    trace: traceEnabled ? { mode: "on", screenshots: false } : "off",
   },
   forbidOnly: !!process.env.CI,
   reporter: [

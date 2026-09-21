@@ -11,15 +11,6 @@ export interface Note {
 
 export type GridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
 
-export const GRID_SNAP_VALUES: Record<GridSnap, number> = {
-  "1/4": 1,
-  "1/8": 0.5,
-  "1/16": 0.25,
-  "1/4T": 1 / 3,
-  "1/8T": 1 / 6,
-  "1/16T": 1 / 12,
-};
-
 export interface TimeSignature {
   numerator: number; // beats per bar (e.g., 3, 4, 5, 7)
   denominator: number; // beat unit (e.g., 4 for quarter note, 8 for eighth note)

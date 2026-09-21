@@ -11,6 +11,7 @@ import {
   CommandList,
 } from "./ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "./ui/utils";
 
 // GM instrument groups for organized display
 const INSTRUMENT_GROUPS = [
@@ -35,8 +36,14 @@ const INSTRUMENT_GROUPS = [
 export function InstrumentCombobox({
   value,
   onValueChange,
+  disabled,
+  className,
+  "aria-label": ariaLabel,
 }: {
   value: number;
+  disabled?: boolean;
+  className?: string;
+  "aria-label"?: string;
   onValueChange: (value: number) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -47,10 +54,15 @@ export function InstrumentCombobox({
         <Button
           data-testid="instrument-select"
           role="combobox"
+          aria-label={ariaLabel}
+          disabled={disabled}
           aria-expanded={open}
-          className="h-8 w-44 justify-between gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
+          className={cn(
+            "h-8 w-44 justify-between gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900",
+            className,
+          )}
         >
-          <span className="truncate">
+          <span className="min-w-0 flex-1 truncate text-left">
             {value}: {GM_PROGRAMS[value]}
           </span>
           <ChevronsUpDownIcon className="ml-1 size-4 shrink-0 opacity-50" />

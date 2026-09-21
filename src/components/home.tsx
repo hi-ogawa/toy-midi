@@ -1,33 +1,12 @@
-import {
-  AudioLinesIcon,
-  GitForkIcon,
-  Music2Icon,
-  PianoIcon,
-  Mic2Icon,
-} from "lucide-react";
-import { useState } from "react";
-import { projectStorage } from "../lib/project-storage";
+import { AudioLinesIcon, GitForkIcon, Music2Icon } from "lucide-react";
 import { routes } from "../lib/routes";
-import { MidiProjectList } from "./midi-project-list";
 import { RecorderProjectList } from "./recorder/project-list";
-import { Tabs } from "./ui/tabs";
-
-type ProjectType = "midi" | "recorder";
 
 export function Home() {
-  const [projectType, setProjectType] = useState<ProjectType>(
-    () => projectStorage.readPreferences().projectType,
-  );
-
-  const selectProjectType = (type: ProjectType) => {
-    projectStorage.updatePreferences({ projectType: type });
-    setProjectType(type);
-  };
-
   return (
     <div
       data-testid="startup-screen"
-      className="fixed inset-0 z-50 overflow-hidden bg-neutral-900"
+      className="fixed inset-0 z-50 overflow-y-auto scrollbar-thin bg-neutral-900"
     >
       {/* Gradient glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
@@ -70,34 +49,8 @@ export function Home() {
           </nav>
         </header>
 
-        <main className="mt-14 min-h-0 flex-1">
-          <Tabs
-            label="Project type"
-            value={projectType}
-            onValueChange={selectProjectType}
-            options={[
-              {
-                value: "midi",
-                label: (
-                  <>
-                    <PianoIcon aria-hidden="true" className="size-4" />
-                    MIDI
-                  </>
-                ),
-                content: <MidiProjectList />,
-              },
-              {
-                value: "recorder",
-                label: (
-                  <>
-                    <Mic2Icon aria-hidden="true" className="size-4" />
-                    Recorder
-                  </>
-                ),
-                content: <RecorderProjectList />,
-              },
-            ]}
-          />
+        <main className="mt-14 min-h-0 flex-1 overflow-y-auto">
+          <RecorderProjectList />
         </main>
       </div>
     </div>

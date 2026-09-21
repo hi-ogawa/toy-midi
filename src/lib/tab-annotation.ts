@@ -1,4 +1,4 @@
-import type { TabString } from "../types";
+import type { Note, TabString } from "../types";
 
 export const TAB_STRING_PRESETS = [
   {
@@ -12,6 +12,9 @@ export const TAB_STRING_PRESETS = [
     openStringPitches: [43, 38, 33, 28, 23], // G2 D2 A1 E1 B0
   },
 ] as const;
+
+export const DEFAULT_TAB_OPEN_STRING_PITCHES =
+  TAB_STRING_PRESETS[1].openStringPitches;
 
 const TAB_STRING_COLORS = [
   { background: "#06b6d4", border: "#0891b2", text: "#083344" },
@@ -36,6 +39,15 @@ const PITCH_CLASS_NAMES = [
   "B",
 ];
 
+export type TabAnnotationDisplay = {
+  label: string;
+  color: {
+    background: string;
+    border: string;
+    text: string;
+  };
+};
+
 export type TabPosition = {
   tabString: TabString;
   fret: number;
@@ -56,11 +68,31 @@ export function resolveTabStringPreset(openStringPitches: readonly number[]) {
   );
 }
 
-export function getTabStringColor(tabString: TabString) {
+export function getTabAnnotationDisplay({
+  note,
+  openStringPitches,
+}: {
+  note: Pick<Note, "pitch" | "tabString">;
+  openStringPitches: readonly number[];
+}): TabAnnotationDisplay | undefined {
+  const position = resolveTabPosition({
+    pitch: note.pitch,
+    tabString: note.tabString,
+    openStringPitches,
+  });
+  if (position) {
+    return {
+      label: formatTabPosition({ position, openStringPitches }),
+      color: getTabStringColor(position.tabString),
+    };
+  }
+}
+
+function getTabStringColor(tabString: TabString) {
   return TAB_STRING_COLORS[tabString - 1];
 }
 
-export function formatTabPosition({
+function formatTabPosition({
   position,
   openStringPitches,
 }: {

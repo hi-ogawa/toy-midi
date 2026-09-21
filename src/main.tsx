@@ -4,10 +4,7 @@ import { createRoot } from "react-dom/client";
 import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
-import oxisynthWasmUrl from "./assets/oxisynth/oxisynth.wasm?url";
-import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
-import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
-import { flushAutoSave } from "./lib/project-session";
+import { preloadMidiAssets } from "./lib/runtime-assets";
 import "./e2e";
 
 function main() {
@@ -15,10 +12,6 @@ function main() {
   if (window.location.pathname.startsWith("/__e2e__/")) {
     return;
   }
-
-  // Auto-save is debounced; flush pending changes when leaving the page
-  // (navigation away or tab close).
-  window.addEventListener("pagehide", () => flushAutoSave());
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -42,14 +35,7 @@ function main() {
 
   // Preload large assets after initial render
   requestIdleCallback(() => {
-    for (const href of [oxisynthWasmUrl, oxisynthWorkletUrl, soundfontUrl]) {
-      const link = document.createElement("link");
-      link.rel = "preload";
-      link.as = "fetch";
-      link.crossOrigin = "anonymous";
-      link.href = href;
-      document.head.appendChild(link);
-    }
+    void preloadMidiAssets();
   });
 }
 

@@ -8,7 +8,6 @@ import {
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
-  Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -143,9 +142,6 @@ export function RecorderHeader({
   });
   return (
     <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
-      <Mic2Icon className="size-4 text-emerald-400" />
-      <span className="mr-2 text-sm font-medium">Recorder</span>
-      <div className="h-5 w-px bg-neutral-600" />
       <Button
         data-testid="recorder-play-button"
         onClick={onPlayToggle}
@@ -307,7 +303,10 @@ export function RecorderHeader({
       </DropdownMenu>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
+          <Button
+            data-testid="recorder-grid-snap-select"
+            className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
+          >
             {gridDivision}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
@@ -319,7 +318,7 @@ export function RecorderHeader({
               onGridDivisionChange(value as GridDivision)
             }
           >
-            {GRID_DIVISIONS.map((value) => (
+            {Object.keys(GRID_DIVISIONS).map((value) => (
               <DropdownMenuRadioItem key={value} value={value}>
                 {value}
               </DropdownMenuRadioItem>
@@ -481,7 +480,7 @@ function RecorderMenu({
       <Dialog
         isOpen={dialog === "help"}
         onClose={() => setDialog(undefined)}
-        title="Recorder quick reference"
+        title="Editor quick reference"
         size="wide"
         returnFocusRef={menuButtonRef}
       >

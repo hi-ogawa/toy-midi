@@ -105,7 +105,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   // Deleting from the index removes the project metadata and content.
   await page.goto("/");
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Delete recording" }).click();
+  await page.getByRole("button", { name: "Delete project" }).click();
   await expect(page.getByText("Practice take", { exact: true })).toBeHidden();
 
   // A stale deep link reports the missing project without retrying its read.
