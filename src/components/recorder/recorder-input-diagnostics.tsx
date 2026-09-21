@@ -71,11 +71,6 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
   ];
   return (
     <section aria-label="Audio debug readings" className="mt-3 space-y-3">
-      <p className="leading-5 text-neutral-400">
-        Live readings from this editor, refreshed every second. The candidate is
-        base + output + input latency. It may miss device or processing delay
-        and does not change compensation.
-      </p>
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2">
         {rows.map(([label, value]) => (
           <div key={label} className="contents">
@@ -84,23 +79,6 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
           </div>
         ))}
       </dl>
-      <Button
-        onClick={() => copy.mutate()}
-        disabled={copy.isPending}
-        className="border-neutral-600 px-2 py-1 text-xs"
-      >
-        Copy diagnostic report
-      </Button>
-      {copy.isSuccess && (
-        <p role="status" className="text-emerald-400">
-          Diagnostic report copied.
-        </p>
-      )}
-      {copy.error && (
-        <p role="alert" className="text-orange-200">
-          {copy.error.message}
-        </p>
-      )}
     </section>
   );
 }
@@ -131,24 +109,18 @@ function readReport(runtime: RecorderRuntime) {
     ? latencies.reduce<number>((sum, value) => sum + value!, 0)
     : undefined;
   return {
-    capturedAt: new Date().toISOString(),
-    userAgent: navigator.userAgent,
-    units:
-      "Latencies are seconds; sample rates are Hz; selectedChannel is zero-based. Missing readings are unavailable.",
     context: {
       state: runtime.context.state,
       sampleRate,
       baseLatency,
       outputLatency,
     },
-    outputRoute: "System default (resolved output device not reported)",
     input,
     captureStatus: state.captureStatus,
     selectedChannel: state.selectedChannel,
     observedChannelCount: state.inputChannelCount,
     inputMonitoring: state.inputMonitoring,
     candidateLatency,
-    latencyCompensation: state.latencyCompensation,
   };
 }
 
