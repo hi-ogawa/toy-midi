@@ -1,3 +1,4 @@
+import { createAvailableName } from "../../utils/name.ts";
 import { IdbStore } from "../idb.ts";
 import {
   type SerializedRecorderRuntimeState,
@@ -39,12 +40,11 @@ export const recorderProjectStorage = {
   },
 
   async create(): Promise<string> {
-    const titles = new Set((await this.list()).map((project) => project.title));
     const state = createDefaultRecorderRuntimeState();
-    const baseTitle = state.title;
-    for (let suffix = 2; titles.has(state.title); suffix++) {
-      state.title = `${baseTitle} ${suffix}`;
-    }
+    state.title = createAvailableName({
+      names: (await this.list()).map((project) => project.title),
+      baseName: state.title,
+    });
     return this.createWithContent(serializeRecorderRuntimeState(state));
   },
 
