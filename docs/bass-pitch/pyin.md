@@ -6,18 +6,15 @@ A bass waveform can line up with itself after one period or two, and the deeper 
 
 ## Ambiguous Periods Within a Frame
 
-Suppose the normalized difference curve has two troughs:
+For one frame, start with YIN’s normalized difference curve. Its troughs propose candidate periods. YIN commits to the first trough below its threshold; pYIN keeps multiple troughs and assigns each a weight before choosing a path across frames.
 
-| Candidate period | Mismatch |
-| ---------------- | -------- |
-| $T$              | 0.12     |
-| $2T$             | 0.04     |
+![The same difference curve under YIN and pYIN. YIN selects the first trough below a fixed threshold, while pYIN retains weighted candidates at T and 2T.](images/yin-pyin-candidates.svg)
 
-At threshold 0.10, only $2T$ qualifies. At 0.15, both qualify and YIN prefers the earlier trough at $T$. Neither threshold is inherently correct. They express different demands on the quality of the match, and here that choice changes the pitch by an octave.
+Here the troughs at $T$ and $2T$ have depths 0.12 and 0.04. A threshold of 0.15 makes YIN choose $T$; lowering it to 0.10 changes the choice to $2T$, one octave lower. pYIN turns this threshold sensitivity into weights for both candidates.
 
 ### Average Over Threshold Uncertainty
 
-Instead of committing to one threshold, give thresholds a probability distribution. Our implementation uses a Beta(2, 18) prior on $[0,1]$, with mean 0.1. This favors convincing, low-mismatch matches without making 0.1 a hard cutoff.
+Imagine sliding a horizontal threshold across the curve and noting which troughs qualify at each height. Give those threshold heights a probability distribution, so each contributes a share of the candidate weights. Our implementation uses a Beta(2, 18) prior on $[0,1]$, with mean 0.1. This favors convincing, low-mismatch matches without making 0.1 a hard cutoff.
 
 The code approximates that distribution with 100 threshold bins. For bin $k$, let $w_k$ be its probability mass and $\theta_k$ its upper boundary. If the density is $b$, then
 
