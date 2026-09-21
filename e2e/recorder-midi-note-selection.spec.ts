@@ -99,11 +99,27 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await expect(e4).toHaveAttribute("data-selected", "false");
   await expect(save).toHaveAttribute("data-status", "saved");
 
-  // Delete commits the selected set together.
+  // Delete the selected set together and retain its identities for the undo check.
+  const c4Id = await c4.getAttribute("data-note-id");
+  const d4Id = await d4.getAttribute("data-note-id");
   await page.keyboard.press("Delete");
   await expect(notes).toHaveCount(1);
   await expect(e4).toBeVisible();
   await expect(save).toHaveAttribute("data-status", "unsaved");
+
+  // Undo and redo the grouped deletion without changing the surviving note.
+  await page.keyboard.press("Control+z");
+  await expect(notes).toHaveCount(3);
+  await expect(c4).toHaveAttribute("data-note-id", c4Id!);
+  await expect(d4).toHaveAttribute("data-note-id", d4Id!);
+  expect((await c4.boundingBox())!.width).toBe(c4Box.width);
+  expect((await d4.boundingBox())!.width).toBe(d4Box.width);
+  await expect(e4).toBeVisible();
+  await page.keyboard.press("Control+Shift+z");
+  await expect(notes).toHaveCount(1);
+  await expect(e4).toBeVisible();
+
+  // Save and reload with only the unselected note retained.
   await saveRecorderProject(page);
   await page.reload();
   await expect(notes).toHaveCount(1);
