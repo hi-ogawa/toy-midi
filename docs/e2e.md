@@ -11,6 +11,10 @@ Local runs record DOM traces in `test-results/trace-pack.html` by default. Use `
 
 ## E2E traces on GitHub Actions
 
+Add the `e2e-trace` label to a same-repository PR to trace its added, modified, or renamed `e2e/**/*.spec.ts` files against a production build. Adding the label starts a run, and subsequent pushes or reopening the PR start fresh runs while the label remains. Selection uses the whole PR diff, so a follow-up fix still traces specs changed in earlier commits. Deleted specs are excluded.
+
+Each run tests the PR head commit and updates one PR comment with the selected files, tested commit, and trace link. A newer run cancels the previous automatic run for that PR. If no specs changed, the workflow skips testing and explains how to choose existing specs manually. Removing the label stops future automatic runs.
+
 Run selected E2E tests on a branch, including `main` or a branch without a PR. The result and a **View E2E trace** link appear in the workflow summary and as comments on open PRs headed by that branch.
 
 ```sh

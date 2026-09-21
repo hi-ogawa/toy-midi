@@ -1,7 +1,9 @@
 name: E2E trace
-run-name: "E2E trace for ${{ inputs.ref }} · ${{ inputs.server }} · ${{ inputs.tests }}"
+run-name: "E2E trace for ${{ github.event.pull_request.head.ref || inputs.ref }} · ${{ inputs.server || 'build' }} · ${{ inputs.tests || 'changed specs' }}"
 
 on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
   workflow_dispatch:
     inputs:
       ref:
@@ -28,29 +30,80 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: e2e-trace-${{ (github.event.action != 'labeled' || github.event.label.name == 'e2e-trace') && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
+  prepare:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       contains(github.event.pull_request.labels.*.name, 'e2e-trace') &&
+       (github.event.action != 'labeled' || github.event.label.name == 'e2e-trace'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.selection.outputs.sha }}
+      ref: ${{ steps.selection.outputs.ref }}
+      tests: ${{ steps.selection.outputs.tests }}
+    steps:
+      - uses: actions/github-script@v9
+        id: selection
+        env:
+          TEST_REF: ${{ inputs.ref }}
+          TEST_FILTER: ${{ inputs.tests }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              const { data: branch } = await github.rest.git.getRef({
+                ...context.repo,
+                ref: `heads/${process.env.TEST_REF}`,
+              });
+              core.setOutput("sha", branch.object.sha);
+              core.setOutput("ref", process.env.TEST_REF);
+              core.setOutput("tests", process.env.TEST_FILTER);
+              return;
+            }
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              ...context.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+            // The files API describes the current PR, so discard an outdated event.
+            const { data: current } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: pr.number,
+            });
+            if (current.head.sha !== pr.head.sha) {
+              await core.summary.addRaw("Skipped because the PR head changed. The newer push has its own run.").write();
+              return;
+            }
+            // GitHub caps this endpoint at 3,000 files. Do not silently select a partial diff.
+            if (files.length >= 3000) {
+              throw new Error("PR diff is too large for automatic selection. Use a manual trace run with explicit files.");
+            }
+            const tests = files
+              .filter((file) => file.status !== "removed" && /^e2e\/.*\.spec\.ts$/.test(file.filename))
+              .map((file) => file.filename);
+            core.setOutput("sha", pr.head.sha);
+            core.setOutput("ref", pr.head.ref);
+            core.setOutput("tests", tests.join(" "));
+
   trace:
+    needs: prepare
+    if: needs.prepare.outputs.sha != '' && needs.prepare.outputs.tests != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
-      sha: ${{ steps.branch.outputs.sha }}
       artifact-url: ${{ steps.upload.outputs.artifact-url }}
     steps:
-      # Pin the mutable branch ref so the report identifies the tested commit.
-      - uses: actions/github-script@v9
-        id: branch
-        env:
-          TEST_REF: ${{ inputs.ref }}
-        with:
-          script: |
-            const { data: branch } = await github.rest.git.getRef({
-              ...context.repo,
-              ref: `heads/${process.env.TEST_REF}`,
-            });
-            core.setOutput("sha", branch.object.sha);
       - uses: actions/checkout@v6
         with:
-          ref: ${{ steps.branch.outputs.sha }}
+          ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -62,9 +115,9 @@ jobs:
       - name: Run selected tests with tracing
         env:
           E2E_TRACE: "1"
-          E2E_SERVER: ${{ inputs.server }}
-          TEST_FILTER: ${{ inputs.tests }}
-          TEST_GREP: ${{ inputs.grep }}
+          E2E_SERVER: ${{ inputs.server || 'build' }}
+          TEST_FILTER: ${{ needs.prepare.outputs.tests }}
+          TEST_GREP: ${{ inputs.grep || '.*' }}
         run: |
           read -r -a test_filters <<< "${TEST_FILTER//$'\n'/ }"
           if (( ${#test_filters[@]} == 0 )); then
@@ -82,20 +135,20 @@ jobs:
 
   # Keep PR write permission isolated from branch-controlled install and test code.
   report:
-    needs: trace
-    if: always() && needs.trace.outputs.sha != ''
+    needs: [prepare, trace]
+    if: ${{ !cancelled() && needs.prepare.outputs.sha != '' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
       - uses: actions/github-script@v9
         env:
-          TEST_REF: ${{ inputs.ref }}
-          TEST_FILTER: ${{ inputs.tests }}
-          TEST_GREP: ${{ inputs.grep }}
-          TEST_SHA: ${{ needs.trace.outputs.sha }}
+          TEST_REF: ${{ needs.prepare.outputs.ref }}
+          TEST_FILTER: ${{ needs.prepare.outputs.tests }}
+          TEST_GREP: ${{ inputs.grep || '.*' }}
+          TEST_SHA: ${{ needs.prepare.outputs.sha }}
           TEST_RESULT: ${{ needs.trace.result }}
-          TEST_SERVER: ${{ inputs.server }}
+          TEST_SERVER: ${{ inputs.server || 'build' }}
           ARTIFACT_URL: ${{ needs.trace.outputs.artifact-url }}
         with:
           script: |
@@ -114,9 +167,33 @@ jobs:
               "",
               ARTIFACT_URL
                 ? `[View E2E trace](${ARTIFACT_URL}) · [Workflow run](${runUrl})`
-                : `No trace pack was produced. [Workflow run](${runUrl})`,
+                : TEST_FILTER
+                  ? `No trace pack was produced. [Workflow run](${runUrl})`
+                  : `No added or modified E2E specs in this PR. Use a manual trace run to choose existing specs. [Workflow run](${runUrl})`,
             ].join("\n");
             await core.summary.addRaw(body).write();
+            const marker = "<!-- e2e-trace-label -->";
+            if (context.payload.pull_request) {
+              const issue_number = context.payload.pull_request.number;
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                ...context.repo,
+                issue_number,
+                per_page: 100,
+              });
+              const previous = comments.find((comment) =>
+                comment.user?.login === "github-actions[bot]" && comment.body?.startsWith(marker));
+              const markedBody = `${marker}\n${body}`;
+              if (previous) {
+                await github.rest.issues.updateComment({
+                  ...context.repo,
+                  comment_id: previous.id,
+                  body: markedBody,
+                });
+              } else {
+                await github.rest.issues.createComment({ ...context.repo, issue_number, body: markedBody });
+              }
+              return;
+            }
             const prs = await github.paginate(github.rest.pulls.list, {
               ...context.repo,
               state: "open",
