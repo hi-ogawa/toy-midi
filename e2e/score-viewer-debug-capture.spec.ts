@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 
 test("capture score viewer sample cursor", async ({ page }) => {
   await page.goto("/score-viewer");
-  await page.getByRole("button", { name: "Score samples" }).click();
-  await page
-    .getByRole("menu", { name: "Score samples" })
-    .getByRole("menuitem", { name: /^Cursor and wrapping/ })
-    .click();
+  await selectMenuItem(page, {
+    menu: "Score samples",
+    item: /^Cursor and wrapping/,
+  });
   const playButton = page.getByRole("button", { name: "Play" });
   await playButton.waitFor({ state: "visible" });
   await page.screenshot({
@@ -21,11 +21,7 @@ test("capture score viewer sample cursor", async ({ page }) => {
 
 test("capture paged score PDF", async ({ page }) => {
   await page.goto("/score-viewer");
-  await page.getByRole("button", { name: "Score samples" }).click();
-  await page
-    .getByRole("menu", { name: "Score samples" })
-    .getByRole("menuitem", { name: /^Long score/ })
-    .click();
+  await selectMenuItem(page, { menu: "Score samples", item: /^Long score/ });
   await page.getByRole("button", { name: "Score settings" }).click();
   await page.getByLabel("Layout").selectOption("paged");
 

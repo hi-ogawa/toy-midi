@@ -1,5 +1,5 @@
 import path from "node:path";
-import { test } from "@playwright/test";
+import { test, type Page } from "@playwright/test";
 
 /** Call at file scope to enable a fake microphone for this test file. */
 export function useFakeAudioInput({
@@ -29,4 +29,22 @@ export function createCheckpoint(): (label: string) => void {
   return (label) => {
     console.log(`[${Math.round(performance.now() - startedAt)}ms] ${label}`);
   };
+}
+
+/** Open a named menu and select one of its items. */
+export async function selectMenuItem(
+  page: Page,
+  { menu, item }: { menu: string; item: string | RegExp },
+): Promise<void> {
+  await test.step(
+    `Select ${item} from ${menu}`,
+    async () => {
+      await page.getByRole("button", { name: menu }).click();
+      await page
+        .getByRole("menu", { name: menu })
+        .getByRole("menuitem", { name: item })
+        .click();
+    },
+    { box: true },
+  );
 }

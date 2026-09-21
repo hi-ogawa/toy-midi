@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import {
   createRecorderProject,
   openRecorderMidiInstrument,
@@ -67,14 +68,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await expect(save).toHaveAttribute("data-status", "saved");
 
   // Remove the second track and verify its row and mixer channel disappear independently.
-  await rows
-    .nth(1)
-    .getByRole("button", { name: "MIDI 2 actions", exact: true })
-    .click();
-  await page
-    .getByRole("menu", { name: "MIDI 2 actions" })
-    .getByRole("menuitem", { name: "Remove track", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 2 actions", item: "Remove track" });
   await expect(rows).toHaveCount(1);
   await expect(secondChannel).toHaveCount(0);
   await expect(firstChannel).toBeVisible();

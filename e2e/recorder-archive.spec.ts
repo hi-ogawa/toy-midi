@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import { useFakeAudioInput } from "./helpers";
+import { useFakeAudioInput, selectMenuItem } from "./helpers";
 import {
   addRecorderAudio,
   addRecorderMidiTrack,
@@ -75,8 +75,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   page.once("dialog", (dialog) => dialog.accept("Archived recording"));
   await page.getByTestId("recorder-project-name").click();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Editor menu" }).click();
-  await page.getByTestId("recorder-export-project").click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Project" });
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.toymidi\.zip$/);
   const archivePath = test.info().outputPath("recorder.toymidi.zip");

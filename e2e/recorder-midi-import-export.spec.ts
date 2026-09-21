@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import midiPackage from "@tonejs/midi";
+import { selectMenuItem } from "./helpers";
 import {
   addRecorderMidiTrack,
   createRecorderProject,
@@ -31,12 +32,8 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   });
 
   // Import the file through the track menu and show its note in the editor.
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   const chooser = page.waitForEvent("filechooser");
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Import MIDI…", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Import MIDI…" });
   page.once("dialog", (dialog) => dialog.accept());
   await (
     await chooser
@@ -57,12 +54,8 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Export the track and verify the downloaded MIDI contains the imported note.
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   const downloadPromise = page.waitForEvent("download");
-  await page
-    .getByRole("menu", { name: "MIDI 1 actions" })
-    .getByRole("menuitem", { name: "Export MIDI", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Export MIDI" });
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.mid$/);
   const destination = test.info().outputPath("export.mid");

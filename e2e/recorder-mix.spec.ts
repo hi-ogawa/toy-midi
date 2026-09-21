@@ -1,22 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
   await createRecorderProject(page);
-  const editorMenuButton = page.getByRole("button", {
-    name: "Editor menu",
-    exact: true,
-  });
-  const editorMenu = page.getByRole("menu", {
-    name: "Editor menu",
-  });
-  await editorMenuButton.click();
-  await expect(editorMenu).toBeVisible();
-  await editorMenu
-    .getByRole("menuitem", { name: "Export Audio", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
   const modal = page.getByTestId("recorder-audio-export");
   const exportButton = modal.getByRole("button", { name: "Export file" });
   await expect(exportButton).toBeEnabled();
@@ -38,11 +28,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   await page.getByTestId("recorder-project-name").click();
 
   // Reopen the dialog and export the mix.
-  await editorMenuButton.click();
-  await expect(editorMenu).toBeVisible();
-  await editorMenu
-    .getByRole("menuitem", { name: "Export Audio", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
   await expect(exportButton).toBeEnabled();
   const downloadPromise = page.waitForEvent("download");
   await exportButton.click();
