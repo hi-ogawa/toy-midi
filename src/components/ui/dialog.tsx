@@ -40,7 +40,9 @@ export function Dialog({
             size === "wide" ? "max-w-[960px]" : "max-w-md",
           )}
           onKeyDown={(event) => {
+            // Keep dialog keystrokes from reaching the editor’s global shortcuts.
             event.stopPropagation();
+            // Also suppress Save Page because the editor’s save handler cannot run here.
             if (matchKeyboardEvent(event, "Ctrl+S")) {
               event.preventDefault();
             }
