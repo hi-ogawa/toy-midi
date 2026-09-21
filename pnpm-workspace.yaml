@@ -4,5 +4,3 @@ allowBuilds:
   esbuild: true
   gl: false
   wasm-pack: true
-overrides:
-  "@hiogawa/bass-pitch-wasm": workspace:*
