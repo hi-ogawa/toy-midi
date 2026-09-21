@@ -1,10 +1,9 @@
 //! Grid-guided monophonic bass transcription core.
 //!
-//! Port of `tools/bass-pitch/main.py`. The pipeline takes plain mono samples plus a
-//! params struct so a future wasm wrapper can reuse it unchanged. Feature
-//! extraction approximates librosa behaviorally rather than numerically, so
-//! thresholds tuned against the Python harness must be re-swept, as recorded
-//! in `docs/bass-pitch/history.md`.
+//! Shared by the native CLI and WASM worker. The core accepts mono samples and
+//! parameters; decoding and resampling belong to the frontends. See
+//! `docs/bass-pitch/algorithm.md` for the pipeline and
+//! `docs/bass-pitch/README.md` for development and validation.
 
 use std::collections::BTreeMap;
 use std::f64::consts::PI;
@@ -283,6 +282,7 @@ fn calculate_onset_strength(
     const TOP_DB: f64 = 80.0;
     let n_frames = audio.len() / hop_length + 1;
     let n_bins = frame_length / 2 + 1;
+    // Prepare the Hann window and assign each FFT bin to a mel band.
     let window: Vec<f64> = (0..frame_length)
         .map(|i| 0.5 - 0.5 * (2.0 * PI * i as f64 / frame_length as f64).cos())
         .collect();
@@ -299,6 +299,7 @@ fn calculate_onset_strength(
     let mut input = fft.make_input_vec();
     let mut spectrum = fft.make_output_vec();
     let mut band_db: Vec<Vec<f64>> = Vec::with_capacity(n_frames);
+    // Transform each centered, zero-padded audio frame into a spectrum.
     for frame in 0..n_frames {
         let frame_start = (frame * hop_length) as isize - (frame_length / 2) as isize;
         for (i, sample) in input.iter_mut().enumerate() {
@@ -310,6 +311,7 @@ fn calculate_onset_strength(
             };
         }
         fft.process(&mut input, &mut spectrum).expect("fft process");
+        // Sum squared magnitudes within each band, then express them in dB.
         let mut bands = vec![0.0f64; N_BANDS];
         for (bin, value) in spectrum.iter().enumerate() {
             bands[band_of_bin[bin]] += value.norm_sqr();
@@ -321,6 +323,7 @@ fn calculate_onset_strength(
                 .collect(),
         );
     }
+    // Clamp all band levels to one floor relative to the whole excerpt’s peak.
     let peak_db = band_db
         .iter()
         .flatten()
@@ -332,6 +335,7 @@ fn calculate_onset_strength(
             *value = value.max(floor_db);
         }
     }
+    // Average positive dB changes between adjacent frames to obtain spectral flux.
     let mut flux = Vec::with_capacity(n_frames);
     flux.push(0.0);
     for frame in 1..n_frames {
@@ -352,11 +356,12 @@ fn calculate_onset_strength(
             *value = 0.0;
         }
     }
-    // Like librosa's center=True onset envelope, delay by half a window so
-    // the peak lands at the perceived attack instead of half a window early.
+    // Compensate for centered-window lookahead with a half-window delay.
+    // Keep the output length by padding the start and dropping the tail.
     let shift = frame_length / (2 * hop_length);
     let mut shifted = vec![0.0; shift.min(n_frames)];
     shifted.extend_from_slice(&flux[..n_frames - shifted.len()]);
+    // Normalize after RMS activity detection, using only active-cell flux.
     shifted
 }
 
