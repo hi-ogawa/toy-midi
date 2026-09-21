@@ -13,6 +13,8 @@
 
 ## Bass Pitch
 
+- [Fixture evaluation](../tools/bass-pitch/README.md) for generating a synthetic corpus and comparing transcription decisions.
+
 - [Development history](bass-pitch/history.md): Python evaluation, Rust/WASM port, validation, and current workflow.
 - [Rust development](rust-development.md): source override and preview-package workflow for Rust changes.
 - [Algorithm](bass-pitch/algorithm.md): current signal path and transcription decisions.

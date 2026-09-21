@@ -83,6 +83,20 @@ pub fn diagnostics_csv(pipeline: &Pipeline, params: &Params) -> String {
             ],
         );
     }
+    // Preserve segmentation evidence even when a region has no usable pitch.
+    for (i, note) in pipeline.onset_notes.iter().enumerate() {
+        push_csv_row(
+            &mut out,
+            &[
+                ("record_type", "onset".into()),
+                ("index", i.to_string()),
+                ("project_start", note.project_start.to_string()),
+                ("project_end", note.project_end.to_string()),
+                ("first_cell", note.first_cell.to_string()),
+                ("last_cell", note.last_cell.to_string()),
+            ],
+        );
+    }
     for (i, decision) in pipeline.pitch_decisions.iter().enumerate() {
         push_csv_row(
             &mut out,
@@ -229,7 +243,13 @@ mod tests {
             cells: vec![],
             activity_cells: vec![],
             activity_notes: vec![],
-            onset_notes: vec![],
+            onset_notes: vec![Note {
+                pitch: 36,
+                project_start: 0.5,
+                project_end: 1.0,
+                first_cell: 2,
+                last_cell: 3,
+            }],
             pitch_decisions: vec![],
         };
 
@@ -242,5 +262,13 @@ mod tests {
             .unwrap();
 
         assert_eq!(values[midi_pitch], "69");
+
+        // An unpitched region still exposes its segmentation boundaries.
+        let onset: Vec<_> = csv.lines().nth(2).unwrap().split(',').collect();
+        let field = |name| onset[columns.iter().position(|column| *column == name).unwrap()];
+        assert_eq!(field("record_type"), "onset");
+        assert_eq!(field("first_cell"), "2");
+        assert_eq!(field("last_cell"), "3");
+        assert_eq!(field("pitch"), "");
     }
 }
