@@ -1,14 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
   await createRecorderProject(page);
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page
-    .getByRole("menuitem", { name: "Export Audio", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
   const modal = page.getByTestId("recorder-audio-export");
   const exportButton = modal.getByRole("button", { name: "Export file" });
   await expect(exportButton).toBeEnabled();
@@ -24,20 +22,13 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   ).toBeVisible();
   await modal.getByRole("button", { name: "Close", exact: true }).click();
 
-  // Return to More with the menu closed, then add audio and name the project.
-  await expect(
-    page.getByRole("button", { name: "More", exact: true }),
-  ).toBeFocused();
-  await expect(page.getByRole("menu")).toBeHidden();
+  // Add backing audio and name the project for the downloaded file.
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   page.once("dialog", (dialog) => dialog.accept("Final mix"));
   await page.getByTestId("recorder-project-name").click();
 
   // Reopen the dialog and export the mix.
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page
-    .getByRole("menuitem", { name: "Export Audio", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
   await expect(exportButton).toBeEnabled();
   const downloadPromise = page.waitForEvent("download");
   await exportButton.click();

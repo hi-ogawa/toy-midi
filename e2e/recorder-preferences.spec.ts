@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { useFakeAudioInput } from "./helpers";
-import { createRecorderProject, enableInput } from "./recorder-helpers";
+import {
+  addRecorderMidiTrack,
+  createRecorderProject,
+  enableInput,
+  saveRecorderProject,
+  openRecorderMidiInstrument,
+  selectRecorderMidiInstrument,
+} from "./recorder-helpers";
 
 useFakeAudioInput();
 
@@ -29,4 +36,49 @@ test("input edits preserve newer timeline preferences across projects", async ({
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
   await createRecorderProject(page);
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
+});
+
+test("remembers the instrument preference without changing saved tracks", async ({
+  page,
+}) => {
+  // Save a project with a bass track.
+  await createRecorderProject(page);
+  const firstUrl = page.url();
+  await addRecorderMidiTrack(page);
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await selectRecorderMidiInstrument(instrument, {
+    option: "33: Electric Bass (finger)",
+  });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+  await saveRecorderProject(page);
+
+  // Create a track in another project with bass, then select violin as the new default.
+  await createRecorderProject(page);
+  await addRecorderMidiTrack(page);
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
+  await selectRecorderMidiInstrument(instrument, {
+    option: "40: Violin",
+  });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+  await saveRecorderProject(page);
+
+  // Reload the bass project and preserve its saved instrument.
+  await page.goto(firstUrl);
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+
+  // Add a track with the persisted violin preference despite loading the bass track.
+  await addRecorderMidiTrack(page);
+  const newInstrument = await openRecorderMidiInstrument(page, {
+    name: "MIDI 2",
+  });
+  await expect(newInstrument.getByTestId("instrument-select")).toContainText(
+    "40: Violin",
+  );
 });

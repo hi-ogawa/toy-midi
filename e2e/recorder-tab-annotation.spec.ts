@@ -4,6 +4,7 @@ import {
   addRecorderMidiTrack,
   createRecorderMidiNote,
   saveRecorderProject,
+  openRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 test("assigns MIDI note strings and persists annotation settings", async ({
@@ -21,17 +22,17 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   const originalWidth = (await note.boundingBox())!.width;
 
   // Enable annotations and choose five-string bass tuning to expose the fifth string.
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
-  const enabled = page.getByRole("checkbox", {
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  const enabled = instrument.getByRole("checkbox", {
     name: "Show string annotations",
   });
-  const tuning = page.getByRole("combobox", { name: "Tuning", exact: true });
+  const tuning = instrument.getByRole("combobox", {
+    name: "Tuning",
+    exact: true,
+  });
   await enabled.check();
   await tuning.selectOption({ label: "5-string bass (BEADG)" });
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await expect(annotation).toHaveText("G17");
 
   // Assign the fifth string and verify only the string label changes.
@@ -53,10 +54,7 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   await expect(annotation).toHaveText("G17");
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
   expect((await note.boundingBox())!.width).toBe(originalWidth);
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
   await expect(enabled).toBeChecked();
   await expect(tuning).toHaveValue("fiveStringBass");
 });

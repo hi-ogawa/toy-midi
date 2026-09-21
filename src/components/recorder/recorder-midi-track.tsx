@@ -72,6 +72,7 @@ export function MidiTrackRow({
   midiInteraction,
   onTranscribe,
   onScorePreview,
+  onProgramSelected,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -85,7 +86,13 @@ export function MidiTrackRow({
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
   onScorePreview: () => void;
+  onProgramSelected: (program: number) => void;
 }) {
+  const programMutation = useMutation({
+    mutationFn: (program: number) =>
+      runtime.setMidiTrackProgram(track.id, program),
+    onSuccess: (_data, program) => onProgramSelected(program),
+  });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseMidiFile(file);
@@ -149,7 +156,11 @@ export function MidiTrackRow({
         action={
           <MidiTrackActions
             track={track}
-            runtime={runtime}
+            programPending={programMutation.isPending}
+            onProgramChange={(program) => programMutation.mutate(program)}
+            onSettingsChange={(settings) =>
+              runtime.setMidiTrackSettings(track.id, settings)
+            }
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
@@ -208,7 +219,9 @@ function MidiTrackActions({
   onImportMidi,
   onExportMidi,
   track,
-  runtime,
+  programPending,
+  onProgramChange,
+  onSettingsChange,
   onViewModeToggle,
   onRemove,
   onTranscribe,
@@ -218,7 +231,9 @@ function MidiTrackActions({
   onImportMidi: () => void;
   onExportMidi: () => void;
   track: MidiTrackState;
-  runtime: RecorderRuntime;
+  programPending: boolean;
+  onProgramChange: (program: number) => void;
+  onSettingsChange: (settings: Partial<MidiTrackState>) => void;
   onViewModeToggle: () => void;
   onRemove: () => void;
   onTranscribe: () => void;
@@ -235,6 +250,7 @@ function MidiTrackActions({
             ref={menuButtonRef}
             className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
             title={`${track.name} actions`}
+            aria-label={`${track.name} actions`}
           >
             <MoreVerticalIcon className="size-3.5" />
           </Button>
@@ -283,12 +299,18 @@ function MidiTrackActions({
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialog
+        data-testid="recorder-midi-instrument"
         isOpen={isInstrumentOpen}
         title={`${track.name} instrument`}
         onClose={() => setIsInstrumentOpen(false)}
         returnFocusRef={menuButtonRef}
       >
-        <MidiInstrument track={track} runtime={runtime} />
+        <MidiInstrument
+          track={track}
+          programPending={programPending}
+          onProgramChange={onProgramChange}
+          onSettingsChange={onSettingsChange}
+        />
       </Dialog>
     </>
   );

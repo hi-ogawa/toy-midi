@@ -6,21 +6,22 @@ import {
   createRecorderMidiNote,
 } from "./recorder-helpers";
 
-test("menu dialogs contain keyboard focus and return to More", async ({
+test("menu dialogs contain keyboard focus and return to the editor menu", async ({
   page,
 }) => {
   // Open Help by keyboard and leave the dropdown closed behind the dialog.
   await createRecorderProject(page);
-  const more = page.getByRole("button", { name: "More", exact: true });
-  await more.focus();
+  const menuButton = page.getByRole("button", { name: "Editor menu" });
+  const menu = page.getByRole("menu", { name: "Editor menu" });
+  await menuButton.focus();
   await page.keyboard.press("Enter");
-  const helpItem = page.getByRole("menuitem", { name: "Help & Shortcuts" });
+  const helpItem = menu.getByRole("menuitem", { name: "Help & Shortcuts" });
   await expect(helpItem).toBeFocused();
   await page.keyboard.press("Enter");
   const help = page.getByRole("dialog", { name: "Editor quick reference" });
   const close = help.getByRole("button", { name: "Close", exact: true });
   await expect(close).toBeFocused();
-  await expect(page.getByRole("menu")).toBeHidden();
+  await expect(menu).toBeHidden();
   await expect(
     help.getByText("Toggle metronome", { exact: true }),
   ).toBeVisible();
@@ -40,14 +41,12 @@ test("menu dialogs contain keyboard focus and return to More", async ({
   // Dismiss Help with Escape and restore focus to the persistent menu button.
   await page.keyboard.press("Escape");
   await expect(help).toBeHidden();
-  await expect(more).toBeFocused();
-  await expect(page.getByRole("menu")).toBeHidden();
+  await expect(menuButton).toBeFocused();
+  await expect(menu).toBeHidden();
 
   // Open Export by pointer and cycle focus through both dialog buttons.
-  await more.click();
-  await page
-    .getByRole("menuitem", { name: "Export Audio", exact: true })
-    .click();
+  await menuButton.click();
+  await menu.getByRole("menuitem", { name: "Export Audio" }).click();
   const exportDialog = page.getByRole("dialog", { name: "Export Audio" });
   const exportClose = exportDialog.getByRole("button", {
     name: "Close",
@@ -61,18 +60,18 @@ test("menu dialogs contain keyboard focus and return to More", async ({
   await page.keyboard.press("Tab");
   await expect(exportClose).toBeFocused();
 
-  // Click the backdrop to dismiss Export and return focus to More.
+  // Click the backdrop to dismiss Export and return focus to the editor menu button.
   await page.mouse.click(4, 4);
   await expect(exportDialog).toBeHidden();
-  await expect(more).toBeFocused();
+  await expect(menuButton).toBeFocused();
 
   // Reopen Help and close it through the shared dialog's close control.
-  await more.click();
+  await menuButton.click();
   await helpItem.click();
   await expect(close).toBeFocused();
   await close.click();
   await expect(help).toBeHidden();
-  await expect(more).toBeFocused();
+  await expect(menuButton).toBeFocused();
 });
 
 test("a directly opened dialog restores focus without an explicit target", async ({
@@ -105,13 +104,12 @@ test("instrument dialog isolates shortcuts and restores its track menu trigger",
   });
   const actions = row.getByRole("button", { name: "MIDI 1 actions" });
   await actions.click();
-  await page
-    .getByRole("menuitem", { name: "Instrument…", exact: true })
-    .click();
+  const menu = page.getByRole("menu", { name: "MIDI 1 actions" });
+  await menu.getByRole("menuitem", { name: "Instrument…" }).click();
   const dialog = page.getByRole("dialog", { name: "MIDI 1 instrument" });
   const close = dialog.getByRole("button", { name: "Close", exact: true });
   await expect(close).toBeFocused();
-  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(menu).toHaveCount(0);
 
   // Keep editor deletion, seeking, playback, and saving inactive inside the modal.
   await dialog.focus();

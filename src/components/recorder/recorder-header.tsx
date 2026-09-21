@@ -424,8 +424,8 @@ function RecorderMenu({
         <DropdownMenuTrigger asChild>
           <Button
             ref={menuButtonRef}
-            title="More"
-            aria-label="More"
+            title="Editor menu"
+            aria-label="Editor menu"
             className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
             <MoreVerticalIcon className="size-5" />
@@ -434,7 +434,7 @@ function RecorderMenu({
         <DropdownMenuContent
           align="end"
           onCloseAutoFocus={(event) => {
-            // Let the opening dialog take focus instead of returning to More.
+            // Let the opening dialog take focus instead of returning to the menu button.
             if (dialog) {
               event.preventDefault();
             }

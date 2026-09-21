@@ -607,6 +607,7 @@ export function ReferenceTimelineRow({
             <DropdownMenuTrigger asChild>
               <Button
                 title="Reference actions"
+                aria-label="Reference actions"
                 className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
               >
                 <MoreVerticalIcon className="size-3.5" />

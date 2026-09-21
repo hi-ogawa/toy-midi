@@ -37,34 +37,6 @@ jobs:
           tests=$(git diff --name-only --diff-filter=AMR "$BASE_SHA...$HEAD_SHA" -- ':(glob)e2e/**/*.spec.ts' | paste -sd ' ' -)
           printf 'tests=%s\n' "$tests" >> "$GITHUB_OUTPUT"
 
-  report-empty:
-    needs: select
-    if: needs.select.outputs.tests == ''
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    steps:
-      - uses: actions/github-script@v9
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const body = [
-              "### E2E trace · skipped",
-              "",
-              `Commit: [${pr.head.sha.slice(0, 8)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${pr.head.sha})`,
-              "",
-              "No added or modified E2E specs in this PR. Use a manual trace run to choose existing specs.",
-              "",
-              `[Workflow run](${runUrl})`,
-            ].join("\n");
-            await core.summary.addRaw(body).write();
-            await github.rest.issues.createComment({
-              ...context.repo,
-              issue_number: pr.number,
-              body,
-            });
-
   trace:
     needs: select
     if: needs.select.outputs.tests != ''

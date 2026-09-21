@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createCheckpoint } from "./helpers";
+import { selectMenuItem, createCheckpoint } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -20,10 +20,7 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
   await expect(notes).toHaveCount(0);
 
   // Choose the imported source and run the real transcription worker.
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Audio to MIDI", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Audio to MIDI" });
   const panel = page.getByTestId("recorder-audio-to-midi");
   await panel
     .getByRole("combobox", { name: "Source audio track" })
@@ -91,10 +88,7 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
   });
   const originalId = await original.getAttribute("data-note-id");
   const notes = row.locator("[data-note-id]");
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Audio to MIDI", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Audio to MIDI" });
   const panel = page.getByTestId("recorder-audio-to-midi");
   const convert = panel.getByRole("button", {
     name: "Convert to MIDI",
@@ -120,10 +114,7 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
 
   // Release model loading and reopen the panel with the original note still intact.
   gate.resolve();
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Audio to MIDI", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Audio to MIDI" });
   await expect.poll(() => requests).toBe(3);
   await expect(notes).toHaveCount(1);
   await expect(original).toHaveAttribute("data-note-id", originalId!);

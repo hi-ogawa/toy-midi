@@ -223,7 +223,7 @@ type RecorderRuntimeClipsState = Pick<
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
-    title: "Untitled project",
+    title: "Untitled",
     locators: [],
     position: 0,
     isPlaying: false,
@@ -393,14 +393,15 @@ export class RecorderRuntime {
     }
   }
 
-  async addMidiTrack(): Promise<void> {
+  async addMidiTrack({ program }: { program: number }): Promise<void> {
     const state = this.store.get();
-    const track = createMidiTrackState(
-      createNumberedName({
+    const track = createMidiTrackState({
+      name: createNumberedName({
         names: state.midiTracks.map((track) => track.name),
         prefix: "MIDI",
       }),
-    );
+      program,
+    });
     const index = await this.insertMidiTrack({ track });
     this.history.pushMidiTrack({ track, index });
   }
@@ -1423,12 +1424,18 @@ function createRecordingTrackState(): AudioTrackState {
   };
 }
 
-function createMidiTrackState(name: string): MidiTrackState {
+function createMidiTrackState({
+  name,
+  program,
+}: {
+  name: string;
+  program: number;
+}): MidiTrackState {
   return {
     id: crypto.randomUUID(),
     name,
     notes: [],
-    program: 0,
+    program,
     eq: createDefaultMultibandEq(),
     height: 300,
     viewMode: "editor",
