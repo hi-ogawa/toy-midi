@@ -57,14 +57,17 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
     ["Automatic gain control", formatSetting(settings?.autoGainControl)],
   ];
   return (
-    <section aria-label="Audio debug readings" className="mt-3 space-y-3">
+    <section
+      aria-label="Audio debug readings"
+      className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2"
+    >
       {[
         { title: "Context and latency", rows: contextRows },
         { title: "Input", rows: inputRows },
       ].map(({ title, rows }) => (
-        <div key={title}>
-          <h4 className="mb-2 font-medium text-neutral-200">{title}</h4>
-          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2">
+        <div key={title} className="contents">
+          <h4 className="col-span-2 font-medium text-neutral-200">{title}</h4>
+          <dl className="contents">
             {rows.map(([label, value]) => (
               <div key={label} className="contents">
                 <dt className="text-neutral-400">{label}</dt>
