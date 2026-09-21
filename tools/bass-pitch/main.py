@@ -114,7 +114,7 @@ def main() -> None:
     frame_count = min(len(rms), len(onset), len(frame_times))
     frame_times = frame_times[:frame_count]
     rms = rms[:frame_count]
-    onset = normalize_feature(onset[:frame_count])
+    onset = onset[:frame_count]
     f0 = f0[:frame_count]
     midi_pitch = midi_pitch[:frame_count]
     voiced_flag = voiced_flag[:frame_count]
@@ -136,6 +136,7 @@ def main() -> None:
         off_db=args.activity_off_db,
         on_db=args.activity_on_db,
     )
+    onset = normalize_feature(onset, frame_times=frame_times, activity_cells=activity_cells)
     activity_notes = make_activity_notes(activity_cells, pitch=args.activity_pitch)
     onset_notes = make_activity_onset_notes(
         cells,
@@ -470,8 +471,14 @@ def assign_region_pitches(
     return decisions
 
 
-def normalize_feature(values: np.ndarray) -> np.ndarray:
-    positive = values[np.isfinite(values) & (values > 0)]
+def normalize_feature(
+    values: np.ndarray, *, frame_times: np.ndarray, activity_cells: list[ActivityCell]
+) -> np.ndarray:
+    active = np.zeros(len(values), dtype=bool)
+    for cell in activity_cells:
+        if cell.active:
+            active |= (frame_times >= cell.source_start) & (frame_times < cell.source_end)
+    positive = values[active & np.isfinite(values) & (values > 0)]
     if len(positive) == 0:
         return np.zeros_like(values)
     scale = float(np.percentile(positive, 95))

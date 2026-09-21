@@ -37,7 +37,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 **Loudness: root mean square (RMS).** RMS summarizes the average signal amplitude within each analysis window and serves as a simple loudness estimate. It is used because presence detection must favor recall. A more selective feature could drop audible bass when one frame is unreliable.
 
-**Onset novelty: mel-banded log spectral flux** (`calculate_onset_strength`). Rectified frame-to-frame increase of log band energy, averaged over 128 mel-scale bands, then normalized by its own 95th percentile so the split threshold is relative to the excerpt. Fixture tests showed that two implementation details are required:
+**Onset novelty: mel-banded log spectral flux** (`calculate_onset_strength`). Rectified frame-to-frame increase of log band energy, averaged over 128 mel-scale bands, then normalized after activity detection by the 95th percentile of positive flux in RMS-active cells. Inactive cells and frames outside complete grid cells do not set the split scale. Fixture tests showed that two implementation details are required:
 
 - Band aggregation must happen before rectification. Per-bin flux rectifies the random per-bin jitter of a decaying note into a steady stream of false positives; summing bins into bands first lets that jitter cancel, so only coherent broadband energy rises, which is what an attack is.
 - The envelope must be delayed by half an analysis window (`frame_length / (2 * hop)` frames), matching librosa's `center=True` compensation. A centered STFT starts seeing an attack half a window early, so without the delay every onset peak lands one grid cell before the attack.
@@ -54,7 +54,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 ## Stage 4: Segmentation (Note Starts)
 
-`make_activity_onset_notes` walks the active cells and starts a new note at every cell whose peak onset novelty reaches the split threshold (0.4 of the excerpt's 95th-percentile flux). This is what pitch-change segmentation fundamentally cannot do: a bassline repeating the same note four times has no pitch change to detect, but each articulation produces a flux peak. Cells without sufficient onset evidence extend the current note.
+`make_activity_onset_notes` walks the active cells and starts a new note at every cell whose peak onset novelty reaches the split threshold (0.4 of the active-cell positive-flux 95th percentile). This is what pitch-change segmentation fundamentally cannot do: a bassline repeating the same note four times has no pitch change to detect, but each articulation produces a flux peak. Cells without sufficient onset evidence extend the current note.
 
 ## Stage 5: Pitch (Region Labeling)
 
@@ -62,7 +62,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 ## Chunked Orchestration
 
-pYIN dominates runtime, so `calculate_pyin_frames` runs it demucs-style: an orchestration loop feeds roughly 10-second frame-aligned chunks with 32 extra context frames per side to the unmodified pYIN core, discards the context frames, and concatenates. The Viterbi decode is formally global, but competing path hypotheses merge within tens of frames, so the discard margin absorbs chunk-boundary effects; on the full Ring stem, chunked and unchunked analysis differ in one frame record out of 14022 and in zero decisions. Chunking exists for progress reporting and future parallelism, not correctness; RMS and onset stay whole-excerpt because their normalization is defined over the whole excerpt and they are cheap.
+pYIN dominates runtime, so `calculate_pyin_frames` runs it demucs-style: an orchestration loop feeds roughly 10-second frame-aligned chunks with 32 extra context frames per side to the unmodified pYIN core, discards the context frames, and concatenates. The Viterbi decode is formally global, but competing path hypotheses merge within tens of frames, so the discard margin absorbs chunk-boundary effects; on the full Ring stem, chunked and unchunked analysis differ in one frame record out of 14022 and in zero decisions. Chunking exists for progress reporting and future parallelism, not correctness; RMS and raw onset extraction remain inexpensive whole-excerpt operations; onset normalization follows activity detection.
 
 ## Worked Example: Primrose Bar 11
 
@@ -101,4 +101,4 @@ Signal-processing terms used above; pYIN-specific terms (CMND, HMM, Viterbi, and
 - **Mel scale / mel bands** — a frequency axis warped to perceptual pitch spacing, dense at low frequencies and sparse at high ones; a "band" sums the FFT bins falling in one mel-sized slice, here 128 bands covering 0–11 kHz.
 - **Spectral flux** — the frame-to-frame _increase_ of spectral energy, with decreases discarded ("rectified"). A note attack increases energy across many bands at once, so the summed rectified increase peaks at onsets.
 - **Hysteresis** — using two thresholds, one to turn a state on and a lower one to turn it off, so a value hovering near the boundary does not flicker the decision. The evaluated baseline happens to keep both at −25 dBFS, disabling the effect until it is needed.
-- **95th-percentile normalization** — dividing a signal by the value that 95% of its samples fall below, so "0.4" means "40% as strong as the excerpt's near-maximum" and thresholds transfer across quiet and loud material.
+- **95th-percentile normalization** — dividing onset flux by the 95th percentile of its positive values in RMS-active cells. Quiet inactive residue does not set this reference, although active-cell content and upstream peak-based floors still affect it.

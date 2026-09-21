@@ -72,7 +72,7 @@ pub struct Frames {
     pub times: Vec<f64>,
     /// Root mean square (RMS) amplitude for each analysis window.
     pub rms: Vec<f64>,
-    /// Onset novelty normalized against the excerpt's 95th percentile.
+    /// Raw onset flux from `analyze`, normalized using active cells in `run_pipeline`.
     pub onset: Vec<f64>,
     /// pYIN fundamental frequency estimates in hertz, or NaN when unvoiced.
     pub f0: Vec<f64>,
@@ -176,7 +176,7 @@ pub fn run_pipeline(
     params: &Params,
     on_progress: &mut dyn FnMut(ChunkProgress),
 ) -> Pipeline {
-    let frames = analyze(audio, params, on_progress);
+    let mut frames = analyze(audio, params, on_progress);
     let excerpt_end = params.start + audio.len() as f64 / params.sample_rate as f64;
     let cells = make_grid_cells(
         params.start,
@@ -192,6 +192,7 @@ pub fn run_pipeline(
         db_to_gain(params.activity_off_db),
         db_to_gain(params.activity_on_db),
     );
+    normalize_onset_strength(&mut frames, &activity_cells);
     let activity_notes = make_activity_notes(&activity_cells, params.activity_pitch);
     let onset_notes = make_activity_onset_notes(
         &cells,
@@ -212,7 +213,7 @@ pub fn run_pipeline(
 }
 
 /// Computes aligned root mean square (RMS), onset, and pYIN frame series from
-/// mono input samples.
+/// mono input samples. Onset flux remains unnormalized until activity is known.
 ///
 /// Feature implementations can produce slightly different lengths, so output
 /// arrays are truncated to their common prefix before frame times are assigned.
@@ -356,31 +357,33 @@ fn calculate_onset_strength(
     let shift = frame_length / (2 * hop_length);
     let mut shifted = vec![0.0; shift.min(n_frames)];
     shifted.extend_from_slice(&flux[..n_frames - shifted.len()]);
-    normalize_onset_strength(&shifted)
+    shifted
 }
 
-/// Scales onset strength by the 95th percentile of its positive finite values,
-/// then clamps it to 0 through 1 so thresholds are relative to the excerpt.
-/// Returns zeros when no positive finite onset value exists. The percentile is
-/// an empirical policy retained from the Python evaluation harness.
-fn normalize_onset_strength(values: &[f64]) -> Vec<f64> {
-    let mut positive: Vec<f64> = values
+/// Use positive flux in RMS-active cells as the percentile reference. Inactive
+/// residue and frames outside complete grid cells cannot set the split scale.
+/// Keep the normalization on all frames for diagnostics, but only active cells
+/// can split notes. With no positive reference, there is no onset evidence.
+fn normalize_onset_strength(frames: &mut Frames, activity_cells: &[ActivityCell]) {
+    let mut positive: Vec<f64> = activity_cells
         .iter()
-        .copied()
+        .filter(|cell| cell.active)
+        .flat_map(|cell| frames.indices_in_range(cell.source_start, cell.source_end))
+        .map(|index| frames.onset[index])
         .filter(|value| value.is_finite() && *value > 0.0)
         .collect();
     if positive.is_empty() {
-        return vec![0.0; values.len()];
+        frames.onset.fill(0.0);
+        return;
     }
     positive.sort_by(f64::total_cmp);
     let rank = 0.95 * (positive.len() - 1) as f64;
     let low = positive[rank.floor() as usize];
     let high = positive[rank.ceil() as usize];
     let scale = low + (high - low) * rank.fract();
-    values
-        .iter()
-        .map(|value| (value / scale).clamp(0.0, 1.0))
-        .collect()
+    for value in &mut frames.onset {
+        *value = (*value / scale).clamp(0.0, 1.0);
+    }
 }
 
 const PYIN_CHUNK_SECONDS: usize = 10;
@@ -657,7 +660,56 @@ fn calculate_median(values: &mut [f64]) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{calculate_median, db_to_gain, gain_to_db, Frames};
+    use super::*;
+
+    #[test]
+    fn onset_scale_ignores_inactive_residue_and_partial_cells() {
+        // Complete cells are [1, 2), [2, 3), [3, 4). Only the first two sound.
+        let cells = make_grid_cells(0.5, 4.5, 0.0, 60.0, 1, 0.0);
+        let raw_frames = || Frames {
+            times: vec![0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+            rms: vec![0.0, 1.0, 1.0, 1.0, 1.0, 0.001, 0.001, 0.0],
+            onset: vec![100.0, 1.0, 0.0, 0.2, 0.0, 0.001, 0.001, 100.0],
+            f0: vec![],
+            voiced_flag: vec![],
+            voiced_probability: vec![],
+        };
+        let activity = detect_activity(&cells, &raw_frames(), 0.1, 0.1);
+        assert_eq!(
+            activity.iter().map(|c| c.active).collect::<Vec<_>>(),
+            [true, true, false]
+        );
+        let mut quiet_residue = raw_frames();
+        normalize_onset_strength(&mut quiet_residue, &activity);
+        // The positive active values are 0.2 and 1.0, whose 95th percentile is 0.96.
+        assert!((quiet_residue.onset[3] - 0.2 / 0.96).abs() < 1e-12);
+        let mut strong_residue = raw_frames();
+        strong_residue.onset[5..].fill(1000.0);
+        normalize_onset_strength(&mut strong_residue, &activity);
+        assert_eq!(quiet_residue.onset[1..5], strong_residue.onset[1..5]);
+        let notes = make_activity_onset_notes(&cells, &activity, &quiet_residue, 36, 0.4);
+        assert_eq!(notes.len(), 1);
+        assert_eq!((notes[0].first_cell, notes[0].last_cell), (1, 2));
+    }
+
+    #[test]
+    fn onset_scale_is_zero_without_positive_active_evidence() {
+        let cells = make_grid_cells(0.0, 2.0, 0.0, 60.0, 1, 0.0);
+        let mut frames = Frames {
+            times: vec![0.0, 1.0],
+            rms: vec![1.0, 0.0],
+            onset: vec![0.0, 1.0],
+            f0: vec![],
+            voiced_flag: vec![],
+            voiced_probability: vec![],
+        };
+        let activity = detect_activity(&cells, &frames, 0.1, 0.1);
+        normalize_onset_strength(&mut frames, &activity);
+        assert_eq!(frames.onset, [0.0, 0.0]);
+        frames.onset = vec![1.0, 2.0];
+        normalize_onset_strength(&mut frames, &[]);
+        assert_eq!(frames.onset, [0.0, 0.0]);
+    }
 
     #[test]
     fn converts_between_db_and_gain() {
