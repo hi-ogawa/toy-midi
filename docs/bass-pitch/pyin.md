@@ -26,7 +26,7 @@ Here $\theta$ represents possible YIN acceptance cutoffs: a trough passes whenev
 
 ![Beta threshold density with equal-width strips, one labeled w_k. Shaded areas show the weight of thresholds accepting neither trough, only 2T, or both.](images/pyin-threshold-mass.svg)
 
-For our two troughs, the area above 0.12 is about 0.317, while the area above 0.04 is about 0.825. But these acceptance probabilities overlap. Above 0.12 both troughs qualify, so pYIN shares that area between them rather than counting it fully for each.
+The accepted sets are nested: any cutoff that accepts the shallower trough also accepts the deeper one. Here the deeper trough at $2T$ receives exclusive support from the interval between 0.04 and 0.12, about 0.508 of the probability mass. The tail above 0.12, about 0.317, accepts both pitches. pYIN divides this shared support between them with a preference for the shorter period $T$, combining match quality with YIN’s first-trough preference.
 
 The implementation computes this sharing over 100 equal intervals. Each strip contributes its area
 
