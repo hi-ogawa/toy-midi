@@ -48,10 +48,8 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
-            const marker = "<!-- e2e-trace-label -->";
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = [
-              marker,
               "### E2E trace · skipped",
               "",
               `Commit: [${pr.head.sha.slice(0, 8)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${pr.head.sha})`,
@@ -61,18 +59,11 @@ jobs:
               `[Workflow run](${runUrl})`,
             ].join("\n");
             await core.summary.addRaw(body).write();
-            const comments = await github.paginate(github.rest.issues.listComments, {
+            await github.rest.issues.createComment({
               ...context.repo,
               issue_number: pr.number,
-              per_page: 100,
+              body,
             });
-            const previous = comments.find((comment) =>
-              comment.user?.login === "github-actions[bot]" && comment.body?.startsWith(marker));
-            if (previous) {
-              await github.rest.issues.updateComment({ ...context.repo, comment_id: previous.id, body });
-            } else {
-              await github.rest.issues.createComment({ ...context.repo, issue_number: pr.number, body });
-            }
 
   trace:
     needs: select
