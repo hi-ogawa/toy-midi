@@ -61,12 +61,12 @@ export function RecorderEffects({
     clampEffectsSize({ width: 384, height: 512 }),
   );
   const resizeHandleRef = usePointerDrag({
-    onStart: (event) => ({ x: event.clientX, y: event.clientY, size }),
-    onMove: (event, drag) => {
+    onStart: () => size,
+    onMove: (_event, { data, deltaX, deltaY }) => {
       setSize(
         clampEffectsSize({
-          width: drag.size.width + drag.x - event.clientX,
-          height: drag.size.height + drag.y - event.clientY,
+          width: data.width - deltaX,
+          height: data.height - deltaY,
         }),
       );
     },

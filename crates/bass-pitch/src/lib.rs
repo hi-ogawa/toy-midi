@@ -1,10 +1,9 @@
 //! Grid-guided monophonic bass transcription core.
 //!
-//! Port of `tools/bass-pitch/main.py`. The pipeline takes plain mono samples plus a
-//! params struct so a future wasm wrapper can reuse it unchanged. Feature
-//! extraction approximates librosa behaviorally rather than numerically, so
-//! thresholds tuned against the Python harness must be re-swept, as recorded
-//! in `docs/bass-pitch/history.md`.
+//! Shared by the native CLI and WASM worker. The core accepts mono samples and
+//! parameters; decoding and resampling belong to the frontends. See
+//! `docs/bass-pitch/algorithm.md` for the pipeline and
+//! `docs/bass-pitch/README.md` for development and validation.
 
 use std::collections::BTreeMap;
 use std::f64::consts::PI;

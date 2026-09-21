@@ -27,7 +27,7 @@ export function useRecorderProject({
         runtime.init(),
         recorderProjectStorage.load(projectId),
       ]);
-      runtime.deserializeProject(project);
+      await runtime.deserializeProject(project);
       return true;
     },
   });

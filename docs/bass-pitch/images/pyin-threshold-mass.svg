@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250" role="img" aria-labelledby="title desc">
+<title id="title">Threshold uncertainty distributes evidence between period candidates</title>
+<desc id="desc">For trough depths 0.12 at T and 0.04 at 2T, thresholds up to 0.04 accept neither, thresholds up to 0.12 accept only 2T, and higher thresholds accept both. A Beta 2,18 prior assigns these regions 17.5, 50.8, and 31.7 percent probability mass.</desc>
+<rect width="900" height="250" rx="8" fill="white"/>
+<g font-family="sans-serif" fill="#1f2937">
+<text x="30" y="31" font-size="18" font-weight="bold">One frame, two troughs: T at 0.12 and 2T at 0.04</text>
+<text x="30" y="58" font-size="13" fill="#6b7280">Columns show threshold regions schematically, not to scale.</text>
+<rect x="30" y="78" width="260" height="90" rx="6" fill="#f3f4f6"/>
+<rect x="320" y="78" width="260" height="90" rx="6" fill="#fff7ed"/>
+<rect x="610" y="78" width="260" height="90" rx="6" fill="#ecfdf5"/>
+<g text-anchor="middle" font-size="16">
+<text x="160" y="104">0 ≤ θ ≤ 0.04</text><text x="450" y="104">0.04 &lt; θ ≤ 0.12</text><text x="740" y="104">0.12 &lt; θ ≤ 1</text>
+<text x="160" y="132" font-weight="bold">Neither qualifies</text><text x="450" y="132" font-weight="bold">Only 2T qualifies</text><text x="740" y="132" font-weight="bold">Both qualify</text>
+<text x="160" y="155" font-size="14">17.5% of threshold mass</text><text x="450" y="155" font-size="14">50.8% of threshold mass</text><text x="740" y="155" font-size="14">31.7% of threshold mass</text>
+<text x="160" y="201" font-size="14">1% fallback to 2T</text><text x="450" y="201" font-size="14">All this mass goes to 2T</text><text x="740" y="201" font-size="14">Share 88.1% to T, 11.9% to 2T</text>
+</g>
+<text x="30" y="232" font-size="15" fill="#6b7280">After combining regions: T ≈ 0.279, 2T ≈ 0.548, unassigned ≈ 0.173.</text>
+</g></svg>

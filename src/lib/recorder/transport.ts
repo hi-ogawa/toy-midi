@@ -130,7 +130,7 @@ export class AudioContextTransport {
    * Converts an absolute AudioContext time to published playback position while
    * excluding the scheduling lead before the playback anchor.
    */
-  private getPublishedPlaybackPosition(): number {
+  getPublishedPlaybackPosition(): number {
     const playbackAnchor = this.playbackAnchor!;
     return Math.max(
       playbackAnchor.position,

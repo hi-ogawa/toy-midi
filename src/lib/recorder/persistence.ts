@@ -4,11 +4,14 @@ import {
   createDefaultMultibandEq,
 } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
+import { DEFAULT_KEY_SIGNATURE } from "../pitch-spelling.ts";
+import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { createAudioClip } from "./audio-clip.ts";
 import {
   type PersistableRecorderRuntimeState,
   type RecorderRuntimeState,
   type RecorderLocator,
+  type MidiTrackState,
 } from "./runtime.ts";
 
 /**
@@ -20,6 +23,19 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
+  // Optional for recorder projects saved before MIDI track support.
+  midiTracks?: (Omit<
+    MidiTrackState,
+    | "tabAnnotationEnabled"
+    | "tabOpenStringPitches"
+    | "keySignature"
+    | "viewMode"
+  > & {
+    tabAnnotationEnabled?: boolean;
+    tabOpenStringPitches?: number[];
+    keySignature?: MidiTrackState["keySignature"];
+    viewMode?: MidiTrackState["viewMode"];
+  })[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
@@ -125,6 +141,7 @@ export function serializeRecorderRuntimeState(
         trimEnd: clip?.trimEnd ?? 0,
       };
     }),
+    midiTracks: state.midiTracks,
     recordingTrack: {
       height: state.recordingTrack.height,
       eq: state.recordingTrack.eq,
@@ -197,6 +214,16 @@ export function deserializeRecorderRuntimeState({
         soloed: track.soloed,
       };
     }),
+    midiTracks: (project.midiTracks ?? []).map((track) => ({
+      ...track,
+      viewMode: track.viewMode ?? "editor",
+      tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
+      tabOpenStringPitches: track.tabOpenStringPitches ?? [
+        ...DEFAULT_TAB_OPEN_STRING_PITCHES,
+      ],
+      keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
+      eq: deserializeEq(track.eq),
+    })),
     recordingTrack: {
       id: crypto.randomUUID(),
       height: project.recordingTrack.height,

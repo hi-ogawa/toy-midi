@@ -111,8 +111,8 @@ export function LatencyChecker() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              title="More"
-              aria-label="More"
+              title="Latency checker menu"
+              aria-label="Latency checker menu"
               className="size-9 hover:bg-accent hover:text-accent-foreground"
             >
               <MoreVerticalIcon className="size-5" />

@@ -1,6 +1,6 @@
 # Grid-Guided Bass Transcription: Algorithm
 
-This explains the algorithmic ideas behind `crates/bass-pitch`, the pipeline that powers the Bass Pitch audio-to-MIDI method. It covers what each stage computes and why it is shaped that way; implementation history and validation live in `docs/bass-pitch/history.md`. A skimmable visual companion is `docs/bass-pitch/algorithm.html`.
+This explains the algorithmic ideas behind `crates/bass-pitch`, the pipeline that powers the Bass Pitch audio-to-MIDI method. It covers what each stage computes and why. The [bass-pitch guide](README.md) links the visual companions and documents the development workflow.
 
 ## The Core Idea
 
@@ -42,7 +42,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 - Band aggregation must happen before rectification. Per-bin flux rectifies the random per-bin jitter of a decaying note into a steady stream of false positives; summing bins into bands first lets that jitter cancel, so only coherent broadband energy rises, which is what an attack is.
 - The envelope must be delayed by half an analysis window (`frame_length / (2 * hop)` frames), matching librosa's `center=True` compensation. A centered STFT starts seeing an attack half a window early, so without the delay every onset peak lands one grid cell before the attack.
 
-**Pitch: pYIN** (vendored `crates/pyin`, the librosa-compatible algorithm). Per frame, the YIN difference function yields candidate periods; sampling many thresholds from a beta distribution converts them into a probability distribution over pitch states rather than a single guess. A Viterbi decode over (pitch bin × voiced/unvoiced) states with a transition prior that favors small pitch steps and penalizes voicing flips then picks the most likely path through time. The decode is what gives octave consistency and voicing hysteresis, because bass frames are individually octave-ambiguous (f0, f0/2, and 2f0 all score well) and only temporal continuity disambiguates them. Output per frame: f0, a voiced flag, and a voiced probability used strictly as a vote weight later. The [pYIN math](pyin-math.md) derives the calculations, and the [visual guide](pyin-visual-guide.html) illustrates them with measured fixture data.
+**Pitch: pYIN** (vendored `crates/pyin`, the librosa-compatible algorithm). Each frame supplies candidate periods. Averaging evidence over a distribution of thresholds gives weighted candidates, and a sequence model favors plausible pitch movement and voicing continuity. This can resolve isolated octave ambiguities, though consistently misleading evidence can still produce the wrong path. The outputs are a pitch, a decoded voiced flag, and a frame voiced probability. The [pYIN article](pyin.md) develops this construction. The probability measures periodicity evidence and is used as a vote weight rather than an activity gate.
 
 ## Stage 2: The Grid as Decision Unit
 
@@ -50,7 +50,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 ## Stage 3: Presence (Activity)
 
-`detect_activity` marks a cell active when its median RMS in dBFS clears a threshold, with on/off hysteresis available (the evaluated baseline keeps both at −25 dBFS). Runs of active cells become regions. This intentionally over-detects: a decaying note tail is energetic and stays "active" even when it should be a rest. This favors retaining real notes. Distinguishing intentional sustain from decay is a planned refinement (`docs/bass-pitch/history.md`, Remaining Work), and users can trim the extra sustain manually.
+`detect_activity` marks a cell active when its median RMS in dBFS clears a threshold, with on/off hysteresis available (the evaluated baseline keeps both at −25 dBFS). Runs of active cells become regions. This intentionally over-detects: a decaying note tail is energetic and stays "active" even when it should be a rest. This favors retaining real notes. The current detector does not distinguish intentional sustain from energetic decay, so users may need to trim extra sustain manually.
 
 ## Stage 4: Segmentation (Note Starts)
 
@@ -62,7 +62,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 ## Chunked Orchestration
 
-pYIN dominates runtime, so `calculate_pyin_frames` runs it demucs-style: an orchestration loop feeds roughly 10-second frame-aligned chunks with 32 extra context frames per side to the unmodified pYIN core, discards the context frames, and concatenates. The Viterbi decode is formally global, but competing path hypotheses merge within tens of frames, so the discard margin absorbs chunk-boundary effects; on the full Ring stem, chunked and unchunked analysis differ in one frame record out of 14022 and in zero decisions. Chunking exists for progress reporting and future parallelism, not correctness; RMS and onset stay whole-excerpt because their normalization is defined over the whole excerpt and they are cheap.
+pYIN dominates runtime, so `calculate_pyin_frames` runs it demucs-style: an orchestration loop feeds roughly 10-second frame-aligned chunks with 32 extra context frames per side to the unmodified pYIN core, discards the context frames, and concatenates. Chunking limits the decoder's temporal context. In the original full Ring evaluation, chunked and unchunked analysis differed in one frame record out of 14022 and in zero note decisions, but that result is not a guarantee for every recording. Chunking enables progress reporting; RMS and onset stay whole-excerpt because their normalization is defined over the whole excerpt and they are cheap.
 
 ## Worked Example: Primrose Bar 11
 
@@ -90,11 +90,17 @@ Reading it stage by stage: activity keeps cells 0–6, 8–9, and 13–15 (cell 
 | Pitch           | `assign_region_pitches`                                                    |
 | Output          | `midi_bytes`, `diagnostics_csv`                                            |
 
-The removed original cell-level pipeline used per-cell confidence-gated pitch votes merged across boundaries with onset/dip evidence. It was useful during evaluation, but it embodied the confidence-as-gate mistake and was deleted after the activity/onset/region-pitch pipeline replaced it.
+## Limits and Evaluation
+
+The evaluated baseline uses RMS thresholds of −25 dBFS and an onset threshold of 0.4. These kept the seven desired attacks in the bar-11 fixture. A stricter −20 dBFS activity threshold lost short notes, illustrating why the pipeline accepts some extra decay rather than gating aggressively.
+
+Pitch confidence was especially unsuitable as an activity gate. In the original full-stem evaluation, a 0.5 voiced-probability threshold accepted only 823 of 10,500 decoded voiced frames. The current separation of activity and pitch avoids discarding notes for that reason.
+
+The remaining failure modes include energetic tails extending notes, extra splits on the same pitch, and uncertain pitch near transitions. The pipeline assumes a monophonic source and known timing. Its threshold choices and fixture results do not establish reliability on arbitrary recordings.
 
 ## Glossary
 
-Signal-processing terms used above are explained here. The [pYIN visual guide](pyin-visual-guide.html#glossary) has a glossary for CMND, HMM, Viterbi, and related terms.
+Signal-processing terms used above are explained here. The [pYIN article](pyin.md) introduces its probabilistic model and decoding terminology where they are used.
 
 - **Frame / hop** — analysis slices the audio into overlapping windows ("frames", 2048 samples ≈ 93 ms) advanced by a fixed step (the "hop", 256 samples ≈ 11.6 ms), so every per-frame value is a time series at ~86 values per second.
 - **RMS / dBFS** — root mean square, a measure of average signal amplitude within a window. dBFS expresses it in decibels relative to full scale, so 0 dBFS is the loudest possible signal and −25 dBFS is a moderately quiet one.
