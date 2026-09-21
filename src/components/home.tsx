@@ -1,29 +1,8 @@
-import {
-  AudioLinesIcon,
-  GitForkIcon,
-  Music2Icon,
-  ArchiveIcon,
-  FolderOpenIcon,
-} from "lucide-react";
-import { useState } from "react";
-import { projectStorage } from "../lib/project-storage";
+import { AudioLinesIcon, GitForkIcon, Music2Icon } from "lucide-react";
 import { routes } from "../lib/routes";
-import { MidiProjectList } from "./midi-project-list";
 import { RecorderProjectList } from "./recorder/project-list";
-import { Tabs } from "./ui/tabs";
-
-type ProjectType = "midi" | "recorder";
 
 export function Home() {
-  const [projectType, setProjectType] = useState<ProjectType>(
-    () => projectStorage.readPreferences().projectType,
-  );
-
-  const selectProjectType = (type: ProjectType) => {
-    projectStorage.updatePreferences({ projectType: type });
-    setProjectType(type);
-  };
-
   return (
     <div
       data-testid="startup-screen"
@@ -70,34 +49,8 @@ export function Home() {
           </nav>
         </header>
 
-        <main className="mt-14 min-h-0 flex-1">
-          <Tabs
-            label="Project type"
-            value={projectType}
-            onValueChange={selectProjectType}
-            options={[
-              {
-                value: "recorder",
-                label: (
-                  <>
-                    <FolderOpenIcon aria-hidden="true" className="size-4" />
-                    Projects
-                  </>
-                ),
-                content: <RecorderProjectList />,
-              },
-              {
-                value: "midi",
-                label: (
-                  <>
-                    <ArchiveIcon aria-hidden="true" className="size-4" />
-                    Legacy
-                  </>
-                ),
-                content: <MidiProjectList />,
-              },
-            ]}
-          />
+        <main className="mt-14 min-h-0 flex-1 overflow-y-auto">
+          <RecorderProjectList />
         </main>
       </div>
     </div>

@@ -7,7 +7,6 @@ export async function createRecorderProject(page: Page): Promise<void> {
     "Create recorder project",
     async () => {
       await page.goto("/");
-      await page.getByRole("tab", { name: "Projects", exact: true }).click();
       await page.getByTestId("new-recorder-project-button").click();
       await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
       await expect(page.getByTestId("recorder-project-name")).toBeVisible();

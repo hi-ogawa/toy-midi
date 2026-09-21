@@ -26,10 +26,6 @@ export default defineConfig({
         : `pnpm build-app && pnpm preview --port ${port} --strictPort`,
     url: `http://localhost:${port}`,
     reuseExistingServer: false,
-    env: {
-      // Vite embeds this value during the build as well as in dev mode.
-      VITE_AUTO_SAVE_DEBOUNCE_MS: "50",
-    },
   },
   use: {
     baseURL: `http://localhost:${port}`,
