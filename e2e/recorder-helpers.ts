@@ -38,7 +38,7 @@ export async function openRecorderMidiInstrument({
   page: Page;
   name: string;
 }) {
-  await test.step(
+  return await test.step(
     `Open ${name} instrument`,
     async () => {
       await page
@@ -47,24 +47,23 @@ export async function openRecorderMidiInstrument({
       await page
         .getByRole("menuitem", { name: "Instrument…", exact: true })
         .click();
+      return page.getByRole("combobox", { name: `${name} program` });
     },
     { box: true },
   );
 }
 
 export async function selectRecorderMidiInstrument({
-  page,
-  name,
+  program,
   option,
 }: {
-  page: Page;
-  name: string;
+  program: Locator;
   option: string;
 }) {
   await test.step(
-    `Select ${option} for ${name}`,
+    `Select ${option}`,
     async () => {
-      const program = page.getByRole("combobox", { name: `${name} program` });
+      const page = program.page();
       await program.click();
       await page
         .getByPlaceholder("Search instruments...")
