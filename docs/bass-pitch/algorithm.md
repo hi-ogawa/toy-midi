@@ -24,7 +24,15 @@ The onset score measures positive changes in log spectral power, grouped into fr
 
 ### Pitch Labels Each Region
 
-Each frame with a finite, decoded voiced pitch votes for its nearest MIDI note. Its weight is $0.1+0.9v$, where $v$ is pYIN's voiced probability, and the largest total wins. Pooling across a region lets several consistent estimates outweigh an isolated error. The [pYIN article](pyin.md) explains how the frame estimates and probabilities arise.
+For a region, let $T$ contain the frames that pYIN marks voiced and gives a finite frequency. Let $m_t$ be frame $t$'s pitch rounded to the nearest MIDI note, and $v_t$ its voiced probability. Accumulate a score for each candidate note $m$, then choose the largest:
+
+$$
+S(m)=\sum_{t\in T}(0.1+0.9v_t)\mathbf{1}_{\{m_t=m\}},
+\qquad
+\hat m=\operatorname*{argmax}_{m\in\{m_t:t\in T\}} S(m).
+$$
+
+The indicator counts a frame only toward its rounded note. For example, two D1 frames with probabilities 0.8 and 0.6 contribute $0.82+0.64=1.46$, beating a D2 frame with probability 0.9 and weight 0.91. The entire region becomes one D1 note. Ties choose the lower MIDI note. These are heuristic vote weights, not probabilities that the resulting note is correct. The [pYIN article](pyin.md) explains how the frame estimates and probabilities arise.
 
 The positive weight floor keeps low-confidence estimates in the vote. It does not guarantee that every active region receives a pitch. If no frame supplies a finite voiced estimate, the region remains visible in the activity and onset diagnostics but is omitted from the final pitched output.
 
