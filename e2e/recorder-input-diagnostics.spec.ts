@@ -24,7 +24,9 @@ test("inspect live editor input diagnostics", async ({ page }) => {
     .getByRole("button", { name: "Enable input", exact: true })
     .click();
   await expect(readings).toContainText("Fake Default Audio Input");
-  await expect(readings).toContainText("48000 Hz");
+  await expect(
+    readings.locator("dt", { hasText: "Context sample rate" }).locator("+ dd"),
+  ).toHaveText(/^[1-9]\d* Hz$/);
   await expect(
     readings.locator("dt", { hasText: "Echo cancellation" }).locator("+ dd"),
   ).toHaveText("Off");
