@@ -32,6 +32,8 @@ For this example, roughly 17.5% of the threshold mass accepts neither trough, 50
 
 ### Share the Evidence Between Qualifying Troughs
 
+The weighting below follows the software implementation, which differs from the original paper’s formulation.
+
 When several troughs qualify, pYIN retains a preference for shorter periods. Rank the qualifying troughs by lag, starting at zero, and give candidate $i$ the normalized weight
 
 $$
@@ -144,7 +146,7 @@ The frame weight $v_t$ and the decoded voiced flag are separate outputs. Our [ba
 
 ## Implementation Scale
 
-The explanation follows our vendored librosa-compatible implementation, whose candidate weighting differs from the original paper. The current bass settings are:
+We use a vendored copy of [`pyin-rs`](https://github.com/Sytronik/pyin-rs), a Rust port of librosa’s pYIN implementation. The current bass settings are:
 
 | Setting          | Scale                                                                                                          |
 | ---------------- | -------------------------------------------------------------------------------------------------------------- |
