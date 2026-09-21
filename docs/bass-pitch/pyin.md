@@ -155,4 +155,4 @@ We use a vendored copy of [`pyin-rs`](https://github.com/Sytronik/pyin-rs), a Ru
 | Thresholds       | Beta(2, 18), 100 bins, shorter-period preference $\lambda=2$                                                   |
 | Continuity       | 51-bin triangular window, spanning $\pm2.5$ semitones, voicing-switch probability 0.01                         |
 
-[`PYINExecutor`](../../crates/pyin/src/pyin.rs) builds the candidates, observations, and transitions, while [`viterbi.rs`](../../crates/pyin/src/viterbi.rs) selects the path. The transition's zero entries become very strong penalties because the numerical decoder adds a small positive value before taking logarithms. The [bass wrapper](../../crates/bass-pitch/src/lib.rs) decodes roughly ten-second chunks with context, so optimization is within each chunk rather than globally across a whole recording.
+[`PYINExecutor`](../../crates/pyin/src/pyin.rs) builds the candidates, observations, and transitions, while [`viterbi.rs`](../../crates/pyin/src/viterbi.rs) selects the path. The transition's zero entries become very strong penalties because the numerical decoder adds a small positive value before taking logarithms.
