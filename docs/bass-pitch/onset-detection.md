@@ -2,7 +2,7 @@
 
 A bass line can strike the same pitch several times without falling silent between notes. Pitch tracking sees little change, and a loudness gate may stay open throughout. To separate those notes, we need evidence of a fresh attack within an already sounding region.
 
-An attack often renews energy across several frequencies, including upper harmonics that had faded during the previous note. Comparing successive short-time spectra lets us detect that renewal even when the fundamental pitch stays the same. The [Python reference](../../tools/bass-pitch/main.py) uses librosa’s `onset_strength` for this, and the Rust implementation follows its **mel-banded log spectral flux** construction with simplified band aggregation. Each part of the name describes which changes contribute to the onset score.
+An attack often renews energy across several frequencies, including upper harmonics that had faded during the previous note. Comparing successive short-time spectra lets us detect that renewal even when the fundamental pitch stays the same. The [Python reference](../../tools/bass-pitch/main.py) uses librosa’s `onset_strength` for this, and the Rust implementation follows its **mel-banded log spectral flux** construction with simplified sums of bin powers within each band. Each part of the name describes which changes contribute to the onset score.
 
 ## Compare Band Power at a Useful Frequency Resolution
 
@@ -32,7 +32,7 @@ $$
 
 Restricting the frequency sum isolates a band’s contribution. The detector uses a one-sided FFT on a common scale; exact energy accounting would also weight interior bins for their negative-frequency partners.
 
-Repeat the Fourier transform as the window moves along the audio to obtain a short-time Fourier transform (STFT), then compare each band's power between successive frames. Pooling bins first makes the comparison less sensitive to power redistribution within a band. Two bins changing from $(10,2)$ to $(8,4)$ retain total power $12$, although counting positive bin changes separately would report an increase of $2$. Changes crossing band boundaries can still contribute.
+Repeat the Fourier transform as the window moves along the audio to obtain a short-time Fourier transform (STFT), then compare each band's power between successive frames. Summing bin powers within each band first makes the comparison less sensitive to power redistribution within a band. Two bins changing from $(10,2)$ to $(8,4)$ retain total power $12$, although counting positive bin changes separately would report an increase of $2$. Changes crossing band boundaries can still contribute.
 
 Our Rust implementation uses these simple band sums. [Librosa defaults](https://librosa.org/doc/main/api/generated/librosa.mel_frequencies.html) to a different mel variant and overlapping triangular filters, so the exact band weights differ.
 
@@ -52,7 +52,7 @@ $$
 F_t=\frac{1}{B}\sum_{b=1}^{B}\max\bigl(0,\ell_t(b)-\ell_{t-1}(b)\bigr).
 $$
 
-This is the **spectral flux** used here. “Rectification” means replacing negative changes with zero. The order is consequential. We pool power within each band before comparing frames, but keep the positive changes separately across bands before averaging.
+This is the **spectral flux** used here. “Rectification” means replacing negative changes with zero. The order is consequential. We sum bin powers within each band before comparing frames, but keep the positive changes separately across bands before averaging.
 
 ![Two successive log-power spectra in four illustrative bands, followed by their positive differences. A three-decibel fall contributes zero, while rises of six and three decibels survive.](images/onset-spectral-flux.svg)
 
