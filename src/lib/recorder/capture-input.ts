@@ -105,6 +105,22 @@ export class CaptureInput {
       .connect(output);
   }
 
+  getDiagnostics() {
+    const track = this.stream.getAudioTracks()[0];
+    const settings: MediaTrackSettings & { latency?: number } =
+      track.getSettings();
+    // Select fields explicitly so reports never include device/group identifiers.
+    return {
+      label: track.label,
+      latency: settings.latency,
+      sampleRate: settings.sampleRate,
+      channelCount: settings.channelCount,
+      echoCancellation: settings.echoCancellation,
+      noiseSuppression: settings.noiseSuppression,
+      autoGainControl: settings.autoGainControl,
+    };
+  }
+
   setChannel(channel: number): void {
     this.worklet.setChannel(channel);
   }

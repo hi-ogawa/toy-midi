@@ -632,6 +632,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           data-testid="recorder-input-setup"
         >
           <InputSetup
+            runtime={runtime}
             devices={input.devices}
             error={input.error}
             hasAccess={input.hasAccess}

@@ -1,13 +1,16 @@
 import { CircleHelpIcon, Mic2Icon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
+import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
+import { InputDiagnostics } from "./recorder-input-diagnostics";
 
 export function InputSetup({
+  runtime,
   devices,
   error,
   hasAccess,
@@ -26,6 +29,7 @@ export function InputSetup({
   onChannelChange,
   onLatencyCompensationChange,
 }: {
+  runtime: RecorderRuntime;
   devices: MediaDeviceInfo[];
   error?: Error | null;
   hasAccess: boolean;
@@ -177,6 +181,8 @@ export function InputSetup({
           </div>
         </label>
       </div>
+
+      <InputDiagnostics runtime={runtime} />
 
       {error && (
         <div className="mt-4 border border-orange-700/60 bg-orange-950/40 p-3 text-xs text-orange-200">
