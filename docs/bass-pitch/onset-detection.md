@@ -8,31 +8,25 @@ An attack often renews energy across several frequencies, including upper harmon
 
 Take one short, windowed piece of audio, called a **frame**, and compute its Fourier transform. The FFT returns complex coefficients at equally spaced frequencies. Each frequency position is a **bin**, and the squared magnitude of its coefficient measures power there. With our 2048-sample frames at 22050 Hz, neighboring bins are about 10.8 Hz apart.
 
-A **band** is a wider frequency interval that collects several neighboring bins. We sum their powers to describe how much energy lies in that interval. In the figure, band A contains bins 0 and 1, so its power is $2+5=7$.
+We want to compare energy in frequency intervals, called **bands**, rather than track every bin separately. Mel spacing chooses narrow intervals at low frequencies and wider ones at high frequencies, without crowding the low end as strongly as a pure logarithmic scale.
+
+![Ten equal steps in linear frequency, mel, and log frequency mapped onto the same Hz axis. Mel bands widen toward high frequencies, while pure log bands crowd more tightly near zero.](images/mel-band-spacing.svg)
+
+The figure uses ten bands to make the spacing visible. The implementation uses 128 equal steps in the HTK mel coordinate $m(f)=2595\log_{10}(1+f/700)$, from zero to Nyquist. This curve is approximately linear at low frequencies and logarithmic at high frequencies.
+
+With those intervals chosen, sum the powers of the FFT bins inside each band. In the illustration below, band A contains bins 0 and 1, so its power is $2+5=7$.
 
 ![Equally spaced FFT bins grouped into three illustrative frequency bands. Summing the bin powers produces one value per band, with totals 7, 7, and 13.](images/fft-bins-and-bands.svg)
 
-Repeat this calculation as the window moves along the audio to obtain a short-time Fourier transform (STFT). We can then compare the same frequency band between successive frames.
-
-Individual bins are too sensitive for our purpose. As a window moves along a tone, its measured power can redistribute between neighboring bins. For example, two bins changing from $(10,2)$ to $(8,4)$ retain total power $12$. Counting only positive bin changes would nevertheless report an increase of $2$.
-
-Summing within bands before comparing frames avoids that false increase. If $X_t(k)$ is the FFT coefficient of bin $k$ in frame $t$, and $\mathcal{B}_b$ is the set of bins in band $b$, its power is:
+If $X_t(k)$ is the FFT coefficient of bin $k$ in frame $t$, and $\mathcal{B}_b$ is the set of bins in band $b$, this sum is
 
 $$
 E_t(b)=\sum_{k\in\mathcal{B}_b}|X_t(k)|^2.
 $$
 
-Now redistribution inside a band leaves its energy unchanged. This reduces false onset evidence, although changes crossing band boundaries can still contribute.
+Repeat the Fourier transform as the window moves along the audio to obtain a short-time Fourier transform (STFT), then compare each band's power between successive frames. Pooling bins first makes the comparison less sensitive to power redistribution within a band. Two bins changing from $(10,2)$ to $(8,4)$ retain total power $12$, although counting positive bin changes separately would report an increase of $2$. Changes crossing band boundaries can still contribute.
 
-### Mel Bands Allocate More Resolution to Low Frequencies
-
-The choice of frequency scale determines which bins get pooled together. Mel spacing gives narrow bands at low frequencies and wider bands at high frequencies, without crowding the low end as strongly as a pure logarithmic scale.
-
-![Ten equal steps in linear frequency, mel, and log frequency mapped onto the same Hz axis. Mel bands widen toward high frequencies, while pure log bands crowd more tightly near zero.](images/mel-band-spacing.svg)
-
-The figure uses ten bands to make the spacing visible. The implementation uses 128 equal steps in the HTK mel coordinate $m(f)=2595\log_{10}(1+f/700)$, from zero to Nyquist. This curve is approximately linear at low frequencies and logarithmic at high frequencies. Band spacing determines how much frequency detail survives the sum.
-
-Our Rust implementation uses simple band sums. [Librosa defaults](https://librosa.org/doc/main/api/generated/librosa.mel_frequencies.html) to a different mel variant and overlapping triangular filters, so the exact band weights differ.
+Our Rust implementation uses these simple band sums. [Librosa defaults](https://librosa.org/doc/main/api/generated/librosa.mel_frequencies.html) to a different mel variant and overlapping triangular filters, so the exact band weights differ.
 
 ## Measure Relative Growth and Discard Decay
 
