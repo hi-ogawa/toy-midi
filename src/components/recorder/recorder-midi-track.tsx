@@ -87,6 +87,10 @@ export function MidiTrackRow({
   onScorePreview: () => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
+  const programMutation = useMutation({
+    mutationFn: (program: number) =>
+      runtime.setMidiTrackProgram(track.id, program),
+  });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseMidiFile(file);
@@ -206,7 +210,14 @@ export function MidiTrackRow({
         title={`${track.name} instrument`}
         onClose={() => setIsInstrumentOpen(false)}
       >
-        <MidiInstrument track={track} runtime={runtime} />
+        <MidiInstrument
+          track={track}
+          programPending={programMutation.isPending}
+          onProgramChange={(program) => programMutation.mutate(program)}
+          onSettingsChange={(settings) =>
+            runtime.setMidiTrackSettings(track.id, settings)
+          }
+        />
       </PortalDialog>
     </div>
   );
