@@ -127,6 +127,7 @@ export function RecorderHeader({
   onMixerToggle: () => void;
   mixerOpen: boolean;
 }) {
+  const [dialog, setDialog] = useState<"help" | "export">();
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
     value: tempo,
@@ -390,34 +391,6 @@ export function RecorderHeader({
       >
         <SlidersVerticalIcon className="size-5" />
       </Button>
-      <RecorderMenu
-        onExportAudio={onExportAudio}
-        exportAudioDisabled={exportAudioDisabled}
-        isRecording={flags.isRecording}
-        isExporting={isExporting}
-        onExportProject={onExportProject}
-      />
-    </header>
-  );
-}
-
-function RecorderMenu({
-  onExportAudio,
-  exportAudioDisabled,
-  isRecording,
-  isExporting,
-  onExportProject,
-}: {
-  onExportAudio: () => Promise<void>;
-  exportAudioDisabled: boolean;
-  isRecording: boolean;
-  isExporting: boolean;
-  onExportProject: () => void;
-}) {
-  const [dialog, setDialog] = useState<"help" | "export">();
-
-  return (
-    <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -442,7 +415,7 @@ function RecorderMenu({
           </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="recorder-export-project"
-            disabled={isRecording || isExporting}
+            disabled={flags.isRecording || isExporting}
             onSelect={(event) => {
               event.preventDefault();
               onExportProject();
@@ -485,7 +458,7 @@ function RecorderMenu({
           disabled={exportAudioDisabled}
         />
       </Dialog>
-    </>
+    </header>
   );
 }
 
