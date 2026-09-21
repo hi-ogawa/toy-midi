@@ -67,8 +67,8 @@ importers:
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)
     devDependencies:
       '@hiogawa/playwright-trace-pack':
-        specifier: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@24c3477
-        version: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@24c3477(@playwright/test@1.62.1)
+        specifier: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e1b2cfb
+        version: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e1b2cfb(@playwright/test@1.62.1)
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.62.1
@@ -339,8 +339,8 @@ packages:
     resolution: {integrity: sha512-of+7YyBs8soni4hgHLoi0SOpjRmkZCQWhUFhNfqYBBccQol6pcn1UIOf33d4a/WuTWdW/RlhaRQh/BV0iMVgag==, tarball: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732}
     version: 0.0.0
 
-  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@24c3477':
-    resolution: {integrity: sha512-cnNmGYH/W7abIh6Jlthf185yqAf0P/VOycwqg0YttUFvrxE5oHuOf0e6yTDlb1SqOmPulF9CMF9Ib3wU9IZoAA==, tarball: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@24c3477}
+  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e1b2cfb':
+    resolution: {integrity: sha512-iTfilaUtB6dgcro60xAII65nrdyllM23oo8GxY4unbShKcPzKrp7rJyZZcQWrNi5a9M0D/yBR6Jyit1witQ/gw==, tarball: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e1b2cfb}
     version: 0.0.0
     engines: {node: '>=20'}
     hasBin: true
@@ -2430,7 +2430,7 @@ snapshots:
 
   '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732': {}
 
-  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@24c3477(@playwright/test@1.62.1)':
+  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e1b2cfb(@playwright/test@1.62.1)':
     dependencies:
       fflate: 0.8.3
     optionalDependencies:

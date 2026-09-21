@@ -42,7 +42,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
-    "@hiogawa/playwright-trace-pack": "https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@24c3477",
+    "@hiogawa/playwright-trace-pack": "https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e1b2cfb",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^25.0.3",
