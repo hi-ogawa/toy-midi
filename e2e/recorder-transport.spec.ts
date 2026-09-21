@@ -166,3 +166,26 @@ test("toggles the metronome by button and shortcut without intercepting text inp
   await expect(metronome).toHaveAttribute("aria-pressed", "false");
   await tempo.press("Escape");
 });
+
+test("auto-scroll follows playback only while enabled", async ({ page }) => {
+  // Disable following and seek beyond the initial viewport while playback runs.
+  await createRecorderProject(page);
+  const autoScroll = page.getByRole("button", {
+    name: "Toggle auto-scroll (F)",
+  });
+  await page.keyboard.press("f");
+  await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
+  const ruler = page.getByTestId("recorder-timeline-ruler");
+  const initial = await ruler.textContent();
+  await page.getByTestId("recorder-play-button").click();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(10);
+  await expect(ruler).toHaveText(initial!);
+
+  // Enable following and bring the playing position into view.
+  await page.keyboard.press("f");
+  await expect(autoScroll).toHaveAttribute("aria-pressed", "true");
+  await expect(ruler).not.toHaveText(initial!);
+  await page.getByTestId("recorder-play-button").click();
+});
