@@ -59,8 +59,6 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
         ? `${formatSetting(settings?.channelCount)} / ${state.inputChannelCount}`
         : "Unavailable",
     ],
-    ["Capture", state.captureStatus],
-    ["Monitoring", formatSetting(state.inputMonitoring)],
     ["Echo cancellation", formatSetting(settings?.echoCancellation)],
     ["Noise suppression", formatSetting(settings?.noiseSuppression)],
     ["Automatic gain control", formatSetting(settings?.autoGainControl)],
