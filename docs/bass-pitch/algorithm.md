@@ -37,6 +37,8 @@ The Audio to MIDI panel exposes the two thresholds illustrated above:
 | **Activity threshold** | −25 dBFS | Keeps fewer cells active. This can trim decay tails but also lose quiet or short notes.                    |
 | **Split threshold**    | 0.40     | Creates fewer splits within active runs. This can suppress extra boundaries but also merge repeated notes. |
 
+The split threshold acts on a score scaled relative to the analyzed excerpt. Different surrounding material can change the score of the same local attack, and weak fluctuations can be amplified by normalization. This remains an [open calibration question](https://github.com/hi-ogawa/toy-midi/issues/647), with no replacement selected.
+
 Tempo and grid come from the project, and the selected source track's audio offset aligns its samples with that grid. Pitch-analysis settings are fixed internally. The panel's **Reset to defaults** button restores both thresholds.
 
 ## What the Example Establishes

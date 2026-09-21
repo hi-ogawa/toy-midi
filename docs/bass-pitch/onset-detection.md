@@ -58,4 +58,6 @@ The [Rust implementation](../../crates/bass-pitch/src/lib.rs) uses 2048-sample w
 
 A centered window sees an attack before its center reaches it. The implementation delays the resulting score by half a window to compensate for this lookahead, though the exact peak position still depends on the signal. It then divides by the 95th percentile of positive flux values and clips to $[0,1]$. This sets a relative scale within the excerpt, rather than a probability of a new note.
 
+This normalization is an empirical heuristic with no established calibration to attack strength. Changing other parts of the excerpt can change the denominator and therefore the split decision for the same local flux. Even weak fluctuations can reach 1 if they form the excerpt's upper tail. The peak-relative floors add further excerpt dependence. [Issue #647](https://github.com/hi-ogawa/toy-midi/issues/647) tracks evaluation of these effects and possible alternatives. No replacement has been selected.
+
 The [pipeline](algorithm.md#fresh-attacks-split-the-runs) takes the maximum score in each grid cell and uses it to split active regions. Spectral renewal is evidence, not a unique signature of an attack. Vibrato, noise, or a timbre change can also raise the score, while a soft rearticulation may provide little contrast. That is why activity, onset, and pitch remain separate decisions.
