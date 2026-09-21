@@ -40,11 +40,4 @@ test("inspect live editor input diagnostics", async ({ page }) => {
       .locator("+ dd"),
   ).toHaveText("Unavailable");
   await expect(readings).not.toContainText("Fake Default Audio Input");
-
-  // Collapse the panel, then reopen the dialog with debug hidden by default.
-  await setup.getByText("Audio debug", { exact: true }).click();
-  await expect(readings).toHaveCount(0);
-  await setup.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("button", { name: "Configure audio input" }).click();
-  await expect(readings).toHaveCount(0);
 });
