@@ -83,9 +83,8 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
       { project: LEGACY_PROJECT, audio, format },
     );
 
-    // Migrate the stored project from the Projects tab into a new recorder copy.
+    // Migrate the stored project from the project home into a new recorder copy.
     await page.goto("/");
-    await page.getByRole("tab", { name: "Projects", exact: true }).click();
     const legacyProjects = page.getByRole("region", {
       name: "Legacy projects",
     });
@@ -115,19 +114,14 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
       page.getByTestId("recorder-clip-audio").locator("svg"),
     ).toBeVisible();
 
-    // Return home and find both the recorder copy and the original MIDI project.
+    // Return home and find both the recorder copy and the original legacy project.
     await page.goto("/");
     await expect(
       page.getByRole("link", { name: "Legacy song" }),
     ).toHaveAttribute("href", new URL(copyUrl).pathname);
     await expect(legacyProjects).toContainText("Legacy song");
-    await page.getByRole("tab", { name: "Legacy", exact: true }).click();
-    await expect(
-      page.getByRole("link", { name: "Legacy song" }),
-    ).toHaveAttribute("href", /\/project\//);
 
     // Cancel deletion and keep the original available for migration.
-    await page.getByRole("tab", { name: "Projects", exact: true }).click();
     page.once("dialog", (dialog) => dialog.dismiss());
     await legacyProjects
       .getByRole("button", { name: "Delete legacy project" })

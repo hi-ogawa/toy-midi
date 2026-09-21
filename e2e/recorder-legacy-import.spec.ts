@@ -14,7 +14,6 @@ for (const version of [1, 2] as const) {
     // Import a fixed legacy archive directly, without opening the old editor.
     const archive = await createLegacyArchive(version);
     await page.goto("/");
-    await page.getByRole("tab", { name: "Projects", exact: true }).click();
     const chooser = page.waitForEvent("filechooser");
     await page.getByTestId("import-recorder-project").click();
     await (

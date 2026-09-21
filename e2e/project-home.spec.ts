@@ -1,72 +1,44 @@
 import { expect, test } from "@playwright/test";
-import { clickNewProject } from "./helpers";
 
-test("project tabs persist across reloads", async ({ page }) => {
-  // A first visit shows Projects first and selects the new editor's empty list.
+test("home creates and reopens recorder projects without project-type tabs", async ({
+  page,
+}) => {
+  // Open the recorder list directly, even when an old MIDI-tab preference exists.
+  await page.goto("/__e2e__/");
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "toy-midi:preferences",
+      JSON.stringify({
+        projectType: "midi",
+        defaultMidiProgram: 24,
+      }),
+    ),
+  );
   await page.goto("/");
-  const legacy = page.getByRole("tab", { name: "Legacy", exact: true });
-  const projects = page.getByRole("tab", { name: "Projects", exact: true });
-  await expect(page.getByRole("tab")).toHaveText(["Projects", "Legacy"]);
-  await expect(projects).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByText("No projects yet")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "New project", exact: true }),
-  ).toBeVisible();
-
-  // Select Legacy and retain that choice after reloading.
-  await legacy.click();
-  await expect(page.getByText("No legacy projects yet")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "New legacy project", exact: true }),
-  ).toBeVisible();
-  await page.reload();
-  await expect(legacy).toHaveAttribute("aria-selected", "true");
-
-  // Return to Projects and retain that choice on the next visit.
-  await projects.click();
-  await page.reload();
-  await expect(projects).toHaveAttribute("aria-selected", "true");
-});
-
-test("both editors return to the shared project home", async ({ page }) => {
-  // Create a MIDI project from the shared home.
-  await page.goto("/");
-  await clickNewProject(page);
-  const midiUrl = page.url();
-
-  // The editor's Home action returns to Legacy with the new project listed.
-  await page.getByTestId("app-menu-button").click();
-  await page.getByRole("menuitem", { name: "Home", exact: true }).click();
-  await expect(page).toHaveURL("/");
   await expect(
     page.getByRole("tab", { name: "Legacy", exact: true }),
-  ).toHaveAttribute("aria-selected", "true");
+  ).toHaveCount(0);
   await expect(
-    page.locator(`a[href="${new URL(midiUrl).pathname}"]`),
-  ).toBeVisible();
+    page.getByRole("tab", { name: "Projects", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByTestId("new-project-button")).toHaveCount(0);
+  await expect(page.getByText("No projects yet")).toBeVisible();
 
-  // Switch workflows and create a recorder project from the same page.
-  await page.getByRole("tab", { name: "Projects", exact: true }).click();
+  // Create a recorder project and return home to its saved entry.
   await page.getByTestId("new-recorder-project-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
-  const recorderUrl = page.url();
-
-  // The recorder's Home action restores its list, with MIDI projects hidden.
+  const projectUrl = page.url();
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("menuitem", { name: "Home", exact: true }).click();
   await expect(page).toHaveURL("/");
-  await expect(
-    page.getByRole("tab", { name: "Projects", exact: true }),
-  ).toHaveAttribute("aria-selected", "true");
-  const recording = page.locator(`a[href="${new URL(recorderUrl).pathname}"]`);
-  await expect(recording).toBeVisible();
-  await expect(
-    page.locator(`a[href="${new URL(midiUrl).pathname}"]`),
-  ).toHaveCount(0);
+  const project = page.locator(`a[href="${new URL(projectUrl).pathname}"]`);
+  await expect(project).toBeVisible();
 
-  // Opening the listed recording returns to that same project.
-  await recording.click();
-  await expect(page).toHaveURL(recorderUrl);
+  // Reload home and reopen the same recorder project.
+  await page.reload();
+  await expect(project).toBeVisible();
+  await project.click();
+  await expect(page).toHaveURL(projectUrl);
 });
 
 test("Projects search filters current and legacy projects together", async ({
@@ -158,13 +130,9 @@ test("Projects search filters current and legacy projects together", async ({
   ).toBeVisible();
   await expect(legacy).toContainText("No matching legacy projects");
 
-  // Open Legacy and show its full list without a search field.
-  await page.getByRole("tab", { name: "Legacy", exact: true }).click();
-  await expect(search).toBeHidden();
-  await expect(page.getByRole("link", { name: /Old song/ })).toBeVisible();
-
-  // Return to Projects and delete the last legacy project to remove its section.
-  await page.getByRole("tab", { name: "Projects", exact: true }).click();
+  // Clear the search and delete the last legacy project to remove its section.
+  await page.getByRole("button", { name: "Clear search", exact: true }).click();
+  await expect(legacy).toContainText("Old song");
   page.once("dialog", (dialog) => dialog.accept());
   await legacy.getByRole("button", { name: "Delete legacy project" }).click();
   await expect(legacy).toBeHidden();

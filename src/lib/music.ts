@@ -4,14 +4,13 @@ import {
 } from "./pitch-spelling.ts";
 
 // Full MIDI range: C-1 (0) to G9 (127)
-export const MIN_PITCH = 0; // C-1
+const MIN_PITCH = 0; // C-1
 export const MAX_PITCH = 127; // G9
 export const MIN_DB = -60;
 export const MAX_DB = 6;
 const LOG2 = Math.log(2);
 export const A4_FREQUENCY_HZ = 440;
 const MIN_GAIN = dbToGain(MIN_DB);
-const MAX_GAIN = dbToGain(MAX_DB);
 
 export function isBlackKey(midi: number): boolean {
   const note = midi % 12;
@@ -70,10 +69,6 @@ export function formatGainDb(gain: number): string {
   }
   const db = gainToDb(gain);
   return `${db > 0 ? "+" : ""}${db.toFixed(1)} dB`;
-}
-
-export function clampGain(gain: number): number {
-  return clamp(gain, 0, MAX_GAIN);
 }
 
 export function percentToGain(percent: number): number {
