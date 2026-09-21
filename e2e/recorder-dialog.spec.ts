@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import {
   createRecorderProject,
   getRecorderPosition,
@@ -43,8 +44,7 @@ test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
   await expect(help).toBeHidden();
 
   // Open Export by pointer and cycle focus through both dialog buttons.
-  await menuButton.click();
-  await menu.getByRole("menuitem", { name: "Export Audio" }).click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
   const exportDialog = page.getByRole("dialog", { name: "Export Audio" });
   const exportClose = exportDialog.getByRole("button", {
     name: "Close",
@@ -62,8 +62,7 @@ test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
   await expect(exportDialog).toBeHidden();
 
   // Reopen Help and close it through the shared dialog's close control.
-  await menuButton.click();
-  await helpItem.click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Help & Shortcuts" });
   await expect(close).toBeFocused();
   await close.click();
   await expect(help).toBeHidden();
