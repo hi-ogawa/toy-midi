@@ -6,9 +6,9 @@ Each decision needs different evidence. A repeated note can have a new attack wi
 
 ## One Bar Through the Pipeline
 
-The figure uses the recorded Primrose bar-11 example at 105 BPM. Each sixteenth-note cell lasts about 143 ms and contains roughly 12 analysis frames. All rows share the same time axis.
+The figure uses bar 11 of the Demucs-separated bass stem from Primrose’s “Ring” at 105 BPM. The stem has a synth-like bass sound. Each sixteenth-note cell lasts about 143 ms and contains roughly 12 analysis frames. All rows share the same time axis.
 
-![Recorded bar showing cell loudness against the activity threshold, onset peaks against the split threshold, and seven resulting notes. Four D1 notes are separated despite sharing a pitch, and cell 4 retains a decay tail.](images/transcription-grid.svg)
+![Demucs-separated bass stem showing cell loudness against the activity threshold, onset peaks against the split threshold, and seven resulting notes. Four D1 notes are separated despite sharing a pitch, and cell 4 retains a decay tail.](images/transcription-grid.svg)
 
 ### Loudness Defines Active Runs
 
