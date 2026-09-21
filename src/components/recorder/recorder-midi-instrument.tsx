@@ -12,24 +12,10 @@ export function MidiInstrument({
   onProgramChange,
   onSettingsChange,
 }: {
-  track: Pick<
-    MidiTrackState,
-    | "name"
-    | "program"
-    | "keySignature"
-    | "tabAnnotationEnabled"
-    | "tabOpenStringPitches"
-  >;
+  track: MidiTrackState;
   programPending: boolean;
   onProgramChange: (program: number) => void;
-  onSettingsChange: (
-    settings: Partial<
-      Pick<
-        MidiTrackState,
-        "keySignature" | "tabAnnotationEnabled" | "tabOpenStringPitches"
-      >
-    >,
-  ) => void;
+  onSettingsChange: (settings: Partial<MidiTrackState>) => void;
 }) {
   return (
     <div className="grid w-96 grid-cols-[64px_1fr] items-center gap-x-4 gap-y-4">
