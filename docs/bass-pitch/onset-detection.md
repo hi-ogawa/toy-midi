@@ -44,11 +44,11 @@ This is the **spectral flux** used here. Replacing negative changes with zero is
 
 The changes $(-3,0,6,3)$ become $(0,0,6,3)$, giving $F_t=2.25$ dB. Growth in some bands is enough, even while others fade.
 
-## Use the Score to Split Notes
+## Use Spectral Flux to Split Notes
 
-The [pipeline](algorithm.md#fresh-attacks-split-the-runs) takes the maximum score in each grid cell to split active regions. Spectral renewal is evidence of an attack, but noise or timbre changes can also raise the score, and soft rearticulations can be missed.
+Our pipeline divides spectral flux $F_t$ by the excerpt's 95th percentile of positive flux values and clips the result to $[0,1]$. Within an active region, a grid cell starts a new note when its maximum normalized flux reaches the [split threshold](algorithm.md#controls-in-toy-midi).
 
-Our pipeline adds division by the excerpt's 95th percentile of positive flux, clipped to $[0,1]$. This is an empirical choice from the evaluation harness, not part of librosa’s `onset_strength`. Different surrounding material can change a local split decision, and even weak fluctuations can normalize to 1. [Issue #253](https://github.com/hi-ogawa/toy-midi/issues/253) tracks this unresolved calibration question.
+This normalization is an empirical choice from the evaluation harness, not part of librosa’s `onset_strength`. Different surrounding material can change a local split decision, and even weak fluctuations can normalize to 1. [Issue #253](https://github.com/hi-ogawa/toy-midi/issues/253) tracks this unresolved calibration question.
 
 ## Implementation Details
 
