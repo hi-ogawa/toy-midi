@@ -168,7 +168,7 @@ test.describe("Multiple Audio Tracks", () => {
 
     let tracks = await getAudioTracks(page);
     expect(tracks.map((track) => track.fileName)).toEqual([
-      "no_bass.wav",
+      "backing.wav",
       "bass.wav",
     ]);
     await expect(page.getByTestId("audio-track-region")).toHaveCount(2);
@@ -179,7 +179,7 @@ test.describe("Multiple Audio Tracks", () => {
 
     tracks = await getAudioTracks(page);
     expect(tracks.map((track) => track.fileName)).toEqual([
-      "no_bass.wav",
+      "backing.wav",
       "bass.wav",
     ]);
   });

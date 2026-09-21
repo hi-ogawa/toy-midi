@@ -161,7 +161,7 @@ test("imports ordered stems and persists independent lane heights", async ({
   await (await chooser).setFiles("e2e/fixtures/test-stems.zip");
   const rows = page.getByTestId("recorder-audio-track-row");
   await expect(rows).toHaveCount(2);
-  await expect(rows.nth(0)).toContainText("no_bass.wav");
+  await expect(rows.nth(0)).toContainText("backing.wav");
   await expect(rows.nth(1)).toContainText("bass.wav");
   await expect(
     rows.nth(0).getByTestId("recorder-clip-audio").locator("svg"),
@@ -192,7 +192,7 @@ test("imports ordered stems and persists independent lane heights", async ({
   await saveRecorderProject(page);
   await page.reload();
   await expect(rows).toHaveCount(2);
-  await expect(rows.nth(0)).toContainText("no_bass.wav");
+  await expect(rows.nth(0)).toContainText("backing.wav");
   await expect(rows.nth(1)).toContainText("bass.wav");
   await expect(
     rows.nth(0).getByTestId("recorder-clip-audio").locator("svg"),
