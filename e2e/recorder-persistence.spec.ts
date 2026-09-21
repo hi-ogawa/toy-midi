@@ -8,7 +8,7 @@ import {
 test("saves and restores a recorder project", async ({ page }) => {
   // Create a project and show its default name in the browser tab.
   await createRecorderProject(page);
-  await expect(page).toHaveTitle("Untitled project - Toy MIDI");
+  await expect(page).toHaveTitle("Untitled - Toy MIDI");
   const projectUrl = page.url();
   const saveButton = page.getByTestId("recorder-save-button");
   await expect(saveButton).toHaveAttribute("data-status", "saved");

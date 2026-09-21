@@ -39,9 +39,13 @@ export const recorderProjectStorage = {
   },
 
   async create(): Promise<string> {
-    return this.createWithContent(
-      serializeRecorderRuntimeState(createDefaultRecorderRuntimeState()),
-    );
+    const titles = new Set((await this.list()).map((project) => project.title));
+    const state = createDefaultRecorderRuntimeState();
+    const baseTitle = state.title;
+    for (let suffix = 2; titles.has(state.title); suffix++) {
+      state.title = `${baseTitle} ${suffix}`;
+    }
+    return this.createWithContent(serializeRecorderRuntimeState(state));
   },
 
   async createWithContent(
