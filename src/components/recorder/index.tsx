@@ -375,10 +375,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddMidiTrack={() => addMidiMutation.mutate()}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
-              onSeek={(position) => {
-                recorderInteraction.clearSelection();
-                runtime.seek(position);
-              }}
+              onSeek={(position) => runtime.seek(position)}
               loop={state.loop}
               punch={state.punch}
               onLoopRangeChange={(range) => runtime.setLoop({ range })}
