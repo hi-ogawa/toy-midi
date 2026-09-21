@@ -10,6 +10,7 @@ import {
   createDefaultSavedProject,
   migrateSavedProject,
   type SavedProject,
+  type SavedProjectV1,
 } from "./project-store";
 
 export interface ProjectMetadata {
@@ -235,6 +236,26 @@ function migrateLayoutV1(): void {
   }
 }
 
+// e2e-only: seed an old-schema project to test doc migration on load
+export async function seedProjectV1(
+  name: string,
+  project: SavedProjectV1,
+  audioData: Uint8Array<ArrayBuffer>,
+): Promise<void> {
+  if (!project.audioFileName) {
+    throw new Error("Cannot seed v1 project without audio file name");
+  }
+
+  const file = new File([audioData], project.audioFileName, {
+    type: "audio/wav",
+  });
+  const assetKey = await projectStorage.saveAsset(file);
+
+  project = { ...project, audioAssetKey: assetKey };
+  const projectId = projectStorage.create(name, project as any);
+  projectStorage.setLastProjectId(projectId);
+}
+
 // e2e-only: seed a legacy v2 project and its referenced audio assets.
 export async function seedProjectLegacyV2({
   name,
@@ -258,4 +279,25 @@ export async function seedProjectLegacyV2({
   }
   const projectId = projectStorage.create(name, { ...project, audioTracks });
   projectStorage.setLastProjectId(projectId);
+}
+
+// e2e-only: seed a layout-v1 project (prefixed id, separate list/pointer
+// keys) to test the layout migration above
+export function seedLayoutV1Project(
+  name: string,
+  overrides?: Partial<SavedProject>,
+): string {
+  const projectId = `project-${crypto.randomUUID()}`;
+  const now = Date.now();
+  const list = JSON.parse(
+    localStorage.getItem(LEGACY_LIST_KEY) ?? "[]",
+  ) as ProjectMetadata[];
+  list.push({ id: projectId, name, createdAt: now, updatedAt: now });
+  localStorage.setItem(LEGACY_LIST_KEY, JSON.stringify(list));
+  localStorage.setItem(
+    LEGACY_PROJECT_KEY_PREFIX + projectId,
+    JSON.stringify({ ...createDefaultSavedProject(), ...overrides }),
+  );
+  localStorage.setItem(LEGACY_LAST_ID_KEY, projectId);
+  return projectId;
 }

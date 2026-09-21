@@ -1,6 +1,16 @@
-import { projectStorage, seedProjectLegacyV2 } from "./lib/project-storage";
+import {
+  projectStorage,
+  seedProjectLegacyV2,
+  seedProjectV1,
+  seedLayoutV1Project,
+} from "./lib/project-storage";
 
-const utils = { projectStorage, seedProjectLegacyV2 };
+const utils = {
+  projectStorage,
+  seedProjectLegacyV2,
+  seedProjectV1,
+  seedLayoutV1Project,
+};
 
 window.__e2e = utils;
 

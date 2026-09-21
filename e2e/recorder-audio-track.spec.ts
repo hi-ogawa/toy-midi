@@ -5,6 +5,7 @@ import {
   createRecorderProject,
   dragBy,
   getRecorderPosition,
+  saveRecorderProject,
 } from "./recorder-helpers";
 
 test("uploads and plays a backing track", async ({ page }) => {
@@ -148,4 +149,57 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   // Close the panel without dismissing the project.
   await panel.getByRole("button", { name: "Close Mixer" }).click();
   await expect(panel).toBeHidden();
+});
+
+test("imports ordered stems and persists independent lane heights", async ({
+  page,
+}) => {
+  // Import the stem archive and preserve its defined track order.
+  await createRecorderProject(page);
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await chooser).setFiles("e2e/fixtures/test-stems.zip");
+  const rows = page.getByTestId("recorder-audio-track-row");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText("backing.wav");
+  await expect(rows.nth(1)).toContainText("bass.wav");
+  await expect(
+    rows.nth(0).getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
+  await expect(
+    rows.nth(1).getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
+  const firstHeight = (await rows.nth(0).boundingBox())!.height;
+  const secondHeight = (await rows.nth(1).boundingBox())!.height;
+
+  // Resize each lane without changing its neighbor's height.
+  await dragBy(page, page.getByTitle("Resize Audio 1", { exact: true }), 0, {
+    deltaY: 30,
+  });
+  await expect
+    .poll(async () => (await rows.nth(0).boundingBox())!.height)
+    .toBe(firstHeight + 30);
+  expect((await rows.nth(1).boundingBox())!.height).toBe(secondHeight);
+  await dragBy(page, page.getByTitle("Resize Audio 2", { exact: true }), 0, {
+    deltaY: 50,
+  });
+  await expect
+    .poll(async () => (await rows.nth(1).boundingBox())!.height)
+    .toBe(secondHeight + 50);
+  expect((await rows.nth(0).boundingBox())!.height).toBe(firstHeight + 30);
+
+  // Save and reload both stems with their order, waveforms, and lane sizes intact.
+  await saveRecorderProject(page);
+  await page.reload();
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText("backing.wav");
+  await expect(rows.nth(1)).toContainText("bass.wav");
+  await expect(
+    rows.nth(0).getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
+  await expect(
+    rows.nth(1).getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
+  expect((await rows.nth(0).boundingBox())!.height).toBe(firstHeight + 30);
+  expect((await rows.nth(1).boundingBox())!.height).toBe(secondHeight + 50);
 });
