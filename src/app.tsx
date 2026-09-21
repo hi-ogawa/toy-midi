@@ -1,9 +1,9 @@
+import { Recorder } from "./components/editor";
 import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
 import { Preview } from "./components/preview";
-import { Recorder } from "./components/recorder";
-import { RecorderScorePage } from "./components/recorder/recorder-score-page";
 import { RouteError } from "./components/route-error";
+import { RecorderScorePage } from "./components/score-page";
 import { ScoreViewer } from "./components/score-viewer";
 import { matchRoute, routes } from "./lib/routes";
 

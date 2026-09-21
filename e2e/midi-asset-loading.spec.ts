@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "./recorder-helpers";
+import { createRecorderProject } from "./editor-helpers";
 
 test("shows loading feedback while adding MIDI waits for the soundfont", async ({
   page,

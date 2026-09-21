@@ -1,6 +1,6 @@
 import { AudioLinesIcon, GitForkIcon, Music2Icon } from "lucide-react";
 import { routes } from "../lib/routes";
-import { RecorderProjectList } from "./recorder/project-list";
+import { RecorderProjectList } from "./project-list";
 
 export function Home() {
   return (

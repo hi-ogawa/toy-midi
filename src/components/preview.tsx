@@ -1,7 +1,7 @@
 import { routes } from "../lib/routes";
-import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
-import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
-import { RecorderTunerPreview } from "./recorder/recorder-tuner-preview";
+import { RecorderEffectsPreview } from "./effects-preview";
+import { RecorderHelpPreview } from "./help-preview";
+import { RecorderTunerPreview } from "./tuner-preview";
 
 const PREVIEWS = [
   {

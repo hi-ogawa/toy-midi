@@ -57,7 +57,7 @@ Move snapping and proposed note updates into a pure `calculateDragUpdate` helper
 
 **Path and range**
 
-- `/home/hiroshi/code/personal/toy-midi/src/lib/project-file.ts:123-212`
+- `/home/hiroshi/code/personal/toy-midi/src/lib/legacy-project-file.ts:123-212`
 
 **Confidence:** Very high  
 **Impact:** High
