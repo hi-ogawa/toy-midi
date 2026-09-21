@@ -9,6 +9,7 @@ import {
   TAB_STRING_PRESETS,
 } from "../../lib/tab-annotation";
 import { InstrumentCombobox } from "../instrument-combobox";
+import { useRecorderPreference } from "./use-recorder-preference";
 
 export function MidiInstrument({
   track,
@@ -17,9 +18,11 @@ export function MidiInstrument({
   track: MidiTrackState;
   runtime: RecorderRuntime;
 }) {
+  const [, setDefaultMidiProgram] = useRecorderPreference("defaultMidiProgram");
   const programMutation = useMutation({
     mutationFn: (program: number) =>
       runtime.setMidiTrackProgram(track.id, program),
+    onSuccess: (_data, program) => setDefaultMidiProgram(program),
   });
   return (
     <div className="grid w-96 grid-cols-[64px_1fr] items-center gap-x-4 gap-y-4">

@@ -60,6 +60,7 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  const [defaultMidiProgram] = useRecorderPreference("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
@@ -131,7 +132,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
   const addMidiMutation = useMutation({
-    mutationFn: () => runtime.addMidiTrack(),
+    mutationFn: () => runtime.addMidiTrack({ program: defaultMidiProgram }),
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
