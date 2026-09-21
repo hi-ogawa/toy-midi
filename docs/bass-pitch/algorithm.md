@@ -37,15 +37,7 @@ The Audio to MIDI panel exposes the two thresholds illustrated above:
 | **Activity threshold** | −25 dBFS | Keeps fewer cells active. This can trim decay tails but also lose quiet or short notes.                    |
 | **Split threshold**    | 0.40     | Creates fewer splits within active runs. This can suppress extra boundaries but also merge repeated notes. |
 
-The split threshold acts on a score scaled relative to the analyzed excerpt. Different surrounding material can change the score of the same local attack, and weak fluctuations can be amplified by normalization. This remains an [open calibration question](https://github.com/hi-ogawa/toy-midi/issues/253), with no replacement selected.
-
-Tempo and grid come from the project, and the selected source track's audio offset aligns its samples with that grid. Pitch-analysis settings are fixed internally. The panel's **Reset to defaults** button restores both thresholds.
-
-## What the Example Establishes
-
-The illustrated settings retain the seven desired attacks in this bar. A stricter −20 dBFS activity threshold lost short notes in the original evaluation. Pitch probability was also a poor substitute for loudness, as a 0.5 probability gate accepted only 823 of 10,500 decoded voiced frames in the full-stem evaluation.
-
-These results motivate separate evidence for activity, articulation, and pitch. They do not establish reliable transcription of arbitrary recordings. Energetic tails can extend notes, spectral fluctuations can add splits, and ambiguous periodicity can produce wrong or missing pitches. The monophonic source and known grid remain assumptions, and the output remains editable MIDI.
+These settings retain seven attacks in this example, but decay tails can extend notes and ambiguous pitch evidence can produce wrong or missing labels. Split scores also depend on the excerpt's normalization, an [open calibration question](https://github.com/hi-ogawa/toy-midi/issues/253).
 
 ## Implementation Reference
 
