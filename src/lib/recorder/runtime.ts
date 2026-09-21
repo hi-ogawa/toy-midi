@@ -249,7 +249,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
-  private readonly context = new AudioContext();
+  readonly context = new AudioContext();
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;

@@ -21,7 +21,7 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
-  private readonly stream: MediaStream;
+  readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
