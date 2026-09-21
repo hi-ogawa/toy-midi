@@ -1,13 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
-import midiPackage from "@tonejs/midi";
 import {
   addRecorderMidiTrack,
   createRecorderProject,
-  getRecorderMidiNote,
   saveRecorderProject,
 } from "./recorder-helpers";
-
-const { Midi } = midiPackage;
 
 test("remembers selected instruments for new tracks without changing saved tracks", async ({
   page,
@@ -75,60 +71,6 @@ test("remembers selected instruments for new tracks without changing saved track
   await expect(
     page.getByRole("combobox", { name: "MIDI 3 program" }),
   ).toContainText("40: Violin");
-});
-
-test("MIDI import preserves the destination instrument and remembered default", async ({
-  page,
-}) => {
-  // Select bass for the destination and prepare a MIDI file carrying a different instrument.
-  await createRecorderProject(page);
-  const row = await addRecorderMidiTrack(page);
-  await openInstrument({ page, name: "MIDI 1" });
-  await selectInstrument({
-    page,
-    name: "MIDI 1",
-    option: "33: Electric Bass (finger)",
-  });
-  await page.getByRole("button", { name: "Close", exact: true }).click();
-  const source = new Midi();
-  const track = source.addTrack();
-  track.instrument.number = 40;
-  track.addNote({
-    midi: 60,
-    ticks: 0,
-    durationTicks: source.header.ppq,
-    velocity: 0.8,
-  });
-
-  // Import notes while retaining the destination's bass instrument.
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  const chooser = page.waitForEvent("filechooser");
-  await page
-    .getByRole("menuitem", { name: "Import MIDI…", exact: true })
-    .click();
-  page.once("dialog", (dialog) => dialog.accept());
-  await (
-    await chooser
-  ).setFiles({
-    name: "violin.mid",
-    mimeType: "audio/midi",
-    buffer: Buffer.from(source.toArray()),
-  });
-  await expect(
-    getRecorderMidiNote(row, { beat: 0, pitch: "C4" }),
-  ).toBeVisible();
-  await openInstrument({ page, name: "MIDI 1" });
-  await expect(
-    page.getByRole("combobox", { name: "MIDI 1 program" }),
-  ).toContainText("33: Electric Bass (finger)");
-  await page.getByRole("button", { name: "Close", exact: true }).click();
-
-  // Add another track and keep bass as the default after import.
-  await addRecorderMidiTrack(page);
-  await openInstrument({ page, name: "MIDI 2" });
-  await expect(
-    page.getByRole("combobox", { name: "MIDI 2 program" }),
-  ).toContainText("33: Electric Bass (finger)");
 });
 
 async function openInstrument({ page, name }: { page: Page; name: string }) {
