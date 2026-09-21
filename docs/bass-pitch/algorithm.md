@@ -37,8 +37,6 @@ The Audio to MIDI panel exposes the two thresholds illustrated above:
 | **Activity threshold** | −25 dBFS | Keeps fewer cells active. This can trim decay tails but also lose quiet or short notes.                    |
 | **Split threshold**    | 0.40     | Creates fewer splits within active runs. This can suppress extra boundaries but also merge repeated notes. |
 
-These settings retain seven attacks in this example, but decay tails can extend notes and ambiguous pitch evidence can produce wrong or missing labels. Split scores also depend on the excerpt's normalization, an [open calibration question](https://github.com/hi-ogawa/toy-midi/issues/253).
-
 ## Implementation Reference
 
 The [Rust core](../../crates/bass-pitch/src/lib.rs) analyzes mono audio at 22.05 kHz using 2048-sample windows, about 93 ms, advanced by 256 samples, about 11.6 ms. It pools frames into complete grid cells using the relation `project time = source time + audio offset`. Boundaries are on the grid from the outset, rather than quantized afterward.
