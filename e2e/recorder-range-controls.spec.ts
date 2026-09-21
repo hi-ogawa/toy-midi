@@ -25,10 +25,8 @@ for (const kind of ["loop", "punch"] as const) {
     await expect(toggle).toHaveAccessibleName(`${label}: no range`);
     await expect(toggle).not.toHaveAttribute("aria-pressed");
     await menuButton.click();
-    await expect(
-      menu.getByRole("menuitem", { name: "Clear", exact: true }),
-    ).toBeDisabled();
-    await menu.getByRole("menuitem", { name: "New", exact: true }).click();
+    await expect(menu.getByRole("menuitem", { name: "Clear" })).toBeDisabled();
+    await menu.getByRole("menuitem", { name: "New" }).click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await expect(range).toHaveCSS("left", "0px");
     await expect(range).toHaveCSS("width", `${DEFAULT_PIXELS_PER_BEAT * 4}px`);
@@ -40,7 +38,7 @@ for (const kind of ["loop", "punch"] as const) {
     await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 5);
     await expect.poll(() => getRecorderBeat(page)).toBe(5);
     await menuButton.click();
-    await menu.getByRole("menuitem", { name: "New", exact: true }).click();
+    await menu.getByRole("menuitem", { name: "New" }).click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await expect(range).toHaveCount(1);
     await expect(range).toHaveCSS("left", `${DEFAULT_PIXELS_PER_BEAT * 4}px`);
@@ -49,7 +47,7 @@ for (const kind of ["loop", "punch"] as const) {
 
     // Clear returns to the unset state without moving the playhead.
     await menuButton.click();
-    await menu.getByRole("menuitem", { name: "Clear", exact: true }).click();
+    await menu.getByRole("menuitem", { name: "Clear" }).click();
     await expect(range).toHaveCount(0);
     await expect(toggle).toHaveAccessibleName(`${label}: no range`);
     await expect(toggle).not.toHaveAttribute("aria-pressed");
