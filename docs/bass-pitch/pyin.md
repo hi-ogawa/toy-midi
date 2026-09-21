@@ -14,14 +14,14 @@ This example uses troughs at $T$ and $2T$, corresponding to 110 Hz and 55 Hz, wi
 
 ### Assign Weights to the Possible Pitches
 
-Imagine sliding a horizontal threshold across the difference curve. At each height, distribute some weight among the troughs it accepts. The density $b(\theta)$ below determines how much weight each threshold contributes. The implementation makes the specific modeling choice of a Beta(2, 18) distribution, concentrated near low mismatch thresholds with mean 0.1.
+Imagine sliding a horizontal threshold across the difference curve. At each height, distribute some weight among the troughs it accepts. The probability density $p(\theta)$ of the threshold determines how much weight each threshold contributes. The implementation makes the specific modeling choice of a Beta(2, 18) distribution, concentrated near low mismatch thresholds with mean 0.1.
 
 ![Beta threshold density with equal-width strips, one labeled w_k. Shaded areas show the weight of thresholds accepting neither trough, only 2T, or both.](images/pyin-threshold-mass.svg)
 
 The code divides $[0,1]$ into 100 equal threshold intervals. Each interval contributes its area under the curve, not just the curve’s height:
 
 $$
-w_k=\int_{\theta_{k-1}}^{\theta_k}b(\theta) d\theta,
+w_k=\int_{\theta_{k-1}}^{\theta_k}p(\theta) d\theta,
 \qquad \sum_k w_k=1.
 $$
 

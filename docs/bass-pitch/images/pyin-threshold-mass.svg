@@ -3,7 +3,7 @@
 <rect width="940" height="465" fill="white"/>
 <g font-family="sans-serif" font-size="14" fill="#334155">
 <text x="28" y="30" font-size="19" font-weight="bold">Threshold weight is area under the curve</text>
-<text x="28" y="56" fill="#64748b">Beta(2, 18) density b(θ). Each strip spans 0.01 in threshold, as in the implementation.</text>
+<text x="28" y="56" fill="#64748b">Beta(2, 18) density p(θ). Each strip spans 0.01 in threshold, as in the implementation.</text>
 
 <path d="M70 300H870" stroke="#e2e8f0"/><text x="56" y="305" text-anchor="end">0</text>
 <path d="M70 250H870" stroke="#e2e8f0"/><text x="56" y="255" text-anchor="end">2</text>
