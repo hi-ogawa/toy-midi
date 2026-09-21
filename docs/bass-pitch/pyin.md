@@ -128,7 +128,7 @@ $$
 
 Remember the winning predecessor at each step. After choosing the best final state, trace those predecessors backward to recover the path. The implementation uses log scores to avoid underflow. Its initial distribution is uniform over unvoiced states.
 
-## Pitch Evidence in the Separated Bass Stem
+## Example: Primrose’s “Ring” Bass Stem
 
 These normalized difference curves come from two frames in bar 11 of the Demucs-separated bass stem from Primrose’s “Ring”, the synth-like bass example used in the [pipeline overview](algorithm.md#one-bar-through-the-pipeline):
 
