@@ -19,6 +19,7 @@ import {
 } from "../../lib/recorder/runtime";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
+import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import {
@@ -151,6 +152,15 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = clipInteraction.recordingTrack.clips;
+
+  async function exportAudio() {
+    const fileName = buildExportFileName({
+      baseName: state.title,
+      extension: "wav",
+    });
+    const buffer = await runtime.renderMix();
+    downloadBlob(encodeWav(buffer), fileName);
+  }
 
   function togglePlay() {
     if (flags.playDisabled) {
@@ -316,7 +326,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
-        runtime={runtime}
+        onExportAudio={exportAudio}
         exportAudioDisabled={!project.ready || flags.isRecording}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}

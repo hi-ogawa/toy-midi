@@ -22,7 +22,6 @@ import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { formatGainDb } from "../../lib/music";
 import { PLAYBACK_RATES } from "../../lib/recorder/playback-rate";
 import type {
-  RecorderRuntime,
   RecorderLoopState,
   RecorderPunchState,
 } from "../../lib/recorder/runtime";
@@ -85,7 +84,7 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
-  runtime,
+  onExportAudio,
   exportAudioDisabled,
   onReferenceVideoOpenChange,
   onMixerToggle,
@@ -122,7 +121,7 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
-  runtime: RecorderRuntime;
+  onExportAudio: () => Promise<void>;
   exportAudioDisabled: boolean;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
@@ -392,7 +391,7 @@ export function RecorderHeader({
         <SlidersVerticalIcon className="size-5" />
       </Button>
       <RecorderMenu
-        runtime={runtime}
+        onExportAudio={onExportAudio}
         exportAudioDisabled={exportAudioDisabled}
         isRecording={flags.isRecording}
         isExporting={isExporting}
@@ -403,13 +402,13 @@ export function RecorderHeader({
 }
 
 function RecorderMenu({
-  runtime,
+  onExportAudio,
   exportAudioDisabled,
   isRecording,
   isExporting,
   onExportProject,
 }: {
-  runtime: RecorderRuntime;
+  onExportAudio: () => Promise<void>;
   exportAudioDisabled: boolean;
   isRecording: boolean;
   isExporting: boolean;
@@ -493,7 +492,10 @@ function RecorderMenu({
         data-testid="recorder-audio-export"
         returnFocusRef={menuButtonRef}
       >
-        <RecorderExportAudio runtime={runtime} disabled={exportAudioDisabled} />
+        <RecorderExportAudio
+          onExport={onExportAudio}
+          disabled={exportAudioDisabled}
+        />
       </Dialog>
     </>
   );

@@ -1,31 +1,14 @@
 import { useMutation } from "@tanstack/react-query";
-import { useSyncExternalStore } from "react";
-import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
-import type { RecorderRuntime } from "../../lib/recorder/runtime";
-import { encodeWav } from "../../lib/wav";
 import { Button } from "../ui/button";
 
 export function RecorderExportAudio({
-  runtime,
+  onExport,
   disabled,
 }: {
-  runtime: RecorderRuntime;
+  onExport: () => Promise<void>;
   disabled: boolean;
 }) {
-  const state = useSyncExternalStore(
-    runtime.store.subscribe,
-    runtime.store.get,
-  );
-  const exportMutation = useMutation({
-    mutationFn: async () => {
-      const fileName = buildExportFileName({
-        baseName: state.title,
-        extension: "wav",
-      });
-      const buffer = await runtime.renderMix();
-      downloadBlob(encodeWav(buffer), fileName);
-    },
-  });
+  const exportMutation = useMutation({ mutationFn: onExport });
 
   return (
     <>
