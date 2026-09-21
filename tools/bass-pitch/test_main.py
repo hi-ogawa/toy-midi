@@ -184,3 +184,90 @@ def activity_cell(index: int, *, active: bool) -> bass_pitch.ActivityCell:
         rms_db=0.0 if active else -float("inf"),
         active=active,
     )
+
+
+# The evaluation oracle must distinguish segmentation errors from pitch errors.
+FIXTURE_SPEC = importlib.util.spec_from_file_location(
+    "bass_fixtures", SCRIPT_PATH.with_name("fixtures.py")
+)
+assert FIXTURE_SPEC is not None and FIXTURE_SPEC.loader is not None
+fixtures = importlib.util.module_from_spec(FIXTURE_SPEC)
+FIXTURE_SPEC.loader.exec_module(fixtures)
+
+
+def test_fixture_scorer_missing_split_shifted_and_octave_notes() -> None:
+    expected = [{"start": 2, "end": 4, "pitch": 40}, {"start": 6, "end": 8, "pitch": 43}]
+    result = fixtures.score(expected, {2, 3, 6, 7}, expected, expected)
+    assert result["metrics"]["exact_notes"] == 2
+    assert result["metrics"]["end_error_cells"] == 0
+
+    # Missing notes count against recall rather than improving conditional pitch accuracy.
+    result = fixtures.score(expected, {2, 3}, expected[:1], expected[:1])
+    assert result["errors"]["missed_cells"] == [6, 7]
+    assert result["errors"]["missed_starts"] == [6]
+    assert result["metrics"]["pitch_matches"] == 1
+    assert result["metrics"]["exact_notes"] == 1
+
+    # Splitting a sustained note adds a start and shortens its matched first region.
+    split = [{"start": 2, "end": 3, "pitch": 40}, {"start": 3, "end": 4, "pitch": 40}]
+    result = fixtures.score(expected[:1], {2, 3}, split, split)
+    assert result["errors"]["extra_starts"] == [3]
+    assert result["errors"]["end_error_by_start"] == {"2": -1}
+    assert result["metrics"]["exact_notes"] == 0
+
+    # A shifted onset is one missed and one extra start, not a pitch mismatch.
+    shifted = [{"start": 3, "end": 5, "pitch": 40}]
+    result = fixtures.score(expected[:1], {3, 4}, shifted, shifted)
+    assert result["errors"]["missed_starts"] == [2]
+    assert result["errors"]["extra_starts"] == [3]
+    assert result["metrics"]["pitch_matches"] == 0
+
+    octave = [{"start": 2, "end": 4, "pitch": 52}]
+    result = fixtures.score(expected[:1], {2, 3}, octave, octave)
+    assert result["metrics"]["octave_errors"] == 1
+    assert result["metrics"]["wrong_pitches"] == 1
+    assert result["metrics"]["exact_notes"] == 0
+
+
+def test_fixture_scorer_release_and_no_pitch() -> None:
+    expected = [{"start": 2, "end": 4, "pitch": 40}]
+    regions = [{"start": 2, "end": 6}]
+    result = fixtures.score(expected, {2, 3, 4, 5}, regions, [])
+    assert result["errors"]["extra_cells"] == [4, 5]
+    assert result["errors"]["end_error_by_start"] == {"2": 2}
+    assert result["metrics"]["matched_starts"] == 1
+    assert result["metrics"]["unpitched_starts"] == 1
+    assert result["metrics"]["pitch_matches"] == 0
+    assert result["metrics"]["exact_notes"] == 0
+
+
+def test_fixture_reference_midi_matches_spec_and_orders_rearticulation(tmp_path: Path) -> None:
+    import mido
+
+    for case in fixtures.make_suite():
+        path = tmp_path / "reference.mid"
+        fixtures.write_reference(case, path)
+        tick = 0
+        observed = []
+        sounding = {}
+        for message in mido.MidiFile(path).tracks[0]:
+            tick += message.time
+            if message.type == "note_on":
+                assert not sounding, (
+                    "fixture must be monophonic, including repeated-note boundaries"
+                )
+                sounding[message.note] = (tick, message.velocity)
+            elif message.type == "note_off":
+                start, velocity = sounding.pop(message.note)
+                cell_ticks = 480 // case["cells_per_beat"]
+                observed.append(
+                    {
+                        "start": start // cell_ticks,
+                        "end": tick // cell_ticks,
+                        "pitch": message.note,
+                        "velocity": velocity,
+                    }
+                )
+        assert not sounding
+        assert observed == case["notes"]
+        assert tick == case["cells"] * 480 // case["cells_per_beat"]
