@@ -26,9 +26,11 @@ Here $\theta$ represents possible YIN acceptance cutoffs: a trough passes whenev
 
 ![Beta threshold density with equal-width strips, one labeled w_k. Shaded areas show the weight of thresholds accepting neither trough, only 2T, or both.](images/pyin-threshold-mass.svg)
 
-The accepted sets are nested: any cutoff that accepts the shallower trough also accepts the deeper one. Here the deeper trough at $2T$ receives exclusive support from the interval between 0.04 and 0.12, about 0.508 of the probability mass. The tail above 0.12, about 0.317, accepts both pitches. pYIN divides this shared support between them with a preference for the shorter period $T$, combining match quality with YIN’s first-trough preference.
+Tail-area weights alone favor the deepest trough, which can represent a multiple of the fundamental period. YIN instead prefers the first sufficiently good match. We want to retain that shorter-period preference without discarding the other possible pitches.
 
-The implementation computes this sharing over 100 equal intervals. Each strip contributes its area
+The accepted sets are nested: any cutoff that accepts the shallower trough also accepts the deeper one. In our example, the interval from 0.04 to 0.12 accepts only $2T$, while the tail above 0.12 accepts both. To express the shorter-period preference, distribute each cutoff’s probability mass among its accepted troughs, giving larger shares to earlier ones and normalizing the shares to sum to one.
+
+The implementation computes these shares over 100 equal intervals. Each strip contributes its area
 
 $$
 w_k=\int_{\theta_{k-1}}^{\theta_k}p(\theta) d\theta.
@@ -41,7 +43,7 @@ q_{i,k}=\frac{e^{-\lambda r_{i,k}}}{\sum_{j\text{ qualifying}}e^{-\lambda r_{j,k
 \qquad \lambda=2.
 $$
 
-Thus two qualifying troughs share the threshold's mass in proportions about 0.881 and 0.119. This is a soft version of YIN's first-trough preference. The rank is among qualifying troughs, so it can change with the threshold.
+When both example troughs qualify, $T$ receives about 88.1% of the strip’s mass and $2T$ receives 11.9%. Where only $2T$ qualifies, it receives the full strip. The rank is among qualifying troughs, so it can change with the cutoff.
 
 Nonqualifying candidates receive zero. If none qualifies, our implementation gives just 1% of that bin's mass to the deepest trough and leaves the rest unassigned. With those rules included in $q_{i,k}$, average the shares over the threshold distribution to obtain each candidate’s weight
 
