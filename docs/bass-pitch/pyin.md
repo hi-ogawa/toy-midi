@@ -25,7 +25,7 @@ w_k=\int_{\theta_{k-1}}^{\theta_k}b(\theta) d\theta,
 \qquad \sum_k w_k=1.
 $$
 
-The upper boundary $\theta_k$ is the threshold tested for that strip. Taller strips carry more weight, so the choice of density controls which thresholds matter most.
+The upper boundary $\theta_k$ is the threshold tested for that strip. Taller strips carry more weight.
 
 For this example, roughly 17.5% of the threshold mass accepts neither trough, 50.8% accepts only $2T$, and 31.7% accepts both. We now need to distribute each threshold’s mass among the troughs it accepts. When several qualify, pYIN retains a preference for shorter periods. Rank the qualifying troughs by lag, starting at zero, and give candidate $i$ the share
 
