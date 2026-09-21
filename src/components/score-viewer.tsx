@@ -247,8 +247,8 @@ export function ScoreViewer({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              title="More"
-              aria-label="More"
+              title="Score viewer menu"
+              aria-label="Score viewer menu"
               className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
             >
               <MoreVerticalIcon className="size-5" />
@@ -342,8 +342,8 @@ function ScoreSamplesMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          title="Samples"
-          aria-label="Samples"
+          title="Score samples"
+          aria-label="Score samples"
           className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <LibraryIcon className="size-5" />

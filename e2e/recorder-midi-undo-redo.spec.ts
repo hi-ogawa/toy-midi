@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { selectMenuItem } from "./helpers";
 import {
   addRecorderMidiTrack,
   createRecorderMidiNote,
@@ -123,10 +124,7 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await page.getByTestId("recorder-mixer-button").click();
 
   // Delete the first track and leave only the second track visible.
-  await first.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Remove track", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Remove track" });
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("MIDI 2");
 

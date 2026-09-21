@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import { createRecorderProject } from "./recorder-helpers";
 
 test("opens and dismisses Help while keeping editor shortcuts inactive", async ({
   page,
 }) => {
-  // Open the editor reference from More and inspect its shortcut content.
+  // Open the editor reference from the editor menu and inspect its shortcut content.
   await createRecorderProject(page);
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Help & Shortcuts" }).click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Help & Shortcuts" });
   const heading = page.getByRole("heading", { name: "Editor quick reference" });
   await expect(heading).toBeVisible();
   await expect(
@@ -22,8 +22,7 @@ test("opens and dismisses Help while keeping editor shortcuts inactive", async (
   await expect(heading).toHaveCount(0);
 
   // Reopen Help and dismiss it through the visible close control.
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Help & Shortcuts" }).click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Help & Shortcuts" });
   await expect(heading).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await expect(heading).toHaveCount(0);

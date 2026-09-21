@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import {
   createRecorderProject,
   addRecorderMidiTrack,
@@ -21,12 +22,7 @@ test("previews a MIDI note and opens its saved score in the viewer", async ({
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
 
   // Open the score preview and verify the note renders as notation.
-  await page
-    .getByRole("button", { name: "MIDI 1 actions", exact: true })
-    .click();
-  await page
-    .getByRole("menuitem", { name: "Score preview", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Score preview" });
   const score = page.getByTestId("recorder-score-preview");
   await expect(score).toHaveCount(1);
   await expect(
@@ -74,10 +70,7 @@ test("syncs seeking between the score preview and recorder timeline", async ({
   const row = await addRecorderMidiTrack(page);
   await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
   await createRecorderMidiNote(page, row, { beat: 8, pitch: "E4" });
-  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
-  await page
-    .getByRole("menuitem", { name: "Score preview", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Score preview" });
   const score = page.getByTestId("recorder-score-preview");
   const cursor = score.getByTestId("score-viewer-cursor");
   await expect(cursor).toBeVisible();

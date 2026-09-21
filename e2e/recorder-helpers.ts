@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { selectMenuItem } from "./helpers";
 
 /** Create a recorder project from its index and wait for the recorder app. */
 export async function createRecorderProject(page: Page): Promise<void> {
@@ -38,12 +39,10 @@ export async function openRecorderMidiInstrument(
   return await test.step(
     `Open ${name} instrument`,
     async () => {
-      await page
-        .getByRole("button", { name: `${name} actions`, exact: true })
-        .click();
-      await page
-        .getByRole("menuitem", { name: "Instrument…", exact: true })
-        .click();
+      await selectMenuItem(page, {
+        menu: `${name} actions`,
+        item: "Instrument…",
+      });
       return page.getByTestId("recorder-midi-instrument");
     },
     { box: true },
