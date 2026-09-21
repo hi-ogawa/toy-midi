@@ -14,6 +14,7 @@ import {
   useRef,
   useState,
   type FocusEvent,
+  type RefObject,
 } from "react";
 import { toast } from "sonner";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
@@ -88,6 +89,8 @@ export function MidiTrackRow({
   onScorePreview: () => void;
   onProgramSelected: (program: number) => void;
 }) {
+  const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const programMutation = useMutation({
     mutationFn: (program: number) =>
       runtime.setMidiTrackProgram(track.id, program),
@@ -155,12 +158,11 @@ export function MidiTrackRow({
         onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
         action={
           <MidiTrackActions
-            track={track}
-            programPending={programMutation.isPending}
-            onProgramChange={(program) => programMutation.mutate(program)}
-            onSettingsChange={(settings) =>
-              runtime.setMidiTrackSettings(track.id, settings)
-            }
+            label={track.name}
+            viewMode={track.viewMode}
+            menuButtonRef={menuButtonRef}
+            isInstrumentOpen={isInstrumentOpen}
+            onInstrumentOpen={() => setIsInstrumentOpen(true)}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
@@ -210,94 +212,6 @@ export function MidiTrackRow({
           </div>
         )}
       </TrackRow>
-    </div>
-  );
-}
-
-function MidiTrackActions({
-  isImporting,
-  onImportMidi,
-  onExportMidi,
-  track,
-  programPending,
-  onProgramChange,
-  onSettingsChange,
-  onViewModeToggle,
-  onRemove,
-  onTranscribe,
-  onScorePreview,
-}: {
-  isImporting: boolean;
-  onImportMidi: () => void;
-  onExportMidi: () => void;
-  track: MidiTrackState;
-  programPending: boolean;
-  onProgramChange: (program: number) => void;
-  onSettingsChange: (settings: Partial<MidiTrackState>) => void;
-  onViewModeToggle: () => void;
-  onRemove: () => void;
-  onTranscribe: () => void;
-  onScorePreview: () => void;
-}) {
-  const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            ref={menuButtonRef}
-            className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-            title={`${track.name} actions`}
-            aria-label={`${track.name} actions`}
-          >
-            <MoreVerticalIcon className="size-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          onCloseAutoFocus={(event) => {
-            if (isInstrumentOpen) {
-              event.preventDefault();
-            }
-          }}
-        >
-          <DropdownMenuCheckboxItem
-            checked={track.viewMode === "overview"}
-            onCheckedChange={onViewModeToggle}
-            onSelect={(event) => event.preventDefault()}
-          >
-            Overview
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setIsInstrumentOpen(true)}>
-            <Settings2Icon />
-            Instrument…
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onScorePreview}>
-            <FileMusicIcon />
-            Score preview
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onTranscribe}>
-            <Music2Icon />
-            Audio to MIDI
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={onImportMidi} disabled={isImporting}>
-            <UploadIcon />
-            {isImporting ? "Importing MIDI…" : "Import MIDI…"}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onExportMidi}>
-            <DownloadIcon />
-            Export MIDI
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={onRemove} className="text-red-400">
-            <Trash2Icon />
-            Remove track
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
       <Dialog
         data-testid="recorder-midi-instrument"
         isOpen={isInstrumentOpen}
@@ -307,12 +221,99 @@ function MidiTrackActions({
       >
         <MidiInstrument
           track={track}
-          programPending={programPending}
-          onProgramChange={onProgramChange}
-          onSettingsChange={onSettingsChange}
+          programPending={programMutation.isPending}
+          onProgramChange={(program) => programMutation.mutate(program)}
+          onSettingsChange={(settings) =>
+            runtime.setMidiTrackSettings(track.id, settings)
+          }
         />
       </Dialog>
-    </>
+    </div>
+  );
+}
+
+function MidiTrackActions({
+  isImporting,
+  onImportMidi,
+  onExportMidi,
+  label,
+  viewMode,
+  menuButtonRef,
+  isInstrumentOpen,
+  onInstrumentOpen,
+  onViewModeToggle,
+  onRemove,
+  onTranscribe,
+  onScorePreview,
+}: {
+  isImporting: boolean;
+  onImportMidi: () => void;
+  onExportMidi: () => void;
+  label: string;
+  viewMode: MidiTrackState["viewMode"];
+  menuButtonRef: RefObject<HTMLButtonElement | null>;
+  isInstrumentOpen: boolean;
+  onInstrumentOpen: () => void;
+  onViewModeToggle: () => void;
+  onRemove: () => void;
+  onTranscribe: () => void;
+  onScorePreview: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          ref={menuButtonRef}
+          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+          title={`${label} actions`}
+          aria-label={`${label} actions`}
+        >
+          <MoreVerticalIcon className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        onCloseAutoFocus={(event) => {
+          if (isInstrumentOpen) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <DropdownMenuCheckboxItem
+          checked={viewMode === "overview"}
+          onCheckedChange={onViewModeToggle}
+          onSelect={(event) => event.preventDefault()}
+        >
+          Overview
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onInstrumentOpen}>
+          <Settings2Icon />
+          Instrument…
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onScorePreview}>
+          <FileMusicIcon />
+          Score preview
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onTranscribe}>
+          <Music2Icon />
+          Audio to MIDI
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onImportMidi} disabled={isImporting}>
+          <UploadIcon />
+          {isImporting ? "Importing MIDI…" : "Import MIDI…"}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onExportMidi}>
+          <DownloadIcon />
+          Export MIDI
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+          <Trash2Icon />
+          Remove track
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
