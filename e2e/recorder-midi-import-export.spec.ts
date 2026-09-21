@@ -15,9 +15,8 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   // Create a bass track and a violin MIDI file containing one C4 note.
   await createRecorderProject(page);
   const row = await addRecorderMidiTrack(page);
-  const instrument = await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await selectRecorderMidiInstrument({
-    instrument,
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await selectRecorderMidiInstrument(instrument, {
     option: "33: Electric Bass (finger)",
   });
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
@@ -50,7 +49,7 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   ).toBeVisible();
 
   // Keep the destination's bass instrument despite the imported violin program.
-  await openRecorderMidiInstrument({ page, name: "MIDI 1" });
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
   await expect(instrument.getByTestId("instrument-select")).toContainText(
     "33: Electric Bass (finger)",
   );
