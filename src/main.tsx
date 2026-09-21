@@ -4,7 +4,6 @@ import { createRoot } from "react-dom/client";
 import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
-import { flushAutoSave } from "./lib/project-session";
 import { preloadMidiAssets } from "./lib/runtime-assets";
 import "./e2e";
 
@@ -13,10 +12,6 @@ function main() {
   if (window.location.pathname.startsWith("/__e2e__/")) {
     return;
   }
-
-  // Auto-save is debounced; flush pending changes when leaving the page
-  // (navigation away or tab close).
-  window.addEventListener("pagehide", () => flushAutoSave());
 
   const queryClient = new QueryClient({
     defaultOptions: {
