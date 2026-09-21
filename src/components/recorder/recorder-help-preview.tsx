@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
 
 export function RecorderHelpPreview() {
@@ -14,14 +13,7 @@ export function RecorderHelpPreview() {
       >
         Open recorder help
       </Button>
-      <Dialog
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Editor quick reference"
-        size="wide"
-      >
-        <RecorderHelp />
-      </Dialog>
+      <RecorderHelp isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </>
   );
 }

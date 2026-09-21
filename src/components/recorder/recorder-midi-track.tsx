@@ -158,11 +158,11 @@ export function MidiTrackRow({
           <MidiTrackActions
             label={track.name}
             viewMode={track.viewMode}
-            onInstrumentOpen={() => setIsInstrumentOpen(true)}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
             onScorePreview={onScorePreview}
+            onInstrumentOpen={() => setIsInstrumentOpen(true)}
             isImporting={importMidiMutation.isPending}
             onImportMidi={() =>
               openFilePicker({
@@ -233,9 +233,9 @@ function MidiTrackActions({
   onExportMidi,
   label,
   viewMode,
-  onInstrumentOpen,
   onViewModeToggle,
   onRemove,
+  onInstrumentOpen,
   onTranscribe,
   onScorePreview,
 }: {
@@ -244,9 +244,9 @@ function MidiTrackActions({
   onExportMidi: () => void;
   label: string;
   viewMode: MidiTrackState["viewMode"];
-  onInstrumentOpen: () => void;
   onViewModeToggle: () => void;
   onRemove: () => void;
+  onInstrumentOpen: () => void;
   onTranscribe: () => void;
   onScorePreview: () => void;
 }) {

@@ -36,7 +36,6 @@ import {
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../../types";
 import { MetronomeIcon } from "../icons";
 import { Button } from "../ui/button";
-import { Dialog } from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +46,7 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { RecorderHelp } from "./help";
-import { RecorderExportAudio } from "./recorder-export-audio";
+import { RecorderExportDialog } from "./recorder-export-dialog";
 import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
@@ -439,25 +438,16 @@ export function RecorderHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog
+      <RecorderHelp
         isOpen={dialog === "help"}
         onClose={() => setDialog(undefined)}
-        title="Editor quick reference"
-        size="wide"
-      >
-        <RecorderHelp />
-      </Dialog>
-      <Dialog
+      />
+      <RecorderExportDialog
         isOpen={dialog === "export"}
         onClose={() => setDialog(undefined)}
-        title="Export Audio"
-        data-testid="recorder-audio-export"
-      >
-        <RecorderExportAudio
-          onExport={onExportAudio}
-          disabled={exportAudioDisabled}
-        />
-      </Dialog>
+        onExport={onExportAudio}
+        disabled={exportAudioDisabled}
+      />
     </header>
   );
 }

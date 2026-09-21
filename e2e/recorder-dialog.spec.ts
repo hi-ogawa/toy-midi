@@ -4,6 +4,7 @@ import {
   getRecorderPosition,
   addRecorderMidiTrack,
   createRecorderMidiNote,
+  openRecorderMidiInstrument,
 } from "./recorder-helpers";
 
 test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
@@ -19,7 +20,7 @@ test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
   await expect(helpItem).toBeFocused();
   await page.keyboard.press("Enter");
   const help = page.getByRole("dialog", { name: "Editor quick reference" });
-  const close = help.getByRole("button", { name: "Close", exact: true });
+  const close = help.getByRole("button", { name: "Close" });
   await expect(close).toBeFocused();
   await expect(menu).toBeHidden();
   await expect(
@@ -49,7 +50,6 @@ test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
   const exportDialog = page.getByRole("dialog", { name: "Export Audio" });
   const exportClose = exportDialog.getByRole("button", {
     name: "Close",
-    exact: true,
   });
   await expect(exportClose).toBeFocused();
   await page.keyboard.press("Shift+Tab");
@@ -77,9 +77,7 @@ test("a directly opened dialog closes with Escape", async ({ page }) => {
   const configure = page.getByRole("button", { name: "Configure audio input" });
   await configure.click();
   const dialog = page.getByRole("dialog", { name: "Audio Input Setup" });
-  await expect(
-    dialog.getByRole("button", { name: "Close", exact: true }),
-  ).toBeFocused();
+  await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
 
   // Close Input Setup with Escape.
   await page.keyboard.press("Escape");
@@ -94,14 +92,10 @@ test("instrument dialog isolates shortcuts", async ({ page }) => {
     beat: 0,
     pitch: "C4",
   });
-  const actions = row.getByRole("button", { name: "MIDI 1 actions" });
-  await actions.click();
-  const menu = page.getByRole("menu", { name: "MIDI 1 actions" });
-  await menu.getByRole("menuitem", { name: "Instrument…" }).click();
-  const dialog = page.getByRole("dialog", { name: "MIDI 1 instrument" });
-  const close = dialog.getByRole("button", { name: "Close", exact: true });
+  const dialog = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  const close = dialog.getByRole("button", { name: "Close" });
   await expect(close).toBeFocused();
-  await expect(menu).toHaveCount(0);
+  await expect(page.getByRole("menu", { name: "MIDI 1 actions" })).toBeHidden();
 
   // Keep editor deletion, seeking, playback, and saving inactive inside the modal.
   await dialog.focus();
