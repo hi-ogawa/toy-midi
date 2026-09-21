@@ -396,11 +396,11 @@ export class RecorderRuntime {
   async addMidiTrack({ program }: { program: number }): Promise<void> {
     const state = this.store.get();
     const track = createMidiTrackState({
-      program,
       name: createNumberedName({
         names: state.midiTracks.map((track) => track.name),
         prefix: "MIDI",
       }),
+      program,
     });
     const index = await this.insertMidiTrack({ track });
     this.history.pushMidiTrack({ track, index });
