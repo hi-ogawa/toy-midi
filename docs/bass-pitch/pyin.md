@@ -140,7 +140,7 @@ The sustained D1 frame has a trough near 0.021 and receives about 0.95 voiced pr
 
 The gray dots use the deepest trough independently in each frame. This baseline differs from YIN's first-qualifying-trough rule. The green decoded path avoids several isolated sub-octave choices around note transitions. Continuity helps here, but cannot resolve an entire passage with consistently misleading evidence.
 
-The frame weight $v_t$ and the decoded voiced flag are separate outputs. Our [bass transcription pipeline](algorithm.md#stage-5-pitch-region-labeling) uses them to vote for a region's pitch. Activity and onset evidence determine whether the region exists, so uncertain pYIN frames cannot erase an audible note.
+The frame weight $v_t$ and the decoded voiced flag are separate outputs. Our [bass transcription pipeline](algorithm.md#pitch-labels-each-region) uses them to vote for a region's pitch. Activity and onset evidence establish regions before pitch voting. Low probability alone does not reject a voiced pitch estimate, but a region with no finite voiced estimates is omitted from the final pitched output.
 
 ## Implementation Scale
 
