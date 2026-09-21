@@ -24,11 +24,9 @@ The onset score measures positive changes in log spectral power, grouped into fr
 
 ### Pitch Labels Each Region
 
-For example, region R2 spans cells 2–4, so all eligible frames across those three cells participate in one vote. Within each region, round the voiced frame estimates to MIDI notes and group them by note. Add their confidence-derived weights within each group, then use the note with the largest total for the entire region. Several agreeing frames can therefore outweigh one stronger vote for a different pitch.
+Region R2 spans cells 2–4. Round each voiced frame's finite pitch estimate to a MIDI note and sum the vote weights for each note. The largest total labels the whole region, which becomes D1 in this example.
 
-![Three illustrative frame votes are grouped by note. Two D1 votes with weights 0.8 and 0.6 total 1.4, beating one D2 vote with weight 0.9. The whole region is labeled D1.](images/region-pitch-vote.svg)
-
-Only frames with a finite, decoded voiced pitch participate. Low confidence reduces a vote's weight without removing it, but a region with no eligible frames is omitted from the final pitched output. These weights are heuristic scores, not probabilities that the resulting note is correct. The [pYIN article](pyin.md) explains the frame estimates and confidence signal.
+Confidence controls vote weight, while the decoded voiced flag determines eligibility. A region with no eligible frames is omitted from the final MIDI. The [pYIN article](pyin.md) explains these two outputs.
 
 ## Controls in toy-midi
 
