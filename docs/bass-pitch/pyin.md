@@ -92,7 +92,7 @@ $$
 
 Our pitch transition $T$ is a normalized triangular distribution centered on the previous pitch. With the bass settings, its support spans $\pm2.5$ semitones per 11.6 ms hop. The voicing-switch probability is $\rho=0.01$. These are continuity assumptions, so they can suppress implausible jumps but can also resist a real abrupt change.
 
-### Choose the Whole Path
+### Decode the Path with Viterbi
 
 For a path through $L$ frames, combine the initial distribution $\pi$, transition weights, and observation weights:
 
@@ -112,7 +112,7 @@ In the figure's two-voiced-state example, staying has probability 0.9 and switch
 
 The middle frame favors B, but not enough to justify two changes. Sustained evidence for B would accumulate across frames and could outweigh the transition cost. The decoder balances evidence rather than simply smoothing a sequence of already-selected pitches.
 
-We need not enumerate every path. Once two paths reach the same state, they have the same possible futures, so only the better prefix can win. This gives the **Viterbi recurrence** for the best score ending at state $s$:
+Viterbi is standard dynamic programming over successive frames. For each state, retain the best score of any path ending there and its winning predecessor:
 
 $$
 V_0(s)=\pi(s)O_0(s),
@@ -120,7 +120,7 @@ V_0(s)=\pi(s)O_0(s),
 V_t(s)=O_t(s)\max_r\bigl[V_{t-1}(r)A(r,s)\bigr].
 $$
 
-Remember the winning predecessor at each step. After choosing the best final state, trace those predecessors backward to recover the path. The implementation uses log scores to avoid underflow. Its initial distribution is uniform over unvoiced states.
+Choose the best final state, then backtrack through the stored predecessors to recover the path. The implementation uses log scores to avoid underflow. Its initial distribution is uniform over unvoiced states.
 
 ## Example: Primrose’s “Ring” Bass Stem
 
