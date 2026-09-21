@@ -31,13 +31,10 @@ export async function addRecorderMidiTrack(page: Page) {
   );
 }
 
-export async function openRecorderMidiInstrument({
-  page,
-  name,
-}: {
-  page: Page;
-  name: string;
-}) {
+export async function openRecorderMidiInstrument(
+  page: Page,
+  { name }: { name: string },
+) {
   return await test.step(
     `Open ${name} instrument`,
     async () => {
@@ -53,13 +50,10 @@ export async function openRecorderMidiInstrument({
   );
 }
 
-export async function selectRecorderMidiInstrument({
-  instrument,
-  option,
-}: {
-  instrument: Locator;
-  option: string;
-}) {
+export async function selectRecorderMidiInstrument(
+  instrument: Locator,
+  { option }: { option: string },
+) {
   await test.step(
     `Select ${option}`,
     async () => {
