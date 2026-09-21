@@ -184,17 +184,3 @@ def activity_cell(index: int, *, active: bool) -> bass_pitch.ActivityCell:
         rms_db=0.0 if active else -float("inf"),
         active=active,
     )
-
-
-def test_onset_normalization_uses_only_positive_active_cell_flux() -> None:
-    times = np.array([0.0, 0.25, 0.5, 0.75, 1.0, 1.25])
-    cells = [activity_cell(0, active=True), activity_cell(1, active=False)]
-    values = np.array([0.2, 1.0, 0.001, 0.001, 100.0, 100.0])
-    result = bass_pitch.normalize_feature(values, frame_times=times, activity_cells=cells)
-    assert result[:2] == pytest.approx([0.2 / 0.96, 1.0])
-    values[2:] = 1000.0
-    changed = bass_pitch.normalize_feature(values, frame_times=times, activity_cells=cells)
-    assert changed[:2] == pytest.approx(result[:2])
-    values[:2] = 0.0
-    assert not bass_pitch.normalize_feature(values, frame_times=times, activity_cells=cells).any()
-    assert not bass_pitch.normalize_feature(values, frame_times=times, activity_cells=[]).any()

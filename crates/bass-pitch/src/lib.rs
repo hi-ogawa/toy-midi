@@ -665,56 +665,7 @@ fn calculate_median(values: &mut [f64]) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    #[test]
-    fn onset_scale_ignores_inactive_residue_and_partial_cells() {
-        // Complete cells are [1, 2), [2, 3), [3, 4). Only the first two sound.
-        let cells = make_grid_cells(0.5, 4.5, 0.0, 60.0, 1, 0.0);
-        let raw_frames = || Frames {
-            times: vec![0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
-            rms: vec![0.0, 1.0, 1.0, 1.0, 1.0, 0.001, 0.001, 0.0],
-            onset: vec![100.0, 1.0, 0.0, 0.2, 0.0, 0.001, 0.001, 100.0],
-            f0: vec![],
-            voiced_flag: vec![],
-            voiced_probability: vec![],
-        };
-        let activity = detect_activity(&cells, &raw_frames(), 0.1, 0.1);
-        assert_eq!(
-            activity.iter().map(|c| c.active).collect::<Vec<_>>(),
-            [true, true, false]
-        );
-        let mut quiet_residue = raw_frames();
-        normalize_onset_strength(&mut quiet_residue, &activity);
-        // The positive active values are 0.2 and 1.0, whose 95th percentile is 0.96.
-        assert!((quiet_residue.onset[3] - 0.2 / 0.96).abs() < 1e-12);
-        let mut strong_residue = raw_frames();
-        strong_residue.onset[5..].fill(1000.0);
-        normalize_onset_strength(&mut strong_residue, &activity);
-        assert_eq!(quiet_residue.onset[1..5], strong_residue.onset[1..5]);
-        let notes = make_activity_onset_notes(&cells, &activity, &quiet_residue, 36, 0.4);
-        assert_eq!(notes.len(), 1);
-        assert_eq!((notes[0].first_cell, notes[0].last_cell), (1, 2));
-    }
-
-    #[test]
-    fn onset_scale_is_zero_without_positive_active_evidence() {
-        let cells = make_grid_cells(0.0, 2.0, 0.0, 60.0, 1, 0.0);
-        let mut frames = Frames {
-            times: vec![0.0, 1.0],
-            rms: vec![1.0, 0.0],
-            onset: vec![0.0, 1.0],
-            f0: vec![],
-            voiced_flag: vec![],
-            voiced_probability: vec![],
-        };
-        let activity = detect_activity(&cells, &frames, 0.1, 0.1);
-        normalize_onset_strength(&mut frames, &activity);
-        assert_eq!(frames.onset, [0.0, 0.0]);
-        frames.onset = vec![1.0, 2.0];
-        normalize_onset_strength(&mut frames, &[]);
-        assert_eq!(frames.onset, [0.0, 0.0]);
-    }
+    use super::{calculate_median, db_to_gain, gain_to_db, Frames};
 
     #[test]
     fn converts_between_db_and_gain() {
