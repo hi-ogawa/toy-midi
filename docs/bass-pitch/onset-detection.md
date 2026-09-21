@@ -6,11 +6,17 @@ An attack often renews energy across several frequencies, including upper harmon
 
 ## Compare Energy at a Useful Frequency Resolution
 
-Take the Fourier transform of a short, windowed piece of audio. Repeating this at successive positions gives a short-time Fourier transform (STFT). If $X_t(k)$ is the complex coefficient at frequency bin $k$ in frame $t$, then $|X_t(k)|^2$ measures its power on a common FFT scale.
+Take one short, windowed piece of audio, called a **frame**, and compute its Fourier transform. The FFT returns complex coefficients at equally spaced frequencies. Each frequency position is a **bin**, and the squared magnitude of its coefficient measures power there. With our 2048-sample frames at 22050 Hz, neighboring bins are about 10.8 Hz apart.
+
+A **band** is a wider frequency interval that collects several neighboring bins. We sum their powers to describe how much energy lies in that interval. In the figure, band A contains bins 0 and 1, so its power is $2+5=7$.
+
+![Equally spaced FFT bins grouped into three illustrative frequency bands. Summing the bin powers produces one value per band, with totals 7, 7, and 13.](images/fft-bins-and-bands.svg)
+
+Repeat this calculation as the window moves along the audio to obtain a short-time Fourier transform (STFT). We can then compare the same frequency band between successive frames.
 
 Individual bins are too sensitive for our purpose. As a window moves along a tone, its measured power can redistribute between neighboring bins. For example, two bins changing from $(10,2)$ to $(8,4)$ retain total power $12$. Counting only positive bin changes would nevertheless report an increase of $2$.
 
-Instead, group nearby bins into a band and sum their power first:
+Summing within bands before comparing frames avoids that false increase. If $X_t(k)$ is the FFT coefficient of bin $k$ in frame $t$, and $\mathcal{B}_b$ is the set of bins in band $b$, its power is:
 
 $$
 E_t(b)=\sum_{k\in\mathcal{B}_b}|X_t(k)|^2.
