@@ -19,7 +19,6 @@ import {
 } from "../../lib/recorder/runtime";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
-import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import {
@@ -27,6 +26,7 @@ import {
   useRecorderAudioToMidiUi,
 } from "./recorder-audio-to-midi";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
+import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
@@ -69,6 +69,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useRecorderEffectsUi();
+  const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -152,15 +153,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = clipInteraction.recordingTrack.clips;
-
-  async function exportAudio() {
-    const fileName = buildExportFileName({
-      baseName: state.title,
-      extension: "wav",
-    });
-    const buffer = await runtime.renderMix();
-    downloadBlob(encodeWav(buffer), fileName);
-  }
 
   function togglePlay() {
     if (flags.playDisabled) {
@@ -326,8 +318,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
-        onExportAudio={exportAudio}
-        exportAudioDisabled={!project.ready || flags.isRecording}
+        onExportAudio={() => setIsAudioExportOpen(true)}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
@@ -620,6 +611,13 @@ export function Recorder({ projectId }: { projectId: string }) {
           </div>
         </section>
 
+        <RecorderExportDialog
+          runtime={runtime}
+          state={state}
+          isOpen={isAudioExportOpen}
+          onClose={() => setIsAudioExportOpen(false)}
+          disabled={!project.ready || flags.isRecording}
+        />
         <Dialog
           isOpen={isInputSetupOpen}
           onClose={() => setIsInputSetupOpen(false)}

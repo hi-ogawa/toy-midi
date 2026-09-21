@@ -46,7 +46,6 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { RecorderHelp } from "./help";
-import { RecorderExportDialog } from "./recorder-export-dialog";
 import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
@@ -84,7 +83,6 @@ export function RecorderHeader({
   onGridDivisionChange,
   onExportProject,
   onExportAudio,
-  exportAudioDisabled,
   onReferenceVideoOpenChange,
   onMixerToggle,
   mixerOpen,
@@ -120,13 +118,12 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
-  onExportAudio: () => Promise<void>;
-  exportAudioDisabled: boolean;
+  onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
   mixerOpen: boolean;
 }) {
-  const [dialog, setDialog] = useState<"help" | "export">();
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
     value: tempo,
@@ -401,13 +398,13 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setDialog("help")}>
+          <DropdownMenuItem onSelect={() => setIsHelpOpen(true)}>
             <CircleHelpIcon />
             Help & Shortcuts
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={exportAudioDisabled}
-            onSelect={() => setDialog("export")}
+            disabled={flags.isRecording}
+            onSelect={onExportAudio}
           >
             <DownloadIcon />
             Export Audio
@@ -438,16 +435,7 @@ export function RecorderHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <RecorderHelp
-        isOpen={dialog === "help"}
-        onClose={() => setDialog(undefined)}
-      />
-      <RecorderExportDialog
-        isOpen={dialog === "export"}
-        onClose={() => setDialog(undefined)}
-        onExport={onExportAudio}
-        disabled={exportAudioDisabled}
-      />
+      <RecorderHelp isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </header>
   );
 }

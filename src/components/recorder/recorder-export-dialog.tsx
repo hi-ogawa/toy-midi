@@ -1,19 +1,36 @@
 import { useMutation } from "@tanstack/react-query";
+import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
+import type {
+  RecorderRuntime,
+  RecorderRuntimeState,
+} from "../../lib/recorder/runtime";
+import { encodeWav } from "../../lib/wav";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
 export function RecorderExportDialog({
-  onExport,
+  runtime,
+  state,
   isOpen,
   onClose,
   disabled,
 }: {
-  onExport: () => Promise<void>;
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
   isOpen: boolean;
   onClose: () => void;
   disabled: boolean;
 }) {
-  const exportMutation = useMutation({ mutationFn: onExport });
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const fileName = buildExportFileName({
+        baseName: state.title,
+        extension: "wav",
+      });
+      const buffer = await runtime.renderMix();
+      downloadBlob(encodeWav(buffer), fileName);
+    },
+  });
 
   return (
     <Dialog
