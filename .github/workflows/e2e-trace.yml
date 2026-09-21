@@ -2,6 +2,22 @@ name: E2E trace
 run-name: "E2E trace for ${{ inputs.ref }} · ${{ inputs.server }} · ${{ inputs.tests }}"
 
 on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Branch to test
+        required: true
+        type: string
+      tests:
+        description: Space-separated Playwright file filters
+        required: true
+        type: string
+      server:
+        default: build
+        type: string
+      grep:
+        default: ".*"
+        type: string
   workflow_dispatch:
     inputs:
       ref:

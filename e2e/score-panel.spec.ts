@@ -4,6 +4,8 @@ import {
   addMidiTrack,
   createMidiNote,
   saveProject,
+  getBeat,
+  seekByPixels,
 } from "./editor-helpers";
 
 test("previews a MIDI note and opens its saved score in the viewer", async ({
@@ -62,4 +64,38 @@ test("previews a MIDI note and opens its saved score in the viewer", async ({
     })
     .click();
   await expect(score).toHaveCount(0);
+});
+
+test("syncs seeking between the score preview and recorder timeline", async ({
+  page,
+}) => {
+  // Place notes in the first and third measures so both seek targets render.
+  await createProject(page);
+  const row = await addMidiTrack(page);
+  await createMidiNote(page, row, { beat: 0, pitch: "C4" });
+  await createMidiNote(page, row, { beat: 8, pitch: "E4" });
+  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
+  await page
+    .getByRole("menuitem", { name: "Score preview", exact: true })
+    .click();
+  const score = page.getByTestId("recorder-score-preview");
+  const cursor = score.getByTestId("score-viewer-cursor");
+  await expect(cursor).toBeVisible();
+  const initial = await cursor.evaluate((element) => element.style.transform);
+
+  // Click the third measure and move the recorder transport to its starting beat.
+  await score
+    .locator('[data-measure-index="2"]')
+    .click({ position: { x: 20, y: 20 } });
+  await expect.poll(() => getBeat(page)).toBe(8);
+  await expect
+    .poll(() => cursor.evaluate((element) => element.style.transform))
+    .not.toBe(initial);
+
+  // Seek back from the timeline and restore the first-measure score cursor.
+  await seekByPixels(page, 0);
+  await expect.poll(() => getBeat(page)).toBe(0);
+  await expect
+    .poll(() => cursor.evaluate((element) => element.style.transform))
+    .toBe(initial);
 });

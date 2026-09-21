@@ -186,6 +186,7 @@ function TimelineRuler({
   return (
     <div
       data-testid="recorder-timeline-ruler"
+      data-viewport-start-beat={viewportStartBeat}
       className="relative cursor-pointer bg-neutral-800 font-mono text-[10px] text-neutral-400"
       {...getTimelineSurfaceProps({
         beatsPerBar,

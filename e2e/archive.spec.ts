@@ -2,6 +2,10 @@ import { expect, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
   addAudio,
+  addMidiTrack,
+  createMidiNote,
+  getMidiNote,
+  getBeat,
   createProject,
   enableInput,
   seekByPixels,
@@ -33,6 +37,35 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await masterLevel.press("Enter");
   await page.getByRole("button", { name: "Close Mixer" }).click();
 
+  // Add MIDI content and non-default instrument, annotation, and locator settings.
+  const row = await addMidiTrack(page);
+  const note = await createMidiNote(page, row, {
+    beat: 1,
+    pitch: "C4",
+  });
+  await row.getByRole("button", { name: "MIDI 1 actions" }).click();
+  await page
+    .getByRole("menuitem", { name: "Instrument…", exact: true })
+    .click();
+  const program = page.getByRole("combobox", { name: "MIDI 1 program" });
+  await program.click();
+  await page.getByPlaceholder("Search instruments...").fill("Finger");
+  await page
+    .getByRole("option", { name: "33: Electric Bass (finger)", exact: true })
+    .click();
+  await page.getByRole("checkbox", { name: "Show string annotations" }).check();
+  await page
+    .getByRole("combobox", { name: "Tuning", exact: true })
+    .selectOption("fiveStringBass");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await note.click();
+  await page.keyboard.press("5");
+  await expect(note.getByTestId("tab-annotation")).toHaveText("B37");
+  await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
+  await page.getByRole("button", { name: "Add locator at playhead" }).click();
+  page.once("dialog", (dialog) => dialog.accept("Verse"));
+  await page.getByRole("button", { name: "Rename Section 1" }).click();
+
   // Export the open project and retain the downloaded archive for import.
   page.once("dialog", (dialog) => dialog.accept("Archived recording"));
   await page.getByTestId("recorder-project-name").click();
@@ -50,6 +83,12 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await page.getByTestId("import-recorder-project").click();
   await (await importChooserPromise).setFiles(archivePath);
 
+  // Reopen the imported copy to verify its persisted content rather than only import state.
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Archived recording",
+  );
+  await page.reload();
+
   // Verify the imported project preserves its editable audio and comp state.
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Archived recording",
@@ -64,6 +103,28 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(
     page.getByRole("textbox", { name: "Master level in dB" }),
   ).toHaveValue("-6.0");
+  await page.getByRole("button", { name: "Close Mixer" }).click();
+
+  // Restore the MIDI note's assigned string, instrument, tuning, and locator beat.
+  const importedRow = page.getByTestId("recorder-midi-track-row");
+  await expect(
+    getMidiNote(importedRow, { beat: 1, pitch: "C4" }).getByTestId(
+      "tab-annotation",
+    ),
+  ).toHaveText("B37");
+  await page.getByRole("button", { name: "Verse", exact: true }).click();
+  await expect.poll(() => getBeat(page)).toBe(3);
+  await importedRow.getByRole("button", { name: "MIDI 1 actions" }).click();
+  await page
+    .getByRole("menuitem", { name: "Instrument…", exact: true })
+    .click();
+  await expect(program).toContainText("33: Electric Bass (finger)");
+  await expect(
+    page.getByRole("checkbox", { name: "Show string annotations" }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("combobox", { name: "Tuning", exact: true }),
+  ).toHaveValue("fiveStringBass");
 });
 
 async function getClipGeometry(page: Page) {
