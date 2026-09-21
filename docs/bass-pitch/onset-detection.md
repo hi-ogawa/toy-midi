@@ -1,69 +1,59 @@
 # Onset Detection from Spectral Changes
 
-A bass line can strike the same pitch several times without falling silent between notes. Pitch tracking sees little change, and a loudness gate may stay open throughout. To separate those notes, we need evidence of a fresh attack within an already sounding region.
+A bass line can strike the same pitch several times without falling silent. Pitch tracking sees little change, and a loudness gate may stay open throughout. A fresh attack, however, often renews power across the spectrum, including upper harmonics that had faded during the previous note.
 
-An attack often renews energy across several frequencies, including upper harmonics that had faded during the previous note. Comparing successive short-time spectra lets us detect that renewal even when the fundamental pitch stays the same. The [Python reference](../../tools/bass-pitch/main.py) uses librosa’s `onset_strength` for this, and the Rust implementation follows its **mel-banded log spectral flux** construction with simplified sums of bin powers within each band. Each part of the name describes which changes contribute to the onset score.
+Librosa’s `onset_strength`, used by our [Python reference](../../tools/bass-pitch/main.py), detects this renewal through **mel-banded log spectral flux**. The Rust implementation follows that construction with simplified frequency-band sums.
 
 ## Compare Band Power at a Useful Frequency Resolution
 
-Take one short, windowed piece of audio, called a **frame**, and compute its Fourier transform. The FFT returns complex coefficients at equally spaced frequencies. Each frequency position is a **bin**, and the squared magnitude of its coefficient measures power there. With our 2048-sample frames at 22050 Hz, neighboring bins are about 10.8 Hz apart.
+Take a short, windowed piece of audio, called a **frame**, and compute its Fourier transform. Each complex coefficient corresponds to a **bin** at an equally spaced frequency. Our 2048-sample frames at 22050 Hz give about 10.8 Hz between bins. Moving the window along the audio gives a short-time Fourier transform (STFT).
 
-We want to compare squared magnitudes over frequency intervals, called **bands**, rather than track every bin separately. Mel spacing chooses narrow intervals at low frequencies and wider ones at high frequencies, without crowding the low end as strongly as a pure logarithmic scale.
+To compare broader frequency intervals, called **bands**, choose boundaries on the mel scale. It gives narrower intervals at low frequencies and wider ones at high frequencies:
 
 ![Ten equal steps in linear frequency, mel, and log frequency mapped onto the same Hz axis. Mel bands widen toward high frequencies, while pure log bands crowd more tightly near zero.](images/mel-band-spacing.svg)
 
-The figure uses ten bands to make the spacing visible. The implementation uses 128 equal steps in the HTK mel coordinate $m(f)=2595\log_{10}(1+f/700)$, from zero to Nyquist. This curve is approximately linear at low frequencies and logarithmic at high frequencies.
+Our implementation uses 128 equal steps in $m(f)=2595\log_{10}(1+f/700)$, from zero to Nyquist. The figure shows ten for clarity. Unlike a pure log scale, this curve becomes approximately linear at low frequencies.
 
-With those intervals chosen, square each Fourier coefficient’s magnitude and sum within each band. We call this sum **band power**, using a common FFT scale rather than calibrated physical units. In the illustration below, band A contains bins 0 and 1, so its power is $2+5=7$.
-
-![Equally spaced FFT bins grouped into three illustrative frequency bands. Summing the bin powers produces one value per band, with totals 7, 7, and 13.](images/fft-bins-and-bands.svg)
-
-If $X_t(k)$ is the FFT coefficient of bin $k$ in frame $t$, and $\mathcal{B}_b$ is the set of bins in band $b$, this sum is
+Within each band, sum squared Fourier magnitudes. This is the frequency-domain version of summing squared samples, connected by Parseval’s identity. For FFT coefficients $X_t(k)$ in frame $t$ and the set of bins $\mathcal{B}_b$ in band $b$, define **band power** on a common FFT scale:
 
 $$
 P_t(b)=\sum_{k\in\mathcal{B}_b}|X_t(k)|^2.
 $$
 
-The square-and-sum operation is the frequency-domain counterpart of summing squared samples. Parseval’s identity makes the connection explicit: for the full, unnormalized FFT of an $N$-sample window $x_w$,
+![Equally spaced FFT bins grouped into three illustrative frequency bands. Summing the bin powers produces one value per band, with totals 7, 7, and 13.](images/fft-bins-and-bands.svg)
 
-$$
-\sum_n |x_w[n]|^2=\frac{1}{N}\sum_k |X[k]|^2.
-$$
-
-Restricting the frequency sum isolates a band’s contribution. The detector uses a one-sided FFT on a common scale; exact energy accounting would also weight interior bins for their negative-frequency partners.
-
-Repeat the Fourier transform as the window moves along the audio to obtain a short-time Fourier transform (STFT), then compare each band's power between successive frames. Summing bin powers within each band first makes the comparison less sensitive to power redistribution within a band. Two bins changing from $(10,2)$ to $(8,4)$ retain total power $12$, although counting positive bin changes separately would report an increase of $2$. Changes crossing band boundaries can still contribute.
-
-Our Rust implementation uses these simple band sums. [Librosa defaults](https://librosa.org/doc/main/api/generated/librosa.mel_frequencies.html) to a different mel variant and overlapping triangular filters, so the exact band weights differ.
+Summing before comparing frames lets redistribution within a band cancel. Two bins changing from $(10,2)$ to $(8,4)$ retain band power $12$, although counting positive bin changes separately would report an increase of $2$.
 
 ## Measure Relative Growth and Discard Decay
 
-Raw power differences favor already strong bands. We instead express band power logarithmically, using $\ell_t(b)=10\log_{10}P_t(b)$. Away from the floor used near silence, its change is
+Raw power differences favor strong bands. Log power, $\ell_t(b)=10\log_{10}P_t(b)$, instead measures proportional growth:
 
 $$
 \ell_t(b)-\ell_{t-1}(b)=10\log_{10}\frac{P_t(b)}{P_{t-1}(b)}.
 $$
 
-Thus doubling power contributes about $3$ dB whether a band goes from $1$ to $2$ or from $100$ to $200$. The score responds to proportional renewal, so weak upper harmonics can contribute alongside a strong fundamental. A constant recording gain also cancels from this ratio. Near silence, a floor is essential to keep tiny powers from producing large log differences.
+Doubling a band's power contributes about 3 dB regardless of its starting level, so weak upper harmonics can contribute alongside a strong fundamental. Constant recording gain cancels from the ratio. Near silence, power must be floored to prevent tiny values from producing large log differences.
 
-A fading band should not provide evidence of a new attack, but it should not cancel growth elsewhere either. Apply the positive part to each band's log change and then average:
+A fading band should neither count as a fresh attack nor cancel growth elsewhere. Keep each band's positive change and average:
 
 $$
 F_t=\frac{1}{B}\sum_{b=1}^{B}\max\bigl(0,\ell_t(b)-\ell_{t-1}(b)\bigr).
 $$
 
-This is the **spectral flux** used here. “Rectification” means replacing negative changes with zero. The order is consequential. We sum bin powers within each band before comparing frames, but keep the positive changes separately across bands before averaging.
+This is the **spectral flux** used here. Replacing negative changes with zero is called **rectification**.
 
 ![Two successive log-power spectra in four illustrative bands, followed by their positive differences. A three-decibel fall contributes zero, while rises of six and three decibels survive.](images/onset-spectral-flux.svg)
 
-In this example, the band changes are $(-3,0,6,3)$ dB. Their positive parts are $(0,0,6,3)$, so $F_t=2.25$ dB. The spectrum need not grow everywhere for the score to rise.
+The changes $(-3,0,6,3)$ become $(0,0,6,3)$, giving $F_t=2.25$ dB. Growth in some bands is enough, even while others fade.
 
-## Turn Renewal into Note Boundaries
+## Use the Score to Split Notes
 
-The [Rust implementation](../../crates/bass-pitch/src/lib.rs) uses 2048-sample windows at 22050 Hz, advanced by 256 samples. Each comparison therefore sees about 93 ms of audio and updates every 11.6 ms. It floors log power at 80 dB below the excerpt's peak, in addition to an absolute numerical floor, and suppresses flux far below the peak as rounding noise.
+The [pipeline](algorithm.md#fresh-attacks-split-the-runs) takes the maximum score in each grid cell to split active regions. Spectral renewal is evidence of an attack, but noise or timbre changes can also raise the score, and soft rearticulations can be missed.
 
-A centered window sees an attack before its center reaches it. The implementation delays the resulting score by half a window to compensate for this lookahead, though the exact peak position still depends on the signal. Our pipeline then adds normalization by the 95th percentile of positive flux values and clips to $[0,1]$. This step comes from the Python evaluation harness, rather than librosa’s `onset_strength`. This sets a relative scale within the excerpt, rather than a probability of a new note.
+Our pipeline adds division by the excerpt's 95th percentile of positive flux, clipped to $[0,1]$. This is an empirical choice from the evaluation harness, not part of librosa’s `onset_strength`. Different surrounding material can change a local split decision, and even weak fluctuations can normalize to 1. [Issue #253](https://github.com/hi-ogawa/toy-midi/issues/253) tracks this unresolved calibration question.
 
-This normalization is an empirical heuristic with no established calibration to attack strength. Changing other parts of the excerpt can change the denominator and therefore the split decision for the same local flux. Even weak fluctuations can reach 1 if they form the excerpt's upper tail. The peak-relative floors add further excerpt dependence. [Issue #253](https://github.com/hi-ogawa/toy-midi/issues/253) tracks evaluation of these effects and possible alternatives. No replacement has been selected.
+## Implementation Details
 
-The [pipeline](algorithm.md#fresh-attacks-split-the-runs) takes the maximum score in each grid cell and uses it to split active regions. Spectral renewal is evidence, not a unique signature of an attack. Vibrato, noise, or a timbre change can also raise the score, while a soft rearticulation may provide little contrast. That is why activity, onset, and pitch remain separate decisions.
+The [Rust implementation](../../crates/bass-pitch/src/lib.rs) advances its 93 ms windows every 11.6 ms and delays the score by half a window to compensate for centered-window lookahead. It floors log power at 80 dB below the excerpt's peak, adds an absolute numerical floor, and suppresses flux far below its peak as rounding noise. These peak-relative operations also introduce excerpt dependence.
+
+Band scores sum a one-sided FFT without the normalization and negative-frequency weighting needed for exact energy accounting. The Rust band boundaries use the HTK mel scale, while [librosa defaults](https://librosa.org/doc/main/api/generated/librosa.mel_frequencies.html) to the Slaney variant and uses overlapping triangular filters. The methods therefore share the construction rather than exact band weights.
