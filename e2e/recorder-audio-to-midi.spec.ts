@@ -112,11 +112,13 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
     page.locator('[data-sonner-toast][data-type="error"]'),
   ).toHaveCount(0);
 
-  // Close a second active conversion and release its abandoned model request.
+  // Start a second conversion and close the panel while model loading is blocked.
   await convert.click();
   await expect.poll(() => requests).toBe(2);
   await panel.getByRole("button", { name: "Close Audio to MIDI" }).click();
   await expect(panel).toHaveCount(0);
+
+  // Release model loading and reopen the panel with the original note still intact.
   gate.resolve();
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
@@ -129,7 +131,7 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
     page.locator('[data-sonner-toast][data-type="error"]'),
   ).toHaveCount(0);
 
-  // Complete a fresh conversion and restore the original note with one undo.
+  // Click Convert to MIDI again and replace the original note after successful transcription.
   const checkpoint = createCheckpoint();
   await convert.click();
   await expect(panel.getByRole("status")).toHaveText(
@@ -137,6 +139,8 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
   );
   checkpoint("transcription retry completed");
   await expect(original).toHaveCount(0);
+
+  // Close the panel and undo once to restore the original note.
   await panel.getByRole("button", { name: "Close Audio to MIDI" }).click();
   await page.keyboard.press("Control+z");
   await expect(notes).toHaveCount(1);
