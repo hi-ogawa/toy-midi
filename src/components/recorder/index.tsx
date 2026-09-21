@@ -54,6 +54,7 @@ import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderInteraction } from "./use-recorder-interaction";
+import { useRecorderPreference } from "./use-recorder-preference";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
 
@@ -62,6 +63,8 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
+  const [takesNewestFirst, setTakesNewestFirst] =
+    useRecorderPreference("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useRecorderEffectsUi();
@@ -573,11 +576,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                 expanded={takesExpanded}
                 takeCount={takes.length}
                 onExpandedChange={setTakesExpanded}
+                newestFirst={takesNewestFirst}
+                onNewestFirstChange={setTakesNewestFirst}
               />
             )}
             {takes.length > 0 &&
               takesExpanded &&
-              takes.map((take) => (
+              (takesNewestFirst ? takes.toReversed() : takes).map((take) => (
                 <TakeTrackRow
                   key={take.id}
                   label={take.name}
