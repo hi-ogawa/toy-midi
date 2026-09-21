@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -76,6 +76,10 @@ export function Recorder({ projectId }: { projectId: string }) {
     runtime.store.subscribe,
     runtime.store.get,
   );
+  useEffect(() => {
+    document.title = `${state.title} - Toy MIDI`;
+  }, [state.title]);
+
   const input = useRecorderInput({
     runtime,
     state,

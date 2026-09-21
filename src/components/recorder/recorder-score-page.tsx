@@ -50,7 +50,7 @@ async function getRecorderProjectScoreSource({
     throw new Error(`MIDI track ${trackId} not found.`);
   }
   return {
-    name: `${project.title} · ${track.name}.musicxml`,
+    name: `${project.title} - ${track.name}.musicxml`,
     xml: exportMusicXml({
       notes: track.notes,
       title: project.title,
