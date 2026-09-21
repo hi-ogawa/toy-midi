@@ -53,15 +53,15 @@ In the example, $p_T\approx0.279$ and $p_{2T}\approx0.548$, leaving about 0.173 
 
 ## Pitch Continuity Across Frames
 
-An ambiguous frame can be resolved by its neighbors. Model pitch and voicing as a **hidden Markov model**, with frame evidence at each state and transition weights favoring continuity. **Viterbi decoding** chooses the highest-scoring path through this lattice.
+The calculation above gives candidate periods and their weights $p_i$ for one frame. Repeat it for each frame, then use those weights as evidence in a **hidden Markov model** of pitch and voicing. Transition weights favor continuity, allowing neighboring frames to resolve ambiguity. **Viterbi decoding** chooses the highest-scoring path through this lattice.
 
 ![Each pitch bin has voiced and unvoiced states. In a three-frame example restricted to two voiced states, Viterbi stays at A despite stronger middle-frame evidence for B because switching twice incurs a transition cost.](images/pyin-state-lattice.svg)
 
 ### Keep Pitch and Voicing Separate
 
-Refine candidate periods using the same [parabolic interpolation as YIN](../concepts/yin-pitch-detection.md#refine-the-period-between-samples), then convert period to frequency. The decoder represents pitch on a logarithmic grid, so equal steps correspond to equal musical intervals. Our grid has ten bins per semitone.
+Refine each candidate period using the same [parabolic interpolation as YIN](../concepts/yin-pitch-detection.md#refine-the-period-between-samples), convert it to frequency, and map it to a pitch bin on the decoder’s logarithmic grid, which has ten bins per semitone. Place the candidate’s weight $p_i$ in that bin.
 
-Let $P_t(n)$ be the candidate weight placed in pitch bin $n$ at frame $t$. Its total
+For frame $t$, call this array of pitch-bin weights $P_t(n)$. It is the previous section’s evidence indexed by pitch rather than candidate period. Its total
 
 $$
 v_t=\sum_n P_t(n)
