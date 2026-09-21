@@ -12,6 +12,7 @@ import {
   CaptureWorkletClient,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
+import type { LatencyDiagnostics } from "./diagnostics";
 
 const CALIBRATION_CLICK_COUNT = 7;
 const CALIBRATION_CLICK_INTERVAL = 0.7;
@@ -25,7 +26,8 @@ const CALIBRATION_TAIL_TIME = CALIBRATION_MAX_LATENCY;
 export type LatencyResult = {
   calibration: CalibrationResult;
   channelCount: number;
-  settings: MediaTrackSettings;
+  diagnostics: LatencyDiagnostics;
+  endDiagnostics?: LatencyDiagnostics;
 };
 
 export type PreviewVariant = "raw" | "compensated";
@@ -38,7 +40,6 @@ export class LatencyCheckerRuntime {
   private captureWorklet?: CaptureWorkletClient;
   inputAnalyser?: AudioAnalyser;
   private activeSilentGain?: GainNode;
-  private activeSettings?: MediaTrackSettings;
   private activePreviewSources: AudioBufferSourceNode[] = [];
   private finishPreview?: () => void;
   private captureChunks?: CaptureChunk[];
@@ -61,7 +62,6 @@ export class LatencyCheckerRuntime {
     this.activeStream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
     );
-    this.activeSettings = this.activeStream.getAudioTracks()[0].getSettings();
     this.activeSource = context.createMediaStreamSource(this.activeStream);
     this.detectedChannelCount = 0;
     // Monitoring is ready only after the processor observes a real input
@@ -113,13 +113,46 @@ export class LatencyCheckerRuntime {
     this.captureWorklet = undefined;
     this.inputAnalyser = undefined;
     this.activeSilentGain = undefined;
-    this.activeSettings = undefined;
     this.captureChunks = undefined;
     this.detectedChannelCount = 0;
   }
 
   setChannel(channel: number) {
     this.captureWorklet?.setChannel(channel);
+  }
+
+  getDiagnostics({
+    channel,
+  }: {
+    channel: number;
+  }): LatencyDiagnostics | undefined {
+    const context = this.audioContext;
+    const track = this.activeStream?.getAudioTracks()[0];
+    if (!context || !track) {
+      return;
+    }
+    // Some browsers expose capture latency although TypeScript's DOM types omit it.
+    const settings: MediaTrackSettings & { latency?: number } =
+      track.getSettings();
+    return {
+      capturedAt: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      contextState: context.state,
+      contextSampleRate: context.sampleRate,
+      baseLatency: context.baseLatency,
+      outputLatency: context.outputLatency,
+      inputLatency: settings.latency,
+      inputSampleRate: settings.sampleRate,
+      inputChannelCount: settings.channelCount,
+      observedChannelCount: this.detectedChannelCount,
+      selectedChannel: channel,
+      inputLabel: track.label,
+      // This checker does not select an output sink, so the OS resolves the default route.
+      outputRoute: "System default (resolved output device not reported)",
+      echoCancellation: settings.echoCancellation,
+      noiseSuppression: settings.noiseSuppression,
+      autoGainControl: settings.autoGainControl,
+    };
   }
 
   async calibrate({
@@ -132,7 +165,6 @@ export class LatencyCheckerRuntime {
     if (
       !this.captureWorklet ||
       !this.activeStream ||
-      !this.activeSettings ||
       this.detectedChannelCount <= 0
     ) {
       throw new Error("Start input monitoring before running the click test.");
@@ -143,6 +175,10 @@ export class LatencyCheckerRuntime {
     this.captureChunks = chunks;
     try {
       await this.captureWorklet.setActive(true);
+      const diagnostics = this.getDiagnostics({ channel });
+      if (!diagnostics) {
+        throw new Error("Input stopped before calibration started.");
+      }
       const template = createClickTemplate(context.sampleRate);
       const amplitude = dbToGain(outputLevel);
       const startTime = context.currentTime + CALIBRATION_LEAD_TIME;
@@ -169,6 +205,7 @@ export class LatencyCheckerRuntime {
       clickSource.start(startTime);
       await playbackEnded.promise;
       await this.captureWorklet.setActive(false);
+      const endDiagnostics = this.getDiagnostics({ channel });
 
       const analysis = analyzeCalibration({
         chunks,
@@ -184,7 +221,8 @@ export class LatencyCheckerRuntime {
           sampleRate: context.sampleRate,
         },
         channelCount: this.detectedChannelCount,
-        settings: this.activeSettings,
+        diagnostics,
+        endDiagnostics,
       };
       return result;
     } finally {

@@ -7,6 +7,12 @@ import {
   useState,
 } from "react";
 import {
+  createDiagnosticReport,
+  estimateLatencyMs,
+  summarizeCalibration,
+  type LatencyDiagnostics,
+} from "../lib/latency-checker/diagnostics";
+import {
   type LatencyResult,
   LatencyCheckerRuntime,
   type PreviewVariant,
@@ -225,6 +231,8 @@ export function LatencyChecker() {
                     const value = Number(event.currentTarget.value);
                     setChannel(value);
                     runtime.setChannel(value);
+                    runtime.stopPreview();
+                    calibrationMutation.reset();
                   }}
                   className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
@@ -267,6 +275,9 @@ export function LatencyChecker() {
                 />
               </label>
             </div>
+            {isMonitoring && (
+              <LiveDiagnostics runtime={runtime} channel={channel} />
+            )}
             {startMonitoringMutation.error && (
               <ErrorMessage>
                 {startMonitoringMutation.error.message}
@@ -351,14 +362,9 @@ function ResultsView({
 }) {
   const { measurements } = result.calibration.analysis;
   const { sampleRate } = result.calibration;
-  const offsets = measurements.map((measurement) => measurement.offsetSamples);
-  const offsetsMs = offsets.map((offset) => (offset * 1000) / sampleRate);
-  const medianSamples = calculateMedian(offsets);
-  const medianMs = (medianSamples * 1000) / sampleRate;
-  const spreadMs = Math.max(...offsetsMs) - Math.min(...offsetsMs);
-  const weakCount = measurements.filter(
-    (measurement) => measurement.score < 0.25,
-  ).length;
+  const { medianSamples, medianMs, spreadMs, weakCount } = summarizeCalibration(
+    result.calibration,
+  );
 
   const previewMutation = useMutation({
     mutationFn: (variant: PreviewVariant) =>
@@ -403,6 +409,11 @@ function ResultsView({
         />
       </div>
 
+      <DiagnosticsView
+        title="Recorded diagnostics"
+        diagnostics={result.diagnostics}
+        result={result}
+      />
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-7">
         <div>
           <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
@@ -459,6 +470,169 @@ function ResultsView({
         </div>
       </div>
     </>
+  );
+}
+
+function LiveDiagnostics({
+  runtime,
+  channel,
+}: {
+  runtime: LatencyCheckerRuntime;
+  channel: number;
+}) {
+  const [diagnostics, setDiagnostics] = useState<LatencyDiagnostics>();
+  useEffect(() => {
+    const refresh = () => setDiagnostics(runtime.getDiagnostics({ channel }));
+    refresh();
+    const timer = window.setInterval(refresh, 1000);
+    return () => window.clearInterval(timer);
+  }, [runtime, channel]);
+  return (
+    diagnostics && (
+      <DiagnosticsView
+        title="Browser latency estimates"
+        diagnostics={diagnostics}
+      />
+    )
+  );
+}
+
+function DiagnosticsView({
+  title,
+  diagnostics,
+  result,
+}: {
+  title: string;
+  diagnostics: LatencyDiagnostics;
+  result?: LatencyResult;
+}) {
+  const estimateMs = estimateLatencyMs(diagnostics);
+  const summary = result && summarizeCalibration(result.calibration);
+  const residualMs =
+    summary?.reliable && estimateMs !== undefined
+      ? summary.medianMs - estimateMs
+      : undefined;
+  const copyMutation = useMutation({
+    mutationFn: () =>
+      navigator.clipboard.writeText(
+        JSON.stringify(
+          createDiagnosticReport({
+            diagnostics,
+            endDiagnostics: result?.endDiagnostics,
+            calibration: result?.calibration,
+          }),
+          undefined,
+          2,
+        ),
+      ),
+  });
+  const formatMs = (seconds?: number) =>
+    seconds !== undefined && Number.isFinite(seconds) && seconds >= 0
+      ? `${(seconds * 1000).toFixed(3)} ms`
+      : "Unavailable";
+  const formatSetting = (value?: number | boolean | string) =>
+    value === undefined
+      ? "Unavailable"
+      : typeof value === "boolean"
+        ? value
+          ? "On"
+          : "Off"
+        : String(value);
+  const formatRate = (value?: number) =>
+    value === undefined ? "Unavailable" : `${value} Hz`;
+  return (
+    <section
+      aria-label={title}
+      className="my-6 rounded-lg border border-neutral-700 bg-neutral-900/50 p-4"
+    >
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <h3 className="text-sm font-semibold text-neutral-200">{title}</h3>
+        <Button
+          onClick={() => copyMutation.mutate()}
+          disabled={copyMutation.isPending}
+          className="border-neutral-600 px-3 py-1 text-xs"
+        >
+          Copy diagnostic report
+        </Button>
+      </div>
+      <p className="mb-3 text-xs leading-5 text-neutral-400">
+        {result
+          ? "Readings captured at the start of this test. The report also includes end readings."
+          : "Live readings from this input and audio context, refreshed every second."}{" "}
+        The candidate sum is base + output + input latency. It excludes
+        processing inside the audio graph and does not change compensation.
+      </p>
+      <dl className="grid grid-cols-3 gap-x-5 gap-y-3 text-xs">
+        {[
+          ["Base latency", formatMs(diagnostics.baseLatency)],
+          ["Output latency", formatMs(diagnostics.outputLatency)],
+          ["Input latency", formatMs(diagnostics.inputLatency)],
+          [
+            "Candidate estimate",
+            estimateMs === undefined
+              ? "Incomplete"
+              : `${estimateMs.toFixed(3)} ms`,
+          ],
+          ["Context sample rate", formatRate(diagnostics.contextSampleRate)],
+          ["Input sample rate", formatRate(diagnostics.inputSampleRate)],
+          ...(result
+            ? [
+                [
+                  "Measured minus estimate",
+                  residualMs === undefined
+                    ? summary?.reliable
+                      ? "Unavailable: incomplete estimate"
+                      : "Unavailable: weak detection"
+                    : `${formatSigned(residualMs, 3)} ms`,
+                ],
+              ]
+            : []),
+        ].map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-neutral-400">{label}</dt>
+            <dd className="mt-1 font-mono text-neutral-100">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <details className="mt-4 text-xs text-neutral-400">
+        <summary className="cursor-pointer">Input and output details</summary>
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2">
+          {[
+            ["Input", diagnostics.inputLabel || "Unlabeled input"],
+            ["Output", diagnostics.outputRoute],
+            ["Selected channel", String(diagnostics.selectedChannel + 1)],
+            [
+              "Reported input channels",
+              formatSetting(diagnostics.inputChannelCount),
+            ],
+            [
+              "Observed input channels",
+              String(diagnostics.observedChannelCount),
+            ],
+            ["Echo cancellation", formatSetting(diagnostics.echoCancellation)],
+            ["Noise suppression", formatSetting(diagnostics.noiseSuppression)],
+            [
+              "Automatic gain control",
+              formatSetting(diagnostics.autoGainControl),
+            ],
+            ["Context state", diagnostics.contextState],
+          ].map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt>{label}</dt>
+              <dd className="text-neutral-200">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+      {copyMutation.isSuccess && (
+        <p role="status" className="mt-3 text-xs text-emerald-400">
+          Diagnostic report copied.
+        </p>
+      )}
+      {copyMutation.error && (
+        <ErrorMessage>{copyMutation.error.message}</ErrorMessage>
+      )}
+    </section>
   );
 }
 
@@ -568,14 +742,6 @@ function ErrorMessage({ children }: { children: ReactNode }) {
       {children}
     </p>
   );
-}
-
-function calculateMedian(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2
-    ? sorted[middle]
-    : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 function formatSigned(value: number, digits = 2) {
