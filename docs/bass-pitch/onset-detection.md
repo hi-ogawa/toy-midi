@@ -2,7 +2,7 @@
 
 A bass line can strike the same pitch several times without falling silent between notes. Pitch tracking sees little change, and a loudness gate may stay open throughout. To separate those notes, we need evidence of a fresh attack within an already sounding region.
 
-An attack often renews energy across several frequencies, including upper harmonics that had faded during the previous note. Comparing successive short-time spectra lets us detect that renewal even when the fundamental pitch stays the same. Our **mel-banded log spectral flux** is one way to turn those changes into a single onset score. Each part of the name is a choice about which changes should count.
+An attack often renews energy across several frequencies, including upper harmonics that had faded during the previous note. Comparing successive short-time spectra lets us detect that renewal even when the fundamental pitch stays the same. The [Python reference](../../tools/bass-pitch/main.py) uses librosa’s `onset_strength` for this, and the Rust implementation follows its **mel-banded log spectral flux** construction with simplified band aggregation. Each part of the name describes which changes contribute to the onset score.
 
 ## Compare Energy at a Useful Frequency Resolution
 
@@ -56,7 +56,7 @@ In this example, the band changes are $(-3,0,6,3)$ dB. Their positive parts are 
 
 The [Rust implementation](../../crates/bass-pitch/src/lib.rs) uses 2048-sample windows at 22050 Hz, advanced by 256 samples. Each comparison therefore sees about 93 ms of audio and updates every 11.6 ms. It floors log power at 80 dB below the excerpt's peak, in addition to an absolute numerical floor, and suppresses flux far below the peak as rounding noise.
 
-A centered window sees an attack before its center reaches it. The implementation delays the resulting score by half a window to compensate for this lookahead, though the exact peak position still depends on the signal. It then divides by the 95th percentile of positive flux values and clips to $[0,1]$. This sets a relative scale within the excerpt, rather than a probability of a new note.
+A centered window sees an attack before its center reaches it. The implementation delays the resulting score by half a window to compensate for this lookahead, though the exact peak position still depends on the signal. Our pipeline then adds normalization by the 95th percentile of positive flux values and clips to $[0,1]$. This step comes from the Python evaluation harness, rather than librosa’s `onset_strength`. This sets a relative scale within the excerpt, rather than a probability of a new note.
 
 This normalization is an empirical heuristic with no established calibration to attack strength. Changing other parts of the excerpt can change the denominator and therefore the split decision for the same local flux. Even weak fluctuations can reach 1 if they form the excerpt's upper tail. The peak-relative floors add further excerpt dependence. [Issue #253](https://github.com/hi-ogawa/toy-midi/issues/253) tracks evaluation of these effects and possible alternatives. No replacement has been selected.
 
