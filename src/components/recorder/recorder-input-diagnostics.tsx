@@ -1,7 +1,5 @@
-import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
-import { Button } from "../ui/button";
 
 export function InputDiagnostics({ runtime }: { runtime: RecorderRuntime }) {
   const [open, setOpen] = useState(false);
@@ -17,57 +15,55 @@ export function InputDiagnostics({ runtime }: { runtime: RecorderRuntime }) {
 }
 
 function Readings({ runtime }: { runtime: RecorderRuntime }) {
-  const [report, setReport] = useState(() => readReport(runtime));
+  const [, refresh] = useReducer((value: number) => value + 1, 0);
   useEffect(() => {
-    const timer = window.setInterval(
-      () => setReport(readReport(runtime)),
-      1000,
-    );
+    const timer = window.setInterval(refresh, 1000);
     return () => window.clearInterval(timer);
-  }, [runtime]);
-  const copy = useMutation({
-    mutationFn: () => {
-      const latest = readReport(runtime);
-      setReport(latest);
-      return navigator.clipboard.writeText(
-        JSON.stringify(latest, undefined, 2),
-      );
-    },
-  });
+  }, []);
+  const state = runtime.store.get();
+  const context = runtime.context;
+  const track = runtime.captureInput?.stream.getAudioTracks()[0];
+  const settings: (MediaTrackSettings & { latency?: number }) | undefined =
+    track?.getSettings();
+  const latencies = [
+    context.baseLatency,
+    context.outputLatency,
+    settings?.latency,
+  ];
+  const candidateLatency = latencies.every(
+    (value) => value !== undefined && Number.isFinite(value) && value >= 0,
+  )
+    ? latencies.reduce<number>((sum, value) => sum + value!, 0)
+    : undefined;
   const rows = [
-    ["Context", report.context.state],
-    ["Context sample rate", formatRate(report.context.sampleRate)],
-    ["Base latency", formatLatency(report.context.baseLatency)],
-    ["Output latency", formatLatency(report.context.outputLatency)],
-    ["Input latency", formatLatency(report.input?.latency)],
+    ["Context", context.state],
+    ["Context sample rate", formatRate(context.sampleRate)],
+    ["Base latency", formatLatency(context.baseLatency)],
+    ["Output latency", formatLatency(context.outputLatency)],
+    ["Input latency", formatLatency(settings?.latency)],
     [
       "Candidate estimate",
-      report.candidateLatency === undefined
+      candidateLatency === undefined
         ? "Incomplete"
-        : formatLatency(report.candidateLatency),
+        : formatLatency(candidateLatency),
     ],
-    ["Applied compensation", formatLatency(report.latencyCompensation)],
-    [
-      "Input",
-      report.input ? report.input.label || "Unlabeled input" : "Input disabled",
-    ],
-    ["Input sample rate", formatRate(report.input?.sampleRate)],
+    ["Input", track ? track.label || "Unlabeled input" : "Input disabled"],
+    ["Input sample rate", formatRate(settings?.sampleRate)],
     [
       "Selected channel",
-      report.input ? String(report.selectedChannel + 1) : "Unavailable",
+      track ? String(state.selectedChannel + 1) : "Unavailable",
     ],
     [
       "Reported / observed channels",
-      report.input
-        ? `${formatSetting(report.input.channelCount)} / ${report.observedChannelCount}`
+      track
+        ? `${formatSetting(settings?.channelCount)} / ${state.inputChannelCount}`
         : "Unavailable",
     ],
-    ["Capture", report.captureStatus],
-    ["Monitoring", formatSetting(report.inputMonitoring)],
-    ["Echo cancellation", formatSetting(report.input?.echoCancellation)],
-    ["Noise suppression", formatSetting(report.input?.noiseSuppression)],
-    ["Automatic gain control", formatSetting(report.input?.autoGainControl)],
-    ["Output", report.outputRoute],
+    ["Capture", state.captureStatus],
+    ["Monitoring", formatSetting(state.inputMonitoring)],
+    ["Echo cancellation", formatSetting(settings?.echoCancellation)],
+    ["Noise suppression", formatSetting(settings?.noiseSuppression)],
+    ["Automatic gain control", formatSetting(settings?.autoGainControl)],
   ];
   return (
     <section aria-label="Audio debug readings" className="mt-3 space-y-3">
@@ -81,47 +77,6 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
       </dl>
     </section>
   );
-}
-
-function readReport(runtime: RecorderRuntime) {
-  const state = runtime.store.get();
-  const track = runtime.captureInput?.stream.getAudioTracks()[0];
-  const settings: (MediaTrackSettings & { latency?: number }) | undefined =
-    track?.getSettings();
-  // Keep device/group identifiers out of the copyable report.
-  const input =
-    track && settings
-      ? {
-          label: track.label,
-          latency: settings.latency,
-          sampleRate: settings.sampleRate,
-          channelCount: settings.channelCount,
-          echoCancellation: settings.echoCancellation,
-          noiseSuppression: settings.noiseSuppression,
-          autoGainControl: settings.autoGainControl,
-        }
-      : undefined;
-  const { baseLatency, outputLatency, sampleRate } = runtime.context;
-  const latencies = [baseLatency, outputLatency, input?.latency];
-  const candidateLatency = latencies.every(
-    (value) => value !== undefined && Number.isFinite(value) && value >= 0,
-  )
-    ? latencies.reduce<number>((sum, value) => sum + value!, 0)
-    : undefined;
-  return {
-    context: {
-      state: runtime.context.state,
-      sampleRate,
-      baseLatency,
-      outputLatency,
-    },
-    input,
-    captureStatus: state.captureStatus,
-    selectedChannel: state.selectedChannel,
-    observedChannelCount: state.inputChannelCount,
-    inputMonitoring: state.inputMonitoring,
-    candidateLatency,
-  };
 }
 
 function formatLatency(seconds?: number) {
