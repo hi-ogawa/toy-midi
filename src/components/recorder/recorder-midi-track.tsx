@@ -72,6 +72,7 @@ export function MidiTrackRow({
   midiInteraction,
   onTranscribe,
   onScorePreview,
+  onProgramSelected,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -85,11 +86,13 @@ export function MidiTrackRow({
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
   onScorePreview: () => void;
+  onProgramSelected: (program: number) => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
   const programMutation = useMutation({
     mutationFn: (program: number) =>
       runtime.setMidiTrackProgram(track.id, program),
+    onSuccess: (_data, program) => onProgramSelected(program),
   });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -206,6 +209,7 @@ export function MidiTrackRow({
         )}
       </TrackRow>
       <PortalDialog
+        data-testid="recorder-midi-instrument"
         isOpen={isInstrumentOpen}
         title={`${track.name} instrument`}
         onClose={() => setIsInstrumentOpen(false)}
