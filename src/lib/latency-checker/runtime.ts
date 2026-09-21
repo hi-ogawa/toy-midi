@@ -1,26 +1,11 @@
 import { AudioAnalyser } from "../audio-analyser.ts";
-import { dbToGain } from "../music.ts";
-import {
-  analyzeCalibration,
-  type CalibrationResult,
-  createCalibrationPlayback,
-  createClickTemplate,
-  createPlaybackBuffers,
-} from "./calibration.ts";
+import type { CalibrationResult } from "./calibration.ts";
 import {
   type CaptureChunk,
   CaptureWorkletClient,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
-
-const CALIBRATION_CLICK_COUNT = 7;
-const CALIBRATION_CLICK_INTERVAL = 0.7;
-// Begin capture before playback so the worklet is active at the first onset.
-const CALIBRATION_LEAD_TIME = 0.55;
-// Leave 200 ms before the next probe so each latency search remains isolated.
-const CALIBRATION_MAX_LATENCY = 0.5;
-// Keep capture running after the final click to include delayed input.
-const CALIBRATION_TAIL_TIME = CALIBRATION_MAX_LATENCY;
+import { auditionCalibration, measureLatency } from "./session";
 
 export type LatencyResult = {
   calibration: CalibrationResult;
@@ -39,9 +24,9 @@ export class LatencyCheckerRuntime {
   inputAnalyser?: AudioAnalyser;
   private activeSilentGain?: GainNode;
   private activeSettings?: MediaTrackSettings;
-  private activePreviewSources: AudioBufferSourceNode[] = [];
-  private finishPreview?: () => void;
-  private captureChunks?: CaptureChunk[];
+  private previewController?: AbortController;
+  private calibrationController?: AbortController;
+  private onCaptureSamples?: (chunk: CaptureChunk) => void;
   private detectedChannelCount = 0;
 
   async requestAccess() {
@@ -73,8 +58,8 @@ export class LatencyCheckerRuntime {
       onNotification: (message) => {
         // Sample messages arrive continuously only while calibration capture is
         // active; meter and channel discovery remain active while monitoring.
-        if (message.type === "samples" && this.captureChunks) {
-          this.captureChunks.push(message);
+        if (message.type === "samples") {
+          this.onCaptureSamples?.(message);
         }
         if (message.type === "channels") {
           this.detectedChannelCount = message.value;
@@ -103,6 +88,7 @@ export class LatencyCheckerRuntime {
   }
 
   stopMonitoring() {
+    this.calibrationController?.abort();
     this.activeSource?.disconnect();
     this.captureWorklet?.dispose();
     this.inputAnalyser?.dispose();
@@ -114,7 +100,7 @@ export class LatencyCheckerRuntime {
     this.inputAnalyser = undefined;
     this.activeSilentGain = undefined;
     this.activeSettings = undefined;
-    this.captureChunks = undefined;
+    this.onCaptureSamples = undefined;
     this.detectedChannelCount = 0;
   }
 
@@ -139,59 +125,32 @@ export class LatencyCheckerRuntime {
     }
     const context = await this.ensureAudioContext();
     this.setChannel(channel);
-    const chunks: CaptureChunk[] = [];
-    this.captureChunks = chunks;
+    const worklet = this.captureWorklet;
+    const settings = this.activeSettings;
+    const channelCount = this.detectedChannelCount;
+    const controller = new AbortController();
+    this.calibrationController = controller;
     try {
-      await this.captureWorklet.setActive(true);
-      const template = createClickTemplate(context.sampleRate);
-      const amplitude = dbToGain(outputLevel);
-      const startTime = context.currentTime + CALIBRATION_LEAD_TIME;
-      const playback = createCalibrationPlayback({
-        amplitude,
-        clickCount: CALIBRATION_CLICK_COUNT,
-        clickInterval: CALIBRATION_CLICK_INTERVAL,
-        sampleRate: context.sampleRate,
-        startTime,
-        tailTime: CALIBRATION_TAIL_TIME,
-        template,
-      });
-      const clickSource = context.createBufferSource();
-      clickSource.buffer = toAudioBuffer(
+      const calibration = await measureLatency({
         context,
-        playback.samples,
-        context.sampleRate,
-      );
-      clickSource.connect(context.destination);
-      const playbackEnded = Promise.withResolvers<void>();
-      clickSource.addEventListener("ended", () => playbackEnded.resolve(), {
-        once: true,
-      });
-      clickSource.start(startTime);
-      await playbackEnded.promise;
-      await this.captureWorklet.setActive(false);
-
-      const analysis = analyzeCalibration({
-        chunks,
-        maxLatency: CALIBRATION_MAX_LATENCY,
-        playback,
-        sampleRate: context.sampleRate,
-        template,
-      });
-      const result: LatencyResult = {
-        calibration: {
-          analysis,
-          playback,
-          sampleRate: context.sampleRate,
+        capture: {
+          start: () => worklet.setActive(true),
+          stop: () => worklet.setActive(false),
+          subscribe: (listener) => {
+            this.onCaptureSamples = listener;
+            return () => {
+              this.onCaptureSamples = undefined;
+            };
+          },
         },
-        channelCount: this.detectedChannelCount,
-        settings: this.activeSettings,
-      };
-      return result;
+        outputLevel,
+        signal: controller.signal,
+      });
+      return { calibration, channelCount, settings };
     } finally {
-      if (this.captureWorklet?.active) {
-        void this.captureWorklet.setActive(false).catch(() => {});
+      if (this.calibrationController === controller) {
+        this.calibrationController = undefined;
       }
-      this.captureChunks = undefined;
     }
   }
 
@@ -206,41 +165,14 @@ export class LatencyCheckerRuntime {
   }) {
     const context = await this.ensureAudioContext();
     this.stopPreview();
-    const sampleRate = result.calibration.sampleRate;
-    const compensationSamples = Math.round(
-      (compensationMs * sampleRate) / 1000,
-    );
-    const buffers = createPlaybackBuffers({
+    const controller = new AbortController();
+    this.previewController = controller;
+    await auditionCalibration({
+      context,
       result: result.calibration,
-      compensationSamples,
-    });
-    const when = context.currentTime + 0.08;
-
-    const start = (samples: Float32Array, gainValue: number) => {
-      const source = context.createBufferSource();
-      const gain = context.createGain();
-      source.buffer = toAudioBuffer(context, samples, sampleRate);
-      gain.gain.value = gainValue;
-      source.connect(gain).connect(context.destination);
-      source.start(when);
-      this.activePreviewSources.push(source);
-    };
-
-    start(buffers.reference, 0.58);
-    start(variant === "raw" ? buffers.raw : buffers.compensated, 0.58);
-    await new Promise<void>((resolve) => {
-      let remaining = this.activePreviewSources.length;
-      this.finishPreview = resolve;
-      for (const source of this.activePreviewSources) {
-        source.addEventListener("ended", () => {
-          remaining--;
-          if (remaining === 0 && this.finishPreview === resolve) {
-            this.activePreviewSources = [];
-            this.finishPreview = undefined;
-            resolve();
-          }
-        });
-      }
+      variant,
+      compensationMs,
+      signal: controller.signal,
     });
   }
 
@@ -253,14 +185,8 @@ export class LatencyCheckerRuntime {
   }
 
   stopPreview() {
-    for (const source of this.activePreviewSources) {
-      try {
-        source.stop();
-      } catch {}
-    }
-    this.activePreviewSources = [];
-    this.finishPreview?.();
-    this.finishPreview = undefined;
+    this.previewController?.abort();
+    this.previewController = undefined;
   }
 
   private async ensureAudioContext() {
@@ -299,16 +225,6 @@ function captureConstraints(deviceId?: string): MediaStreamConstraints {
     },
     video: false,
   };
-}
-
-function toAudioBuffer(
-  context: AudioContext,
-  samples: Float32Array,
-  sampleRate: number,
-) {
-  const buffer = context.createBuffer(1, samples.length, sampleRate);
-  buffer.getChannelData(0).set(samples);
-  return buffer;
 }
 
 async function withTimeout<T>({

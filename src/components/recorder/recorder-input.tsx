@@ -1,4 +1,5 @@
 import { CircleHelpIcon, Mic2Icon } from "lucide-react";
+import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
@@ -7,6 +8,7 @@ import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
+import { InputCalibration } from "./recorder-input-calibration";
 import { InputDiagnostics } from "./recorder-input-diagnostics";
 
 export function InputSetup({
@@ -48,7 +50,8 @@ export function InputSetup({
   onChannelChange: (channel: number) => void;
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
-  const disabled = mutationPending || isRecording;
+  const [calibrating, setCalibrating] = useState(false);
+  const disabled = mutationPending || isRecording || calibrating;
   const latencyInput = useDraftInput({
     value: latencyCompensation * 1000,
     onCommit: (milliseconds) =>
@@ -174,6 +177,7 @@ export function InputSetup({
             <input
               type="text"
               inputMode="numeric"
+              disabled={disabled}
               {...latencyInput.props}
               className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
             />
@@ -182,6 +186,15 @@ export function InputSetup({
         </label>
       </div>
 
+      {inputActive && (
+        <InputCalibration
+          key={`${runtime.captureInput?.stream.id}:${selectedChannel}`}
+          runtime={runtime}
+          disabled={mutationPending || isRecording}
+          onBusyChange={setCalibrating}
+          onApply={onLatencyCompensationChange}
+        />
+      )}
       <InputDiagnostics runtime={runtime} />
 
       {error && (

@@ -1,6 +1,7 @@
 import { AudioAnalyser } from "../audio-analyser.ts";
 import { TunerAnalyser } from "../tuner-analyser.ts";
 import {
+  type CaptureChunk,
   CaptureWorkletClient,
   type CaptureWorkletNotification,
   createCaptureWorkletSource,
@@ -22,6 +23,7 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 
 export class CaptureInput {
   readonly stream: MediaStream;
+  private readonly sampleListeners = new Set<(chunk: CaptureChunk) => void>();
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
@@ -89,7 +91,14 @@ export class CaptureInput {
     this.source = context.createMediaStreamSource(stream);
     this.worklet = new CaptureWorkletClient({
       context,
-      onNotification,
+      onNotification: (message) => {
+        if (message.type === "samples") {
+          for (const listener of this.sampleListeners) {
+            listener(message);
+          }
+        }
+        onNotification(message);
+      },
     });
     this.analyser = new AudioAnalyser(context);
     this.tunerAnalyser = new TunerAnalyser(context);
@@ -123,6 +132,13 @@ export class CaptureInput {
     );
   }
 
+  subscribeSamples(listener: (chunk: CaptureChunk) => void): () => void {
+    this.sampleListeners.add(listener);
+    return () => {
+      this.sampleListeners.delete(listener);
+    };
+  }
+
   startCapture(): Promise<number> {
     return this.worklet.start();
   }
@@ -132,6 +148,7 @@ export class CaptureInput {
   }
 
   dispose(): void {
+    this.sampleListeners.clear();
     this.source.disconnect();
     this.worklet.dispose();
     this.analyser.dispose();
