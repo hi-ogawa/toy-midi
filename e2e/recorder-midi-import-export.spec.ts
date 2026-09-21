@@ -51,9 +51,9 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
 
   // Keep the destination's bass instrument despite the imported violin program.
   await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await expect(
-    instrument.getByRole("combobox", { name: / program$/ }),
-  ).toContainText("33: Electric Bass (finger)");
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Export the track and verify the downloaded MIDI contains the imported note.
