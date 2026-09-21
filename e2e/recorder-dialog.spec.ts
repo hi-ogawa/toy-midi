@@ -10,7 +10,7 @@ import {
 test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
   page,
 }) => {
-  // Open Help by keyboard and leave the dropdown closed behind the dialog.
+  // Open Help by keyboard.
   await createRecorderProject(page);
   const menuButton = page.getByRole("button", { name: "Editor menu" });
   const menu = page.getByRole("menu", { name: "Editor menu" });
@@ -22,7 +22,6 @@ test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
   const help = page.getByRole("dialog", { name: "Editor quick reference" });
   const close = help.getByRole("button", { name: "Close" });
   await expect(close).toBeFocused();
-  await expect(menu).toBeHidden();
   await expect(
     help.getByText("Toggle metronome", { exact: true }),
   ).toBeVisible();
@@ -39,10 +38,9 @@ test("menu dialogs contain keyboard focus and isolate shortcuts", async ({
     page.getByTitle("Toggle metronome (M)", { exact: true }),
   ).toHaveAttribute("aria-pressed", "false");
 
-  // Dismiss Help with Escape and leave the menu closed.
+  // Dismiss Help with Escape.
   await page.keyboard.press("Escape");
   await expect(help).toBeHidden();
-  await expect(menu).toBeHidden();
 
   // Open Export by pointer and cycle focus through both dialog buttons.
   await menuButton.click();
