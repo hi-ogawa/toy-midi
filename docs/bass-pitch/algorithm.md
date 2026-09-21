@@ -24,17 +24,11 @@ The onset score measures positive changes in log spectral power, grouped into fr
 
 ### Pitch Labels Each Region
 
-For a region, let $T$ contain the frames that pYIN marks voiced and gives a finite frequency. Let $m_t$ be frame $t$'s pitch rounded to the nearest MIDI note, and $v_t$ its voiced probability. Accumulate a score for each candidate note $m$, then select a candidate $\hat m$ with the largest score:
+Within each region, round the voiced frame estimates to MIDI notes and group them by note. Add their confidence-derived weights within each group, then use the note with the largest total for the entire region. Several agreeing frames can therefore outweigh one stronger vote for a different pitch.
 
-$$
-S(m)=\sum_{t\in T}(0.1+0.9v_t)\mathbf{1}_{\{m_t=m\}},
-\qquad
-S(\hat m)=\max_{m\in\{m_t:t\in T\}} S(m).
-$$
+![Three illustrative frame votes are grouped by note. Two D1 votes with weights 0.8 and 0.6 total 1.4, beating one D2 vote with weight 0.9. The whole region is labeled D1.](images/region-pitch-vote.svg)
 
-The indicator counts a frame only toward its rounded note. For example, two D1 frames with probabilities 0.8 and 0.6 contribute $0.82+0.64=1.46$, beating a D2 frame with probability 0.9 and weight 0.91. The entire region becomes one D1 note. Ties choose the lower MIDI note. These are heuristic vote weights, not probabilities that the resulting note is correct. The [pYIN article](pyin.md) explains how the frame estimates and probabilities arise.
-
-The positive weight floor keeps low-confidence estimates in the vote. It does not guarantee that every active region receives a pitch. If no frame supplies a finite voiced estimate, the region remains visible in the activity and onset diagnostics but is omitted from the final pitched output.
+Only frames with a finite, decoded voiced pitch participate. Low confidence reduces a vote's weight without removing it, but a region with no eligible frames is omitted from the final pitched output. These weights are heuristic scores, not probabilities that the resulting note is correct. The [pYIN article](pyin.md) explains the frame estimates and confidence signal.
 
 ## Controls in toy-midi
 
@@ -65,5 +59,7 @@ The [Rust core](../../crates/bass-pitch/src/lib.rs) analyzes mono audio at 22.05
 | Segmentation | Maximum cell onset score splits active runs.                                                                                  | `calculate_onset_strength`, `make_activity_onset_notes` |
 | Pitch        | Weighted vote over voiced frames in each region.                                                                              | `calculate_pyin_frames`, `assign_region_pitches`        |
 | Output       | Convert project-time notes to MIDI ticks and expose intermediate decisions.                                                   | `midi_bytes`, `diagnostics_csv`                         |
+
+Pitch voting currently uses weight $0.1+0.9v$ for voiced probability $v$, and ties choose the lower MIDI note. The 0.1 floor is a heuristic that retains a small contribution from every eligible frame.
 
 pYIN runs in roughly 10-second chunks with 32 context frames on each side, which are discarded after decoding. This permits progress reporting but limits the sequence model's context. RMS and onset analysis use the whole excerpt, including the excerpt-wide onset normalization. The [guide](README.md#development-and-diagnostics) describes the CLI, intermediate MIDI, and CSV diagnostics used to inspect each decision.
