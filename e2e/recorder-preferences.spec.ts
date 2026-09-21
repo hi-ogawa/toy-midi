@@ -57,9 +57,9 @@ test("remembers the instrument preference without changing saved tracks", async 
   await createRecorderProject(page);
   await addRecorderMidiTrack(page);
   await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await expect(
-    instrument.getByRole("combobox", { name: / program$/ }),
-  ).toContainText("33: Electric Bass (finger)");
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
   await selectRecorderMidiInstrument({
     instrument,
     option: "40: Violin",
@@ -70,9 +70,9 @@ test("remembers the instrument preference without changing saved tracks", async 
   // Reload the bass project and preserve its saved instrument.
   await page.goto(firstUrl);
   await openRecorderMidiInstrument({ page, name: "MIDI 1" });
-  await expect(
-    instrument.getByRole("combobox", { name: / program$/ }),
-  ).toContainText("33: Electric Bass (finger)");
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "33: Electric Bass (finger)",
+  );
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Add a track with the persisted violin preference despite loading the bass track.
@@ -81,7 +81,7 @@ test("remembers the instrument preference without changing saved tracks", async 
     page,
     name: "MIDI 2",
   });
-  await expect(
-    newInstrument.getByRole("combobox", { name: / program$/ }),
-  ).toContainText("40: Violin");
+  await expect(newInstrument.getByTestId("instrument-select")).toContainText(
+    "40: Violin",
+  );
 });
