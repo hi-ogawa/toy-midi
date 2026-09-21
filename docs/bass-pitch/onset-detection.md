@@ -4,25 +4,33 @@ A bass line can strike the same pitch several times without falling silent betwe
 
 An attack often renews energy across several frequencies, including upper harmonics that had faded during the previous note. Comparing successive short-time spectra lets us detect that renewal even when the fundamental pitch stays the same. The [Python reference](../../tools/bass-pitch/main.py) uses librosa’s `onset_strength` for this, and the Rust implementation follows its **mel-banded log spectral flux** construction with simplified band aggregation. Each part of the name describes which changes contribute to the onset score.
 
-## Compare Energy at a Useful Frequency Resolution
+## Compare Band Power at a Useful Frequency Resolution
 
 Take one short, windowed piece of audio, called a **frame**, and compute its Fourier transform. The FFT returns complex coefficients at equally spaced frequencies. Each frequency position is a **bin**, and the squared magnitude of its coefficient measures power there. With our 2048-sample frames at 22050 Hz, neighboring bins are about 10.8 Hz apart.
 
-We want to compare energy in frequency intervals, called **bands**, rather than track every bin separately. Mel spacing chooses narrow intervals at low frequencies and wider ones at high frequencies, without crowding the low end as strongly as a pure logarithmic scale.
+We want to compare squared magnitudes over frequency intervals, called **bands**, rather than track every bin separately. Mel spacing chooses narrow intervals at low frequencies and wider ones at high frequencies, without crowding the low end as strongly as a pure logarithmic scale.
 
 ![Ten equal steps in linear frequency, mel, and log frequency mapped onto the same Hz axis. Mel bands widen toward high frequencies, while pure log bands crowd more tightly near zero.](images/mel-band-spacing.svg)
 
 The figure uses ten bands to make the spacing visible. The implementation uses 128 equal steps in the HTK mel coordinate $m(f)=2595\log_{10}(1+f/700)$, from zero to Nyquist. This curve is approximately linear at low frequencies and logarithmic at high frequencies.
 
-With those intervals chosen, sum the powers of the FFT bins inside each band. In the illustration below, band A contains bins 0 and 1, so its power is $2+5=7$.
+With those intervals chosen, square each Fourier coefficient’s magnitude and sum within each band. We call this sum **band power**, using a common FFT scale rather than calibrated physical units. In the illustration below, band A contains bins 0 and 1, so its power is $2+5=7$.
 
 ![Equally spaced FFT bins grouped into three illustrative frequency bands. Summing the bin powers produces one value per band, with totals 7, 7, and 13.](images/fft-bins-and-bands.svg)
 
 If $X_t(k)$ is the FFT coefficient of bin $k$ in frame $t$, and $\mathcal{B}_b$ is the set of bins in band $b$, this sum is
 
 $$
-E_t(b)=\sum_{k\in\mathcal{B}_b}|X_t(k)|^2.
+P_t(b)=\sum_{k\in\mathcal{B}_b}|X_t(k)|^2.
 $$
+
+The square-and-sum operation is the frequency-domain counterpart of summing squared samples. Parseval’s identity makes the connection explicit: for the full, unnormalized FFT of an $N$-sample window $x_w$,
+
+$$
+\sum_n |x_w[n]|^2=\frac{1}{N}\sum_k |X[k]|^2.
+$$
+
+Restricting the frequency sum isolates a band’s contribution. The detector uses a one-sided FFT on a common scale; exact energy accounting would also weight interior bins for their negative-frequency partners.
 
 Repeat the Fourier transform as the window moves along the audio to obtain a short-time Fourier transform (STFT), then compare each band's power between successive frames. Pooling bins first makes the comparison less sensitive to power redistribution within a band. Two bins changing from $(10,2)$ to $(8,4)$ retain total power $12$, although counting positive bin changes separately would report an increase of $2$. Changes crossing band boundaries can still contribute.
 
@@ -30,10 +38,10 @@ Our Rust implementation uses these simple band sums. [Librosa defaults](https://
 
 ## Measure Relative Growth and Discard Decay
 
-Raw power differences favor already strong bands. We instead express band power logarithmically, using $\ell_t(b)=10\log_{10}E_t(b)$. Away from the floor used near silence, its change is
+Raw power differences favor already strong bands. We instead express band power logarithmically, using $\ell_t(b)=10\log_{10}P_t(b)$. Away from the floor used near silence, its change is
 
 $$
-\ell_t(b)-\ell_{t-1}(b)=10\log_{10}\frac{E_t(b)}{E_{t-1}(b)}.
+\ell_t(b)-\ell_{t-1}(b)=10\log_{10}\frac{P_t(b)}{P_{t-1}(b)}.
 $$
 
 Thus doubling power contributes about $3$ dB whether a band goes from $1$ to $2$ or from $100$ to $200$. The score responds to proportional renewal, so weak upper harmonics can contribute alongside a strong fundamental. A constant recording gain also cancels from this ratio. Near silence, a floor is essential to keep tiny powers from producing large log differences.
