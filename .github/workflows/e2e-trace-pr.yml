@@ -59,10 +59,26 @@ jobs:
               `[Workflow run](${runUrl})`,
             ].join("\n");
             await core.summary.addRaw(body).write();
-            await github.rest.issues.createComment({
+            // Read the current description and ignore results for an older PR head.
+            const { data: current } = await github.rest.pulls.get({
               ...context.repo,
-              issue_number: pr.number,
-              body,
+              pull_number: pr.number,
+            });
+            if (current.state !== "open" || current.head.sha !== pr.head.sha) {
+              return;
+            }
+            const start = "<!-- e2e-trace:start -->";
+            const end = "<!-- e2e-trace:end -->";
+            const commitUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${pr.head.sha}`;
+            const section = `${start}\nE2E trace · skipped (no changed specs) · [${pr.head.sha.slice(0, 8)}](${commitUrl}) · [run](${runUrl})\n${end}`;
+            const description = current.body ?? "";
+            const marker = /<!-- e2e-trace:start -->[\s\S]*?<!-- e2e-trace:end -->/;
+            await github.rest.pulls.update({
+              ...context.repo,
+              pull_number: pr.number,
+              body: marker.test(description)
+                ? description.replace(marker, () => section)
+                : `${description}${description ? "\n\n" : ""}${section}`,
             });
 
   trace:
