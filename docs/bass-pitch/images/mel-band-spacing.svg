@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="300" viewBox="0 0 960 300" role="img" aria-labelledby="title desc">
+<title id="title">Equal steps on three frequency scales</title><desc id="desc">Ten bands between 50 and 8000 Hz shown on the same linear frequency axis. Linear bands have equal widths. Mel bands widen gradually with frequency. Pure logarithmic bands crowd more tightly at the low end.</desc>
+<rect width="960" height="300" fill="white"/>
+<g font-family="sans-serif" font-size="14" fill="#334155">
+<text x="24" y="30" font-size="19" font-weight="bold">Equal steps on a scale give different band boundaries</text>
+<text x="24" y="56" fill="#64748b">All three rows use the same linear Hz axis. Each row divides 50–8000 Hz into ten bands.</text>
+
+<text x="24" y="111" font-weight="bold">Linear frequency</text>
+<rect x="190.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.13"/>
+<rect x="263.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.3"/>
+<rect x="336.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.13"/>
+<rect x="409.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.3"/>
+<rect x="482.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.13"/>
+<rect x="555.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.3"/>
+<rect x="628.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.13"/>
+<rect x="701.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.3"/>
+<rect x="774.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.13"/>
+<rect x="847.000" y="85" width="73.000" height="37" fill="#64748b" fill-opacity="0.3"/>
+<path d="M190.000 85v37" stroke="#64748b"/>
+<path d="M263.000 85v37" stroke="#64748b"/>
+<path d="M336.000 85v37" stroke="#64748b"/>
+<path d="M409.000 85v37" stroke="#64748b"/>
+<path d="M482.000 85v37" stroke="#64748b"/>
+<path d="M555.000 85v37" stroke="#64748b"/>
+<path d="M628.000 85v37" stroke="#64748b"/>
+<path d="M701.000 85v37" stroke="#64748b"/>
+<path d="M774.000 85v37" stroke="#64748b"/>
+<path d="M847.000 85v37" stroke="#64748b"/>
+<path d="M920.000 85v37" stroke="#64748b"/>
+<text x="24" y="166" font-weight="bold">Mel</text>
+<rect x="190.000" y="140" width="19.128" height="37" fill="#0f766e" fill-opacity="0.13"/>
+<rect x="209.128" y="140" width="24.441" height="37" fill="#0f766e" fill-opacity="0.3"/>
+<rect x="233.569" y="140" width="31.229" height="37" fill="#0f766e" fill-opacity="0.13"/>
+<rect x="264.798" y="140" width="39.903" height="37" fill="#0f766e" fill-opacity="0.3"/>
+<rect x="304.701" y="140" width="50.986" height="37" fill="#0f766e" fill-opacity="0.13"/>
+<rect x="355.688" y="140" width="65.148" height="37" fill="#0f766e" fill-opacity="0.3"/>
+<rect x="420.836" y="140" width="83.243" height="37" fill="#0f766e" fill-opacity="0.13"/>
+<rect x="504.078" y="140" width="106.363" height="37" fill="#0f766e" fill-opacity="0.3"/>
+<rect x="610.441" y="140" width="135.906" height="37" fill="#0f766e" fill-opacity="0.13"/>
+<rect x="746.347" y="140" width="173.653" height="37" fill="#0f766e" fill-opacity="0.3"/>
+<path d="M190.000 140v37" stroke="#0f766e"/>
+<path d="M209.128 140v37" stroke="#0f766e"/>
+<path d="M233.569 140v37" stroke="#0f766e"/>
+<path d="M264.798 140v37" stroke="#0f766e"/>
+<path d="M304.701 140v37" stroke="#0f766e"/>
+<path d="M355.688 140v37" stroke="#0f766e"/>
+<path d="M420.836 140v37" stroke="#0f766e"/>
+<path d="M504.078 140v37" stroke="#0f766e"/>
+<path d="M610.441 140v37" stroke="#0f766e"/>
+<path d="M746.347 140v37" stroke="#0f766e"/>
+<path d="M920.000 140v37" stroke="#0f766e"/>
+<text x="24" y="221" font-weight="bold">Log frequency</text>
+<rect x="190.000" y="195" width="3.036" height="37" fill="#2563eb" fill-opacity="0.13"/>
+<rect x="193.036" y="195" width="5.042" height="37" fill="#2563eb" fill-opacity="0.3"/>
+<rect x="198.078" y="195" width="8.376" height="37" fill="#2563eb" fill-opacity="0.13"/>
+<rect x="206.454" y="195" width="13.915" height="37" fill="#2563eb" fill-opacity="0.3"/>
+<rect x="220.369" y="195" width="23.114" height="37" fill="#2563eb" fill-opacity="0.13"/>
+<rect x="243.483" y="195" width="38.397" height="37" fill="#2563eb" fill-opacity="0.3"/>
+<rect x="281.880" y="195" width="63.783" height="37" fill="#2563eb" fill-opacity="0.13"/>
+<rect x="345.663" y="195" width="105.954" height="37" fill="#2563eb" fill-opacity="0.3"/>
+<rect x="451.617" y="195" width="176.007" height="37" fill="#2563eb" fill-opacity="0.13"/>
+<rect x="627.624" y="195" width="292.376" height="37" fill="#2563eb" fill-opacity="0.3"/>
+<path d="M190.000 195v37" stroke="#2563eb"/>
+<path d="M193.036 195v37" stroke="#2563eb"/>
+<path d="M198.078 195v37" stroke="#2563eb"/>
+<path d="M206.454 195v37" stroke="#2563eb"/>
+<path d="M220.369 195v37" stroke="#2563eb"/>
+<path d="M243.483 195v37" stroke="#2563eb"/>
+<path d="M281.880 195v37" stroke="#2563eb"/>
+<path d="M345.663 195v37" stroke="#2563eb"/>
+<path d="M451.617 195v37" stroke="#2563eb"/>
+<path d="M627.624 195v37" stroke="#2563eb"/>
+<path d="M920.000 195v37" stroke="#2563eb"/>
+<path d="M190.000 240v5" stroke="#64748b"/><text x="190.000" y="263" text-anchor="middle">50</text>
+<path d="M277.233 240v5" stroke="#64748b"/><text x="277.233" y="263" text-anchor="middle">1000</text>
+<path d="M369.057 240v5" stroke="#64748b"/><text x="369.057" y="263" text-anchor="middle">2000</text>
+<path d="M552.704 240v5" stroke="#64748b"/><text x="552.704" y="263" text-anchor="middle">4000</text>
+<path d="M736.352 240v5" stroke="#64748b"/><text x="736.352" y="263" text-anchor="middle">6000</text>
+<path d="M920.000 240v5" stroke="#64748b"/><text x="920.000" y="263" text-anchor="middle">8000</text>
+<text x="555" y="289" text-anchor="middle">Frequency (Hz)</text></g></svg>

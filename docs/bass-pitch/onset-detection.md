@@ -26,15 +26,13 @@ Now redistribution inside a band leaves its energy unchanged. This reduces false
 
 ### Mel Bands Allocate More Resolution to Low Frequencies
 
-Equal-width bands in hertz are not the only useful grouping. The **mel scale** is a perceptually motivated frequency coordinate that expands low frequencies relative to high ones. Our implementation uses
+The choice of frequency scale determines which bins get pooled together. Mel spacing gives narrow bands at low frequencies and wider bands at high frequencies, without crowding the low end as strongly as a pure logarithmic scale.
 
-$$
-m(f)=2595\log_{10}\left(1+\frac{f}{700}\right)
-$$
+![Ten equal steps in linear frequency, mel, and log frequency mapped onto the same Hz axis. Mel bands widen toward high frequencies, while pure log bands crowd more tightly near zero.](images/mel-band-spacing.svg)
 
-and divides this coordinate into 128 equal intervals, from zero to the Nyquist frequency. Each FFT bin belongs to one interval. These are simple band sums, rather than overlapping triangular filters.
+The figure uses ten bands to make the spacing visible. The implementation uses 128 equal steps in the HTK mel coordinate $m(f)=2595\log_{10}(1+f/700)$, from zero to Nyquist. This curve is approximately linear at low frequencies and logarithmic at high frequencies. Band spacing determines how much frequency detail survives the sum.
 
-The shape matters more than the constants. Since $m'(f)$ is proportional to $1/(700+f)$, equal steps in $m$ correspond to wider intervals in hertz as frequency rises. We retain more detail among low-frequency components and pool more broadly higher up. This is a resolution choice for the detector, not a condition needed for detecting an attack.
+Our Rust implementation uses simple band sums. [Librosa defaults](https://librosa.org/doc/main/api/generated/librosa.mel_frequencies.html) to a different mel variant and overlapping triangular filters, so the exact band weights differ.
 
 ## Measure Relative Growth and Discard Decay
 
