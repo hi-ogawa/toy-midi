@@ -1,5 +1,6 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as React from "react";
+import { DialogPortalContext } from "./dialog";
 import { cn } from "./utils";
 
 export function Popover({
@@ -21,7 +22,9 @@ export function PopoverContent({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal
+      container={React.useContext(DialogPortalContext)?.current}
+    >
       <PopoverPrimitive.Content
         data-slot="popover-content"
         align={align}

@@ -250,18 +250,32 @@ function MidiTrackActions({
   onTranscribe: () => void;
   onScorePreview: () => void;
 }) {
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const pendingDialog = useRef(false);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+          ref={menuButtonRef}
           title={`${label} actions`}
           aria-label={`${label} actions`}
         >
           <MoreVerticalIcon className="size-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent
+        onCloseAutoFocus={(event) => {
+          if (pendingDialog.current) {
+            event.preventDefault();
+            pendingDialog.current = false;
+            // Let the native dialog remember the persistent button, not the removed menu item.
+            menuButtonRef.current?.focus();
+            onInstrumentOpen();
+          }
+        }}
+      >
         <DropdownMenuCheckboxItem
           checked={viewMode === "overview"}
           onCheckedChange={onViewModeToggle}
@@ -270,7 +284,11 @@ function MidiTrackActions({
           Overview
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onInstrumentOpen}>
+        <DropdownMenuItem
+          onSelect={() => {
+            pendingDialog.current = true;
+          }}
+        >
           <Settings2Icon />
           Instrument…
         </DropdownMenuItem>
