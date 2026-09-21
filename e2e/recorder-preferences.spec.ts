@@ -52,10 +52,13 @@ test("remembers the instrument preference without changing saved tracks", async 
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await saveRecorderProject(page);
 
-  // Select violin in another project to change the remembered instrument.
+  // Create a track in another project with bass, then select violin as the new default.
   await createRecorderProject(page);
   await addRecorderMidiTrack(page);
   await openInstrument({ page, name: "MIDI 1" });
+  await expect(
+    page.getByRole("combobox", { name: "MIDI 1 program" }),
+  ).toContainText("33: Electric Bass (finger)");
   await selectInstrument({ page, name: "MIDI 1", option: "40: Violin" });
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await saveRecorderProject(page);
