@@ -12,7 +12,7 @@ import {
   recorderProjectStorage,
 } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
-import { plural } from "../../utils/plural";
+import { pluralCount } from "../../utils/plural-count";
 import { toResult } from "../../utils/result";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
@@ -118,8 +118,8 @@ export function RecorderProjectList() {
           {legacyProjects.length > 0 && (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-700/70 px-3 py-1 text-xs text-neutral-400">
               <span>
-                Migration required for {legacyProjects.length}{" "}
-                {plural(legacyProjects.length, "legacy project")}.
+                Migration required for{" "}
+                {pluralCount(legacyProjects.length, "legacy project")}.
               </span>
               <Button
                 className="shrink-0 border border-neutral-600 bg-neutral-700 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-600"
@@ -364,9 +364,8 @@ function ProjectListSearch({
         role="status"
         className="text-right text-xs whitespace-nowrap tabular-nums text-neutral-400"
       >
-        {query.trim() ? `${count} of ${total}` : total}{" "}
-        {legacy ? "legacy " : ""}
-        {plural(total, "project")}
+        {query.trim() ? `${count} of ` : ""}
+        {pluralCount(total, legacy ? "legacy project" : "project")}
       </p>
     </div>
   );

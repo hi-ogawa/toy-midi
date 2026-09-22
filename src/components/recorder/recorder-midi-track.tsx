@@ -33,7 +33,7 @@ import {
 } from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import type { Note } from "../../types";
-import { plural } from "../../utils/plural";
+import { pluralCount } from "../../utils/plural-count";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
@@ -317,7 +317,7 @@ function MidiTrackOverview({
     <div
       data-testid="recorder-midi-overview"
       role="img"
-      aria-label={`${track.name} note overview, ${track.notes.length} ${plural(track.notes.length, "note")}`}
+      aria-label={`${track.name} note overview, ${pluralCount(track.notes.length, "note")}`}
       className="relative col-start-2 row-start-1 overflow-hidden bg-neutral-900"
       style={getTimelineGridBackground({
         beatsPerBar,
