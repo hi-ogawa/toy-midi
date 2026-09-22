@@ -400,6 +400,7 @@ function getMidiOverviewPitchLayout(notes: Note[]) {
   const { min: lowestPitch, max: highestPitch } = pitchBounds;
 
   const centerPitch = (lowestPitch + highestPitch) / 2;
+  // Ensure at least one octave of vertical space
   const pitchSpan = Math.max(12, highestPitch - lowestPitch);
   const topPitch = centerPitch + pitchSpan / 2;
   const bottomPitch = topPitch - pitchSpan;
