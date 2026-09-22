@@ -28,6 +28,7 @@ import {
 import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
+import type { CapturedAudio } from "./captured-audio.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
 import { RecorderHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
@@ -43,7 +44,7 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { ActiveRecording } from "./recording.ts";
+import { RecordingPreview } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
@@ -117,7 +118,7 @@ interface PendingRecordingState extends Pick<
   AudioClip,
   "id" | "name" | "duration" | "timelineOffset"
 > {
-  recording: ActiveRecording;
+  recording: RecordingPreview;
   punchRange?: { start: number; end: number };
 }
 
@@ -763,7 +764,7 @@ export class RecorderRuntime {
       duration: 0,
       timelineOffset,
       punchRange,
-      recording: new ActiveRecording({
+      recording: new RecordingPreview({
         startFrame,
         sampleRate: context.sampleRate,
         waveformPointsPerSecond: WAVEFORM_POINTS_PER_SECOND,
@@ -783,8 +784,8 @@ export class RecorderRuntime {
     this.store.update({ captureStatus: "processing" });
     // Stopping is two-phase: the worklet first flushes its final partial batch,
     // then acknowledges the exclusive frame at which capture ended.
-    const stopFrame = await captureInput.stopCapture();
-    this.finishRecording(stopFrame);
+    const capture = await captureInput.stopCapture();
+    this.finishRecording(capture);
   }
 
   setLatencyCompensation(compensation: number): void {
@@ -1130,29 +1131,32 @@ export class RecorderRuntime {
     );
   }
 
-  private finishRecording(stopFrame: number): void {
+  private finishRecording(capture: CapturedAudio): void {
     const context = this.context;
     const pendingRecording = this.store.get().pendingRecording;
     if (!pendingRecording) {
       throw new Error("Recording state is incomplete.");
     }
-    const samples = pendingRecording.recording.finish(stopFrame);
-    const trim = samples
-      ? deriveRecordingTrim({
-          duration: samples.length / context.sampleRate,
-          timelineOffset: pendingRecording.timelineOffset,
-          punchRange: pendingRecording.punchRange,
-        })
-      : undefined;
-    const slice =
-      samples && trim
-        ? sliceSamples({
-            samples,
-            sampleRate: context.sampleRate,
-            start: trim.trimStart,
-            end: trim.trimEnd,
+    const samples = capture.getSamples({
+      startFrame: pendingRecording.recording.startFrame,
+      endFrame: capture.stopFrame,
+    });
+    const trim =
+      samples.length > 0
+        ? deriveRecordingTrim({
+            duration: samples.length / context.sampleRate,
+            timelineOffset: pendingRecording.timelineOffset,
+            punchRange: pendingRecording.punchRange,
           })
         : undefined;
+    const slice = trim
+      ? sliceSamples({
+          samples,
+          sampleRate: context.sampleRate,
+          start: trim.trimStart,
+          end: trim.trimEnd,
+        })
+      : undefined;
     if (
       !slice ||
       slice.samples.length < MIN_CLIP_DURATION * context.sampleRate

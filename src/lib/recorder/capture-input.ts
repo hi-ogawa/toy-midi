@@ -6,6 +6,7 @@ import {
   type CaptureWorkletNotification,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
+import { CapturedAudio } from "./captured-audio.ts";
 
 const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
 
@@ -23,7 +24,7 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 
 export class CaptureInput {
   readonly stream: MediaStream;
-  private readonly sampleListeners = new Set<(chunk: CaptureChunk) => void>();
+  private capture?: { chunks: CaptureChunk[]; startFrame: number };
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
@@ -93,9 +94,7 @@ export class CaptureInput {
       context,
       onNotification: (message) => {
         if (message.type === "samples") {
-          for (const listener of this.sampleListeners) {
-            listener(message);
-          }
+          this.capture?.chunks.push(message);
         }
         onNotification(message);
       },
@@ -132,23 +131,37 @@ export class CaptureInput {
     );
   }
 
-  subscribeSamples(listener: (chunk: CaptureChunk) => void): () => void {
-    this.sampleListeners.add(listener);
-    return () => {
-      this.sampleListeners.delete(listener);
-    };
+  async startCapture(): Promise<number> {
+    if (this.capture) {
+      throw new Error("Audio capture is already active.");
+    }
+    const capture = { chunks: [] as CaptureChunk[], startFrame: 0 };
+    this.capture = capture;
+    try {
+      capture.startFrame = await this.worklet.start();
+      return capture.startFrame;
+    } catch (error) {
+      this.capture = undefined;
+      throw error;
+    }
   }
 
-  startCapture(): Promise<number> {
-    return this.worklet.start();
-  }
-
-  stopCapture(): Promise<number> {
-    return this.worklet.stop();
+  async stopCapture(): Promise<CapturedAudio> {
+    const capture = this.capture;
+    if (!capture) {
+      throw new Error("Audio capture is not active.");
+    }
+    try {
+      // The acknowledgement follows the final partial sample batch.
+      const stopFrame = await this.worklet.stop();
+      return new CapturedAudio({ ...capture, stopFrame });
+    } finally {
+      this.capture = undefined;
+    }
   }
 
   dispose(): void {
-    this.sampleListeners.clear();
+    this.capture = undefined;
     this.source.disconnect();
     this.worklet.dispose();
     this.analyser.dispose();

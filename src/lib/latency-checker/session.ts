@@ -28,11 +28,9 @@ export async function measureLatency({
   outputLevel: number;
 }): Promise<CalibrationResult> {
   await context.resume();
-  const chunks: Parameters<typeof analyzeCalibration>[0]["chunks"] = [];
-  const unsubscribe = input.subscribeSamples((chunk) => chunks.push(chunk));
+  await input.startCapture();
   let stopped = false;
   try {
-    await input.startCapture();
     const template = createClickTemplate(context.sampleRate);
     const playback = createCalibrationPlayback({
       amplitude: dbToGain(outputLevel),
@@ -48,11 +46,17 @@ export async function measureLatency({
       buffers: [toAudioBuffer(context, playback.samples, context.sampleRate)],
       when: playback.startFrame / context.sampleRate,
     }).finished;
-    await input.stopCapture();
     stopped = true;
+    const capture = await input.stopCapture();
+    if (capture.chunks.length === 0) {
+      throw new Error("No PCM arrived from the selected input.");
+    }
     return {
       analysis: analyzeCalibration({
-        chunks,
+        recording: capture.getSamples({
+          startFrame: playback.startFrame,
+          endFrame: capture.stopFrame,
+        }),
         maxLatency: MAX_LATENCY,
         playback,
         sampleRate: context.sampleRate,
@@ -62,12 +66,8 @@ export async function measureLatency({
       sampleRate: context.sampleRate,
     };
   } finally {
-    try {
-      if (!stopped) {
-        await input.stopCapture();
-      }
-    } finally {
-      unsubscribe();
+    if (!stopped) {
+      await input.stopCapture();
     }
   }
 }
