@@ -3,6 +3,7 @@ import { createAudioView, type AudioView } from "../audio-view.ts";
 export interface AudioClip {
   id: string;
   name: string;
+  gain: number;
   muted: boolean;
   soloed: boolean;
   duration: number;
@@ -34,6 +35,7 @@ export function createAudioClip({
   return {
     id,
     name,
+    gain: 1,
     muted: false,
     soloed: false,
     timelineOffset: 0,

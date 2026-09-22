@@ -577,6 +577,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 <TakeTrackRow
                   key={take.id}
                   label={take.name}
+                  gain={take.gain}
+                  onGainChange={(gain) =>
+                    runtime.setClipGain({ id: take.id, gain })
+                  }
                   muted={take.muted}
                   soloed={take.soloed}
                   onMutedChange={(muted) =>

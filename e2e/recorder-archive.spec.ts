@@ -32,6 +32,16 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     await recordButton.click();
   }
   await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
+  // Balance one take independently before archiving the project.
+  await page.getByTestId("recorder-takes-toggle").click();
+  const takeGain = page.getByRole("slider", {
+    name: "Take 1 gain",
+    exact: true,
+  });
+  await takeGain.press("ArrowLeft");
+  await expect
+    .poll(async () => Number(await takeGain.getAttribute("aria-valuenow")))
+    .toBeCloseTo(-0.5);
   const clipGeometry = await getRecorderClipGeometry(page);
   await page.getByTestId("recorder-mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
@@ -96,6 +106,13 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
   await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
+  await page.getByTestId("recorder-takes-toggle").click();
+  await expect
+    .poll(async () => Number(await takeGain.getAttribute("aria-valuenow")))
+    .toBeCloseTo(-0.5);
+  await expect(
+    page.getByRole("slider", { name: "Take 2 gain", exact: true }),
+  ).toHaveAttribute("aria-valuenow", "0");
   await page.getByTestId("recorder-mixer-button").click();
   await expect(
     page.getByRole("textbox", { name: "Master level in dB" }),

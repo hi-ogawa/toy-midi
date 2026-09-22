@@ -12,7 +12,7 @@ import type {
 /** Owns region playback and a channel that also accepts independently routed input for capture monitoring. */
 export class AudioTrackPlayback {
   private readonly transport: AudioContextTransport;
-  private playbacks: AudioBufferPlayback[] = [];
+  private playbacks: { clipId: string; playback: AudioBufferPlayback }[] = [];
   private readonly pitchShiftBus: PitchShiftBus;
   /** Mutes region playback without muting other sources connected to channel.input. */
   private readonly playbackGain: GainNode;
@@ -45,7 +45,7 @@ export class AudioTrackPlayback {
   }
 
   setSources(sources: readonly AudioPlaybackSource[]): void {
-    for (const playback of this.playbacks) {
+    for (const { playback } of this.playbacks) {
       playback.dispose();
     }
     this.playbacks = sources.map((source) => {
@@ -54,8 +54,16 @@ export class AudioTrackPlayback {
         output: this.pitchShiftBus.input,
       });
       playback.setSource(source);
-      return playback;
+      return { clipId: source.clipId, playback };
     });
+  }
+
+  setClipGain({ clipId, gain }: { clipId: string; gain: number }): void {
+    for (const entry of this.playbacks) {
+      if (entry.clipId === clipId) {
+        entry.playback.setGain(gain);
+      }
+    }
   }
 
   setPlaybackGain(gain: number): void {

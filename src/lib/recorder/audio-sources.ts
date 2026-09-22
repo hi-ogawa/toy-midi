@@ -2,6 +2,8 @@ import type { ClipRegion } from "./audio-clip.ts";
 
 /** A buffer slice placed on the timeline, with all times in seconds. */
 export interface AudioPlaybackSource {
+  clipId: string;
+  gain: number;
   buffer: AudioBuffer;
   /** Timeline position corresponding to buffer time zero. */
   timelineOffset: number;
@@ -16,6 +18,8 @@ export function getClipSources(
     clip.buffer
       ? [
           {
+            clipId: clip.id,
+            gain: clip.gain,
             buffer: clip.buffer,
             timelineOffset: clip.timelineOffset,
             timelineStart,

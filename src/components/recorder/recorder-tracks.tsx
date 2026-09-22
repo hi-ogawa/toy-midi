@@ -358,6 +358,8 @@ export function TakesDisclosureRow({
 
 export function TakeTrackRow({
   label,
+  gain,
+  onGainChange,
   muted,
   soloed,
   onMutedChange,
@@ -366,6 +368,8 @@ export function TakeTrackRow({
   children,
 }: {
   label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
   muted: boolean;
   soloed: boolean;
   onMutedChange: (muted: boolean) => void;
@@ -378,8 +382,8 @@ export function TakeTrackRow({
       data-testid="recorder-take-row"
       className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 flex items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
-        <span className="mr-auto px-4">{label}</span>
+      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
+        <span className="truncate">{label}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button aria-label={`${label} actions`} className="size-7">
@@ -411,6 +415,23 @@ export function TakeTrackRow({
           className="size-7"
           title="Solo take"
         />
+        <div className="col-span-4 flex items-center gap-2">
+          <RecorderGainSlider
+            label={`${label} gain`}
+            gain={gain}
+            onGainChange={onGainChange}
+            className="flex-1"
+          />
+          <button
+            type="button"
+            aria-label={`Reset ${label} gain`}
+            title="Reset gain to 0 dB"
+            onClick={() => onGainChange(1)}
+            className="w-14 text-right font-mono text-neutral-400 hover:text-neutral-200"
+          >
+            {formatGainDb(gain)}
+          </button>
+        </div>
       </div>
       {children}
     </div>

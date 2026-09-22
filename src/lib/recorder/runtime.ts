@@ -469,6 +469,28 @@ export class RecorderRuntime {
     this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
+  /** Update clip level without rebuilding sources or restarting transport. */
+  setClipGain({ id, gain }: { id: string; gain: number }): void {
+    const state = this.store.get();
+    const update = (track: AudioTrackState) => {
+      const next = updateTrackClips({
+        track,
+        update: (clips) =>
+          clips.map((clip) =>
+            clip.id === id && clip.gain !== gain ? { ...clip, gain } : clip,
+          ),
+      });
+      if (next !== track) {
+        this.trackPlaybacks.get(track.id)?.setClipGain({ clipId: id, gain });
+      }
+      return next;
+    };
+    this.store.update({
+      audioTracks: state.audioTracks.map(update),
+      recordingTrack: update(state.recordingTrack),
+    });
+  }
+
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
     this.updateClip(id, (clip) => ({ ...clip, muted }));
   }
@@ -1369,6 +1391,7 @@ function pendingRecordingToTake(
   return {
     id: pendingRecording.id,
     name: pendingRecording.name,
+    gain: 1,
     muted: false,
     soloed: false,
     duration: pendingRecording.duration,

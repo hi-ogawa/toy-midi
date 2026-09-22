@@ -6,7 +6,7 @@ import type {
 
 export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
-  private readonly output: AudioNode;
+  private readonly gain: GainNode;
   private readonly unregister: () => void;
   private playbackSource?: AudioPlaybackSource;
   private source?: AudioBufferSourceNode;
@@ -19,12 +19,22 @@ export class AudioBufferPlayback implements TransportParticipant {
     output: AudioNode;
   }) {
     this.transport = transport;
-    this.output = output;
+    this.gain = transport.context.createGain();
+    this.gain.connect(output);
     this.unregister = transport.register(this);
   }
 
   setSource(source: AudioPlaybackSource): void {
     this.playbackSource = source;
+    this.gain.gain.value = source.gain;
+  }
+
+  setGain(gain: number): void {
+    this.gain.gain.setTargetAtTime(
+      gain,
+      this.transport.context.currentTime,
+      0.01,
+    );
   }
 
   /** Schedules the slice from the transport anchor, seeking or delaying as needed. */
@@ -44,7 +54,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     const source = this.transport.context.createBufferSource();
     source.buffer = buffer;
     source.playbackRate.value = this.transport.playbackRate;
-    source.connect(this.output);
+    source.connect(this.gain);
     source.start(
       playbackAnchor.contextTime +
         Math.max(0, timelineStart - playbackAnchor.position) /
@@ -63,5 +73,6 @@ export class AudioBufferPlayback implements TransportParticipant {
 
   dispose(): void {
     this.unregister();
+    this.gain.disconnect();
   }
 }

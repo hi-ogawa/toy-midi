@@ -85,6 +85,7 @@ interface SerializedAudioTrackState<ChannelData> {
   id: string;
   height: number;
   clip?: {
+    gain?: number;
     name: string;
     pcm: RecorderPcm<ChannelData>;
   };
@@ -98,6 +99,7 @@ interface SerializedAudioTrackState<ChannelData> {
 }
 
 interface SerializedAudioClip<ChannelData> {
+  gain?: number;
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
@@ -129,6 +131,7 @@ export function serializeRecorderRuntimeState(
         clip: clip?.buffer
           ? {
               name: clip.name,
+              gain: clip.gain,
               pcm: serializeAudioBuffer(clip.buffer),
             }
           : undefined,
@@ -156,6 +159,7 @@ export function serializeRecorderRuntimeState(
         return {
           id: take.id,
           name: take.name,
+          gain: take.gain,
           muted: take.muted,
           soloed: take.soloed,
           timelineOffset: take.timelineOffset,
@@ -202,6 +206,7 @@ export function deserializeRecorderRuntimeState({
                     buffer,
                     name: track.clip.name,
                   }),
+                  gain: track.clip.gain ?? 1,
                   timelineOffset: track.timelineOffset,
                   trimStart: track.trimStart ?? 0,
                   trimEnd: track.trimEnd ?? buffer.duration,
@@ -242,6 +247,7 @@ export function deserializeRecorderRuntimeState({
             buffer,
             name: take.name ?? `Take ${take.number ?? index + 1}`,
           }),
+          gain: take.gain ?? 1,
           timelineOffset: take.timelineOffset,
           muted: take.muted ?? false,
           soloed: take.soloed ?? false,
