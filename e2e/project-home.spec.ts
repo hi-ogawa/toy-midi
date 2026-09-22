@@ -41,7 +41,7 @@ test("home creates and reopens recorder projects without project-type tabs", asy
   await expect(page).toHaveURL(projectUrl);
 });
 
-test("Projects search filters current and legacy projects together", async ({
+test("Projects search follows the temporary legacy filter", async ({
   page,
 }) => {
   // Seed legacy projects and create a named project in the new editor.
@@ -69,73 +69,62 @@ test("Projects search filters current and legacy projects together", async ({
   const status = page.getByRole("status");
   const current = page.getByRole("link", { name: /Blue session/ });
   const legacy = page.getByRole("region", { name: "Legacy projects" });
-  await expect(status).toHaveText("3 of 3 projects");
+  await expect(status).toHaveText("1 project");
+  await expect(legacy).toBeHidden();
 
-  // Match names across both lists regardless of case and surrounding spaces.
+  // Search current projects without including legacy matches.
   await search.fill(" BLUE ");
-  await expect(status).toHaveText("2 of 3 projects");
+  await expect(status).toHaveText("1 of 1 project");
   await expect(current).toBeVisible();
+  await search.fill("missing");
+  await expect(
+    page.getByText("No matching projects", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Clear search", exact: true }).click();
+  await expect(search).toBeFocused();
+
+  // Open the legacy filter and search its collection independently.
+  await page.getByRole("button", { name: "View legacy projects" }).click();
+  await expect(status).toHaveText("2 legacy projects");
+  await expect(current).toBeHidden();
+  await expect(search).toHaveValue("");
+  await search.fill("archive blue");
+  await expect(status).toHaveText("1 of 2 legacy projects");
   await expect(legacy).toContainText("Blue archive");
   await expect(legacy).not.toContainText("Old song");
 
-  // Match each list independently and retain the empty section with an explanation.
-  await search.fill("session");
-  await expect(status).toHaveText("1 of 3 projects");
+  // Return to current projects and clear the legacy query.
+  await page.getByRole("button", { name: "Show current projects" }).click();
+  await expect(search).toHaveValue("");
   await expect(current).toBeVisible();
-  await expect(legacy).toContainText("No matching legacy projects");
-  await search.fill("archive blue");
-  await expect(status).toHaveText("1 of 3 projects");
-  await expect(current).toBeHidden();
-  await expect(legacy).toContainText("Blue archive");
-  await expect(
-    page.getByText("No matching projects", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText(/No projects match/)).toBeHidden();
+  await page.getByRole("button", { name: "View legacy projects" }).click();
 
-  // Show compact messages in both sections and clear the search to restore their rows.
-  await search.fill("missing");
-  await expect(status).toHaveText("0 of 3 projects");
-  await expect(
-    page.getByText("No matching projects", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText(/No projects match/)).toBeHidden();
-  await expect(legacy).toContainText("No matching legacy projects");
-  await page.getByRole("button", { name: "Clear search", exact: true }).click();
-  await expect(search).toBeFocused();
-  await expect(status).toHaveText("3 of 3 projects");
-
-  // Delete a matching legacy project and update the combined counts immediately.
+  // Delete a matching legacy project and retain the empty search result.
   await search.fill("archive");
   page.once("dialog", (dialog) => dialog.accept());
   await legacy.getByRole("button", { name: "Delete legacy project" }).click();
-  await expect(status).toHaveText("0 of 2 projects");
+  await expect(status).toHaveText("0 of 1 legacy project");
   await expect(legacy).toContainText("No matching legacy projects");
+  await expect(
+    page.getByText("Migration required for 1 legacy project."),
+  ).toBeVisible();
   await search.press("Escape");
-  await expect(status).toHaveText("2 of 2 projects");
 
-  // Remove the current project and keep searching the remaining legacy project.
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Delete project" }).click();
-  await expect(status).toHaveText("1 of 1 projects");
-  await expect(legacy).toContainText("Old song");
-  await expect(
-    page.getByText("No projects yet", { exact: true }),
-  ).toBeVisible();
-  await search.fill("missing");
-  await expect(page.getByText(/No projects match/)).toBeHidden();
-
-  await expect(
-    page.getByText("No projects yet", { exact: true }),
-  ).toBeVisible();
-  await expect(legacy).toContainText("No matching legacy projects");
-
-  // Clear the search and delete the last legacy project to remove its section.
-  await page.getByRole("button", { name: "Clear search", exact: true }).click();
-  await expect(legacy).toContainText("Old song");
+  // Delete the final legacy project and return to the current collection.
   page.once("dialog", (dialog) => dialog.accept());
   await legacy.getByRole("button", { name: "Delete legacy project" }).click();
   await expect(legacy).toBeHidden();
-  await expect(page.getByRole("status")).toHaveText("0 of 0 projects");
+  await expect(
+    page.getByRole("button", { name: "View legacy projects" }),
+  ).toBeHidden();
+  await expect(status).toHaveText("1 project");
+  await expect(current).toBeVisible();
+
+  // Delete the last current project and show the creation prompt.
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Delete project" }).click();
+  await expect(status).toBeHidden();
+  await expect(search).toBeHidden();
   await expect(
     page.getByText("No projects yet", { exact: true }),
   ).toBeVisible();
