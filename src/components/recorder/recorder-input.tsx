@@ -173,6 +173,7 @@ export function InputSetup({
           <div className="mt-1 flex items-center gap-2">
             <input
               type="text"
+              disabled={disabled || !inputActive}
               inputMode="numeric"
               {...latencyInput.props}
               className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
