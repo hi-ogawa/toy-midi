@@ -24,29 +24,33 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   const initialBox = await range.boundingBox();
   assert(initialBox);
 
-  // Enabled playback returns to loop-in after reaching the end of the range.
-  const playButton = page.getByTestId("recorder-play-button");
-  await playButton.click();
-  await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  await expect
-    .poll(() => getRecorderBeat(page), {
-      intervals: [50],
-      timeout: 1_500,
-    })
-    .toBeGreaterThanOrEqual(2);
-  await expect
-    .poll(() => getRecorderBeat(page), {
-      intervals: [50],
-      timeout: 1_500,
-    })
-    .toBeLessThan(2);
-  await playButton.click();
-
-  // The range label moves it while the range body remains available to seek.
+  // Move the loop ahead of the paused cursor.
   await dragBy(page, range.getByText("Loop"), DEFAULT_PIXELS_PER_BEAT);
   const movedBox = await range.boundingBox();
   assert(movedBox);
   expect(movedBox.x).toBeCloseTo(initialBox.x + DEFAULT_PIXELS_PER_BEAT, -1);
+  await expect.poll(() => getRecorderBeat(page)).toBe(0);
+
+  // Start before loop-in, jump into the range, and wrap after reaching loop-out.
+  const playButton = page.getByTestId("recorder-play-button");
+  await playButton.click();
+  await expect(playButton).toHaveAttribute("aria-pressed", "true");
+  expect(await getRecorderBeat(page)).toBeGreaterThanOrEqual(1);
+  await expect
+    .poll(() => getRecorderBeat(page), {
+      intervals: [50],
+      timeout: 1_500,
+    })
+    .toBeGreaterThanOrEqual(3);
+  await expect
+    .poll(() => getRecorderBeat(page), {
+      intervals: [50],
+      timeout: 1_500,
+    })
+    .toBeLessThan(3);
+  await playButton.click();
+
+  // Seek inside the range without changing its position.
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await expect.poll(() => getRecorderBeat(page)).toBe(4);
 
