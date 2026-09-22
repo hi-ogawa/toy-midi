@@ -4,11 +4,13 @@ import { createRecorderProject } from "./recorder-helpers";
 
 useFakeAudioInput();
 
-test("retain compensation for the automatically selected input", async ({
+test("retain input compensation without marking the project unsaved", async ({
   page,
 }) => {
   // Open input setup and require active input before accepting compensation.
   await createRecorderProject(page);
+  const save = page.getByTestId("recorder-save-button");
+  await expect(save).toHaveAttribute("data-status", "saved");
   await page.getByRole("button", { name: "Configure audio input" }).click();
   const setup = page.getByTestId("recorder-input-setup");
   const compensation = setup.getByRole("textbox");
@@ -22,6 +24,11 @@ test("retain compensation for the automatically selected input", async ({
   await compensation.fill("50");
   await compensation.press("Enter");
 
+  // Close input setup and keep the project saved after changing compensation.
+  await setup.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.getByRole("button", { name: "Configure audio input" }).click();
+
   // Restart input and retain the saved value without manually selecting a device.
   await setup
     .getByRole("button", { name: "Disable input", exact: true })
@@ -32,4 +39,16 @@ test("retain compensation for the automatically selected input", async ({
     .click();
   await expect(compensation).toBeEnabled();
   await expect(compensation).toHaveValue("50");
+
+  // Reload without saving the project and restore compensation from input preferences.
+  await page.reload();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.getByRole("button", { name: "Configure audio input" }).click();
+  await setup
+    .getByRole("button", { name: "Enable input", exact: true })
+    .click();
+  await expect(compensation).toBeEnabled();
+  await expect(compensation).toHaveValue("50");
+  await setup.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(save).toHaveAttribute("data-status", "saved");
 });
