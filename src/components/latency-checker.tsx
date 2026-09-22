@@ -60,10 +60,11 @@ export function LatencyChecker() {
     toggleMonitoringMutation.isPending || input.togglePending;
 
   const calibrationMutation = useMutation({
-    mutationFn: async () => ({
-      calibration: await measureLatency(runtime, { outputLevel }),
-      channelCount: state.inputChannelCount,
-    }),
+    mutationFn: async () =>
+      ({
+        calibration: await measureLatency(runtime, { outputLevel }),
+        channelCount: state.inputChannelCount,
+      }) satisfies LatencyResult,
   });
   const result = calibrationMutation.data;
 
