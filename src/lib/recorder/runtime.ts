@@ -44,7 +44,7 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { RecordingPreview } from "./recording.ts";
+import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
@@ -118,7 +118,7 @@ interface PendingRecordingState extends Pick<
   AudioClip,
   "id" | "name" | "duration" | "timelineOffset"
 > {
-  recording: RecordingPreview;
+  recording: ActiveRecording;
   punchRange?: { start: number; end: number };
 }
 
@@ -764,7 +764,7 @@ export class RecorderRuntime {
       duration: 0,
       timelineOffset,
       punchRange,
-      recording: new RecordingPreview({
+      recording: new ActiveRecording({
         startFrame,
         sampleRate: context.sampleRate,
         waveformPointsPerSecond: WAVEFORM_POINTS_PER_SECOND,

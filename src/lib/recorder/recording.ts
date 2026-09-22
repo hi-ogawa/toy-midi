@@ -1,7 +1,7 @@
 import { AudioViewBuilder, type AudioView } from "../audio-view.ts";
 import type { CaptureChunk } from "./capture-worklet.ts";
 
-export class RecordingPreview {
+export class ActiveRecording {
   private readonly audioViewBuilder: AudioViewBuilder;
   readonly startFrame: number;
   private endFrame: number;
