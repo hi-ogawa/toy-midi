@@ -306,9 +306,6 @@ function MidiTrackActions({
   );
 }
 
-const OVERVIEW_NOTE_HEIGHT = 4;
-const OVERVIEW_PITCH_PADDING = 12;
-
 function MidiTrackOverview({
   track,
   pixelsPerBeat,
@@ -320,19 +317,6 @@ function MidiTrackOverview({
   beatsPerBar: number;
   viewportStartBeat: number;
 }) {
-  const { pitchToPercent, octavePitches } = getMidiOverviewPitchLayout(
-    track.notes,
-  );
-
-  function getNoteStyle(note: Note) {
-    return {
-      left: (note.start - viewportStartBeat) * pixelsPerBeat,
-      top: `${pitchToPercent(note.pitch)}%`,
-      width: Math.max(2, note.duration * pixelsPerBeat),
-      height: OVERVIEW_NOTE_HEIGHT,
-    };
-  }
-
   return (
     <div
       data-testid="recorder-midi-overview"
@@ -348,45 +332,77 @@ function MidiTrackOverview({
         colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
       })}
     >
-      <div
-        className="absolute inset-x-0"
-        style={{
-          top: OVERVIEW_PITCH_PADDING,
-          height: `calc(100% - ${OVERVIEW_PITCH_PADDING * 2 + OVERVIEW_NOTE_HEIGHT}px)`,
-        }}
-      >
-        {octavePitches.map((pitch) => (
-          <div
-            key={pitch}
-            data-testid="recorder-midi-octave-guide"
-            data-pitch={pitch}
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 border-t border-neutral-600/60"
-            style={{
-              top: `calc(${pitchToPercent(pitch)}% + ${OVERVIEW_NOTE_HEIGHT}px)`,
-            }}
-          >
-            <span className="absolute left-1 -translate-y-1/2 bg-neutral-900 px-0.5 text-[9px] leading-none text-neutral-500">
-              {formatChromaticPitch(pitch)}
-            </span>
-          </div>
-        ))}
-        {track.notes.map((note) => (
-          <div
-            key={note.id}
-            className="pointer-events-none absolute rounded-sm bg-blue-400/70"
-            style={getNoteStyle(note)}
-          />
-        ))}
-      </div>
+      {track.notes.length > 0 && (
+        <MidiTrackOverviewNotes
+          notes={track.notes}
+          pixelsPerBeat={pixelsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+        />
+      )}
+    </div>
+  );
+}
+
+function MidiTrackOverviewNotes({
+  notes,
+  pixelsPerBeat,
+  viewportStartBeat,
+}: {
+  notes: Note[];
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+}) {
+  const OVERVIEW_NOTE_HEIGHT = 4;
+  const OVERVIEW_PITCH_PADDING = 12;
+  const { pitchToPercent, octavePitches } = getMidiOverviewPitchLayout(notes);
+
+  function getNoteStyle(note: Note) {
+    return {
+      left: (note.start - viewportStartBeat) * pixelsPerBeat,
+      top: `${pitchToPercent(note.pitch)}%`,
+      width: Math.max(2, note.duration * pixelsPerBeat),
+      height: OVERVIEW_NOTE_HEIGHT,
+    };
+  }
+
+  return (
+    <div
+      className="absolute inset-x-0"
+      style={{
+        top: OVERVIEW_PITCH_PADDING,
+        height: `calc(100% - ${OVERVIEW_PITCH_PADDING * 2 + OVERVIEW_NOTE_HEIGHT}px)`,
+      }}
+    >
+      {octavePitches.map((pitch) => (
+        <div
+          key={pitch}
+          data-testid="recorder-midi-octave-guide"
+          data-pitch={pitch}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 border-t border-neutral-600/60"
+          style={{
+            top: `calc(${pitchToPercent(pitch)}% + ${OVERVIEW_NOTE_HEIGHT}px)`,
+          }}
+        >
+          <span className="absolute left-1 -translate-y-1/2 bg-neutral-900 px-0.5 text-[9px] leading-none text-neutral-500">
+            {formatChromaticPitch(pitch)}
+          </span>
+        </div>
+      ))}
+      {notes.map((note) => (
+        <div
+          key={note.id}
+          className="pointer-events-none absolute rounded-sm bg-blue-400/70"
+          style={getNoteStyle(note)}
+        />
+      ))}
     </div>
   );
 }
 
 function getMidiOverviewPitchLayout(notes: Note[]) {
-  const pitchBounds = getMinMax(notes.map((note) => note.pitch));
-  const lowestPitch = pitchBounds?.min ?? 60;
-  const highestPitch = pitchBounds?.max ?? lowestPitch;
+  const pitchBounds = getMinMax(notes.map((note) => note.pitch))!;
+  const { min: lowestPitch, max: highestPitch } = pitchBounds;
 
   const centerPitch = (lowestPitch + highestPitch) / 2;
   const pitchSpan = Math.max(12, highestPitch - lowestPitch);
@@ -397,8 +413,7 @@ function getMidiOverviewPitchLayout(notes: Note[]) {
     return ((topPitch - pitch) / pitchSpan) * 100;
   }
 
-  const octavePitches =
-    notes.length > 0 ? getMidiOctavePitches(bottomPitch, topPitch) : [];
+  const octavePitches = getMidiOctavePitches(bottomPitch, topPitch);
 
   return { pitchToPercent, octavePitches };
 }
