@@ -52,12 +52,15 @@ export function InputSetup({
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
   const measurement = useMutation({
-    mutationFn: () => measureInputLatency({ runtime }),
+    mutationFn: async () => {
+      const compensation = await measureInputLatency({ runtime });
+      return Math.round(compensation * 1000) / 1000;
+    },
     onSuccess: onLatencyCompensationChange,
   });
   const disabled = mutationPending || isRecording || measurement.isPending;
   const latencyInput = useDraftInput({
-    value: Math.round(latencyCompensation * 1000),
+    value: latencyCompensation * 1000,
     onCommit: (milliseconds) =>
       onLatencyCompensationChange(milliseconds / 1000),
     min: 0,
