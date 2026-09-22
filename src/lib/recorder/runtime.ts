@@ -12,6 +12,7 @@ import {
   ensureBiquadEqWorklet,
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
+import { measureLatency } from "../latency-checker/session.ts";
 import { clamp } from "../music.ts";
 import { sliceSamples } from "../pcm.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "../pitch-spelling.ts";
@@ -346,6 +347,23 @@ export class RecorderRuntime {
       selectedChannel: 0,
       inputMonitoring: false,
     });
+  }
+
+  async measureLatency({ outputLevel }: { outputLevel: number }) {
+    const input = this.captureInput;
+    if (!input) {
+      throw new Error("Start input monitoring before running the click test.");
+    }
+    const calibration = await measureLatency({
+      context: this.context,
+      input,
+      outputLevel,
+    });
+    return {
+      calibration,
+      channelCount: this.store.get().inputChannelCount,
+      settings: input.stream.getAudioTracks()[0].getSettings(),
+    };
   }
 
   selectChannel(channel: number): void {

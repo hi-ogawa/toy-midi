@@ -7,10 +7,8 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { CalibrationResult } from "../lib/latency-checker/calibration";
 import {
   createLatencyPreview,
-  measureLatency,
   type PreviewVariant,
 } from "../lib/latency-checker/session";
 import { RecorderRuntime } from "../lib/recorder/runtime";
@@ -60,24 +58,7 @@ export function LatencyChecker() {
     toggleMonitoringMutation.isPending || input.togglePending;
 
   const calibrationMutation = useMutation({
-    mutationFn: async (): Promise<LatencyResult> => {
-      const input = runtime.captureInput;
-      if (!input) {
-        throw new Error(
-          "Start input monitoring before running the click test.",
-        );
-      }
-      const calibration = await measureLatency({
-        context: runtime.context,
-        input,
-        outputLevel,
-      });
-      return {
-        calibration,
-        channelCount: runtime.store.get().inputChannelCount,
-        settings: input.stream.getAudioTracks()[0].getSettings(),
-      };
-    },
+    mutationFn: () => runtime.measureLatency({ outputLevel }),
   });
   const result = calibrationMutation.data;
 
@@ -426,11 +407,7 @@ function ResultsView({
   );
 }
 
-type LatencyResult = {
-  calibration: CalibrationResult;
-  channelCount: number;
-  settings: MediaTrackSettings;
-};
+type LatencyResult = Awaited<ReturnType<RecorderRuntime["measureLatency"]>>;
 
 function ResultPlaceholder() {
   return (
