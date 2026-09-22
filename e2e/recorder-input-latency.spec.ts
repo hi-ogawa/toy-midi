@@ -38,13 +38,20 @@ test("reject weak latency measurements without changing compensation", async ({
     setup.getByRole("button", { name: "Disable input", exact: true }),
   ).toBeDisabled();
 
-  // Reject the fake audio's weak correlation and restore controls without replacing compensation.
-  const error = setup.getByRole("alert");
+  // Show weak-correlation guidance inline without an error toast or changed compensation.
+  const result = setup.getByRole("status");
   // Measured at 5.4 seconds locally, including playback and analysis.
-  await expect(error).toContainText(
-    "Could not detect the loopback clicks reliably.",
-    { timeout: 10_000 },
-  );
+  await expect(
+    result.filter({
+      hasText: "Could not detect the loopback clicks reliably.",
+    }),
+  ).toBeVisible({ timeout: 10_000 });
+  await expect(
+    page.locator('[data-sonner-toast][data-type="error"]'),
+  ).toHaveCount(0);
+  await expect(
+    setup.getByRole("status").filter({ hasText: "Compensation updated." }),
+  ).toHaveCount(0);
   checkpoint("Latency measurement rejected");
   await expect(compensation).toBeEnabled();
   await expect(compensation).toHaveValue("50");

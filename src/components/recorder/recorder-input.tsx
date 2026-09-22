@@ -53,11 +53,14 @@ export function InputSetup({
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
   const measurement = useMutation({
-    mutationFn: async () => {
-      const compensation = await measureInputLatency({ runtime });
-      return Math.round(compensation * 1000) / 1000;
+    mutationFn: () => measureInputLatency({ runtime }),
+    onSuccess: (result) => {
+      if (result.status === "measured") {
+        onLatencyCompensationChange(
+          Math.round(result.compensation * 1000) / 1000,
+        );
+      }
     },
-    onSuccess: onLatencyCompensationChange,
   });
   const disabled = mutationPending || isRecording || measurement.isPending;
   const latencyInput = useDraftInput({
@@ -166,7 +169,7 @@ export function InputSetup({
           </label>
           <InputLatencyMeasurement
             isPending={measurement.isPending}
-            isSuccess={measurement.isSuccess}
+            result={measurement.data}
             error={measurement.error ?? undefined}
             onMeasure={() => measurement.mutate()}
             disabled={disabled}
@@ -190,7 +193,7 @@ export function InputSetup({
 
 function InputLatencyMeasurement({
   isPending,
-  isSuccess,
+  result,
   error,
   onMeasure,
   disabled,
@@ -199,7 +202,7 @@ function InputLatencyMeasurement({
   isRecording,
 }: {
   isPending: boolean;
-  isSuccess: boolean;
+  result?: InputLatencyResult;
   error?: Error;
   onMeasure: () => void;
   disabled: boolean;
@@ -207,6 +210,9 @@ function InputLatencyMeasurement({
   isPlaying: boolean;
   isRecording: boolean;
 }) {
+  const message =
+    error?.message ??
+    (result?.status === "unreliable" ? result.message : undefined);
   return (
     <details className="text-xs text-neutral-400">
       <summary className="cursor-pointer">How do I set this?</summary>
@@ -240,18 +246,18 @@ function InputLatencyMeasurement({
             <p role="status" className="text-neutral-400">
               Playing seven clicks with input monitoring muted.
             </p>
-          ) : error ? (
+          ) : message ? (
             <p
-              role="alert"
+              role={error ? "alert" : "status"}
               className="flex items-start gap-1.5 text-orange-200"
             >
               <TriangleAlertIcon
                 aria-hidden="true"
                 className="mt-0.5 size-4 shrink-0"
               />
-              {error.message}
+              {message}
             </p>
-          ) : isSuccess ? (
+          ) : result?.status === "measured" ? (
             <p
               role="status"
               className="flex items-start gap-1.5 text-emerald-400"
@@ -280,7 +286,15 @@ function InputLatencyMeasurement({
   );
 }
 
-async function measureInputLatency({ runtime }: { runtime: RecorderRuntime }) {
+type InputLatencyResult =
+  | { status: "measured"; compensation: number }
+  | { status: "unreliable"; message: string };
+
+async function measureInputLatency({
+  runtime,
+}: {
+  runtime: RecorderRuntime;
+}): Promise<InputLatencyResult> {
   const state = runtime.store.get();
   if (state.isPlaying || state.captureStatus !== "ready") {
     throw new Error("Enable input and stop playback before measuring latency.");
@@ -296,17 +310,21 @@ async function measureInputLatency({ runtime }: { runtime: RecorderRuntime }) {
     }
     const { medianSamples, weakCount } = summarizeCalibration(result.analysis);
     if (weakCount > 0) {
-      throw new Error(
-        "Could not detect the loopback clicks reliably. Check the connection and input level, then try again.",
-      );
+      return {
+        status: "unreliable",
+        message:
+          "Could not detect the loopback clicks reliably. Check the connection and input level, then try again.",
+      };
     }
     const compensation = medianSamples / result.sampleRate;
     if (!Number.isFinite(compensation) || compensation < 0) {
-      throw new Error(
-        "The measured offset is invalid. Check the loopback connection and try again.",
-      );
+      return {
+        status: "unreliable",
+        message:
+          "The measured offset is invalid. Check the loopback connection and try again.",
+      };
     }
-    return compensation;
+    return { status: "measured", compensation };
   } finally {
     if (runtime.captureInput === input) {
       runtime.setInputMonitoring(state.inputMonitoring);
