@@ -1,4 +1,4 @@
-import { type UseMutationResult, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { CheckIcon, Mic2Icon, TriangleAlertIcon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
@@ -164,12 +164,14 @@ export function InputSetup({
             <span>ms</span>
           </label>
           <InputLatencyMeasurement
-            measurement={measurement}
+            isPending={measurement.isPending}
+            isSuccess={measurement.isSuccess}
+            error={measurement.error ?? undefined}
+            onMeasure={() => measurement.mutate()}
             disabled={disabled}
             inputActive={inputActive}
             isPlaying={isPlaying}
             isRecording={isRecording}
-            latencyCompensation={latencyCompensation}
           />
         </section>
       </div>
@@ -186,19 +188,23 @@ export function InputSetup({
 }
 
 function InputLatencyMeasurement({
-  measurement,
+  isPending,
+  isSuccess,
+  error,
+  onMeasure,
   disabled,
   inputActive,
   isPlaying,
   isRecording,
-  latencyCompensation,
 }: {
-  measurement: UseMutationResult<number, Error, void>;
+  isPending: boolean;
+  isSuccess: boolean;
+  error?: Error;
+  onMeasure: () => void;
   disabled: boolean;
   inputActive: boolean;
   isPlaying: boolean;
   isRecording: boolean;
-  latencyCompensation: number;
 }) {
   return (
     <details className="text-xs text-neutral-400">
@@ -224,16 +230,16 @@ function InputLatencyMeasurement({
         <Button
           className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
           disabled={disabled || !inputActive || isPlaying}
-          onClick={() => measurement.mutate()}
+          onClick={onMeasure}
         >
-          {measurement.isPending ? "Measuring…" : "Measure latency"}
+          {isPending ? "Measuring…" : "Measure latency"}
         </Button>
         <div className="space-y-2 text-xs leading-5">
-          {measurement.isPending ? (
+          {isPending ? (
             <p role="status" className="text-neutral-400">
               Playing seven clicks with input monitoring muted.
             </p>
-          ) : measurement.error ? (
+          ) : error ? (
             <p
               role="alert"
               className="flex items-start gap-1.5 text-orange-200"
@@ -242,10 +248,9 @@ function InputLatencyMeasurement({
                 aria-hidden="true"
                 className="mt-0.5 size-4 shrink-0"
               />
-              {measurement.error.message}
+              {error.message}
             </p>
-          ) : measurement.isSuccess &&
-            measurement.data === latencyCompensation ? (
+          ) : isSuccess ? (
             <p
               role="status"
               className="flex items-start gap-1.5 text-emerald-400"
@@ -257,18 +262,17 @@ function InputLatencyMeasurement({
               Compensation updated.
             </p>
           ) : undefined}
-          {!measurement.isPending &&
-            (!inputActive || isPlaying || isRecording) && (
-              <p className="mt-1 flex items-start gap-1.5 text-neutral-400">
-                <TriangleAlertIcon
-                  aria-hidden="true"
-                  className="mt-0.5 size-4 shrink-0"
-                />
-                {!inputActive
-                  ? "Enable input to measure."
-                  : "Stop playback and recording to measure."}
-              </p>
-            )}
+          {!isPending && (!inputActive || isPlaying || isRecording) && (
+            <p className="mt-1 flex items-start gap-1.5 text-neutral-400">
+              <TriangleAlertIcon
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0"
+              />
+              {!inputActive
+                ? "Enable input to measure."
+                : "Stop playback and recording to measure."}
+            </p>
+          )}
         </div>
       </div>
     </details>
