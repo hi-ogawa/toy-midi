@@ -21,7 +21,12 @@ import { useWindowEvent } from "../../hooks/use-window-event";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import { exportMidi } from "../../lib/midi-export";
 import { importMidiNotes, parseMidiFile } from "../../lib/midi-import";
-import { getMinMax, isBlackKey, MAX_PITCH } from "../../lib/music";
+import {
+  getMidiOctavePitches,
+  getMinMax,
+  isBlackKey,
+  MAX_PITCH,
+} from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -303,7 +308,6 @@ function MidiTrackActions({
 
 const OVERVIEW_NOTE_HEIGHT = 4;
 const OVERVIEW_PITCH_PADDING = 12;
-const MIN_OVERVIEW_OCTAVE_GUIDE_SPACING = 12;
 
 function MidiTrackOverview({
   track,
@@ -356,7 +360,7 @@ function MidiTrackOverview({
             data-pitch={pitch}
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 border-t border-neutral-600/60"
-            style={{ top: pitchToTop(pitch) }}
+            style={{ top: pitchToTop(pitch) + OVERVIEW_NOTE_HEIGHT }}
           >
             <span className="absolute left-1 -translate-y-1/2 bg-neutral-900 px-0.5 text-[9px] leading-none text-neutral-500">
               {formatChromaticPitch(pitch)}
@@ -397,20 +401,10 @@ function getMidiOverviewPitchLayout({
     return (topPitch - pitch) * pixelsPerSemitone;
   }
 
-  const octavePitches: number[] = [];
-  if (
-    notes.length > 0 &&
-    pixelsPerSemitone * 12 >= MIN_OVERVIEW_OCTAVE_GUIDE_SPACING
-  ) {
-    const firstOctavePitch = Math.max(0, Math.ceil(bottomPitch / 12) * 12);
-    for (
-      let pitch = firstOctavePitch;
-      pitch <= Math.min(topPitch, MAX_PITCH);
-      pitch += 12
-    ) {
-      octavePitches.push(pitch);
-    }
-  }
+  const octavePitches =
+    notes.length > 0 && pixelsPerSemitone >= 1
+      ? getMidiOctavePitches({ minPitch: bottomPitch, maxPitch: topPitch })
+      : [];
 
   return { pitchToTop, octavePitches };
 }

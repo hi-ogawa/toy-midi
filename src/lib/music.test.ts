@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dbToPercent,
+  getMidiOctavePitches,
   getMinMax,
   gainToPercent,
   hzToMidi,
@@ -15,6 +16,20 @@ describe("numeric ranges", () => {
 
   it("returns undefined for an empty list", () => {
     expect(getMinMax([])).toBeUndefined();
+  });
+});
+
+describe("MIDI octave pitches", () => {
+  it("returns C pitches within a visible range", () => {
+    expect(getMidiOctavePitches({ minPitch: 55, maxPitch: 80 })).toEqual([
+      60, 72,
+    ]);
+  });
+
+  it("clips octave pitches to the MIDI range", () => {
+    expect(getMidiOctavePitches({ minPitch: -10, maxPitch: 140 })).toEqual([
+      0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120,
+    ]);
   });
 });
 
