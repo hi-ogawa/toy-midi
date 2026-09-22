@@ -146,10 +146,10 @@ export function InputSetup({
         </label>
         <section
           className="space-y-3 border-t border-neutral-700 pt-4"
-          aria-label="Latency compensation"
+          aria-label="Recording latency compensation"
         >
           <label className="flex items-center gap-2 text-[11px] font-medium text-neutral-400">
-            <span className="flex-1">Latency compensation</span>
+            <span className="flex-1">Recording latency compensation</span>
             <input
               type="text"
               disabled={measurement.isPending}
@@ -159,54 +159,59 @@ export function InputSetup({
             />
             <span>ms</span>
           </label>
-          <p className="text-xs leading-5 text-neutral-400">
-            Latency compensation helps recorded audio line up with existing
-            tracks by correcting input and output delay. To set it
-            automatically, you can use <strong>Measure latency</strong> after
-            connecting your output back to the selected input. It plays seven
-            clicks, measures their return delay, and updates the value above.
-            You can use the{" "}
-            <a
-              href={routes.latencyChecker.href()}
-              target="_blank"
-              rel="noreferrer"
-              className="text-emerald-400 hover:underline"
-            >
-              standalone checker
-            </a>{" "}
-            for detailed results and playback comparison.
-          </p>
-          <Button
-            className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
-            disabled={disabled || !inputActive || isPlaying}
-            onClick={() => measurement.mutate()}
-          >
-            {measurement.isPending ? "Measuring…" : "Measure latency"}
-          </Button>
-          <div className="space-y-2 text-xs leading-5">
-            {measurement.isPending ? (
-              <p role="status" className="text-neutral-400">
-                Playing seven clicks with input monitoring muted.
+          <details className="text-xs text-neutral-400">
+            <summary className="cursor-pointer">How do I set this?</summary>
+            <div className="mt-3 space-y-3">
+              <p className="text-xs leading-5 text-neutral-400">
+                Recording latency compensation corrects audio delay so your
+                recordings land where you played them on the timeline. To set it
+                automatically, you can use <strong>Measure latency</strong>{" "}
+                after connecting your output back to the selected input. It
+                plays seven clicks, measures their return delay, and updates the
+                value above. You can use the{" "}
+                <a
+                  href={routes.latencyChecker.href()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-400 hover:underline"
+                >
+                  standalone checker
+                </a>{" "}
+                for detailed results and playback comparison.
               </p>
-            ) : measurement.error ? (
-              <p role="alert" className="text-orange-200">
-                {measurement.error.message}
-              </p>
-            ) : measurement.isSuccess &&
-              measurement.data === latencyCompensation ? (
-              <p role="status" className="text-emerald-400">
-                Compensation updated.
-              </p>
-            ) : undefined}
-            {!measurement.isPending &&
-              (!inputActive || isPlaying || isRecording) && (
-                <p className="mt-1 text-neutral-400">
-                  {!inputActive
-                    ? "Enable input to measure."
-                    : "Stop playback and recording to measure."}
-                </p>
-              )}
-          </div>
+              <Button
+                className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
+                disabled={disabled || !inputActive || isPlaying}
+                onClick={() => measurement.mutate()}
+              >
+                {measurement.isPending ? "Measuring…" : "Measure latency"}
+              </Button>
+              <div className="space-y-2 text-xs leading-5">
+                {measurement.isPending ? (
+                  <p role="status" className="text-neutral-400">
+                    Playing seven clicks with input monitoring muted.
+                  </p>
+                ) : measurement.error ? (
+                  <p role="alert" className="text-orange-200">
+                    {measurement.error.message}
+                  </p>
+                ) : measurement.isSuccess &&
+                  measurement.data === latencyCompensation ? (
+                  <p role="status" className="text-emerald-400">
+                    Compensation updated.
+                  </p>
+                ) : undefined}
+                {!measurement.isPending &&
+                  (!inputActive || isPlaying || isRecording) && (
+                    <p className="mt-1 text-neutral-400">
+                      {!inputActive
+                        ? "Enable input to measure."
+                        : "Stop playback and recording to measure."}
+                    </p>
+                  )}
+              </div>
+            </div>
+          </details>
         </section>
       </div>
 
