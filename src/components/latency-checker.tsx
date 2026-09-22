@@ -57,7 +57,6 @@ export function LatencyChecker() {
     mutationFn: async () => {
       if (hasAccess && !isMonitoring) {
         await runtime.init();
-        await runtime.context.resume();
       }
       input.toggle();
     },
