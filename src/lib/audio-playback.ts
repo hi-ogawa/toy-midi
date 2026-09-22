@@ -6,12 +6,17 @@ export type AudioPlayback = {
 export function playAudioBuffers({
   buffers,
   context,
+  gain = 1,
   when,
 }: {
   buffers: AudioBuffer[];
   context: AudioContext;
+  gain?: number;
   when: number;
 }): AudioPlayback {
+  const output = context.createGain();
+  output.gain.value = gain;
+  output.connect(context.destination);
   const sources: AudioBufferSourceNode[] = [];
   const finished = Promise.withResolvers<void>();
   const stop = () => {
@@ -21,6 +26,7 @@ export function playAudioBuffers({
       source.disconnect();
     }
     sources.length = 0;
+    output.disconnect();
     finished.resolve();
   };
   let remaining = buffers.length;
@@ -28,7 +34,7 @@ export function playAudioBuffers({
     for (const buffer of buffers) {
       const source = context.createBufferSource();
       source.buffer = buffer;
-      source.connect(context.destination);
+      source.connect(output);
       source.onended = () => {
         if (--remaining === 0) {
           stop();
