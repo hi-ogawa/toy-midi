@@ -145,6 +145,23 @@ export function useRecorderClipInteraction({
     }
   }
 
+  function split(id: string): void {
+    if (edit) {
+      return;
+    }
+    const rightId = runtime.splitClip(id, runtime.store.get().position);
+    if (rightId) {
+      onSelect();
+      setSelectedIds(new Set([rightId]));
+    }
+  }
+
+  function splitSelected(): void {
+    if (selectedIds.size === 1) {
+      split([...selectedIds][0]!);
+    }
+  }
+
   function removeSelected(): void {
     setEdit(undefined);
     runtime.removeClips([...selectedIds]);
@@ -170,6 +187,9 @@ export function useRecorderClipInteraction({
     updateEdit,
     finishEdit,
     removeSelected,
+    split,
+    splitSelected,
+    canSplit: (id: string) => !edit && runtime.canSplitClip(id, state.position),
   };
 }
 

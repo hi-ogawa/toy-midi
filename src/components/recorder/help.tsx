@@ -39,6 +39,7 @@ const sections: HelpSectionData[] = [
       },
       { action: "Move selected clips", gesture: "Drag clip body" },
       { action: "Trim audio clips and takes", gesture: "Drag clip edge" },
+      { action: "Split selected take at playhead", keys: "S" },
       { action: "Remove selected clips", keys: "Delete / Backspace" },
       { action: "Clear selection", keys: "Esc" },
     ],
@@ -89,11 +90,11 @@ const sections: HelpSectionData[] = [
     title: "History",
     items: [
       {
-        action: "Undo MIDI edit, take, or clip deletion",
+        action: "Undo MIDI edit, take, split, or clip deletion",
         keys: "Ctrl / Cmd + Z",
       },
       {
-        action: "Redo MIDI edit, take, or clip deletion",
+        action: "Redo MIDI edit, take, split, or clip deletion",
         keys: "Ctrl / Cmd + Shift + Z / Ctrl + Y",
       },
     ],

@@ -211,6 +211,12 @@ export type RecorderClipInsertRemoveSnapshot = {
   referenceVideo?: ReferenceVideoState;
 };
 
+/** Replace recorded clips atomically, retaining their precedence indices. */
+export type RecorderClipReplacement = {
+  removeIds: string[];
+  clips: { clip: AudioClip; index: number }[];
+};
+
 export type RecorderClipInsertRemove = {
   operation: "insert" | "remove";
   snapshot: RecorderClipInsertRemoveSnapshot;
@@ -467,6 +473,76 @@ export class RecorderRuntime {
 
   commitClipEdit(edit: RecorderClipEdit): void {
     this.updateClips((state) => deriveClipEditState(state, edit));
+  }
+
+  canSplitClip(clipId: string, position: number): boolean {
+    const state = this.store.get();
+    if (
+      state.captureStatus === "recording" ||
+      state.captureStatus === "processing"
+    ) {
+      return false;
+    }
+    const clip = state.recordingTrack.clips.find((clip) => clip.id === clipId);
+    if (!clip) {
+      return false;
+    }
+    const sourcePosition = position - clip.timelineOffset;
+    return (
+      sourcePosition >= clip.trimStart + MIN_CLIP_DURATION &&
+      sourcePosition <= clip.trimEnd - MIN_CLIP_DURATION
+    );
+  }
+
+  /** Split a recorded clip without changing its source or comp precedence. */
+  splitClip(clipId: string, position: number): string | undefined {
+    if (!this.canSplitClip(clipId, position)) {
+      return;
+    }
+    const track = this.store.get().recordingTrack;
+    const index = track.clips.findIndex((clip) => clip.id === clipId);
+    const clip = track.clips[index]!;
+    const sourcePosition = position - clip.timelineOffset;
+    const left = { ...clip, trimEnd: sourcePosition };
+    const right = {
+      ...clip,
+      id: crypto.randomUUID(),
+      name: `${clip.name} (split)`,
+      trimStart: sourcePosition,
+    };
+    const before: RecorderClipReplacement = {
+      removeIds: [left.id, right.id],
+      clips: [{ clip, index }],
+    };
+    const after: RecorderClipReplacement = {
+      removeIds: [clip.id],
+      clips: [
+        { clip: left, index },
+        { clip: right, index: index + 1 },
+      ],
+    };
+    this.applyClipReplacement(after);
+    this.history.pushClipReplacement({ before, after });
+    return right.id;
+  }
+
+  /** @internal for undo */
+  applyClipReplacement(change: RecorderClipReplacement): void {
+    this.updateClips((state) => ({
+      audioTracks: state.audioTracks,
+      referenceVideo: state.referenceVideo,
+      recordingTrack: updateTrackClips({
+        track: state.recordingTrack,
+        update: (clips) =>
+          insertAtIndices({
+            items: clips.filter((clip) => !change.removeIds.includes(clip.id)),
+            insertions: change.clips.map(({ clip, index }) => ({
+              item: clip,
+              index,
+            })),
+          }),
+      }),
+    }));
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {

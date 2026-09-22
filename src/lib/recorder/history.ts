@@ -4,6 +4,7 @@ import type {
   RecorderClipInsertRemove,
   RecorderClipInsertRemoveSnapshot,
   RecorderRuntime,
+  RecorderClipReplacement,
 } from "./runtime.ts";
 
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
@@ -19,7 +20,8 @@ type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
   | { type: "midi-track-insert"; track: MidiTrackState; index: number }
   | { type: "midi-track-delete"; trackId: string }
-  | ({ type: "clips" } & RecorderClipInsertRemove);
+  | ({ type: "clips" } & RecorderClipInsertRemove)
+  | ({ type: "clip-replace" } & RecorderClipReplacement);
 
 export class RecorderHistory {
   private history = new UndoRedoHistory<RecorderChange>();
@@ -78,6 +80,19 @@ export class RecorderHistory {
     );
   }
 
+  pushClipReplacement({
+    before,
+    after,
+  }: {
+    before: RecorderClipReplacement;
+    after: RecorderClipReplacement;
+  }): void {
+    this.history.push({
+      before: { type: "clip-replace", ...before },
+      after: { type: "clip-replace", ...after },
+    });
+  }
+
   private async apply(change: RecorderChange): Promise<void> {
     switch (change.type) {
       case "midi-notes": {
@@ -90,6 +105,10 @@ export class RecorderHistory {
       }
       case "midi-track-delete": {
         this.runtime.deleteMidiTrack(change.trackId);
+        break;
+      }
+      case "clip-replace": {
+        this.runtime.applyClipReplacement(change);
         break;
       }
       case "clips": {
