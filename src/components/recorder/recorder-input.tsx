@@ -1,6 +1,8 @@
+import { useMutation, type UseMutationResult } from "@tanstack/react-query";
 import { CircleHelpIcon, Mic2Icon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
+import { measureLatency } from "../../lib/latency-checker/runtime";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { InputMeter } from "../input-meter";
@@ -18,6 +20,8 @@ export function InputSetup({
   inputAnalyser,
   inputsInitialized,
   isRecording,
+  isPlaying,
+  measurement,
   selectedDevice,
   selectedChannel,
   inputChannelCount,
@@ -37,6 +41,8 @@ export function InputSetup({
   inputAnalyser?: AudioAnalyser;
   inputsInitialized: boolean;
   isRecording: boolean;
+  isPlaying: boolean;
+  measurement: UseMutationResult<number, Error, void>;
   selectedDevice?: MediaDeviceInfo;
   selectedChannel: number;
   inputChannelCount: number;
@@ -48,12 +54,13 @@ export function InputSetup({
   onChannelChange: (channel: number) => void;
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
-  const disabled = mutationPending || isRecording;
+  const disabled = mutationPending || isRecording || measurement.isPending;
   const latencyInput = useDraftInput({
     value: latencyCompensation * 1000,
     onCommit: (milliseconds) =>
       onLatencyCompensationChange(milliseconds / 1000),
     min: 0,
+    parse: "float",
   });
   const inputClass =
     "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
@@ -173,13 +180,43 @@ export function InputSetup({
           <div className="mt-1 flex items-center gap-2">
             <input
               type="text"
-              inputMode="numeric"
+              disabled={measurement.isPending}
+              inputMode="decimal"
               {...latencyInput.props}
               className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
             />
             <span>ms</span>
           </div>
         </label>
+        <div className="space-y-2">
+          <Button
+            className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
+            disabled={disabled || !inputActive || isPlaying}
+            onClick={() => measurement.mutate()}
+          >
+            {measurement.isPending ? "Measuring…" : "Measure latency"}
+          </Button>
+          <p className="text-[11px] leading-4 text-neutral-400">
+            Connect your audio output back to the selected input. Plays seven
+            quiet clicks and fills compensation automatically. Input monitoring
+            is muted during measurement.
+          </p>
+          {isPlaying && (
+            <p className="text-[11px] text-neutral-400">
+              Stop playback to measure.
+            </p>
+          )}
+          {measurement.isSuccess && (
+            <p role="status" className="text-xs text-emerald-400">
+              Compensation set to {(measurement.data * 1000).toFixed(3)} ms.
+            </p>
+          )}
+          {measurement.error && (
+            <p role="alert" className="text-xs text-orange-200">
+              {measurement.error.message}
+            </p>
+          )}
+        </div>
       </div>
 
       <InputDiagnostics runtime={runtime} />
@@ -191,4 +228,64 @@ export function InputSetup({
       )}
     </div>
   );
+}
+
+export function useInputLatencyMeasurement({
+  runtime,
+  onMeasured,
+}: {
+  runtime: RecorderRuntime;
+  onMeasured: (seconds: number) => void;
+}) {
+  return useMutation({
+    mutationFn: async () => {
+      const state = runtime.store.get();
+      if (state.isPlaying || state.captureStatus !== "ready") {
+        throw new Error(
+          "Enable input and stop playback before measuring latency.",
+        );
+      }
+      const input = runtime.captureInput;
+      runtime.setInputMonitoring(false);
+      try {
+        const result = await measureLatency(runtime, { outputLevel: -24 });
+        if (runtime.captureInput !== input) {
+          throw new Error(
+            "The input changed. Measure again with the selected input.",
+          );
+        }
+        const measurements = result.analysis.measurements;
+        // Use the standalone checker's weak-correlation threshold before applying a result.
+        if (
+          measurements.some(
+            ({ score }) => !Number.isFinite(score) || score < 0.25,
+          )
+        ) {
+          throw new Error(
+            "Could not detect the loopback clicks reliably. Check the connection and input level, then try again.",
+          );
+        }
+        const offsets = measurements
+          .map(({ offsetSamples }) => offsetSamples)
+          .sort((a, b) => a - b);
+        const middle = Math.floor(offsets.length / 2);
+        const median =
+          offsets.length % 2
+            ? offsets[middle]
+            : (offsets[middle - 1] + offsets[middle]) / 2;
+        const compensation = median / result.sampleRate;
+        if (!Number.isFinite(compensation) || compensation < 0) {
+          throw new Error(
+            "The measured offset is invalid. Check the loopback connection and try again.",
+          );
+        }
+        onMeasured(compensation);
+        return compensation;
+      } finally {
+        if (runtime.captureInput === input) {
+          runtime.setInputMonitoring(state.inputMonitoring);
+        }
+      }
+    },
+  });
 }

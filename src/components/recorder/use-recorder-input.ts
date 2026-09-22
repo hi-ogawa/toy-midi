@@ -125,9 +125,15 @@ export function useRecorderInput({
     },
     setLatencyCompensation: (latencyCompensation: number) => {
       runtime.setLatencyCompensation(latencyCompensation);
-      setInputPreference((current) =>
-        current ? { ...current, latencyCompensation } : undefined,
-      );
+      if (!deviceId) {
+        return;
+      }
+      setInputPreference((current) => ({
+        ...current,
+        deviceId,
+        channel: runtime.store.get().selectedChannel,
+        latencyCompensation,
+      }));
     },
     toggle: () => {
       if (!hasAccess) {
