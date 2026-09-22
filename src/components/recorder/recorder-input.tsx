@@ -154,7 +154,7 @@ export function InputSetup({
             <span className="flex-1">Recording latency compensation</span>
             <input
               type="text"
-              disabled={measurement.isPending}
+              disabled={disabled || !inputActive}
               inputMode="decimal"
               {...latencyInput.props}
               className="h-8 w-24 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
