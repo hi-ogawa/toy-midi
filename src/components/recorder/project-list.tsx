@@ -14,6 +14,7 @@ import { Button } from "../ui/button";
 import { LegacyProjectList } from "./legacy-project-list";
 
 export function RecorderProjectList() {
+  const [showLegacy, setShowLegacy] = useState(false);
   const [query, setQuery] = useState("");
   const [legacyProjects, setLegacyProjects] = useState(() =>
     projectStorage.listMetadata(),
@@ -53,85 +54,121 @@ export function RecorderProjectList() {
   );
 
   return (
-    <div className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/45 shadow-2xl shadow-black/20">
       {projects.data.ok && (
-        <ProjectListSearch
-          query={query}
-          onQueryChange={setQuery}
-          total={projects.data.value.length + legacyProjects.length}
-          count={filteredProjects.length + filteredLegacyProjects.length}
-        />
-      )}
-      {!projects.data.ok ? (
-        <div className="p-8 text-center text-sm text-orange-300">
-          {String(projects.data.error)}
-        </div>
-      ) : projects.data.value.length === 0 && legacyProjects.length === 0 ? (
-        <div className="flex min-h-36 flex-col items-center justify-center text-center">
-          <p className="font-medium text-neutral-300">No projects yet</p>
-          <p className="mt-1 text-sm text-neutral-500">
-            Create a project to begin.
-          </p>
-        </div>
-      ) : filteredProjects.length === 0 ? (
-        <p className="mb-4 py-3 text-center text-sm text-neutral-500">
-          {projects.data.value.length === 0
-            ? "No projects yet"
-            : "No matching projects"}
-        </p>
-      ) : (
-        <div className="max-h-[22rem] space-y-2 overflow-y-auto scrollbar-thin pr-1">
-          {filteredProjects.map((project) => (
-            <RecorderProjectListItem
-              key={project.id}
-              project={project}
-              deletePending={deleteProject.isPending}
-              onDelete={() => deleteProject.mutate(project.id)}
-            />
-          ))}
-        </div>
-      )}
-      {projects.data.ok && (
-        <div className={projects.data.value.length > 0 ? "mt-4" : ""}>
-          <div className="flex gap-2">
-            <Button
-              data-testid="new-recorder-project-button"
-              onClick={() => createProject.mutate()}
-              disabled={createProject.isPending || importProject.isPending}
-              className={
-                projects.data.value.length > 0
-                  ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
-                  : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
-              }
-            >
-              New project
-            </Button>
-            <FileDropInput
-              accept=".toymidi.zip,.toymidi"
-              title="Import a project archive"
-              onFile={(file) => importProject.mutate(file)}
-              data-testid="import-recorder-project"
-              disabled={createProject.isPending || importProject.isPending}
-              className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
-            >
-              <span className="grid">
-                <span className="invisible col-start-1 row-start-1">
-                  Import project
+        <div className="shrink-0 space-y-3 border-b border-neutral-700/70 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="font-semibold">Projects</h2>
+            <div className="flex gap-2">
+              <Button
+                data-testid="new-recorder-project-button"
+                onClick={() => createProject.mutate()}
+                disabled={createProject.isPending || importProject.isPending}
+                className="bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+              >
+                New project
+              </Button>
+              <FileDropInput
+                accept=".toymidi.zip,.toymidi"
+                title="Import a project archive"
+                onFile={(file) => importProject.mutate(file)}
+                data-testid="import-recorder-project"
+                disabled={createProject.isPending || importProject.isPending}
+                className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+              >
+                <span className="grid">
+                  <span className="invisible col-start-1 row-start-1">
+                    Import project
+                  </span>
+                  <span className="col-start-1 row-start-1">
+                    {importProject.isPending
+                      ? "Importing..."
+                      : "Import project"}
+                  </span>
                 </span>
-                <span className="col-start-1 row-start-1">
-                  {importProject.isPending ? "Importing..." : "Import project"}
-                </span>
-              </span>
-            </FileDropInput>
+              </FileDropInput>
+            </div>
           </div>
+          {legacyProjects.length > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-700/70 px-3 py-1 text-xs text-neutral-400">
+              <span>
+                {legacyProjects.length} legacy{" "}
+                {legacyProjects.length === 1
+                  ? "project needs"
+                  : "projects need"}{" "}
+                migration before editing.
+              </span>
+              <Button
+                className="shrink-0 border border-neutral-600 bg-neutral-700 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-600"
+                onClick={() => {
+                  setShowLegacy(!showLegacy);
+                  setQuery("");
+                }}
+              >
+                {showLegacy ? "Show current projects" : "View legacy projects"}
+              </Button>
+            </div>
+          )}
+          <ProjectListSearch
+            query={query}
+            onQueryChange={setQuery}
+            legacy={showLegacy}
+            total={
+              showLegacy ? legacyProjects.length : projects.data.value.length
+            }
+            count={
+              showLegacy
+                ? filteredLegacyProjects.length
+                : filteredProjects.length
+            }
+          />
         </div>
       )}
-      {projects.data.ok && legacyProjects.length > 0 && (
-        <LegacyProjectList
-          projects={filteredLegacyProjects}
-          onDelete={() => setLegacyProjects(projectStorage.listMetadata())}
-        />
-      )}
+      <div
+        key={showLegacy ? "legacy" : "current"}
+        data-testid="project-list-scroll"
+        className="min-h-0 flex-1 overflow-y-auto scrollbar-thin p-3"
+      >
+        {showLegacy ? (
+          <LegacyProjectList
+            projects={filteredLegacyProjects}
+            onDelete={() => {
+              const remaining = projectStorage.listMetadata();
+              setLegacyProjects(remaining);
+              if (remaining.length === 0) {
+                setShowLegacy(false);
+                setQuery("");
+              }
+            }}
+          />
+        ) : !projects.data.ok ? (
+          <div className="p-8 text-center text-sm text-orange-300">
+            {String(projects.data.error)}
+          </div>
+        ) : projects.data.value.length === 0 ? (
+          <div className="flex min-h-36 flex-col items-center justify-center text-center">
+            <p className="font-medium text-neutral-300">No projects yet</p>
+            <p className="mt-1 text-sm text-neutral-500">
+              Create a project to begin.
+            </p>
+          </div>
+        ) : filteredProjects.length === 0 ? (
+          <p className="mb-4 py-3 text-center text-sm text-neutral-500">
+            No matching projects
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {filteredProjects.map((project) => (
+              <RecorderProjectListItem
+                key={project.id}
+                project={project}
+                deletePending={deleteProject.isPending}
+                onDelete={() => deleteProject.mutate(project.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -146,12 +183,12 @@ function RecorderProjectListItem({
   onDelete: () => void;
 }) {
   return (
-    <div className="group flex h-[4.5rem] w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800">
+    <div className="group flex h-16 w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800">
       <a
         href={routes.recorderProject.href({ projectId: project.id })}
         className="min-w-0 flex-1"
       >
-        <div className="truncate font-medium">{project.title}</div>
+        <div className="truncate text-sm font-medium">{project.title}</div>
         <div className="mt-1 text-xs text-neutral-500">
           Last edited{" "}
           {new Date(project.updatedAt).toLocaleDateString(undefined, {
@@ -169,7 +206,7 @@ function RecorderProjectListItem({
         }}
         disabled={deletePending}
         title="Delete project"
-        className="size-8 text-neutral-400 hover:bg-red-600/30"
+        className="size-8 text-neutral-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
       </Button>
@@ -182,11 +219,13 @@ function ProjectListSearch({
   onQueryChange,
   count,
   total,
+  legacy,
 }: {
   query: string;
   onQueryChange: (query: string) => void;
   count: number;
   total: number;
+  legacy: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   function clear() {
@@ -195,7 +234,7 @@ function ProjectListSearch({
   }
 
   return (
-    <div className="mb-4">
+    <div className="grid grid-cols-[minmax(0,1fr)_145px] items-center gap-3">
       <div className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
         <SearchIcon
           aria-hidden="true"
@@ -205,7 +244,7 @@ function ProjectListSearch({
           ref={inputRef}
           type="text"
           aria-label="Search projects"
-          placeholder="Search projects…"
+          placeholder={legacy ? "Search legacy projects…" : "Search projects…"}
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={(event) => {
@@ -227,8 +266,13 @@ function ProjectListSearch({
           </button>
         )}
       </div>
-      <p role="status" className="mt-2 text-xs text-neutral-500">
-        {count} of {total} projects
+      <p
+        role="status"
+        className="text-right text-xs whitespace-nowrap tabular-nums text-neutral-400"
+      >
+        {query.trim() ? `${count} of ${total}` : total}{" "}
+        {legacy ? "legacy " : ""}
+        {total === 1 ? "project" : "projects"}
       </p>
     </div>
   );

@@ -33,12 +33,8 @@ export function LegacyProjectList({
   });
 
   return (
-    <section
-      aria-label="Legacy projects"
-      className="mt-4 border-t border-neutral-700/70 pt-4"
-    >
-      <h2 className="text-sm font-medium text-neutral-200">Legacy projects</h2>
-      <div className="mt-3 max-h-48 space-y-2 overflow-y-auto scrollbar-thin pr-1">
+    <section aria-label="Legacy projects" className="space-y-2">
+      <div className="space-y-2">
         {projects.length === 0 && (
           <p className="py-3 text-center text-sm text-neutral-500">
             No matching legacy projects
@@ -47,11 +43,21 @@ export function LegacyProjectList({
         {projects.map((project) => (
           <div
             key={project.id}
-            className="flex items-center gap-3 rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 py-3"
+            className="group flex h-16 items-center gap-3 rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4"
           >
-            <span className="min-w-0 flex-1 truncate text-sm text-neutral-200">
-              {project.name}
-            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium text-neutral-200">
+                {project.name}
+              </div>
+              <div className="mt-1 text-xs text-neutral-500">
+                Last edited{" "}
+                {new Date(project.updatedAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </div>
+            </div>
             <Button
               onClick={() => migrate.mutate(project)}
               disabled={migrate.isPending}
@@ -72,7 +78,7 @@ export function LegacyProjectList({
               }}
               disabled={migrate.isPending}
               title="Delete legacy project"
-              className="size-8 shrink-0 text-neutral-400 hover:bg-red-600/30"
+              className="size-8 shrink-0 text-neutral-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-red-600/30"
             >
               <Trash2Icon className="size-4" />
             </Button>
