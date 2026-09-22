@@ -2,23 +2,25 @@ import {
   playAudioBuffers,
   createAudioBuffer,
   type AudioPlayback,
-} from "../audio-playback";
-import { dbToGain } from "../music";
-import type { RecorderRuntime } from "../recorder/runtime";
+} from "../audio-playback.ts";
+import { dbToGain } from "../music.ts";
+import type { RecorderRuntime } from "../recorder/runtime.ts";
 import {
   analyzeCalibration,
   type CalibrationResult,
   createCalibrationPlayback,
   createClickTemplate,
   createPlaybackBuffers,
-} from "./calibration";
+} from "./calibration.ts";
 
-const CLICK_COUNT = 7;
-const CLICK_INTERVAL = 0.7;
+const CALIBRATION_CLICK_COUNT = 7;
+const CALIBRATION_CLICK_INTERVAL = 0.7;
 // Begin capture before playback so the worklet is active at the first onset.
-const LEAD_TIME = 0.55;
-// Leave 200 ms before the next probe and capture through the final tail.
-const MAX_LATENCY = 0.5;
+const CALIBRATION_LEAD_TIME = 0.55;
+// Leave 200 ms before the next probe so each latency search remains isolated.
+const CALIBRATION_MAX_LATENCY = 0.5;
+// Keep capture running after the final click to include delayed input.
+const CALIBRATION_TAIL_TIME = CALIBRATION_MAX_LATENCY;
 
 export type PreviewVariant = "raw" | "compensated";
 
@@ -36,13 +38,15 @@ export async function measureLatency(
   let stopped = false;
   try {
     const template = createClickTemplate(context.sampleRate);
+    const amplitude = dbToGain(outputLevel);
+    const startTime = context.currentTime + CALIBRATION_LEAD_TIME;
     const playback = createCalibrationPlayback({
-      amplitude: dbToGain(outputLevel),
-      clickCount: CLICK_COUNT,
-      clickInterval: CLICK_INTERVAL,
+      amplitude,
+      clickCount: CALIBRATION_CLICK_COUNT,
+      clickInterval: CALIBRATION_CLICK_INTERVAL,
       sampleRate: context.sampleRate,
-      startTime: context.currentTime + LEAD_TIME,
-      tailTime: MAX_LATENCY,
+      startTime,
+      tailTime: CALIBRATION_TAIL_TIME,
       template,
     });
     await playAudioBuffers({
@@ -57,17 +61,18 @@ export async function measureLatency(
     if (capture.chunks.length === 0) {
       throw new Error("No PCM arrived from the selected input.");
     }
-    return {
-      analysis: analyzeCalibration({
-        recording: capture.getSamples({
-          startFrame: playback.startFrame,
-          endFrame: capture.stopFrame,
-        }),
-        maxLatency: MAX_LATENCY,
-        playback,
-        sampleRate: context.sampleRate,
-        template,
+    const analysis = analyzeCalibration({
+      recording: capture.getSamples({
+        startFrame: playback.startFrame,
+        endFrame: capture.stopFrame,
       }),
+      maxLatency: CALIBRATION_MAX_LATENCY,
+      playback,
+      sampleRate: context.sampleRate,
+      template,
+    });
+    return {
+      analysis,
       playback,
       sampleRate: context.sampleRate,
     };
@@ -91,26 +96,26 @@ export function createLatencyPreview(context: AudioContext) {
       variant: PreviewVariant;
     }) {
       playback?.stop();
-      const buffers = createPlaybackBuffers({
-        result,
-        compensationSamples: Math.round(
-          (compensationMs * result.sampleRate) / 1000,
-        ),
-      });
+      const sampleRate = result.sampleRate;
+      const compensationSamples = Math.round(
+        (compensationMs * sampleRate) / 1000,
+      );
+      const buffers = createPlaybackBuffers({ result, compensationSamples });
+      const when = context.currentTime + 0.08;
       playback = playAudioBuffers({
         context,
         buffers: [
           buffers.reference,
           variant === "raw" ? buffers.raw : buffers.compensated,
         ].map((samples) => {
-          const buffer = createAudioBuffer(context, samples, result.sampleRate);
+          const buffer = createAudioBuffer(context, samples, sampleRate);
           const data = buffer.getChannelData(0);
           for (let index = 0; index < data.length; index++) {
             data[index] *= 0.58;
           }
           return buffer;
         }),
-        when: context.currentTime + 0.08,
+        when,
       });
       return Promise.all([context.resume(), playback.finished]);
     },
