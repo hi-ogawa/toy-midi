@@ -12,6 +12,7 @@ import {
   type PreviewVariant,
 } from "../lib/latency-checker/runtime";
 import { routes } from "../lib/routes";
+import { plural } from "../utils/plural";
 import { InputMeter } from "./input-meter";
 import { Button } from "./ui/button";
 import {
@@ -380,8 +381,9 @@ function ResultsView({
     <>
       {weakCount > 0 && (
         <p className="mb-5 rounded-md border border-orange-700/60 bg-orange-950/40 px-4 py-3 text-sm leading-5 text-orange-200">
-          {weakCount} click{weakCount === 1 ? "" : "s"} had weak correlation.
-          Check routing, channel, and levels before trusting the median.
+          {weakCount} {plural({ count: weakCount, singular: "click" })} had weak
+          correlation. Check routing, channel, and levels before trusting the
+          median.
         </p>
       )}
       <div className="mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-700 bg-neutral-700">

@@ -12,6 +12,7 @@ import {
   recorderProjectStorage,
 } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
+import { plural } from "../../utils/plural";
 import { toResult } from "../../utils/result";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
@@ -112,9 +113,11 @@ export function RecorderProjectList() {
             <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-700/70 px-3 py-1 text-xs text-neutral-400">
               <span>
                 {legacyProjects.length} legacy{" "}
-                {legacyProjects.length === 1
-                  ? "project needs"
-                  : "projects need"}{" "}
+                {plural({
+                  count: legacyProjects.length,
+                  singular: "project needs",
+                  plural: "projects need",
+                })}{" "}
                 migration before editing.
               </span>
               <Button
@@ -358,7 +361,7 @@ function ProjectListSearch({
       >
         {query.trim() ? `${count} of ${total}` : total}{" "}
         {legacy ? "legacy " : ""}
-        {total === 1 ? "project" : "projects"}
+        {plural({ count: total, singular: "project" })}
       </p>
     </div>
   );
