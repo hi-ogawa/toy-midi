@@ -51,9 +51,9 @@ export function InputSetup({
   onChannelChange: (channel: number) => void;
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
-  const measurement = useInputLatencyMeasurement({
-    runtime,
-    onMeasured: onLatencyCompensationChange,
+  const measurement = useMutation({
+    mutationFn: () => measureInputLatency({ runtime }),
+    onSuccess: onLatencyCompensationChange,
   });
   const disabled = mutationPending || isRecording || measurement.isPending;
   const latencyInput = useDraftInput({
@@ -228,62 +228,47 @@ export function InputSetup({
   );
 }
 
-function useInputLatencyMeasurement({
-  runtime,
-  onMeasured,
-}: {
-  runtime: RecorderRuntime;
-  onMeasured: (seconds: number) => void;
-}) {
-  return useMutation({
-    mutationFn: async () => {
-      const state = runtime.store.get();
-      if (state.isPlaying || state.captureStatus !== "ready") {
-        throw new Error(
-          "Enable input and stop playback before measuring latency.",
-        );
-      }
-      const input = runtime.captureInput;
-      runtime.setInputMonitoring(false);
-      try {
-        const result = await measureLatency(runtime, { outputLevel: -24 });
-        if (runtime.captureInput !== input) {
-          throw new Error(
-            "The input changed. Measure again with the selected input.",
-          );
-        }
-        const measurements = result.analysis.measurements;
-        // Use the standalone checker's weak-correlation threshold before applying a result.
-        if (
-          measurements.some(
-            ({ score }) => !Number.isFinite(score) || score < 0.25,
-          )
-        ) {
-          throw new Error(
-            "Could not detect the loopback clicks reliably. Check the connection and input level, then try again.",
-          );
-        }
-        const offsets = measurements
-          .map(({ offsetSamples }) => offsetSamples)
-          .sort((a, b) => a - b);
-        const middle = Math.floor(offsets.length / 2);
-        const median =
-          offsets.length % 2
-            ? offsets[middle]
-            : (offsets[middle - 1] + offsets[middle]) / 2;
-        const compensation = median / result.sampleRate;
-        if (!Number.isFinite(compensation) || compensation < 0) {
-          throw new Error(
-            "The measured offset is invalid. Check the loopback connection and try again.",
-          );
-        }
-        onMeasured(compensation);
-        return compensation;
-      } finally {
-        if (runtime.captureInput === input) {
-          runtime.setInputMonitoring(state.inputMonitoring);
-        }
-      }
-    },
-  });
+async function measureInputLatency({ runtime }: { runtime: RecorderRuntime }) {
+  const state = runtime.store.get();
+  if (state.isPlaying || state.captureStatus !== "ready") {
+    throw new Error("Enable input and stop playback before measuring latency.");
+  }
+  const input = runtime.captureInput;
+  runtime.setInputMonitoring(false);
+  try {
+    const result = await measureLatency(runtime, { outputLevel: -24 });
+    if (runtime.captureInput !== input) {
+      throw new Error(
+        "The input changed. Measure again with the selected input.",
+      );
+    }
+    const measurements = result.analysis.measurements;
+    // Use the standalone checker's weak-correlation threshold before applying a result.
+    if (
+      measurements.some(({ score }) => !Number.isFinite(score) || score < 0.25)
+    ) {
+      throw new Error(
+        "Could not detect the loopback clicks reliably. Check the connection and input level, then try again.",
+      );
+    }
+    const offsets = measurements
+      .map(({ offsetSamples }) => offsetSamples)
+      .sort((a, b) => a - b);
+    const middle = Math.floor(offsets.length / 2);
+    const median =
+      offsets.length % 2
+        ? offsets[middle]
+        : (offsets[middle - 1] + offsets[middle]) / 2;
+    const compensation = median / result.sampleRate;
+    if (!Number.isFinite(compensation) || compensation < 0) {
+      throw new Error(
+        "The measured offset is invalid. Check the loopback connection and try again.",
+      );
+    }
+    return compensation;
+  } finally {
+    if (runtime.captureInput === input) {
+      runtime.setInputMonitoring(state.inputMonitoring);
+    }
+  }
 }
