@@ -322,16 +322,10 @@ function MidiTrackOverview({
   const pitchRange = Math.max(12, highest - lowest);
   const NOTE_HEIGHT = 4;
   const PADDING = 12;
-  const MIN_OCTAVE_GUIDE_SPACING = 12;
   const availableHeight = track.height - PADDING * 2 - NOTE_HEIGHT;
   const semitoneHeight = availableHeight / pitchRange;
 
-  function getPitchTop(pitch: number) {
-    return (
-      (-(pitch - centerPitch) / pitchRange + 0.5) * availableHeight + PADDING
-    );
-  }
-
+  const MIN_OCTAVE_GUIDE_SPACING = 12;
   const visibleLowestPitch = centerPitch - pitchRange / 2;
   const visibleHighestPitch = centerPitch + pitchRange / 2;
   const firstOctavePitch = Math.max(0, Math.ceil(visibleLowestPitch / 12) * 12);
@@ -354,6 +348,12 @@ function MidiTrackOverview({
       width: Math.max(2, note.duration * pixelsPerBeat),
       height: NOTE_HEIGHT,
     };
+  }
+
+  function getPitchTop(pitch: number) {
+    return (
+      (-(pitch - centerPitch) / pitchRange + 0.5) * availableHeight + PADDING
+    );
   }
 
   return (
