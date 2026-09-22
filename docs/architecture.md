@@ -12,4 +12,4 @@ Editing updates the active project in memory. Saving writes the project to Index
 
 Direct monitoring through an audio interface or external equipment lets the performer hear their instrument without waiting for browser audio processing. Browser monitoring depends on device and processing latency, so the recording workflow is designed around direct monitoring.
 
-Recording latency compensation aligns takes with the backing audio. Each project stores a compensation value, which shifts recorded audio earlier when placing a take on the timeline. The latency checker measures a looped-back recording setup to help determine this value.
+Recording latency compensation aligns takes with the backing audio by placing newly recorded audio earlier on the timeline. Input Setup and the standalone latency checker can measure a loopback connection to determine this value.
