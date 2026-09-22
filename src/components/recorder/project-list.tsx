@@ -118,8 +118,8 @@ export function RecorderProjectList() {
           {legacyProjects.length > 0 && (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-700/70 px-3 py-1 text-xs text-neutral-400">
               <span>
-                Migration required for {legacyProjects.length} legacy{" "}
-                {plural(legacyProjects.length, "project")}.
+                Migration required for {legacyProjects.length}{" "}
+                {plural(legacyProjects.length, "legacy project")}.
               </span>
               <Button
                 className="shrink-0 border border-neutral-600 bg-neutral-700 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-600"
