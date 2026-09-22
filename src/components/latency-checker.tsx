@@ -47,12 +47,7 @@ export function LatencyChecker() {
 
   useEffect(() => {
     document.title = "Latency Checker - Toy MIDI";
-    return () => {
-      calibrationController.current?.abort();
-      runtime.stopInput();
-      void runtime.context.close();
-    };
-  }, [runtime]);
+  }, []);
 
   const toggleMonitoringMutation = useMutation({
     mutationFn: async () => {
