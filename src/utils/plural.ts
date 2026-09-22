@@ -1,11 +1,7 @@
-export function plural({
-  count,
-  singular,
+export function plural(
+  count: number,
+  singular: string,
   plural = `${singular}s`,
-}: {
-  count: number;
-  singular: string;
-  plural?: string;
-}): string {
+): string {
   return count === 1 ? singular : plural;
 }

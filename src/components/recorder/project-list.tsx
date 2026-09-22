@@ -113,11 +113,11 @@ export function RecorderProjectList() {
             <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-700/70 px-3 py-1 text-xs text-neutral-400">
               <span>
                 {legacyProjects.length} legacy{" "}
-                {plural({
-                  count: legacyProjects.length,
-                  singular: "project needs",
-                  plural: "projects need",
-                })}{" "}
+                {plural(
+                  legacyProjects.length,
+                  "project needs",
+                  "projects need",
+                )}{" "}
                 migration before editing.
               </span>
               <Button
@@ -361,7 +361,7 @@ function ProjectListSearch({
       >
         {query.trim() ? `${count} of ${total}` : total}{" "}
         {legacy ? "legacy " : ""}
-        {plural({ count: total, singular: "project" })}
+        {plural(total, "project")}
       </p>
     </div>
   );
