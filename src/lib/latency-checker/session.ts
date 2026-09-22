@@ -47,7 +47,7 @@ export async function measureLatency({
       context,
       buffers: [toAudioBuffer(context, playback.samples, context.sampleRate)],
       when: playback.startFrame / context.sampleRate,
-    });
+    }).finished;
     await input.stopCapture();
     stopped = true;
     return {
@@ -72,101 +72,88 @@ export async function measureLatency({
   }
 }
 
-export async function auditionLatency({
-  compensationMs,
-  context,
-  result,
-  signal,
-  variant,
-}: {
-  compensationMs: number;
-  context: AudioContext;
-  result: CalibrationResult;
-  signal: AbortSignal;
-  variant: PreviewVariant;
-}) {
-  signal.throwIfAborted();
-  await context.resume();
-  signal.throwIfAborted();
-  const buffers = createPlaybackBuffers({
-    result,
-    compensationSamples: Math.round(
-      (compensationMs * result.sampleRate) / 1000,
-    ),
-  });
-  await playBuffers({
-    context,
-    buffers: [
-      buffers.reference,
-      variant === "raw" ? buffers.raw : buffers.compensated,
-    ].map((samples) => {
-      const buffer = toAudioBuffer(context, samples, result.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let index = 0; index < data.length; index++) {
-        data[index] *= 0.58;
-      }
-      return buffer;
-    }),
-    signal,
-    when: context.currentTime + 0.08,
-  });
+export function createLatencyPreview(context: AudioContext) {
+  let playback: ReturnType<typeof playBuffers> | undefined;
+  return {
+    play({
+      compensationMs,
+      result,
+      variant,
+    }: {
+      compensationMs: number;
+      result: CalibrationResult;
+      variant: PreviewVariant;
+    }) {
+      playback?.stop();
+      const buffers = createPlaybackBuffers({
+        result,
+        compensationSamples: Math.round(
+          (compensationMs * result.sampleRate) / 1000,
+        ),
+      });
+      playback = playBuffers({
+        context,
+        buffers: [
+          buffers.reference,
+          variant === "raw" ? buffers.raw : buffers.compensated,
+        ].map((samples) => {
+          const buffer = toAudioBuffer(context, samples, result.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let index = 0; index < data.length; index++) {
+            data[index] *= 0.58;
+          }
+          return buffer;
+        }),
+        when: context.currentTime + 0.08,
+      });
+      return Promise.all([context.resume(), playback.finished]);
+    },
+    stop() {
+      playback?.stop();
+      playback = undefined;
+    },
+  };
 }
 
 function playBuffers({
   buffers,
   context,
-  signal,
   when,
 }: {
   buffers: AudioBuffer[];
   context: AudioContext;
-  signal?: AbortSignal;
   when: number;
 }) {
-  return new Promise<void>((resolve, reject) => {
-    const sources: AudioBufferSourceNode[] = [];
-    const finish = () => {
-      signal?.removeEventListener("abort", finish);
-      for (const source of sources) {
-        source.onended = null;
-        try {
-          source.stop();
-        } catch {}
-        source.disconnect();
-      }
-      resolve();
-    };
-    if (signal?.aborted) {
-      resolve();
-      return;
+  const sources: AudioBufferSourceNode[] = [];
+  const finished = Promise.withResolvers<void>();
+  const stop = () => {
+    for (const source of sources) {
+      source.onended = null;
+      source.stop();
+      source.disconnect();
     }
-    signal?.addEventListener("abort", finish, { once: true });
-    let remaining = buffers.length;
-    try {
-      for (const buffer of buffers) {
-        const source = context.createBufferSource();
-        sources.push(source);
-        source.buffer = buffer;
-        source.connect(context.destination);
-        source.onended = () => {
-          if (--remaining === 0) {
-            finish();
-          }
-        };
-        source.start(when);
-      }
-    } catch (error) {
-      signal?.removeEventListener("abort", finish);
-      for (const source of sources) {
-        source.onended = null;
-        try {
-          source.stop();
-        } catch {}
-        source.disconnect();
-      }
-      reject(error);
+    sources.length = 0;
+    finished.resolve();
+  };
+  let remaining = buffers.length;
+  try {
+    for (const buffer of buffers) {
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      source.onended = () => {
+        if (--remaining === 0) {
+          stop();
+        }
+      };
+      source.start(when);
+      sources.push(source);
     }
-  });
+  } catch (error) {
+    stop();
+    throw error;
+  }
+  return { finished: finished.promise, stop };
 }
 
 function toAudioBuffer(

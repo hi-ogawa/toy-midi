@@ -4,13 +4,12 @@ import {
   type ComponentProps,
   type ReactNode,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import type { CalibrationResult } from "../lib/latency-checker/calibration";
 import {
-  auditionLatency,
+  createLatencyPreview,
   measureLatency,
   type PreviewVariant,
 } from "../lib/latency-checker/session";
@@ -318,32 +317,15 @@ function ResultsView({
     (measurement) => measurement.score < 0.25,
   ).length;
 
-  const previewController = useRef<AbortController | undefined>(undefined);
-  useEffect(
-    () => () => {
-      previewController.current?.abort();
-    },
-    [],
-  );
+  const [preview] = useState(() => createLatencyPreview(runtime.context));
+  useEffect(() => () => preview.stop(), [preview]);
   const previewMutation = useMutation({
-    mutationFn: async (variant: PreviewVariant) => {
-      previewController.current?.abort();
-      const controller = new AbortController();
-      previewController.current = controller;
-      try {
-        await auditionLatency({
-          compensationMs: medianMs,
-          context: runtime.context,
-          result: result.calibration,
-          signal: controller.signal,
-          variant,
-        });
-      } finally {
-        if (previewController.current === controller) {
-          previewController.current = undefined;
-        }
-      }
-    },
+    mutationFn: (variant: PreviewVariant) =>
+      preview.play({
+        compensationMs: medianMs,
+        result: result.calibration,
+        variant,
+      }),
   });
   const playingVariant = previewMutation.isPending
     ? previewMutation.variables
@@ -351,7 +333,7 @@ function ResultsView({
 
   function togglePreview(variant: PreviewVariant) {
     if (playingVariant === variant) {
-      previewController.current?.abort();
+      preview.stop();
     } else {
       previewMutation.mutate(variant);
     }
