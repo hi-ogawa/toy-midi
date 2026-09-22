@@ -43,7 +43,7 @@ export function LegacyProjectList({
         {projects.map((project) => (
           <div
             key={project.id}
-            className="group flex h-16 items-center gap-3 rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4"
+            className="flex h-16 items-center gap-3 rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4"
           >
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium text-neutral-200">
@@ -78,7 +78,7 @@ export function LegacyProjectList({
               }}
               disabled={migrate.isPending}
               title="Delete legacy project"
-              className="size-8 shrink-0 text-neutral-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-red-600/30"
+              className="size-8 shrink-0 text-neutral-400 hover:bg-red-600/30"
             >
               <Trash2Icon className="size-4" />
             </Button>

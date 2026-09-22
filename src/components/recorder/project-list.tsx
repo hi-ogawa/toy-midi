@@ -192,7 +192,7 @@ function RecorderProjectListItem({
   onDelete: () => void;
 }) {
   return (
-    <div className="group flex h-16 w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800">
+    <div className="flex h-16 w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800">
       <a
         href={routes.recorderProject.href({ projectId: project.id })}
         className="min-w-0 flex-1"
@@ -215,7 +215,7 @@ function RecorderProjectListItem({
         }}
         disabled={deletePending}
         title="Delete project"
-        className="size-8 text-neutral-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-red-600/30"
+        className="size-8 text-neutral-400 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
       </Button>
