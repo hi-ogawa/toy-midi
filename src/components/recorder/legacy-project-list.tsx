@@ -16,7 +16,7 @@ export function LegacyProjectList({
   projects: ProjectMetadata[];
   onDelete: () => void;
 }) {
-  const migrate = useMutation({
+  const migrateMutation = useMutation({
     mutationFn: async (project: ProjectMetadata) => {
       // Convert stored data and audio before saving a separate recorder copy.
       const content = await convertLegacyProject({
@@ -53,11 +53,12 @@ export function LegacyProjectList({
               {project.name}
             </span>
             <Button
-              onClick={() => migrate.mutate(project)}
-              disabled={migrate.isPending}
+              onClick={() => migrateMutation.mutate(project)}
+              disabled={migrateMutation.isPending}
               className="shrink-0 bg-neutral-700 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-600"
             >
-              {migrate.isPending && migrate.variables.id === project.id
+              {migrateMutation.isPending &&
+              migrateMutation.variables.id === project.id
                 ? "Migrating..."
                 : "Migrate to new editor"}
             </Button>
@@ -70,7 +71,7 @@ export function LegacyProjectList({
                   onDelete();
                 }
               }}
-              disabled={migrate.isPending}
+              disabled={migrateMutation.isPending}
               title="Delete legacy project"
               className="size-8 shrink-0 text-neutral-400 hover:bg-red-600/30"
             >

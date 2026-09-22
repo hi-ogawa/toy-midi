@@ -15,26 +15,26 @@ export function RecorderScorePage({
   trackId: string;
 }) {
   // Keep a saved snapshot for this page, as with the legacy score route.
-  const score = useQuery({
+  const scoreQuery = useQuery({
     queryKey: ["recorder-project-score", projectId, trackId],
     queryFn: () => getRecorderProjectScoreSource({ projectId, trackId }),
     staleTime: Infinity,
     retry: false,
   });
 
-  if (score.isError) {
+  if (scoreQuery.isError) {
     return (
       <RouteError
-        error={score.error}
+        error={scoreQuery.error}
         backHref={routes.recorderProject.href({ projectId })}
         backLabel="Back to project"
       />
     );
   }
-  if (score.isPending) {
+  if (scoreQuery.isPending) {
     return <div className="p-6 text-neutral-400">Loading score…</div>;
   }
-  return <ScoreViewer initialSource={score.data} />;
+  return <ScoreViewer initialSource={scoreQuery.data} />;
 }
 
 async function getRecorderProjectScoreSource({
