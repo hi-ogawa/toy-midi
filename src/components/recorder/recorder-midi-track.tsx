@@ -394,8 +394,9 @@ function getMidiOverviewPitchLayout({
   const pitchSpan = Math.max(12, highestPitch - lowestPitch);
   const topPitch = centerPitch + pitchSpan / 2;
   const bottomPitch = topPitch - pitchSpan;
-  const availableHeight = contentHeight - OVERVIEW_NOTE_HEIGHT;
-  const pixelsPerSemitone = availableHeight / pitchSpan;
+
+  // subtract one note height for TODO...
+  const pixelsPerSemitone = (contentHeight - OVERVIEW_NOTE_HEIGHT) / pitchSpan;
 
   function pitchToTop(pitch: number) {
     return (topPitch - pitch) * pixelsPerSemitone;
@@ -403,7 +404,7 @@ function getMidiOverviewPitchLayout({
 
   const octavePitches =
     notes.length > 0 && pixelsPerSemitone >= 1
-      ? getMidiOctavePitches({ minPitch: bottomPitch, maxPitch: topPitch })
+      ? getMidiOctavePitches(bottomPitch, topPitch)
       : [];
 
   return { pitchToTop, octavePitches };

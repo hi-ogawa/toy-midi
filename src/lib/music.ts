@@ -32,15 +32,9 @@ export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
 }
 
-export function getMidiOctavePitches({
-  minPitch,
-  maxPitch,
-}: {
-  minPitch: number;
-  maxPitch: number;
-}): number[] {
-  const firstPitch = Math.max(MIN_PITCH, Math.ceil(minPitch / 12) * 12);
-  const lastPitch = Math.min(maxPitch, MAX_PITCH);
+export function getMidiOctavePitches(min: number, max: number): number[] {
+  const firstPitch = Math.max(MIN_PITCH, Math.ceil(min / 12) * 12);
+  const lastPitch = Math.min(max, MAX_PITCH);
   const pitches: number[] = [];
   for (let pitch = firstPitch; pitch <= lastPitch; pitch += 12) {
     pitches.push(pitch);
