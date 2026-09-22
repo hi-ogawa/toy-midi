@@ -53,6 +53,18 @@ export function LatencyChecker() {
     };
   }, [runtime]);
 
+  const toggleMonitoringMutation = useMutation({
+    mutationFn: async () => {
+      if (!isMonitoring) {
+        await runtime.init();
+        await runtime.context.resume();
+      }
+      input.toggle();
+    },
+  });
+  const togglePending =
+    toggleMonitoringMutation.isPending || input.togglePending;
+
   const calibrationMutation = useMutation({
     mutationFn: async (): Promise<LatencyResult> => {
       const input = runtime.captureInput;
@@ -199,7 +211,7 @@ export function LatencyChecker() {
                   value={state.selectedChannel}
                   disabled={
                     !isMonitoring ||
-                    input.togglePending ||
+                    togglePending ||
                     calibrationMutation.isPending
                   }
                   onChange={(event) => {
@@ -225,12 +237,12 @@ export function LatencyChecker() {
                 className="min-w-35"
                 disabled={
                   !selectedDevice ||
-                  input.togglePending ||
+                  togglePending ||
                   calibrationMutation.isPending
                 }
-                onClick={input.toggle}
+                onClick={() => toggleMonitoringMutation.mutate()}
               >
-                {input.togglePending
+                {togglePending
                   ? "Starting..."
                   : isMonitoring
                     ? "Stop monitoring"
@@ -247,6 +259,11 @@ export function LatencyChecker() {
               </label>
             </div>
             {input.error && <ErrorMessage>{input.error.message}</ErrorMessage>}
+            {toggleMonitoringMutation.error && (
+              <ErrorMessage>
+                {toggleMonitoringMutation.error.message}
+              </ErrorMessage>
+            )}
           </WorkflowSection>
 
           <WorkflowSection
