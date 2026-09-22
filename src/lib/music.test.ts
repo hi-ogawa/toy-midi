@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   dbToPercent,
+  getMinMax,
   gainToPercent,
   hzToMidi,
   midiToHz,
   percentToGain,
 } from "./music";
+
+describe("numeric ranges", () => {
+  it("returns the minimum and maximum values", () => {
+    expect(getMinMax([3, -1, 3, 2])).toEqual({ min: -1, max: 3 });
+  });
+
+  it("returns undefined for an empty list", () => {
+    expect(getMinMax([])).toBeUndefined();
+  });
+});
 
 describe("pitch frequency conversion", () => {
   it.each([28, 40, 69, 81])("round-trips MIDI pitch %s through Hz", (midi) => {

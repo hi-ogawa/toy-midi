@@ -21,7 +21,7 @@ import { useWindowEvent } from "../../hooks/use-window-event";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import { exportMidi } from "../../lib/midi-export";
 import { importMidiNotes, parseMidiFile } from "../../lib/midi-import";
-import { isBlackKey, MAX_PITCH } from "../../lib/music";
+import { getMinMax, isBlackKey, MAX_PITCH } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -382,12 +382,9 @@ function getMidiOverviewPitchLayout({
   notes: Note[];
   contentHeight: number;
 }) {
-  let lowestPitch = notes[0]?.pitch ?? 60;
-  let highestPitch = lowestPitch;
-  for (const note of notes) {
-    lowestPitch = Math.min(lowestPitch, note.pitch);
-    highestPitch = Math.max(highestPitch, note.pitch);
-  }
+  const pitchBounds = getMinMax(notes.map((note) => note.pitch));
+  const lowestPitch = pitchBounds?.min ?? 60;
+  const highestPitch = pitchBounds?.max ?? lowestPitch;
 
   const centerPitch = (lowestPitch + highestPitch) / 2;
   const pitchSpan = Math.max(12, highestPitch - lowestPitch);
