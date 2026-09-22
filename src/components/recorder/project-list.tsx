@@ -72,12 +72,6 @@ export function RecorderProjectList() {
     matchesProjectSearch({ name: project.name, query }),
   );
 
-  // Size the viewport from the collections, so search and scope changes do not resize it.
-  const rowCount = Math.max(
-    projects.data.ok ? projects.data.value.length : 0,
-    legacyProjects.length,
-  );
-
   return (
     <div className="flex max-h-full min-h-0 flex-col overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/45 shadow-2xl shadow-black/20">
       {projects.data.ok && (
@@ -134,7 +128,7 @@ export function RecorderProjectList() {
               </Button>
             </div>
           )}
-          {rowCount > 0 && (
+          {(projects.data.value.length > 0 || legacyProjects.length > 0) && (
             <ProjectListSearch
               query={query}
               onQueryChange={setQuery}
@@ -156,7 +150,6 @@ export function RecorderProjectList() {
         aria-label={showLegacy ? "Legacy projects" : "Current projects"}
         data-testid="project-list-scroll"
         className="min-h-0 shrink space-y-2 overflow-y-auto scrollbar-thin p-3"
-        style={{ height: `${rowCount === 0 ? 10.5 : rowCount * 4.5 + 1}rem` }}
       >
         {showLegacy ? (
           filteredLegacyProjects.length === 0 ? (
