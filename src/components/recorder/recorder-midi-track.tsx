@@ -349,7 +349,7 @@ function MidiTrackOverviewNotes({
 }) {
   const OVERVIEW_NOTE_HEIGHT = 4;
   const OVERVIEW_PITCH_PADDING = 12;
-  const { min, max } = getMidiOverviewPitchLayout(notes);
+  const { min, max } = getMidiOverviewPitchDomain(notes);
 
   function pitchToPercent(pitch: number) {
     return ((max - pitch) / (max - min)) * 100;
@@ -401,7 +401,7 @@ function MidiTrackOverviewNotes({
   );
 }
 
-function getMidiOverviewPitchLayout(notes: Note[]) {
+function getMidiOverviewPitchDomain(notes: Note[]) {
   let noteMin = notes[0]!.pitch;
   let noteMax = noteMin;
   for (const note of notes) {
