@@ -106,7 +106,7 @@ test("Projects search follows the temporary legacy filter", async ({
   await expect(status).toHaveText("0 of 1 legacy project");
   await expect(legacy).toContainText("No matching legacy projects");
   await expect(
-    page.getByText("1 legacy project to migrate before editing."),
+    page.getByText("Migration required for 1 legacy project."),
   ).toBeVisible();
   await search.press("Escape");
 
