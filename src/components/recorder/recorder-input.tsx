@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { type UseMutationResult, useMutation } from "@tanstack/react-query";
 import { CheckIcon, Mic2Icon, TriangleAlertIcon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
@@ -161,77 +161,14 @@ export function InputSetup({
             />
             <span>ms</span>
           </label>
-          <details className="text-xs text-neutral-400">
-            <summary className="cursor-pointer">How do I set this?</summary>
-            <div className="mt-3 space-y-3">
-              <p className="text-xs leading-5 text-neutral-400">
-                Recording latency compensation corrects audio delay so your
-                recordings land where you played them on the timeline. To set it
-                automatically, first connect your audio output back to the
-                selected input with a cable. Then press{" "}
-                <strong>Measure latency</strong> to measure the return delay
-                using a few seconds of clicks. Alternatively, you can use the{" "}
-                <a
-                  href={routes.latencyChecker.href()}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2 hover:text-neutral-200"
-                >
-                  checker page
-                </a>{" "}
-                for details.
-              </p>
-              <Button
-                className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
-                disabled={disabled || !inputActive || isPlaying}
-                onClick={() => measurement.mutate()}
-              >
-                {measurement.isPending ? "Measuring…" : "Measure latency"}
-              </Button>
-              <div className="space-y-2 text-xs leading-5">
-                {measurement.isPending ? (
-                  <p role="status" className="text-neutral-400">
-                    Playing seven clicks with input monitoring muted.
-                  </p>
-                ) : measurement.error ? (
-                  <p
-                    role="alert"
-                    className="flex items-start gap-1.5 text-orange-200"
-                  >
-                    <TriangleAlertIcon
-                      aria-hidden="true"
-                      className="mt-0.5 size-4 shrink-0"
-                    />
-                    {measurement.error.message}
-                  </p>
-                ) : measurement.isSuccess &&
-                  measurement.data === latencyCompensation ? (
-                  <p
-                    role="status"
-                    className="flex items-start gap-1.5 text-emerald-400"
-                  >
-                    <CheckIcon
-                      aria-hidden="true"
-                      className="mt-0.5 size-4 shrink-0"
-                    />
-                    Compensation updated.
-                  </p>
-                ) : undefined}
-                {!measurement.isPending &&
-                  (!inputActive || isPlaying || isRecording) && (
-                    <p className="mt-1 flex items-start gap-1.5 text-neutral-400">
-                      <TriangleAlertIcon
-                        aria-hidden="true"
-                        className="mt-0.5 size-4 shrink-0"
-                      />
-                      {!inputActive
-                        ? "Enable input to measure."
-                        : "Stop playback and recording to measure."}
-                    </p>
-                  )}
-              </div>
-            </div>
-          </details>
+          <InputLatencyMeasurement
+            measurement={measurement}
+            disabled={disabled}
+            inputActive={inputActive}
+            isPlaying={isPlaying}
+            isRecording={isRecording}
+            latencyCompensation={latencyCompensation}
+          />
         </section>
       </div>
 
@@ -243,6 +180,96 @@ export function InputSetup({
         </div>
       )}
     </div>
+  );
+}
+
+function InputLatencyMeasurement({
+  measurement,
+  disabled,
+  inputActive,
+  isPlaying,
+  isRecording,
+  latencyCompensation,
+}: {
+  measurement: UseMutationResult<number, Error, void>;
+  disabled: boolean;
+  inputActive: boolean;
+  isPlaying: boolean;
+  isRecording: boolean;
+  latencyCompensation: number;
+}) {
+  return (
+    <details className="text-xs text-neutral-400">
+      <summary className="cursor-pointer">How do I set this?</summary>
+      <div className="mt-3 space-y-3">
+        <p className="text-xs leading-5 text-neutral-400">
+          Recording latency compensation corrects audio delay so your recordings
+          land where you played them on the timeline. To set it automatically,
+          first connect your audio output back to the selected input with a
+          cable. Then press <strong>Measure latency</strong> to measure the
+          return delay using a few seconds of clicks. Alternatively, you can use
+          the{" "}
+          <a
+            href={routes.latencyChecker.href()}
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 hover:text-neutral-200"
+          >
+            checker page
+          </a>{" "}
+          for details.
+        </p>
+        <Button
+          className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
+          disabled={disabled || !inputActive || isPlaying}
+          onClick={() => measurement.mutate()}
+        >
+          {measurement.isPending ? "Measuring…" : "Measure latency"}
+        </Button>
+        <div className="space-y-2 text-xs leading-5">
+          {measurement.isPending ? (
+            <p role="status" className="text-neutral-400">
+              Playing seven clicks with input monitoring muted.
+            </p>
+          ) : measurement.error ? (
+            <p
+              role="alert"
+              className="flex items-start gap-1.5 text-orange-200"
+            >
+              <TriangleAlertIcon
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0"
+              />
+              {measurement.error.message}
+            </p>
+          ) : measurement.isSuccess &&
+            measurement.data === latencyCompensation ? (
+            <p
+              role="status"
+              className="flex items-start gap-1.5 text-emerald-400"
+            >
+              <CheckIcon
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0"
+              />
+              Compensation updated.
+            </p>
+          ) : undefined}
+          {!measurement.isPending &&
+            (!inputActive || isPlaying || isRecording) && (
+              <p className="mt-1 flex items-start gap-1.5 text-neutral-400">
+                <TriangleAlertIcon
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 shrink-0"
+                />
+                {!inputActive
+                  ? "Enable input to measure."
+                  : "Stop playback and recording to measure."}
+              </p>
+            )}
+        </div>
+      </div>
+    </details>
   );
 }
 
