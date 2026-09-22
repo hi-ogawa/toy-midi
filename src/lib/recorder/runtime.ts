@@ -292,6 +292,8 @@ export class RecorderRuntime {
     deviceId: string;
   }): Promise<{ channelCount: number }> {
     const context = this.context;
+    // Channel discovery needs the capture worklet to process audio.
+    await context.resume();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
     const { input, channelCount } = await CaptureInput.open({
