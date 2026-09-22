@@ -1,9 +1,9 @@
-export type Playback = {
+export type AudioPlayback = {
   finished: Promise<void>;
   stop(): void;
 };
 
-export function playBuffers({
+export function playAudioBuffers({
   buffers,
   context,
   when,
@@ -11,7 +11,7 @@ export function playBuffers({
   buffers: AudioBuffer[];
   context: AudioContext;
   when: number;
-}): Playback {
+}): AudioPlayback {
   const sources: AudioBufferSourceNode[] = [];
   const finished = Promise.withResolvers<void>();
   const stop = () => {
@@ -44,7 +44,7 @@ export function playBuffers({
   return { finished: finished.promise, stop };
 }
 
-export function toAudioBuffer(
+export function createAudioBuffer(
   context: AudioContext,
   samples: Float32Array,
   sampleRate: number,

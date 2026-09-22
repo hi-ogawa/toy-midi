@@ -1,4 +1,8 @@
-import { playBuffers, toAudioBuffer, type Playback } from "../audio-playback";
+import {
+  playAudioBuffers,
+  createAudioBuffer,
+  type AudioPlayback,
+} from "../audio-playback";
 import { dbToGain } from "../music";
 import type { RecorderRuntime } from "../recorder/runtime";
 import {
@@ -41,9 +45,11 @@ export async function measureLatency(
       tailTime: MAX_LATENCY,
       template,
     });
-    await playBuffers({
+    await playAudioBuffers({
       context,
-      buffers: [toAudioBuffer(context, playback.samples, context.sampleRate)],
+      buffers: [
+        createAudioBuffer(context, playback.samples, context.sampleRate),
+      ],
       when: playback.startFrame / context.sampleRate,
     }).finished;
     stopped = true;
@@ -73,7 +79,7 @@ export async function measureLatency(
 }
 
 export function createLatencyPreview(context: AudioContext) {
-  let playback: Playback | undefined;
+  let playback: AudioPlayback | undefined;
   return {
     play({
       compensationMs,
@@ -91,13 +97,13 @@ export function createLatencyPreview(context: AudioContext) {
           (compensationMs * result.sampleRate) / 1000,
         ),
       });
-      playback = playBuffers({
+      playback = playAudioBuffers({
         context,
         buffers: [
           buffers.reference,
           variant === "raw" ? buffers.raw : buffers.compensated,
         ].map((samples) => {
-          const buffer = toAudioBuffer(context, samples, result.sampleRate);
+          const buffer = createAudioBuffer(context, samples, result.sampleRate);
           const data = buffer.getChannelData(0);
           for (let index = 0; index < data.length; index++) {
             data[index] *= 0.58;
