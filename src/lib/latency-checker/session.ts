@@ -1,5 +1,5 @@
 import { dbToGain } from "../music";
-import type { CaptureInput } from "../recorder/capture-input";
+import type { RecorderRuntime } from "../recorder/runtime";
 import {
   analyzeCalibration,
   type CalibrationResult,
@@ -18,15 +18,14 @@ const MAX_LATENCY = 0.5;
 export type PreviewVariant = "raw" | "compensated";
 
 /** Run one calibration against an input already owned by an audio runtime. */
-export async function measureLatency({
-  context,
-  input,
-  outputLevel,
-}: {
-  context: AudioContext;
-  input: CaptureInput;
-  outputLevel: number;
-}): Promise<CalibrationResult> {
+export async function measureLatency(
+  runtime: RecorderRuntime,
+  { outputLevel }: { outputLevel: number },
+): Promise<CalibrationResult> {
+  const { context, captureInput: input } = runtime;
+  if (!input) {
+    throw new Error("Start input monitoring before running the click test.");
+  }
   await context.resume();
   await input.startCapture();
   let stopped = false;

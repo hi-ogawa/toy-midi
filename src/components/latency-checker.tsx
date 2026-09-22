@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   createLatencyPreview,
+  measureLatency,
   type PreviewVariant,
 } from "../lib/latency-checker/session";
 import { RecorderRuntime } from "../lib/recorder/runtime";
@@ -59,7 +60,7 @@ export function LatencyChecker() {
 
   const calibrationMutation = useMutation({
     mutationFn: async () => ({
-      ...(await runtime.measureLatency({ outputLevel })),
+      ...(await measureLatency(runtime, { outputLevel })),
       channelCount: state.inputChannelCount,
     }),
   });
@@ -410,7 +411,7 @@ function ResultsView({
   );
 }
 
-type LatencyResult = Awaited<ReturnType<RecorderRuntime["measureLatency"]>> & {
+type LatencyResult = Awaited<ReturnType<typeof measureLatency>> & {
   channelCount: number;
 };
 
