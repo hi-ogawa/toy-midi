@@ -304,7 +304,6 @@ function MidiTrackActions({
 const OVERVIEW_NOTE_HEIGHT = 4;
 const OVERVIEW_PITCH_PADDING = 12;
 const MIN_OVERVIEW_OCTAVE_GUIDE_SPACING = 12;
-const SEMITONES_PER_OCTAVE = 12;
 
 function MidiTrackOverview({
   track,
@@ -391,7 +390,7 @@ function getMidiOverviewPitchLayout({
   }
 
   const centerPitch = (lowestPitch + highestPitch) / 2;
-  const pitchSpan = Math.max(SEMITONES_PER_OCTAVE, highestPitch - lowestPitch);
+  const pitchSpan = Math.max(12, highestPitch - lowestPitch);
   const topPitch = centerPitch + pitchSpan / 2;
   const bottomPitch = topPitch - pitchSpan;
   const availableHeight = contentHeight - OVERVIEW_NOTE_HEIGHT;
@@ -404,17 +403,13 @@ function getMidiOverviewPitchLayout({
   const octavePitches: number[] = [];
   if (
     notes.length > 0 &&
-    pixelsPerSemitone * SEMITONES_PER_OCTAVE >=
-      MIN_OVERVIEW_OCTAVE_GUIDE_SPACING
+    pixelsPerSemitone * 12 >= MIN_OVERVIEW_OCTAVE_GUIDE_SPACING
   ) {
-    const firstOctavePitch = Math.max(
-      0,
-      Math.ceil(bottomPitch / SEMITONES_PER_OCTAVE) * SEMITONES_PER_OCTAVE,
-    );
+    const firstOctavePitch = Math.max(0, Math.ceil(bottomPitch / 12) * 12);
     for (
       let pitch = firstOctavePitch;
       pitch <= Math.min(topPitch, MAX_PITCH);
-      pitch += SEMITONES_PER_OCTAVE
+      pitch += 12
     ) {
       octavePitches.push(pitch);
     }
