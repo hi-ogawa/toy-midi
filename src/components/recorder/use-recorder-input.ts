@@ -66,6 +66,8 @@ export function useRecorderInput({
 
   const startMutation = useMutation({
     mutationFn: async (nextDeviceId: string) => {
+      await runtime.init();
+      await runtime.context.resume();
       const { channelCount } = await runtime.startInput({
         deviceId: nextDeviceId,
       });
@@ -105,6 +107,9 @@ export function useRecorderInput({
 
   return {
     active,
+    refresh: refreshMutation.mutate,
+    grantAccess: grantMutation.mutate,
+    grantPending: grantMutation.isPending,
     devices,
     error: grantMutation.error ?? refreshMutation.error ?? startMutation.error,
     hasAccess,

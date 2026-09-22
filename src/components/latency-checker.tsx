@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import type { CalibrationResult } from "../lib/latency-checker/calibration";
 import {
@@ -13,13 +14,10 @@ import {
   measureLatency,
   type PreviewVariant,
 } from "../lib/latency-checker/session";
-import {
-  getCaptureInputs,
-  requestCaptureAccess,
-} from "../lib/recorder/capture-input";
 import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { InputMeter } from "./input-meter";
+import { useRecorderInput } from "./recorder/use-recorder-input";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -32,9 +30,18 @@ import { cn } from "./ui/utils";
 export function LatencyChecker() {
   const [runtime] = useState(() => new RecorderRuntime());
   const calibrationController = useRef<AbortController | undefined>(undefined);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState<string>();
-  const [channel, setChannel] = useState(0);
+  const state = useSyncExternalStore(
+    runtime.store.subscribe,
+    runtime.store.get,
+  );
+  const input = useRecorderInput({ runtime, state });
+  const {
+    devices,
+    selectedDevice,
+    hasAccess,
+    initialized: inputsInitialized,
+    active: isMonitoring,
+  } = input;
   const [outputLevel, setOutputLevel] = useState(-24);
 
   useEffect(() => {
@@ -46,52 +53,6 @@ export function LatencyChecker() {
     };
   }, [runtime]);
 
-  async function refreshInputs() {
-    const nextDevices = await getCaptureInputs();
-    setDevices(nextDevices);
-    selectDevice(
-      nextDevices.some((device) => device.deviceId === deviceId)
-        ? deviceId
-        : nextDevices[0]?.deviceId,
-    );
-  }
-
-  const grantAccessMutation = useMutation({
-    mutationFn: async () => {
-      await requestCaptureAccess();
-      await refreshInputs();
-    },
-  });
-
-  const refreshInputsMutation = useMutation({
-    mutationFn: refreshInputs,
-  });
-
-  useEffect(() => {
-    const refresh = () => refreshInputsMutation.mutate();
-    refresh();
-    navigator.mediaDevices.addEventListener("devicechange", refresh);
-    return () =>
-      navigator.mediaDevices.removeEventListener("devicechange", refresh);
-  }, [refreshInputsMutation.mutate]);
-
-  const inputsInitialized =
-    refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
-
-  // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
-  const hasAccess = devices.some((device) => device.label);
-  const selectedDevice = devices.find((device) => device.deviceId === deviceId);
-
-  const startMonitoringMutation = useMutation({
-    mutationFn: async (deviceId: string) => {
-      await runtime.init();
-      await runtime.context.resume();
-      const { channelCount } = await runtime.startInput({ deviceId });
-      return channelCount;
-    },
-  });
-  const isMonitoring = startMonitoringMutation.isSuccess;
-
   const calibrationMutation = useMutation({
     mutationFn: async (): Promise<LatencyResult> => {
       const input = runtime.captureInput;
@@ -100,7 +61,6 @@ export function LatencyChecker() {
           "Start input monitoring before running the click test.",
         );
       }
-      runtime.selectChannel(channel);
       const controller = new AbortController();
       calibrationController.current = controller;
       try {
@@ -124,28 +84,13 @@ export function LatencyChecker() {
   });
   const result = calibrationMutation.data;
 
-  function stopMonitoring() {
-    calibrationController.current?.abort();
-    runtime.stopInput();
-    setChannel(0);
-    startMonitoringMutation.reset();
-    calibrationMutation.reset();
-  }
-
-  function toggleMonitoring() {
-    if (isMonitoring) {
-      stopMonitoring();
-    } else if (selectedDevice) {
-      startMonitoringMutation.mutate(selectedDevice.deviceId);
+  // Discard the measurement when the shared input workflow closes its route.
+  useEffect(() => {
+    if (!isMonitoring) {
+      calibrationController.current?.abort();
+      calibrationMutation.reset();
     }
-  }
-
-  function selectDevice(nextDeviceId?: string) {
-    if (nextDeviceId !== deviceId && isMonitoring) {
-      stopMonitoring();
-    }
-    setDeviceId(nextDeviceId);
-  }
+  }, [isMonitoring, calibrationMutation.reset]);
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
@@ -202,12 +147,11 @@ export function LatencyChecker() {
                   disabled={
                     !inputsInitialized ||
                     !hasAccess ||
-                    refreshInputsMutation.isPending ||
-                    grantAccessMutation.isPending ||
+                    input.mutationPending ||
                     calibrationMutation.isPending
                   }
                   onChange={(event) =>
-                    selectDevice(event.currentTarget.value || undefined)
+                    input.selectDevice(event.currentTarget.value || undefined)
                   }
                   className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
@@ -233,52 +177,42 @@ export function LatencyChecker() {
                 accent={inputsInitialized && !hasAccess}
                 className="min-w-35"
                 disabled={
-                  !inputsInitialized ||
-                  refreshInputsMutation.isPending ||
-                  grantAccessMutation.isPending ||
-                  isMonitoring
+                  !inputsInitialized || input.mutationPending || isMonitoring
                 }
                 onClick={() =>
-                  hasAccess
-                    ? refreshInputsMutation.mutate()
-                    : grantAccessMutation.mutate()
+                  hasAccess ? input.refresh() : input.grantAccess()
                 }
               >
                 {!inputsInitialized
                   ? "Loading..."
-                  : grantAccessMutation.isPending
+                  : input.grantPending
                     ? "Requesting access..."
                     : hasAccess
                       ? "Refresh inputs"
                       : "Grant access"}
               </ActionButton>
             </div>
-            {grantAccessMutation.error && (
-              <ErrorMessage>{grantAccessMutation.error.message}</ErrorMessage>
-            )}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
               <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Channel
                 <select
-                  value={channel}
+                  value={state.selectedChannel}
                   disabled={
                     !isMonitoring ||
-                    startMonitoringMutation.isPending ||
+                    input.togglePending ||
                     calibrationMutation.isPending
                   }
                   onChange={(event) => {
-                    const value = Number(event.currentTarget.value);
-                    setChannel(value);
-                    runtime.selectChannel(value);
+                    input.selectChannel(Number(event.currentTarget.value));
                   }}
                   className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
-                  {startMonitoringMutation.data ? (
+                  {state.inputChannelCount ? (
                     Array.from(
-                      { length: startMonitoringMutation.data },
+                      { length: state.inputChannelCount },
                       (_, index) => (
                         <option key={index} value={index}>
-                          Channel {index + 1} of {startMonitoringMutation.data}
+                          Channel {index + 1} of {state.inputChannelCount}
                         </option>
                       ),
                     )
@@ -291,12 +225,12 @@ export function LatencyChecker() {
                 className="min-w-35"
                 disabled={
                   !selectedDevice ||
-                  startMonitoringMutation.isPending ||
+                  input.togglePending ||
                   calibrationMutation.isPending
                 }
-                onClick={toggleMonitoring}
+                onClick={input.toggle}
               >
-                {startMonitoringMutation.isPending
+                {input.togglePending
                   ? "Starting..."
                   : isMonitoring
                     ? "Stop monitoring"
@@ -312,11 +246,7 @@ export function LatencyChecker() {
                 />
               </label>
             </div>
-            {startMonitoringMutation.error && (
-              <ErrorMessage>
-                {startMonitoringMutation.error.message}
-              </ErrorMessage>
-            )}
+            {input.error && <ErrorMessage>{input.error.message}</ErrorMessage>}
           </WorkflowSection>
 
           <WorkflowSection
