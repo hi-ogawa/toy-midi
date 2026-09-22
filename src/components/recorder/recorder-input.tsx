@@ -57,11 +57,10 @@ export function InputSetup({
   });
   const disabled = mutationPending || isRecording || measurement.isPending;
   const latencyInput = useDraftInput({
-    value: latencyCompensation * 1000,
+    value: Math.round(latencyCompensation * 1000),
     onCommit: (milliseconds) =>
       onLatencyCompensationChange(milliseconds / 1000),
     min: 0,
-    parse: "float",
   });
   const inputClass =
     "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
