@@ -322,14 +322,35 @@ function MidiTrackOverview({
   const pitchRange = Math.max(12, highest - lowest);
   const NOTE_HEIGHT = 4;
   const PADDING = 12;
+  const MIN_OCTAVE_GUIDE_SPACING = 12;
   const availableHeight = track.height - PADDING * 2 - NOTE_HEIGHT;
+  const semitoneHeight = availableHeight / pitchRange;
+
+  function getPitchTop(pitch: number) {
+    return (
+      (-(pitch - centerPitch) / pitchRange + 0.5) * availableHeight + PADDING
+    );
+  }
+
+  const visibleLowestPitch = centerPitch - pitchRange / 2;
+  const visibleHighestPitch = centerPitch + pitchRange / 2;
+  const firstOctavePitch = Math.max(0, Math.ceil(visibleLowestPitch / 12) * 12);
+  const lastOctavePitch = Math.min(
+    MAX_PITCH,
+    Math.floor(visibleHighestPitch / 12) * 12,
+  );
+  const octavePitches =
+    track.notes.length > 0 && semitoneHeight * 12 >= MIN_OCTAVE_GUIDE_SPACING
+      ? Array.from(
+          { length: Math.floor((lastOctavePitch - firstOctavePitch) / 12) + 1 },
+          (_, index) => firstOctavePitch + index * 12,
+        )
+      : [];
 
   function getNoteStyle(note: Note) {
     return {
       left: (note.start - viewportStartBeat) * pixelsPerBeat,
-      top:
-        (-(note.pitch - centerPitch) / pitchRange + 0.5) * availableHeight +
-        PADDING,
+      top: getPitchTop(note.pitch),
       width: Math.max(2, note.duration * pixelsPerBeat),
       height: NOTE_HEIGHT,
     };
@@ -350,6 +371,20 @@ function MidiTrackOverview({
         colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
       })}
     >
+      {octavePitches.map((pitch) => (
+        <div
+          key={pitch}
+          data-testid="recorder-midi-octave-guide"
+          data-pitch={pitch}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 border-t border-neutral-600/60"
+          style={{ top: getPitchTop(pitch) }}
+        >
+          <span className="absolute left-1 -translate-y-1/2 bg-neutral-900 px-0.5 text-[9px] leading-none text-neutral-500">
+            {formatChromaticPitch(pitch)}
+          </span>
+        </div>
+      ))}
       {track.notes.map((note) => (
         <div
           key={note.id}
