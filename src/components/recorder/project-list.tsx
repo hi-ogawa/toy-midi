@@ -23,21 +23,21 @@ export function RecorderProjectList() {
   const [legacyProjects, setLegacyProjects] = useState(() =>
     projectStorage.listMetadata(),
   );
-  const projects = useSuspenseQuery({
+  const projectsQuery = useSuspenseQuery({
     queryKey: ["recorder-projects"],
     queryFn: () => toResult(recorderProjectStorage.list()),
   });
-  const createProject = useMutation({
+  const createProjectMutation = useMutation({
     mutationFn: () => recorderProjectStorage.create(),
     onSuccess: (projectId) => {
       window.location.href = routes.recorderProject.href({ projectId });
     },
   });
-  const deleteProject = useMutation({
+  const deleteProjectMutation = useMutation({
     mutationFn: (projectId: string) => recorderProjectStorage.delete(projectId),
-    onSuccess: () => projects.refetch(),
+    onSuccess: () => projectsQuery.refetch(),
   });
-  const importProject = useMutation({
+  const importProjectMutation = useMutation({
     mutationFn: async (file: File) => {
       const content = await importRecorderProject(file);
       return recorderProjectStorage.createWithContent(content);
@@ -47,7 +47,7 @@ export function RecorderProjectList() {
     },
   });
 
-  const migrate = useMutation({
+  const migrateMutation = useMutation({
     mutationFn: async (project: ProjectMetadata) => {
       // Convert stored data and audio before saving a separate recorder copy.
       const content = await convertLegacyProject({
@@ -63,8 +63,8 @@ export function RecorderProjectList() {
     },
   });
 
-  const filteredProjects = projects.data.ok
-    ? projects.data.value.filter((project) =>
+  const filteredProjects = projectsQuery.data.ok
+    ? projectsQuery.data.value.filter((project) =>
         matchesProjectSearch({ name: project.title, query }),
       )
     : [];
@@ -75,15 +75,18 @@ export function RecorderProjectList() {
 
   return (
     <div className="flex max-h-full min-h-0 flex-col overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/45 shadow-2xl shadow-black/20">
-      {projects.data.ok && (
+      {projectsQuery.data.ok && (
         <div className="shrink-0 space-y-3 border-b border-neutral-700/70 p-4">
           <div className="flex items-center justify-between gap-4">
             <h2 className="font-semibold">Projects</h2>
             <div className="flex gap-2">
               <Button
                 data-testid="new-recorder-project-button"
-                onClick={() => createProject.mutate()}
-                disabled={createProject.isPending || importProject.isPending}
+                onClick={() => createProjectMutation.mutate()}
+                disabled={
+                  createProjectMutation.isPending ||
+                  importProjectMutation.isPending
+                }
                 className="bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
               >
                 New project
@@ -91,9 +94,12 @@ export function RecorderProjectList() {
               <FileDropInput
                 accept=".toymidi.zip,.toymidi"
                 title="Import a project archive"
-                onFile={(file) => importProject.mutate(file)}
+                onFile={(file) => importProjectMutation.mutate(file)}
                 data-testid="import-recorder-project"
-                disabled={createProject.isPending || importProject.isPending}
+                disabled={
+                  createProjectMutation.isPending ||
+                  importProjectMutation.isPending
+                }
                 className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
               >
                 <span className="grid">
@@ -101,7 +107,7 @@ export function RecorderProjectList() {
                     Import project
                   </span>
                   <span className="col-start-1 row-start-1">
-                    {importProject.isPending
+                    {importProjectMutation.isPending
                       ? "Importing..."
                       : "Import project"}
                   </span>
@@ -131,13 +137,16 @@ export function RecorderProjectList() {
               </Button>
             </div>
           )}
-          {(projects.data.value.length > 0 || legacyProjects.length > 0) && (
+          {(projectsQuery.data.value.length > 0 ||
+            legacyProjects.length > 0) && (
             <ProjectListSearch
               query={query}
               onQueryChange={setQuery}
               legacy={showLegacy}
               total={
-                showLegacy ? legacyProjects.length : projects.data.value.length
+                showLegacy
+                  ? legacyProjects.length
+                  : projectsQuery.data.value.length
               }
               count={
                 showLegacy
@@ -164,11 +173,12 @@ export function RecorderProjectList() {
               <LegacyProjectListItem
                 key={project.id}
                 project={project}
-                migrationPending={migrate.isPending}
+                migrationPending={migrateMutation.isPending}
                 migrating={
-                  migrate.isPending && migrate.variables.id === project.id
+                  migrateMutation.isPending &&
+                  migrateMutation.variables.id === project.id
                 }
-                onMigrate={() => migrate.mutate(project)}
+                onMigrate={() => migrateMutation.mutate(project)}
                 onDelete={() => {
                   projectStorage.delete(project.id);
                   const remaining = projectStorage.listMetadata();
@@ -181,11 +191,11 @@ export function RecorderProjectList() {
               />
             ))
           )
-        ) : !projects.data.ok ? (
+        ) : !projectsQuery.data.ok ? (
           <div className="p-8 text-center text-sm text-orange-300">
-            {String(projects.data.error)}
+            {String(projectsQuery.data.error)}
           </div>
-        ) : projects.data.value.length === 0 ? (
+        ) : projectsQuery.data.value.length === 0 ? (
           <div className="flex min-h-36 flex-col items-center justify-center text-center">
             <p className="font-medium text-neutral-300">No projects yet</p>
             <p className="mt-1 text-sm text-neutral-500">
@@ -201,8 +211,8 @@ export function RecorderProjectList() {
             <RecorderProjectListItem
               key={project.id}
               project={project}
-              deletePending={deleteProject.isPending}
-              onDelete={() => deleteProject.mutate(project.id)}
+              deletePending={deleteProjectMutation.isPending}
+              onDelete={() => deleteProjectMutation.mutate(project.id)}
             />
           ))
         )}
