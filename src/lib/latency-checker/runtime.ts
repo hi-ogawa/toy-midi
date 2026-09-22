@@ -102,13 +102,14 @@ export function createLatencyPreview(context: AudioContext) {
         (compensationMs * sampleRate) / 1000,
       );
       const buffers = createPlaybackBuffers({ result, compensationSamples });
+      const audioBuffers = [
+        buffers.reference,
+        variant === "raw" ? buffers.raw : buffers.compensated,
+      ].map((samples) => createAudioBuffer(context, samples, sampleRate));
       const when = context.currentTime + 0.08;
       playback = playAudioBuffers({
         context,
-        buffers: [
-          buffers.reference,
-          variant === "raw" ? buffers.raw : buffers.compensated,
-        ].map((samples) => createAudioBuffer(context, samples, sampleRate)),
+        buffers: audioBuffers,
         gain: 0.58,
         when,
       });
