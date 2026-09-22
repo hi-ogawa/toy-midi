@@ -175,7 +175,7 @@ export function InputSetup({
                   href={routes.latencyChecker.href()}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-emerald-400 hover:underline"
+                  className="underline underline-offset-2 hover:text-neutral-200"
                 >
                   standalone checker
                 </a>{" "}
