@@ -285,6 +285,11 @@ export function LatencyChecker() {
   );
 }
 
+type LatencyResult = {
+  calibration: CalibrationResult;
+  channelCount: number;
+};
+
 function ResultsView({
   result,
   runtime,
@@ -411,11 +416,6 @@ function ResultsView({
     </>
   );
 }
-
-type LatencyResult = {
-  calibration: CalibrationResult;
-  channelCount: number;
-};
 
 function ResultPlaceholder() {
   return (
