@@ -319,6 +319,7 @@ function ResultsView({
 
   const [preview] = useState(() => createLatencyPreview(runtime.context));
   useEffect(() => () => preview.stop(), [preview]);
+
   const previewMutation = useMutation({
     mutationFn: (variant: PreviewVariant) =>
       preview.play({
