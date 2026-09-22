@@ -396,33 +396,33 @@ function MidiTrackOverviewNotes({
 }
 
 function getMidiOverviewPitchLayout(notes: Note[]) {
-  let noteMinPitch = notes[0]!.pitch;
-  let noteMaxPitch = noteMinPitch;
+  let noteMin = notes[0]!.pitch;
+  let noteMax = noteMin;
   for (const note of notes) {
-    noteMinPitch = Math.min(noteMinPitch, note.pitch);
-    noteMaxPitch = Math.max(noteMaxPitch, note.pitch);
+    noteMin = Math.min(noteMin, note.pitch);
+    noteMax = Math.max(noteMax, note.pitch);
   }
 
-  const pitchCenter = (noteMinPitch + noteMaxPitch) / 2;
+  const center = (noteMin + noteMax) / 2;
   // Ensure at least one octave of vertical space
-  const pitchSpan = Math.max(12, noteMaxPitch - noteMinPitch);
-  const domainMaxPitch = pitchCenter + pitchSpan / 2;
-  const domainMinPitch = pitchCenter - pitchSpan / 2;
+  const span = Math.max(12, noteMax - noteMin);
+  const max = center + span / 2;
+  const min = center - span / 2;
 
   function pitchToPercent(pitch: number) {
-    return ((domainMaxPitch - pitch) / pitchSpan) * 100;
+    return ((max - pitch) / span) * 100;
   }
 
-  const octavePitches = getMidiOctavePitches(domainMinPitch, domainMaxPitch);
+  const octavePitches = getMidiOctavePitches(min, max);
 
   return { pitchToPercent, octavePitches };
 }
 
 function getMidiOctavePitches(min: number, max: number) {
-  const firstPitch = Math.max(0, Math.ceil(min / 12) * 12);
-  const lastPitch = Math.min(max, MAX_PITCH);
+  min = Math.max(0, Math.ceil(min / 12) * 12);
+  max = Math.min(max, MAX_PITCH);
   const pitches: number[] = [];
-  for (let pitch = firstPitch; pitch <= lastPitch; pitch += 12) {
+  for (let pitch = min; pitch <= max; pitch += 12) {
     pitches.push(pitch);
   }
   return pitches;
