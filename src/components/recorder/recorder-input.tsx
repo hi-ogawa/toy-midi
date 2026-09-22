@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { CheckIcon, Mic2Icon, TriangleAlertIcon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
+import { summarizeCalibration } from "../../lib/latency-checker/calibration";
 import { measureLatency } from "../../lib/latency-checker/runtime";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
@@ -293,24 +294,13 @@ async function measureInputLatency({ runtime }: { runtime: RecorderRuntime }) {
         "The input changed. Measure again with the selected input.",
       );
     }
-    const measurements = result.analysis.measurements;
-    // Use the standalone checker's weak-correlation threshold before applying a result.
-    if (
-      measurements.some(({ score }) => !Number.isFinite(score) || score < 0.25)
-    ) {
+    const { medianSamples, weakCount } = summarizeCalibration(result.analysis);
+    if (weakCount > 0) {
       throw new Error(
         "Could not detect the loopback clicks reliably. Check the connection and input level, then try again.",
       );
     }
-    const offsets = measurements
-      .map(({ offsetSamples }) => offsetSamples)
-      .sort((a, b) => a - b);
-    const middle = Math.floor(offsets.length / 2);
-    const median =
-      offsets.length % 2
-        ? offsets[middle]
-        : (offsets[middle - 1] + offsets[middle]) / 2;
-    const compensation = median / result.sampleRate;
+    const compensation = medianSamples / result.sampleRate;
     if (!Number.isFinite(compensation) || compensation < 0) {
       throw new Error(
         "The measured offset is invalid. Check the loopback connection and try again.",

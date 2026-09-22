@@ -229,3 +229,22 @@ function setArrayClipped(
     target.set(source.subarray(sourceStart, sourceStart + length), targetStart);
   }
 }
+
+export function summarizeCalibration({ measurements }: CalibrationAnalysis) {
+  const offsets = measurements.map(({ offsetSamples }) => offsetSamples);
+  return {
+    medianSamples: calculateMedian(offsets),
+    spreadSamples: Math.max(...offsets) - Math.min(...offsets),
+    weakCount: measurements.filter(
+      ({ score }) => !Number.isFinite(score) || score < 0.25,
+    ).length,
+  };
+}
+
+function calculateMedian(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
