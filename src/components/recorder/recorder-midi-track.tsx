@@ -320,15 +320,14 @@ function MidiTrackOverview({
   beatsPerBar: number;
   viewportStartBeat: number;
 }) {
-  const { pitchToTop, octavePitches } = getMidiOverviewPitchLayout({
-    notes: track.notes,
-    contentHeight: track.height - OVERVIEW_PITCH_PADDING * 2,
-  });
+  const { pitchToPercent, octavePitches } = getMidiOverviewPitchLayout(
+    track.notes,
+  );
 
   function getNoteStyle(note: Note) {
     return {
       left: (note.start - viewportStartBeat) * pixelsPerBeat,
-      top: pitchToTop(note.pitch),
+      top: `${pitchToPercent(note.pitch)}%`,
       width: Math.max(2, note.duration * pixelsPerBeat),
       height: OVERVIEW_NOTE_HEIGHT,
     };
@@ -351,7 +350,10 @@ function MidiTrackOverview({
     >
       <div
         className="absolute inset-x-0"
-        style={{ top: OVERVIEW_PITCH_PADDING, bottom: OVERVIEW_PITCH_PADDING }}
+        style={{
+          top: OVERVIEW_PITCH_PADDING,
+          height: `calc(100% - ${OVERVIEW_PITCH_PADDING * 2 + OVERVIEW_NOTE_HEIGHT}px)`,
+        }}
       >
         {octavePitches.map((pitch) => (
           <div
@@ -360,7 +362,9 @@ function MidiTrackOverview({
             data-pitch={pitch}
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 border-t border-neutral-600/60"
-            style={{ top: pitchToTop(pitch) + OVERVIEW_NOTE_HEIGHT }}
+            style={{
+              top: `calc(${pitchToPercent(pitch)}% + ${OVERVIEW_NOTE_HEIGHT}px)`,
+            }}
           >
             <span className="absolute left-1 -translate-y-1/2 bg-neutral-900 px-0.5 text-[9px] leading-none text-neutral-500">
               {formatChromaticPitch(pitch)}
@@ -379,13 +383,7 @@ function MidiTrackOverview({
   );
 }
 
-function getMidiOverviewPitchLayout({
-  notes,
-  contentHeight,
-}: {
-  notes: Note[];
-  contentHeight: number;
-}) {
+function getMidiOverviewPitchLayout(notes: Note[]) {
   const pitchBounds = getMinMax(notes.map((note) => note.pitch));
   const lowestPitch = pitchBounds?.min ?? 60;
   const highestPitch = pitchBounds?.max ?? lowestPitch;
@@ -395,16 +393,14 @@ function getMidiOverviewPitchLayout({
   const topPitch = centerPitch + pitchSpan / 2;
   const bottomPitch = topPitch - pitchSpan;
 
-  // subtract one note height for TODO...
-  const pixelsPerSemitone = (contentHeight - OVERVIEW_NOTE_HEIGHT) / pitchSpan;
-
-  function pitchToTop(pitch: number) {
-    return (topPitch - pitch) * pixelsPerSemitone;
+  function pitchToPercent(pitch: number) {
+    return ((topPitch - pitch) / pitchSpan) * 100;
   }
 
-  const octavePitches = getMidiOctavePitches(bottomPitch, topPitch);
+  const octavePitches =
+    notes.length > 0 ? getMidiOctavePitches(bottomPitch, topPitch) : [];
 
-  return { pitchToTop, octavePitches };
+  return { pitchToPercent, octavePitches };
 }
 
 function MidiTrackEditor({
