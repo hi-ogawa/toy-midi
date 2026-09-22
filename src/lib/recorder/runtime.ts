@@ -6,6 +6,7 @@ import {
 import { insertAtIndices } from "../../utils/array.ts";
 import { createNumberedName } from "../../utils/name.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
+import { toAudioBuffer } from "../audio-playback.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
   createDefaultMultibandEq,
@@ -1155,12 +1156,11 @@ export class RecorderRuntime {
       this.syncTrackMix();
       return;
     }
-    const takeBuffer = context.createBuffer(
-      1,
-      slice.samples.length,
+    const takeBuffer = toAudioBuffer(
+      context,
+      slice.samples,
       context.sampleRate,
     );
-    takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
     const newClip: AudioClip = {
       ...createAudioClip({
