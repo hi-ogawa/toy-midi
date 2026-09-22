@@ -350,12 +350,11 @@ function MidiTrackOverviewNotes({
   const OVERVIEW_NOTE_HEIGHT = 4;
   const OVERVIEW_PITCH_PADDING = 12;
   const { min, max } = getMidiOverviewPitchDomain(notes);
+  const octavePitches = getMidiOctavePitches(min, max);
 
   function pitchToPercent(pitch: number) {
     return ((max - pitch) / (max - min)) * 100;
   }
-
-  const octavePitches = getMidiOctavePitches(min, max);
 
   function getNoteStyle(note: Note) {
     return {
