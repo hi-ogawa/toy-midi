@@ -160,9 +160,12 @@ export function InputSetup({
             <span>ms</span>
           </label>
           <p className="text-xs leading-5 text-neutral-400">
-            Compensation shifts recordings earlier to correct audio delay.
-            Connect output back to the selected input to measure and fill this
-            value, or use the{" "}
+            Latency compensation helps recorded audio line up with existing
+            tracks by correcting input and output delay. To set it
+            automatically, you can use <strong>Measure latency</strong> after
+            connecting your output back to the selected input. It plays seven
+            clicks, measures their return delay, and updates the value above.
+            You can use the{" "}
             <a
               href={routes.latencyChecker.href()}
               target="_blank"
@@ -171,7 +174,7 @@ export function InputSetup({
             >
               standalone checker
             </a>{" "}
-            for detailed results.
+            for detailed results and playback comparison.
           </p>
           <Button
             className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
