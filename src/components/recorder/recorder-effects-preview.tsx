@@ -7,6 +7,7 @@ const INITIAL_EQ: MultibandEqParameters = {
   bypass: false,
   bands: [
     {
+      type: "peaking",
       id: "low",
       frequency: 120,
       gain: dbToGain(5),
@@ -14,6 +15,7 @@ const INITIAL_EQ: MultibandEqParameters = {
       bypass: false,
     },
     {
+      type: "peaking",
       id: "mid",
       frequency: 850,
       gain: dbToGain(-7),
@@ -21,6 +23,7 @@ const INITIAL_EQ: MultibandEqParameters = {
       bypass: false,
     },
     {
+      type: "peaking",
       id: "high",
       frequency: 4800,
       gain: dbToGain(3.5),

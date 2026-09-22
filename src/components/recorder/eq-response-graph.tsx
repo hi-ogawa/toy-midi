@@ -6,6 +6,8 @@ import {
 import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
+  isGainFilter,
+  usesQ,
 } from "../../lib/dsp/biquad-eq";
 import { type MultibandEqBand } from "../../lib/dsp/biquad-eq-multiband";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
@@ -60,7 +62,13 @@ export function EqResponseGraph({
     const frequency = Math.round(graphXToFrequency(x));
     const step = EQ_CONTROL_LIMITS.gainDb.step;
     const gainDb = Math.round(graphYToGainDb(y) / step) * step;
-    onBandChange(id, { frequency, gain: dbToGain(gainDb) });
+    const band = bands.find((entry) => entry.id === id)!;
+    onBandChange(
+      id,
+      isGainFilter(band.type)
+        ? { frequency, gain: dbToGain(gainDb) }
+        : { frequency },
+    );
   };
 
   // Wheel gestures adjust Q independently of the point position.
@@ -74,7 +82,7 @@ export function EqResponseGraph({
       return;
     }
     const band = bands.find((entry) => entry.id === selectedBandId);
-    if (!band) {
+    if (!band || !usesQ(band.type)) {
       return;
     }
     event.preventDefault();
@@ -198,7 +206,7 @@ export function EqResponseGraph({
               className="absolute flex size-5 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 bg-neutral-900 text-[9px] font-semibold text-neutral-100 shadow-sm outline-none hover:scale-110 focus-visible:ring-2 focus-visible:ring-white active:cursor-grabbing aria-pressed:scale-110"
               style={{
                 left: `${frequencyToGraphX(band.frequency) * 100}%`,
-                top: `${gainDbToGraphY(gainToDb(band.gain)) * 100}%`,
+                top: `${gainDbToGraphY(isGainFilter(band.type) ? gainToDb(band.gain) : 0) * 100}%`,
                 borderColor: EQ_BAND_COLORS[index],
                 opacity: band.bypass ? 0.45 : 1,
               }}
@@ -227,6 +235,7 @@ function createResponsePath(bands: MultibandEqBand[]): string {
   // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
   const bandCoefficients = bands.map((band) =>
     calculateBiquadEqCoefficients({
+      type: band.type,
       sampleRate: GRAPH_SAMPLE_RATE,
       frequency: band.frequency,
       gain: band.gain,

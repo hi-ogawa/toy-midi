@@ -47,6 +47,42 @@ test("iterates the multiband recorder EQ preview", async ({ page }) => {
   await expect(frequencyInput).toHaveValue(frequency);
   await expect(gainInput).toHaveValue(gain);
 
+  // A pass filter moves horizontally without overwriting its stored gain.
+  const filterType = panel.getByRole("combobox", { name: "Filter type" });
+  const peakingPath = await panel
+    .getByTestId("eq-band-curve")
+    .nth(1)
+    .getAttribute("d");
+  await filterType.selectOption("low-pass");
+  await expect(gainInput).toHaveCount(0);
+  await expect(panel.getByTestId("eq-band-curve").nth(1)).not.toHaveAttribute(
+    "d",
+    peakingPath!,
+  );
+  const passPoint = panel.getByTestId("eq-response-point").nth(1);
+  await expect(passPoint).toHaveAttribute("style", /top: 50%/);
+  const passBox = (await passPoint.boundingBox())!;
+  await page.mouse.move(
+    passBox.x + passBox.width / 2,
+    passBox.y + passBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(passBox.x + passBox.width / 2 + 20, passBox.y - 20);
+  await page.mouse.up();
+  await expect
+    .poll(async () => Number(await frequencyInput.inputValue()))
+    .toBeGreaterThan(Number(frequency));
+  await filterType.selectOption("peaking");
+  await expect(gainInput).toHaveValue(gain);
+
+  // A shelf ignores Q gestures and restores the previous Q when changed back.
+  await filterType.selectOption("low-shelf");
+  await expect(qInput).toHaveCount(0);
+  await passPoint.hover();
+  await page.mouse.wheel(0, 100);
+  await filterType.selectOption("peaking");
+  await expect(qInput).toHaveValue("2.4");
+
   // Per-band and global bypass states update their response curves.
   await panel.getByRole("checkbox", { name: "Bypass" }).last().check();
   await expect(panel.getByTestId("eq-band-curve").nth(1)).toHaveAttribute(

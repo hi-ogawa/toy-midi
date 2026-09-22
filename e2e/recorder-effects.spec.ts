@@ -47,6 +47,24 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     .press("Enter");
   await audio.getByRole("textbox", { name: "Q", exact: true }).fill("2");
   await audio.getByRole("textbox", { name: "Q", exact: true }).press("Enter");
+  // Filter types expose only their applicable controls and keep stored values.
+  const filterType = audio.getByRole("combobox", { name: "Filter type" });
+  await expect(filterType).toHaveValue("peaking");
+  await filterType.selectOption("low-shelf");
+  await expect(
+    audio.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toBeVisible();
+  await expect(
+    audio.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveCount(0);
+  await filterType.selectOption("low-pass");
+  await expect(
+    audio.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    audio.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveValue("2");
+  await filterType.selectOption("low-shelf");
   await audio.getByRole("button", { name: "Add band" }).click();
   await audio.getByRole("textbox", { name: "Frequency" }).fill("3000");
   await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
@@ -55,6 +73,10 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await capture
     .getByRole("textbox", { name: "Gain", exact: true })
     .press("Enter");
+
+  await capture
+    .getByRole("combobox", { name: "Filter type" })
+    .selectOption("high-shelf");
 
   // Save and reload the independent EQ settings.
   const save = page.getByTestId("recorder-save-button");
@@ -67,6 +89,8 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     .click();
   await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
   await audio.getByRole("button", { name: "Select band 1" }).click();
+  await expect(filterType).toHaveValue("low-shelf");
+  await filterType.selectOption("peaking");
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
@@ -82,13 +106,20 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(
     audio.getByRole("checkbox", { name: "Bypass" }).first(),
   ).toBeChecked();
+  await filterType.selectOption("low-shelf");
   await audio.getByRole("button", { name: "Select band 2" }).click();
+  await expect(filterType).toHaveValue("peaking");
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "3000",
   );
   await expect(
     capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
+  await expect(
+    capture.getByRole("combobox", { name: "Filter type" }),
+  ).toHaveValue("high-shelf");
+
+  await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
 
   // Resetting Audio leaves Capture unchanged and dirties the project.
@@ -184,3 +215,83 @@ test("resizes an effects panel", async ({ page }) => {
   );
   expect((await graph.boundingBox())!.height).toBeLessThan(before.height);
 });
+
+for (const format of ["single", "multiband"] as const) {
+  test(`loads ${format} EQ settings without filter types as peaking`, async ({
+    page,
+  }) => {
+    // Save an Audio track and Capture, then emulate their pre-type persisted shape.
+    await createRecorderProject(page);
+    await page.getByTitle("Add empty audio track").click();
+    const save = page.getByTestId("recorder-save-button");
+    await save.click();
+    await expect(save).toHaveAttribute("data-status", "saved");
+    const projectId = page.url().split("/").at(-1)!;
+    await page.evaluate(
+      async ({ projectId, format }) => {
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open("toy-midi-recorder", 3);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const transaction = database.transaction("projects", "readwrite");
+        const store = transaction.objectStore("projects");
+        const project = await new Promise<{
+          content: {
+            audioTracks: { eq: unknown }[];
+            recordingTrack: { eq: unknown };
+          };
+        }>((resolve, reject) => {
+          const request = store.get(projectId);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const oldBand = { frequency: 750, gain: 2, q: 1.5, bypass: false };
+        const eq =
+          format === "single"
+            ? oldBand
+            : {
+                bypass: false,
+                bands: [{ id: "legacy-band", ...oldBand }],
+              };
+        for (const track of project.content.audioTracks) {
+          track.eq = eq;
+        }
+        project.content.recordingTrack.eq = eq;
+        store.put(project);
+        await new Promise<void>((resolve, reject) => {
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+        database.close();
+      },
+      { projectId, format },
+    );
+
+    // Reload both channels and preserve values while supplying the peaking default.
+    await page.reload();
+    for (const label of ["Audio 1", "Capture"]) {
+      await page
+        .getByRole("button", { name: `${label} effects`, exact: true })
+        .click();
+      const panel = page.getByTestId("recorder-effects-panel").filter({
+        has: page.getByRole("heading", {
+          name: `${label} Effects`,
+          exact: true,
+        }),
+      });
+      await expect(
+        panel.getByRole("combobox", { name: "Filter type" }),
+      ).toHaveValue("peaking");
+      await expect(
+        panel.getByRole("textbox", { name: "Frequency" }),
+      ).toHaveValue("750");
+      await expect(
+        panel.getByRole("textbox", { name: "Gain", exact: true }),
+      ).toHaveValue("6.02");
+      await expect(
+        panel.getByRole("textbox", { name: "Q", exact: true }),
+      ).toHaveValue("1.5");
+    }
+  });
+}

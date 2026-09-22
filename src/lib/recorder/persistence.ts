@@ -14,6 +14,13 @@ import {
   type MidiTrackState,
 } from "./runtime.ts";
 
+type SerializedEqParameters = Omit<EqParameters, "type"> & {
+  type?: EqParameters["type"];
+};
+type SerializedMultibandEqParameters = Omit<MultibandEqParameters, "bands"> & {
+  bands: (SerializedEqParameters & { id: string })[];
+};
+
 /**
  * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
  * path (`string`) in project archives.
@@ -38,7 +45,7 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   })[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
-    eq?: MultibandEqParameters | EqParameters;
+    eq?: SerializedMultibandEqParameters | SerializedEqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -81,7 +88,7 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
 
 interface SerializedAudioTrackState<ChannelData> {
   // Optional for projects saved before track EQ support.
-  eq?: MultibandEqParameters | EqParameters;
+  eq?: SerializedMultibandEqParameters | SerializedEqParameters;
   id: string;
   height: number;
   clip?: {
@@ -262,17 +269,23 @@ export function deserializeRecorderRuntimeState({
 }
 
 function deserializeEq(
-  eq?: MultibandEqParameters | EqParameters,
+  eq?: SerializedMultibandEqParameters | SerializedEqParameters,
 ): MultibandEqParameters {
   if (!eq) {
     return createDefaultMultibandEq();
   }
   if ("bands" in eq) {
-    return eq;
+    return {
+      ...eq,
+      bands: eq.bands.map((band) => ({
+        ...band,
+        type: band.type ?? "peaking",
+      })),
+    };
   }
   return {
     bypass: false,
-    bands: [{ ...createDefaultEqBand(), ...eq }],
+    bands: [{ ...createDefaultEqBand(), ...eq, type: eq.type ?? "peaking" }],
   };
 }
 
