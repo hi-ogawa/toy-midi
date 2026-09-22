@@ -4,13 +4,20 @@ import {
   type ComponentProps,
   type ReactNode,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import type { CalibrationResult } from "../lib/latency-checker/calibration";
 import {
-  type LatencyResult,
-  LatencyCheckerRuntime,
+  auditionLatency,
+  measureLatency,
   type PreviewVariant,
-} from "../lib/latency-checker/runtime";
+} from "../lib/latency-checker/session";
+import {
+  getCaptureInputs,
+  requestCaptureAccess,
+} from "../lib/recorder/capture-input";
+import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { InputMeter } from "./input-meter";
 import { Button } from "./ui/button";
@@ -23,7 +30,8 @@ import {
 import { cn } from "./ui/utils";
 
 export function LatencyChecker() {
-  const [runtime] = useState(() => new LatencyCheckerRuntime());
+  const [runtime] = useState(() => new RecorderRuntime());
+  const calibrationController = useRef<AbortController | undefined>(undefined);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [channel, setChannel] = useState(0);
@@ -31,11 +39,15 @@ export function LatencyChecker() {
 
   useEffect(() => {
     document.title = "Latency Checker - Toy MIDI";
-    return () => runtime.dispose();
+    return () => {
+      calibrationController.current?.abort();
+      runtime.stopInput();
+      void runtime.context.close();
+    };
   }, [runtime]);
 
   async function refreshInputs() {
-    const nextDevices = await runtime.getInputs();
+    const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
     selectDevice(
       nextDevices.some((device) => device.deviceId === deviceId)
@@ -46,7 +58,7 @@ export function LatencyChecker() {
 
   const grantAccessMutation = useMutation({
     mutationFn: async () => {
-      await runtime.requestAccess();
+      await requestCaptureAccess();
       await refreshInputs();
     },
   });
@@ -71,17 +83,50 @@ export function LatencyChecker() {
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
 
   const startMonitoringMutation = useMutation({
-    mutationFn: (deviceId: string) => runtime.startMonitoring({ deviceId }),
+    mutationFn: async (deviceId: string) => {
+      await runtime.init();
+      await runtime.context.resume();
+      const { channelCount } = await runtime.startInput({ deviceId });
+      return channelCount;
+    },
   });
   const isMonitoring = startMonitoringMutation.isSuccess;
 
   const calibrationMutation = useMutation({
-    mutationFn: () => runtime.calibrate({ channel, outputLevel }),
+    mutationFn: async (): Promise<LatencyResult> => {
+      const input = runtime.captureInput;
+      if (!input) {
+        throw new Error(
+          "Start input monitoring before running the click test.",
+        );
+      }
+      runtime.selectChannel(channel);
+      const controller = new AbortController();
+      calibrationController.current = controller;
+      try {
+        const calibration = await measureLatency({
+          context: runtime.context,
+          input,
+          outputLevel,
+          signal: controller.signal,
+        });
+        return {
+          calibration,
+          channelCount: runtime.store.get().inputChannelCount,
+          settings: input.stream.getAudioTracks()[0].getSettings(),
+        };
+      } finally {
+        if (calibrationController.current === controller) {
+          calibrationController.current = undefined;
+        }
+      }
+    },
   });
   const result = calibrationMutation.data;
 
   function stopMonitoring() {
-    runtime.stopMonitoring();
+    calibrationController.current?.abort();
+    runtime.stopInput();
     setChannel(0);
     startMonitoringMutation.reset();
     calibrationMutation.reset();
@@ -224,7 +269,7 @@ export function LatencyChecker() {
                   onChange={(event) => {
                     const value = Number(event.currentTarget.value);
                     setChannel(value);
-                    runtime.setChannel(value);
+                    runtime.selectChannel(value);
                   }}
                   className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
@@ -263,7 +308,7 @@ export function LatencyChecker() {
                 Input meter
                 <InputMeter
                   active={isMonitoring}
-                  analyser={runtime.inputAnalyser}
+                  analyser={runtime.captureInput?.analyser}
                 />
               </label>
             </div>
@@ -347,7 +392,7 @@ function ResultsView({
   runtime,
 }: {
   result: LatencyResult;
-  runtime: LatencyCheckerRuntime;
+  runtime: RecorderRuntime;
 }) {
   const { measurements } = result.calibration.analysis;
   const { sampleRate } = result.calibration;
@@ -360,9 +405,32 @@ function ResultsView({
     (measurement) => measurement.score < 0.25,
   ).length;
 
+  const previewController = useRef<AbortController | undefined>(undefined);
+  useEffect(
+    () => () => {
+      previewController.current?.abort();
+    },
+    [],
+  );
   const previewMutation = useMutation({
-    mutationFn: (variant: PreviewVariant) =>
-      runtime.play({ compensationMs: medianMs, result, variant }),
+    mutationFn: async (variant: PreviewVariant) => {
+      previewController.current?.abort();
+      const controller = new AbortController();
+      previewController.current = controller;
+      try {
+        await auditionLatency({
+          compensationMs: medianMs,
+          context: runtime.context,
+          result: result.calibration,
+          signal: controller.signal,
+          variant,
+        });
+      } finally {
+        if (previewController.current === controller) {
+          previewController.current = undefined;
+        }
+      }
+    },
   });
   const playingVariant = previewMutation.isPending
     ? previewMutation.variables
@@ -370,7 +438,7 @@ function ResultsView({
 
   function togglePreview(variant: PreviewVariant) {
     if (playingVariant === variant) {
-      runtime.stopPreview();
+      previewController.current?.abort();
     } else {
       previewMutation.mutate(variant);
     }
@@ -461,6 +529,12 @@ function ResultsView({
     </>
   );
 }
+
+type LatencyResult = {
+  calibration: CalibrationResult;
+  channelCount: number;
+  settings: MediaTrackSettings;
+};
 
 function ResultPlaceholder() {
   return (

@@ -1,4 +1,4 @@
-import type { CaptureChunk } from "./capture-worklet.ts";
+import type { CaptureChunk } from "../recorder/capture-worklet.ts";
 
 export type CalibrationPlayback = {
   clickOffsets: number[];
