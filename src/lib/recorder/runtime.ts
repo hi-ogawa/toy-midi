@@ -27,8 +27,7 @@ import {
 } from "./audio-clip.ts";
 import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
-import { CaptureInput } from "./capture-input.ts";
-import type { CapturedAudio } from "./captured-audio.ts";
+import { CaptureInput, type CapturedAudio } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
 import { RecorderHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
