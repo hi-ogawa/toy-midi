@@ -32,16 +32,6 @@ export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
 }
 
-export function getMidiOctavePitches(min: number, max: number): number[] {
-  const firstPitch = Math.max(MIN_PITCH, Math.ceil(min / 12) * 12);
-  const lastPitch = Math.min(max, MAX_PITCH);
-  const pitches: number[] = [];
-  for (let pitch = firstPitch; pitch <= lastPitch; pitch += 12) {
-    pitches.push(pitch);
-  }
-  return pitches;
-}
-
 export function parseMidiPitch(pitch: string): number {
   const match = /^([A-G])(\d+)$/.exec(pitch);
   if (!match) {
@@ -103,21 +93,4 @@ export function dbToPercent(db: number): number {
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
-}
-
-export function getMinMax(
-  values: number[],
-): { min: number; max: number } | undefined {
-  const first = values.at(0);
-  if (first === undefined) {
-    return undefined;
-  }
-
-  let min = first;
-  let max = first;
-  for (const value of values) {
-    min = Math.min(min, value);
-    max = Math.max(max, value);
-  }
-  return { min, max };
 }

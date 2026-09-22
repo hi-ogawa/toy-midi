@@ -21,12 +21,7 @@ import { useWindowEvent } from "../../hooks/use-window-event";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import { exportMidi } from "../../lib/midi-export";
 import { importMidiNotes, parseMidiFile } from "../../lib/midi-import";
-import {
-  getMidiOctavePitches,
-  getMinMax,
-  isBlackKey,
-  MAX_PITCH,
-} from "../../lib/music";
+import { isBlackKey, MAX_PITCH } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -416,6 +411,31 @@ function getMidiOverviewPitchLayout(notes: Note[]) {
   const octavePitches = getMidiOctavePitches(bottomPitch, topPitch);
 
   return { pitchToPercent, octavePitches };
+}
+
+function getMinMax(values: number[]) {
+  const first = values.at(0);
+  if (first === undefined) {
+    return undefined;
+  }
+
+  let min = first;
+  let max = first;
+  for (const value of values) {
+    min = Math.min(min, value);
+    max = Math.max(max, value);
+  }
+  return { min, max };
+}
+
+function getMidiOctavePitches(min: number, max: number) {
+  const firstPitch = Math.max(0, Math.ceil(min / 12) * 12);
+  const lastPitch = Math.min(max, MAX_PITCH);
+  const pitches: number[] = [];
+  for (let pitch = firstPitch; pitch <= lastPitch; pitch += 12) {
+    pitches.push(pitch);
+  }
+  return pitches;
 }
 
 function MidiTrackEditor({
