@@ -349,7 +349,13 @@ function MidiTrackOverviewNotes({
 }) {
   const OVERVIEW_NOTE_HEIGHT = 4;
   const OVERVIEW_PITCH_PADDING = 12;
-  const { pitchToPercent, octavePitches } = getMidiOverviewPitchLayout(notes);
+  const { min, max } = getMidiOverviewPitchLayout(notes);
+
+  function pitchToPercent(pitch: number) {
+    return ((max - pitch) / (max - min)) * 100;
+  }
+
+  const octavePitches = getMidiOctavePitches(min, max);
 
   function getNoteStyle(note: Note) {
     return {
@@ -406,16 +412,10 @@ function getMidiOverviewPitchLayout(notes: Note[]) {
   const center = (noteMin + noteMax) / 2;
   // Ensure at least one octave of vertical space
   const span = Math.max(12, noteMax - noteMin);
-  const max = center + span / 2;
-  const min = center - span / 2;
-
-  function pitchToPercent(pitch: number) {
-    return ((max - pitch) / span) * 100;
-  }
-
-  const octavePitches = getMidiOctavePitches(min, max);
-
-  return { pitchToPercent, octavePitches };
+  return {
+    min: center - span / 2,
+    max: center + span / 2,
+  };
 }
 
 function getMidiOctavePitches(min: number, max: number) {
