@@ -135,9 +135,10 @@ export class CaptureInput {
       throw new Error("Audio capture is already active.");
     }
     this.capture = { chunks: [], startFrame: 0 };
+    const capture = this.capture;
     try {
-      this.capture.startFrame = await this.worklet.start();
-      return this.capture.startFrame;
+      capture.startFrame = await this.worklet.start();
+      return capture.startFrame;
     } catch (error) {
       this.capture = undefined;
       throw error;
