@@ -23,12 +23,12 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 
 export class CaptureInput {
   readonly stream: MediaStream;
-  private capture?: { chunks: CaptureChunk[]; startFrame: number };
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
   readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;
+  private capture?: { chunks: CaptureChunk[]; startFrame: number };
 
   static async open({
     context,
