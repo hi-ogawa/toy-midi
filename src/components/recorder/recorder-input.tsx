@@ -68,7 +68,7 @@ export function InputSetup({
   return (
     <div className="max-h-[70vh] overflow-y-auto">
       <div className="space-y-4">
-        <label className="block text-[11px] font-medium text-neutral-400">
+        <label className="block text-xs font-medium text-neutral-400">
           Device
           <select
             value={selectedDevice?.deviceId ?? ""}
@@ -96,7 +96,7 @@ export function InputSetup({
             )}
           </select>
         </label>
-        <label className="block text-[11px] font-medium text-neutral-400">
+        <label className="block text-xs font-medium text-neutral-400">
           Channel
           <select
             value={inputChannelCount > 0 ? selectedChannel : ""}
@@ -140,7 +140,7 @@ export function InputSetup({
                   : "Enable input"
                 : "Grant microphone access"}
         </Button>
-        <label className="block text-[11px] font-medium text-neutral-400">
+        <label className="block text-xs font-medium text-neutral-400">
           Level
           <div className="mt-2">
             <InputMeter active={inputActive} analyser={inputAnalyser} />
@@ -150,7 +150,7 @@ export function InputSetup({
           className="space-y-3 border-t border-neutral-700 pt-4"
           aria-label="Recording latency compensation"
         >
-          <label className="flex items-center gap-2 text-[11px] font-medium text-neutral-400">
+          <label className="flex items-center gap-2 text-xs font-medium text-neutral-400">
             <span className="flex-1">Recording latency compensation</span>
             <input
               type="text"
