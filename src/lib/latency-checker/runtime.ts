@@ -29,12 +29,12 @@ export async function measureLatency(
   runtime: RecorderRuntime,
   { outputLevel }: { outputLevel: number },
 ): Promise<CalibrationResult> {
-  const { context, captureInput: input } = runtime;
-  if (!input) {
+  const { context, captureInput } = runtime;
+  if (!captureInput) {
     throw new Error("Start input monitoring before running the click test.");
   }
   await context.resume();
-  await input.startCapture();
+  await captureInput.startCapture();
   let stopped = false;
   try {
     const template = createClickTemplate(context.sampleRate);
@@ -57,7 +57,7 @@ export async function measureLatency(
       when: playback.startFrame / context.sampleRate,
     }).finished;
     stopped = true;
-    const capture = await input.stopCapture();
+    const capture = await captureInput.stopCapture();
     if (capture.chunks.length === 0) {
       throw new Error("No PCM arrived from the selected input.");
     }
@@ -78,7 +78,7 @@ export async function measureLatency(
     };
   } finally {
     if (!stopped) {
-      await input.stopCapture();
+      await captureInput.stopCapture();
     }
   }
 }
