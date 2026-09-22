@@ -86,7 +86,7 @@ export async function measureLatency(
 export function createLatencyPreview(context: AudioContext) {
   let playback: AudioPlayback | undefined;
   return {
-    play({
+    async play({
       compensationMs,
       result,
       variant,
@@ -96,6 +96,7 @@ export function createLatencyPreview(context: AudioContext) {
       variant: PreviewVariant;
     }) {
       playback?.stop();
+      await context.resume();
       const sampleRate = result.sampleRate;
       const compensationSamples = Math.round(
         (compensationMs * sampleRate) / 1000,
@@ -117,7 +118,7 @@ export function createLatencyPreview(context: AudioContext) {
         }),
         when,
       });
-      return Promise.all([context.resume(), playback.finished]);
+      await playback.finished;
     },
     stop() {
       playback?.stop();
