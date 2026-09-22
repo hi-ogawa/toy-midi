@@ -58,7 +58,10 @@ export function LatencyChecker() {
     toggleMonitoringMutation.isPending || input.togglePending;
 
   const calibrationMutation = useMutation({
-    mutationFn: () => runtime.measureLatency({ outputLevel }),
+    mutationFn: async () => ({
+      ...(await runtime.measureLatency({ outputLevel })),
+      channelCount: state.inputChannelCount,
+    }),
   });
   const result = calibrationMutation.data;
 
@@ -266,7 +269,7 @@ export function LatencyChecker() {
           >
             {result ? (
               <ResultsView
-                key={result.calibration.playback.startFrame}
+                key={result.playback.startFrame}
                 result={result}
                 runtime={runtime}
               />
@@ -287,8 +290,8 @@ function ResultsView({
   result: LatencyResult;
   runtime: RecorderRuntime;
 }) {
-  const { measurements } = result.calibration.analysis;
-  const { sampleRate } = result.calibration;
+  const { measurements } = result.analysis;
+  const { sampleRate } = result;
   const offsets = measurements.map((measurement) => measurement.offsetSamples);
   const offsetsMs = offsets.map((offset) => (offset * 1000) / sampleRate);
   const medianSamples = calculateMedian(offsets);
@@ -305,7 +308,7 @@ function ResultsView({
     mutationFn: (variant: PreviewVariant) =>
       preview.play({
         compensationMs: medianMs,
-        result: result.calibration,
+        result: result,
         variant,
       }),
   });
@@ -407,7 +410,9 @@ function ResultsView({
   );
 }
 
-type LatencyResult = Awaited<ReturnType<RecorderRuntime["measureLatency"]>>;
+type LatencyResult = Awaited<ReturnType<RecorderRuntime["measureLatency"]>> & {
+  channelCount: number;
+};
 
 function ResultPlaceholder() {
   return (

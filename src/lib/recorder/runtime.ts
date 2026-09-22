@@ -354,16 +354,11 @@ export class RecorderRuntime {
     if (!input) {
       throw new Error("Start input monitoring before running the click test.");
     }
-    const calibration = await measureLatency({
+    return measureLatency({
       context: this.context,
       input,
       outputLevel,
     });
-    return {
-      calibration,
-      channelCount: this.store.get().inputChannelCount,
-      settings: input.stream.getAudioTracks()[0].getSettings(),
-    };
   }
 
   selectChannel(channel: number): void {
