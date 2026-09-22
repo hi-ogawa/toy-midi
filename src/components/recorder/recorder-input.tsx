@@ -1,4 +1,4 @@
-import { useMutation, type UseMutationResult } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
@@ -20,7 +20,6 @@ export function InputSetup({
   inputsInitialized,
   isRecording,
   isPlaying,
-  measurement,
   selectedDevice,
   selectedChannel,
   inputChannelCount,
@@ -41,7 +40,6 @@ export function InputSetup({
   inputsInitialized: boolean;
   isRecording: boolean;
   isPlaying: boolean;
-  measurement: UseMutationResult<number, Error, void>;
   selectedDevice?: MediaDeviceInfo;
   selectedChannel: number;
   inputChannelCount: number;
@@ -53,6 +51,10 @@ export function InputSetup({
   onChannelChange: (channel: number) => void;
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
+  const measurement = useInputLatencyMeasurement({
+    runtime,
+    onMeasured: onLatencyCompensationChange,
+  });
   const disabled = mutationPending || isRecording || measurement.isPending;
   const latencyInput = useDraftInput({
     value: latencyCompensation * 1000,
@@ -226,7 +228,7 @@ export function InputSetup({
   );
 }
 
-export function useInputLatencyMeasurement({
+function useInputLatencyMeasurement({
   runtime,
   onMeasured,
 }: {

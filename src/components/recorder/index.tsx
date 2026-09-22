@@ -30,7 +30,7 @@ import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
-import { InputSetup, useInputLatencyMeasurement } from "./recorder-input";
+import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow } from "./recorder-locators";
 import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
@@ -83,10 +83,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   const input = useRecorderInput({
     runtime,
     state,
-  });
-  const inputMeasurement = useInputLatencyMeasurement({
-    runtime,
-    onMeasured: input.setLatencyCompensation,
   });
   const timeline = useRecorderTimeline({
     isPlaying: state.isPlaying,
@@ -631,11 +627,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         />
         <Dialog
           isOpen={isInputSetupOpen}
-          onClose={() => {
-            if (!inputMeasurement.isPending) {
-              setIsInputSetupOpen(false);
-            }
-          }}
+          onClose={() => setIsInputSetupOpen(false)}
           title="Audio Input Setup"
           data-testid="recorder-input-setup"
         >
@@ -649,7 +641,6 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputsInitialized={input.initialized}
             isRecording={flags.isRecording}
             isPlaying={state.isPlaying}
-            measurement={inputMeasurement}
             selectedDevice={input.selectedDevice}
             selectedChannel={state.selectedChannel}
             inputChannelCount={state.inputChannelCount}
