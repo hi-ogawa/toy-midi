@@ -82,13 +82,6 @@ export function LatencyChecker() {
   });
   const result = calibrationMutation.data;
 
-  // Discard the measurement when the shared input workflow closes its route.
-  useEffect(() => {
-    if (!isMonitoring) {
-      calibrationMutation.reset();
-    }
-  }, [isMonitoring, calibrationMutation.reset]);
-
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
       <header className="sticky top-0 z-10 flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
