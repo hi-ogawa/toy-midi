@@ -104,6 +104,8 @@ export class ScoreViewerRuntime {
   private manualScrollTimer?: ReturnType<typeof setTimeout>;
 
   private readonly clock: ScoreViewerClock;
+  private unsubscribeClock?: () => void;
+  private loadRevision = 0;
   private readonly viewportPadding: number;
   private scale: number;
 
@@ -117,22 +119,6 @@ export class ScoreViewerRuntime {
     this.clock = clock;
     this.scale = presentation.scale;
     this.viewportPadding = presentation.viewportPadding;
-    this.clock.subscribe(() => {
-      const { currentTime, isPlaying } = this.clock.getSnapshot();
-      const scoreTime = secondsToScoreTime(currentTime, this.state.tempo);
-      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.timeSignature);
-      if (
-        bar !== this.state.bar ||
-        beat !== this.state.beat ||
-        currentTime !== this.state.currentTime
-      ) {
-        this.setState({ bar, beat, currentTime });
-      }
-      this.updateCursor(scoreTime);
-      if (isPlaying !== this.state.isPlaying) {
-        this.setState({ isPlaying });
-      }
-    });
   }
 
   getSnapshot = () => this.state;
@@ -192,6 +178,22 @@ export class ScoreViewerRuntime {
       drawTitle: false,
       pageBackgroundColor: "#ffffff",
     });
+    this.unsubscribeClock = this.clock.subscribe(() => {
+      const { currentTime, isPlaying } = this.clock.getSnapshot();
+      const scoreTime = secondsToScoreTime(currentTime, this.state.tempo);
+      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.timeSignature);
+      if (
+        bar !== this.state.bar ||
+        beat !== this.state.beat ||
+        currentTime !== this.state.currentTime
+      ) {
+        this.setState({ bar, beat, currentTime });
+      }
+      this.updateCursor(scoreTime);
+      if (isPlaying !== this.state.isPlaying) {
+        this.setState({ isPlaying });
+      }
+    });
   }
 
   setScale(scale: number) {
@@ -223,12 +225,16 @@ export class ScoreViewerRuntime {
     score: ScoreSource;
     settings: ScoreViewerSettings;
   }) {
+    const revision = ++this.loadRevision;
     this.resumeAutoScroll();
     this.setState({ isReady: false });
 
     this.osmd.clear();
     applyEngravingSettings(this.osmd, settings);
     await this.osmd.load(score.xml);
+    if (revision !== this.loadRevision) {
+      return;
+    }
     this.sheet.hidden = false;
     this.osmd.render();
 
@@ -287,6 +293,9 @@ export class ScoreViewerRuntime {
   }
 
   dispose() {
+    this.loadRevision++;
+    this.unsubscribeClock?.();
+    this.unsubscribeClock = undefined;
     this.resumeAutoScroll();
     this.scroller.removeEventListener("wheel", this.handleManualScroll);
     this.scroller.removeEventListener("pointerdown", this.handleManualScroll);
