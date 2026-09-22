@@ -234,7 +234,7 @@ function ProjectListSearch({
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_145px] items-center gap-3">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
       <div className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
         <SearchIcon
           aria-hidden="true"
