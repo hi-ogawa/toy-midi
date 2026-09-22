@@ -6,13 +6,13 @@ export function Home() {
   return (
     <div
       data-testid="startup-screen"
-      className="fixed inset-0 z-50 overflow-y-auto scrollbar-thin bg-neutral-900"
+      className="fixed inset-0 z-50 overflow-hidden bg-neutral-900"
     >
       {/* Gradient glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
 
       <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-8 py-12">
-        <header className="flex items-start justify-between">
+        <header className="flex shrink-0 items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-neutral-100 tracking-tight">
               Toy MIDI
@@ -49,7 +49,7 @@ export function Home() {
           </nav>
         </header>
 
-        <main className="mt-14 min-h-0 flex-1 overflow-y-auto">
+        <main className="mt-10 min-h-0 flex-1">
           <RecorderProjectList />
         </main>
       </div>
