@@ -7,6 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import type { CalibrationResult } from "../lib/latency-checker/calibration";
 import {
   createLatencyPreview,
   measureLatency,
@@ -60,7 +61,7 @@ export function LatencyChecker() {
 
   const calibrationMutation = useMutation({
     mutationFn: async () => ({
-      ...(await measureLatency(runtime, { outputLevel })),
+      calibration: await measureLatency(runtime, { outputLevel }),
       channelCount: state.inputChannelCount,
     }),
   });
@@ -270,7 +271,7 @@ export function LatencyChecker() {
           >
             {result ? (
               <ResultsView
-                key={result.playback.startFrame}
+                key={result.calibration.playback.startFrame}
                 result={result}
                 runtime={runtime}
               />
@@ -291,8 +292,8 @@ function ResultsView({
   result: LatencyResult;
   runtime: RecorderRuntime;
 }) {
-  const { measurements } = result.analysis;
-  const { sampleRate } = result;
+  const { measurements } = result.calibration.analysis;
+  const { sampleRate } = result.calibration;
   const offsets = measurements.map((measurement) => measurement.offsetSamples);
   const offsetsMs = offsets.map((offset) => (offset * 1000) / sampleRate);
   const medianSamples = calculateMedian(offsets);
@@ -309,7 +310,7 @@ function ResultsView({
     mutationFn: (variant: PreviewVariant) =>
       preview.play({
         compensationMs: medianMs,
-        result: result,
+        result: result.calibration,
         variant,
       }),
   });
@@ -411,7 +412,8 @@ function ResultsView({
   );
 }
 
-type LatencyResult = Awaited<ReturnType<typeof measureLatency>> & {
+type LatencyResult = {
+  calibration: CalibrationResult;
   channelCount: number;
 };
 

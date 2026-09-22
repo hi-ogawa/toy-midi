@@ -71,8 +71,13 @@ export async function measureLatency(
   }
 }
 
+type Playback = {
+  finished: Promise<void>;
+  stop(): void;
+};
+
 export function createLatencyPreview(context: AudioContext) {
-  let playback: ReturnType<typeof playBuffers> | undefined;
+  let playback: Playback | undefined;
   return {
     play({
       compensationMs,
@@ -122,7 +127,7 @@ function playBuffers({
   buffers: AudioBuffer[];
   context: AudioContext;
   when: number;
-}) {
+}): Playback {
   const sources: AudioBufferSourceNode[] = [];
   const finished = Promise.withResolvers<void>();
   const stop = () => {
