@@ -1,5 +1,5 @@
 import { useMutation, type UseMutationResult } from "@tanstack/react-query";
-import { CircleHelpIcon, Mic2Icon } from "lucide-react";
+import { Mic2Icon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { measureLatency } from "../../lib/latency-checker/runtime";
@@ -7,7 +7,6 @@ import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 import { InputDiagnostics } from "./recorder-input-diagnostics";
 
@@ -145,50 +144,35 @@ export function InputSetup({
             <InputMeter active={inputActive} analyser={inputAnalyser} />
           </div>
         </label>
-        <label className="block text-[11px] font-medium text-neutral-400">
-          <span className="flex items-center gap-1.5">
-            Latency compensation
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="About latency compensation"
-                  className="text-neutral-500 hover:text-neutral-200"
-                >
-                  <CircleHelpIcon className="size-3.5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="start"
-                className="w-64 space-y-2 p-3 text-xs"
-              >
-                <p>
-                  Advances recorded audio to compensate for input and output
-                  latency.
-                </p>
-                <a
-                  href={routes.latencyChecker.href()}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-emerald-400 hover:underline"
-                >
-                  Open latency checker
-                </a>
-              </PopoverContent>
-            </Popover>
-          </span>
-          <div className="mt-1 flex items-center gap-2">
+        <section
+          className="space-y-3 border-t border-neutral-700 pt-4"
+          aria-label="Latency compensation"
+        >
+          <label className="flex items-center gap-2 text-[11px] font-medium text-neutral-400">
+            <span className="flex-1">Latency compensation</span>
             <input
               type="text"
               disabled={measurement.isPending}
               inputMode="decimal"
               {...latencyInput.props}
-              className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
+              className="h-8 w-24 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
             />
             <span>ms</span>
-          </div>
-        </label>
-        <div className="space-y-2">
+          </label>
+          <p className="text-xs leading-5 text-neutral-400">
+            Compensation shifts recordings earlier to correct audio delay.
+            Connect output back to the selected input to measure and fill this
+            value, or use the{" "}
+            <a
+              href={routes.latencyChecker.href()}
+              target="_blank"
+              rel="noreferrer"
+              className="text-emerald-400 hover:underline"
+            >
+              standalone checker
+            </a>{" "}
+            for detailed results.
+          </p>
           <Button
             className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
             disabled={disabled || !inputActive || isPlaying}
@@ -196,27 +180,31 @@ export function InputSetup({
           >
             {measurement.isPending ? "Measuring…" : "Measure latency"}
           </Button>
-          <p className="text-[11px] leading-4 text-neutral-400">
-            Connect your audio output back to the selected input. Plays seven
-            quiet clicks and fills compensation automatically. Input monitoring
-            is muted during measurement.
-          </p>
-          {isPlaying && (
-            <p className="text-[11px] text-neutral-400">
-              Stop playback to measure.
-            </p>
-          )}
-          {measurement.isSuccess && (
-            <p role="status" className="text-xs text-emerald-400">
-              Compensation set to {(measurement.data * 1000).toFixed(3)} ms.
-            </p>
-          )}
-          {measurement.error && (
-            <p role="alert" className="text-xs text-orange-200">
-              {measurement.error.message}
-            </p>
-          )}
-        </div>
+          <div className="space-y-2 text-xs leading-5">
+            {measurement.isPending ? (
+              <p role="status" className="text-neutral-400">
+                Playing seven clicks with input monitoring muted.
+              </p>
+            ) : measurement.error ? (
+              <p role="alert" className="text-orange-200">
+                {measurement.error.message}
+              </p>
+            ) : measurement.isSuccess &&
+              measurement.data === latencyCompensation ? (
+              <p role="status" className="text-emerald-400">
+                Compensation updated.
+              </p>
+            ) : undefined}
+            {!measurement.isPending &&
+              (!inputActive || isPlaying || isRecording) && (
+                <p className="mt-1 text-neutral-400">
+                  {!inputActive
+                    ? "Enable input to measure."
+                    : "Stop playback and recording to measure."}
+                </p>
+              )}
+          </div>
+        </section>
       </div>
 
       <InputDiagnostics runtime={runtime} />
