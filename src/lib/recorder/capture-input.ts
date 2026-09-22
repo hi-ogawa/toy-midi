@@ -244,20 +244,25 @@ export class CapturedAudio {
     const samples = new Float32Array(Math.max(0, endFrame - startFrame));
     // Preserve gaps as silence and let later chunks replace overlaps.
     for (const chunk of this.chunks) {
-      const offset = chunk.frameStart - startFrame;
-      const sourceStart = Math.max(0, -offset);
-      const targetStart = Math.max(0, offset);
-      const length = Math.min(
-        chunk.samples.length - sourceStart,
-        samples.length - targetStart,
-      );
-      if (length > 0) {
-        samples.set(
-          chunk.samples.subarray(sourceStart, sourceStart + length),
-          targetStart,
-        );
-      }
+      setArrayClipped(samples, chunk.samples, chunk.frameStart - startFrame);
     }
     return samples;
+  }
+}
+
+/** Performs `target.set(source, offset)` while clipping either array boundary. */
+function setArrayClipped(
+  target: Float32Array,
+  source: Float32Array,
+  offset: number,
+): void {
+  const sourceStart = Math.max(0, -offset);
+  const targetStart = Math.max(0, offset);
+  const length = Math.min(
+    source.length - sourceStart,
+    target.length - targetStart,
+  );
+  if (length > 0) {
+    target.set(source.subarray(sourceStart, sourceStart + length), targetStart);
   }
 }
