@@ -180,7 +180,6 @@ export type PersistableRecorderRuntimeState = Pick<
   | "metronomeGain"
   | "loop"
   | "punch"
-  | "latencyCompensation"
   | "referenceVideo"
   | "midiTracks"
 > & {
@@ -1077,7 +1076,6 @@ export class RecorderRuntime {
           audioTracks: state.audioTracks,
           midiTracks: state.midiTracks,
           recordingTrack: state.recordingTrack,
-          latencyCompensation: state.latencyCompensation,
           referenceVideo: state.referenceVideo,
         }) satisfies PersistableRecorderRuntimeState,
       listener,
