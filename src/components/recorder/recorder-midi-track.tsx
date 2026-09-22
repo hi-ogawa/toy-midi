@@ -408,7 +408,6 @@ function getMidiOverviewPitchLayout(notes: Note[]) {
     noteMin = Math.min(noteMin, note.pitch);
     noteMax = Math.max(noteMax, note.pitch);
   }
-
   const center = (noteMin + noteMax) / 2;
   const span = Math.max(12, noteMax - noteMin); // ensure at least one octave
   const min = center - span / 2;
