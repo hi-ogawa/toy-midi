@@ -12,7 +12,7 @@ import {
   createLatencyPreview,
   measureLatency,
   type PreviewVariant,
-} from "../lib/latency-checker/session";
+} from "../lib/latency-checker/runtime";
 import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { pluralCount } from "../utils/plural-count";
