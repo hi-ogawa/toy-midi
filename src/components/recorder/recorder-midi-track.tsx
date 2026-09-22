@@ -410,12 +410,10 @@ function getMidiOverviewPitchLayout(notes: Note[]) {
   }
 
   const center = (noteMin + noteMax) / 2;
-  // Ensure at least one octave of vertical space
-  const span = Math.max(12, noteMax - noteMin);
-  return {
-    min: center - span / 2,
-    max: center + span / 2,
-  };
+  const span = Math.max(12, noteMax - noteMin); // ensure at least one octave
+  const min = center - span / 2;
+  const max = center + span / 2;
+  return { min, max };
 }
 
 function getMidiOctavePitches(min: number, max: number) {
