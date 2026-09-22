@@ -402,10 +402,7 @@ function getMidiOverviewPitchLayout({
     return (topPitch - pitch) * pixelsPerSemitone;
   }
 
-  const octavePitches =
-    notes.length > 0 && pixelsPerSemitone >= 1
-      ? getMidiOctavePitches(bottomPitch, topPitch)
-      : [];
+  const octavePitches = getMidiOctavePitches(bottomPitch, topPitch);
 
   return { pitchToTop, octavePitches };
 }
