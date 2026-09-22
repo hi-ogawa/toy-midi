@@ -119,12 +119,8 @@ export function RecorderProjectList() {
             <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-700/70 px-3 py-1 text-xs text-neutral-400">
               <span>
                 {legacyProjects.length} legacy{" "}
-                {plural(
-                  legacyProjects.length,
-                  "project needs",
-                  "projects need",
-                )}{" "}
-                migration before editing.
+                {plural(legacyProjects.length, "project")} to migrate before
+                editing.
               </span>
               <Button
                 className="shrink-0 border border-neutral-600 bg-neutral-700 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-600"
