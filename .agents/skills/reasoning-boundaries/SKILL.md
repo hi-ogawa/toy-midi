@@ -1,6 +1,10 @@
 ---
 name: reasoning-boundaries
-description: Use when choosing or reviewing code boundaries, including whether to keep logic together or extract a helper, hook, component, or module.
+description: >-
+  Use for an explicit architectural review where the primary question is whether
+  responsibilities should remain together or be separated across a helper, hook,
+  component, or module. Do not use for routine implementation, bug fixes, or code
+  review merely because the change touches those constructs.
 ---
 
 # Reasoning Boundaries
