@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Mic2Icon } from "lucide-react";
+import { CheckIcon, Mic2Icon, TriangleAlertIcon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { measureLatency } from "../../lib/latency-checker/runtime";
@@ -194,18 +194,36 @@ export function InputSetup({
                     Playing seven clicks with input monitoring muted.
                   </p>
                 ) : measurement.error ? (
-                  <p role="alert" className="text-orange-200">
+                  <p
+                    role="alert"
+                    className="flex items-start gap-1.5 text-orange-200"
+                  >
+                    <TriangleAlertIcon
+                      aria-hidden="true"
+                      className="mt-0.5 size-4 shrink-0"
+                    />
                     {measurement.error.message}
                   </p>
                 ) : measurement.isSuccess &&
                   measurement.data === latencyCompensation ? (
-                  <p role="status" className="text-emerald-400">
+                  <p
+                    role="status"
+                    className="flex items-start gap-1.5 text-emerald-400"
+                  >
+                    <CheckIcon
+                      aria-hidden="true"
+                      className="mt-0.5 size-4 shrink-0"
+                    />
                     Compensation updated.
                   </p>
                 ) : undefined}
                 {!measurement.isPending &&
                   (!inputActive || isPlaying || isRecording) && (
-                    <p className="mt-1 text-neutral-400">
+                    <p className="mt-1 flex items-start gap-1.5 text-neutral-400">
+                      <TriangleAlertIcon
+                        aria-hidden="true"
+                        className="mt-0.5 size-4 shrink-0"
+                      />
                       {!inputActive
                         ? "Enable input to measure."
                         : "Stop playback and recording to measure."}
