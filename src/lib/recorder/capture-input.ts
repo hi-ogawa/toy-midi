@@ -172,6 +172,49 @@ export class CaptureInput {
   }
 }
 
+async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
+  // Worklet registration belongs to an AudioContext. Share concurrent attempts,
+  // but discard failures so a later input-open attempt can retry.
+  let registration = workletRegistrations.get(context);
+  if (!registration) {
+    registration = registerCaptureWorklet(context);
+    workletRegistrations.set(context, registration);
+  }
+  try {
+    await registration;
+  } catch (error) {
+    workletRegistrations.delete(context);
+    throw error;
+  }
+}
+
+async function registerCaptureWorklet(context: AudioContext): Promise<void> {
+  const blob = new Blob([createCaptureWorkletSource()], {
+    type: "text/javascript",
+  });
+  const url = URL.createObjectURL(blob);
+  try {
+    await context.audioWorklet.addModule(url);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function captureConstraints(deviceId?: string): MediaStreamConstraints {
+  return {
+    audio: {
+      // Voice processing changes the gain and timing of PCM used for recording.
+      autoGainControl: false,
+      channelCount: { ideal: 2 },
+      deviceId: deviceId ? { exact: deviceId } : undefined,
+      echoCancellation: false,
+      noiseSuppression: false,
+      sampleRate: { ideal: 48_000 },
+    },
+    video: false,
+  };
+}
+
 export class CapturedAudio {
   readonly chunks: CaptureChunk[];
   readonly startFrame: number;
@@ -217,47 +260,4 @@ export class CapturedAudio {
     }
     return samples;
   }
-}
-
-async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
-  // Worklet registration belongs to an AudioContext. Share concurrent attempts,
-  // but discard failures so a later input-open attempt can retry.
-  let registration = workletRegistrations.get(context);
-  if (!registration) {
-    registration = registerCaptureWorklet(context);
-    workletRegistrations.set(context, registration);
-  }
-  try {
-    await registration;
-  } catch (error) {
-    workletRegistrations.delete(context);
-    throw error;
-  }
-}
-
-async function registerCaptureWorklet(context: AudioContext): Promise<void> {
-  const blob = new Blob([createCaptureWorkletSource()], {
-    type: "text/javascript",
-  });
-  const url = URL.createObjectURL(blob);
-  try {
-    await context.audioWorklet.addModule(url);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-function captureConstraints(deviceId?: string): MediaStreamConstraints {
-  return {
-    audio: {
-      // Voice processing changes the gain and timing of PCM used for recording.
-      autoGainControl: false,
-      channelCount: { ideal: 2 },
-      deviceId: deviceId ? { exact: deviceId } : undefined,
-      echoCancellation: false,
-      noiseSuppression: false,
-      sampleRate: { ideal: 48_000 },
-    },
-    video: false,
-  };
 }
