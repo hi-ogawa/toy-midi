@@ -105,9 +105,6 @@ export function useRecorderInput({
 
   return {
     active,
-    refresh: refreshMutation.mutate,
-    grantAccess: grantMutation.mutate,
-    grantPending: grantMutation.isPending,
     devices,
     error: grantMutation.error ?? refreshMutation.error ?? startMutation.error,
     hasAccess,

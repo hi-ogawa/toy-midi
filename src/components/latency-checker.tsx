@@ -55,7 +55,7 @@ export function LatencyChecker() {
 
   const toggleMonitoringMutation = useMutation({
     mutationFn: async () => {
-      if (!isMonitoring) {
+      if (hasAccess && !isMonitoring) {
         await runtime.init();
         await runtime.context.resume();
       }
@@ -151,7 +151,7 @@ export function LatencyChecker() {
             description="Choose the capture device and channel, then connect the loopback."
             state={result ? "complete" : "active"}
           >
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+            <div>
               <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Browser audio input
                 <select
@@ -185,24 +185,6 @@ export function LatencyChecker() {
                   )}
                 </select>
               </label>
-              <ActionButton
-                accent={inputsInitialized && !hasAccess}
-                className="min-w-35"
-                disabled={
-                  !inputsInitialized || input.mutationPending || isMonitoring
-                }
-                onClick={() =>
-                  hasAccess ? input.refresh() : input.grantAccess()
-                }
-              >
-                {!inputsInitialized
-                  ? "Loading..."
-                  : input.grantPending
-                    ? "Requesting access..."
-                    : hasAccess
-                      ? "Refresh inputs"
-                      : "Grant access"}
-              </ActionButton>
             </div>
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
               <label className="grid gap-2 text-xs font-semibold text-neutral-400">
@@ -234,19 +216,24 @@ export function LatencyChecker() {
                 </select>
               </label>
               <ActionButton
+                accent={inputsInitialized && !hasAccess}
                 className="min-w-35"
                 disabled={
-                  !selectedDevice ||
+                  !inputsInitialized ||
+                  (hasAccess && !selectedDevice) ||
+                  input.mutationPending ||
                   togglePending ||
                   calibrationMutation.isPending
                 }
                 onClick={() => toggleMonitoringMutation.mutate()}
               >
                 {togglePending
-                  ? "Starting..."
-                  : isMonitoring
-                    ? "Stop monitoring"
-                    : "Start monitoring"}
+                  ? "Loading..."
+                  : !hasAccess
+                    ? "Grant microphone access"
+                    : isMonitoring
+                      ? "Stop monitoring"
+                      : "Start monitoring"}
               </ActionButton>
             </div>
             <div className="mt-4">
