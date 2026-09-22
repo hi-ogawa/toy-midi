@@ -31,7 +31,6 @@ import { cn } from "./ui/utils";
 
 export function LatencyChecker() {
   const [runtime] = useState(() => new RecorderRuntime());
-  const calibrationController = useRef<AbortController | undefined>(undefined);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -69,25 +68,16 @@ export function LatencyChecker() {
           "Start input monitoring before running the click test.",
         );
       }
-      const controller = new AbortController();
-      calibrationController.current = controller;
-      try {
-        const calibration = await measureLatency({
-          context: runtime.context,
-          input,
-          outputLevel,
-          signal: controller.signal,
-        });
-        return {
-          calibration,
-          channelCount: runtime.store.get().inputChannelCount,
-          settings: input.stream.getAudioTracks()[0].getSettings(),
-        };
-      } finally {
-        if (calibrationController.current === controller) {
-          calibrationController.current = undefined;
-        }
-      }
+      const calibration = await measureLatency({
+        context: runtime.context,
+        input,
+        outputLevel,
+      });
+      return {
+        calibration,
+        channelCount: runtime.store.get().inputChannelCount,
+        settings: input.stream.getAudioTracks()[0].getSettings(),
+      };
     },
   });
   const result = calibrationMutation.data;
@@ -95,7 +85,6 @@ export function LatencyChecker() {
   // Discard the measurement when the shared input workflow closes its route.
   useEffect(() => {
     if (!isMonitoring) {
-      calibrationController.current?.abort();
       calibrationMutation.reset();
     }
   }, [isMonitoring, calibrationMutation.reset]);

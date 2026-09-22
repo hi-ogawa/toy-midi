@@ -22,22 +22,17 @@ export async function measureLatency({
   context,
   input,
   outputLevel,
-  signal,
 }: {
   context: AudioContext;
   input: CaptureInput;
   outputLevel: number;
-  signal: AbortSignal;
 }): Promise<CalibrationResult> {
-  signal.throwIfAborted();
   await context.resume();
-  signal.throwIfAborted();
   const chunks: Parameters<typeof analyzeCalibration>[0]["chunks"] = [];
   const unsubscribe = input.subscribeSamples((chunk) => chunks.push(chunk));
   let stopped = false;
   try {
     await input.startCapture();
-    signal.throwIfAborted();
     const template = createClickTemplate(context.sampleRate);
     const playback = createCalibrationPlayback({
       amplitude: dbToGain(outputLevel),
@@ -51,13 +46,10 @@ export async function measureLatency({
     await playBuffers({
       context,
       buffers: [toAudioBuffer(context, playback.samples, context.sampleRate)],
-      signal,
       when: playback.startFrame / context.sampleRate,
     });
-    signal.throwIfAborted();
     await input.stopCapture();
     stopped = true;
-    signal.throwIfAborted();
     return {
       analysis: analyzeCalibration({
         chunks,
@@ -128,13 +120,13 @@ function playBuffers({
 }: {
   buffers: AudioBuffer[];
   context: AudioContext;
-  signal: AbortSignal;
+  signal?: AbortSignal;
   when: number;
 }) {
   return new Promise<void>((resolve, reject) => {
     const sources: AudioBufferSourceNode[] = [];
     const finish = () => {
-      signal.removeEventListener("abort", finish);
+      signal?.removeEventListener("abort", finish);
       for (const source of sources) {
         source.onended = null;
         try {
@@ -144,11 +136,11 @@ function playBuffers({
       }
       resolve();
     };
-    if (signal.aborted) {
+    if (signal?.aborted) {
       resolve();
       return;
     }
-    signal.addEventListener("abort", finish, { once: true });
+    signal?.addEventListener("abort", finish, { once: true });
     let remaining = buffers.length;
     try {
       for (const buffer of buffers) {
@@ -164,7 +156,7 @@ function playBuffers({
         source.start(when);
       }
     } catch (error) {
-      signal.removeEventListener("abort", finish);
+      signal?.removeEventListener("abort", finish);
       for (const source of sources) {
         source.onended = null;
         try {
