@@ -123,7 +123,8 @@ test("Projects search follows the temporary legacy filter", async ({
   // Delete the last current project and show the creation prompt.
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete project" }).click();
-  await expect(status).toHaveText("0 projects");
+  await expect(status).toBeHidden();
+  await expect(search).toBeHidden();
   await expect(
     page.getByText("No projects yet", { exact: true }),
   ).toBeVisible();
