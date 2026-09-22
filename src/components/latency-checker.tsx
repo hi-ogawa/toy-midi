@@ -17,6 +17,7 @@ import {
 import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { InputMeter } from "./input-meter";
+import { InputDiagnostics } from "./recorder/recorder-input-diagnostics";
 import { useRecorderInput } from "./recorder/use-recorder-input";
 import { Button } from "./ui/button";
 import {
@@ -244,6 +245,7 @@ export function LatencyChecker() {
                 />
               </label>
             </div>
+            <InputDiagnostics runtime={runtime} />
             {input.error && <ErrorMessage>{input.error.message}</ErrorMessage>}
             {toggleMonitoringMutation.error && (
               <ErrorMessage>
