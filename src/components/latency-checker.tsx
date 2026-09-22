@@ -7,7 +7,10 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { CalibrationResult } from "../lib/latency-checker/calibration";
+import {
+  type CalibrationResult,
+  summarizeCalibration,
+} from "../lib/latency-checker/calibration";
 import {
   createLatencyPreview,
   measureLatency,
@@ -301,14 +304,11 @@ function ResultsView({
 }) {
   const { measurements } = result.calibration.analysis;
   const { sampleRate } = result.calibration;
-  const offsets = measurements.map((measurement) => measurement.offsetSamples);
-  const offsetsMs = offsets.map((offset) => (offset * 1000) / sampleRate);
-  const medianSamples = calculateMedian(offsets);
+  const { medianSamples, spreadSamples, weakCount } = summarizeCalibration(
+    result.calibration.analysis,
+  );
   const medianMs = (medianSamples * 1000) / sampleRate;
-  const spreadMs = Math.max(...offsetsMs) - Math.min(...offsetsMs);
-  const weakCount = measurements.filter(
-    (measurement) => measurement.score < 0.25,
-  ).length;
+  const spreadMs = (spreadSamples * 1000) / sampleRate;
 
   const [preview] = useState(() => createLatencyPreview(runtime.context));
   useEffect(() => () => preview.stop(), [preview]);
@@ -525,14 +525,6 @@ function ErrorMessage({ children }: { children: ReactNode }) {
       {children}
     </p>
   );
-}
-
-function calculateMedian(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2
-    ? sorted[middle]
-    : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 function formatSigned(value: number, digits = 2) {
