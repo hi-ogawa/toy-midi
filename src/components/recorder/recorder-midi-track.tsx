@@ -319,7 +319,7 @@ function MidiTrackOverview({
 }) {
   const { pitchToTop, octavePitches } = getMidiOverviewPitchLayout({
     notes: track.notes,
-    height: track.height,
+    contentHeight: track.height - OVERVIEW_PITCH_PADDING * 2,
   });
 
   function getNoteStyle(note: Note) {
@@ -346,37 +346,42 @@ function MidiTrackOverview({
         colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
       })}
     >
-      {octavePitches.map((pitch) => (
-        <div
-          key={pitch}
-          data-testid="recorder-midi-octave-guide"
-          data-pitch={pitch}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 border-t border-neutral-600/60"
-          style={{ top: pitchToTop(pitch) }}
-        >
-          <span className="absolute left-1 -translate-y-1/2 bg-neutral-900 px-0.5 text-[9px] leading-none text-neutral-500">
-            {formatChromaticPitch(pitch)}
-          </span>
-        </div>
-      ))}
-      {track.notes.map((note) => (
-        <div
-          key={note.id}
-          className="pointer-events-none absolute rounded-sm bg-blue-400/70"
-          style={getNoteStyle(note)}
-        />
-      ))}
+      <div
+        className="absolute inset-x-0"
+        style={{ top: OVERVIEW_PITCH_PADDING, bottom: OVERVIEW_PITCH_PADDING }}
+      >
+        {octavePitches.map((pitch) => (
+          <div
+            key={pitch}
+            data-testid="recorder-midi-octave-guide"
+            data-pitch={pitch}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 border-t border-neutral-600/60"
+            style={{ top: pitchToTop(pitch) }}
+          >
+            <span className="absolute left-1 -translate-y-1/2 bg-neutral-900 px-0.5 text-[9px] leading-none text-neutral-500">
+              {formatChromaticPitch(pitch)}
+            </span>
+          </div>
+        ))}
+        {track.notes.map((note) => (
+          <div
+            key={note.id}
+            className="pointer-events-none absolute rounded-sm bg-blue-400/70"
+            style={getNoteStyle(note)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
 function getMidiOverviewPitchLayout({
   notes,
-  height,
+  contentHeight,
 }: {
   notes: Note[];
-  height: number;
+  contentHeight: number;
 }) {
   let lowestPitch = notes[0]?.pitch ?? 60;
   let highestPitch = lowestPitch;
@@ -389,12 +394,11 @@ function getMidiOverviewPitchLayout({
   const pitchSpan = Math.max(SEMITONES_PER_OCTAVE, highestPitch - lowestPitch);
   const topPitch = centerPitch + pitchSpan / 2;
   const bottomPitch = topPitch - pitchSpan;
-  const availableHeight =
-    height - OVERVIEW_PITCH_PADDING * 2 - OVERVIEW_NOTE_HEIGHT;
+  const availableHeight = contentHeight - OVERVIEW_NOTE_HEIGHT;
   const pixelsPerSemitone = availableHeight / pitchSpan;
 
   function pitchToTop(pitch: number) {
-    return OVERVIEW_PITCH_PADDING + (topPitch - pitch) * pixelsPerSemitone;
+    return (topPitch - pitch) * pixelsPerSemitone;
   }
 
   const octavePitches: number[] = [];
