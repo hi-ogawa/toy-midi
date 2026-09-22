@@ -167,19 +167,19 @@ export function InputSetup({
               <p className="text-xs leading-5 text-neutral-400">
                 Recording latency compensation corrects audio delay so your
                 recordings land where you played them on the timeline. To set it
-                automatically, you can use <strong>Measure latency</strong>{" "}
-                after connecting your output back to the selected input. It
-                plays seven clicks, measures their return delay, and updates the
-                value above. You can use the{" "}
+                automatically, first connect your audio output back to the
+                selected input with a cable. Then press{" "}
+                <strong>Measure latency</strong> to measure the return delay
+                using a few seconds of clicks. Alternatively, you can use the{" "}
                 <a
                   href={routes.latencyChecker.href()}
                   target="_blank"
                   rel="noreferrer"
                   className="underline underline-offset-2 hover:text-neutral-200"
                 >
-                  standalone checker
+                  checker page
                 </a>{" "}
-                for detailed results and playback comparison.
+                for details.
               </p>
               <Button
                 className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
