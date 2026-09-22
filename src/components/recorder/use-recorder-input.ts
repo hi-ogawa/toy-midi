@@ -131,7 +131,7 @@ export function useRecorderInput({
       setInputPreference((current) => ({
         ...current,
         deviceId,
-        channel: runtime.store.get().selectedChannel,
+        channel: state.selectedChannel,
         latencyCompensation,
       }));
     },
