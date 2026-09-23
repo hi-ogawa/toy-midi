@@ -16,17 +16,14 @@ test("controls the audio input from the input panel", async ({ page }) => {
     panel.getByRole("heading", { name: "Audio Input", exact: true }),
   ).toBeVisible();
 
-  // Turn the input on and see the Capture row follow the shared input state.
+  // Turn the input on and see Capture monitoring become available.
   const route = panel.getByTitle("Audio input setup");
   await expect(route).toContainText("Fake Default Audio Input · Channel 1");
   await panel.getByRole("button", { name: "Turn input on" }).click();
   await expect(
     panel.getByRole("button", { name: "Turn input off" }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(page.getByTestId("recorder-input-monitor")).toBeEnabled();
 
   // Open the tuner as its own panel from the input panel.
   await panel.getByRole("button", { name: "Tuner" }).click();
@@ -42,10 +39,7 @@ test("controls the audio input from the input panel", async ({ page }) => {
 
   // Turn the input off, then close the panel from the header.
   await panel.getByRole("button", { name: "Turn input off" }).click();
-  await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  await expect(page.getByTestId("recorder-input-monitor")).toBeDisabled();
   await panelButton.click();
   await expect(panel).toHaveCount(0);
 });

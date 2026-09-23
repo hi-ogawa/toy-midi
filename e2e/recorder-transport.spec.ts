@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { createCheckpoint, useFakeAudioInput } from "./helpers";
 import {
+  armCapture,
   createRecorderProject,
   enableInput,
   getRecorderBeat,
@@ -64,6 +65,7 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
 
   // Recording owns transport timing, so arrows cannot seek an active capture.
   await enableInput(page);
+  await armCapture(page);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");

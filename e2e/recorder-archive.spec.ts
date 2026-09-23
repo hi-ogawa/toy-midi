@@ -4,15 +4,16 @@ import { useFakeAudioInput, selectMenuItem } from "./helpers";
 import {
   addRecorderAudio,
   addRecorderMidiTrack,
+  armCapture,
   createRecorderMidiNote,
-  getRecorderMidiNote,
-  getRecorderBeat,
   createRecorderProject,
   enableInput,
-  seekRecorderByPixels,
-  waitForRecordingSamples,
+  getRecorderBeat,
+  getRecorderMidiNote,
   openRecorderMidiInstrument,
+  seekRecorderByPixels,
   selectRecorderMidiInstrument,
+  waitForRecordingSamples,
 } from "./recorder-helpers";
 
 useFakeAudioInput();
@@ -24,6 +25,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   await enableInput(page);
+  await armCapture(page);
   const recordButton = page.getByTestId("recorder-record-button");
   for (const beat of [2, 4]) {
     await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);

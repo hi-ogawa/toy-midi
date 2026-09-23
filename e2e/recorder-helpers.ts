@@ -242,40 +242,51 @@ export async function waitForRecordingSamples(recording: Locator) {
   );
 }
 
+/** Open the Audio Input panel from the header unless it is already open. */
+export async function openInputPanel(page: Page): Promise<Locator> {
+  const button = page.getByTestId("recorder-input-panel-button");
+  if ((await button.getAttribute("aria-pressed")) !== "true") {
+    await button.click();
+  }
+  const panel = page.getByTestId("recorder-input-panel");
+  await expect(panel).toBeVisible();
+  return panel;
+}
+
+/** Open Audio Input Setup from the input panel's route field. */
+export async function openInputSetup(page: Page): Promise<Locator> {
+  const panel = await openInputPanel(page);
+  await panel.getByTitle("Audio input setup").click();
+  await expect(
+    page.getByRole("heading", { name: "Audio Input Setup" }),
+  ).toBeVisible();
+  return page.getByTestId("recorder-input-setup");
+}
+
 export async function enableInput(page: Page) {
   await test.step(
     "Enable audio input",
     async () => {
       // Fake audio still exercises permission, device discovery, and channel setup.
-      const inputSetupButton = page.getByRole("button", {
-        name: "Configure audio input",
-      });
-      await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-        "aria-pressed",
-        "false",
+      const panel = await openInputPanel(page);
+      await expect(panel.getByTitle("Audio input setup")).toContainText(
+        "Fake Default Audio Input · Channel 1",
       );
-      await inputSetupButton.click();
+      await panel.getByRole("button", { name: "Turn input on" }).click();
       await expect(
-        page.getByRole("heading", { name: "Audio Input Setup" }),
-      ).toBeVisible();
-      const setup = page.getByTestId("recorder-input-setup");
-      await setup.getByRole("button", { name: "Enable input" }).click();
-      await expect(
-        setup.getByRole("button", { name: "Disable input" }),
-      ).toBeVisible();
-      await expect(page.getByLabel("Device")).toContainText(
-        "Fake Default Audio Input",
-      );
-      await expect(page.getByLabel("Channel")).toContainText("Channel 1");
-      await setup.getByRole("button", { name: "Close", exact: true }).click();
-      await expect(
-        page.getByText("Fake Default Audio Input · Channel 1"),
-      ).toBeVisible();
-      await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
+        panel.getByRole("button", { name: "Turn input off" }),
+      ).toHaveAttribute("aria-pressed", "true");
+      await panel
+        .getByRole("button", { name: "Close Audio Input", exact: true })
+        .click();
     },
     { box: true },
   );
+}
+
+/** Arm the Capture track as the recording destination. */
+export async function armCapture(page: Page) {
+  const arm = page.getByTestId("recorder-arm-toggle");
+  await arm.click();
+  await expect(arm).toHaveAttribute("aria-pressed", "true");
 }
