@@ -617,7 +617,7 @@ function MidiTrackEditor({
       onBlur={handleBlur}
     >
       <div
-        className="grid grid-cols-[17rem_minmax(0,1fr)]"
+        className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
         <div className="relative border-r border-neutral-700">

@@ -81,16 +81,16 @@ export function RecorderLocatorRow({
   onSeekBeat: (beat: number) => void;
 }) {
   return (
-    <div className="grid h-7 grid-cols-[17rem_1fr] border-b border-neutral-700 bg-neutral-800">
+    <div className="grid h-7 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
       <div className="flex items-center justify-between border-r border-neutral-700 px-3 text-xs font-semibold text-neutral-400">
         <span>Locators</span>
         <Button
           title="Add locator at playhead (L)"
           aria-label="Add locator at playhead"
-          className="size-6 hover:bg-neutral-700"
+          className="size-5 hover:bg-neutral-700"
           onClick={locatorInteraction.add}
         >
-          <PlusIcon className="size-3.5" />
+          <PlusIcon className="size-3" />
         </Button>
       </div>
       <div
