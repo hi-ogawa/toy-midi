@@ -124,7 +124,7 @@ const VARIANTS: { id: Variant; label: string; summary: string }[] = [
     id: "input-panel",
     label: "E · Input panel + row arm",
     summary:
-      "A mini panel that stays open until closed, like Mixer and Reference video but only as large as A's popover. It holds on/off, the meter, Monitor, and Tuner with an inline reading. The route is a read-only label that opens Audio input settings, a modal for per-device configuration: device, channel, latency compensation with Measure, and diagnostics. A header Input button toggles the panel and shows status with a small level strip. Track controls only gain R.",
+      "A mini panel that stays open until closed, like Mixer and Reference video but only as large as A's popover. It holds on/off, the meter, Monitor, and a Tuner toggle that opens the existing separate tuner panel. The route is a read-only label that opens Audio input settings, a modal for per-device configuration: device, channel, latency compensation with Measure, and diagnostics. The header Input button behaves like the other panel toggles and only turns orange while microphone access is required. Bootstrap stays as today: grant access, then turn input on.",
   },
 ];
 
@@ -179,7 +179,7 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "input-dock":
         "Opens on demand (arm, Record, monitoring, tuner). Off from the dock.",
       "input-panel":
-        "Opens on demand (arm, Record, monitoring, tuner). Off from the panel.",
+        "As today: grant access, then turn input on or off from the panel.",
     },
   },
   {
@@ -221,7 +221,8 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "row-input": "Record disabled: “Arm a track to record”.",
       "record-destination": "Record opens the destination menu.",
       "input-dock": "Record disabled: “Arm a track to record”.",
-      "input-panel": "Record disabled: “Arm a track to record”.",
+      "input-panel":
+        "Record disabled: “Arm a track to record”, or “Turn input on to record”.",
     },
   },
   {
@@ -231,8 +232,7 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "row-input": "One, but only while a track is armed.",
       "record-destination": "Two: open the popover, then toggle.",
       "input-dock": "One, always visible.",
-      "input-panel":
-        "One while the panel is open. The panel stays open until closed.",
+      "input-panel": "One while the panel is open. Tuner opens its own panel.",
     },
   },
 ];
@@ -378,6 +378,7 @@ function MockRecorder({
   const [permission, setPermission] = useState(scenario.permission);
   const [inputStatus, setInputStatus] = useState(scenario.inputStatus);
   const [pendingPrompt, setPendingPrompt] = useState<{
+    grantOnly?: boolean;
     onReady?: () => void;
   }>();
   const [notice, setNotice] = useState<string>();
@@ -449,12 +450,20 @@ function MockRecorder({
     setTunerOpen(false);
   }
 
+  // E keeps today's bootstrap: grant access, then turn input on explicitly.
+  // The other candidates open input on demand.
+  const onDemandInput = variant !== "input-panel";
+
+  function grantAccess() {
+    setPendingPrompt({ grantOnly: true });
+  }
+
   function selectDestination(id?: string) {
     if (pending) {
       return;
     }
     setArmedId(id);
-    if (id) {
+    if (id && onDemandInput) {
       openInput();
     } else if (variant === "row-input") {
       // Input belongs to the armed row, so disarming closes it.
@@ -558,9 +567,11 @@ function MockRecorder({
   }
 
   const recordBlocker =
-    variant === "record-destination" || armedTrack
-      ? undefined
-      : "Arm a track to record";
+    variant !== "record-destination" && !armedTrack
+      ? "Arm a track to record"
+      : !onDemandInput && !inputOpen
+        ? "Turn input on to record"
+        : undefined;
 
   const inputControl = {
     status: inputStatus,
@@ -569,12 +580,21 @@ function MockRecorder({
     channel,
     monitoring,
     tunerOpen,
-    onOpen: () => openInput(),
+    onOpen: () =>
+      !onDemandInput && permission === "prompt" ? grantAccess() : openInput(),
     onClose: closeInput,
     onMonitoringChange: (next: boolean) =>
-      next ? openInput(() => setMonitoring(true)) : setMonitoring(false),
+      !onDemandInput
+        ? setMonitoring(next)
+        : next
+          ? openInput(() => setMonitoring(true))
+          : setMonitoring(false),
     onTunerChange: (next: boolean) =>
-      next ? openInput(() => setTunerOpen(true)) : setTunerOpen(false),
+      !onDemandInput
+        ? setTunerOpen(next)
+        : next
+          ? openInput(() => setTunerOpen(true))
+          : setTunerOpen(false),
     onSetup: () => setInputSetupOpen(true),
   };
 
@@ -666,7 +686,6 @@ function MockRecorder({
         </Button>
         {variant === "input-panel" && (
           <InputPanelToggle
-            status={inputStatus}
             permission={permission}
             open={inputPanelOpen}
             onClick={() => setInputPanelOpen(!inputPanelOpen)}
@@ -875,9 +894,8 @@ function MockRecorder({
           </div>
         </div>
         {tunerOpen &&
-          inputOpen &&
-          variant !== "input-dock" &&
-          variant !== "input-panel" && (
+          (inputOpen || variant === "input-panel") &&
+          variant !== "input-dock" && (
             <div className="absolute top-3 right-4 z-40 w-48 rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl">
               <div className="flex items-center text-xs text-neutral-400">
                 Tuner
@@ -889,8 +907,18 @@ function MockRecorder({
                   <XIcon className="size-3.5" />
                 </button>
               </div>
-              <div className="mt-2 text-center font-mono text-2xl">E1</div>
-              <div className="text-center text-xs text-emerald-400">+3¢</div>
+              {inputOpen ? (
+                <>
+                  <div className="mt-2 text-center font-mono text-2xl">E1</div>
+                  <div className="text-center text-xs text-emerald-400">
+                    +3¢
+                  </div>
+                </>
+              ) : (
+                <div className="mt-2 text-center text-xs text-neutral-500">
+                  No input. Turn input on to tune.
+                </div>
+              )}
             </div>
           )}
       </div>
@@ -935,7 +963,9 @@ function MockRecorder({
               onClick={() => {
                 setPermission("granted");
                 setPendingPrompt(undefined);
-                startOpening(pendingPrompt.onReady);
+                if (!pendingPrompt.grantOnly) {
+                  startOpening(pendingPrompt.onReady);
+                }
               }}
             >
               Allow
@@ -968,7 +998,11 @@ function MockRecorder({
           onChannelChange={setChannel}
           onGrant={() => {
             setInputSetupOpen(false);
-            openInput();
+            if (onDemandInput) {
+              openInput();
+            } else {
+              grantAccess();
+            }
           }}
         />
       </Dialog>
@@ -1239,44 +1273,31 @@ function InputDock({
 }
 
 function InputPanelToggle({
-  status,
   permission,
   open,
   onClick,
 }: {
-  status: InputStatus;
   permission: Permission;
   open: boolean;
   onClick: () => void;
 }) {
+  const needsAccess = permission !== "granted";
   return (
     <Button
       aria-label="Input"
       aria-pressed={open}
-      title="Input"
+      title={needsAccess ? "Input (microphone access required)" : "Input"}
       onClick={onClick}
       className={cn(
-        "relative size-9 overflow-hidden",
-        open
-          ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-          : "text-neutral-300 hover:bg-neutral-700/50",
+        "size-9",
+        needsAccess
+          ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
+          : open
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
       )}
     >
-      {permission === "denied" ? (
-        <MicOffIcon className="size-5 text-orange-300" />
-      ) : status === "opening" ? (
-        <LoaderCircleIcon className="size-5 animate-spin" />
-      ) : (
-        <MicIcon
-          className={cn("size-5", status === "open" && "text-emerald-400")}
-        />
-      )}
-      {status === "open" && (
-        <MockMeter
-          active
-          className="absolute inset-x-1.5 bottom-1 h-0.5 rounded-none"
-        />
-      )}
+      <MicIcon className="size-5" />
     </Button>
   );
 }
@@ -1328,26 +1349,35 @@ function InputFloatingPanel({
               {blocked
                 ? "Microphone blocked"
                 : permission === "prompt"
-                  ? "Microphone access needed"
+                  ? "No microphone access"
                   : status === "opening"
                     ? "Opening input…"
                     : `${device} · Ch ${channel}`}
             </span>
             <Settings2Icon className="size-3.5 shrink-0 text-neutral-500" />
           </button>
-          <Button
-            aria-pressed={open}
-            disabled={blocked || status === "opening"}
-            onClick={open ? onClose : onOpen}
-            className={cn(
-              "h-6 w-12 shrink-0 border-neutral-600 text-[11px]",
-              open
-                ? "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
-                : "text-neutral-300 hover:bg-neutral-700",
-            )}
-          >
-            {open ? "On" : "Off"}
-          </Button>
+          {permission === "prompt" ? (
+            <Button
+              onClick={onOpen}
+              className="h-6 shrink-0 border-orange-300/40 bg-orange-300/10 px-2 text-[11px] text-orange-200 hover:bg-orange-300/20"
+            >
+              Allow access
+            </Button>
+          ) : (
+            <Button
+              aria-pressed={open}
+              disabled={blocked || status === "opening"}
+              onClick={open ? onClose : onOpen}
+              className={cn(
+                "h-6 w-12 shrink-0 border-neutral-600 text-[11px]",
+                open
+                  ? "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
+                  : "text-neutral-300 hover:bg-neutral-700",
+              )}
+            >
+              {open ? "On" : "Off"}
+            </Button>
+          )}
         </div>
         {blocked ? (
           <p className="leading-5 text-orange-200/80">
@@ -1359,32 +1389,18 @@ function InputFloatingPanel({
         <div className="grid grid-cols-2 gap-2">
           <PanelToggle
             pressed={monitoring}
-            disabled={blocked}
+            disabled={!open}
             onClick={() => onMonitoringChange(!monitoring)}
             icon={<HeadphonesIcon className="size-3.5" />}
             label="Monitor"
           />
-          <Button
-            aria-label="Tuner"
-            aria-pressed={tunerOpen}
+          <PanelToggle
+            pressed={tunerOpen}
             disabled={blocked}
             onClick={() => onTunerChange(!tunerOpen)}
-            className={cn(
-              "h-7 justify-start gap-1.5 border-neutral-600 px-2 text-xs",
-              tunerOpen
-                ? "bg-sky-500/25 text-sky-200 hover:bg-sky-500/35"
-                : "text-neutral-300 hover:bg-neutral-700",
-            )}
-          >
-            <AudioWaveformIcon className="size-3.5" />
-            {tunerOpen && open ? (
-              <span className="ml-auto font-mono">
-                E1 <span className="text-emerald-300">+3¢</span>
-              </span>
-            ) : (
-              "Tuner"
-            )}
-          </Button>
+            icon={<AudioWaveformIcon className="size-3.5" />}
+            label="Tuner"
+          />
         </div>
       </div>
     </section>
