@@ -469,6 +469,7 @@ export class RecorderRuntime {
     this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
+  /** Gain preserves comp regions, so bypass updateClips and adjust playback in place. */
   setClipGain({ id, gain }: { id: string; gain: number }): void {
     const state = this.store.get();
     const next = deriveClipStateById(state, {
@@ -476,7 +477,6 @@ export class RecorderRuntime {
       update: (clip) => ({ ...clip, gain }),
     });
     this.store.update(next);
-    // Update existing gain nodes without rebuilding sources or restarting transport.
     for (const playback of this.trackPlaybacks.values()) {
       playback.setClipGain({ clipId: id, gain });
     }
