@@ -471,7 +471,10 @@ export class RecorderRuntime {
 
   setClipGain({ id, gain }: { id: string; gain: number }): void {
     this.updateClipState({ id, update: (clip) => ({ ...clip, gain }) });
-    this.syncClipGain({ id, gain });
+    // Update existing gain nodes without rebuilding sources or restarting transport.
+    for (const playback of this.trackPlaybacks.values()) {
+      playback.setClipGain({ clipId: id, gain });
+    }
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
@@ -1091,13 +1094,6 @@ export class RecorderRuntime {
       listener,
       equals: shallowEqual,
     });
-  }
-
-  /** Update existing region gain nodes without rebuilding sources or restarting transport. */
-  private syncClipGain({ id, gain }: { id: string; gain: number }): void {
-    for (const playback of this.trackPlaybacks.values()) {
-      playback.setClipGain({ clipId: id, gain });
-    }
   }
 
   private syncTrackMix(): void {
