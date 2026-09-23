@@ -1,4 +1,4 @@
-import { GaugeIcon, Mic2Icon, Volume2Icon } from "lucide-react";
+import { GaugeIcon, Mic2Icon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
@@ -55,6 +55,21 @@ export function RecorderMixer({
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}
+          onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+          onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
+          onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
+        />
+      ))}
+      {state.midiTracks.map((track) => (
+        <RecorderTrackChannel
+          key={track.id}
+          effectsOpen={openEffects.has(track.id)}
+          onEffectsToggle={() => onEffectsToggle(track.id)}
+          label={track.name}
+          gain={track.gain}
+          muted={track.muted}
+          soloed={track.soloed}
+          icon={<Music2Icon className="size-4 text-muted-foreground" />}
           onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
           onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
           onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}

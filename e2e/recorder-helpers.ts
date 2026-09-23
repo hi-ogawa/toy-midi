@@ -1,4 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { selectMenuItem } from "./helpers";
 
 /** Create a recorder project from its index and wait for the recorder app. */
 export async function createRecorderProject(page: Page): Promise<void> {
@@ -6,10 +8,143 @@ export async function createRecorderProject(page: Page): Promise<void> {
     "Create recorder project",
     async () => {
       await page.goto("/");
-      await page.getByRole("tab", { name: "Recorder", exact: true }).click();
       await page.getByTestId("new-recorder-project-button").click();
       await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
       await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+    },
+    { box: true },
+  );
+}
+
+export async function addRecorderMidiTrack(page: Page) {
+  return await test.step(
+    "Add recorder MIDI track",
+    async () => {
+      const tracks = page.getByTestId("recorder-midi-track-row");
+      const count = await tracks.count();
+      await page.getByTestId("recorder-add-midi-track").click();
+      await expect(tracks).toHaveCount(count + 1);
+      const track = tracks.nth(count);
+      await expect(track.getByTestId("recorder-midi-grid")).toBeVisible();
+      return track;
+    },
+    { box: true },
+  );
+}
+
+export async function openRecorderMidiInstrument(
+  page: Page,
+  { name }: { name: string },
+) {
+  return await test.step(
+    `Open ${name} instrument`,
+    async () => {
+      await selectMenuItem(page, {
+        menu: `${name} actions`,
+        item: "Instrument…",
+      });
+      return page.getByTestId("recorder-midi-instrument");
+    },
+    { box: true },
+  );
+}
+
+export async function selectRecorderMidiInstrument(
+  instrument: Locator,
+  { option }: { option: string },
+) {
+  await test.step(
+    `Select ${option}`,
+    async () => {
+      const page = instrument.page();
+      const program = instrument.getByTestId("instrument-select");
+      await program.click();
+      await page
+        .getByPlaceholder("Search instruments...")
+        .fill(option.split(": ")[1]);
+      await page.getByRole("option", { name: option, exact: true }).click();
+      await expect(program).toContainText(option);
+      await expect(program).toBeEnabled();
+    },
+    { box: true },
+  );
+}
+
+export async function createRecorderMidiNote(
+  page: Page,
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    /** Zero-based beat at a grid boundary. */
+    beat: number;
+    pitch: string;
+  },
+) {
+  return await test.step(
+    `Create ${pitch} at beat ${beat}`,
+    async () => {
+      const point = await getRecorderMidiGridPoint(track, { beat, pitch });
+      // Click inside the cell rather than directly on its boundary.
+      await page.mouse.click(point.x + 5, point.y);
+      const note = getRecorderMidiNote(track, { beat, pitch });
+      await expect(note).toBeVisible();
+      return note;
+    },
+    { box: true },
+  );
+}
+
+/** Locate a note by pitch and zero-based beat, using its displayed one-based label. */
+export function getRecorderMidiNote(
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    beat: number;
+    pitch: string;
+  },
+) {
+  return track
+    .getByTestId("recorder-midi-grid")
+    .locator(`[data-note-id][aria-label="${pitch}, beat ${beat + 1}"]`);
+}
+
+/** Convert a zero-based beat and pitch to a point at the default zoom and horizontal origin. */
+export async function getRecorderMidiGridPoint(
+  track: Locator,
+  {
+    beat,
+    pitch,
+  }: {
+    beat: number;
+    pitch: string;
+  },
+) {
+  const key = track.getByRole("button", {
+    name: `Preview ${pitch}`,
+    exact: true,
+  });
+  await expect(key).toBeVisible();
+  const gridBox = (await track
+    .getByTestId("recorder-midi-grid")
+    .boundingBox())!;
+  const keyBox = (await key.boundingBox())!;
+  return {
+    x: gridBox.x + beat * DEFAULT_PIXELS_PER_BEAT,
+    y: keyBox.y + keyBox.height / 2,
+  };
+}
+
+export async function saveRecorderProject(page: Page) {
+  await test.step(
+    "Save recorder project",
+    async () => {
+      const save = page.getByTestId("recorder-save-button");
+      await save.click();
+      await expect(save).toHaveAttribute("data-status", "saved");
     },
     { box: true },
   );
@@ -66,38 +201,45 @@ export async function dragBy(
   {
     deltaY = 0,
     anchorXOffset,
-  }: { deltaY?: number; anchorXOffset?: number } = {},
+    release = true,
+  }: { deltaY?: number; anchorXOffset?: number; release?: boolean } = {},
 ) {
-  await test.step(
-    `Drag by ${deltaX}px, ${deltaY}px`,
+  return await test.step(
+    `Drag by ${deltaX}px, ${deltaY}px${release ? "" : " without releasing"}`,
     async () => {
       const box = await locator.boundingBox();
       expect(box).not.toBeNull();
       const startX = box!.x + (anchorXOffset ?? box!.width / 2);
-      await page.mouse.move(startX, box!.y + box!.height / 2);
+      const startY = box!.y + box!.height / 2;
+      await page.mouse.move(startX, startY);
       await page.mouse.down();
-      await page.mouse.move(
-        startX + deltaX,
-        box!.y + box!.height / 2 + deltaY,
-        {
-          steps: 4,
-        },
-      );
-      await page.mouse.up();
+      await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 4 });
+      if (release) {
+        await page.mouse.up();
+      }
+      return { x: startX, y: startY };
     },
     { box: true },
   );
 }
 
 export async function waitForRecordingSamples(recording: Locator) {
-  const initialWidth = await recording.evaluate(
-    (element) => element.getBoundingClientRect().width,
+  await test.step(
+    "Wait for recording samples",
+    async () => {
+      const initialWidth = await recording.evaluate(
+        (element) => element.getBoundingClientRect().width,
+      );
+      await expect
+        .poll(() =>
+          recording.evaluate(
+            (element) => element.getBoundingClientRect().width,
+          ),
+        )
+        .toBeGreaterThan(initialWidth);
+    },
+    { box: true },
   );
-  await expect
-    .poll(() =>
-      recording.evaluate((element) => element.getBoundingClientRect().width),
-    )
-    .toBeGreaterThan(initialWidth);
 }
 
 export async function enableInput(page: Page) {
@@ -125,7 +267,7 @@ export async function enableInput(page: Page) {
         "Fake Default Audio Input",
       );
       await expect(page.getByLabel("Channel")).toContainText("Channel 1");
-      await page.getByRole("button", { name: "Close" }).click();
+      await setup.getByRole("button", { name: "Close", exact: true }).click();
       await expect(
         page.getByText("Fake Default Audio Input · Channel 1"),
       ).toBeVisible();

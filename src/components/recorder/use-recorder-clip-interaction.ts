@@ -1,21 +1,34 @@
 import { useEffect, useState } from "react";
+import { clamp } from "../../lib/music";
+import type { AudioClip } from "../../lib/recorder/audio-clip";
 import {
-  type RecorderClipId,
+  deriveClipEditState,
+  MIN_CLIP_DURATION,
+  REFERENCE_VIDEO_CLIP_ID,
   type RecorderClipMove,
+  type RecorderClipTrim,
+  type ReferenceVideoState,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 
-export type RecorderClipMoveSnapshot = {
-  clips: RecorderClipMove[];
-  minimumVisibleStart: number;
+type ClipEditStart = {
+  type: "move" | "trim-start" | "trim-end";
+  id: string;
+  additive: boolean;
 };
 
-export type RecorderClipTrimSnapshot = {
-  clip: RecorderClipId;
-  edge: "start" | "end";
-  initialValue: number;
-};
+type ClipEdit =
+  | {
+      type: "move";
+      changes: RecorderClipMove[];
+      getChanges: (delta: number) => RecorderClipMove[];
+    }
+  | {
+      type: "trim-start" | "trim-end";
+      changes: RecorderClipTrim[];
+      getChanges: (delta: number) => RecorderClipTrim[];
+    };
 
 export function useRecorderClipInteraction({
   runtime,
@@ -27,173 +40,210 @@ export function useRecorderClipInteraction({
   /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
 }) {
-  const [keys, setKeys] = useState(() => new Set<string>());
+  const [edit, setEdit] = useState<ClipEdit>();
+  const [selectedIds, setSelectedIds] = useState(() => new Set<string>());
 
-  function getKey(clip: RecorderClipId): string {
-    return clip.type === "reference" ? clip.type : `${clip.type}:${clip.id}`;
-  }
-
-  function getSelectedClips(selectedKeys: ReadonlySet<string>) {
+  function getSelectedClips(editIds: ReadonlySet<string>) {
     return {
       clips: state.audioTracks.flatMap((track) =>
-        track.clips.filter((clip) =>
-          selectedKeys.has(getKey({ type: "clip", id: clip.id })),
-        ),
+        track.clips.filter((clip) => editIds.has(clip.id)),
       ),
-      referenceVideo: selectedKeys.has(getKey({ type: "reference" }))
+      referenceVideo: editIds.has(REFERENCE_VIDEO_CLIP_ID)
         ? state.referenceVideo
         : undefined,
     };
   }
 
+  // Remove stale selection IDs when clips or the reference video are removed outside this interaction.
   useEffect(() => {
     const available = new Set([
       ...state.audioTracks.flatMap((track) =>
-        track.clips.map((clip) => getKey({ type: "clip", id: clip.id })),
+        track.clips.map((clip) => clip.id),
       ),
-      ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
+      ...(state.referenceVideo ? [REFERENCE_VIDEO_CLIP_ID] : []),
     ]);
-    setKeys((current) => {
-      const next = new Set([...current].filter((key) => available.has(key)));
+    setSelectedIds((current) => {
+      const next = new Set([...current].filter((id) => available.has(id)));
       return next.size === current.size ? current : next;
     });
   }, [state.audioTracks, state.referenceVideo]);
 
-  function select(clip: RecorderClipId, additive: boolean): void {
+  function isSelected(id: string): boolean {
+    return selectedIds.has(id);
+  }
+
+  function isEditing(id: string): boolean {
+    return edit?.changes.some((change) => change.id === id) ?? false;
+  }
+
+  function select(id: string, additive: boolean): void {
     onSelect();
-    const key = getKey(clip);
     if (!additive) {
-      const next = keys.has(key) ? keys : new Set([key]);
-      setKeys(next);
+      const next = selectedIds.has(id) ? selectedIds : new Set([id]);
+      setSelectedIds(next);
       return;
     }
-    const next = new Set(keys);
-    if (next.has(key)) {
-      next.delete(key);
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
     } else {
-      next.add(key);
+      next.add(id);
     }
-    setKeys(next);
+    setSelectedIds(next);
   }
 
-  function startMove({
-    clip,
-    additive,
-  }: {
-    clip: RecorderClipId;
-    additive: boolean;
-  }): RecorderClipMoveSnapshot {
+  function startEdit(input: ClipEditStart): void {
     onSelect();
-    const draggedKey = getKey(clip);
-    // Dragging a selected clip preserves the group; an unselected clip joins
-    // with Ctrl/Cmd or replaces the selection otherwise.
-    const selectedKeys = keys.has(draggedKey)
-      ? new Set(keys)
-      : additive
-        ? new Set([...keys, draggedKey])
-        : new Set([draggedKey]);
-    setKeys(selectedKeys);
-    const selected = getSelectedClips(selectedKeys);
-    const clips = [
-      ...selected.clips.map((clip) => ({
-        type: "clip" as const,
-        id: clip.id,
-        timelineOffset: clip.timelineOffset,
-      })),
-      ...(selected.referenceVideo
-        ? [
-            {
-              type: "reference" as const,
-              timelineOffset: selected.referenceVideo.timelineStart,
-            },
-          ]
-        : []),
-    ];
-    return {
-      clips,
-      minimumVisibleStart: Math.min(
-        ...selected.clips.map((clip) => clip.timelineOffset + clip.trimStart),
-        ...(selected.referenceVideo
-          ? [selected.referenceVideo.timelineStart]
-          : []),
-      ),
-    };
-  }
-
-  function move(snapshot: RecorderClipMoveSnapshot, delta: number): void {
-    const clampedDelta = Math.max(delta, -snapshot.minimumVisibleStart);
-    runtime.moveClips(
-      snapshot.clips.map((clip) =>
-        clip.type === "reference"
-          ? {
-              type: "reference" as const,
-              timelineOffset: clip.timelineOffset + clampedDelta,
-            }
-          : {
-              type: clip.type,
-              id: clip.id,
-              timelineOffset: clip.timelineOffset + clampedDelta,
-            },
-      ),
-    );
-  }
-
-  function startTrim({
-    clip,
-    edge,
-  }: {
-    clip: RecorderClipId;
-    edge: "start" | "end";
-  }): RecorderClipTrimSnapshot {
-    const selected =
-      clip.type === "clip"
-        ? state.audioTracks
-            .flatMap((track) => track.clips)
-            .find((entry) => entry.id === clip.id)
-        : undefined;
-    if (!selected) {
-      throw new Error("Recorder clip state is missing.");
+    const id = input.id;
+    // Editing a selected clip preserves the group. Ctrl/Cmd adds an unselected
+    // clip to the group, while an unmodified edit replaces the selection.
+    const editIds = selectedIds.has(id)
+      ? new Set(selectedIds)
+      : input.additive
+        ? new Set([...selectedIds, id])
+        : new Set([id]);
+    setSelectedIds(editIds);
+    const selected = getSelectedClips(editIds);
+    if (input.type === "move") {
+      const getChanges = createMoveGetChanges(selected);
+      setEdit({ type: "move", changes: getChanges(0), getChanges });
+    } else {
+      const getChanges =
+        input.type === "trim-start"
+          ? createTrimStartGetChanges(selected.clips)
+          : createTrimEndGetChanges(selected.clips);
+      setEdit({ type: input.type, changes: getChanges(0), getChanges });
     }
-    onSelect();
-    return {
-      clip,
-      edge,
-      initialValue: edge === "start" ? selected.trimStart : selected.trimEnd,
-    };
   }
 
-  function trim(snapshot: RecorderClipTrimSnapshot, delta: number): void {
-    if (snapshot.clip.type === "reference") {
-      throw new Error("Reference clips cannot be trimmed.");
+  function updateEdit(delta: number): void {
+    if (!edit) {
+      return;
     }
-    runtime.trimClip({
-      ...snapshot.clip,
-      edge: snapshot.edge,
-      value: snapshot.initialValue + delta,
-    });
+    if (edit.type === "move") {
+      setEdit({ ...edit, changes: edit.getChanges(delta) });
+    } else {
+      setEdit({ ...edit, changes: edit.getChanges(delta) });
+    }
+  }
+
+  function finishEdit(delta: number): void {
+    if (!edit) {
+      return;
+    }
+    setEdit(undefined);
+    if (edit.type === "move") {
+      runtime.commitClipEdit({
+        type: edit.type,
+        changes: edit.getChanges(delta),
+      });
+    } else {
+      runtime.commitClipEdit({
+        type: edit.type,
+        changes: edit.getChanges(delta),
+      });
+    }
   }
 
   function removeSelected(): void {
-    const selected = getSelectedClips(keys);
-    runtime.removeClips([
-      ...selected.clips.map((clip) => ({
-        type: "clip" as const,
-        id: clip.id,
-      })),
-      ...(selected.referenceVideo ? [{ type: "reference" as const }] : []),
-    ]);
-    setKeys(new Set());
+    setEdit(undefined);
+    runtime.removeClips([...selectedIds]);
+    setSelectedIds(new Set());
   }
 
+  const preview = edit ? deriveClipEditState(state, edit) : state;
+
   return {
-    clear: () => setKeys(new Set()),
-    hasSelection: keys.size > 0,
-    isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
+    audioTracks: preview.audioTracks,
+    referenceVideo: preview.referenceVideo,
+    cancelEdit: () => setEdit(undefined),
+    clear: () => {
+      setEdit(undefined);
+      setSelectedIds(new Set());
+    },
+    hasSelection: selectedIds.size > 0,
+    isSelected,
+    isEditing,
     select,
-    startMove,
-    move,
-    startTrim,
-    trim,
+    startEdit,
+    updateEdit,
+    finishEdit,
     removeSelected,
+  };
+}
+
+function createMoveGetChanges({
+  clips,
+  referenceVideo,
+}: {
+  clips: AudioClip[];
+  referenceVideo?: ReferenceVideoState;
+}): (delta: number) => RecorderClipMove[] {
+  const originals: RecorderClipMove[] = [
+    ...clips.map((clip) => ({
+      id: clip.id,
+      timelineOffset: clip.timelineOffset,
+    })),
+    ...(referenceVideo
+      ? [
+          {
+            id: REFERENCE_VIDEO_CLIP_ID,
+            timelineOffset: referenceVideo.timelineStart,
+          },
+        ]
+      : []),
+  ];
+  const minStart = Math.min(
+    ...clips.map((clip) => clip.timelineOffset + clip.trimStart),
+    ...(referenceVideo ? [referenceVideo.timelineStart] : []),
+  );
+  return (delta) => {
+    const clampedDelta = Math.max(delta, -minStart);
+    return originals.map((clip) => ({
+      ...clip,
+      timelineOffset: clip.timelineOffset + clampedDelta,
+    }));
+  };
+}
+
+function createTrimStartGetChanges(
+  clips: AudioClip[],
+): (delta: number) => RecorderClipTrim[] {
+  const minStart = Math.min(...clips.map((clip) => clip.trimStart));
+  const minDuration = Math.min(
+    ...clips.map((clip) => clip.trimEnd - clip.trimStart),
+  );
+  return (delta) => {
+    const clampedDelta = clamp(
+      delta,
+      -minStart,
+      minDuration - MIN_CLIP_DURATION,
+    );
+    return clips.map((clip) => ({
+      id: clip.id,
+      value: clip.trimStart + clampedDelta,
+    }));
+  };
+}
+
+function createTrimEndGetChanges(
+  clips: AudioClip[],
+): (delta: number) => RecorderClipTrim[] {
+  const minDuration = Math.min(
+    ...clips.map((clip) => clip.trimEnd - clip.trimStart),
+  );
+  const minRemaining = Math.min(
+    ...clips.map((clip) => clip.duration - clip.trimEnd),
+  );
+  return (delta) => {
+    const clampedDelta = clamp(
+      delta,
+      -(minDuration - MIN_CLIP_DURATION),
+      minRemaining,
+    );
+    return clips.map((clip) => ({
+      id: clip.id,
+      value: clip.trimEnd + clampedDelta,
+    }));
   };
 }

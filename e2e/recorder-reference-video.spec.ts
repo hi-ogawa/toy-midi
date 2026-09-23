@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { selectMenuItem } from "./helpers";
 import { createRecorderProject, dragBy } from "./recorder-helpers";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
@@ -109,8 +110,10 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   );
 
   // The reference can be removed from its track actions.
-  await page.getByRole("button", { name: "Reference actions" }).click();
-  await page.getByRole("menuitem", { name: "Remove reference video" }).click();
+  await selectMenuItem(page, {
+    menu: "Reference actions",
+    item: "Remove reference video",
+  });
   await expect(reference.locator("iframe")).toHaveCount(0);
   await expect(referenceTrack).toHaveCount(0);
 

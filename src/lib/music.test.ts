@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { dbToPercent, gainToPercent, percentToGain } from "./music";
+import {
+  dbToPercent,
+  gainToPercent,
+  hzToMidi,
+  midiToHz,
+  percentToGain,
+} from "./music";
+
+describe("pitch frequency conversion", () => {
+  it.each([28, 40, 69, 81])("round-trips MIDI pitch %s through Hz", (midi) => {
+    expect(hzToMidi(midiToHz(midi))).toBeCloseTo(midi, 10);
+  });
+});
 
 describe("volume fader mapping", () => {
   it("places unity gain near Ardour's fader position", () => {

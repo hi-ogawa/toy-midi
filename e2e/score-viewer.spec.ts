@@ -1,6 +1,6 @@
 import path from "node:path";
 import { expect, Page, test } from "@playwright/test";
-import { clickNewProject } from "./helpers";
+import { selectMenuItem } from "./helpers";
 
 test("navigates between projects and the score viewer", async ({ page }) => {
   await page.goto("/");
@@ -8,18 +8,16 @@ test("navigates between projects and the score viewer", async ({ page }) => {
   await expect(page).toHaveURL(/\/score-viewer$/);
   await expect(page).toHaveTitle("Score Viewer - Toy MIDI");
 
-  await page.getByRole("button", { name: "More" }).click();
-  await page.getByTestId("home-menu-item").click();
+  await selectMenuItem(page, { menu: "Score viewer menu", item: "Home" });
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("startup-screen")).toBeVisible();
 });
 
-test("opens a MusicXML file from the More menu", async ({ page }) => {
+test("opens a MusicXML file from the score viewer menu", async ({ page }) => {
   await page.goto("/score-viewer");
-  await page.getByRole("button", { name: "More" }).click();
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.getByRole("menuitem", { name: "Open" }).click(),
+    selectMenuItem(page, { menu: "Score viewer menu", item: "Open" }),
   ]);
   await fileChooser.setFiles(
     path.resolve("src/lib/musicxml/__snapshots__/five-string-tab.musicxml"),
@@ -31,53 +29,7 @@ test("opens a MusicXML file from the More menu", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("opens the latest project state as a score in a new tab", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await clickNewProject(page);
-  const projectId = await page.evaluate(() =>
-    window.__e2e.projectStorage.getLastProjectId(),
-  );
-  await page.evaluate(() => {
-    const state = window.__e2e.useProjectStore.getState();
-    state.addNote({
-      id: "note-project-score",
-      pitch: 48,
-      start: 0,
-      duration: 1,
-      velocity: 100,
-    });
-    state.setTempo(137);
-  });
-  await page.getByTestId("settings-button").click();
-  const popupPromise = page.waitForEvent("popup");
-  await page.getByTestId("view-score-button").click();
-  const scorePage = await popupPromise;
-
-  await expect(page.getByTestId("settings-dialog")).not.toBeVisible();
-  await expect(scorePage).toHaveURL(`/project/${projectId}/score`);
-  await expect(scorePage).toHaveTitle("Untitled.musicxml - Toy MIDI");
-  await expect(scorePage.getByTestId("score-name")).toHaveText(
-    "Untitled.musicxml",
-  );
-  await expect(
-    scorePage.getByTestId("score-viewer-renderer").locator("svg"),
-  ).toBeVisible();
-  await expect(scorePage.getByLabel("BPM")).toHaveValue("137");
-  const renderer = scorePage.getByTestId("score-viewer-renderer");
-  await expect(renderer.getByText("Untitled", { exact: true })).toBeVisible();
-  await openScoreSettings(scorePage);
-  await scorePage.getByLabel("Title", { exact: true }).uncheck();
-  await expect(renderer.getByText("Untitled", { exact: true })).toHaveCount(0);
-  await expect(scorePage.getByLabel("Title spacing")).toBeDisabled();
-  await scorePage.getByLabel("Title", { exact: true }).check();
-  await expect(renderer.getByText("Untitled", { exact: true })).toBeVisible();
-  await expect(scorePage.getByRole("button", { name: "Samples" })).toHaveCount(
-    0,
-  );
-  await expect(scorePage.getByLabel("Open MusicXML")).toHaveCount(0);
-});
+// Legacy editor entry points are retired. Remove this scenario with the old editor in #574.
 
 test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await page.goto("/score-viewer");
@@ -317,8 +269,10 @@ test("uses MusicXML time signatures for seeking", async ({ page }) => {
 });
 
 async function loadSample(page: Page, name: string) {
-  await page.getByRole("button", { name: "Samples" }).click();
-  await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
+  await selectMenuItem(page, {
+    menu: "Score samples",
+    item: new RegExp(`^${name}`),
+  });
 }
 
 async function openScoreSettings(page: Page) {

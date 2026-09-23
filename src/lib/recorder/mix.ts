@@ -79,15 +79,62 @@ export async function renderRecorderMix({
   return context.startRendering();
 }
 
+/** Render raw sources to mono, cropping pre-zero audio and returning the timeline offset in seconds. */
+export async function renderAudioSources(
+  sources: readonly AudioPlaybackSource[],
+): Promise<{ buffer: AudioBuffer; offset: number }> {
+  let offset = Infinity;
+  let end = 0;
+  for (const region of sources) {
+    offset = Math.min(offset, Math.max(0, region.timelineStart));
+    end = Math.max(end, region.timelineEnd);
+  }
+  if (end <= offset) {
+    throw new Error("No audio to render.");
+  }
+  const sampleRate = sources[0]!.buffer.sampleRate;
+  const context = new OfflineAudioContext(
+    1,
+    Math.ceil((end - offset) * sampleRate),
+    sampleRate,
+  );
+  for (const region of sources) {
+    const start = Math.max(0, region.timelineStart);
+    const source = context.createBufferSource();
+    source.buffer = region.buffer;
+    source.connect(context.destination);
+    source.start(
+      start - offset,
+      start - region.timelineOffset,
+      region.timelineEnd - start,
+    );
+  }
+  const buffer = await context.startRendering();
+  return { buffer, offset };
+}
+
 /** Effective channel gain per track id after mute and solo. */
 export function deriveTrackMix({
   audioTracks,
-}: Pick<RecorderRuntimeState, "audioTracks">): Map<string, number> {
-  const anyTrackSoloed = audioTracks.some((track) => track.soloed);
+  midiTracks,
+}: Pick<RecorderRuntimeState, "audioTracks" | "midiTracks">): Map<
+  string,
+  number
+> {
+  const tracks = [...audioTracks, ...midiTracks];
+  const audibleTracks = new Set(getAudibleItems(tracks));
   return new Map(
-    audioTracks.map((track) => [
+    tracks.map((track) => [
       track.id,
-      track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
+      audibleTracks.has(track) ? track.gain : 0,
     ]),
   );
+}
+
+/** Muted items stay silent; any soloed item suppresses all non-soloed items in the group. */
+export function getAudibleItems<T extends { muted: boolean; soloed: boolean }>(
+  items: readonly T[],
+): T[] {
+  const anySoloed = items.some((item) => item.soloed);
+  return items.filter((item) => !item.muted && (!anySoloed || item.soloed));
 }

@@ -6,6 +6,7 @@ import {
   dragBy,
   enableInput,
   getRecorderPosition,
+  saveRecorderProject,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
@@ -46,10 +47,10 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-comp-source");
   const takeLane = page
     .getByTestId("recorder-take-row")
-    .getByTestId("recorder-clip-take-lane");
+    .getByTestId("recorder-clip-take-lane-source");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
@@ -65,6 +66,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 2, -2);
 
+  // TODO: Consider consolidating edit assertions with recorder-clip-move.spec.ts and recorder-clip-trim.spec.ts.
   // The take can be moved and trimmed without changing its source audio.
   const beforeEdit = await take.boundingBox();
   expect(beforeEdit).not.toBeNull();
@@ -117,12 +119,60 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     ),
   ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 4, -2);
 
+  // Show the latest take first by default, then switch to oldest first.
+  await expect(takeRows.nth(0)).toContainText("Take 2");
+  await expect(takeRows.nth(1)).toContainText("Take 1");
+  const takeOrder = page.getByTestId("recorder-takes-order");
+  await expect(takeOrder).toHaveAccessibleName("Order takes oldest first");
+  await takeOrder.click();
+  await expect(takeOrder).toHaveAccessibleName("Order takes newest first");
+  await expect(takeRows.nth(0)).toContainText("Take 1");
+  await expect(takeRows.nth(1)).toContainText("Take 2");
+
+  // Reload the project and retain the preferred lane order.
+  await saveRecorderProject(page);
+  await page.reload();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await takesToggle.click();
+  await expect(takeOrder).toHaveAccessibleName("Order takes newest first");
+  await expect(takeRows.nth(0)).toContainText("Take 1");
+  await expect(takeRows.nth(1)).toContainText("Take 2");
+
   // Muting removes a take from Capture without deleting its source lane.
   const muteTake = page.getByTestId("recorder-take-mute");
   await muteTake.nth(1).click();
   await expect(muteTake.nth(1)).toHaveAttribute("aria-pressed", "true");
   await expect(takeLane).toHaveCount(2);
   await expect(take).toHaveCount(1);
+  await expect(compRegion).not.toContainText("Take 2");
+
+  // Move and trim a muted source in its expanded lane while it stays absent from the comp.
+  const mutedLane = takeLane.nth(1);
+  const beforeSourceMove = (await mutedLane.boundingBox())!;
+  await dragBy(page, mutedLane, DEFAULT_PIXELS_PER_BEAT);
+  const afterSourceMove = (await mutedLane.boundingBox())!;
+  expect(afterSourceMove.x).toBeCloseTo(
+    beforeSourceMove.x + DEFAULT_PIXELS_PER_BEAT,
+    -1,
+  );
+  const sourceTrimPixels = Math.max(2, afterSourceMove.width / 4);
+  await dragBy(
+    page,
+    mutedLane.getByTestId("recorder-take-trim-start"),
+    sourceTrimPixels,
+  );
+  const afterSourceTrim = (await mutedLane.boundingBox())!;
+  expect(afterSourceTrim.x).toBeCloseTo(
+    afterSourceMove.x + sourceTrimPixels,
+    -1,
+  );
+  expect(afterSourceTrim.x + afterSourceTrim.width).toBeCloseTo(
+    afterSourceMove.x + afterSourceMove.width,
+    -1,
+  );
+  await expect(
+    takeRows.nth(1).getByTestId("recorder-clip-take-lane").locator("svg"),
+  ).toBeVisible();
   await expect(compRegion).not.toContainText("Take 2");
 
   // Solo derives Capture from soloed, unmuted take lanes.
@@ -160,4 +210,19 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takesToggle).toHaveCount(0);
   await expect(take).toHaveCount(0);
   await expect(takeRows).toHaveCount(0);
+
+  // Undo restores both source lanes in their original order and rebuilds Capture.
+  await page.keyboard.press("Control+z");
+  await expect(takeRows).toHaveCount(2);
+  await expect(takeRows.nth(0)).toContainText("Take 1");
+  await expect(takeRows.nth(1)).toContainText("Take 2");
+  await expect(take).toHaveCount(2);
+  await expect(compRegion.filter({ hasText: "Take 1" })).toBeVisible();
+  await expect(compRegion.filter({ hasText: "Take 2" })).toBeVisible();
+
+  // Redo removes both restored takes with one history action.
+  await page.keyboard.press("Control+Shift+z");
+  await expect(take).toHaveCount(0);
+  await expect(takeRows).toHaveCount(0);
+  await expect(compRegion).toHaveCount(0);
 });

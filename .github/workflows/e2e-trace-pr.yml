@@ -1,0 +1,49 @@
+name: PR E2E trace
+run-name: "E2E trace for PR #${{ github.event.pull_request.number }} · changed specs"
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-trace-pr-${{ (github.event.action != 'labeled' || github.event.label.name == 'e2e-trace') && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  select:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'e2e-trace') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'e2e-trace')
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.selection.outputs.tests }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select changed specs from the whole PR diff
+        id: selection
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          tests=$(git diff --name-only --diff-filter=AMR "$BASE_SHA...$HEAD_SHA" -- ':(glob)e2e/**/*.spec.ts' | paste -sd ' ' -)
+          printf 'tests=%s\n' "$tests" >> "$GITHUB_OUTPUT"
+
+  trace:
+    needs: select
+    if: needs.select.outputs.tests != ''
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/e2e-trace.yml
+    with:
+      ref: ${{ github.event.pull_request.head.ref }}
+      tests: ${{ needs.select.outputs.tests }}

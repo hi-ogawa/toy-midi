@@ -6,7 +6,6 @@ import {
   type Note,
   type TimeSignature,
 } from "../types";
-import { generateNoteId } from "./project-store";
 
 export interface ParsedMidiTrack {
   index: number;
@@ -114,7 +113,7 @@ export async function importMidiNotes(
 
     for (const midiNote of track.notes) {
       notes.push({
-        id: generateNoteId(),
+        id: `note-${crypto.randomUUID()}`,
         pitch: midiNote.midi,
         start: midiNote.ticks / ppq,
         duration: midiNote.durationTicks / ppq,

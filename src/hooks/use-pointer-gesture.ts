@@ -18,7 +18,6 @@ export function usePointerGesture<T>(options: PointerGestureOptions<T>) {
     }
     return listenPointerGesture({
       element,
-      threshold: options.threshold,
       onStart,
       onClick,
       onDragStart,

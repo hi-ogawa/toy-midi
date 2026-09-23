@@ -8,7 +8,7 @@ import {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-import { recorderStorage } from "../../lib/recorder/storage";
+import { useRecorderPreference } from "./use-recorder-preference";
 
 export function useRecorderInput({
   runtime,
@@ -18,20 +18,18 @@ export function useRecorderInput({
   state: RecorderRuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
-  const [preference, setPreference] = useState(() =>
-    recorderStorage.readPreferences(),
-  );
+  const [inputPreference, setInputPreference] = useRecorderPreference("input");
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState(preference.input?.deviceId);
+  const [deviceId, setDeviceId] = useState(inputPreference?.deviceId);
 
   async function refresh() {
     const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
     selectDevice(
       nextDevices.some(
-        (device) => device.deviceId === preference.input?.deviceId,
+        (device) => device.deviceId === inputPreference?.deviceId,
       )
-        ? preference.input?.deviceId
+        ? inputPreference?.deviceId
         : nextDevices[0]?.deviceId,
       { remember: false },
     );
@@ -46,14 +44,9 @@ export function useRecorderInput({
     }
     setDeviceId(nextDeviceId);
     if (remember) {
-      const nextPreference = {
-        ...preference,
-        input: nextDeviceId
-          ? { deviceId: nextDeviceId, channel: 0 }
-          : undefined,
-      };
-      setPreference(nextPreference);
-      recorderStorage.writePreferences(nextPreference);
+      setInputPreference(
+        nextDeviceId ? { deviceId: nextDeviceId, channel: 0 } : undefined,
+      );
     }
   }
 
@@ -77,11 +70,9 @@ export function useRecorderInput({
         deviceId: nextDeviceId,
       });
       runtime.selectChannel(
-        Math.min(preference.input?.channel ?? 0, channelCount - 1),
+        Math.min(inputPreference?.channel ?? 0, channelCount - 1),
       );
-      runtime.setLatencyCompensation(
-        preference.input?.latencyCompensation ?? 0,
-      );
+      runtime.setLatencyCompensation(inputPreference?.latencyCompensation ?? 0);
     },
   });
 
@@ -130,24 +121,19 @@ export function useRecorderInput({
       if (!deviceId) {
         return;
       }
-      const nextPreference = {
-        ...preference,
-        input: { ...preference.input, deviceId, channel },
-      };
-      setPreference(nextPreference);
-      recorderStorage.writePreferences(nextPreference);
+      setInputPreference((current) => ({ ...current, deviceId, channel }));
     },
     setLatencyCompensation: (latencyCompensation: number) => {
       runtime.setLatencyCompensation(latencyCompensation);
-      if (!preference.input) {
+      if (!deviceId) {
         return;
       }
-      const nextPreference = {
-        ...preference,
-        input: { ...preference.input, latencyCompensation },
-      };
-      setPreference(nextPreference);
-      recorderStorage.writePreferences(nextPreference);
+      setInputPreference((current) => ({
+        ...current,
+        deviceId,
+        channel: state.selectedChannel,
+        latencyCompensation,
+      }));
     },
     toggle: () => {
       if (!hasAccess) {

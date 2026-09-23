@@ -27,8 +27,8 @@ test("snaps recorder timeline seeking to the selected grid", async ({
 
   // On the 1/4 grid, 0.4 beats rounds back to beat 0 rather than seeking to
   // the raw pointer position.
-  await page.getByRole("button", { name: "1/16" }).click();
-  await page.getByRole("menuitemradio", { name: "1/4" }).click();
+  await page.getByTestId("recorder-grid-snap-select").click();
+  await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.4);
   await expect.poll(() => getRecorderBeat(page)).toBe(0);
 });
@@ -118,4 +118,84 @@ test("steps playback speed with angle brackets", async ({ page }) => {
     await page.keyboard.press("Shift+<");
     await expect(rate).toHaveText(`${expected}x`);
   }
+});
+
+test("clamps tempo edits and sets tempo from evenly spaced taps", async ({
+  page,
+}) => {
+  // Clamp committed tempo edits at the recorder's supported bounds.
+  await createRecorderProject(page);
+  const tempo = page.getByTestId("recorder-tempo-input");
+  await tempo.fill("10");
+  await tempo.press("Enter");
+  await expect(tempo).toHaveValue("30");
+  await tempo.fill("400");
+  await tempo.press("Enter");
+  await expect(tempo).toHaveValue("300");
+  await tempo.blur();
+
+  // Advance a controlled browser clock between taps to produce exactly 100 BPM.
+  await page.clock.install();
+  await page.clock.pauseAt(new Date());
+  const tap = page.getByTestId("recorder-tap-tempo-button");
+  await tap.click();
+  await page.clock.runFor(600);
+  await tap.click();
+  await expect(tempo).toHaveValue("100");
+  await page.clock.runFor(600);
+  await tap.click();
+  await expect(tempo).toHaveValue("100");
+});
+
+test("toggles the metronome by button and shortcut without intercepting text input", async ({
+  page,
+}) => {
+  // Enable the metronome from the toolbar, then disable it with its shortcut.
+  await createRecorderProject(page);
+  const metronome = page.getByTitle("Toggle metronome (M)", { exact: true });
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+  await metronome.click();
+  await expect(metronome).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("m");
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+
+  // Ignore the metronome shortcut while a text input is focused.
+  const tempo = page.getByTestId("recorder-tempo-input");
+  await tempo.focus();
+  await page.keyboard.press("m");
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+  await tempo.press("Escape");
+});
+
+test("auto-scroll follows playback only while enabled", async ({ page }) => {
+  // Open a project with the stopped playhead in view at beat zero.
+  await createRecorderProject(page);
+  const autoScroll = page.getByRole("button", {
+    name: "Toggle auto-scroll (F)",
+  });
+  const playhead = page.getByTestId("recorder-playhead");
+  await expect.poll(() => getRecorderBeat(page)).toBe(0);
+  await expect(playhead).toBeInViewport();
+
+  // Disable following and seek beyond the initial viewport while playback runs.
+  await page.keyboard.press("f");
+  await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
+  const ruler = page.getByTestId("recorder-timeline-ruler");
+  await expect(ruler).toHaveAttribute("data-viewport-start-beat", "0");
+  await page.getByTestId("recorder-play-button").click();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect(playhead).not.toBeInViewport();
+  await expect(ruler).toHaveAttribute("data-viewport-start-beat", "0");
+
+  // Enable following and bring the playing position into view.
+  await page.keyboard.press("f");
+  await expect(autoScroll).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(() =>
+      ruler.evaluate((element) => Number(element.dataset.viewportStartBeat)),
+    )
+    .toBeGreaterThan(0);
+  await expect(playhead).toBeInViewport();
+  await page.getByTestId("recorder-play-button").click();
 });

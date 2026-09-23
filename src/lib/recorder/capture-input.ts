@@ -1,5 +1,7 @@
 import { AudioAnalyser } from "../audio-analyser.ts";
+import { TunerAnalyser } from "../tuner-analyser.ts";
 import {
+  type CaptureChunk,
   CaptureWorkletClient,
   type CaptureWorkletNotification,
   createCaptureWorkletSource,
@@ -20,11 +22,13 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
-  private readonly stream: MediaStream;
+  readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
+  readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;
+  private capture?: { chunks: CaptureChunk[]; startFrame: number };
 
   static async open({
     context,
@@ -87,15 +91,22 @@ export class CaptureInput {
     this.source = context.createMediaStreamSource(stream);
     this.worklet = new CaptureWorkletClient({
       context,
-      onNotification,
+      onNotification: (message) => {
+        if (message.type === "samples") {
+          this.capture?.chunks.push(message);
+        }
+        onNotification(message);
+      },
     });
     this.analyser = new AudioAnalyser(context);
+    this.tunerAnalyser = new TunerAnalyser(context);
     this.monitorGain = context.createGain();
     this.monitorGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
     // prevents input monitoring and feedback until it is explicitly enabled.
     this.source
       .connect(this.worklet.node)
+      .connect(this.tunerAnalyser.node)
       .connect(this.analyser.node)
       .connect(this.monitorGain)
       .connect(output);
@@ -119,18 +130,41 @@ export class CaptureInput {
     );
   }
 
-  startCapture(): Promise<number> {
-    return this.worklet.start();
+  async startCapture(): Promise<number> {
+    if (this.capture) {
+      throw new Error("Audio capture is already active.");
+    }
+    this.capture = { chunks: [], startFrame: 0 };
+    const capture = this.capture;
+    try {
+      capture.startFrame = await this.worklet.start();
+      return capture.startFrame;
+    } catch (error) {
+      this.capture = undefined;
+      throw error;
+    }
   }
 
-  stopCapture(): Promise<number> {
-    return this.worklet.stop();
+  async stopCapture(): Promise<CapturedAudio> {
+    const capture = this.capture;
+    if (!capture) {
+      throw new Error("Audio capture is not active.");
+    }
+    try {
+      // The acknowledgement follows the final partial sample batch.
+      const stopFrame = await this.worklet.stop();
+      return new CapturedAudio({ ...capture, stopFrame });
+    } finally {
+      this.capture = undefined;
+    }
   }
 
   dispose(): void {
+    this.capture = undefined;
     this.source.disconnect();
     this.worklet.dispose();
     this.analyser.dispose();
+    this.tunerAnalyser.dispose();
     this.monitorGain.disconnect();
     for (const track of this.stream.getTracks()) {
       track.stop();
@@ -179,4 +213,56 @@ function captureConstraints(deviceId?: string): MediaStreamConstraints {
     },
     video: false,
   };
+}
+
+export class CapturedAudio {
+  readonly chunks: CaptureChunk[];
+  readonly startFrame: number;
+  readonly stopFrame: number;
+
+  constructor({
+    chunks,
+    startFrame,
+    stopFrame,
+  }: {
+    chunks: CaptureChunk[];
+    startFrame: number;
+    stopFrame: number;
+  }) {
+    this.chunks = chunks;
+    this.startFrame = startFrame;
+    this.stopFrame = stopFrame;
+  }
+
+  getSamples({
+    startFrame,
+    endFrame,
+  }: {
+    startFrame: number;
+    endFrame: number;
+  }): Float32Array {
+    const samples = new Float32Array(Math.max(0, endFrame - startFrame));
+    // Preserve gaps as silence and let later chunks replace overlaps.
+    for (const chunk of this.chunks) {
+      setArrayClipped(samples, chunk.samples, chunk.frameStart - startFrame);
+    }
+    return samples;
+  }
+}
+
+/** Performs `target.set(source, offset)` while clipping either array boundary. */
+function setArrayClipped(
+  target: Float32Array,
+  source: Float32Array,
+  offset: number,
+): void {
+  const sourceStart = Math.max(0, -offset);
+  const targetStart = Math.max(0, offset);
+  const length = Math.min(
+    source.length - sourceStart,
+    target.length - targetStart,
+  );
+  if (length > 0) {
+    target.set(source.subarray(sourceStart, sourceStart + length), targetStart);
+  }
 }

@@ -1,5 +1,5 @@
 //! Native CLI for the grid-guided bass pitch pipeline. Mirrors the flags and
-//! outputs of `tools/bass-pitch/main.py`; see `docs/bass-pitch/history.md`.
+//! outputs of `tools/bass-pitch/main.py`; see `docs/bass-pitch/README.md`.
 
 use std::path::PathBuf;
 use std::process::Command;

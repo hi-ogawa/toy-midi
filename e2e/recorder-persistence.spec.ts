@@ -6,8 +6,9 @@ import {
 } from "./recorder-helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
-  // Create a project and give it a recognizable name.
+  // Create a project and show its default name in the browser tab.
   await createRecorderProject(page);
+  await expect(page).toHaveTitle("Untitled - Toy MIDI");
   const projectUrl = page.url();
   const saveButton = page.getByTestId("recorder-save-button");
   await expect(saveButton).toHaveAttribute("data-status", "saved");
@@ -27,11 +28,13 @@ test("saves and restores a recorder project", async ({ page }) => {
   await page.getByTestId("recorder-play-button").click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
+  // Rename the project and update the browser tab before saving.
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
   await page.getByTestId("recorder-project-name").click();
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Practice take",
   );
+  await expect(page).toHaveTitle("Practice take - Toy MIDI");
 
   // Load a backing track, including its decoded waveform.
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
@@ -67,12 +70,13 @@ test("saves and restores a recorder project", async ({ page }) => {
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
-  // Reload restores project identity, tempo, and PCM-backed waveform data.
+  // Reload restores the project name and browser title, tempo, and PCM-backed waveform data.
   await page.reload();
   await expect(page).toHaveURL(projectUrl);
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Practice take",
   );
+  await expect(page).toHaveTitle("Practice take - Toy MIDI");
   await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("140");
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
@@ -92,7 +96,7 @@ test("saves and restores a recorder project", async ({ page }) => {
     page.getByRole("textbox", { name: "Metronome level in dB" }),
   ).toHaveValue("-9.0");
 
-  // The metadata index finds the saved project and reopens the same route.
+  // Reopen the saved project from the index with its name in the browser tab.
   await page.goto("/");
   const project = page.getByText("Practice take", { exact: true });
   await expect(project).toBeVisible();
@@ -101,11 +105,12 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Practice take",
   );
+  await expect(page).toHaveTitle("Practice take - Toy MIDI");
 
   // Deleting from the index removes the project metadata and content.
   await page.goto("/");
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Delete recording" }).click();
+  await page.getByRole("button", { name: "Delete project" }).click();
   await expect(page.getByText("Practice take", { exact: true })).toBeHidden();
 
   // A stale deep link reports the missing project without retrying its read.

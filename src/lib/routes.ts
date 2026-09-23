@@ -36,3 +36,10 @@ export function matchRoute(url: string | URL) {
   // are registered together above, so restore their correlation for callers.
   return matcher.match(url) as RouteMatch | null;
 }
+
+export function getRecorderScoreHref(params: {
+  projectId: string;
+  trackId: string;
+}) {
+  return `${routes.scoreViewer.href()}?${new URLSearchParams(params)}`;
+}

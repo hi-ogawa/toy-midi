@@ -1,10 +1,9 @@
 //! Grid-guided monophonic bass transcription core.
 //!
-//! Port of `tools/bass-pitch/main.py`. The pipeline takes plain mono samples plus a
-//! params struct so a future wasm wrapper can reuse it unchanged. Feature
-//! extraction approximates librosa behaviorally rather than numerically, so
-//! thresholds tuned against the Python harness must be re-swept, as recorded
-//! in `docs/bass-pitch/history.md`.
+//! Shared by the native CLI and WASM worker. The core accepts mono samples and
+//! parameters; decoding and resampling belong to the frontends. See
+//! `docs/bass-pitch/algorithm.md` for the pipeline and
+//! `docs/bass-pitch/README.md` for development and validation.
 
 use std::collections::BTreeMap;
 use std::f64::consts::PI;
@@ -72,7 +71,7 @@ pub struct Frames {
     pub times: Vec<f64>,
     /// Root mean square (RMS) amplitude for each analysis window.
     pub rms: Vec<f64>,
-    /// Onset novelty normalized against the excerpt's 95th percentile.
+    /// Raw onset flux from `analyze`, normalized using active cells in `run_pipeline`.
     pub onset: Vec<f64>,
     /// pYIN fundamental frequency estimates in hertz, or NaN when unvoiced.
     pub f0: Vec<f64>,
@@ -176,7 +175,7 @@ pub fn run_pipeline(
     params: &Params,
     on_progress: &mut dyn FnMut(ChunkProgress),
 ) -> Pipeline {
-    let frames = analyze(audio, params, on_progress);
+    let mut frames = analyze(audio, params, on_progress);
     let excerpt_end = params.start + audio.len() as f64 / params.sample_rate as f64;
     let cells = make_grid_cells(
         params.start,
@@ -192,6 +191,7 @@ pub fn run_pipeline(
         db_to_gain(params.activity_off_db),
         db_to_gain(params.activity_on_db),
     );
+    normalize_onset_strength(&mut frames, &activity_cells);
     let activity_notes = make_activity_notes(&activity_cells, params.activity_pitch);
     let onset_notes = make_activity_onset_notes(
         &cells,
@@ -212,7 +212,7 @@ pub fn run_pipeline(
 }
 
 /// Computes aligned root mean square (RMS), onset, and pYIN frame series from
-/// mono input samples.
+/// mono input samples. Onset flux remains unnormalized until activity is known.
 ///
 /// Feature implementations can produce slightly different lengths, so output
 /// arrays are truncated to their common prefix before frame times are assigned.
@@ -282,6 +282,7 @@ fn calculate_onset_strength(
     const TOP_DB: f64 = 80.0;
     let n_frames = audio.len() / hop_length + 1;
     let n_bins = frame_length / 2 + 1;
+    // Prepare the Hann window and assign each FFT bin to a mel band.
     let window: Vec<f64> = (0..frame_length)
         .map(|i| 0.5 - 0.5 * (2.0 * PI * i as f64 / frame_length as f64).cos())
         .collect();
@@ -298,6 +299,7 @@ fn calculate_onset_strength(
     let mut input = fft.make_input_vec();
     let mut spectrum = fft.make_output_vec();
     let mut band_db: Vec<Vec<f64>> = Vec::with_capacity(n_frames);
+    // Transform each centered, zero-padded audio frame into a spectrum.
     for frame in 0..n_frames {
         let frame_start = (frame * hop_length) as isize - (frame_length / 2) as isize;
         for (i, sample) in input.iter_mut().enumerate() {
@@ -309,6 +311,7 @@ fn calculate_onset_strength(
             };
         }
         fft.process(&mut input, &mut spectrum).expect("fft process");
+        // Sum squared magnitudes within each band, then express them in dB.
         let mut bands = vec![0.0f64; N_BANDS];
         for (bin, value) in spectrum.iter().enumerate() {
             bands[band_of_bin[bin]] += value.norm_sqr();
@@ -320,6 +323,7 @@ fn calculate_onset_strength(
                 .collect(),
         );
     }
+    // Clamp all band levels to one floor relative to the whole excerpt’s peak.
     let peak_db = band_db
         .iter()
         .flatten()
@@ -331,6 +335,7 @@ fn calculate_onset_strength(
             *value = value.max(floor_db);
         }
     }
+    // Average positive dB changes between adjacent frames to obtain spectral flux.
     let mut flux = Vec::with_capacity(n_frames);
     flux.push(0.0);
     for frame in 1..n_frames {
@@ -351,36 +356,39 @@ fn calculate_onset_strength(
             *value = 0.0;
         }
     }
-    // Like librosa's center=True onset envelope, delay by half a window so
-    // the peak lands at the perceived attack instead of half a window early.
+    // Compensate for centered-window lookahead with a half-window delay.
+    // Keep the output length by padding the start and dropping the tail.
     let shift = frame_length / (2 * hop_length);
     let mut shifted = vec![0.0; shift.min(n_frames)];
     shifted.extend_from_slice(&flux[..n_frames - shifted.len()]);
-    normalize_onset_strength(&shifted)
+    // Normalize after RMS activity detection, using only active-cell flux.
+    shifted
 }
 
-/// Scales onset strength by the 95th percentile of its positive finite values,
-/// then clamps it to 0 through 1 so thresholds are relative to the excerpt.
-/// Returns zeros when no positive finite onset value exists. The percentile is
-/// an empirical policy retained from the Python evaluation harness.
-fn normalize_onset_strength(values: &[f64]) -> Vec<f64> {
-    let mut positive: Vec<f64> = values
+/// Use positive flux in RMS-active cells as the percentile reference. Inactive
+/// residue and frames outside complete grid cells cannot set the split scale.
+/// Keep the normalization on all frames for diagnostics, but only active cells
+/// can split notes. With no positive reference, there is no onset evidence.
+fn normalize_onset_strength(frames: &mut Frames, activity_cells: &[ActivityCell]) {
+    let mut positive: Vec<f64> = activity_cells
         .iter()
-        .copied()
+        .filter(|cell| cell.active)
+        .flat_map(|cell| frames.indices_in_range(cell.source_start, cell.source_end))
+        .map(|index| frames.onset[index])
         .filter(|value| value.is_finite() && *value > 0.0)
         .collect();
     if positive.is_empty() {
-        return vec![0.0; values.len()];
+        frames.onset.fill(0.0);
+        return;
     }
     positive.sort_by(f64::total_cmp);
     let rank = 0.95 * (positive.len() - 1) as f64;
     let low = positive[rank.floor() as usize];
     let high = positive[rank.ceil() as usize];
     let scale = low + (high - low) * rank.fract();
-    values
-        .iter()
-        .map(|value| (value / scale).clamp(0.0, 1.0))
-        .collect()
+    for value in &mut frames.onset {
+        *value = (*value / scale).clamp(0.0, 1.0);
+    }
 }
 
 const PYIN_CHUNK_SECONDS: usize = 10;

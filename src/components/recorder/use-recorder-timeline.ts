@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { recorderStorage } from "../../lib/recorder/storage";
 import {
   DEFAULT_GRID_DIVISION,
   getBeatsPerBar,
-  getSubdivisionsPerBeat,
+  GRID_DIVISIONS,
   type GridDivision,
   MAX_PIXELS_PER_BEAT,
   MIN_PIXELS_PER_BEAT,
   secondsToBeats,
 } from "../../lib/timeline";
 import type { TimeSignature } from "../../types";
+import { useRecorderPreference } from "./use-recorder-preference";
 
 export function useRecorderTimeline({
   isPlaying,
@@ -25,14 +25,15 @@ export function useRecorderTimeline({
   const [gridDivision, setGridDivision] = useState<GridDivision>(
     DEFAULT_GRID_DIVISION,
   );
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
-  const [pixelsPerBeat, setPixelsPerBeat] = useState(
-    () => recorderStorage.readPreferences().timelinePixelsPerBeat,
+  const [autoScrollEnabled, setAutoScrollEnabled] =
+    useRecorderPreference("autoScrollEnabled");
+  const [pixelsPerBeat, setPixelsPerBeat] = useRecorderPreference(
+    "timelinePixelsPerBeat",
   );
   const [viewportStartBeat, setViewportStartBeat] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
   const beatsPerBar = getBeatsPerBar(timeSignature);
-  const subdivisionsPerBeat = getSubdivisionsPerBeat(gridDivision);
+  const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];
   const playheadX =
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
@@ -62,9 +63,6 @@ export function useRecorderTimeline({
   function zoom(nextPixelsPerBeat: number, anchorX: number) {
     const beatAtAnchor = anchorX / pixelsPerBeat + viewportStartBeat;
     setPixelsPerBeat(nextPixelsPerBeat);
-    recorderStorage.updatePreferences({
-      timelinePixelsPerBeat: nextPixelsPerBeat,
-    });
     setViewportStartBeat(
       Math.max(0, beatAtAnchor - anchorX / nextPixelsPerBeat),
     );

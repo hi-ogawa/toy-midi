@@ -1,29 +1,8 @@
-import {
-  AudioLinesIcon,
-  GitForkIcon,
-  Music2Icon,
-  PianoIcon,
-  Mic2Icon,
-} from "lucide-react";
-import { useState } from "react";
-import { projectStorage } from "../lib/project-storage";
+import { AudioLinesIcon, GitForkIcon, Music2Icon } from "lucide-react";
 import { routes } from "../lib/routes";
-import { MidiProjectList } from "./midi-project-list";
 import { RecorderProjectList } from "./recorder/project-list";
-import { Tabs } from "./ui/tabs";
-
-type ProjectType = "midi" | "recorder";
 
 export function Home() {
-  const [projectType, setProjectType] = useState<ProjectType>(
-    () => projectStorage.readPreferences().projectType,
-  );
-
-  const selectProjectType = (type: ProjectType) => {
-    projectStorage.updatePreferences({ projectType: type });
-    setProjectType(type);
-  };
-
   return (
     <div
       data-testid="startup-screen"
@@ -33,7 +12,7 @@ export function Home() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
 
       <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-8 py-12">
-        <header className="flex items-start justify-between">
+        <header className="flex shrink-0 items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-neutral-100 tracking-tight">
               Toy MIDI
@@ -70,34 +49,8 @@ export function Home() {
           </nav>
         </header>
 
-        <main className="mt-14 min-h-0 flex-1">
-          <Tabs
-            label="Project type"
-            value={projectType}
-            onValueChange={selectProjectType}
-            options={[
-              {
-                value: "midi",
-                label: (
-                  <>
-                    <PianoIcon aria-hidden="true" className="size-4" />
-                    MIDI
-                  </>
-                ),
-                content: <MidiProjectList />,
-              },
-              {
-                value: "recorder",
-                label: (
-                  <>
-                    <Mic2Icon aria-hidden="true" className="size-4" />
-                    Recorder
-                  </>
-                ),
-                content: <RecorderProjectList />,
-              },
-            ]}
-          />
+        <main className="mt-10 min-h-0 flex-1">
+          <RecorderProjectList />
         </main>
       </div>
     </div>

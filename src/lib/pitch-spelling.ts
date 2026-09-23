@@ -3,6 +3,11 @@ export interface KeySignature {
   mode: "major" | "minor";
 }
 
+export const DEFAULT_KEY_SIGNATURE: KeySignature = {
+  fifths: 0,
+  mode: "major",
+};
+
 export type NoteLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 
 export type SpelledPitch = {

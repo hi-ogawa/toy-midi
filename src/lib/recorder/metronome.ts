@@ -1,4 +1,5 @@
 import type { TimeSignature } from "../../types.ts";
+import { startInterval } from "../../utils/timing.ts";
 import { midiToHz, parseMidiPitch } from "../music.ts";
 import type {
   AudioContextTransport,
@@ -141,9 +142,4 @@ function scheduleOscillatorClick({
   oscillator.connect(envelope).connect(output);
   oscillator.start(contextTime);
   oscillator.stop(decayEndTime);
-}
-
-function startInterval(callback: () => void, milliseconds: number): () => void {
-  const id = setInterval(callback, milliseconds);
-  return () => clearInterval(id);
 }

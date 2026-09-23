@@ -39,16 +39,9 @@ export async function exportRecorderProjectArchive(
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
-export async function parseRecorderProjectArchive(
-  file: File,
+export async function readRecorderProjectArchive(
+  zip: JSZip,
 ): Promise<SerializedRecorderRuntimeState> {
-  let zip: JSZip;
-  try {
-    zip = await JSZip.loadAsync(file);
-  } catch {
-    throw new Error("Could not read project archive.");
-  }
-
   const manifest = await readJson<RecorderProjectManifest>(zip, MANIFEST_PATH);
   if (manifest.projectType !== "recorder") {
     throw new Error("This is not a recorder project archive.");
