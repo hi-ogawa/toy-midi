@@ -124,7 +124,7 @@ const VARIANTS: { id: Variant; label: string; summary: string }[] = [
     id: "input-panel",
     label: "E · Input panel + row arm",
     summary:
-      "D as an independent floating panel, like Mixer and Reference video. A header Input button toggles the panel and doubles as a status light with a small level strip, so the panel can stay closed while recording. Once open, the panel stays until closed and holds the route, meter, Monitor, an inline Tuner readout, latency, setup, and input on/off. Track controls only gain R.",
+      "A mini panel that stays open until closed, like Mixer and Reference video but only as large as A's popover. It holds on/off, the meter, Monitor, and Tuner with an inline reading. The route is a read-only label that opens Audio input settings, a modal for per-device configuration: device, channel, latency compensation with Measure, and diagnostics. A header Input button toggles the panel and shows status with a small level strip. Track controls only gain R.",
   },
 ];
 
@@ -191,7 +191,7 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "input-dock":
         "Bottom dock, always visible. Tuner reads inline. Rows have no meter.",
       "input-panel":
-        "Floating panel toggled from the header. Header button shows status and level. Rows have no meter.",
+        "Mini panel for session controls. Route label opens a settings modal for device, channel, latency, diagnostics.",
     },
   },
   {
@@ -684,7 +684,7 @@ function MockRecorder({
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => setInputSetupOpen(true)}>
               <Settings2Icon />
-              Input setup…
+              Audio input settings…
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -898,9 +898,6 @@ function MockRecorder({
       {variant === "input-panel" && inputPanelOpen && (
         <InputFloatingPanel
           {...inputControl}
-          latencyMs={latencyMs}
-          onDeviceChange={setDevice}
-          onChannelChange={setChannel}
           onPanelClose={() => setInputPanelOpen(false)}
         />
       )}
@@ -960,7 +957,7 @@ function MockRecorder({
       <Dialog
         isOpen={inputSetupOpen}
         onClose={() => setInputSetupOpen(false)}
-        title="Input setup"
+        title="Audio input settings"
       >
         <MockInputSetup
           device={device}
@@ -1291,66 +1288,59 @@ function InputFloatingPanel({
   channel,
   monitoring,
   tunerOpen,
-  latencyMs,
   onOpen,
   onClose,
   onMonitoringChange,
   onTunerChange,
   onSetup,
-  onDeviceChange,
-  onChannelChange,
   onPanelClose,
-}: InputControlProps & {
-  latencyMs: number;
-  onDeviceChange: (device: string) => void;
-  onChannelChange: (channel: number) => void;
-  onPanelClose: () => void;
-}) {
+}: InputControlProps & { onPanelClose: () => void }) {
   const blocked = permission === "denied";
   const open = status === "open";
   return (
     <section
       aria-label="Input panel"
-      className="absolute right-4 bottom-4 z-40 w-80 rounded-lg border border-neutral-700 bg-neutral-800 shadow-2xl"
+      className="absolute right-4 bottom-4 z-40 w-64 rounded-lg border border-neutral-700 bg-neutral-800 shadow-2xl"
     >
-      <div className="flex items-center gap-2 border-b border-neutral-700 px-4 py-2.5">
-        <h2 className="text-sm font-semibold">Input</h2>
-        <button
-          type="button"
-          aria-label="Input setup"
-          title="Input setup"
-          onClick={onSetup}
-          className="ml-auto grid size-7 place-items-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-        >
-          <Settings2Icon className="size-3.5" />
-        </button>
+      <div className="flex items-center gap-2 border-b border-neutral-700 py-1.5 pr-1.5 pl-3">
+        <h2 className="text-xs font-semibold">Input</h2>
         <button
           type="button"
           aria-label="Close Input"
           onClick={onPanelClose}
-          className="grid size-7 place-items-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+          className="ml-auto grid size-6 place-items-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
         >
-          <XIcon className="size-4" />
+          <XIcon className="size-3.5" />
         </button>
       </div>
-      <div className="space-y-3 p-4 text-xs">
-        <div className="flex gap-2">
-          <InputRouteMenu
-            status={status}
-            permission={permission}
-            device={device}
-            channel={channel}
-            side="bottom"
-            className="min-w-0 flex-1"
-            onDeviceChange={onDeviceChange}
-            onChannelChange={onChannelChange}
-          />
+      <div className="space-y-2.5 p-3 text-xs">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            title="Audio input settings"
+            onClick={onSetup}
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-1.5 rounded px-1 py-1 text-left hover:bg-neutral-700",
+              blocked ? "text-orange-200" : "text-neutral-300",
+            )}
+          >
+            <span className="truncate">
+              {blocked
+                ? "Microphone blocked"
+                : permission === "prompt"
+                  ? "Microphone access needed"
+                  : status === "opening"
+                    ? "Opening input…"
+                    : `${device} · Ch ${channel}`}
+            </span>
+            <Settings2Icon className="size-3.5 shrink-0 text-neutral-500" />
+          </button>
           <Button
             aria-pressed={open}
             disabled={blocked || status === "opening"}
             onClick={open ? onClose : onOpen}
             className={cn(
-              "h-7 w-20 shrink-0 border-neutral-600 text-xs",
+              "h-6 w-12 shrink-0 border-neutral-600 text-[11px]",
               open
                 ? "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
                 : "text-neutral-300 hover:bg-neutral-700",
@@ -1364,7 +1354,7 @@ function InputFloatingPanel({
             Allow microphone access from the browser’s site settings.
           </p>
         ) : (
-          <MockMeter active={open} className="h-2" />
+          <MockMeter active={open} className="h-1.5" />
         )}
         <div className="grid grid-cols-2 gap-2">
           <PanelToggle
@@ -1374,31 +1364,28 @@ function InputFloatingPanel({
             icon={<HeadphonesIcon className="size-3.5" />}
             label="Monitor"
           />
-          <PanelToggle
-            pressed={tunerOpen}
+          <Button
+            aria-label="Tuner"
+            aria-pressed={tunerOpen}
             disabled={blocked}
             onClick={() => onTunerChange(!tunerOpen)}
-            icon={<AudioWaveformIcon className="size-3.5" />}
-            label="Tuner"
-          />
+            className={cn(
+              "h-7 justify-start gap-1.5 border-neutral-600 px-2 text-xs",
+              tunerOpen
+                ? "bg-sky-500/25 text-sky-200 hover:bg-sky-500/35"
+                : "text-neutral-300 hover:bg-neutral-700",
+            )}
+          >
+            <AudioWaveformIcon className="size-3.5" />
+            {tunerOpen && open ? (
+              <span className="ml-auto font-mono">
+                E1 <span className="text-emerald-300">+3¢</span>
+              </span>
+            ) : (
+              "Tuner"
+            )}
+          </Button>
         </div>
-        {tunerOpen && open && (
-          <div className="flex items-baseline justify-center gap-3 rounded bg-neutral-900 py-2">
-            <span className="font-mono text-2xl">E1</span>
-            <span className="text-emerald-400">+3¢</span>
-          </div>
-        )}
-        <button
-          type="button"
-          title="Recording latency compensation for this device"
-          onClick={onSetup}
-          className="flex w-full items-center rounded px-1 py-1 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-        >
-          Latency compensation
-          <span className="ml-auto font-mono text-neutral-200">
-            {latencyMs} ms
-          </span>
-        </button>
       </div>
     </section>
   );
@@ -2183,7 +2170,7 @@ function MockInputSetup({
     );
   }
   return (
-    <div className="space-y-4">
+    <div className="max-h-[70vh] space-y-4 overflow-y-auto">
       <label className="block text-xs font-medium text-neutral-400">
         Device
         <select
@@ -2209,21 +2196,55 @@ function MockInputSetup({
           <option value={2}>Channel 2</option>
         </select>
       </label>
-      <section className="space-y-2 border-t border-neutral-700 pt-4 text-xs text-neutral-400">
-        <div className="flex items-center gap-2">
+      <label className="block text-xs font-medium text-neutral-400">
+        Level
+        <MockMeter active={inputOpen} className="mt-2 h-2" />
+      </label>
+      <section className="space-y-3 border-t border-neutral-700 pt-4 text-xs text-neutral-400">
+        <label className="flex items-center gap-2 font-medium">
           <span className="flex-1">Recording latency compensation</span>
-          <span className="font-mono text-neutral-200">12.5 ms</span>
-        </div>
+          <input
+            type="text"
+            defaultValue="12.5"
+            className="h-8 w-20 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-neutral-100"
+          />
+          ms
+        </label>
+        <p className="text-[11px] leading-5 text-neutral-500">
+          Stored for this device, so switching devices restores its own value.
+        </p>
         <Button
           disabled={!inputOpen}
           className="h-8 w-full border-neutral-600 text-xs hover:bg-neutral-700"
         >
           Measure latency
         </Button>
+        <details>
+          <summary className="cursor-pointer">How do I set this?</summary>
+          <p className="mt-2 leading-5">
+            Connect your audio output back to the selected input with a cable,
+            then press Measure latency. The checker page shows details.
+          </p>
+        </details>
       </section>
-      <p className="text-[11px] text-neutral-500">
-        Audio diagnostics stay here as in the current Input Setup.
-      </p>
+      <details className="border-t border-neutral-700 pt-4 text-xs">
+        <summary className="cursor-pointer text-neutral-400">
+          Audio diagnostics
+        </summary>
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
+          {[
+            ["Sample rate", "48000 Hz"],
+            ["Base latency", "5.3 ms"],
+            ["Output latency", "21.3 ms"],
+            ["Input channels", "2"],
+          ].map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt className="text-neutral-400">{label}</dt>
+              <dd className="font-mono text-neutral-200">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
     </div>
   );
 }
