@@ -40,8 +40,8 @@ export function RecorderInputPanel({
 }) {
   return (
     <RecorderPanel
-      title="Input"
-      closeLabel="Close Input"
+      title="Audio Input"
+      closeLabel="Close Audio Input"
       onClose={onClose}
       data-testid="recorder-input-panel"
       className="pointer-events-auto w-64 shrink-0"
