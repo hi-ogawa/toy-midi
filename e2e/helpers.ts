@@ -1,5 +1,5 @@
 import path from "node:path";
-import { test, type Page } from "@playwright/test";
+import { test, type Locator, type Page } from "@playwright/test";
 
 /** Call at file scope to enable a fake microphone for this test file. */
 export function useFakeAudioInput({
@@ -47,4 +47,16 @@ export async function selectMenuItem(
     },
     { box: true },
   );
+}
+
+/** Set exact slider values through the component's change handler. */
+export async function setSliderValue(
+  slider: Locator,
+  values: number[],
+): Promise<void> {
+  await slider.evaluate((element, detail) => {
+    element
+      .closest('[data-slot="slider"]')!
+      .dispatchEvent(new CustomEvent("slider:set-value", { detail }));
+  }, values);
 }

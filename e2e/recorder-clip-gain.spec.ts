@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import { selectMenuItem, useFakeAudioInput } from "./helpers";
+import { selectMenuItem, setSliderValue, useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   enableInput,
@@ -27,9 +27,7 @@ test("balances a take during playback and preserves its gain in saved audio", as
   await page.screenshot({ path: test.info().outputPath("take-gain.png") });
   // Leave export headroom because the fake input can exceed full scale.
   const master = page.getByRole("slider", { name: "Master gain", exact: true });
-  for (let i = 0; i < 24; i++) {
-    await master.press("ArrowLeft");
-  }
+  await setSliderValue(master, [-12]);
   const original = await exportSamples(page, "original.wav");
   const waveform = page.getByTestId("recorder-clip-comp").locator("svg path");
   const originalPath = await waveform.getAttribute("d");
@@ -38,10 +36,7 @@ test("balances a take during playback and preserves its gain in saved audio", as
   const play = page.getByTestId("recorder-play-button");
   await play.click();
   const before = await getRecorderPosition(page);
-  await gain.focus();
-  for (let i = 0; i < 12; i++) {
-    await gain.press("ArrowLeft");
-  }
+  await setSliderValue(gain, [-6]);
   await expect
     .poll(async () => Number(await gain.getAttribute("aria-valuenow")))
     .toBeCloseTo(-6);
