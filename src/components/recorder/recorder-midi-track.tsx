@@ -2,7 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import {
   DownloadIcon,
   UploadIcon,
-  MoreVerticalIcon,
   Music2Icon,
   FileMusicIcon,
   Settings2Icon,
@@ -35,7 +34,6 @@ import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import type { Note } from "../../types";
 import { pluralCount } from "../../utils/plural-count";
 import { openFilePicker } from "../file-drop-input";
-import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import {
   DropdownMenu,
@@ -47,7 +45,7 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { MidiInstrument } from "./recorder-midi-instrument";
-import { TrackRow } from "./recorder-tracks";
+import { TrackMenuButton, TrackRow } from "./recorder-tracks";
 import {
   useRecorderMidiInteraction,
   getMidiGridPosition,
@@ -254,13 +252,7 @@ function MidiTrackActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-          title={`${label} actions`}
-          aria-label={`${label} actions`}
-        >
-          <MoreVerticalIcon className="size-3.5" />
-        </Button>
+        <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuCheckboxItem
@@ -625,7 +617,7 @@ function MidiTrackEditor({
       onBlur={handleBlur}
     >
       <div
-        className="grid grid-cols-[15rem_minmax(0,1fr)]"
+        className="grid grid-cols-[17rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
         <div className="relative border-r border-neutral-700">
