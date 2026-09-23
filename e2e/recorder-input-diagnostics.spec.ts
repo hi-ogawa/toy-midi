@@ -5,13 +5,15 @@ import { createRecorderProject } from "./recorder-helpers";
 useFakeAudioInput();
 
 test("inspect live editor input diagnostics", async ({ page }) => {
-  // Open debug readings without activating capture or assuming missing latency is zero.
+  // Open diagnostic readings without activating capture or assuming missing latency is zero.
   await createRecorderProject(page);
   await page.getByRole("button", { name: "Configure audio input" }).click();
   const setup = page.getByTestId("recorder-input-setup");
-  const readings = setup.getByRole("region", { name: "Audio debug readings" });
+  const readings = setup.getByRole("region", {
+    name: "Audio diagnostic readings",
+  });
   await expect(readings).toHaveCount(0);
-  await setup.getByText("Audio debug", { exact: true }).click();
+  await setup.getByText("Audio diagnostics", { exact: true }).click();
   await expect(readings).toContainText("Input disabled");
   await expect(
     readings.locator("dt", { hasText: "Context sample rate" }).locator("+ dd"),

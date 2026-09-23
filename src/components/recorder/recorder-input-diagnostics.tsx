@@ -9,7 +9,9 @@ export function InputDiagnostics({ runtime }: { runtime: RecorderRuntime }) {
       className="mt-4 border-t border-neutral-700 pt-3 text-xs"
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary className="cursor-pointer text-neutral-400">Audio debug</summary>
+      <summary className="cursor-pointer text-neutral-400">
+        Audio diagnostics
+      </summary>
       {open && <Readings runtime={runtime} />}
     </details>
   );
@@ -55,7 +57,7 @@ function Readings({ runtime }: { runtime: RecorderRuntime }) {
   ];
   return (
     <section
-      aria-label="Audio debug readings"
+      aria-label="Audio diagnostic readings"
       className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2"
     >
       {[

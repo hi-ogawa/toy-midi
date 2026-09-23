@@ -85,6 +85,7 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
 
     // Migrate the stored project from the project home into a new recorder copy.
     await page.goto("/");
+    await page.getByRole("button", { name: "View legacy projects" }).click();
     const legacyProjects = page.getByRole("region", {
       name: "Legacy projects",
     });
@@ -119,6 +120,7 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
     await expect(
       page.getByRole("link", { name: "Legacy song" }),
     ).toHaveAttribute("href", new URL(copyUrl).pathname);
+    await page.getByRole("button", { name: "View legacy projects" }).click();
     await expect(legacyProjects).toContainText("Legacy song");
 
     // Cancel deletion and keep the original available for migration.

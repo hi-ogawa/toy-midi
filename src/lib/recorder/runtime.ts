@@ -6,6 +6,7 @@ import {
 import { insertAtIndices } from "../../utils/array.ts";
 import { createNumberedName } from "../../utils/name.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
+import { createAudioBuffer } from "../audio-playback.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
   createDefaultMultibandEq,
@@ -26,7 +27,7 @@ import {
 } from "./audio-clip.ts";
 import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
-import { CaptureInput } from "./capture-input.ts";
+import { CaptureInput, type CapturedAudio } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
 import { RecorderHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
@@ -179,7 +180,6 @@ export type PersistableRecorderRuntimeState = Pick<
   | "metronomeGain"
   | "loop"
   | "punch"
-  | "latencyCompensation"
   | "referenceVideo"
   | "midiTracks"
 > & {
@@ -846,8 +846,8 @@ export class RecorderRuntime {
     this.store.update({ captureStatus: "processing" });
     // Stopping is two-phase: the worklet first flushes its final partial batch,
     // then acknowledges the exclusive frame at which capture ended.
-    const stopFrame = await captureInput.stopCapture();
-    this.finishRecording(stopFrame);
+    const capture = await captureInput.stopCapture();
+    this.finishRecording(capture);
   }
 
   setLatencyCompensation(compensation: number): void {
@@ -1152,7 +1152,6 @@ export class RecorderRuntime {
           audioTracks: state.audioTracks,
           midiTracks: state.midiTracks,
           recordingTrack: state.recordingTrack,
-          latencyCompensation: state.latencyCompensation,
           referenceVideo: state.referenceVideo,
         }) satisfies PersistableRecorderRuntimeState,
       listener,
@@ -1193,29 +1192,32 @@ export class RecorderRuntime {
     );
   }
 
-  private finishRecording(stopFrame: number): void {
+  private finishRecording(capture: CapturedAudio): void {
     const context = this.context;
     const pendingRecording = this.store.get().pendingRecording;
     if (!pendingRecording) {
       throw new Error("Recording state is incomplete.");
     }
-    const samples = pendingRecording.recording.finish(stopFrame);
-    const trim = samples
-      ? deriveRecordingTrim({
-          duration: samples.length / context.sampleRate,
-          timelineOffset: pendingRecording.timelineOffset,
-          punchRange: pendingRecording.punchRange,
-        })
-      : undefined;
-    const slice =
-      samples && trim
-        ? sliceSamples({
-            samples,
-            sampleRate: context.sampleRate,
-            start: trim.trimStart,
-            end: trim.trimEnd,
+    const samples = capture.getSamples({
+      startFrame: pendingRecording.recording.startFrame,
+      endFrame: capture.stopFrame,
+    });
+    const trim =
+      samples.length > 0
+        ? deriveRecordingTrim({
+            duration: samples.length / context.sampleRate,
+            timelineOffset: pendingRecording.timelineOffset,
+            punchRange: pendingRecording.punchRange,
           })
         : undefined;
+    const slice = trim
+      ? sliceSamples({
+          samples,
+          sampleRate: context.sampleRate,
+          start: trim.trimStart,
+          end: trim.trimEnd,
+        })
+      : undefined;
     if (
       !slice ||
       slice.samples.length < MIN_CLIP_DURATION * context.sampleRate
@@ -1228,12 +1230,11 @@ export class RecorderRuntime {
       this.syncTrackMix();
       return;
     }
-    const takeBuffer = context.createBuffer(
-      1,
-      slice.samples.length,
+    const takeBuffer = createAudioBuffer(
+      context,
+      slice.samples,
       context.sampleRate,
     );
-    takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
     const newClip: AudioClip = {
       ...createAudioClip({
