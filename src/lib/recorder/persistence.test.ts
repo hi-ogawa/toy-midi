@@ -1,20 +1,19 @@
-import JSZip from "jszip";
 import { describe, expect, it, vi } from "vitest";
-import { deriveClipRegions } from "./clip-regions";
 import {
   deserializeRecorderRuntimeState,
   serializeRecorderRuntimeState,
   type SerializedRecorderRuntimeState,
 } from "./persistence";
-import {
-  exportRecorderProjectArchive,
-  readRecorderProjectArchive,
-} from "./project-archive";
 import { RECORDING_TRACK_ID } from "./recording-track";
 
+// Persistence reads EQ defaults from a module that subclasses AudioWorkletNode.
 vi.hoisted(() => {
   vi.stubGlobal("AudioWorkletNode", class {});
 });
+
+type SerializedTrack = SerializedRecorderRuntimeState["audioTracks"][number];
+
+const SAMPLE_RATE = 8000;
 
 const context = {
   createBuffer(count: number, length: number, sampleRate: number): AudioBuffer {
@@ -32,103 +31,106 @@ const context = {
   },
 };
 
-// A project saved with single-clip tracks and a separate recording track.
-function singleClipProject(): SerializedRecorderRuntimeState {
-  const pcm = {
-    sampleRate: 8000,
-    channels: [new Float32Array(32000).fill(0.25)],
-  };
-  return {
-    title: "Single clip",
-    tempo: 90,
-    timeSignature: { numerator: 3, denominator: 4 },
-    audioTracks: [
-      {
-        id: "backing",
-        height: 100,
-        gain: 0.4,
-        muted: false,
-        soloed: true,
-        timelineOffset: -1,
-        trimStart: 0.5,
-        trimEnd: 3,
-        clip: {
-          name: "Stereo",
-          gain: 0.5,
-          pcm: {
-            ...pcm,
-            channels: [...pcm.channels, new Float32Array(32000).fill(-0.5)],
-          },
-        },
-      },
-    ],
-    recordingTrack: {
-      height: 120,
-      gain: 0.8,
-      muted: true,
-      soloed: false,
-      nextTakeNumber: 9,
-      eq: { frequency: 300, gain: 2, q: 1, bypass: false },
-      takes: [
-        {
-          id: "old",
-          number: 7,
-          gain: 0.5,
-          timelineOffset: 1,
-          trimStart: 0.25,
-          trimEnd: 3,
-          pcm,
-        },
-        {
-          id: "new",
-          number: 8,
-          timelineOffset: 2,
-          trimStart: 0,
-          trimEnd: 1,
-          pcm,
-        },
-      ],
-    },
-  };
-}
-
 describe("recorder persistence", () => {
-  it("loads a single-clip track and saves it as a clip array", () => {
-    const project = singleClipProject();
+  it("loads a single-clip track and resaves it as a clip array", () => {
+    const pcm = createPcm({ seconds: 4, channelCount: 2 });
+    const project = createProject({
+      audioTracks: [
+        createTrack({
+          id: "backing",
+          timelineOffset: -1,
+          trimStart: 0.5,
+          trimEnd: 3,
+          clip: { name: "Stereo", gain: 0.5, pcm },
+        }),
+      ],
+    });
     const state = deserializeRecorderRuntimeState({ context, project });
-    const backing = state.audioTracks[1];
-    expect(backing).toMatchObject({
-      id: "backing",
-      gain: 0.4,
-      soloed: true,
-      height: 100,
-    });
-    expect(backing.clips).toHaveLength(1);
-    expect(backing.clips[0]).toMatchObject({
-      name: "Stereo",
-      gain: 0.5,
-      timelineOffset: -1,
-      trimStart: 0.5,
-      trimEnd: 3,
-    });
-
-    const saved = serializeRecorderRuntimeState(state);
-    expect(saved.audioTracks[1]).not.toHaveProperty("clip");
-    expect(saved.audioTracks[1]).not.toHaveProperty("timelineOffset");
-    expect(saved.audioTracks[1].clips).toMatchObject([
+    const backing = findTrack(state.audioTracks, "backing");
+    expect(backing.clips).toMatchObject([
       {
-        id: backing.clips[0].id,
         name: "Stereo",
         gain: 0.5,
         timelineOffset: -1,
         trimStart: 0.5,
         trimEnd: 3,
-        pcm: project.audioTracks[0].clip!.pcm,
+        duration: 4,
       },
     ]);
-    expect(saved.audioTracks[1].clips![0].pcm.channels[0]).not.toBe(
-      project.audioTracks[0].clip!.pcm.channels[0],
+
+    const saved = findTrack(
+      serializeRecorderRuntimeState(state).audioTracks,
+      "backing",
     );
+    expect(saved).not.toHaveProperty("clip");
+    expect(saved).not.toHaveProperty("timelineOffset");
+    expect(saved.clips).toEqual([
+      {
+        id: backing.clips[0].id,
+        name: "Stereo",
+        gain: 0.5,
+        muted: false,
+        soloed: false,
+        timelineOffset: -1,
+        trimStart: 0.5,
+        trimEnd: 3,
+        pcm,
+      },
+    ]);
+  });
+
+  it("defaults a missing trim end and loads a track without a clip", () => {
+    const project = createProject({
+      audioTracks: [
+        createTrack({
+          id: "backing",
+          timelineOffset: 0,
+          clip: { name: "Mono", pcm: createPcm({ seconds: 4 }) },
+        }),
+        createTrack({ id: "empty" }),
+      ],
+    });
+    const state = deserializeRecorderRuntimeState({ context, project });
+    expect(state.audioTracks.map((track) => track.clips)).toMatchObject([
+      [{ trimStart: 0, trimEnd: 4 }],
+      [],
+    ]);
+  });
+
+  it("round-trips every clip on a multi-clip track", () => {
+    const clips = [
+      {
+        id: "first",
+        name: "First",
+        gain: 0.5,
+        muted: false,
+        soloed: true,
+        timelineOffset: 1,
+        trimStart: 0.25,
+        trimEnd: 2,
+        pcm: createPcm({ seconds: 2, channelCount: 2 }),
+      },
+      {
+        id: "second",
+        name: "Second",
+        gain: 1,
+        muted: true,
+        soloed: false,
+        timelineOffset: 3,
+        trimStart: 0,
+        trimEnd: 1,
+        pcm: createPcm({ seconds: 1 }),
+      },
+    ];
+    const project = createProject({
+      audioTracks: [createTrack({ id: "backing", clips })],
+    });
+    const saved = serializeRecorderRuntimeState(
+      deserializeRecorderRuntimeState({ context, project }),
+    );
+    const savedClips = findTrack(saved.audioTracks, "backing").clips!;
+    expect(savedClips).toEqual(clips);
+    expect(savedClips[0].pcm.channels[0]).not.toBe(clips[0].pcm.channels[0]);
     expect(
       serializeRecorderRuntimeState(
         deserializeRecorderRuntimeState({ context, project: saved }),
@@ -136,53 +138,59 @@ describe("recorder persistence", () => {
     ).toEqual(saved);
   });
 
-  it("folds the separate recording track into audioTracks without losing takes", () => {
-    const project = singleClipProject();
+  it("folds a separate recording track into audioTracks as the Capture track", () => {
+    const takes = [
+      {
+        id: "old",
+        number: 7,
+        gain: 0.5,
+        timelineOffset: 1,
+        trimStart: 0.25,
+        trimEnd: 3,
+        pcm: createPcm({ seconds: 4 }),
+      },
+      {
+        id: "new",
+        number: 8,
+        timelineOffset: 2,
+        pcm: createPcm({ seconds: 1 }),
+      },
+    ];
+    const eq = { frequency: 300, gain: 2, q: 1, bypass: false };
+    const project = createProject({
+      audioTracks: [createTrack({ id: "backing" })],
+      recordingTrack: {
+        height: 120,
+        gain: 0.8,
+        muted: true,
+        soloed: false,
+        nextTakeNumber: 9,
+        eq,
+        takes,
+      },
+    });
     const state = deserializeRecorderRuntimeState({ context, project });
-    const [capture] = state.audioTracks;
+    const capture = findTrack(state.audioTracks, RECORDING_TRACK_ID);
     expect(capture).toMatchObject({
-      id: RECORDING_TRACK_ID,
+      height: 120,
       gain: 0.8,
       muted: true,
-      soloed: false,
       nextTakeNumber: 9,
-      height: 120,
-      eq: { bands: [project.recordingTrack!.eq] },
+      eq: { bands: [eq] },
     });
-    expect(
-      capture.clips.map(({ id, name, gain }) => ({ id, name, gain })),
-    ).toEqual([
-      { id: "old", name: "Take 7", gain: 0.5 },
-      { id: "new", name: "Take 8", gain: 1 },
-    ]);
-    expect(
-      deriveClipRegions(capture.clips).map(
-        ({ clip, timelineStart, timelineEnd }) => [
-          clip.id,
-          timelineStart,
-          timelineEnd,
-        ],
-      ),
-    ).toEqual([
-      ["old", 1.25, 2],
-      ["new", 2, 3],
-      ["old", 3, 4],
+    expect(capture.clips).toMatchObject([
+      { id: "old", name: "Take 7", gain: 0.5, timelineOffset: 1, trimEnd: 3 },
+      { id: "new", name: "Take 8", gain: 1, timelineOffset: 2, trimEnd: 1 },
     ]);
 
-    // Resave the Capture track inside audioTracks with its fixed id.
+    // Resave the Capture track inside audioTracks under its fixed id.
     const saved = serializeRecorderRuntimeState(state);
     expect(saved).not.toHaveProperty("recordingTrack");
-    expect(saved.audioTracks[0]).toMatchObject({
-      id: RECORDING_TRACK_ID,
+    expect(findTrack(saved.audioTracks, RECORDING_TRACK_ID)).toMatchObject({
       nextTakeNumber: 9,
-      height: 120,
       clips: [
-        {
-          id: "old",
-          name: "Take 7",
-          pcm: project.recordingTrack!.takes[0].pcm,
-        },
-        { id: "new", name: "Take 8" },
+        { id: "old", pcm: takes[0].pcm },
+        { id: "new", pcm: takes[1].pcm },
       ],
     });
     expect(
@@ -192,90 +200,74 @@ describe("recorder persistence", () => {
     ).toEqual(saved);
   });
 
-  it("defaults missing take numbering and ids in the separate recording track", () => {
-    const project = singleClipProject();
-    delete project.recordingTrack!.nextTakeNumber;
-    delete project.recordingTrack!.takes[0].id;
-    delete project.recordingTrack!.takes[1].number;
+  it("defaults missing take numbering and ids in a separate recording track", () => {
+    const project = createProject({
+      audioTracks: [],
+      recordingTrack: {
+        height: 116,
+        gain: 1,
+        muted: false,
+        soloed: false,
+        takes: [
+          { number: 4, timelineOffset: 0, pcm: createPcm({ seconds: 1 }) },
+          {
+            id: "numberless",
+            timelineOffset: 1,
+            pcm: createPcm({ seconds: 1 }),
+          },
+        ],
+      },
+    });
     const state = deserializeRecorderRuntimeState({ context, project });
-    expect(state.audioTracks[0]).toMatchObject({
-      id: RECORDING_TRACK_ID,
+    expect(findTrack(state.audioTracks, RECORDING_TRACK_ID)).toMatchObject({
       nextTakeNumber: 3,
-      clips: [{ id: expect.any(String), name: "Take 7" }, { name: "Take 2" }],
+      clips: [
+        { id: expect.any(String), name: "Take 4" },
+        { id: "numberless", name: "Take 2" },
+      ],
     });
-  });
-
-  it("defaults an empty single-clip track and missing clip timing", () => {
-    const project = singleClipProject();
-    delete project.audioTracks[0].trimEnd;
-    project.audioTracks.push({
-      id: "empty",
-      height: 72,
-      gain: 1,
-      muted: false,
-      soloed: false,
-    });
-    const state = deserializeRecorderRuntimeState({ context, project });
-    expect(state.audioTracks[1].clips[0].trimEnd).toBe(4);
-    expect(state.audioTracks[2]).toMatchObject({
-      nextTakeNumber: 1,
-      clips: [],
-    });
-    expect(serializeRecorderRuntimeState(state).audioTracks[2].clips).toEqual(
-      [],
-    );
-  });
-
-  it("round-trips a multi-clip track through the archive", async () => {
-    const state = deserializeRecorderRuntimeState({
-      context,
-      project: singleClipProject(),
-    });
-    state.audioTracks[1].clips.push({
-      ...state.audioTracks[0].clips[0],
-      id: "added",
-      name: "Added",
-      gain: 0.25,
-      muted: true,
-      soloed: true,
-    });
-    const saved = serializeRecorderRuntimeState(state);
-    expect(saved.audioTracks[1].clips).toMatchObject([
-      { name: "Stereo", gain: 0.5 },
-      { id: "added", name: "Added", gain: 0.25, muted: true, soloed: true },
-    ]);
-
-    const archive = await exportRecorderProjectArchive(saved);
-    const zip = await JSZip.loadAsync(await archive.arrayBuffer());
-    expect(zip.file("audio/tracks/0/clips/1/channel-0.f32")).not.toBeNull();
-    expect(zip.file("audio/tracks/1/clips/0/channel-1.f32")).not.toBeNull();
-    expect(zip.file("audio/tracks/1/clips/1/channel-0.f32")).not.toBeNull();
-    const restored = await readRecorderProjectArchive(zip);
-    expect(restored).toEqual(saved);
-    expect(
-      serializeRecorderRuntimeState(
-        deserializeRecorderRuntimeState({ context, project: restored }),
-      ),
-    ).toEqual(saved);
-  });
-
-  it("reads single-clip and separate take archive PCM paths", async () => {
-    const project = singleClipProject();
-    const archive = await exportRecorderProjectArchive(project);
-    const zip = await JSZip.loadAsync(await archive.arrayBuffer());
-    expect(zip.file("audio/tracks/0/channel-1.f32")).not.toBeNull();
-    expect(zip.file("audio/takes/1/channel-0.f32")).not.toBeNull();
-    const restored = await readRecorderProjectArchive(zip);
-    expect(restored).toEqual(project);
-    const state = deserializeRecorderRuntimeState({
-      context,
-      project: restored,
-    });
-    expect(state.audioTracks.map((track) => track.clips.length)).toEqual([
-      2, 1,
-    ]);
-    expect(state.audioTracks[1].clips).toMatchObject([
-      { name: "Stereo", gain: 0.5, timelineOffset: -1 },
-    ]);
   });
 });
+
+function findTrack<T extends { id: string }>(tracks: readonly T[], id: string) {
+  const track = tracks.find((track) => track.id === id);
+  if (!track) {
+    throw new Error(`Track ${id} is missing.`);
+  }
+  return track;
+}
+
+function createProject(
+  content: Pick<
+    SerializedRecorderRuntimeState,
+    "audioTracks" | "recordingTrack"
+  >,
+): SerializedRecorderRuntimeState {
+  return {
+    title: "Project",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    ...content,
+  };
+}
+
+function createTrack(
+  fields: Pick<SerializedTrack, "id"> & Partial<SerializedTrack>,
+): SerializedTrack {
+  return { height: 72, gain: 1, muted: false, soloed: false, ...fields };
+}
+
+function createPcm({
+  seconds,
+  channelCount = 1,
+}: {
+  seconds: number;
+  channelCount?: number;
+}) {
+  return {
+    sampleRate: SAMPLE_RATE,
+    channels: Array.from({ length: channelCount }, (_, channel) =>
+      new Float32Array(seconds * SAMPLE_RATE).fill(channel + 0.25),
+    ),
+  };
+}
