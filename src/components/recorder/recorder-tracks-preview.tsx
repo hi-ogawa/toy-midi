@@ -50,7 +50,7 @@ type Variant =
   | "input-dock"
   | "input-panel";
 type Permission = "prompt" | "granted" | "denied";
-type RowLayout = "one-line" | "name-menu" | "two-line";
+type RowLayout = "compact" | "one-line" | "name-menu" | "two-line";
 type InputStatus = "closed" | "opening" | "open";
 
 type MockClip = {
@@ -131,6 +131,12 @@ const VARIANTS: { id: Variant; label: string; summary: string }[] = [
 ];
 
 const ROW_LAYOUTS: { id: RowLayout; label: string; summary: string }[] = [
+  {
+    id: "compact",
+    label: "Compact one line",
+    summary:
+      "Keeps today's row height. The five toggles shrink from 28px to 24px, ⋮ becomes a borderless icon right after the name so it reads as track actions rather than another toggle, and the track column widens from 15rem to 17rem.",
+  },
   {
     id: "two-line",
     label: "Two lines",
@@ -332,7 +338,7 @@ export function RecorderTracksPreview() {
   const [variant, setVariant] = useState<Variant>("input-panel");
   const [scenario, setScenario] = useState(SCENARIOS[0]);
   const [resetCount, setResetCount] = useState(0);
-  const [rowLayout, setRowLayout] = useState<RowLayout>("two-line");
+  const [rowLayout, setRowLayout] = useState<RowLayout>("compact");
   return (
     <div className="space-y-4">
       <OptionGroup
@@ -654,7 +660,14 @@ function MockRecorder({
   };
 
   return (
-    <div className="relative isolate flex h-[680px] flex-col overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 text-neutral-100 [contain:layout]">
+    <div
+      className="relative isolate flex h-[680px] flex-col overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 text-neutral-100 [contain:layout]"
+      style={
+        {
+          "--track-header-width": rowLayout === "compact" ? "17rem" : "15rem",
+        } as React.CSSProperties
+      }
+    >
       <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4">
         <Button
           aria-label={playing ? "Pause" : "Play"}
@@ -786,7 +799,13 @@ function MockRecorder({
                     menu={
                       <TrackMenu
                         label={track.name}
-                        trigger={rowLayout === "name-menu" ? "name" : "icon"}
+                        trigger={
+                          rowLayout === "name-menu"
+                            ? "name"
+                            : rowLayout === "compact"
+                              ? "ghost"
+                              : "icon"
+                        }
                         onRename={(name) => updateTrack(track.id, { name })}
                         onRemove={() => removeTrack(track.id)}
                       />
@@ -870,7 +889,13 @@ function MockRecorder({
                     menu={
                       <TrackMenu
                         label={track.name}
-                        trigger={rowLayout === "name-menu" ? "name" : "icon"}
+                        trigger={
+                          rowLayout === "name-menu"
+                            ? "name"
+                            : rowLayout === "compact"
+                              ? "ghost"
+                              : "icon"
+                        }
                         removeDisabled={recording}
                         onImport={() =>
                           openFilePicker({
@@ -968,7 +993,7 @@ function MockRecorder({
             </div>
           );
         })}
-        <div className="grid grid-cols-[15rem_1fr] border-b border-neutral-800">
+        <div className="grid grid-cols-[var(--track-header-width)_1fr] border-b border-neutral-800">
           <div className="flex gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
             <Button
               onClick={addAudioTrack}
@@ -1878,6 +1903,23 @@ function TrackHeader({
     </>
   );
   const fader = footer ?? <MockFader metering={metering} />;
+  if (layout === "compact") {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-1">
+          {name}
+          {tags}
+          {menu}
+          <div className="flex-1" />
+          <div className="flex items-center gap-1 [&_button]:size-6 [&_button]:text-[11px] [&_svg]:size-3">
+            {arm}
+            {mix}
+          </div>
+        </div>
+        {fader}
+      </div>
+    );
+  }
   if (layout === "two-line") {
     return (
       <div className="space-y-1.5">
@@ -1941,7 +1983,7 @@ function TrackMenu({
   onRemove,
 }: {
   label: string;
-  trigger?: "icon" | "name";
+  trigger?: "icon" | "ghost" | "name";
   removeDisabled?: boolean;
   onImport?: () => void;
   onRename: (name: string) => void;
@@ -1958,6 +2000,15 @@ function TrackMenu({
           >
             <span className="truncate">{label}</span>
             <ChevronDownIcon className="size-3 shrink-0 text-neutral-500" />
+          </button>
+        ) : trigger === "ghost" ? (
+          <button
+            type="button"
+            aria-label={`${label} actions`}
+            title={`${label} actions`}
+            className="grid size-5 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200"
+          >
+            <MoreVerticalIcon className="size-3.5" />
           </button>
         ) : (
           <Button
@@ -2026,7 +2077,7 @@ function TrackFrame({
   }
   return (
     <div
-      className="grid grid-cols-[15rem_1fr] border-b border-neutral-700 transition-[height]"
+      className="grid grid-cols-[var(--track-header-width)_1fr] border-b border-neutral-700 transition-[height]"
       style={{ height }}
     >
       <div className="border-r border-neutral-700 bg-neutral-800 px-3 py-2">
@@ -2214,7 +2265,7 @@ function TakesDisclosure({
   onExpandedChange: (expanded: boolean) => void;
 }) {
   return (
-    <div className="grid h-7 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
+    <div className="grid h-7 grid-cols-[var(--track-header-width)_1fr] border-b border-neutral-700 bg-neutral-900">
       <button
         type="button"
         aria-expanded={expanded}
