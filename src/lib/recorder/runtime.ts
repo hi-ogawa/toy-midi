@@ -466,45 +466,36 @@ export class RecorderRuntime {
   }
 
   commitClipEdit(edit: RecorderClipEdit): void {
-    this.updateClips((state) => deriveClipEditState(state, edit));
-  }
-
-  /**
-   * Gain preserves which regions play, so update their existing gain nodes directly.
-   * Mute/solo use updateClip → updateClips because they change comp participation,
-   * which requires rebuilding sources. That path also restarts active transport,
-   * so using it for continuous gain adjustments would interrupt playback.
-   */
-  setClipGain({ id, gain }: { id: string; gain: number }): void {
-    const state = this.store.get();
-    const update = (track: AudioTrackState) => {
-      const next = updateTrackClips({
-        track,
-        update: (clips) =>
-          clips.map((clip) =>
-            clip.id === id && clip.gain !== gain ? { ...clip, gain } : clip,
-          ),
-      });
-      if (next !== track) {
-        this.trackPlaybacks.get(track.id)?.setClipGain({ clipId: id, gain });
-      }
-      return next;
-    };
-    this.store.update({
-      audioTracks: state.audioTracks.map(update),
-      recordingTrack: update(state.recordingTrack),
+    this.updateClips(() => {
+      this.store.update(deriveClipEditState(this.store.get(), edit));
     });
   }
 
+  setClipGain({ id, gain }: { id: string; gain: number }): void {
+    this.updateClipState({ id, update: (clip) => ({ ...clip, gain }) });
+    this.syncClipGain({ id, gain });
+  }
+
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
-    this.updateClip(id, (clip) => ({ ...clip, muted }));
+    this.updateClips(() => {
+      this.updateClipState({ id, update: (clip) => ({ ...clip, muted }) });
+    });
   }
 
   setClipSoloed({ id, soloed }: { id: string; soloed: boolean }): void {
-    this.updateClip(id, (clip) => ({ ...clip, soloed }));
+    this.updateClips(() => {
+      this.updateClipState({ id, update: (clip) => ({ ...clip, soloed }) });
+    });
   }
 
-  private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
+  /** Commit clip state and derived regions without touching playback. */
+  private updateClipState({
+    id,
+    update,
+  }: {
+    id: string;
+    update: (clip: AudioClip) => AudioClip;
+  }): void {
     function updateTrack(track: AudioTrackState): AudioTrackState {
       return updateTrackClips({
         track,
@@ -512,11 +503,11 @@ export class RecorderRuntime {
           clips.map((clip) => (clip.id === id ? update(clip) : clip)),
       });
     }
-    this.updateClips((state) => ({
+    const state = this.store.get();
+    this.store.update({
       audioTracks: state.audioTracks.map(updateTrack),
       recordingTrack: updateTrack(state.recordingTrack),
-      referenceVideo: state.referenceVideo,
-    }));
+    });
   }
 
   removeClips(ids: readonly string[]): void {
@@ -539,20 +530,24 @@ export class RecorderRuntime {
 
   /** @internal for undo */
   applyClipInsertRemove(change: RecorderClipInsertRemove): void {
-    this.updateClips((state) => deriveClipInsertRemoveState(state, change));
+    this.updateClips(() => {
+      this.store.update(deriveClipInsertRemoveState(this.store.get(), change));
+    });
   }
 
-  /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
-  private updateClips(
-    update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
-  ): void {
+  /**
+   * Apply a state update that changes clip regions and rebuild affected playback,
+   * pausing and resuming transport around the update. Parameter-only edits such as
+   * gain call their state updater and signal-chain-preserving sync directly.
+   */
+  private updateClips(update: () => void): void {
     const state = this.store.get();
-    const next = update(state);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    this.store.update(next);
+    update();
+    const next = this.store.get();
     if (next.recordingTrack !== state.recordingTrack) {
       this.syncTrackPlayback(next.recordingTrack);
     }
@@ -1108,6 +1103,13 @@ export class RecorderRuntime {
       listener,
       equals: shallowEqual,
     });
+  }
+
+  /** Update existing region gain nodes without rebuilding sources or restarting transport. */
+  private syncClipGain({ id, gain }: { id: string; gain: number }): void {
+    for (const playback of this.trackPlaybacks.values()) {
+      playback.setClipGain({ clipId: id, gain });
+    }
   }
 
   private syncTrackMix(): void {
