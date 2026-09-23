@@ -6,6 +6,7 @@ import {
   ChevronRightIcon,
   HeadphonesIcon,
   MoreVerticalIcon,
+  SlidersHorizontalIcon,
   Settings2Icon,
   Trash2Icon,
   UploadIcon,
@@ -24,16 +25,17 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
-import { RecorderEffectsToggle } from "./recorder-effects-toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 import { RecorderGainSlider } from "./recorder-mixer";
 
 export function AudioTrackActions({
   label,
+  onEffectsOpen,
   onFileChange,
   onRemove,
 }: {
   label: string;
+  onEffectsOpen: () => void;
   onFileChange: (file: File) => void;
   onRemove: () => void;
 }) {
@@ -43,6 +45,11 @@ export function AudioTrackActions({
         <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() =>
             openFilePicker({ accept: "audio/*,.wav", onFile: onFileChange })
@@ -83,6 +90,26 @@ export function TrackMenuButton({
   );
 }
 
+export function CaptureTrackActions({
+  onEffectsOpen,
+}: {
+  onEffectsOpen: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <TrackMenuButton label="Capture" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function TrackRow({
   title,
   "data-testid": testId,
@@ -91,8 +118,6 @@ export function TrackRow({
   gain,
   muted,
   soloed,
-  effectsOpen,
-  onEffectsToggle,
   action,
   input,
   onGainChange,
@@ -108,8 +133,6 @@ export function TrackRow({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  effectsOpen: boolean;
-  onEffectsToggle: () => void;
   action?: React.ReactNode;
   input?: TrackInputControls;
   onGainChange: (gain: number) => void;
@@ -162,12 +185,6 @@ export function TrackRow({
             onClick={() => onSoloedChange(!soloed)}
             className="size-6"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
-          />
-          <RecorderEffectsToggle
-            label={title}
-            open={effectsOpen}
-            onClick={onEffectsToggle}
-            className="size-6"
           />
         </div>
         {input && <TrackInputRoute {...input} />}
