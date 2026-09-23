@@ -31,6 +31,7 @@ import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
+import { RecorderInputPanel } from "./recorder-input-panel";
 import { RecorderLocatorRow } from "./recorder-locators";
 import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
@@ -69,6 +70,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     useRecorderPreference("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
+  const [isInputPanelOpen, setIsInputPanelOpen] = useState(false);
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -325,6 +327,9 @@ export function Recorder({ projectId }: { projectId: string }) {
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
+        inputPanelOpen={isInputPanelOpen}
+        inputAccessRequired={input.initialized && !input.hasAccess}
+        onInputPanelToggle={() => setIsInputPanelOpen((open) => !open)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -749,6 +754,27 @@ export function Recorder({ projectId }: { projectId: string }) {
               runtime.captureInput?.tunerAnalyser
             }
             onClose={() => setIsTunerOpen(false)}
+          />
+        )}
+        {isInputPanelOpen && (
+          <RecorderInputPanel
+            route={input.route.label}
+            routeNeedsSetup={input.route.needsSetup}
+            accessRequired={input.initialized && !input.hasAccess}
+            inputActive={input.active}
+            inputAnalyser={runtime.captureInput?.analyser}
+            toggleDisabled={
+              input.mutationPending ||
+              !input.initialized ||
+              flags.isRecording ||
+              (input.hasAccess && !input.active && input.route.needsSetup)
+            }
+            togglePending={input.togglePending}
+            tunerOpen={isTunerOpen}
+            onInputSetup={() => setIsInputSetupOpen(true)}
+            onInputToggle={input.toggle}
+            onTunerToggle={() => setIsTunerOpen((open) => !open)}
+            onClose={() => setIsInputPanelOpen(false)}
           />
         )}
         {isMixerOpen && (
