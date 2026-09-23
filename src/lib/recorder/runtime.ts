@@ -470,12 +470,12 @@ export class RecorderRuntime {
   }
 
   setClipGain({ id, gain }: { id: string; gain: number }): void {
-    this.store.update(
-      deriveClipUpdateState(this.store.get(), {
-        id,
-        update: (clip) => ({ ...clip, gain }),
-      }),
-    );
+    const state = this.store.get();
+    const next = deriveClipUpdateState(state, {
+      id,
+      update: (clip) => ({ ...clip, gain }),
+    });
+    this.store.update(next);
     // Update existing gain nodes without rebuilding sources or restarting transport.
     for (const playback of this.trackPlaybacks.values()) {
       playback.setClipGain({ clipId: id, gain });
