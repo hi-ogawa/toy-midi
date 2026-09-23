@@ -68,21 +68,27 @@ test("balances a take during playback and preserves its gain in saved audio", as
 });
 
 async function exportSamples(page: Page, name: string): Promise<number[]> {
-  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
-  const modal = page.getByTestId("recorder-audio-export");
-  const pending = page.waitForEvent("download");
-  await modal.getByRole("button", { name: "Export file" }).click();
-  const download = await pending;
-  const path = test.info().outputPath(name);
-  await download.saveAs(path);
-  await modal.getByRole("button", { name: "Close", exact: true }).click();
-  const wav = await readFile(path);
-  let offset = 12;
-  while (wav.toString("ascii", offset, offset + 4) !== "data") {
-    offset += 8 + wav.readUInt32LE(offset + 4);
-  }
-  const length = wav.readUInt32LE(offset + 4);
-  return Array.from({ length: length / 2 }, (_, i) =>
-    wav.readInt16LE(offset + 8 + i * 2),
+  return await test.step(
+    `Export audio samples to ${name}`,
+    async () => {
+      await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
+      const modal = page.getByTestId("recorder-audio-export");
+      const pending = page.waitForEvent("download");
+      await modal.getByRole("button", { name: "Export file" }).click();
+      const download = await pending;
+      const path = test.info().outputPath(name);
+      await download.saveAs(path);
+      await modal.getByRole("button", { name: "Close", exact: true }).click();
+      const wav = await readFile(path);
+      let offset = 12;
+      while (wav.toString("ascii", offset, offset + 4) !== "data") {
+        offset += 8 + wav.readUInt32LE(offset + 4);
+      }
+      const length = wav.readUInt32LE(offset + 4);
+      return Array.from({ length: length / 2 }, (_, i) =>
+        wav.readInt16LE(offset + 8 + i * 2),
+      );
+    },
+    { box: true },
   );
 }

@@ -54,9 +54,15 @@ export async function setSliderValue(
   slider: Locator,
   values: number[],
 ): Promise<void> {
-  await slider.evaluate((element, detail) => {
-    element
-      .closest('[data-slot="slider"]')!
-      .dispatchEvent(new CustomEvent("slider:set-value", { detail }));
-  }, values);
+  await test.step(
+    `Set slider value to ${values.join(", ")}`,
+    async () => {
+      await slider.evaluate((element, detail) => {
+        element
+          .closest('[data-slot="slider"]')!
+          .dispatchEvent(new CustomEvent("slider:set-value", { detail }));
+      }, values);
+    },
+    { box: true },
+  );
 }
