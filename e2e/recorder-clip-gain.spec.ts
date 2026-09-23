@@ -24,7 +24,6 @@ test("balances a take during playback and preserves its gain in saved audio", as
   await page.getByTestId("recorder-takes-toggle").click();
   const gain = page.getByRole("slider", { name: "Take 1 gain", exact: true });
   await expect(gain).toHaveAttribute("aria-valuenow", "0");
-  await page.screenshot({ path: test.info().outputPath("take-gain.png") });
   // Leave export headroom because the fake input can exceed full scale.
   const master = page.getByRole("slider", { name: "Master gain", exact: true });
   await setSliderValue(master, [-12]);
