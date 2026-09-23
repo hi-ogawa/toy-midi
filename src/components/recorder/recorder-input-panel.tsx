@@ -1,4 +1,4 @@
-import { AudioWaveformIcon, Settings2Icon } from "lucide-react";
+import { AudioWaveformIcon, MicIcon, Settings2Icon } from "lucide-react";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
@@ -42,27 +42,37 @@ export function RecorderInputPanel({
       className="pointer-events-auto w-64 shrink-0"
       contentClassName="space-y-2.5 px-3 py-3 text-xs"
     >
-      <div className="flex items-center gap-2">
+      {accessRequired ? (
+        // One-time permission opens the same setup dialog the route row does,
+        // so users learn where configuration lives.
         <button
           type="button"
-          title="Audio input setup"
           onClick={onInputSetup}
-          className={cn(
-            "flex min-w-0 flex-1 items-center gap-1.5 rounded px-1 py-1 text-left hover:bg-neutral-700",
-            routeNeedsSetup ? "text-orange-300" : "text-neutral-300",
-          )}
+          className="flex w-full items-center gap-2 rounded border border-orange-300/40 bg-orange-300/10 px-2 py-1.5 text-left text-orange-200 hover:bg-orange-300/20"
         >
-          <span className="truncate">{route}</span>
-          <Settings2Icon className="size-3.5 shrink-0 text-neutral-500" />
+          <MicIcon className="size-3.5 shrink-0" />
+          <span className="truncate">Allow microphone access…</span>
         </button>
-        {/* Before access, the route message itself leads to setup. */}
-        {!accessRequired && (
+      ) : (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            title="Audio input setup"
+            onClick={onInputSetup}
+            className={cn(
+              "flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded border border-neutral-600 bg-neutral-900 px-2 text-left hover:bg-neutral-800",
+              routeNeedsSetup ? "text-orange-300" : "text-neutral-300",
+            )}
+          >
+            <span className="truncate">{route}</span>
+            <Settings2Icon className="ml-auto size-3.5 shrink-0 text-neutral-400" />
+          </button>
           <Button
             aria-pressed={inputActive}
             disabled={toggleDisabled}
             onClick={onInputToggle}
             className={cn(
-              "h-6 w-12 shrink-0 border-neutral-600 text-[11px]",
+              "h-7 w-12 shrink-0 border-neutral-600 text-[11px]",
               inputActive
                 ? "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
                 : "text-neutral-300 hover:bg-neutral-700",
@@ -70,8 +80,8 @@ export function RecorderInputPanel({
           >
             {togglePending ? "…" : inputActive ? "On" : "Off"}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <InputMeter active={inputActive} analyser={inputAnalyser} compact />
       <Button
         aria-pressed={tunerOpen}
