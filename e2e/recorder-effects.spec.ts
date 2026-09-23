@@ -175,3 +175,23 @@ test("resizes an effects panel", async ({ page }) => {
   );
   expect((await graph.boundingBox())!.height).toBeLessThan(before.height);
 });
+
+test("opens effects from the track menu without toggling them closed", async ({
+  page,
+}) => {
+  // Open Capture effects from its track menu.
+  await createRecorderProject(page);
+  await selectMenuItem(page, { menu: "Capture actions", item: "Effects…" });
+  const panel = page.getByTestId("recorder-effects-panel");
+  await expect(panel).toHaveCount(1);
+
+  // Choose Effects again and keep the same panel open.
+  await selectMenuItem(page, { menu: "Capture actions", item: "Effects…" });
+  await expect(panel).toHaveCount(1);
+
+  // Close the panel from its own close button.
+  await page
+    .getByRole("button", { name: "Close Capture Effects", exact: true })
+    .click();
+  await expect(panel).toHaveCount(0);
+});
