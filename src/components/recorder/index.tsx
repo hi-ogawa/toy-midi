@@ -194,6 +194,10 @@ export function Recorder({ projectId }: { projectId: string }) {
       event.preventDefault();
       return;
     }
+    if (matchKeyboardEvent(event, "S") && clipInteraction.splitSelected()) {
+      event.preventDefault();
+      return;
+    }
     if (matchKeyboardEvent(event, "Ctrl+C")) {
       // Preserve normal browser copy when the user selected rendered text.
       if (window.getSelection()?.isCollapsed === false) {
@@ -586,6 +590,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                     runtime.setClipSoloed({ id: take.id, soloed })
                   }
                   onDelete={() => runtime.removeClips([take.id])}
+                  splitDisabled={!clipInteraction.canSplit(take.id)}
+                  onSplit={() => clipInteraction.split(take.id)}
                 >
                   <AudioTimelineLane
                     clips={[take]}

@@ -7,6 +7,7 @@ import {
   HeadphonesIcon,
   MoreVerticalIcon,
   Settings2Icon,
+  ScissorsIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -363,6 +364,8 @@ export function TakeTrackRow({
   onMutedChange,
   onSoloedChange,
   onDelete,
+  onSplit,
+  splitDisabled,
   children,
 }: {
   label: string;
@@ -371,6 +374,8 @@ export function TakeTrackRow({
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
   onDelete: () => void;
+  onSplit: () => void;
+  splitDisabled: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -387,6 +392,10 @@ export function TakeTrackRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
+            <DropdownMenuItem onSelect={onSplit} disabled={splitDisabled}>
+              <ScissorsIcon />
+              Split at playhead
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={onDelete}>
               <Trash2Icon />
               Delete take
