@@ -47,7 +47,6 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
-  latencyCompensation: number;
   // Optional for recorder projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
@@ -169,7 +168,6 @@ export function serializeRecorderRuntimeState(
         };
       }),
     },
-    latencyCompensation: state.latencyCompensation,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
     loop: state.loop,
@@ -256,7 +254,6 @@ export function deserializeRecorderRuntimeState({
         };
       }),
     },
-    latencyCompensation: project.latencyCompensation,
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
     loop: project.loop ?? { enabled: false },

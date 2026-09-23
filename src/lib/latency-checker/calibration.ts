@@ -1,5 +1,3 @@
-import type { CaptureChunk } from "./capture-worklet.ts";
-
 export type CalibrationPlayback = {
   clickOffsets: number[];
   samples: Float32Array;
@@ -90,30 +88,23 @@ export function createCalibrationPlayback({
 }
 
 /**
- * Reconstructs captured PCM and locates the template near every scheduled click.
- *
- * Captured chunks and expected frames use absolute AudioContext coordinates.
- * Assembly discards samples before `playbackStartFrame`, so recording index zero
- * corresponds to playback sample zero. Measurements report each detected
- * position as a signed sample offset from its scheduled click.
+ * Locates the template near every scheduled click in playback-aligned PCM.
+ * Recording index zero corresponds to playback.startFrame. Measurements report
+ * each detected position as a signed sample offset from its scheduled click.
  */
 export function analyzeCalibration({
-  chunks,
+  recording,
   maxLatency,
   playback,
   sampleRate,
   template,
 }: {
-  chunks: CaptureChunk[];
+  recording: Float32Array;
   maxLatency: number;
   playback: CalibrationPlayback;
   sampleRate: number;
   template: Float32Array;
 }): CalibrationAnalysis {
-  const recording = assembleChunks({
-    chunks,
-    playbackStartFrame: playback.startFrame,
-  });
   const measurements = playback.clickOffsets.map((expectedOffset) =>
     findTemplate({
       expectedOffset,
@@ -127,38 +118,6 @@ export function analyzeCalibration({
     measurements,
     recording,
   };
-}
-
-/**
- * Assembles capture from playback start into one contiguous sample array.
- *
- * Samples before playback are discarded. Missing ranges remain zero-filled, and
- * later chunks replace overlapping samples. Output index zero corresponds to
- * `playbackStartFrame`.
- */
-function assembleChunks({
-  chunks,
-  playbackStartFrame,
-}: {
-  chunks: CaptureChunk[];
-  playbackStartFrame: number;
-}): Float32Array {
-  if (chunks.length === 0) {
-    throw new Error("No PCM arrived from the selected input.");
-  }
-  const maxFrame = Math.max(
-    ...chunks.map((chunk) => chunk.frameStart + chunk.samples.length),
-  );
-  const samples = new Float32Array(Math.max(0, maxFrame - playbackStartFrame));
-  // Gaps stay zero-filled; later chunks replace overlapping samples.
-  for (const chunk of chunks) {
-    setArrayClipped(
-      samples,
-      chunk.samples,
-      chunk.frameStart - playbackStartFrame,
-    );
-  }
-  return samples;
 }
 
 /**
@@ -269,4 +228,23 @@ function setArrayClipped(
   if (length > 0) {
     target.set(source.subarray(sourceStart, sourceStart + length), targetStart);
   }
+}
+
+export function summarizeCalibration({ measurements }: CalibrationAnalysis) {
+  const offsets = measurements.map(({ offsetSamples }) => offsetSamples);
+  return {
+    medianSamples: calculateMedian(offsets),
+    spreadSamples: Math.max(...offsets) - Math.min(...offsets),
+    weakCount: measurements.filter(
+      ({ score }) => !Number.isFinite(score) || score < 0.25,
+    ).length,
+  };
+}
+
+function calculateMedian(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
 }

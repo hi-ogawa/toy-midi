@@ -2,9 +2,8 @@ import { AudioViewBuilder, type AudioView } from "../audio-view.ts";
 import type { CaptureChunk } from "./capture-worklet.ts";
 
 export class ActiveRecording {
-  private readonly chunks: CaptureChunk[] = [];
   private readonly audioViewBuilder: AudioViewBuilder;
-  private readonly startFrame: number;
+  readonly startFrame: number;
   private endFrame: number;
 
   constructor({
@@ -33,7 +32,6 @@ export class ActiveRecording {
         samples: chunk.samples.subarray(sampleOffset),
       };
     }
-    this.chunks.push(chunk);
     this.audioViewBuilder.append(
       chunk.samples,
       chunk.frameStart - this.startFrame,
@@ -52,42 +50,5 @@ export class ActiveRecording {
     // This is elapsed capture span, not accumulated PCM count. Missing frames
     // become silence during assembly and still contribute to take duration.
     return this.endFrame - this.startFrame;
-  }
-
-  finish(stopFrame: number): Float32Array | undefined {
-    // Reconstruct [startFrame, stopFrame) in capture-relative coordinates.
-    // Missing ranges remain zero-filled and later chunks replace overlaps.
-    const length = stopFrame - this.startFrame;
-    if (length <= 0) {
-      return undefined;
-    }
-    const samples = new Float32Array(length);
-    for (const chunk of this.chunks) {
-      setArrayClipped(
-        samples,
-        chunk.samples,
-        chunk.frameStart - this.startFrame,
-      );
-    }
-    this.audioViewBuilder.reset();
-    this.audioViewBuilder.append(samples, 0);
-    return samples;
-  }
-}
-
-/** Performs `target.set(source, offset)` while clipping either array boundary. */
-function setArrayClipped(
-  target: Float32Array,
-  source: Float32Array,
-  offset: number,
-): void {
-  const sourceStart = Math.max(0, -offset);
-  const targetStart = Math.max(0, offset);
-  const length = Math.min(
-    source.length - sourceStart,
-    target.length - targetStart,
-  );
-  if (length > 0) {
-    target.set(source.subarray(sourceStart, sourceStart + length), targetStart);
   }
 }

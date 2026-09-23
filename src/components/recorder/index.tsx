@@ -644,6 +644,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
             isRecording={flags.isRecording}
+            isPlaying={state.isPlaying}
             selectedDevice={input.selectedDevice}
             selectedChannel={state.selectedChannel}
             inputChannelCount={state.inputChannelCount}
