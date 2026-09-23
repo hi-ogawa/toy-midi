@@ -415,17 +415,14 @@ export function TakeTrackRow({
           className="size-7"
           title="Solo take"
         />
-        <div className="col-span-4 flex items-center gap-2">
+        <label className="col-span-4 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
           <RecorderGainSlider
             label={`${label} gain`}
             gain={gain}
             onGainChange={onGainChange}
-            className="flex-1"
           />
-          <span className="w-14 text-right font-mono text-neutral-400">
-            {formatGainDb(gain)}
-          </span>
-        </div>
+          <span className="text-right font-mono">{formatGainDb(gain)}</span>
+        </label>
       </div>
       {children}
     </div>
