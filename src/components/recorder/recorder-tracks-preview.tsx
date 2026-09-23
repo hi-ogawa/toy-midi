@@ -41,7 +41,11 @@ import { RecorderMixToggle } from "./recorder-mix-toggle";
 // devices, audio, and recording are simulated; only the interaction model is
 // under evaluation.
 
-type Variant = "header-input" | "row-input" | "record-destination";
+type Variant =
+  | "header-input"
+  | "row-input"
+  | "record-destination"
+  | "input-dock";
 type Permission = "prompt" | "granted" | "denied";
 type InputStatus = "closed" | "opening" | "open";
 
@@ -107,6 +111,12 @@ const VARIANTS: { id: Variant; label: string; summary: string }[] = [
     summary:
       "No per-row arm. The Record button carries a destination menu, including a new track. Rows only show a marker on the destination. Input is the same header control as A.",
   },
+  {
+    id: "input-dock",
+    label: "D · Input dock + row arm",
+    summary:
+      "A refined. Input lives in an always-visible bar docked at the bottom, with the meter, monitoring, an inline tuner readout, and the device latency one click away. Track controls only gain R, and the header keeps only Record. Per-track meters are left for a later unified output-meter pass.",
+  },
 ];
 
 const SCENARIOS: Scenario[] = [
@@ -145,6 +155,7 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "row-input": "R toggle on every audio row, exclusive.",
       "record-destination":
         "Record ▾ menu lists audio tracks and New audio track.",
+      "input-dock": "R toggle on every audio row, exclusive.",
     },
   },
   {
@@ -155,6 +166,8 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "row-input": "Opens when arming. Off by disarming or from the row.",
       "record-destination":
         "Opens on demand (destination, Record, monitoring, tuner).",
+      "input-dock":
+        "Opens on demand (arm, Record, monitoring, tuner). Off from the dock.",
     },
   },
   {
@@ -163,6 +176,8 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "header-input": "Header chip and popover. Armed row adds a thin meter.",
       "row-input": "Inside the armed row only.",
       "record-destination": "Header chip and popover.",
+      "input-dock":
+        "Bottom dock, always visible. Tuner reads inline. Rows have no meter.",
     },
   },
   {
@@ -171,6 +186,7 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "header-input": "Yes.",
       "row-input": "No. Arm a track first.",
       "record-destination": "Yes.",
+      "input-dock": "Yes.",
     },
   },
   {
@@ -179,6 +195,7 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "header-input": "Uniform rows. Arming does not resize.",
       "row-input": "Armed row grows, so arming moves rows below it.",
       "record-destination": "Uniform rows with fewest controls.",
+      "input-dock": "Uniform rows. Only R is added.",
     },
   },
   {
@@ -187,6 +204,16 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "header-input": "Record disabled: “Arm a track to record”.",
       "row-input": "Record disabled: “Arm a track to record”.",
       "record-destination": "Record opens the destination menu.",
+      "input-dock": "Record disabled: “Arm a track to record”.",
+    },
+  },
+  {
+    topic: "Clicks to toggle monitoring or tuner",
+    values: {
+      "header-input": "Two: open the popover, then toggle.",
+      "row-input": "One, but only while a track is armed.",
+      "record-destination": "Two: open the popover, then toggle.",
+      "input-dock": "One, always visible.",
     },
   },
 ];
@@ -248,7 +275,7 @@ function createInitialTracks(): MockTrack[] {
 }
 
 export function RecorderTracksPreview() {
-  const [variant, setVariant] = useState<Variant>("header-input");
+  const [variant, setVariant] = useState<Variant>("input-dock");
   const [scenario, setScenario] = useState(SCENARIOS[0]);
   const [resetCount, setResetCount] = useState(0);
   return (
@@ -337,6 +364,7 @@ function MockRecorder({
   const [notice, setNotice] = useState<string>();
   const [device, setDevice] = useState(MOCK_DEVICES[0]);
   const [channel, setChannel] = useState(1);
+  const [latencyMs] = useState(12.5);
   const [monitoring, setMonitoring] = useState(false);
   const [tunerOpen, setTunerOpen] = useState(false);
   const [inputSetupOpen, setInputSetupOpen] = useState(false);
@@ -589,7 +617,9 @@ function MockRecorder({
             )}
           </Button>
         )}
-        {variant !== "row-input" && <HeaderInputControl {...inputControl} />}
+        {(variant === "header-input" || variant === "record-destination") && (
+          <HeaderInputControl {...inputControl} />
+        )}
         <div className="mx-1 h-5 w-px bg-neutral-600" />
         <span className="font-mono text-sm tabular-nums text-neutral-300">
           {formatBar(playhead)}
@@ -801,7 +831,7 @@ function MockRecorder({
             </Button>
           </div>
         </div>
-        {tunerOpen && inputOpen && (
+        {tunerOpen && inputOpen && variant !== "input-dock" && (
           <div className="absolute top-3 right-4 z-40 w-48 rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl">
             <div className="flex items-center text-xs text-neutral-400">
               Tuner
@@ -819,6 +849,14 @@ function MockRecorder({
         )}
       </div>
 
+      {variant === "input-dock" && (
+        <InputDock
+          {...inputControl}
+          latencyMs={latencyMs}
+          onDeviceChange={setDevice}
+          onChannelChange={setChannel}
+        />
+      )}
       {pendingPrompt && (
         <div className="absolute top-2 left-4 z-50 w-80 rounded-lg bg-neutral-100 p-4 text-sm text-neutral-900 shadow-2xl">
           <div className="text-xs text-neutral-500">
@@ -856,7 +894,7 @@ function MockRecorder({
       {notice && (
         <div
           role="status"
-          className="absolute bottom-4 left-1/2 z-50 flex max-w-lg -translate-x-1/2 items-start gap-2 rounded-lg border border-orange-700/60 bg-orange-950/90 px-4 py-3 text-xs text-orange-200 shadow-2xl"
+          className="absolute bottom-14 left-1/2 z-50 flex max-w-lg -translate-x-1/2 items-start gap-2 rounded-lg border border-orange-700/60 bg-orange-950/90 px-4 py-3 text-xs text-orange-200 shadow-2xl"
         >
           {notice}
           <button aria-label="Dismiss" onClick={() => setNotice(undefined)}>
@@ -953,6 +991,160 @@ function HeaderInputControl(props: InputControlProps) {
         <InputPanel {...props} />
       </PopoverContent>
     </Popover>
+  );
+}
+
+function InputDock({
+  status,
+  permission,
+  device,
+  channel,
+  monitoring,
+  tunerOpen,
+  latencyMs,
+  onOpen,
+  onClose,
+  onMonitoringChange,
+  onTunerChange,
+  onSetup,
+  onDeviceChange,
+  onChannelChange,
+}: InputControlProps & {
+  latencyMs: number;
+  onDeviceChange: (device: string) => void;
+  onChannelChange: (channel: number) => void;
+}) {
+  const blocked = permission === "denied";
+  const open = status === "open";
+  return (
+    <section
+      aria-label="Input dock"
+      className="flex h-10 shrink-0 items-center gap-2 border-t border-neutral-700 bg-neutral-800 px-3 text-xs"
+    >
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label="Input route"
+            disabled={blocked}
+            className="h-7 w-56 justify-start gap-2 border-neutral-600 px-2 text-xs text-neutral-300 hover:bg-neutral-700"
+          >
+            {blocked ? (
+              <MicOffIcon className="size-4 shrink-0 text-orange-300" />
+            ) : status === "opening" ? (
+              <LoaderCircleIcon className="size-4 shrink-0 animate-spin" />
+            ) : (
+              <MicIcon
+                className={cn(
+                  "size-4 shrink-0",
+                  open ? "text-emerald-400" : "text-neutral-500",
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                "truncate",
+                blocked && "text-orange-200",
+                !open && !blocked && "text-neutral-500",
+              )}
+            >
+              {blocked
+                ? "Microphone blocked"
+                : status === "opening"
+                  ? "Opening input…"
+                  : `${device} · Ch ${channel}`}
+            </span>
+            <ChevronDownIcon className="ml-auto size-3 shrink-0 text-neutral-500" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" side="top">
+          <DropdownMenuLabel>Device</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={device} onValueChange={onDeviceChange}>
+            {MOCK_DEVICES.map((entry) => (
+              <DropdownMenuRadioItem key={entry} value={entry}>
+                {entry}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Channel</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={String(channel)}
+            onValueChange={(value) => onChannelChange(Number(value))}
+          >
+            {[1, 2].map((entry) => (
+              <DropdownMenuRadioItem key={entry} value={String(entry)}>
+                Channel {entry}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {blocked ? (
+        <span className="flex-1 text-orange-200/80">
+          Allow microphone access from the browser’s site settings.
+        </span>
+      ) : (
+        <MockMeter active={open} className="h-2 flex-1" />
+      )}
+      <PanelToggle
+        pressed={monitoring}
+        disabled={blocked}
+        onClick={() => onMonitoringChange(!monitoring)}
+        icon={<HeadphonesIcon className="size-3.5" />}
+        label="Monitor"
+      />
+      <Button
+        aria-label="Tuner"
+        aria-pressed={tunerOpen}
+        disabled={blocked}
+        onClick={() => onTunerChange(!tunerOpen)}
+        className={cn(
+          "h-7 w-32 justify-start gap-1.5 border-neutral-600 px-2 text-xs",
+          tunerOpen
+            ? "bg-sky-500/25 text-sky-200 hover:bg-sky-500/35"
+            : "text-neutral-300 hover:bg-neutral-700",
+        )}
+      >
+        <AudioWaveformIcon className="size-3.5" />
+        Tuner
+        {tunerOpen && open && (
+          <span className="ml-auto font-mono">
+            E1 <span className="text-emerald-300">+3¢</span>
+          </span>
+        )}
+      </Button>
+      <button
+        type="button"
+        title="Recording latency compensation for this device"
+        onClick={onSetup}
+        className="rounded px-2 py-1 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+      >
+        Latency{" "}
+        <span className="font-mono text-neutral-200">{latencyMs} ms</span>
+      </button>
+      <button
+        type="button"
+        aria-label="Input setup"
+        title="Input setup"
+        onClick={onSetup}
+        className="grid size-7 place-items-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+      >
+        <Settings2Icon className="size-3.5" />
+      </button>
+      <Button
+        aria-pressed={open}
+        disabled={blocked || status === "opening"}
+        onClick={open ? onClose : onOpen}
+        className={cn(
+          "h-7 w-24 border-neutral-600 text-xs",
+          open
+            ? "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
+            : "text-neutral-300 hover:bg-neutral-700",
+        )}
+      >
+        {open ? "Input on" : "Input off"}
+      </Button>
+    </section>
   );
 }
 
@@ -1061,7 +1253,7 @@ function PanelToggle({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "h-7 gap-1.5 border-neutral-600 text-xs",
+        "h-7 gap-1.5 border-neutral-600 px-2 text-xs",
         pressed
           ? "bg-sky-500/25 text-sky-200 hover:bg-sky-500/35"
           : "text-neutral-300 hover:bg-neutral-700",
