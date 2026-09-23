@@ -400,7 +400,6 @@ function TimelineRange({
 }
 
 type RecorderTimelineClip = {
-  gain?: number;
   label: string;
   /** Visible clip length on the timeline, in seconds. */
   duration: number;
@@ -419,6 +418,7 @@ type RecorderTimelineClip = {
     | "reference";
   variant?: "audio" | "reference";
   audioView?: AudioView;
+  gain?: number;
 };
 
 const TIMELINE_EPSILON = 1e-6;
