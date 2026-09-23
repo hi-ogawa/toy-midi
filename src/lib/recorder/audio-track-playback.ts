@@ -9,10 +9,15 @@ import type {
   TransportParticipant,
 } from "./transport.ts";
 
+type ClipPlayback = {
+  clipId: string;
+  playback: AudioBufferPlayback;
+};
+
 /** Owns region playback and a channel that also accepts independently routed input for capture monitoring. */
 export class AudioTrackPlayback {
   private readonly transport: AudioContextTransport;
-  private playbacks: { clipId: string; playback: AudioBufferPlayback }[] = [];
+  private playbacks: ClipPlayback[] = [];
   private readonly pitchShiftBus: PitchShiftBus;
   /** Mutes region playback without muting other sources connected to channel.input. */
   private readonly playbackGain: GainNode;
