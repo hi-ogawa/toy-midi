@@ -466,9 +466,7 @@ export class RecorderRuntime {
   }
 
   commitClipEdit(edit: RecorderClipEdit): void {
-    this.updateClips(() => {
-      this.store.update(deriveClipEditState(this.store.get(), edit));
-    });
+    this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
   setClipGain({ id, gain }: { id: string; gain: number }): void {
@@ -477,18 +475,17 @@ export class RecorderRuntime {
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
-    this.updateClips(() => {
-      this.updateClipState({ id, update: (clip) => ({ ...clip, muted }) });
-    });
+    this.updateClip(id, (clip) => ({ ...clip, muted }));
   }
 
   setClipSoloed({ id, soloed }: { id: string; soloed: boolean }): void {
-    this.updateClips(() => {
-      this.updateClipState({ id, update: (clip) => ({ ...clip, soloed }) });
-    });
+    this.updateClip(id, (clip) => ({ ...clip, soloed }));
   }
 
-  /** Commit clip state and derived regions without touching playback. */
+  /**
+   * Commit clip state without rebuilding playback. Gain follows this with a node
+   * parameter sync; mute/solo use updateClip because they change comp participation.
+   */
   private updateClipState({
     id,
     update,
@@ -496,18 +493,13 @@ export class RecorderRuntime {
     id: string;
     update: (clip: AudioClip) => AudioClip;
   }): void {
-    function updateTrack(track: AudioTrackState): AudioTrackState {
-      return updateTrackClips({
-        track,
-        update: (clips) =>
-          clips.map((clip) => (clip.id === id ? update(clip) : clip)),
-      });
-    }
-    const state = this.store.get();
-    this.store.update({
-      audioTracks: state.audioTracks.map(updateTrack),
-      recordingTrack: updateTrack(state.recordingTrack),
-    });
+    this.store.update(
+      deriveClipUpdateState({ state: this.store.get(), id, update }),
+    );
+  }
+
+  private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
+    this.updateClips((state) => deriveClipUpdateState({ state, id, update }));
   }
 
   removeClips(ids: readonly string[]): void {
@@ -530,24 +522,20 @@ export class RecorderRuntime {
 
   /** @internal for undo */
   applyClipInsertRemove(change: RecorderClipInsertRemove): void {
-    this.updateClips(() => {
-      this.store.update(deriveClipInsertRemoveState(this.store.get(), change));
-    });
+    this.updateClips((state) => deriveClipInsertRemoveState(state, change));
   }
 
-  /**
-   * Apply a state update that changes clip regions and rebuild affected playback,
-   * pausing and resuming transport around the update. Parameter-only edits such as
-   * gain call their state updater and signal-chain-preserving sync directly.
-   */
-  private updateClips(update: () => void): void {
+  /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
+  private updateClips(
+    update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
+  ): void {
     const state = this.store.get();
+    const next = update(state);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    update();
-    const next = this.store.get();
+    this.store.update(next);
     if (next.recordingTrack !== state.recordingTrack) {
       this.syncTrackPlayback(next.recordingTrack);
     }
@@ -1241,6 +1229,30 @@ export class RecorderRuntime {
 
   undo = () => this.history.undo();
   redo = () => this.history.redo();
+}
+
+/** Derive a clip property update without committing state or touching playback. */
+function deriveClipUpdateState({
+  state,
+  id,
+  update,
+}: {
+  state: RecorderRuntimeState;
+  id: string;
+  update: (clip: AudioClip) => AudioClip;
+}): RecorderRuntimeClipsState {
+  function updateTrack(track: AudioTrackState): AudioTrackState {
+    return updateTrackClips({
+      track,
+      update: (clips) =>
+        clips.map((clip) => (clip.id === id ? update(clip) : clip)),
+    });
+  }
+  return {
+    audioTracks: state.audioTracks.map(updateTrack),
+    recordingTrack: updateTrack(state.recordingTrack),
+    referenceVideo: state.referenceVideo,
+  };
 }
 
 /** Derive clip insertion or removal without mutating the supplied state. */
