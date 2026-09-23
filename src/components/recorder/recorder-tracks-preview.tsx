@@ -50,6 +50,7 @@ type Variant =
   | "input-dock"
   | "input-panel";
 type Permission = "prompt" | "granted" | "denied";
+type RowLayout = "one-line" | "name-menu" | "two-line";
 type InputStatus = "closed" | "opening" | "open";
 
 type MockClip = {
@@ -91,6 +92,7 @@ type Scenario = {
 
 const TIMELINE_BARS = 16;
 const TRACK_HEIGHT = 76;
+const TWO_LINE_TRACK_HEIGHT = 96;
 const ROW_INPUT_TRACK_HEIGHT = 124;
 const TAKE_HEIGHT = 48;
 const MOCK_DEVICES = ["Scarlett 2i2 USB", "MacBook Pro Microphone"];
@@ -124,7 +126,28 @@ const VARIANTS: { id: Variant; label: string; summary: string }[] = [
     id: "input-panel",
     label: "E · Input panel + row arm",
     summary:
-      "A mini panel that stays open until closed, like Mixer and Reference video but only as large as A's popover. It holds on/off, the meter, Monitor, and a Tuner toggle that opens the existing separate tuner panel. The route is a read-only label that opens Audio input settings, a modal for per-device configuration: device, channel, latency compensation with Measure, and diagnostics. The header Input button behaves like the other panel toggles and only turns orange while microphone access is required. Bootstrap stays as today: grant access, then turn input on.",
+      "A mini panel that stays open until closed, like Mixer and Reference video but only as large as A's popover. It holds on/off, the meter, and a Tuner toggle that opens the existing separate tuner panel. Monitoring is per track: a headphones toggle next to R routes input through that track's EQ and gain. The route is a read-only label that opens Audio input settings, a modal for per-device configuration: device, channel, latency compensation with Measure, and diagnostics. The header Input button behaves like the other panel toggles and only turns orange while microphone access is required. Bootstrap stays as today: grant access, then turn input on.",
+  },
+];
+
+const ROW_LAYOUTS: { id: RowLayout; label: string; summary: string }[] = [
+  {
+    id: "two-line",
+    label: "Two lines",
+    summary:
+      "The name and ⋮ get their own line. Input controls (R, 🎧) sit left and mix controls (M, S, FX) sit right on the second line, above the fader. Rows grow from 76px to 96px. The fader is where a future per-track meter can live, shown here behind monitored faders.",
+  },
+  {
+    id: "name-menu",
+    label: "Name as menu",
+    summary:
+      "The track name becomes the menu trigger, so ⋮ disappears and one line fits R, 🎧, M, S, and FX. Row height is unchanged, but names are still short and the menu is less discoverable.",
+  },
+  {
+    id: "one-line",
+    label: "One line (too tight)",
+    summary:
+      "Today's single line with 🎧 added. Names truncate to a few letters.",
   },
 ];
 
@@ -191,7 +214,7 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "input-dock":
         "Bottom dock, always visible. Tuner reads inline. Rows have no meter.",
       "input-panel":
-        "Mini panel for session controls. Route label opens a settings modal for device, channel, latency, diagnostics.",
+        "Mini panel: on/off, meter, Tuner. Route label opens a settings modal for device, channel, latency, diagnostics.",
     },
   },
   {
@@ -233,6 +256,18 @@ const DECISIONS: { topic: string; values: Record<Variant, string> }[] = [
       "record-destination": "Two: open the popover, then toggle.",
       "input-dock": "One, always visible.",
       "input-panel": "One while the panel is open. Tuner opens its own panel.",
+    },
+  },
+  {
+    topic: "Monitoring scope",
+    values: {
+      "header-input":
+        "Global toggle (mock only). Would regress today's monitoring through the Capture channel.",
+      "row-input": "Armed row only, through its channel.",
+      "record-destination": "Global toggle (mock only). Same regression as A.",
+      "input-dock": "Global toggle (mock only). Same regression as A.",
+      "input-panel":
+        "Per-track 🎧 toggle next to R, through that track's EQ and gain. Several tracks may monitor at once.",
     },
   },
 ];
@@ -297,6 +332,7 @@ export function RecorderTracksPreview() {
   const [variant, setVariant] = useState<Variant>("input-panel");
   const [scenario, setScenario] = useState(SCENARIOS[0]);
   const [resetCount, setResetCount] = useState(0);
+  const [rowLayout, setRowLayout] = useState<RowLayout>("two-line");
   return (
     <div className="space-y-4">
       <OptionGroup
@@ -308,6 +344,19 @@ export function RecorderTracksPreview() {
       <p className="max-w-4xl text-sm leading-6 text-neutral-400">
         {VARIANTS.find((entry) => entry.id === variant)!.summary}
       </p>
+      {variant === "input-panel" && (
+        <>
+          <OptionGroup
+            label="Row layout"
+            options={ROW_LAYOUTS.map(({ id, label }) => ({ id, label }))}
+            value={rowLayout}
+            onChange={setRowLayout}
+          />
+          <p className="max-w-4xl text-sm leading-6 text-neutral-400">
+            {ROW_LAYOUTS.find((entry) => entry.id === rowLayout)!.summary}
+          </p>
+        </>
+      )}
       <div className="flex items-center gap-2">
         <OptionGroup
           label="Scenario"
@@ -331,6 +380,7 @@ export function RecorderTracksPreview() {
         key={`${scenario.id}-${resetCount}`}
         variant={variant}
         scenario={scenario}
+        rowLayout={variant === "input-panel" ? rowLayout : "one-line"}
       />
       <DecisionTable variant={variant} />
     </div>
@@ -369,7 +419,9 @@ function OptionGroup<Id extends string>({
 function MockRecorder({
   variant,
   scenario,
+  rowLayout,
 }: {
+  rowLayout: RowLayout;
   variant: Variant;
   scenario: Scenario;
 }) {
@@ -389,6 +441,8 @@ function MockRecorder({
     scenario.inputStatus === "open",
   );
   const [monitoring, setMonitoring] = useState(false);
+  // E monitors per track, through each track's own channel.
+  const [monitoredIds, setMonitoredIds] = useState<string[]>([]);
   const [tunerOpen, setTunerOpen] = useState(false);
   const [inputSetupOpen, setInputSetupOpen] = useState(false);
   const [playhead, setPlayhead] = useState(0);
@@ -447,6 +501,7 @@ function MockRecorder({
   function closeInput() {
     setInputStatus("closed");
     setMonitoring(false);
+    setMonitoredIds([]);
     setTunerOpen(false);
   }
 
@@ -715,10 +770,15 @@ function MockRecorder({
             return (
               <TrackFrame
                 key={track.id}
-                height={TRACK_HEIGHT}
+                height={
+                  rowLayout === "two-line"
+                    ? TWO_LINE_TRACK_HEIGHT
+                    : TRACK_HEIGHT
+                }
                 header={
                   <TrackHeader
                     track={track}
+                    layout={rowLayout}
                     onMutedChange={(muted) => updateTrack(track.id, { muted })}
                     onSoloedChange={(soloed) =>
                       updateTrack(track.id, { soloed })
@@ -726,6 +786,7 @@ function MockRecorder({
                     menu={
                       <TrackMenu
                         label={track.name}
+                        trigger={rowLayout === "name-menu" ? "name" : "icon"}
                         onRename={(name) => updateTrack(track.id, { name })}
                         onRemove={() => removeTrack(track.id)}
                       />
@@ -747,10 +808,22 @@ function MockRecorder({
           return (
             <div key={track.id}>
               <TrackFrame
-                height={rowInput ? ROW_INPUT_TRACK_HEIGHT : TRACK_HEIGHT}
+                height={
+                  rowInput
+                    ? ROW_INPUT_TRACK_HEIGHT
+                    : rowLayout === "two-line"
+                      ? TWO_LINE_TRACK_HEIGHT
+                      : TRACK_HEIGHT
+                }
                 header={
                   <TrackHeader
                     track={track}
+                    layout={rowLayout}
+                    metering={
+                      variant === "input-panel" &&
+                      inputOpen &&
+                      monitoredIds.includes(track.id)
+                    }
                     marker={
                       variant === "record-destination" && armed ? (
                         <span
@@ -764,14 +837,30 @@ function MockRecorder({
                     }
                     arm={
                       variant === "record-destination" ? undefined : (
-                        <ArmToggle
-                          armed={armed}
-                          disabled={!!pending}
-                          label={track.name}
-                          onClick={() =>
-                            selectDestination(armed ? undefined : track.id)
-                          }
-                        />
+                        <>
+                          <ArmToggle
+                            armed={armed}
+                            disabled={!!pending}
+                            label={track.name}
+                            onClick={() =>
+                              selectDestination(armed ? undefined : track.id)
+                            }
+                          />
+                          {variant === "input-panel" && (
+                            <MonitorToggle
+                              label={track.name}
+                              monitoring={monitoredIds.includes(track.id)}
+                              disabled={!inputOpen}
+                              onClick={() =>
+                                setMonitoredIds((ids) =>
+                                  ids.includes(track.id)
+                                    ? ids.filter((id) => id !== track.id)
+                                    : [...ids, track.id],
+                                )
+                              }
+                            />
+                          )}
+                        </>
                       )
                     }
                     onMutedChange={(muted) => updateTrack(track.id, { muted })}
@@ -781,6 +870,7 @@ function MockRecorder({
                     menu={
                       <TrackMenu
                         label={track.name}
+                        trigger={rowLayout === "name-menu" ? "name" : "icon"}
                         removeDisabled={recording}
                         onImport={() =>
                           openFilePicker({
@@ -1307,11 +1397,9 @@ function InputFloatingPanel({
   permission,
   device,
   channel,
-  monitoring,
   tunerOpen,
   onOpen,
   onClose,
-  onMonitoringChange,
   onTunerChange,
   onSetup,
   onPanelClose,
@@ -1386,14 +1474,7 @@ function InputFloatingPanel({
         ) : (
           <MockMeter active={open} className="h-1.5" />
         )}
-        <div className="grid grid-cols-2 gap-2">
-          <PanelToggle
-            pressed={monitoring}
-            disabled={!open}
-            onClick={() => onMonitoringChange(!monitoring)}
-            icon={<HeadphonesIcon className="size-3.5" />}
-            label="Monitor"
-          />
+        <div className="grid">
           <PanelToggle
             pressed={tunerOpen}
             disabled={blocked}
@@ -1679,6 +1760,41 @@ function RecordDestinationButton({
   );
 }
 
+function MonitorToggle({
+  label,
+  monitoring,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  monitoring: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const title = disabled
+    ? "Turn input on to monitor"
+    : monitoring
+      ? `Stop monitoring input on ${label}`
+      : `Monitor input through ${label} (use headphones to avoid feedback)`;
+  return (
+    <span title={title} className="inline-flex">
+      <Button
+        aria-pressed={monitoring}
+        aria-label={`Monitor ${label}`}
+        disabled={disabled}
+        onClick={onClick}
+        className={cn(
+          "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+          monitoring &&
+            "border-sky-500/60 bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
+        )}
+      >
+        <HeadphonesIcon className="size-3.5" />
+      </Button>
+    </span>
+  );
+}
+
 function ArmToggle({
   armed,
   disabled,
@@ -1709,6 +1825,8 @@ function ArmToggle({
 
 function TrackHeader({
   track,
+  layout,
+  metering,
   marker,
   arm,
   menu,
@@ -1717,6 +1835,8 @@ function TrackHeader({
   onSoloedChange,
 }: {
   track: MockTrack;
+  layout: RowLayout;
+  metering?: boolean;
   marker?: ReactNode;
   arm?: ReactNode;
   menu: ReactNode;
@@ -1724,58 +1844,104 @@ function TrackHeader({
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
 }) {
+  const name = (
+    <span className="min-w-0 truncate text-xs font-semibold">{track.name}</span>
+  );
+  const tags = (
+    <>
+      {track.kind === "midi" && (
+        <span className="text-[10px] text-neutral-500">MIDI</span>
+      )}
+      {marker}
+    </>
+  );
+  const mix = (
+    <>
+      <RecorderMixToggle
+        active={track.muted}
+        kind="mute"
+        className="size-7"
+        onClick={() => onMutedChange(!track.muted)}
+      />
+      <RecorderMixToggle
+        active={track.soloed}
+        kind="solo"
+        className="size-7"
+        onClick={() => onSoloedChange(!track.soloed)}
+      />
+      <RecorderEffectsToggle
+        label={track.name}
+        open={false}
+        onClick={() => {}}
+        className="size-7"
+      />
+    </>
+  );
+  const fader = footer ?? <MockFader metering={metering} />;
+  if (layout === "two-line") {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex h-6 items-center gap-1">
+          {name}
+          {tags}
+          <div className="flex-1" />
+          {menu}
+        </div>
+        <div className="flex items-center gap-1">
+          {arm}
+          <div className="flex-1" />
+          {mix}
+        </div>
+        {fader}
+      </div>
+    );
+  }
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1">
-        <span className="min-w-0 truncate text-xs font-semibold">
-          {track.name}
-        </span>
-        {track.kind === "midi" && (
-          <span className="text-[10px] text-neutral-500">MIDI</span>
+        {layout === "name-menu" ? menu : name}
+        {tags}
+        {layout !== "name-menu" && (
+          <>
+            <div className="flex-1" />
+            {menu}
+          </>
         )}
-        {marker}
-        <div className="flex-1" />
-        {menu}
         {arm}
-        <RecorderMixToggle
-          active={track.muted}
-          kind="mute"
-          className="size-7"
-          onClick={() => onMutedChange(!track.muted)}
-        />
-        <RecorderMixToggle
-          active={track.soloed}
-          kind="solo"
-          className="size-7"
-          onClick={() => onSoloedChange(!track.soloed)}
-        />
-        <RecorderEffectsToggle
-          label={track.name}
-          open={false}
-          onClick={() => {}}
-          className="size-7"
-        />
+        {mix}
       </div>
-      {footer ?? (
-        <div className="flex items-center gap-2 text-[10px] text-neutral-500">
-          <div className="h-1 flex-1 rounded bg-neutral-600">
-            <div className="h-1 w-3/4 rounded bg-neutral-400" />
-          </div>
-          <span className="w-12 text-right font-mono">0.0 dB</span>
-        </div>
-      )}
+      {fader}
+    </div>
+  );
+}
+
+function MockFader({ metering }: { metering?: boolean }) {
+  return (
+    <div className="flex items-center gap-2 text-[10px] text-neutral-500">
+      <div className="relative h-1.5 flex-1 overflow-hidden rounded bg-neutral-700">
+        {metering && (
+          <MockMeter
+            active
+            className="absolute inset-0 h-full bg-transparent"
+          />
+        )}
+        <div className="absolute inset-y-0 left-[75%] w-0.5 bg-neutral-300" />
+      </div>
+      <span className="w-12 text-right font-mono">0.0 dB</span>
     </div>
   );
 }
 
 function TrackMenu({
   label,
+  trigger = "icon",
   removeDisabled,
   onImport,
   onRename,
   onRemove,
 }: {
   label: string;
+  trigger?: "icon" | "name";
   removeDisabled?: boolean;
   onImport?: () => void;
   onRename: (name: string) => void;
@@ -1784,12 +1950,23 @@ function TrackMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          aria-label={`${label} actions`}
-          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-        >
-          <MoreVerticalIcon className="size-3.5" />
-        </Button>
+        {trigger === "name" ? (
+          <button
+            type="button"
+            aria-label={`${label} actions`}
+            className="flex min-w-0 flex-1 items-center gap-0.5 rounded px-1 py-1 text-left text-xs font-semibold hover:bg-neutral-700"
+          >
+            <span className="truncate">{label}</span>
+            <ChevronDownIcon className="size-3 shrink-0 text-neutral-500" />
+          </button>
+        ) : (
+          <Button
+            aria-label={`${label} actions`}
+            className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+          >
+            <MoreVerticalIcon className="size-3.5" />
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         {onImport && (
