@@ -1,20 +1,16 @@
 import {
   ArrowDownWideNarrowIcon,
   ArrowUpNarrowWideIcon,
-  AudioWaveformIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   HeadphonesIcon,
   MoreVerticalIcon,
-  Settings2Icon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
-import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { formatGainDb } from "../../lib/music";
 import { openFilePicker } from "../file-drop-input";
-import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -94,7 +90,7 @@ export function TrackRow({
   effectsOpen,
   onEffectsToggle,
   action,
-  input,
+  recording,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -111,7 +107,7 @@ export function TrackRow({
   effectsOpen: boolean;
   onEffectsToggle: () => void;
   action?: React.ReactNode;
-  input?: TrackInputControls;
+  recording?: TrackRecordingControls;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -137,9 +133,7 @@ export function TrackRow({
       <div
         className={cn(
           "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
-          input
-            ? "grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] gap-y-1"
-            : "grid-rows-[1.75rem_auto] gap-y-2",
+          "grid-rows-[1.75rem_auto] gap-y-2",
           controlsClassName,
         )}
       >
@@ -150,7 +144,7 @@ export function TrackRow({
           {action}
         </div>
         <div className="flex self-center gap-1">
-          {input && <TrackInputToggle {...input} />}
+          {recording && <TrackRecordingToggles {...recording} />}
           <RecorderMixToggle
             active={muted}
             kind="mute"
@@ -172,7 +166,6 @@ export function TrackRow({
             className="size-6"
           />
         </div>
-        {input && <TrackInputRoute {...input} />}
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
             label={`${title} gain`}
@@ -192,124 +185,68 @@ export function TrackRow({
   );
 }
 
-interface TrackInputControls {
-  route: string;
-  routeNeedsSetup: boolean;
-  inputActive: boolean;
-  inputAnalyser?: AudioAnalyser;
-  inputMonitoring: boolean;
-  inputToggleDisabled: boolean;
-  tunerOpen: boolean;
-  onInputSetup: () => void;
-  onInputMonitoringChange: (monitoring: boolean) => void;
-  onInputToggle: () => void;
-  onTunerToggle: () => void;
+interface TrackRecordingControls {
+  armed: boolean;
+  armDisabled: boolean;
+  monitoring: boolean;
+  monitorDisabled: boolean;
+  onArmedChange: (armed: boolean) => void;
+  onMonitoringChange: (monitoring: boolean) => void;
 }
 
-function TrackInputToggle({
-  inputActive,
-  inputToggleDisabled,
-  onInputToggle,
-}: TrackInputControls) {
-  return (
-    <Button
-      data-testid="recorder-input-toggle"
-      disabled={inputToggleDisabled}
-      onClick={onInputToggle}
-      className={
-        inputActive
-          ? "size-6 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
-          : "size-6 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
-      }
-      title={inputActive ? "Disarm capture" : "Arm capture"}
-      aria-label={inputActive ? "Disarm capture" : "Arm capture"}
-      aria-pressed={inputActive}
-    >
-      R
-    </Button>
-  );
-}
-
-function TrackInputRoute({
-  route,
-  routeNeedsSetup,
-  inputActive,
-  inputAnalyser,
-  inputMonitoring,
-  onInputSetup,
-  onInputMonitoringChange,
-  tunerOpen,
-  onTunerToggle,
-}: TrackInputControls) {
+/** Arm chooses where the next take goes; monitor routes input through this track. */
+function TrackRecordingToggles({
+  armed,
+  armDisabled,
+  monitoring,
+  monitorDisabled,
+  onArmedChange,
+  onMonitoringChange,
+}: TrackRecordingControls) {
   return (
     <>
-      <div className="col-span-2 flex min-w-0 items-center gap-1">
-        <span
-          className={cn(
-            "min-w-0 flex-1 truncate text-[11px]",
-            routeNeedsSetup
-              ? "font-medium text-orange-300"
-              : "text-neutral-400",
-          )}
-        >
-          {route}
-        </span>
-        <button
-          type="button"
-          aria-label="Configure audio input"
-          title="Configure audio input"
-          onClick={onInputSetup}
-          className={cn(
-            "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
-            routeNeedsSetup && "text-orange-300 hover:text-orange-200",
-          )}
-        >
-          <Settings2Icon className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          data-testid="recorder-input-monitor"
-          disabled={!inputActive}
-          aria-label={
-            inputMonitoring
+      <Button
+        data-testid="recorder-arm-toggle"
+        disabled={armDisabled}
+        onClick={() => onArmedChange(!armed)}
+        className={cn(
+          "size-6 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
+          armed &&
+            "border-red-500/60 bg-red-500/35 hover:!bg-red-500/40 hover:!text-red-300",
+        )}
+        title={armed ? "Disarm for recording" : "Arm for recording"}
+        aria-label={armed ? "Disarm for recording" : "Arm for recording"}
+        aria-pressed={armed}
+      >
+        R
+      </Button>
+      <span
+        className="inline-flex"
+        title={
+          monitorDisabled
+            ? "Turn input on to monitor"
+            : monitoring
               ? "Disable input monitoring"
-              : "Enable input monitoring"
-          }
-          aria-pressed={inputMonitoring}
-          title={
-            inputActive
-              ? inputMonitoring
-                ? "Disable input monitoring"
-                : "Enable input monitoring (use headphones to avoid feedback)"
-              : "Enable input first to monitor"
-          }
-          onClick={() => onInputMonitoringChange(!inputMonitoring)}
+              : "Enable input monitoring (use headphones to avoid feedback)"
+        }
+      >
+        <Button
+          data-testid="recorder-input-monitor"
+          disabled={monitorDisabled}
+          onClick={() => onMonitoringChange(!monitoring)}
           className={cn(
-            "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
-            inputMonitoring && "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
+            "size-6 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+            monitoring &&
+              "border-sky-500/60 bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
           )}
+          aria-label={
+            monitoring ? "Disable input monitoring" : "Enable input monitoring"
+          }
+          aria-pressed={monitoring}
         >
           <HeadphonesIcon className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label={tunerOpen ? "Close tuner" : "Open tuner"}
-          aria-pressed={tunerOpen}
-          title={tunerOpen ? "Close tuner" : "Open tuner"}
-          onClick={onTunerToggle}
-          className={cn(
-            "grid size-6 shrink-0 place-items-center rounded",
-            tunerOpen
-              ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-700"
-              : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
-          )}
-        >
-          <AudioWaveformIcon className="size-3.5" />
-        </button>
-      </div>
-      <div className="col-span-2">
-        <InputMeter active={inputActive} analyser={inputAnalyser} compact />
-      </div>
+        </Button>
+      </span>
     </>
   );
 }

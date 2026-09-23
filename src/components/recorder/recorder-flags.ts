@@ -11,9 +11,11 @@ export interface RecorderFlags {
 
 export function deriveRecorderFlags({
   captureStatus,
+  armedTrackId,
   project,
 }: {
   captureStatus: RecorderRuntimeState["captureStatus"];
+  armedTrackId: RecorderRuntimeState["armedTrackId"];
   project: UseRecorderProjectResult;
 }): RecorderFlags {
   const isRecording =
@@ -22,7 +24,10 @@ export function deriveRecorderFlags({
     isRecording,
     // Play and record stay enabled while recording because both act as stop.
     playDisabled: !project.ready,
-    recordDisabled: !project.ready || captureStatus === "disabled",
+    // Recording needs both an open input and an armed destination.
+    recordDisabled:
+      !project.ready ||
+      (!isRecording && (captureStatus === "disabled" || !armedTrackId)),
     saveDisabled:
       !project.ready || !project.dirty || project.saving || isRecording,
   };

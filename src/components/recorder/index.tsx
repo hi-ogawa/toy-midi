@@ -95,6 +95,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const project = useRecorderProject({ projectId, runtime });
   const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
+    armedTrackId: state.armedTrackId,
     project,
   });
   const recorderInteraction = useRecorderInteraction({
@@ -520,23 +521,17 @@ export function Recorder({ projectId }: { projectId: string }) {
               onHeightChange={(height) =>
                 runtime.setTrackHeight(state.recordingTrack.id, height)
               }
-              input={{
-                route: input.route.label,
-                routeNeedsSetup: input.route.needsSetup,
-                inputActive: input.active,
-                inputAnalyser: runtime.captureInput?.analyser,
-                inputMonitoring: state.inputMonitoring,
-                inputToggleDisabled:
-                  input.mutationPending ||
-                  !input.initialized ||
-                  flags.isRecording ||
-                  (!input.active && input.route.needsSetup),
-                tunerOpen: isTunerOpen,
-                onInputSetup: () => setIsInputSetupOpen(true),
-                onInputMonitoringChange: (monitoring) =>
+              recording={{
+                armed: state.armedTrackId === state.recordingTrack.id,
+                armDisabled: flags.isRecording,
+                monitoring: state.inputMonitoring,
+                monitorDisabled: !input.active,
+                onArmedChange: (armed) =>
+                  runtime.setArmedTrack(
+                    armed ? state.recordingTrack.id : undefined,
+                  ),
+                onMonitoringChange: (monitoring) =>
                   runtime.setInputMonitoring(monitoring),
-                onInputToggle: input.toggle,
-                onTunerToggle: () => setIsTunerOpen((open) => !open),
               }}
             >
               <AudioTimelineLane
@@ -546,7 +541,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clipInteraction.recordingTrack.regions
                 }
                 testId="comp"
-                emptyLabel="Enable input, place the playhead, then record"
+                emptyLabel="Turn input on, arm, place the playhead, then record"
                 recordingClipId={state.pendingRecording?.id}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
