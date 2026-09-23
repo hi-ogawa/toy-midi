@@ -9,7 +9,7 @@ import {
   waitForRecordingSamples,
 } from "./recorder-helpers";
 
-useFakeAudioInput();
+useFakeAudioInput({ audioFilePath: "e2e/fixtures/test-audio.wav" });
 
 test("balances a take during playback and preserves its gain in saved audio", async ({
   page,
@@ -24,9 +24,6 @@ test("balances a take during playback and preserves its gain in saved audio", as
   await page.getByTestId("recorder-takes-toggle").click();
   const gain = page.getByRole("slider", { name: "Take 1 gain", exact: true });
   await expect(gain).toHaveAttribute("aria-valuenow", "0");
-  // Leave export headroom because the fake input can exceed full scale.
-  const master = page.getByRole("slider", { name: "Master gain", exact: true });
-  await setSliderValue(master, [-12]);
   const original = await exportSamples(page, "original.wav");
   const waveform = page.getByTestId("recorder-clip-comp").locator("svg path");
   const originalPath = await waveform.getAttribute("d");
