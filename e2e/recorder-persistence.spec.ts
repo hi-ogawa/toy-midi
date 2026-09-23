@@ -1,5 +1,9 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import JSZip from "jszip";
+import type { SerializedRecorderRuntimeState } from "../src/lib/recorder/persistence";
 import { RECORDING_TRACK_ID } from "../src/lib/recorder/recording-track";
+import { selectMenuItem } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -220,4 +224,117 @@ test("loads and resaves a project stored with single-clip tracks and a separate 
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
   await expect(take).toContainText("Take 3");
+});
+
+test("saves, exports, and imports every clip on a multi-clip audio track", async ({
+  page,
+}) => {
+  // Seed a stored project whose audio track holds two clips with their own gain and placement.
+  await page.goto("/__e2e__/");
+  const projectId = await page.evaluate(async (captureId) => {
+    const samples = new Float32Array(22050).map(
+      (_, index) => Math.sin(index / 8) * 0.5,
+    );
+    const pcm = { sampleRate: 22050, channels: [samples] };
+    return window.__e2e.recorderProjectStorage.createWithContent({
+      title: "Multi clip",
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      audioTracks: [
+        {
+          id: captureId,
+          height: 116,
+          gain: 1,
+          muted: false,
+          soloed: false,
+          nextTakeNumber: 1,
+          clips: [],
+        },
+        {
+          id: "backing",
+          height: 72,
+          gain: 1,
+          muted: false,
+          soloed: false,
+          clips: [
+            {
+              id: "first",
+              name: "first.wav",
+              gain: 0.5,
+              timelineOffset: 0,
+              pcm,
+            },
+            {
+              id: "second",
+              name: "second.wav",
+              gain: 0.25,
+              timelineOffset: 2,
+              trimStart: 0.25,
+              trimEnd: 0.75,
+              pcm,
+            },
+          ],
+        },
+      ],
+    });
+  }, RECORDING_TRACK_ID);
+
+  // Open the project and show both clips on the one track.
+  await page.goto(`/recorder/${projectId}`);
+  const clips = page.getByTestId("recorder-clip-audio");
+  await expect(clips).toHaveCount(2);
+  await expect(clips.nth(0)).toContainText("first.wav");
+  await expect(clips.nth(1)).toContainText("second.wav");
+
+  // Save, which keeps every clip with its own gain and placement.
+  page.once("dialog", (dialog) => dialog.accept("Saved clips"));
+  await page.getByTestId("recorder-project-name").click();
+  await saveRecorderProject(page);
+  const expectedClips = [
+    { id: "first", name: "first.wav", gain: 0.5, timelineOffset: 0 },
+    {
+      id: "second",
+      name: "second.wav",
+      gain: 0.25,
+      timelineOffset: 2,
+      trimStart: 0.25,
+      trimEnd: 0.75,
+    },
+  ];
+  const saved = await page.evaluate(
+    (id) => window.__e2e.recorderProjectStorage.load(id),
+    projectId,
+  );
+  expect(
+    saved.audioTracks.find((track) => track.id === "backing")!.clips,
+  ).toMatchObject(expectedClips);
+
+  // Export the project and find both clips' audio in the archive.
+  const downloadPromise = page.waitForEvent("download");
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Project" });
+  const archivePath = test.info().outputPath("multi-clip.toymidi.zip");
+  await (await downloadPromise).saveAs(archivePath);
+  const zip = await JSZip.loadAsync(await readFile(archivePath));
+  const archived: SerializedRecorderRuntimeState<string> = JSON.parse(
+    await zip.file("project.json")!.async("text"),
+  );
+  const archivedClips = archived.audioTracks.find(
+    (track) => track.id === "backing",
+  )!.clips!;
+  expect(archivedClips).toMatchObject(expectedClips);
+  for (const clip of archivedClips) {
+    expect(zip.file(clip.pcm.channels[0])).not.toBeNull();
+  }
+
+  // Import the archive as a new project and show both clips again.
+  await page.goto("/");
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("import-recorder-project").click();
+  await (await chooserPromise).setFiles(archivePath);
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Saved clips",
+  );
+  await expect(clips).toHaveCount(2);
+  await expect(clips.nth(0)).toContainText("first.wav");
+  await expect(clips.nth(1)).toContainText("second.wav");
 });
