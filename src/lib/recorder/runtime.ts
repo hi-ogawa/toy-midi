@@ -469,7 +469,12 @@ export class RecorderRuntime {
     this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
-  /** Update clip level without rebuilding sources or restarting transport. */
+  /**
+   * Gain preserves which regions play, so update their existing gain nodes directly.
+   * Mute/solo use updateClip → updateClips because they change comp participation,
+   * which requires rebuilding sources. That path also restarts active transport,
+   * so using it for continuous gain adjustments would interrupt playback.
+   */
   setClipGain({ id, gain }: { id: string; gain: number }): void {
     const state = this.store.get();
     const update = (track: AudioTrackState) => {
