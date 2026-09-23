@@ -408,10 +408,12 @@ function getMidiOverviewPitchDomain(notes: Note[]) {
     noteMin = Math.min(noteMin, note.pitch);
     noteMax = Math.max(noteMax, note.pitch);
   }
+  // Include the C octave around the note center so at least two octave guides
+  // are visible. Ranges that already contain two Cs stay unchanged.
   const center = (noteMin + noteMax) / 2;
-  const span = Math.max(12, noteMax - noteMin); // ensure at least one octave
-  const min = center - span / 2;
-  const max = center + span / 2;
+  const octaveMin = Math.floor(center / 12) * 12;
+  const min = Math.min(noteMin, octaveMin);
+  const max = Math.max(noteMax, octaveMin + 12);
   return { min, max };
 }
 
