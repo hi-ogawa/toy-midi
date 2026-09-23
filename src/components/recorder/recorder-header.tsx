@@ -398,7 +398,9 @@ export function RecorderHeader({
         onClick={onInputPanelToggle}
         aria-pressed={inputPanelOpen}
         title={
-          inputAccessRequired ? "Input (microphone access required)" : "Input"
+          inputAccessRequired
+            ? "Audio Input (microphone access required)"
+            : "Audio Input"
         }
         className={cn(
           "size-9",

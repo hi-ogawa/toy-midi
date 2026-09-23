@@ -88,7 +88,7 @@ export function TimelineHeader({
             data-testid="recorder-add-midi-track"
             onClick={onAddMidiTrack}
             disabled={isAddingMidi}
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
             title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
           >
             <Music2Icon className="size-3.5" />
@@ -96,7 +96,7 @@ export function TimelineHeader({
           <Button
             onClick={onAddAudioTrack}
             disabled={isAddingAudio}
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
             title="Add empty audio track"
           >
             <PlusIcon className="size-3.5" />
@@ -113,7 +113,7 @@ export function TimelineHeader({
             title={
               isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
             }
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
           >
             {isAddingAudio ? (
               <LoaderCircleIcon className="size-3.5 animate-spin" />

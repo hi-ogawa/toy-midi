@@ -5,6 +5,7 @@ import {
   ChevronRightIcon,
   HeadphonesIcon,
   MoreVerticalIcon,
+  SlidersHorizontalIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -20,16 +21,17 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
-import { RecorderEffectsToggle } from "./recorder-effects-toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 import { RecorderGainSlider } from "./recorder-mixer";
 
 export function AudioTrackActions({
   label,
+  onEffectsOpen,
   onFileChange,
   onRemove,
 }: {
   label: string;
+  onEffectsOpen: () => void;
   onFileChange: (file: File) => void;
   onRemove: () => void;
 }) {
@@ -39,6 +41,11 @@ export function AudioTrackActions({
         <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() =>
             openFilePicker({ accept: "audio/*,.wav", onFile: onFileChange })
@@ -57,7 +64,7 @@ export function AudioTrackActions({
   );
 }
 
-/** Borderless actions trigger placed beside a track name, apart from the toggles. */
+/** Actions trigger that leads each track's control group. */
 export function TrackMenuButton({
   label,
   className,
@@ -70,12 +77,32 @@ export function TrackMenuButton({
       aria-label={`${label} actions`}
       {...props}
       className={cn(
-        "grid size-5 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+        "inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-600 text-neutral-300 hover:bg-neutral-700",
         className,
       )}
     >
       <MoreVerticalIcon className="size-3.5" />
     </button>
+  );
+}
+
+export function CaptureTrackActions({
+  onEffectsOpen,
+}: {
+  onEffectsOpen: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <TrackMenuButton label="Capture" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -87,8 +114,6 @@ export function TrackRow({
   gain,
   muted,
   soloed,
-  effectsOpen,
-  onEffectsToggle,
   action,
   recording,
   onGainChange,
@@ -104,8 +129,6 @@ export function TrackRow({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  effectsOpen: boolean;
-  onEffectsToggle: () => void;
   action?: React.ReactNode;
   recording?: TrackRecordingControls;
   onGainChange: (gain: number) => void;
@@ -158,12 +181,6 @@ export function TrackRow({
             onClick={() => onSoloedChange(!soloed)}
             className="size-6"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
-          />
-          <RecorderEffectsToggle
-            label={title}
-            open={effectsOpen}
-            onClick={onEffectsToggle}
-            className="size-6"
           />
         </div>
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
@@ -337,21 +354,19 @@ export function TakeTrackRow({
       data-testid="recorder-take-row"
       className="grid h-16 grid-cols-[17rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
-        <div className="flex min-w-0 items-center gap-1">
-          <span className="truncate">{label}</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <TrackMenuButton label={label} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onSelect={onDelete}>
-                <Trash2Icon />
-                Delete take
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
+        <span className="truncate">{label}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <TrackMenuButton label={label} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onSelect={onDelete}>
+              <Trash2Icon />
+              Delete take
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <RecorderMixToggle
           data-testid="recorder-take-mute"
           aria-label={`Mute ${label}`}

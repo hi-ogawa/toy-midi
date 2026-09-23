@@ -6,6 +6,7 @@ import {
   FileMusicIcon,
   Settings2Icon,
   Trash2Icon,
+  SlidersHorizontalIcon,
 } from "lucide-react";
 import {
   useCallback,
@@ -65,8 +66,7 @@ export function MidiTrackRow({
   beatsPerBar,
   subdivisionsPerBeat,
   viewportStartBeat,
-  effectsOpen,
-  onEffectsToggle,
+  onEffectsOpen,
   onRemove,
   midiInteraction,
   onTranscribe,
@@ -79,8 +79,7 @@ export function MidiTrackRow({
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
-  effectsOpen: boolean;
-  onEffectsToggle: () => void;
+  onEffectsOpen: () => void;
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
@@ -147,8 +146,6 @@ export function MidiTrackRow({
         gain={track.gain}
         muted={track.muted}
         soloed={track.soloed}
-        effectsOpen={effectsOpen}
-        onEffectsToggle={onEffectsToggle}
         onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
         onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
         onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
@@ -156,6 +153,7 @@ export function MidiTrackRow({
         action={
           <MidiTrackActions
             label={track.name}
+            onEffectsOpen={onEffectsOpen}
             viewMode={track.viewMode}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
             onRemove={onRemove}
@@ -227,6 +225,7 @@ export function MidiTrackRow({
 }
 
 function MidiTrackActions({
+  onEffectsOpen,
   isImporting,
   onImportMidi,
   onExportMidi,
@@ -238,6 +237,7 @@ function MidiTrackActions({
   onTranscribe,
   onScorePreview,
 }: {
+  onEffectsOpen: () => void;
   isImporting: boolean;
   onImportMidi: () => void;
   onExportMidi: () => void;
@@ -262,7 +262,12 @@ function MidiTrackActions({
         >
           Overview
         </DropdownMenuCheckboxItem>
+
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onInstrumentOpen}>
           <Settings2Icon />
           Instrument…
