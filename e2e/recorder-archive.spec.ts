@@ -1,4 +1,8 @@
+import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
+import JSZip from "jszip";
+import type { SerializedRecorderRuntimeState } from "../src/lib/recorder/persistence";
+import { exportRecorderProjectArchive } from "../src/lib/recorder/project-archive";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { useFakeAudioInput, selectMenuItem } from "./helpers";
 import {
@@ -13,6 +17,7 @@ import {
   waitForRecordingSamples,
   openRecorderMidiInstrument,
   selectRecorderMidiInstrument,
+  saveRecorderProject,
 } from "./recorder-helpers";
 
 useFakeAudioInput();
@@ -83,6 +88,27 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/\.toymidi\.zip$/);
   const archivePath = test.info().outputPath("recorder.toymidi.zip");
   await download.saveAs(archivePath);
+
+  // Verify the backing track is exported as a clip array with its PCM in the archive.
+  const zip = await JSZip.loadAsync(await readFile(archivePath));
+  const saved: SerializedRecorderRuntimeState<string> = JSON.parse(
+    await zip.file("project.json")!.async("text"),
+  );
+  expect(saved.audioTracks).toHaveLength(1);
+  expect(saved.audioTracks[0]).not.toHaveProperty("clip");
+  expect(saved.audioTracks[0]).not.toHaveProperty("timelineOffset");
+  expect(saved.audioTracks[0].clips).toMatchObject([
+    {
+      name: "test-audio.wav",
+      pcm: {
+        channels: [expect.stringMatching(/^audio\/tracks\/0\/clips\/0\//)],
+      },
+    },
+  ]);
+  expect(
+    zip.file(saved.audioTracks[0].clips![0].pcm.channels[0]),
+  ).not.toBeNull();
+  expect(saved.recordingTrack.takes).toHaveLength(2);
 
   // Import from the project list, which opens a newly created local project.
   await page.goto("/");
@@ -156,3 +182,86 @@ async function getRecorderClipGeometry(page: Page) {
   );
   return geometry;
 }
+
+test("imports a recorder archive with single-clip audio tracks", async ({
+  page,
+}) => {
+  // Export an archive whose audio track stores one clip with track-level timing.
+  const bytes = await readFile("e2e/fixtures/test-tones.pcm");
+  const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
+  const project: SerializedRecorderRuntimeState = {
+    title: "Single-clip archive",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    audioTracks: [
+      {
+        id: "backing",
+        height: 72,
+        gain: 0.5,
+        muted: false,
+        soloed: false,
+        timelineOffset: 2,
+        trimStart: 0.5,
+        trimEnd: 3,
+        clip: {
+          name: "stereo.wav",
+          pcm: { sampleRate: 22050, channels: [pcm, pcm] },
+        },
+      },
+    ],
+    recordingTrack: {
+      height: 116,
+      gain: 0.8,
+      muted: false,
+      soloed: false,
+      nextTakeNumber: 9,
+      takes: [
+        {
+          id: "retained",
+          number: 8,
+          timelineOffset: 3,
+          trimStart: 0.25,
+          trimEnd: 2,
+          pcm: { sampleRate: 22050, channels: [pcm] },
+        },
+      ],
+    },
+  };
+  const archive = await exportRecorderProjectArchive(project);
+
+  // Import it from the project list and open the recorder.
+  await page.goto("/");
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("import-recorder-project").click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "single-clip.toymidi.zip",
+    mimeType: "application/zip",
+    buffer: Buffer.from(await archive.arrayBuffer()),
+  });
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Single-clip archive",
+  );
+
+  // Show the backing clip and the retained take with decoded waveforms.
+  const audio = page.getByTestId("recorder-clip-audio");
+  const take = page.getByTestId("recorder-clip-comp");
+  await expect(audio).toContainText("stereo.wav");
+  await expect(take).toContainText("Take 8");
+  await expect(audio.locator("svg")).toBeVisible();
+  await expect(take.locator("svg")).toBeVisible();
+  const clipGeometry = await getRecorderClipGeometry(page);
+
+  // Rename, save, and reopen the project with the same clip placement.
+  page.once("dialog", (dialog) => dialog.accept("Resaved archive"));
+  await page.getByTestId("recorder-project-name").click();
+  await saveRecorderProject(page);
+  await page.reload();
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Resaved archive",
+  );
+  await expect(audio).toContainText("stereo.wav");
+  await expect(take).toContainText("Take 8");
+  await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
+});

@@ -3,6 +3,7 @@ import {
   addRecorderAudio,
   createRecorderProject,
   getRecorderPosition,
+  saveRecorderProject,
 } from "./recorder-helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
@@ -116,4 +117,81 @@ test("saves and restores a recorder project", async ({ page }) => {
   // A stale deep link reports the missing project without retrying its read.
   await page.goto(projectUrl);
   await expect(page.getByText(/Recorder project .* not found/)).toBeVisible();
+});
+
+test("loads and resaves a project stored with a single-clip audio track", async ({
+  page,
+}) => {
+  // Seed a stored project whose audio track keeps one clip with track-level timing.
+  await page.goto("/__e2e__/");
+  const projectId = await page.evaluate(async () => {
+    const samples = new Float32Array(22050 * 2).map(
+      (_, index) => Math.sin(index / 8) * 0.5,
+    );
+    return window.__e2e.recorderProjectStorage.createWithContent({
+      title: "Single clip",
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      audioTracks: [
+        {
+          id: "backing",
+          height: 72,
+          gain: 0.5,
+          muted: false,
+          soloed: false,
+          timelineOffset: 1,
+          trimStart: 0.25,
+          trimEnd: 1.5,
+          clip: {
+            name: "single.wav",
+            gain: 0.5,
+            pcm: { sampleRate: 22050, channels: [samples, samples] },
+          },
+        },
+      ],
+      recordingTrack: {
+        height: 116,
+        gain: 1,
+        muted: false,
+        soloed: false,
+        takes: [],
+      },
+    });
+  });
+
+  // Open the stored project and show the clip with its decoded waveform.
+  await page.goto(`/recorder/${projectId}`);
+  const clip = page.getByTestId("recorder-clip-audio");
+  await expect(clip).toContainText("single.wav");
+  await expect(clip.locator("svg")).toBeVisible();
+
+  // Rename and save, which rewrites the track as a clip array with the same timing.
+  page.once("dialog", (dialog) => dialog.accept("Resaved clip"));
+  await page.getByTestId("recorder-project-name").click();
+  await saveRecorderProject(page);
+  const saved = await page.evaluate(
+    (id) => window.__e2e.recorderProjectStorage.load(id),
+    projectId,
+  );
+  expect(saved.audioTracks[0]).not.toHaveProperty("clip");
+  expect(saved.audioTracks[0]).not.toHaveProperty("timelineOffset");
+  expect(saved.audioTracks[0].clips).toMatchObject([
+    {
+      name: "single.wav",
+      gain: 0.5,
+      timelineOffset: 1,
+      trimStart: 0.25,
+      trimEnd: 1.5,
+      pcm: { sampleRate: 22050 },
+    },
+  ]);
+  expect(saved.audioTracks[0].clips![0].pcm.channels).toHaveLength(2);
+
+  // Reload the resaved project and show the same clip.
+  await page.reload();
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Resaved clip",
+  );
+  await expect(clip).toContainText("single.wav");
+  await expect(clip.locator("svg")).toBeVisible();
 });
