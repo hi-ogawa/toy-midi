@@ -493,13 +493,11 @@ export class RecorderRuntime {
     id: string,
     update: (clip: AudioClip) => AudioClip,
   ): void {
-    this.store.update(
-      deriveClipUpdateState({ state: this.store.get(), id, update }),
-    );
+    this.store.update(deriveClipUpdateState(this.store.get(), { id, update }));
   }
 
   private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
-    this.updateClips((state) => deriveClipUpdateState({ state, id, update }));
+    this.updateClips((state) => deriveClipUpdateState(state, { id, update }));
   }
 
   removeClips(ids: readonly string[]): void {
@@ -1225,15 +1223,16 @@ export class RecorderRuntime {
 }
 
 /** Derive a clip property update without committing state or touching playback. */
-function deriveClipUpdateState({
-  state,
-  id,
-  update,
-}: {
-  state: RecorderRuntimeState;
-  id: string;
-  update: (clip: AudioClip) => AudioClip;
-}): RecorderRuntimeClipsState {
+function deriveClipUpdateState(
+  state: RecorderRuntimeState,
+  {
+    id,
+    update,
+  }: {
+    id: string;
+    update: (clip: AudioClip) => AudioClip;
+  },
+): RecorderRuntimeClipsState {
   function updateTrack(track: AudioTrackState): AudioTrackState {
     return updateTrackClips({
       track,
