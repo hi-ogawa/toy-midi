@@ -11,7 +11,8 @@ flowchart LR
     monitorGain --> captureInput
 
     subgraph captureTrack["trackPlaybacks.get(RECORDING_TRACK_ID): AudioTrackPlayback"]
-        takeSource["playbacks[i].source"] --> takeBusInput
+        takeSource["playbacks[i].playback.source"] --> clipGain["clip gain"]
+        clipGain --> takeBusInput
         subgraph takePitchShiftBus["bus: PitchShiftBus"]
             takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]
         end

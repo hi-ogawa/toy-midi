@@ -71,7 +71,9 @@ export async function renderRecorderMix({
     for (const region of track.regions) {
       const source = context.createBufferSource();
       source.buffer = region.buffer;
-      source.connect(channel.input);
+      const gain = context.createGain();
+      gain.gain.value = region.gain;
+      source.connect(gain).connect(channel.input);
       source.start(
         region.timelineStart,
         region.timelineStart - region.timelineOffset,
@@ -82,7 +84,7 @@ export async function renderRecorderMix({
   return context.startRendering();
 }
 
-/** Render raw sources to mono, cropping pre-zero audio and returning the timeline offset in seconds. */
+/** Render raw sources to mono, ignoring clip playback gain, cropping pre-zero audio and returning the timeline offset in seconds. */
 export async function renderAudioSources(
   sources: readonly AudioPlaybackSource[],
 ): Promise<{ buffer: AudioBuffer; offset: number }> {

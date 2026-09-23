@@ -418,6 +418,7 @@ type RecorderTimelineClip = {
     | "reference";
   variant?: "audio" | "reference";
   audioView?: AudioView;
+  gain?: number;
 };
 
 const TIMELINE_EPSILON = 1e-6;
@@ -505,6 +506,7 @@ export function AudioTimelineLane({
                 offset: region.timelineStart,
                 audioOffset: region.timelineStart - clip.timelineOffset,
                 audioView: clip.audioView,
+                gain: clip.gain,
                 testId: isRecording ? "recording" : testId,
               }}
               pixelsPerBeat={pixelsPerBeat}
@@ -826,6 +828,7 @@ function TimelineClip({
             {clip.audioView && visibleEnd > visibleStart && (
               <AudioWaveformView
                 audioView={clip.audioView}
+                gain={clip.gain}
                 sourceStart={clip.audioOffset ?? 0}
                 visibleStart={visibleStart}
                 visibleEnd={visibleEnd}

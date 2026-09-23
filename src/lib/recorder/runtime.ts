@@ -469,27 +469,32 @@ export class RecorderRuntime {
     this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
+  /** Gain preserves comp regions, so bypass updateClips and adjust playback in place. */
+  setClipGain({ id, gain }: { id: string; gain: number }): void {
+    const state = this.store.get();
+    const next = deriveClipStateById(state, {
+      id,
+      update: (clip) => ({ ...clip, gain }),
+    });
+    this.store.update(next);
+    for (const playback of this.trackPlaybacks.values()) {
+      playback.setClipGain({ clipId: id, gain });
+    }
+  }
+
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
-    this.updateClip(id, (clip) => ({ ...clip, muted }));
+    this.updateClipById(id, (clip) => ({ ...clip, muted }));
   }
 
   setClipSoloed({ id, soloed }: { id: string; soloed: boolean }): void {
-    this.updateClip(id, (clip) => ({ ...clip, soloed }));
+    this.updateClipById(id, (clip) => ({ ...clip, soloed }));
   }
 
-  private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
-    function updateTrack(track: AudioTrackState): AudioTrackState {
-      return updateTrackClips({
-        track,
-        update: (clips) =>
-          clips.map((clip) => (clip.id === id ? update(clip) : clip)),
-      });
-    }
-    this.updateClips((state) => ({
-      audioTracks: state.audioTracks.map(updateTrack),
-      recordingTrack: updateTrack(state.recordingTrack),
-      referenceVideo: state.referenceVideo,
-    }));
+  private updateClipById(
+    id: string,
+    update: (clip: AudioClip) => AudioClip,
+  ): void {
+    this.updateClips((state) => deriveClipStateById(state, { id, update }));
   }
 
   removeClips(ids: readonly string[]): void {
@@ -1214,6 +1219,31 @@ export class RecorderRuntime {
   redo = () => this.history.redo();
 }
 
+/** Derive a clip property update without committing state or touching playback. */
+function deriveClipStateById(
+  state: RecorderRuntimeState,
+  {
+    id,
+    update,
+  }: {
+    id: string;
+    update: (clip: AudioClip) => AudioClip;
+  },
+): RecorderRuntimeClipsState {
+  function updateTrack(track: AudioTrackState): AudioTrackState {
+    return updateTrackClips({
+      track,
+      update: (clips) =>
+        clips.map((clip) => (clip.id === id ? update(clip) : clip)),
+    });
+  }
+  return {
+    audioTracks: state.audioTracks.map(updateTrack),
+    recordingTrack: updateTrack(state.recordingTrack),
+    referenceVideo: state.referenceVideo,
+  };
+}
+
 /** Derive clip insertion or removal without mutating the supplied state. */
 function deriveClipInsertRemoveState(
   state: RecorderRuntimeState,
@@ -1370,6 +1400,7 @@ function pendingRecordingToTake(
   return {
     id: pendingRecording.id,
     name: pendingRecording.name,
+    gain: 1,
     muted: false,
     soloed: false,
     duration: pendingRecording.duration,

@@ -2,12 +2,14 @@ import { type AudioView, queryAudioView } from "../lib/audio-view";
 
 export function AudioWaveformView({
   audioView,
+  gain = 1,
   sourceStart = 0,
   visibleStart,
   visibleEnd,
   pixelsPerSecond,
 }: {
   audioView: AudioView;
+  gain?: number;
   /** Source-time origin of the clip's local coordinate frame, in seconds. */
   sourceStart?: number;
   /** Viewport-visible source interval to query and render, in seconds. */
@@ -48,7 +50,7 @@ export function AudioWaveformView({
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
   for (let i = 0; i < slice.data.length; i++) {
-    const amplitude = slice.data[i];
+    const amplitude = slice.data[i] * gain;
     upperPoints.push(`${i},${-amplitude}`);
     lowerPoints.unshift(`${i},${amplitude}`);
   }

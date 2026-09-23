@@ -69,6 +69,7 @@ function clip(id: string, timelineOffset: number, duration: number): AudioClip {
   return {
     id,
     name: id,
+    gain: 1,
     muted: false,
     soloed: false,
     timelineOffset,
