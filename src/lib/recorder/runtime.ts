@@ -471,7 +471,7 @@ export class RecorderRuntime {
 
   setClipGain({ id, gain }: { id: string; gain: number }): void {
     const state = this.store.get();
-    const next = deriveClipUpdateState(state, {
+    const next = deriveClipStateById(state, {
       id,
       update: (clip) => ({ ...clip, gain }),
     });
@@ -483,15 +483,18 @@ export class RecorderRuntime {
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
-    this.updateClip(id, (clip) => ({ ...clip, muted }));
+    this.updateClipById(id, (clip) => ({ ...clip, muted }));
   }
 
   setClipSoloed({ id, soloed }: { id: string; soloed: boolean }): void {
-    this.updateClip(id, (clip) => ({ ...clip, soloed }));
+    this.updateClipById(id, (clip) => ({ ...clip, soloed }));
   }
 
-  private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
-    this.updateClips((state) => deriveClipUpdateState(state, { id, update }));
+  private updateClipById(
+    id: string,
+    update: (clip: AudioClip) => AudioClip,
+  ): void {
+    this.updateClips((state) => deriveClipStateById(state, { id, update }));
   }
 
   removeClips(ids: readonly string[]): void {
@@ -1217,7 +1220,7 @@ export class RecorderRuntime {
 }
 
 /** Derive a clip property update without committing state or touching playback. */
-function deriveClipUpdateState(
+function deriveClipStateById(
   state: RecorderRuntimeState,
   {
     id,
