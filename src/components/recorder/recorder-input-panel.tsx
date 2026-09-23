@@ -1,4 +1,9 @@
-import { AudioWaveformIcon, MicIcon, Settings2Icon } from "lucide-react";
+import {
+  AudioWaveformIcon,
+  MicIcon,
+  PowerIcon,
+  Settings2Icon,
+} from "lucide-react";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
@@ -68,17 +73,20 @@ export function RecorderInputPanel({
             <Settings2Icon className="ml-auto size-3.5 shrink-0 text-neutral-400" />
           </button>
           <Button
+            aria-label={inputActive ? "Turn input off" : "Turn input on"}
             aria-pressed={inputActive}
+            title={inputActive ? "Turn input off" : "Turn input on"}
             disabled={toggleDisabled}
             onClick={onInputToggle}
             className={cn(
-              "h-7 w-12 shrink-0 border-neutral-600 text-[11px]",
+              "size-7 shrink-0 border-neutral-600",
               inputActive
-                ? "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
-                : "text-neutral-300 hover:bg-neutral-700",
+                ? "border-emerald-500/60 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                : "text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200",
+              togglePending && "animate-pulse",
             )}
           >
-            {togglePending ? "…" : inputActive ? "On" : "Off"}
+            <PowerIcon className="size-3.5" />
           </Button>
         </div>
       )}
