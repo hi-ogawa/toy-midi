@@ -422,15 +422,9 @@ export function TakeTrackRow({
             onGainChange={onGainChange}
             className="flex-1"
           />
-          <button
-            type="button"
-            aria-label={`Reset ${label} gain`}
-            title="Reset gain to 0 dB"
-            onClick={() => onGainChange(1)}
-            className="w-14 text-right font-mono text-neutral-400 hover:text-neutral-200"
-          >
+          <span className="w-14 text-right font-mono text-neutral-400">
             {formatGainDb(gain)}
-          </button>
+          </span>
         </div>
       </div>
       {children}

@@ -51,11 +51,6 @@ test("adjusts take gain and preserves it in saved audio", async ({ page }) => {
     0,
   );
   expect(maxError).toBeLessThanOrEqual(2);
-
-  // Reset the take to unity and restore its original waveform.
-  await page.getByRole("button", { name: "Reset Take 1 gain" }).click();
-  await expect(gain).toHaveAttribute("aria-valuenow", "0");
-  await expect(waveform).toHaveAttribute("d", originalPath!);
 });
 
 async function exportSamples(page: Page, name: string): Promise<number[]> {
