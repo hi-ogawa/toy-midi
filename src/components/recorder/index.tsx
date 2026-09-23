@@ -178,7 +178,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       return;
     }
     if (flags.recordBlocker === "arm") {
-      toast("Arm a track to record");
+      toast.warning("Arm a track to record");
       return;
     }
     if (flags.recordBlocker === "input") {
@@ -189,7 +189,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function promptInputOn() {
-    toast("Turn input on to record");
+    toast.warning("Turn input on to record");
     setIsInputPanelOpen(true);
   }
 
