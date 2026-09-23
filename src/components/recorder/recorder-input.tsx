@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { CheckIcon, Mic2Icon, TriangleAlertIcon } from "lucide-react";
+import { CheckIcon, MicIcon, TriangleAlertIcon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { summarizeCalibration } from "../../lib/latency-checker/calibration";
@@ -87,7 +87,7 @@ export function InputSetup({
             {!inputsInitialized ? (
               <option>Loading audio inputs...</option>
             ) : !hasAccess ? (
-              <option>Grant microphone access</option>
+              <option>Allow microphone access</option>
             ) : (
               <>
                 {!selectedDevice && (
@@ -131,11 +131,11 @@ export function InputSetup({
           className={cn(
             "h-8 w-full justify-start gap-2 px-2 text-xs",
             inputsInitialized && !hasAccess
-              ? "border-neutral-600 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20"
+              ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
               : "border-neutral-600 bg-neutral-900 text-neutral-200 hover:bg-neutral-700",
           )}
         >
-          <Mic2Icon className="size-3.5" />
+          <MicIcon className="size-3.5" />
           {inputTogglePending
             ? "Loading..."
             : !inputsInitialized
@@ -144,7 +144,7 @@ export function InputSetup({
                 ? inputActive
                   ? "Disable input"
                   : "Enable input"
-                : "Grant microphone access"}
+                : "Allow microphone access"}
         </Button>
         <label className="block text-xs font-medium text-neutral-400">
           Level
