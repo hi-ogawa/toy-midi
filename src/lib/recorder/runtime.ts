@@ -470,7 +470,12 @@ export class RecorderRuntime {
   }
 
   setClipGain({ id, gain }: { id: string; gain: number }): void {
-    this.updateClipState(id, (clip) => ({ ...clip, gain }));
+    this.store.update(
+      deriveClipUpdateState(this.store.get(), {
+        id,
+        update: (clip) => ({ ...clip, gain }),
+      }),
+    );
     // Update existing gain nodes without rebuilding sources or restarting transport.
     for (const playback of this.trackPlaybacks.values()) {
       playback.setClipGain({ clipId: id, gain });
@@ -483,17 +488,6 @@ export class RecorderRuntime {
 
   setClipSoloed({ id, soloed }: { id: string; soloed: boolean }): void {
     this.updateClip(id, (clip) => ({ ...clip, soloed }));
-  }
-
-  /**
-   * Commit clip state without rebuilding playback. Gain follows this with a node
-   * parameter sync; mute/solo use updateClip because they change comp participation.
-   */
-  private updateClipState(
-    id: string,
-    update: (clip: AudioClip) => AudioClip,
-  ): void {
-    this.store.update(deriveClipUpdateState(this.store.get(), { id, update }));
   }
 
   private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
