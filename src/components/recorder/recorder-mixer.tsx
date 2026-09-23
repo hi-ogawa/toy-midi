@@ -2,6 +2,10 @@ import { GaugeIcon, Mic2Icon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
+import {
+  getRecordingTrack,
+  RECORDING_TRACK_ID,
+} from "../../lib/recorder/recording-track";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -22,6 +26,10 @@ export function RecorderMixer({
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
+  const recordingTrack = getRecordingTrack(state.audioTracks);
+  const audioTracks = state.audioTracks.filter(
+    (track) => track.id !== RECORDING_TRACK_ID,
+  );
   const masterInput = useGainInput(
     state.masterGain,
     runtime.setMasterGain.bind(runtime),
@@ -40,7 +48,7 @@ export function RecorderMixer({
         inputProps={masterInput.props}
         data-testid="recorder-mixer-master"
       />
-      {state.audioTracks.map((track, index) => (
+      {audioTracks.map((track, index) => (
         <RecorderTrackChannel
           key={track.id}
           effectsOpen={openEffects.has(track.id)}
@@ -73,18 +81,18 @@ export function RecorderMixer({
         label="Capture"
         effectsOpen={openEffects.has("capture")}
         onEffectsToggle={() => onEffectsToggle("capture")}
-        gain={state.recordingTrack.gain}
-        muted={state.recordingTrack.muted}
-        soloed={state.recordingTrack.soloed}
+        gain={recordingTrack.gain}
+        muted={recordingTrack.muted}
+        soloed={recordingTrack.soloed}
         icon={<Mic2Icon className="size-4 text-muted-foreground" />}
         onGainChange={(gain) =>
-          runtime.setTrackMix(state.recordingTrack.id, { gain })
+          runtime.setTrackMix(recordingTrack.id, { gain })
         }
         onMutedChange={(muted) =>
-          runtime.setTrackMix(state.recordingTrack.id, { muted })
+          runtime.setTrackMix(recordingTrack.id, { muted })
         }
         onSoloedChange={(soloed) =>
-          runtime.setTrackMix(state.recordingTrack.id, { soloed })
+          runtime.setTrackMix(recordingTrack.id, { soloed })
         }
       />
       <MixerChannel

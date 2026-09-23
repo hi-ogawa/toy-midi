@@ -18,10 +18,7 @@ interface RecorderMix {
 /** Snapshot committed audio at 1x, independent of transport and reference audio. */
 export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   const gains = deriveTrackMix(state);
-  const tracks: RecorderMix["tracks"] = [
-    ...state.audioTracks,
-    state.recordingTrack,
-  ].map((track) => ({
+  const tracks: RecorderMix["tracks"] = state.audioTracks.map((track) => ({
     eq: track.eq,
     gain: gains.get(track.id)!,
     regions: getClipSources(track.regions),
@@ -122,12 +119,11 @@ export async function renderAudioSources(
 export function deriveTrackMix({
   audioTracks,
   midiTracks,
-  recordingTrack,
-}: Pick<
-  RecorderRuntimeState,
-  "audioTracks" | "midiTracks" | "recordingTrack"
->): Map<string, number> {
-  const tracks = [...audioTracks, ...midiTracks, recordingTrack];
+}: Pick<RecorderRuntimeState, "audioTracks" | "midiTracks">): Map<
+  string,
+  number
+> {
+  const tracks = [...audioTracks, ...midiTracks];
   const audibleTracks = new Set(getAudibleItems(tracks));
   return new Map(
     tracks.map((track) => [

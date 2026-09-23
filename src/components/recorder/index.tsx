@@ -14,6 +14,10 @@ import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import {
+  getRecordingTrack,
+  RECORDING_TRACK_ID,
+} from "../../lib/recorder/recording-track";
+import {
   RecorderRuntime,
   REFERENCE_VIDEO_CLIP_ID,
 } from "../../lib/recorder/runtime";
@@ -154,7 +158,11 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const takes = clipInteraction.recordingTrack.clips;
+  const recordingTrack = getRecordingTrack(clipInteraction.audioTracks);
+  const audioTracks = clipInteraction.audioTracks.filter(
+    (track) => track.id !== RECORDING_TRACK_ID,
+  );
+  const takes = recordingTrack.clips;
 
   function togglePlay() {
     if (flags.playDisabled) {
@@ -412,7 +420,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onRemove={() => runtime.removeReferenceVideo()}
               />
             )}
-            {clipInteraction.audioTracks.map((track, index) => (
+            {audioTracks.map((track, index) => (
               <TrackRow
                 key={track.id}
                 data-testid="recorder-audio-track-row"
@@ -497,23 +505,23 @@ export function Recorder({ projectId }: { projectId: string }) {
 
             <TrackRow
               title="Capture"
-              gain={state.recordingTrack.gain}
-              height={state.recordingTrack.height}
-              muted={state.recordingTrack.muted}
-              soloed={state.recordingTrack.soloed}
+              gain={recordingTrack.gain}
+              height={recordingTrack.height}
+              muted={recordingTrack.muted}
+              soloed={recordingTrack.soloed}
               effectsOpen={effects.openEffects.has("capture")}
               onEffectsToggle={() => effects.toggleEffects("capture")}
               onGainChange={(gain) =>
-                runtime.setTrackMix(state.recordingTrack.id, { gain })
+                runtime.setTrackMix(recordingTrack.id, { gain })
               }
               onMutedChange={(muted) =>
-                runtime.setTrackMix(state.recordingTrack.id, { muted })
+                runtime.setTrackMix(recordingTrack.id, { muted })
               }
               onSoloedChange={(soloed) =>
-                runtime.setTrackMix(state.recordingTrack.id, { soloed })
+                runtime.setTrackMix(recordingTrack.id, { soloed })
               }
               onHeightChange={(height) =>
-                runtime.setTrackHeight(state.recordingTrack.id, height)
+                runtime.setTrackHeight(recordingTrack.id, height)
               }
               input={{
                 route: input.route.label,
@@ -536,10 +544,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <AudioTimelineLane
                 clips={takes}
-                regions={
-                  state.previewClipRegions ??
-                  clipInteraction.recordingTrack.regions
-                }
+                regions={state.previewClipRegions ?? recordingTrack.regions}
                 testId="comp"
                 emptyLabel="Enable input, place the playhead, then record"
                 recordingClipId={state.pendingRecording?.id}
@@ -670,7 +675,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
         {effects.openEffects.size > 0 && (
           <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
-            {state.audioTracks.map(
+            {audioTracks.map(
               (track, index) =>
                 effects.openEffects.has(track.id) && (
                   <RecorderEffects
@@ -697,9 +702,9 @@ export function Recorder({ projectId }: { projectId: string }) {
             {effects.openEffects.has("capture") && (
               <RecorderEffects
                 label="Capture"
-                eq={state.recordingTrack.eq}
+                eq={recordingTrack.eq}
                 onChange={(eq) =>
-                  runtime.setTrackEq({ id: state.recordingTrack.id, eq })
+                  runtime.setTrackEq({ id: recordingTrack.id, eq })
                 }
                 onClose={() => effects.closeEffects("capture")}
               />

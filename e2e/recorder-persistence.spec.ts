@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { RECORDING_TRACK_ID } from "../src/lib/recorder/recording-track";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -119,10 +120,11 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(page.getByText(/Recorder project .* not found/)).toBeVisible();
 });
 
-test("loads and resaves a project stored with a single-clip audio track", async ({
+test("loads and resaves a project stored with single-clip tracks and a separate recording track", async ({
   page,
 }) => {
-  // Seed a stored project whose audio track keeps one clip with track-level timing.
+  // Seed a stored project whose audio track keeps one clip with track-level
+  // timing and whose take lives on a separate recording track.
   await page.goto("/__e2e__/");
   const projectId = await page.evaluate(async () => {
     const samples = new Float32Array(22050 * 2).map(
@@ -151,21 +153,32 @@ test("loads and resaves a project stored with a single-clip audio track", async 
       ],
       recordingTrack: {
         height: 116,
-        gain: 1,
+        gain: 0.8,
         muted: false,
         soloed: false,
-        takes: [],
+        nextTakeNumber: 4,
+        takes: [
+          {
+            id: "take",
+            number: 3,
+            timelineOffset: 2,
+            pcm: { sampleRate: 22050, channels: [samples] },
+          },
+        ],
       },
     });
   });
 
-  // Open the stored project and show the clip with its decoded waveform.
+  // Open the stored project and show the clip and take with decoded waveforms.
   await page.goto(`/recorder/${projectId}`);
   const clip = page.getByTestId("recorder-clip-audio");
+  const take = page.getByTestId("recorder-clip-comp");
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
+  await expect(take).toContainText("Take 3");
+  await expect(take.locator("svg")).toBeVisible();
 
-  // Rename and save, which rewrites the track as a clip array with the same timing.
+  // Rename and save, which rewrites both tracks as clip arrays in audioTracks.
   page.once("dialog", (dialog) => dialog.accept("Resaved clip"));
   await page.getByTestId("recorder-project-name").click();
   await saveRecorderProject(page);
@@ -173,25 +186,38 @@ test("loads and resaves a project stored with a single-clip audio track", async 
     (id) => window.__e2e.recorderProjectStorage.load(id),
     projectId,
   );
-  expect(saved.audioTracks[0]).not.toHaveProperty("clip");
-  expect(saved.audioTracks[0]).not.toHaveProperty("timelineOffset");
-  expect(saved.audioTracks[0].clips).toMatchObject([
+  expect(saved).not.toHaveProperty("recordingTrack");
+  expect(saved.audioTracks).toMatchObject([
     {
-      name: "single.wav",
-      gain: 0.5,
-      timelineOffset: 1,
-      trimStart: 0.25,
-      trimEnd: 1.5,
-      pcm: { sampleRate: 22050 },
+      id: RECORDING_TRACK_ID,
+      gain: 0.8,
+      nextTakeNumber: 4,
+      clips: [{ id: "take", name: "Take 3", timelineOffset: 2 }],
+    },
+    {
+      id: "backing",
+      clips: [
+        {
+          name: "single.wav",
+          gain: 0.5,
+          timelineOffset: 1,
+          trimStart: 0.25,
+          trimEnd: 1.5,
+          pcm: { sampleRate: 22050 },
+        },
+      ],
     },
   ]);
-  expect(saved.audioTracks[0].clips![0].pcm.channels).toHaveLength(2);
+  expect(saved.audioTracks[1]).not.toHaveProperty("clip");
+  expect(saved.audioTracks[1]).not.toHaveProperty("timelineOffset");
+  expect(saved.audioTracks[1].clips![0].pcm.channels).toHaveLength(2);
 
-  // Reload the resaved project and show the same clip.
+  // Reload the resaved project and show the same clip and take.
   await page.reload();
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Resaved clip",
   );
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
+  await expect(take).toContainText("Take 3");
 });
