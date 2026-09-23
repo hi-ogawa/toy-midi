@@ -79,7 +79,7 @@ export function TimelineHeader({
   onPunchRangeClear: () => void;
 }) {
   return (
-    <div className="sticky top-0 z-40 grid h-10 grid-cols-[17rem_1fr] border-b border-neutral-700 bg-neutral-800">
+    <div className="sticky top-0 z-40 grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
       <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
@@ -598,13 +598,13 @@ export function ReferenceTimelineRow({
   return (
     <div
       data-testid="recorder-reference-track"
-      className="grid h-15 grid-cols-[17rem_1fr] border-b border-neutral-700"
+      className="grid h-15 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
-        <div className="flex min-w-0 items-center gap-1 self-center">
-          <span className="min-w-0 truncate text-xs font-semibold">
-            Reference
-          </span>
+        <div className="min-w-0 self-center truncate text-xs font-semibold">
+          Reference
+        </div>
+        <div className="flex self-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <TrackMenuButton label="Reference" />
@@ -616,8 +616,6 @@ export function ReferenceTimelineRow({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-        <div className="flex self-center gap-1">
           <RecorderMixToggle
             data-testid="recorder-reference-video-mute"
             active={muted}

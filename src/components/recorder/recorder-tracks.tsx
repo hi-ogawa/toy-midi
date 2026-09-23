@@ -149,7 +149,7 @@ export function TrackRow({
   return (
     <div
       data-testid={testId}
-      className="relative grid grid-cols-[17rem_1fr]"
+      className="relative grid grid-cols-[15rem_1fr]"
       style={{ height }}
     >
       <div className="sticky left-0 col-start-1 row-start-1 border-r border-neutral-700 bg-neutral-800" />
@@ -160,13 +160,11 @@ export function TrackRow({
           controlsClassName,
         )}
       >
-        <div className="flex min-w-0 items-center gap-1 self-center">
-          <span className="min-w-0 truncate text-xs font-semibold">
-            {title}
-          </span>
-          {action}
+        <div className="min-w-0 self-center truncate text-xs font-semibold">
+          {title}
         </div>
         <div className="flex self-center gap-1">
+          {action}
           {recording && <TrackRecordingToggles {...recording} />}
           <RecorderMixToggle
             active={muted}
@@ -282,7 +280,7 @@ export function TakesDisclosureRow({
   onExpandedChange: (expanded: boolean) => void;
 }) {
   return (
-    <div className="grid h-9 grid-cols-[17rem_1fr] border-b border-neutral-700 bg-neutral-900">
+    <div className="grid h-9 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
       <div className="relative border-r border-neutral-700">
         <button
           type="button"
@@ -352,7 +350,7 @@ export function TakeTrackRow({
   return (
     <div
       data-testid="recorder-take-row"
-      className="grid h-16 grid-cols-[17rem_1fr] border-b border-neutral-700"
+      className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
         <span className="truncate">{label}</span>
@@ -385,7 +383,7 @@ export function TakeTrackRow({
           className="size-6"
           title="Solo take"
         />
-        <label className="col-span-3 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
+        <label className="col-span-4 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
           <RecorderGainSlider
             label={`${label} gain`}
             gain={gain}

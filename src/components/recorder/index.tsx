@@ -365,11 +365,11 @@ export function Recorder({ projectId }: { projectId: string }) {
         >
           <div
             ref={timeline.viewportRef}
-            className="pointer-events-none absolute inset-y-0 left-[17rem] right-0"
+            className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
           />
           <div className="relative">
             {timeline.showPlayhead && (
-              <div className="pointer-events-none absolute inset-y-0 left-[17rem] right-0 z-50 overflow-hidden">
+              <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
                 <div
                   data-testid="recorder-playhead"
                   className="absolute inset-y-0 w-px bg-sky-400"
