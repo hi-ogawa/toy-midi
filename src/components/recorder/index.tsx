@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -176,7 +177,20 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (flags.recordDisabled) {
       return;
     }
+    if (flags.recordBlocker === "arm") {
+      toast("Arm a track to record");
+      return;
+    }
+    if (flags.recordBlocker === "input") {
+      promptInputOn();
+      return;
+    }
     recordMutation.mutate(flags.isRecording ? "stop" : "start");
+  }
+
+  function promptInputOn() {
+    toast("Turn input on to record");
+    setIsInputPanelOpen(true);
   }
 
   useWindowEvent("keydown", (event) => {
@@ -526,10 +540,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                 armDisabled: flags.isRecording,
                 monitoring: state.inputMonitoring,
                 monitorDisabled: !input.active,
-                onArmedChange: (armed) =>
+                onArmedChange: (armed) => {
                   runtime.setArmedTrack(
                     armed ? state.recordingTrack.id : undefined,
-                  ),
+                  );
+                  if (armed && !input.active) {
+                    promptInputOn();
+                  }
+                },
                 onMonitoringChange: (monitoring) =>
                   runtime.setInputMonitoring(monitoring),
               }}

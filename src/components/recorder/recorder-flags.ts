@@ -6,6 +6,8 @@ export interface RecorderFlags {
   isRecording: boolean;
   playDisabled: boolean;
   recordDisabled: boolean;
+  /** The missing step before recording can start. */
+  recordBlocker?: "arm" | "input";
   saveDisabled: boolean;
 }
 
@@ -24,10 +26,16 @@ export function deriveRecorderFlags({
     isRecording,
     // Play and record stay enabled while recording because both act as stop.
     playDisabled: !project.ready,
-    // Recording needs both an open input and an armed destination.
-    recordDisabled:
-      !project.ready ||
-      (!isRecording && (captureStatus === "disabled" || !armedTrackId)),
+    // Record stays clickable without input or an armed track so the click can
+    // explain the missing step instead of silently doing nothing.
+    recordDisabled: !project.ready,
+    recordBlocker: isRecording
+      ? undefined
+      : !armedTrackId
+        ? "arm"
+        : captureStatus === "disabled"
+          ? "input"
+          : undefined,
     saveDisabled:
       !project.ready || !project.dirty || project.saving || isRecording,
   };
