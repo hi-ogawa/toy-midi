@@ -209,7 +209,6 @@ async function importTakes(page: Page) {
         },
       ],
     },
-    latencyCompensation: 0,
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
   };

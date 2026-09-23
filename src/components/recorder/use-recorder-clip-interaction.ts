@@ -145,21 +145,21 @@ export function useRecorderClipInteraction({
     }
   }
 
-  function split(id: string): void {
+  function split(id: string): boolean {
     if (edit) {
-      return;
+      return false;
     }
     const rightId = runtime.splitClip(id, runtime.store.get().position);
-    if (rightId) {
-      onSelect();
-      setSelectedIds(new Set([rightId]));
+    if (!rightId) {
+      return false;
     }
+    onSelect();
+    setSelectedIds(new Set([rightId]));
+    return true;
   }
 
-  function splitSelected(): void {
-    if (selectedIds.size === 1) {
-      split([...selectedIds][0]!);
-    }
+  function splitSelected(): boolean {
+    return selectedIds.size === 1 && split([...selectedIds][0]!);
   }
 
   function removeSelected(): void {

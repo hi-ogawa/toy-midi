@@ -194,8 +194,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       event.preventDefault();
       return;
     }
-    if (matchKeyboardEvent(event, "S")) {
-      clipInteraction.splitSelected();
+    if (matchKeyboardEvent(event, "S") && clipInteraction.splitSelected()) {
       event.preventDefault();
       return;
     }

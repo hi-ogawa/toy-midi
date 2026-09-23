@@ -3,8 +3,8 @@ import type {
   MidiTrackState,
   RecorderClipInsertRemove,
   RecorderClipInsertRemoveSnapshot,
-  RecorderRuntime,
   RecorderClipReplacement,
+  RecorderRuntime,
 } from "./runtime.ts";
 
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:

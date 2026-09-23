@@ -211,10 +211,10 @@ export type RecorderClipInsertRemoveSnapshot = {
   referenceVideo?: ReferenceVideoState;
 };
 
-/** Replace recorded clips atomically, retaining their precedence indices. */
+/** Remove then insert clips atomically, retaining their precedence indices. */
 export type RecorderClipReplacement = {
-  removeIds: string[];
-  clips: { clip: AudioClip; index: number }[];
+  remove: RecorderClipInsertRemoveSnapshot;
+  insert: RecorderClipInsertRemoveSnapshot;
 };
 
 export type RecorderClipInsertRemove = {
@@ -510,16 +510,24 @@ export class RecorderRuntime {
       name: `${clip.name} (split)`,
       trimStart: sourcePosition,
     };
+    const trackId = track.id;
     const before: RecorderClipReplacement = {
-      removeIds: [left.id, right.id],
-      clips: [{ clip, index }],
+      remove: {
+        tracks: [
+          {
+            trackId,
+            clips: [
+              { clip: left, index },
+              { clip: right, index: index + 1 },
+            ],
+          },
+        ],
+      },
+      insert: { tracks: [{ trackId, clips: [{ clip, index }] }] },
     };
     const after: RecorderClipReplacement = {
-      removeIds: [clip.id],
-      clips: [
-        { clip: left, index },
-        { clip: right, index: index + 1 },
-      ],
+      remove: before.insert,
+      insert: before.remove,
     };
     this.applyClipReplacement(after);
     this.history.pushClipReplacement({ before, after });
@@ -527,22 +535,19 @@ export class RecorderRuntime {
   }
 
   /** @internal for undo */
-  applyClipReplacement(change: RecorderClipReplacement): void {
-    this.updateClips((state) => ({
-      audioTracks: state.audioTracks,
-      referenceVideo: state.referenceVideo,
-      recordingTrack: updateTrackClips({
-        track: state.recordingTrack,
-        update: (clips) =>
-          insertAtIndices({
-            items: clips.filter((clip) => !change.removeIds.includes(clip.id)),
-            insertions: change.clips.map(({ clip, index }) => ({
-              item: clip,
-              index,
-            })),
+  applyClipReplacement({ remove, insert }: RecorderClipReplacement): void {
+    this.updateClips((state) =>
+      deriveClipInsertRemoveState(
+        {
+          ...state,
+          ...deriveClipInsertRemoveState(state, {
+            operation: "remove",
+            snapshot: remove,
           }),
-      }),
-    }));
+        },
+        { operation: "insert", snapshot: insert },
+      ),
+    );
   }
 
   setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
