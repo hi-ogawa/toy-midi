@@ -244,23 +244,35 @@ export async function waitForRecordingSamples(recording: Locator) {
 
 /** Open the Audio Input panel from the header unless it is already open. */
 export async function openInputPanel(page: Page): Promise<Locator> {
-  const button = page.getByTestId("recorder-input-panel-button");
-  if ((await button.getAttribute("aria-pressed")) !== "true") {
-    await button.click();
-  }
-  const panel = page.getByTestId("recorder-input-panel");
-  await expect(panel).toBeVisible();
-  return panel;
+  return await test.step(
+    "Open audio input panel",
+    async () => {
+      const button = page.getByTestId("recorder-input-panel-button");
+      if ((await button.getAttribute("aria-pressed")) !== "true") {
+        await button.click();
+      }
+      const panel = page.getByTestId("recorder-input-panel");
+      await expect(panel).toBeVisible();
+      return panel;
+    },
+    { box: true },
+  );
 }
 
 /** Open Audio Input Setup from the input panel's route field. */
 export async function openInputSetup(page: Page): Promise<Locator> {
-  const panel = await openInputPanel(page);
-  await panel.getByTitle("Audio input setup").click();
-  await expect(
-    page.getByRole("heading", { name: "Audio Input Setup" }),
-  ).toBeVisible();
-  return page.getByTestId("recorder-input-setup");
+  return await test.step(
+    "Open audio input setup",
+    async () => {
+      const panel = await openInputPanel(page);
+      await panel.getByTitle("Audio input setup").click();
+      await expect(
+        page.getByRole("heading", { name: "Audio Input Setup" }),
+      ).toBeVisible();
+      return page.getByTestId("recorder-input-setup");
+    },
+    { box: true },
+  );
 }
 
 export async function enableInput(page: Page) {
