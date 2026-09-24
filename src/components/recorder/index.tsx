@@ -95,11 +95,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const flags = deriveRecorderFlags({
-    captureStatus: state.captureStatus,
-    armedTrackId: state.armedTrackId,
-    project,
-  });
+  const flags = deriveRecorderFlags({ state, project });
   const recorderInteraction = useRecorderInteraction({
     runtime,
     state,

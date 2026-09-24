@@ -10,14 +10,13 @@ export interface RecorderFlags {
 }
 
 export function deriveRecorderFlags({
-  captureStatus,
-  armedTrackId,
+  state,
   project,
 }: {
-  captureStatus: RecorderRuntimeState["captureStatus"];
-  armedTrackId: RecorderRuntimeState["armedTrackId"];
+  state: RecorderRuntimeState;
   project: UseRecorderProjectResult;
 }): RecorderFlags {
+  const { captureStatus, armedTrackId } = state;
   const isRecording =
     captureStatus === "recording" || captureStatus === "processing";
   return {
