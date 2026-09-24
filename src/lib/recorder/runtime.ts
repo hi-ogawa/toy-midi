@@ -167,10 +167,8 @@ export interface RecorderRuntimeState {
   selectedChannel: number;
   latencyCompensation: number;
   inputMonitoring: boolean;
-  // The track that receives the next take. Only the recording track can be
-  // armed until other audio tracks can record. Arming is an explicit step,
-  // independent of whether the input is open, and it is session state rather
-  // than project state.
+  // Destination for the next take. Currently only the recording track can be
+  // armed because other audio tracks cannot record.
   armedTrackId?: string;
 }
 
