@@ -44,9 +44,6 @@ test("retain input compensation without marking the project unsaved", async ({
   await page.reload();
   await expect(save).toHaveAttribute("data-status", "saved");
   await openInputSetup(page);
-  await setup
-    .getByRole("button", { name: "Enable input", exact: true })
-    .click();
   await expect(compensation).toBeEnabled();
   await expect(compensation).toHaveValue("50");
   await setup.getByRole("button", { name: "Close", exact: true }).click();

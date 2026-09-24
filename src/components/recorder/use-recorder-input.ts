@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   getCaptureInputs,
   requestCaptureAccess,
@@ -19,6 +19,10 @@ export function useRecorderInput({
 }) {
   const active = state.captureStatus !== "disabled";
   const [inputPreference, setInputPreference] = useRecorderPreference("input");
+  const [inputEnabled, setInputEnabled] = useRecorderPreference("inputEnabled");
+  const restorePending = useRef(inputEnabled);
+  const [interacted, setInteracted] = useState(false);
+  const [resumeError, setResumeError] = useState<Error>();
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(inputPreference?.deviceId);
 
@@ -44,6 +48,7 @@ export function useRecorderInput({
     }
     setDeviceId(nextDeviceId);
     if (remember) {
+      restorePending.current = false;
       setInputPreference(
         nextDeviceId ? { deviceId: nextDeviceId, channel: 0 } : undefined,
       );
@@ -66,6 +71,7 @@ export function useRecorderInput({
 
   const startMutation = useMutation({
     mutationFn: async (nextDeviceId: string) => {
+      await runtime.context.resume();
       const { channelCount } = await runtime.startInput({
         deviceId: nextDeviceId,
       });
@@ -92,6 +98,43 @@ export function useRecorderInput({
   const hasAccess =
     grantMutation.isPending || devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
+  const onInteraction = useEffectEvent(() => {
+    if (!restorePending.current || interacted) {
+      return;
+    }
+    // Resume in the gesture even when device enumeration is still pending.
+    void runtime.context.resume().catch(setResumeError);
+    setInteracted(true);
+  });
+
+  useEffect(() => {
+    const interact = () => onInteraction();
+    window.addEventListener("click", interact);
+    window.addEventListener("keydown", interact);
+    return () => {
+      window.removeEventListener("click", interact);
+      window.removeEventListener("keydown", interact);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!restorePending.current || !interacted || !initialized) {
+      return;
+    }
+    restorePending.current = false;
+    if (inputEnabled && hasAccess && selectedDevice && !active) {
+      startMutation.mutate(selectedDevice.deviceId);
+    }
+  }, [
+    interacted,
+    initialized,
+    inputEnabled,
+    hasAccess,
+    selectedDevice,
+    active,
+    startMutation.mutate,
+  ]);
+
   const route = !initialized
     ? { label: "Loading audio inputs…", needsSetup: false }
     : !hasAccess
@@ -106,7 +149,11 @@ export function useRecorderInput({
   return {
     active,
     devices,
-    error: grantMutation.error ?? refreshMutation.error ?? startMutation.error,
+    error:
+      grantMutation.error ??
+      refreshMutation.error ??
+      startMutation.error ??
+      resumeError,
     hasAccess,
     initialized,
     mutationPending:
@@ -136,12 +183,17 @@ export function useRecorderInput({
       }));
     },
     toggle: () => {
+      restorePending.current = false;
+      setResumeError(undefined);
       if (!hasAccess) {
         grantMutation.mutate();
       } else if (active) {
+        setInputEnabled(false);
         stop();
       } else if (selectedDevice) {
-        startMutation.mutate(selectedDevice.deviceId);
+        startMutation.mutate(selectedDevice.deviceId, {
+          onSuccess: () => setInputEnabled(true),
+        });
       }
     },
     togglePending: grantMutation.isPending || startMutation.isPending,

@@ -9,6 +9,7 @@ import {
 const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
 const recorderPreferencesSchema = z.object({
+  inputEnabled: z.boolean(),
   autoScrollEnabled: z.boolean(),
   defaultMidiProgram: z.number().int().min(0).max(127),
   takesNewestFirst: z.boolean(),
@@ -33,6 +34,7 @@ const recorderPreferencesSchema = z.object({
 export type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
 const DEFAULT_PREFERENCES: RecorderPreferences = {
+  inputEnabled: false,
   autoScrollEnabled: true,
   defaultMidiProgram: 0,
   takesNewestFirst: true,
