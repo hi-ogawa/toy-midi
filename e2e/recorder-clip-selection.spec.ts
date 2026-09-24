@@ -3,7 +3,6 @@ import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { useFakeAudioInput } from "./helpers";
 import {
   addRecorderAudio,
-  armCapture,
   createRecorderProject,
   enableInput,
   getRecorderPosition,
@@ -22,7 +21,6 @@ test("selects and moves audio and take clips together", async ({ page }) => {
 
   // Record a take away from zero.
   await enableInput(page);
-  await armCapture(page);
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();

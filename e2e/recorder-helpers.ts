@@ -279,14 +279,11 @@ export async function enableInput(page: Page) {
       await panel
         .getByRole("button", { name: "Close Audio Input", exact: true })
         .click();
+      // Capture is the only recording destination, so arm it here too.
+      const arm = page.getByTestId("recorder-arm-toggle");
+      await arm.click();
+      await expect(arm).toHaveAttribute("aria-pressed", "true");
     },
     { box: true },
   );
-}
-
-/** Arm the Capture track as the recording destination. */
-export async function armCapture(page: Page) {
-  const arm = page.getByTestId("recorder-arm-toggle");
-  await arm.click();
-  await expect(arm).toHaveAttribute("aria-pressed", "true");
 }

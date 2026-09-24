@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { useFakeAudioInput } from "./helpers";
 import {
-  armCapture,
   createRecorderProject,
   dragBy,
   enableInput,
@@ -19,7 +18,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Connect the browser input before recording is available.
   await enableInput(page);
-  await armCapture(page);
 
   // Input monitoring can be enabled before recording starts.
   const monitorButton = page.getByTestId("recorder-input-monitor");

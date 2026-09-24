@@ -3,7 +3,6 @@ import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { useFakeAudioInput } from "./helpers";
 import {
-  armCapture,
   createRecorderProject,
   dragBy,
   enableInput,
@@ -16,7 +15,6 @@ useFakeAudioInput();
 test("records only the punched interval into the comp", async ({ page }) => {
   await createRecorderProject(page);
   await enableInput(page);
-  await armCapture(page);
 
   const recordButton = page.getByTestId("recorder-record-button");
   const take = page.getByTestId("recorder-clip-comp-source");
