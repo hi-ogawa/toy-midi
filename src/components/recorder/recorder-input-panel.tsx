@@ -53,7 +53,7 @@ export function RecorderInputPanel({
           className="flex w-full items-center gap-2 rounded border border-orange-300/40 bg-orange-300/10 px-2 py-1.5 text-left text-orange-200 hover:bg-orange-300/20"
         >
           <MicIcon className="size-3.5 shrink-0" />
-          <span className="truncate">Allow microphone access…</span>
+          <span className="truncate">Allow microphone access</span>
         </button>
       ) : (
         <div className="flex items-center gap-2">
