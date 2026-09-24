@@ -10,7 +10,6 @@ import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
 import { RecorderPanel } from "./recorder-panel";
 
-/** Session input controls. Per-device configuration stays in Input Setup. */
 export function RecorderInputPanel({
   route,
   routeNeedsSetup,
@@ -48,8 +47,6 @@ export function RecorderInputPanel({
       contentClassName="space-y-2.5 px-3 py-3 text-xs"
     >
       {accessRequired ? (
-        // One-time permission opens the same setup dialog the route row does,
-        // so users learn where configuration lives.
         <button
           type="button"
           onClick={onInputSetup}
