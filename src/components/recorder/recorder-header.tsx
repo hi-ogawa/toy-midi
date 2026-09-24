@@ -147,7 +147,7 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-play-button"
         onClick={onPlayToggle}
-        disabled={flags.playDisabled}
+        disabled={flags.transportDisabled}
         aria-pressed={isPlaying}
         className={cn(
           "size-9",
@@ -168,7 +168,7 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-record-button"
         onClick={onRecordToggle}
-        disabled={flags.recordDisabled}
+        disabled={flags.transportDisabled}
         aria-pressed={flags.isRecording}
         className={cn(
           "size-9",

@@ -162,7 +162,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const takes = clipInteraction.recordingTrack.clips;
 
   function togglePlay() {
-    if (flags.playDisabled) {
+    if (flags.transportDisabled) {
       return;
     }
     if (flags.isRecording) {
@@ -175,7 +175,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function toggleRecord() {
-    if (flags.recordDisabled) {
+    if (flags.transportDisabled) {
       return;
     }
     if (flags.recordBlocker === "arm") {

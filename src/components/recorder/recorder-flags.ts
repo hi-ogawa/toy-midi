@@ -4,8 +4,7 @@ import type { UseRecorderProjectResult } from "./use-recorder-project";
 export interface RecorderFlags {
   /** Covers the stop tail too, since the take lands only after the worklet finalizes. */
   isRecording: boolean;
-  playDisabled: boolean;
-  recordDisabled: boolean;
+  transportDisabled: boolean;
   recordBlocker?: "arm" | "input";
   saveDisabled: boolean;
 }
@@ -23,10 +22,8 @@ export function deriveRecorderFlags({
     captureStatus === "recording" || captureStatus === "processing";
   return {
     isRecording,
-    // Play and record stay enabled while recording because both act as stop.
-    playDisabled: !project.ready,
-    // Keep Record clickable so it can explain the missing input or armed track.
-    recordDisabled: !project.ready,
+    // Both buttons stop recording. Record also explains missing prerequisites.
+    transportDisabled: !project.ready,
     recordBlocker: isRecording
       ? undefined
       : !armedTrackId
