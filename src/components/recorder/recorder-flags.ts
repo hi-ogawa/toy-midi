@@ -22,7 +22,6 @@ export function deriveRecorderFlags({
     captureStatus === "recording" || captureStatus === "processing";
   return {
     isRecording,
-    // Both buttons stop recording. Record also explains missing prerequisites.
     transportDisabled: !project.ready,
     recordBlocker: isRecording
       ? undefined
