@@ -1,4 +1,3 @@
-import { SCORE_CAPTURE_BRIDGE_VERSION } from "@hiogawa/toy-midi-score-video/bridge";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   FolderOpenIcon,
@@ -45,7 +44,7 @@ export function ScoreViewer({
   captureMode,
 }: {
   initialSource?: ScoreSource;
-  /** Show only the score area and expose the frame capture bridge. */
+  /** Show only the score area for frame capture. */
   captureMode?: boolean;
 }) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
@@ -83,7 +82,9 @@ export function ScoreViewer({
     }
     runtime.attach(root);
     setIsRuntimeAttached(true);
+    window.__toyMidiScoreViewer = runtime;
     return () => {
+      delete window.__toyMidiScoreViewer;
       clock.pause();
       runtime.dispose();
     };
@@ -138,25 +139,6 @@ export function ScoreViewer({
       return true;
     },
   });
-
-  // Let frame capture tools drive the real viewer frame by frame
-  useEffect(() => {
-    if (!captureMode) {
-      return;
-    }
-    window.__toyMidiScoreCapture = {
-      version: SCORE_CAPTURE_BRIDGE_VERSION,
-      load: async (source) => {
-        await loadMutation.mutateAsync({ settings, source });
-        runtime.setScaleToFitViewport();
-      },
-      getDuration: () => runtime.getDuration(),
-      seek: (seconds) => clock.seek(seconds),
-    };
-    return () => {
-      delete window.__toyMidiScoreCapture;
-    };
-  }, [captureMode, clock, runtime, loadMutation.mutateAsync, settings]);
 
   function changeSettings(update: Partial<ScoreViewerSettings>) {
     const nextSettings = { ...settings, ...update };
@@ -393,4 +375,13 @@ function ScoreSamplesMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+// Frame capture tools such as packages/score-video drive the viewer through
+// these globals, so the video matches interactive playback.
+declare global {
+  interface Window {
+    __toyMidiScoreViewer?: ScoreViewerRuntime;
+    __toyMidiScoreViewerSource?: ScoreSource;
+  }
 }

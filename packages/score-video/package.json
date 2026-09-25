@@ -6,9 +6,6 @@
     "toy-midi-score-video": "./bin/cli.js"
   },
   "type": "module",
-  "exports": {
-    "./bridge": "./src/bridge.ts"
-  },
   "dependencies": {
     "playwright-core": "^1.62.1",
     "tsx": "^4.23.13"

@@ -286,9 +286,9 @@ export class ScoreViewerRuntime {
     this.restart();
   }
 
-  seek(scoreTime: number) {
+  seek(seconds: number) {
     this.resumeAutoScroll();
-    this.clock.seek(scoreTimeToSeconds(scoreTime, this.state.tempo));
+    this.clock.seek(seconds);
   }
 
   getDuration() {
@@ -314,7 +314,9 @@ export class ScoreViewerRuntime {
     if (!target) {
       return;
     }
-    this.seek(Number(target.dataset.scoreTime));
+    this.seek(
+      scoreTimeToSeconds(Number(target.dataset.scoreTime), this.state.tempo),
+    );
   };
 
   private handleManualScroll = () => {

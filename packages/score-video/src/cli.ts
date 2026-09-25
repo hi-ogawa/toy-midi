@@ -4,7 +4,6 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { type Browser, chromium } from "playwright-core";
-import { SCORE_CAPTURE_BRIDGE_VERSION } from "./bridge.ts";
 
 // Render a silent score video by stepping the real score viewer frame by frame
 // and screenshotting its score area, so the video matches interactive playback.
@@ -103,14 +102,14 @@ async function renderVideo({
         await page.evaluate(
           ({ frames, fps }) => {
             for (let frame = 0; frame < frames; frame++) {
-              window.__toyMidiScoreCapture!.seek(frame / fps);
+              window.__toyMidiScoreViewer!.seek(frame / fps);
             }
           },
           { frames: startFrame + worker, fps: options.fps },
         );
         for (let frame = worker; frame < frameCount; frame += options.workers) {
           await page.evaluate(
-            (seconds) => window.__toyMidiScoreCapture!.seek(seconds),
+            (seconds) => window.__toyMidiScoreViewer!.seek(seconds),
             (startFrame + frame) / options.fps,
           );
           const { data } = await cdp.send("Page.captureScreenshot", {
@@ -168,27 +167,28 @@ async function openScorePage({
     viewport: { width: options.width, height: options.height },
   });
   const url = new URL("/score-viewer?mode=capture", options.url).href;
-  await page.goto(url);
-  // The bridge may be missing or different when the CLI and the deployed app
-  // come from different commits, so fail with a clear message.
-  const version = await page
-    .waitForFunction(() => window.__toyMidiScoreCapture?.version, undefined, {
-      timeout: 15_000,
-    })
-    .then((handle) => handle.jsonValue())
-    .catch(() => undefined);
-  if (version !== SCORE_CAPTURE_BRIDGE_VERSION) {
-    throw new Error(
-      version === undefined
-        ? `No score capture bridge found at ${url}. The app may predate capture mode.`
-        : `Score capture bridge version ${version} at ${url} does not match this CLI's version ${SCORE_CAPTURE_BRIDGE_VERSION}. Update the CLI or point --url at a matching app.`,
-    );
-  }
-  const duration = await page.evaluate(async (source) => {
-    await window.__toyMidiScoreCapture!.load(source);
-    await document.fonts.ready;
-    return window.__toyMidiScoreCapture!.getDuration();
+  await page.addInitScript((source) => {
+    window.__toyMidiScoreViewerSource = source;
   }, source);
+  await page.goto(url);
+  // The deployed app may predate capture mode, so fail with a clear message.
+  await page
+    .waitForFunction(
+      () => window.__toyMidiScoreViewer?.getSnapshot().isReady,
+      undefined,
+      { timeout: 15_000 },
+    )
+    .catch(() => {
+      throw new Error(
+        `No score viewer found at ${url}. The app may predate capture mode.`,
+      );
+    });
+  const duration = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const viewer = window.__toyMidiScoreViewer!;
+    viewer.setScaleToFitViewport();
+    return viewer.getDuration();
+  });
   const cdp = await page.context().newCDPSession(page);
   return { page, cdp, duration };
 }

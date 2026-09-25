@@ -42,11 +42,9 @@ Rendering is faster than real time with the default settings. For example, a 2:1
 
 ## How It Works
 
-The CLI opens `/score-viewer?mode=capture`, which reduces the viewer to its score area and exposes a small `window.__toyMidiScoreCapture` bridge for loading a score, reading its duration, and seeking the playhead. For each frame, the CLI seeks the viewer to the frame time and captures a screenshot, then pipes the frames to `ffmpeg`.
+The CLI opens `/score-viewer?mode=capture`, with the score injected as `window.__toyMidiScoreViewerSource`. Capture mode reduces the viewer to its score area and exposes the viewer runtime as `window.__toyMidiScoreViewer`, which the CLI uses to fit the score to the frame width, read its duration, and seek the playhead. For each frame, the CLI seeks the viewer to the frame time and captures a screenshot, then pipes the frames to `ffmpeg`.
 
 Several pages capture interleaved frames in parallel. Each page still steps forward through the score, so the viewer's scroll position, which depends on which systems the cursor has passed, matches a sequential render. A time range render replays earlier seeks without capturing for the same reason.
-
-The CLI and the app it renders with can come from different commits, so the bridge carries a version from [`src/bridge.ts`](src/bridge.ts), and the CLI stops with a clear message when the app has no bridge or a different version. Bump `SCORE_CAPTURE_BRIDGE_VERSION` whenever the bridge shape or behavior changes.
 
 ## Development
 

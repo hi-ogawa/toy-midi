@@ -62,5 +62,13 @@ function ScoreViewerRoute() {
       />
     );
   }
-  return <ScoreViewer captureMode={params.get("mode") === "capture"} />;
+  if (params.get("mode") === "capture") {
+    return (
+      <ScoreViewer
+        initialSource={window.__toyMidiScoreViewerSource}
+        captureMode
+      />
+    );
+  }
+  return <ScoreViewer />;
 }
