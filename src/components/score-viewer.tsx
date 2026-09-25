@@ -376,12 +376,3 @@ function ScoreSamplesMenu({
     </DropdownMenu>
   );
 }
-
-// Frame capture tools such as packages/score-video drive the viewer through
-// these globals, so the video matches interactive playback.
-declare global {
-  interface Window {
-    __toyMidiScoreViewer?: ScoreViewerRuntime;
-    __toyMidiScoreViewerSource?: ScoreSource;
-  }
-}
