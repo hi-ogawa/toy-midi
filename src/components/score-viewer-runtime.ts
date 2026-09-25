@@ -311,6 +311,7 @@ export class ScoreViewerRuntime {
     this.clock.seek(seconds);
   }
 
+  /** Used by the offline score video render in packages/score-video. */
   getDuration() {
     const last = this.positions.at(-1);
     return last ? scoreTimeToSeconds(last.time, this.state.tempo) : 0;
@@ -407,11 +408,15 @@ export class ScoreViewerRuntime {
     }
   }
 
+  /** Used by the offline score video render in packages/score-video. */
   setSystemsPerPage(count: number) {
     this.systemsPerPage = count;
   }
 
-  /** Scroll to the active system, as auto-scroll does on reveal. */
+  /**
+   * Scroll to the active system, as auto-scroll does on reveal. Also used by
+   * the offline score video render in packages/score-video.
+   */
   scrollToCursor() {
     // The sheet starts below the scroller's top padding in scroll content.
     const sheetTop = parseFloat(getComputedStyle(this.scroller).paddingTop);
