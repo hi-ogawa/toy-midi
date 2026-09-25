@@ -42,6 +42,9 @@ async function renderVideo({
   options: CliOptions;
   source: { name: string; xml: string };
 }) {
+  process.stderr.write(
+    `loading ${source.name} in ${options.workers} pages from ${options.url}\n`,
+  );
   const pages = await Promise.all(
     Array.from({ length: options.workers }, () =>
       openScorePage({ browser, options, source }),
