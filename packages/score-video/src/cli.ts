@@ -10,8 +10,16 @@ import { type Browser, chromium } from "playwright-core";
 
 const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
 
+const USAGE =
+  "Usage: toy-midi-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--start 0] [--end SECONDS] [--workers 4] [--url URL]";
+
 async function main() {
-  const options = parseCliOptions(process.argv.slice(2));
+  const args = process.argv.slice(2);
+  if (args.includes("--help") || args.includes("-h")) {
+    console.log(USAGE);
+    return;
+  }
+  const options = parseCliOptions(args);
   const source = {
     name: path.basename(options.input),
     xml: await readFile(options.input, "utf8"),
@@ -204,9 +212,7 @@ function parseCliOptions(args: string[]) {
   });
   const [input, output] = positionals;
   if (!input || !output || positionals.length > 2) {
-    throw new Error(
-      "Usage: toy-midi-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--start 0] [--end SECONDS] [--workers 4] [--url URL]",
-    );
+    throw new Error(USAGE);
   }
   return {
     input,
