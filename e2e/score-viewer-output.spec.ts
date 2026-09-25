@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
 import { selectMenuItem } from "./helpers";
 
@@ -34,4 +36,17 @@ test("capture paged score PDF", async ({ page }) => {
     format: "A4",
     printBackground: true,
   });
+});
+
+test("capture score video", async ({ baseURL }) => {
+  // Render a short clip of a MusicXML export through the score video CLI.
+  await promisify(execFile)("node", [
+    "packages/score-video/bin/cli.js",
+    "src/lib/musicxml/__snapshots__/five-string-tab.musicxml",
+    ".tmp/score-viewer-debug-video.mp4",
+    "--url",
+    baseURL!,
+    "--end",
+    "2",
+  ]);
 });
