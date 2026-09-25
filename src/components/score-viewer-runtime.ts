@@ -376,14 +376,9 @@ export class ScoreViewerRuntime {
       (cursorTop < viewportTop || viewportBottom < cursorBottom)
     ) {
       // The sheet starts below the scroller's top padding in scroll content.
-      const { paddingTop } = getComputedStyle(this.scroller);
-      this.scroller.scrollTo({
-        top: Math.max(
-          parseFloat(paddingTop) +
-            (currentAnchor.top - SCROLL_HEADROOM) * this.scale,
-          0,
-        ),
-      });
+      const sheetTop = parseFloat(getComputedStyle(this.scroller).paddingTop);
+      const headroomTop = (currentAnchor.top - SCROLL_HEADROOM) * this.scale;
+      this.scroller.scrollTo({ top: Math.max(sheetTop + headroomTop, 0) });
     }
   }
 
