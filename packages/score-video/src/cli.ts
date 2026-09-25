@@ -165,7 +165,11 @@ async function openScorePage({
   await page.goto(url);
   // The deployed app may predate capture mode, so fail with a clear message.
   await page
-    .waitForFunction(() => window.__toyMidiScoreViewer?.getSnapshot().isReady)
+    .waitForFunction(
+      () => window.__toyMidiScoreViewer?.getSnapshot().isReady,
+      undefined,
+      { timeout: 10_000 },
+    )
     .catch(() => {
       throw new Error(
         `No score viewer found at ${url}. The app may predate capture mode.`,
