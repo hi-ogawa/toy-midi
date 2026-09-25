@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import fs from "node:fs";
 import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
 import { selectMenuItem } from "./helpers";
@@ -42,13 +43,16 @@ test("capture paged score PDF", async ({ page }) => {
 
 test("capture score video", async ({ baseURL }) => {
   // Render a short clip of a MusicXML export through the score video CLI.
+  const output = ".tmp/score-viewer-debug-video.mp4";
+  fs.rmSync(output, { force: true });
   await execFileAsync("node", [
     "packages/score-video/bin/cli.js",
     "src/lib/musicxml/__snapshots__/five-string-tab.musicxml",
-    ".tmp/score-viewer-debug-video.mp4",
+    output,
     "--url",
     baseURL!,
     "--end",
     "2",
   ]);
+  expect(fs.existsSync(output)).toBe(true);
 });
