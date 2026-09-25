@@ -158,9 +158,9 @@ async function openScorePage({
   const page = await browser.newPage({
     viewport: { width: options.width, height: options.height },
   });
-  const url = new URL("/score-viewer?mode=capture", options.url).href;
+  const url = new URL("/score-viewer", options.url).href;
   await page.addInitScript((source) => {
-    window.__toyMidiScoreViewerSource = source;
+    window.__toyMidiScoreViewerCaptureSource = source;
   }, source);
   await page.goto(url);
   // The deployed app may predate capture mode, so fail with a clear message.

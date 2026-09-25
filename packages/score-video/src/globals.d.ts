@@ -8,6 +8,6 @@ import type {
 declare global {
   interface Window {
     __toyMidiScoreViewer?: ScoreViewerRuntime;
-    __toyMidiScoreViewerSource?: ScoreSource;
+    __toyMidiScoreViewerCaptureSource?: ScoreSource;
   }
 }

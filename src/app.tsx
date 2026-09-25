@@ -62,13 +62,9 @@ function ScoreViewerRoute() {
       />
     );
   }
-  if (params.get("mode") === "capture") {
-    return (
-      <ScoreViewer
-        initialSource={window.__toyMidiScoreViewerSource}
-        captureMode
-      />
-    );
+  const captureSource = window.__toyMidiScoreViewerCaptureSource;
+  if (captureSource) {
+    return <ScoreViewer initialSource={captureSource} captureMode />;
   }
   return <ScoreViewer />;
 }
