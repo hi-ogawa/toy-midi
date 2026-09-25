@@ -41,11 +41,11 @@ import { cn } from "./ui/utils";
 
 export function ScoreViewer({
   initialSource,
-  videoMode,
+  captureMode,
 }: {
   initialSource?: ScoreSource;
-  /** Show only the score area and expose the offline video render bridge. */
-  videoMode?: boolean;
+  /** Show only the score area and expose the frame capture bridge. */
+  captureMode?: boolean;
 }) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
 
@@ -138,13 +138,13 @@ export function ScoreViewer({
     },
   });
 
-  // Let the offline video renderer drive the real viewer frame by frame, so
+  // Let frame capture tools drive the real viewer frame by frame, so
   // cursor geometry, scrolling, and settings match interactive playback.
   useEffect(() => {
-    if (!videoMode) {
+    if (!captureMode) {
       return;
     }
-    window.__toyMidiScoreVideo = {
+    window.__toyMidiScoreCapture = {
       load: async (source) => {
         await loadMutation.mutateAsync({ settings, source });
         // Fill the frame width without reflowing the score's system breaks.
@@ -154,9 +154,9 @@ export function ScoreViewer({
       seek: (seconds) => clock.seek(seconds),
     };
     return () => {
-      delete window.__toyMidiScoreVideo;
+      delete window.__toyMidiScoreCapture;
     };
-  }, [videoMode, clock, runtime, loadMutation.mutateAsync, settings]);
+  }, [captureMode, clock, runtime, loadMutation.mutateAsync, settings]);
 
   function changeSettings(update: Partial<ScoreViewerSettings>) {
     const nextSettings = { ...settings, ...update };
@@ -174,7 +174,7 @@ export function ScoreViewer({
       className={cn(
         "flex h-screen flex-col overflow-hidden bg-neutral-100 text-neutral-950",
         settings.layout === "paged" && "score-viewer-root-paged",
-        videoMode && "score-viewer-root-video",
+        captureMode && "score-viewer-root-capture",
       )}
     >
       <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
@@ -359,7 +359,7 @@ export function ScoreViewer({
 
 declare global {
   interface Window {
-    __toyMidiScoreVideo?: {
+    __toyMidiScoreCapture?: {
       load: (source: ScoreSource) => Promise<void>;
       getDuration: () => number;
       seek: (seconds: number) => void;

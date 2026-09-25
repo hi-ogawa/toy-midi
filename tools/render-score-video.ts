@@ -85,14 +85,14 @@ async function main() {
       await page.evaluate(
         ({ frames, fps }) => {
           for (let frame = 0; frame < frames; frame++) {
-            window.__toyMidiScoreVideo!.seek(frame / fps);
+            window.__toyMidiScoreCapture!.seek(frame / fps);
           }
         },
         { frames: startFrame + worker, fps: options.fps },
       );
       for (let frame = worker; frame < frameCount; frame += options.workers) {
         await page.evaluate(
-          (seconds) => window.__toyMidiScoreVideo!.seek(seconds),
+          (seconds) => window.__toyMidiScoreCapture!.seek(seconds),
           (startFrame + frame) / options.fps,
         );
         const { data } = await cdp.send("Page.captureScreenshot", {
@@ -125,17 +125,17 @@ async function openScorePage({
   options: Options;
   source: { name: string; xml: string };
 }) {
-  // Video mode shows only the score area scaled to the viewport width, so the
+  // Capture mode shows only the score area scaled to the viewport width, so the
   // viewport is the video frame.
   const page = await browser.newPage({
     viewport: { width: options.width, height: options.height },
   });
-  await page.goto(new URL("/score-viewer?mode=video", options.url).href);
-  await page.waitForFunction(() => window.__toyMidiScoreVideo);
+  await page.goto(new URL("/score-viewer?mode=capture", options.url).href);
+  await page.waitForFunction(() => window.__toyMidiScoreCapture);
   const duration = await page.evaluate(async (source) => {
-    await window.__toyMidiScoreVideo!.load(source);
+    await window.__toyMidiScoreCapture!.load(source);
     await document.fonts.ready;
-    return window.__toyMidiScoreVideo!.getDuration();
+    return window.__toyMidiScoreCapture!.getDuration();
   }, source);
   const cdp = await page.context().newCDPSession(page);
   return { page, cdp, duration };

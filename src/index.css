@@ -59,24 +59,24 @@
   }
 }
 
-/* Reduce the viewer to the score area for offline video frame capture. */
-.score-viewer-root-video > header,
-.score-viewer-root-video [data-testid="score-settings-panel"],
-.score-viewer-root-video [data-testid="score-viewer-measure-layers"] {
+/* Reduce the viewer to the score area for frame capture. */
+.score-viewer-root-capture > header,
+.score-viewer-root-capture [data-testid="score-settings-panel"],
+.score-viewer-root-capture [data-testid="score-viewer-measure-layers"] {
   display: none;
 }
 
-.score-viewer-root-video {
+.score-viewer-root-capture {
   background: white;
 }
 
-.score-viewer-root-video [data-testid="score-viewer-scroll"] {
+.score-viewer-root-capture [data-testid="score-viewer-scroll"] {
   /* Keep vertical padding, which spaces the active system after scrolling. */
   padding-inline: 0;
   scrollbar-width: none;
 }
 
-.score-viewer-root-video [data-testid="score-viewer-sheet"] {
+.score-viewer-root-capture [data-testid="score-viewer-sheet"] {
   box-shadow: none;
 }
 
