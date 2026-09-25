@@ -146,13 +146,15 @@ async function renderVideo({
 
 async function launchBrowser() {
   try {
-    return await chromium.launch();
+    // Use full Chromium in headless mode, matching the e2e setup, so a single
+    // `install chromium --no-shell` covers both.
+    return await chromium.launch({ channel: "chromium" });
   } catch (error) {
     const { version } = createRequire(import.meta.url)(
       "playwright-core/package.json",
     );
     throw new Error(
-      `Failed to launch Chromium. Install it with:\n\n  npx playwright-core@${version} install chromium\n`,
+      `Failed to launch Chromium. Install it with:\n\n  npx playwright-core@${version} install chromium --no-shell\n`,
       { cause: error },
     );
   }
