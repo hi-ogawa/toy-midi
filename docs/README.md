@@ -15,10 +15,6 @@
 
 - [Bass pitch transcription](bass-pitch/README.md): pipeline, pYIN explanation, visual companions, and development workflow.
 
-## Score Video
-
-- [Score video CLI](../packages/score-video/README.md): install, usage, output contract, and how the viewer's capture mode renders frames.
-
 ## References
 
 - [References](references.md): related projects and libraries.
