@@ -27,6 +27,7 @@ Export the MusicXML from a recorder MIDI track with the track menu's "Export Mus
 | ------------------- | ------------ | -------------------------------------------------------------- |
 | `--width`           | `1280`       | Frame width. The score scales to fill it.                      |
 | `--height`          | `480`        | Frame height. The default fits two systems of a typical score. |
+| `--systems`         | `2`          | Systems per page. Each page is centered in the frame.          |
 | `--fps`             | `30`         | Frame rate.                                                    |
 | `--start` / `--end` | whole score  | Time range in seconds, for quick iteration.                    |
 | `--workers`         | `4`          | Browser pages capturing frames in parallel.                    |
