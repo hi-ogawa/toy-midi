@@ -223,10 +223,10 @@ export class ScoreViewerRuntime {
 
   async load({
     score,
-    settings = INITIAL_SCORE_VIEWER_SETTINGS,
+    settings,
   }: {
     score: ScoreSource;
-    settings?: ScoreViewerSettings;
+    settings: ScoreViewerSettings;
   }) {
     this.resumeAutoScroll();
     this.setState({ isReady: false });

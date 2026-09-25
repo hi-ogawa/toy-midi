@@ -180,7 +180,16 @@ async function openScorePage({
   }
   const duration = await page.evaluate(async (score) => {
     const viewer = window.__toyMidiScoreViewer!;
-    await viewer.load({ score });
+    // The composition adds its own title, so the score layer omits it.
+    await viewer.load({
+      score,
+      settings: {
+        layout: "continuous",
+        showSectionLabels: true,
+        showTitle: false,
+        titleSpacing: 0,
+      },
+    });
     await document.fonts.ready;
     viewer.setScaleToFitViewport();
     return viewer.getDuration();
