@@ -116,12 +116,12 @@ async function renderVideo({
       // Stepping by the worker count afterwards still matches sequential
       // playback as long as no system lasts shorter than that many frames.
       await page.evaluate(
-        ({ frames, fps }) => {
-          for (let frame = 0; frame < frames; frame++) {
+        ({ workerStartFrame, fps }) => {
+          for (let frame = 0; frame < workerStartFrame; frame++) {
             window.__toyMidiScoreViewer!.seek(frame / fps);
           }
         },
-        { frames: startFrame + worker, fps: options.fps },
+        { workerStartFrame: startFrame + worker, fps: options.fps },
       );
       for (let frame = worker; frame < frameCount; frame += options.workers) {
         await page.evaluate(
