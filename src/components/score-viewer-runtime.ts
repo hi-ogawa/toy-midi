@@ -104,12 +104,12 @@ export class ScoreViewerRuntime {
   private osmd!: OpenSheetMusicDisplay;
 
   private positions: CursorPosition[] = [];
-  /** Unscaled top of the active system's cursor. */
-  private cursorTop = 0;
   private state = INITIAL_RUNTIME_STATE;
   private timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   private readonly listeners = new Set<() => void>();
   private manualScrollTimer?: ReturnType<typeof setTimeout>;
+  /** Unscaled top of the active system's cursor. */
+  private cursorTop = 0;
 
   private readonly clock: ScoreViewerClock;
   private readonly scrollerClassName: string;
@@ -370,12 +370,12 @@ export class ScoreViewerRuntime {
           0;
     this.cursor.style.transform = `translate(${currentAnchor.x + (nextAnchor.x - currentAnchor.x) * progress}px, ${currentAnchor.top}px)`;
     this.cursor.style.height = `${currentAnchor.height}px`;
-    this.cursorTop = currentAnchor.top;
     // Expose the active system for cursor-wrapping E2E coverage.
     this.cursor.dataset.systemId = String(currentAnchor.systemId);
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
+    this.cursorTop = currentAnchor.top;
     const cursorTop = currentAnchor.top * this.scale;
     const cursorBottom =
       (currentAnchor.top + currentAnchor.height) * this.scale;
