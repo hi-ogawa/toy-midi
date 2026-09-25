@@ -125,7 +125,7 @@ function RecorderScorePreview({
     () =>
       new ScoreViewerRuntime({
         clock: createRecorderScoreClock(recorder),
-        presentation: { scale: 1, viewportPadding: 12 },
+        presentation: { scale: 1 },
       }),
   );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
@@ -216,7 +216,8 @@ function RecorderScorePreview({
     <div
       ref={rootRef}
       data-testid="recorder-score-renderer"
-      className="score-preview-runtime h-full w-full overflow-hidden bg-neutral-300 text-neutral-950"
+      // Pad the runtime's scroll container, which is the root's only child.
+      className="score-preview-runtime h-full w-full overflow-hidden bg-neutral-300 text-neutral-950 *:p-3"
     />
   );
 }

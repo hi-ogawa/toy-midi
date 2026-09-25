@@ -63,7 +63,7 @@ export function ScoreViewer({
     () =>
       new ScoreViewerRuntime({
         clock,
-        presentation: { scale: 1, viewportPadding: 24 },
+        presentation: { scale: 1 },
       }),
   );
   // TODO: Isolate the clock subscription if whole-view RAF rerenders become
@@ -317,7 +317,8 @@ export function ScoreViewer({
       <div
         ref={runtimeRootRef}
         data-testid="score-viewer-runtime-root"
-        className="min-h-0 flex-1"
+        // Pad the runtime's scroll container, which is the root's only child.
+        className="min-h-0 flex-1 *:p-6"
       />
       {isSettingsOpen && (
         <FloatingPanel
