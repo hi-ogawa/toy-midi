@@ -38,7 +38,7 @@ Width and height must be even for H.264 output.
 
 The output is a silent H.264 MP4 at a constant frame rate. The video starts at the score's first measure and ends at the end of its final measure, without any lead-in or tail, so a video editor can hold the first and last frames and align the layer against the audio.
 
-Rendering is faster than real time with the default settings. For example, a 2:19 score renders at 1280x480 in about 90 seconds on a desktop machine, and larger frames take proportionally longer.
+Rendering is faster than real time with the default settings. For example, a 2:19 score renders at 1280x480 in about a minute on a desktop machine, and larger frames take proportionally longer.
 
 ## How It Works
 
