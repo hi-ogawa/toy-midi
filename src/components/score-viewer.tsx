@@ -149,7 +149,6 @@ export function ScoreViewer({
       version: SCORE_CAPTURE_BRIDGE_VERSION,
       load: async (source) => {
         await loadMutation.mutateAsync({ settings, source });
-        // Fill the frame width without reflowing the score's system breaks.
         runtime.setScaleToFitViewport();
       },
       getDuration: () => runtime.getDuration(),
