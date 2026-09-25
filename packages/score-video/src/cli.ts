@@ -111,8 +111,9 @@ async function renderVideo({
 
   await Promise.all(
     pages.map(async ({ page, cdp }, worker) => {
-      // Replay earlier frames without capturing, because the viewer's scroll
-      // position depends on which systems the cursor has passed through.
+      // Replay frames before this worker's first frame without capturing,
+      // mainly those skipped by --start, because the viewer's scroll position
+      // depends on which systems the cursor has passed through.
       await page.evaluate(
         ({ workerStartFrame, fps }) => {
           for (let frame = 0; frame < workerStartFrame; frame++) {
