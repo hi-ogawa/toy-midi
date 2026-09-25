@@ -139,8 +139,7 @@ export function ScoreViewer({
     },
   });
 
-  // Let frame capture tools drive the real viewer frame by frame, so
-  // cursor geometry, scrolling, and settings match interactive playback.
+  // Let frame capture tools drive the real viewer frame by frame
   useEffect(() => {
     if (!captureMode) {
       return;
