@@ -6,7 +6,6 @@ export const SCORE_CAPTURE_BRIDGE_VERSION = 1;
 export type ScoreCaptureBridge = {
   version: number;
   load: (source: { name: string; xml: string }) => Promise<void>;
-  /** Playback duration in seconds, ending at the final measure's end. */
   getDuration: () => number;
   seek: (seconds: number) => void;
 };
