@@ -149,8 +149,9 @@ function parseOptions(args: string[]) {
     allowPositionals: true,
     options: {
       fps: { type: "string", default: "30" },
-      width: { type: "string", default: "1920" },
-      height: { type: "string", default: "900" },
+      // 720p width with a height that fits two systems of typical bass scores.
+      width: { type: "string", default: "1280" },
+      height: { type: "string", default: "480" },
       url: { type: "string", default: DEFAULT_URL },
       workers: { type: "string", default: "4" },
       start: { type: "string", default: "0" },
@@ -160,7 +161,7 @@ function parseOptions(args: string[]) {
   const [input, output] = positionals;
   if (!input || !output || positionals.length > 2) {
     throw new Error(
-      "Usage: render-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1920] [--height 900] [--start 0] [--end SECONDS] [--workers 4] [--url URL]",
+      "Usage: render-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--start 0] [--end SECONDS] [--workers 4] [--url URL]",
     );
   }
   return {
