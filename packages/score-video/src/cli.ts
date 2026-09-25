@@ -88,7 +88,7 @@ async function renderVideo({
   );
   const frameCount = endFrame - startFrame;
   progress.loaded({ frameCount });
-  const writer = createOrderedWriter(
+  const frames = createReorderBuffer(
     async ({ index, item }: { index: number; item: Buffer }) => {
       if (!ffmpeg.stdin.write(item)) {
         await once(ffmpeg.stdin, "drain");
@@ -123,11 +123,11 @@ async function renderVideo({
           format: "png",
           optimizeForSpeed: true,
         });
-        writer.push({ index: frame, item: Buffer.from(data, "base64") });
+        frames.push({ index: frame, item: Buffer.from(data, "base64") });
       }
     }),
   );
-  await writer.flush();
+  await frames.flush();
   ffmpeg.stdin.end();
   const exitCode = await exited;
   if (exitCode !== 0) {
@@ -189,20 +189,21 @@ async function openScorePage({
   return { page, cdp, duration };
 }
 
-// Accept items out of order and write them one at a time in index order.
-function createOrderedWriter<T>(
-  write: (entry: { index: number; item: T }) => Promise<void>,
+// Accept items out of order and consume them one at a time in index order.
+function createReorderBuffer<T>(
+  consume: (entry: { index: number; item: T }) => Promise<void>,
 ) {
   const pending = new Map<number, T>();
   let nextIndex = 0;
   let writing = Promise.resolve();
   let error: unknown;
-  // Write the ready run of items at the front. Chained drains never overlap.
+  // Consume items from nextIndex until the first one that hasn't arrived yet.
+  // push chains drains one after another, so they never run concurrently.
   async function drain() {
     while (pending.has(nextIndex)) {
       const next = pending.get(nextIndex)!;
       pending.delete(nextIndex);
-      await write({ index: nextIndex++, item: next });
+      await consume({ index: nextIndex++, item: next });
     }
   }
   return {
