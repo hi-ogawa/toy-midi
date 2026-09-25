@@ -200,9 +200,9 @@ function createOrderedWriter<T>(
       pending.set(index, item);
       writing = writing.then(async () => {
         while (pending.has(nextIndex)) {
-          const item = pending.get(nextIndex)!;
+          const next = pending.get(nextIndex)!;
           pending.delete(nextIndex);
-          await write({ index: nextIndex++, item });
+          await write({ index: nextIndex++, item: next });
         }
       });
     },
