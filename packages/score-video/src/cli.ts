@@ -196,18 +196,31 @@ function createOrderedWriter<T>(
   const pending = new Map<number, T>();
   let nextIndex = 0;
   let writing = Promise.resolve();
+  let error: unknown;
   return {
     push({ index, item }: { index: number; item: T }) {
+      if (error) {
+        throw error;
+      }
       pending.set(index, item);
-      writing = writing.then(async () => {
-        while (pending.has(nextIndex)) {
-          const next = pending.get(nextIndex)!;
-          pending.delete(nextIndex);
-          await write({ index: nextIndex++, item: next });
-        }
-      });
+      writing = writing
+        .then(async () => {
+          while (!error && pending.has(nextIndex)) {
+            const next = pending.get(nextIndex)!;
+            pending.delete(nextIndex);
+            await write({ index: nextIndex++, item: next });
+          }
+        })
+        .catch((e) => {
+          error = e;
+        });
     },
-    flush: () => writing,
+    async flush() {
+      await writing;
+      if (error) {
+        throw error;
+      }
+    },
   };
 }
 
