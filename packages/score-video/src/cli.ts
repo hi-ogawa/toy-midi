@@ -44,6 +44,7 @@ async function renderVideo({
   source: { name: string; xml: string };
 }) {
   const progress = new RenderProgress(options);
+  progress.start();
   const pages = await Promise.all(
     Array.from({ length: options.workers }, () =>
       openScorePage({ browser, options, source }),
@@ -276,8 +277,10 @@ class RenderProgress {
   private phaseStartedAt = this.startedAt;
   private frameCount = 0;
 
-  constructor(private readonly options: CliOptions) {
-    const { input, output, url, width, height, fps, workers } = options;
+  constructor(private readonly options: CliOptions) {}
+
+  start() {
+    const { input, output, url, width, height, fps, workers } = this.options;
     writeLine(style("bold", "score-video"));
     for (const [label, value] of [
       ["input", input],
