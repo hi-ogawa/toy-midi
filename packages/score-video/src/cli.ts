@@ -8,10 +8,6 @@ import { SCORE_CAPTURE_BRIDGE_VERSION } from "./bridge.ts";
 
 // Render a silent score video by stepping the real score viewer frame by frame
 // and screenshotting its score area, so the video matches interactive playback.
-//
-//   toy-midi-score-video score.musicxml score.mp4
-//   toy-midi-score-video score.musicxml score.mp4 --url http://localhost:5173
-//   toy-midi-score-video score.musicxml clip.mp4 --start 60 --end 75
 
 const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
 
@@ -22,12 +18,10 @@ async function main() {
     xml: await readFile(options.input, "utf8"),
   };
 
-  // Check external tools before starting a browser.
   if (spawnSync("ffmpeg", ["-version"]).error) {
     throw new Error("ffmpeg is required on PATH to encode the video");
   }
 
-  // Always close the browser, because an open browser keeps the process alive.
   const browser = await launchBrowser();
   try {
     await renderVideo({ browser, options, source });
@@ -45,7 +39,6 @@ async function renderVideo({
   options: Options;
   source: { name: string; xml: string };
 }) {
-  // Open one viewer page per worker, each with the score loaded.
   const pages = await Promise.all(
     Array.from({ length: options.workers }, () =>
       openScorePage({ browser, options, source }),
@@ -237,7 +230,6 @@ function parseOptions(args: string[]) {
   };
 }
 
-// H.264 with YUV 4:2:0 chroma subsampling requires even frame dimensions.
 function parseEvenInteger(option: string, value: string) {
   const parsed = parsePositiveInteger(option, value);
   if (parsed % 2 !== 0) {
