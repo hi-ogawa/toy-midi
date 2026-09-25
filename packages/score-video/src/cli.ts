@@ -109,12 +109,12 @@ async function renderVideo({
     });
   }
 
-  // The viewer's scroll position depends on which systems the cursor has
-  // passed through, so each page replays earlier frames without capturing,
-  // then captures every Nth frame. This matches sequential playback as long as
-  // no system lasts shorter than N frames.
   await Promise.all(
     pages.map(async ({ page, cdp }, worker) => {
+      // Replay earlier frames without capturing, because the viewer's scroll
+      // position depends on which systems the cursor has passed through.
+      // Stepping by the worker count afterwards still matches sequential
+      // playback as long as no system lasts shorter than that many frames.
       await page.evaluate(
         ({ frames, fps }) => {
           for (let frame = 0; frame < frames; frame++) {
