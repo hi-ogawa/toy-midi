@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -86,25 +87,16 @@ async function renderVideo({
   );
   const frameCount = endFrame - startFrame;
   progress.loaded({ frameCount });
-  const pending = new Map<number, Buffer>();
-  let nextFrame = 0;
-  let writing = Promise.resolve();
-  function enqueue(frame: number, png: Buffer) {
-    pending.set(frame, png);
-    writing = writing.then(async () => {
-      while (pending.has(nextFrame)) {
-        const next = pending.get(nextFrame)!;
-        pending.delete(nextFrame);
-        nextFrame++;
-        if (!ffmpeg.stdin.write(next)) {
-          await new Promise((resolve) => ffmpeg.stdin.once("drain", resolve));
-        }
-        if (nextFrame % options.fps === 0) {
-          progress.frame(nextFrame);
-        }
+  const writer = createOrderedWriter(
+    async ({ index, item }: { index: number; item: Buffer }) => {
+      if (!ffmpeg.stdin.write(item)) {
+        await once(ffmpeg.stdin, "drain");
       }
-    });
-  }
+      if ((index + 1) % options.fps === 0) {
+        progress.frame(index + 1);
+      }
+    },
+  );
 
   await Promise.all(
     pages.map(async ({ page, cdp }, worker) => {
@@ -130,11 +122,11 @@ async function renderVideo({
           format: "png",
           optimizeForSpeed: true,
         });
-        enqueue(frame, Buffer.from(data, "base64"));
+        writer.push({ index: frame, item: Buffer.from(data, "base64") });
       }
     }),
   );
-  await writing;
+  await writer.flush();
   ffmpeg.stdin.end();
   const exitCode = await exited;
   if (exitCode !== 0) {
@@ -194,6 +186,28 @@ async function openScorePage({
   }, source);
   const cdp = await page.context().newCDPSession(page);
   return { page, cdp, duration };
+}
+
+// Accept items out of order and write them one at a time in index order.
+function createOrderedWriter<T>(
+  write: (entry: { index: number; item: T }) => Promise<void>,
+) {
+  const pending = new Map<number, T>();
+  let nextIndex = 0;
+  let writing = Promise.resolve();
+  return {
+    push({ index, item }: { index: number; item: T }) {
+      pending.set(index, item);
+      writing = writing.then(async () => {
+        while (pending.has(nextIndex)) {
+          const item = pending.get(nextIndex)!;
+          pending.delete(nextIndex);
+          await write({ index: nextIndex++, item });
+        }
+      });
+    },
+    flush: () => writing,
+  };
 }
 
 type CliOptions = ReturnType<typeof parseCliOptions>;
