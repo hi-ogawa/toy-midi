@@ -100,6 +100,8 @@ export class ScoreViewerRuntime {
   private osmd!: OpenSheetMusicDisplay;
 
   private positions: CursorPosition[] = [];
+  /** Unscaled top of the active system's cursor. */
+  private cursorTop = 0;
   private state = INITIAL_RUNTIME_STATE;
   private timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   private readonly listeners = new Set<() => void>();
@@ -364,6 +366,7 @@ export class ScoreViewerRuntime {
           0;
     this.cursor.style.transform = `translate(${currentAnchor.x + (nextAnchor.x - currentAnchor.x) * progress}px, ${currentAnchor.top}px)`;
     this.cursor.style.height = `${currentAnchor.height}px`;
+    this.cursorTop = currentAnchor.top;
     // Expose the active system for cursor-wrapping E2E coverage.
     this.cursor.dataset.systemId = String(currentAnchor.systemId);
 
@@ -378,11 +381,16 @@ export class ScoreViewerRuntime {
       this.manualScrollTimer === undefined &&
       (cursorTop < viewportTop || viewportBottom < cursorBottom)
     ) {
-      const { paddingTop } = getComputedStyle(this.scroller);
-      this.scroller.scrollTo({
-        top: Math.max(cursorTop - parseFloat(paddingTop), 0),
-      });
+      this.scrollToCursor();
     }
+  }
+
+  /** Scroll the active system to the top, as auto-scroll does on reveal. */
+  scrollToCursor() {
+    const { paddingTop } = getComputedStyle(this.scroller);
+    this.scroller.scrollTo({
+      top: Math.max(this.cursorTop * this.scale - parseFloat(paddingTop), 0),
+    });
   }
 
   private setState(update: Partial<ScoreViewerRuntimeState>) {

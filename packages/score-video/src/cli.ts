@@ -192,6 +192,9 @@ async function openScorePage({
     });
     await document.fonts.ready;
     viewer.setScaleToFitViewport();
+    // Frame the first system like every later one, instead of showing the
+    // sheet's top margin, which never scrolls into view again.
+    viewer.scrollToCursor();
     return viewer.getDuration();
   }, source);
   const cdp = await page.context().newCDPSession(page);
