@@ -261,6 +261,7 @@ function parsePositiveInteger(option: string, value: string) {
 }
 
 main().catch((error) => {
-  console.error(error);
+  // Errors carry user-facing messages, so skip stack traces.
+  console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 });
