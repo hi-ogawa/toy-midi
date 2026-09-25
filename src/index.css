@@ -66,8 +66,18 @@
   display: none;
 }
 
+.score-viewer-root-video {
+  background: white;
+}
+
 .score-viewer-root-video [data-testid="score-viewer-scroll"] {
+  /* Keep vertical padding, which spaces the active system after scrolling. */
+  padding-inline: 0;
   scrollbar-width: none;
+}
+
+.score-viewer-root-video [data-testid="score-viewer-sheet"] {
+  box-shadow: none;
 }
 
 /* Present OSMD's page SVGs as separate sheets on the workspace. */
