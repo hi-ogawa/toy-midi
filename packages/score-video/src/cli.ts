@@ -197,19 +197,21 @@ function createOrderedWriter<T>(
   let nextIndex = 0;
   let writing = Promise.resolve();
   let error: unknown;
+  // Write the ready run of items at the front. Chained drains never overlap.
+  async function drain() {
+    while (pending.has(nextIndex)) {
+      const next = pending.get(nextIndex)!;
+      pending.delete(nextIndex);
+      await write({ index: nextIndex++, item: next });
+    }
+  }
   return {
     push({ index, item }: { index: number; item: T }) {
       if (error) {
         throw error;
       }
       pending.set(index, item);
-      writing = writing.then(async () => {
-        while (pending.has(nextIndex)) {
-          const next = pending.get(nextIndex)!;
-          pending.delete(nextIndex);
-          await write({ index: nextIndex++, item: next });
-        }
-      });
+      writing = writing.then(drain);
       // Record the failure for push, and mark the rejection as handled.
       writing.catch((e) => {
         error = e;
