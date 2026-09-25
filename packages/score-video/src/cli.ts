@@ -195,7 +195,7 @@ function createReorderBuffer<T>(
 ) {
   const pending = new Map<number, T>();
   let nextIndex = 0;
-  let writing = Promise.resolve();
+  let draining = Promise.resolve();
   let error: unknown;
   // Consume items from nextIndex until the first one that hasn't arrived yet.
   // push chains drains one after another, so they never run concurrently.
@@ -212,13 +212,13 @@ function createReorderBuffer<T>(
         throw error;
       }
       pending.set(index, item);
-      writing = writing.then(drain);
+      draining = draining.then(drain);
       // Record the failure for push, and mark the rejection as handled.
-      writing.catch((e) => {
+      draining.catch((e) => {
         error = e;
       });
     },
-    flush: () => writing,
+    flush: () => draining,
   };
 }
 
