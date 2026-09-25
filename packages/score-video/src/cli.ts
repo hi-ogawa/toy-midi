@@ -261,7 +261,6 @@ class RenderProgress {
   private readonly startedAt = performance.now();
   private phaseStartedAt = this.startedAt;
   private frameCount = 0;
-  private spinnerIndex = 0;
 
   constructor(private readonly options: CliOptions) {
     const { input, output, url, width, height, fps, workers } = options;
@@ -275,7 +274,7 @@ class RenderProgress {
       writeLine(`  ${style("dim", label.padEnd(6))}  ${value}`);
     }
     writeLine("");
-    this.pending(`loading ${workers} pages…`);
+    this.pending(`loading ${workers} pages`);
   }
 
   loaded({ frameCount }: { frameCount: number }) {
@@ -303,10 +302,8 @@ class RenderProgress {
     );
   }
 
-  // Advance a spinner on each update, so the line reads as in progress.
   private pending(message: string) {
-    const spinner = SPINNER[this.spinnerIndex++ % SPINNER.length];
-    rewriteLine(`${style("yellow", spinner)} ${message}`);
+    rewriteLine(`${style("dim", "⋯")} ${message}`);
   }
 
   private step(message: string, time?: string) {
@@ -316,8 +313,6 @@ class RenderProgress {
     finishLine(`${style("green", "✓")} ${message}  ${style("dim", time)}`);
   }
 }
-
-const SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
 function style(format: Parameters<typeof styleText>[0], text: string) {
   return styleText(format, text, { stream: process.stderr });
