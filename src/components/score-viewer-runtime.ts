@@ -73,6 +73,10 @@ type CursorPosition = {
 // TODO: Expose this as a layout density control without coupling it to view zoom.
 const SCORE_LAYOUT_WIDTH = 1110;
 const MANUAL_SCROLL_IDLE_MS = 2000;
+// Room above the active system's cursor after auto-scroll, for markings drawn
+// above it such as tempo and section labels. In sheet pixels, so it scales
+// with the score.
+const SCROLL_HEADROOM = 48;
 
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
@@ -371,10 +375,10 @@ export class ScoreViewerRuntime {
       this.manualScrollTimer === undefined &&
       (cursorTop < viewportTop || viewportBottom < cursorBottom)
     ) {
-      const { paddingTop } = getComputedStyle(this.scroller);
-      this.scroller.scrollTo({
-        top: Math.max(cursorTop - parseFloat(paddingTop), 0),
-      });
+      // The sheet starts below the scroller's top padding in scroll content.
+      const sheetTop = parseFloat(getComputedStyle(this.scroller).paddingTop);
+      const headroomTop = (currentAnchor.top - SCROLL_HEADROOM) * this.scale;
+      this.scroller.scrollTo({ top: Math.max(sheetTop + headroomTop, 0) });
     }
   }
 
