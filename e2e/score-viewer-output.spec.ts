@@ -43,7 +43,7 @@ test("capture paged score PDF", async ({ page }) => {
 
 test("capture score video", async ({ baseURL }) => {
   // Render a short clip of a MusicXML export through the score video CLI.
-  const output = ".tmp/score-viewer-debug-video.mp4";
+  const output = ".tmp/score-viewer-output-video.mp4";
   fs.rmSync(output, { force: true });
   await execFileAsync("node", [
     "packages/score-video/bin/cli.js",

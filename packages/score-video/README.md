@@ -57,4 +57,4 @@ pnpm dev --port 5173
 pnpm render-score-video score.musicxml score.mp4 --url http://localhost:5173
 ```
 
-The `capture score video` test in `e2e/score-viewer-debug-capture.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-debug-video.mp4` for inspection.
+The `capture score video` test in `e2e/score-viewer-output.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-output-video.mp4` for inspection.
