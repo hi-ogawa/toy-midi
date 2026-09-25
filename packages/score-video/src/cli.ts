@@ -113,8 +113,8 @@ async function renderVideo({
     pages.map(async ({ page, cdp }, worker) => {
       // Replay earlier frames without capturing, because the viewer's scroll
       // position depends on which systems the cursor has passed through.
-      // Stepping by the worker count afterwards still matches sequential
-      // playback as long as no system lasts shorter than that many frames.
+      // Capturing then skips frames by the worker count, which would miss a
+      // system shorter than that, but real scores have no such systems.
       await page.evaluate(
         ({ workerStartFrame, fps }) => {
           for (let frame = 0; frame < workerStartFrame; frame++) {
