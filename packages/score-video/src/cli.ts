@@ -1,15 +1,17 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { type Browser, chromium } from "@playwright/test";
+import { type Browser, chromium } from "playwright-core";
+import { SCORE_CAPTURE_BRIDGE_VERSION } from "./bridge.ts";
 
 // Render a silent score video by stepping the real score viewer frame by frame
 // and screenshotting its score area, so the video matches interactive playback.
 //
-//   pnpm render-score-video score.musicxml score.mp4
-//   pnpm render-score-video score.musicxml score.mp4 --url http://localhost:5173
-//   pnpm render-score-video score.musicxml clip.mp4 --start 60 --end 75
+//   toy-midi-score-video score.musicxml score.mp4
+//   toy-midi-score-video score.musicxml score.mp4 --url http://localhost:5173
+//   toy-midi-score-video score.musicxml clip.mp4 --start 60 --end 75
 
 const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
 
@@ -20,8 +22,30 @@ async function main() {
     xml: await readFile(options.input, "utf8"),
   };
 
+  // Check external tools before starting a browser.
+  if (spawnSync("ffmpeg", ["-version"]).error) {
+    throw new Error("ffmpeg is required on PATH to encode the video");
+  }
+
+  // Always close the browser, because an open browser keeps the process alive.
+  const browser = await launchBrowser();
+  try {
+    await renderVideo({ browser, options, source });
+  } finally {
+    await browser.close();
+  }
+}
+
+async function renderVideo({
+  browser,
+  options,
+  source,
+}: {
+  browser: Browser;
+  options: Options;
+  source: { name: string; xml: string };
+}) {
   // Open one viewer page per worker, each with the score loaded.
-  const browser = await chromium.launch();
   const pages = await Promise.all(
     Array.from({ length: options.workers }, () =>
       openScorePage({ browser, options, source }),
@@ -78,34 +102,38 @@ async function main() {
   // steps, so the viewer's cursor-containment scrolling matches sequential
   // playback as long as no system lasts shorter than one step.
   const startedAt = performance.now();
-  await Promise.all(
-    pages.map(async ({ page, cdp }, worker) => {
-      // Replay earlier frames without capturing, because the viewer's scroll
-      // position depends on which systems the cursor has passed through.
-      await page.evaluate(
-        ({ frames, fps }) => {
-          for (let frame = 0; frame < frames; frame++) {
-            window.__toyMidiScoreCapture!.seek(frame / fps);
-          }
-        },
-        { frames: startFrame + worker, fps: options.fps },
-      );
-      for (let frame = worker; frame < frameCount; frame += options.workers) {
+  try {
+    await Promise.all(
+      pages.map(async ({ page, cdp }, worker) => {
+        // Replay earlier frames without capturing, because the viewer's scroll
+        // position depends on which systems the cursor has passed through.
         await page.evaluate(
-          (seconds) => window.__toyMidiScoreCapture!.seek(seconds),
-          (startFrame + frame) / options.fps,
+          ({ frames, fps }) => {
+            for (let frame = 0; frame < frames; frame++) {
+              window.__toyMidiScoreCapture!.seek(frame / fps);
+            }
+          },
+          { frames: startFrame + worker, fps: options.fps },
         );
-        const { data } = await cdp.send("Page.captureScreenshot", {
-          format: "png",
-          optimizeForSpeed: true,
-        });
-        enqueue(frame, Buffer.from(data, "base64"));
-      }
-    }),
-  );
-  await writing;
+        for (let frame = worker; frame < frameCount; frame += options.workers) {
+          await page.evaluate(
+            (seconds) => window.__toyMidiScoreCapture!.seek(seconds),
+            (startFrame + frame) / options.fps,
+          );
+          const { data } = await cdp.send("Page.captureScreenshot", {
+            format: "png",
+            optimizeForSpeed: true,
+          });
+          enqueue(frame, Buffer.from(data, "base64"));
+        }
+      }),
+    );
+    await writing;
+  } catch (error) {
+    ffmpeg.kill();
+    throw error;
+  }
   ffmpeg.stdin.end();
-  await browser.close();
   const exitCode = await exited;
   if (exitCode !== 0) {
     throw new Error(`ffmpeg exited with code ${exitCode}`);
@@ -114,6 +142,20 @@ async function main() {
   process.stderr.write(
     `\rrendered ${frameCount} frames (${(frameCount / options.fps).toFixed(1)}s) in ${elapsed.toFixed(1)}s\n`,
   );
+}
+
+async function launchBrowser() {
+  try {
+    return await chromium.launch();
+  } catch (error) {
+    const { version } = createRequire(import.meta.url)(
+      "playwright-core/package.json",
+    );
+    throw new Error(
+      `Failed to launch Chromium. Install it with:\n\n  npx playwright-core@${version} install chromium\n`,
+      { cause: error },
+    );
+  }
 }
 
 async function openScorePage({
@@ -130,8 +172,23 @@ async function openScorePage({
   const page = await browser.newPage({
     viewport: { width: options.width, height: options.height },
   });
-  await page.goto(new URL("/score-viewer?mode=capture", options.url).href);
-  await page.waitForFunction(() => window.__toyMidiScoreCapture);
+  const url = new URL("/score-viewer?mode=capture", options.url).href;
+  await page.goto(url);
+  // The bridge may be missing or different when the CLI and the deployed app
+  // come from different commits, so fail with a clear message.
+  const version = await page
+    .waitForFunction(() => window.__toyMidiScoreCapture?.version, undefined, {
+      timeout: 15_000,
+    })
+    .then((handle) => handle.jsonValue())
+    .catch(() => undefined);
+  if (version !== SCORE_CAPTURE_BRIDGE_VERSION) {
+    throw new Error(
+      version === undefined
+        ? `No score capture bridge found at ${url}. The app may predate capture mode.`
+        : `Score capture bridge version ${version} at ${url} does not match this CLI's version ${SCORE_CAPTURE_BRIDGE_VERSION}. Update the CLI or point --url at a matching app.`,
+    );
+  }
   const duration = await page.evaluate(async (source) => {
     await window.__toyMidiScoreCapture!.load(source);
     await document.fonts.ready;
@@ -161,7 +218,7 @@ function parseOptions(args: string[]) {
   const [input, output] = positionals;
   if (!input || !output || positionals.length > 2) {
     throw new Error(
-      "Usage: render-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--start 0] [--end SECONDS] [--workers 4] [--url URL]",
+      "Usage: toy-midi-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--start 0] [--end SECONDS] [--workers 4] [--url URL]",
     );
   }
   return {

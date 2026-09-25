@@ -1,3 +1,4 @@
+import { SCORE_CAPTURE_BRIDGE_VERSION } from "@hiogawa/toy-midi-score-video/bridge";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   FolderOpenIcon,
@@ -145,6 +146,7 @@ export function ScoreViewer({
       return;
     }
     window.__toyMidiScoreCapture = {
+      version: SCORE_CAPTURE_BRIDGE_VERSION,
       load: async (source) => {
         await loadMutation.mutateAsync({ settings, source });
         // Fill the frame width without reflowing the score's system breaks.
@@ -355,16 +357,6 @@ export function ScoreViewer({
       )}
     </main>
   );
-}
-
-declare global {
-  interface Window {
-    __toyMidiScoreCapture?: {
-      load: (source: ScoreSource) => Promise<void>;
-      getDuration: () => number;
-      seek: (seconds: number) => void;
-    };
-  }
 }
 
 function ScoreSamplesMenu({

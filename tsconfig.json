@@ -1,5 +1,5 @@
 {
-  "include": ["src", "e2e", "tools/**/*.ts", "*.ts"],
+  "include": ["src", "e2e", "tools/**/*.ts", "packages/*/src", "*.ts"],
   "compilerOptions": {
     "types": ["vite/client", "node"],
     "target": "esnext",

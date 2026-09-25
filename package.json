@@ -18,11 +18,12 @@
     "test": "vitest",
     "test-e2e": "playwright test",
     "test-e2e-trace": "E2E_TRACE=1 playwright test",
-    "render-score-video": "tsx tools/render-score-video.ts",
+    "render-score-video": "toy-midi-score-video",
     "wsola": "tsx tools/wsola.ts"
   },
   "dependencies": {
     "@hiogawa/bass-pitch-wasm": "https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656",
+    "@hiogawa/toy-midi-score-video": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-popover": "^1.1.15",

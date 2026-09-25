@@ -11,6 +11,9 @@ importers:
       '@hiogawa/bass-pitch-wasm':
         specifier: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656
         version: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656
+      '@hiogawa/toy-midi-score-video':
+        specifier: workspace:*
+        version: link:packages/score-video
       '@radix-ui/react-dialog':
         specifier: ^1.1.23
         version: 1.1.23(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -111,6 +114,15 @@ importers:
       wasm-pack:
         specifier: 0.15.0
         version: 0.15.0
+
+  packages/score-video:
+    dependencies:
+      playwright-core:
+        specifier: ^1.62.1
+        version: 1.62.1
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
 
 packages:
 
