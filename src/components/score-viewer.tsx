@@ -63,7 +63,7 @@ export function ScoreViewer({
     () =>
       new ScoreViewerRuntime({
         clock,
-        presentation: { scale: 1, viewportPadding: 24 },
+        presentation: { scale: 1, scrollerClassName: "p-6" },
       }),
   );
   // TODO: Isolate the clock subscription if whole-view RAF rerenders become

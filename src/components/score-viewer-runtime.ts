@@ -43,7 +43,8 @@ export type ScoreSource = {
 
 type ScoreViewerPresentation = {
   scale: number;
-  viewportPadding: number;
+  /** Classes for the scroll container, such as its surface padding. */
+  scrollerClassName: string;
 };
 
 /**
@@ -76,7 +77,8 @@ const MANUAL_SCROLL_IDLE_MS = 2000;
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
   // root
-  //   scroller             viewport-sized scroll container with surface padding
+  //   scroller             viewport-sized scroll container with caller-styled
+  //                        surface padding
   //     layoutBox          manually sized to sheet dimensions multiplied by scale;
   //                        supplies scroll extent since transforms do not affect layout
   //       sheet            fixed SCORE_LAYOUT_WIDTH OSMD coordinate space;
@@ -104,7 +106,7 @@ export class ScoreViewerRuntime {
   private manualScrollTimer?: ReturnType<typeof setTimeout>;
 
   private readonly clock: ScoreViewerClock;
-  private readonly viewportPadding: number;
+  private readonly scrollerClassName: string;
   private scale: number;
 
   constructor({
@@ -116,7 +118,7 @@ export class ScoreViewerRuntime {
   }) {
     this.clock = clock;
     this.scale = presentation.scale;
-    this.viewportPadding = presentation.viewportPadding;
+    this.scrollerClassName = presentation.scrollerClassName;
     this.clock.subscribe(() => {
       const { currentTime, isPlaying } = this.clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.state.tempo);
@@ -148,8 +150,7 @@ export class ScoreViewerRuntime {
 
     this.scroller = document.createElement("section");
     this.scroller.dataset.testid = "score-viewer-scroll";
-    this.scroller.className = "h-full overflow-y-auto";
-    this.scroller.style.padding = `${this.viewportPadding}px`;
+    this.scroller.className = `h-full overflow-y-auto ${this.scrollerClassName}`;
     this.scroller.addEventListener("wheel", this.handleManualScroll);
     this.scroller.addEventListener("pointerdown", this.handleManualScroll);
 
@@ -205,8 +206,12 @@ export class ScoreViewerRuntime {
     if (sheetWidth === 0) {
       return;
     }
+    const { paddingLeft, paddingRight } = getComputedStyle(this.scroller);
     this.setScale(
-      (this.scroller.clientWidth - 2 * this.viewportPadding) / sheetWidth,
+      (this.scroller.clientWidth -
+        parseFloat(paddingLeft) -
+        parseFloat(paddingRight)) /
+        sheetWidth,
     );
   }
 
@@ -366,7 +371,10 @@ export class ScoreViewerRuntime {
       this.manualScrollTimer === undefined &&
       (cursorTop < viewportTop || viewportBottom < cursorBottom)
     ) {
-      this.scroller.scrollTo({ top: Math.max(cursorTop - 24, 0) });
+      const { paddingTop } = getComputedStyle(this.scroller);
+      this.scroller.scrollTo({
+        top: Math.max(cursorTop - parseFloat(paddingTop), 0),
+      });
     }
   }
 
