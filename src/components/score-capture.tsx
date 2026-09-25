@@ -10,7 +10,7 @@ export function ScoreCapture() {
         clock: new PlayheadClock(),
         presentation: {
           scale: 1,
-          scrollerClassName: "py-6 [scrollbar-width:none]",
+          scrollerClassName: "[scrollbar-width:none]",
         },
       }),
   );
