@@ -113,8 +113,6 @@ async function renderVideo({
     pages.map(async ({ page, cdp }, worker) => {
       // Replay earlier frames without capturing, because the viewer's scroll
       // position depends on which systems the cursor has passed through.
-      // Capturing then skips frames by the worker count, which would miss a
-      // system shorter than that, but real scores have no such systems.
       await page.evaluate(
         ({ workerStartFrame, fps }) => {
           for (let frame = 0; frame < workerStartFrame; frame++) {
@@ -123,6 +121,8 @@ async function renderVideo({
         },
         { workerStartFrame: startFrame + worker, fps: options.fps },
       );
+      // Each seek skips frames by the worker count, which would miss a system
+      // shorter than that, but real scores have no such systems.
       for (let frame = worker; frame < frameCount; frame += options.workers) {
         await page.evaluate(
           (seconds) => window.__toyMidiScoreViewer!.seek(seconds),
