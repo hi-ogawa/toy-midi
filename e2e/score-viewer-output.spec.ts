@@ -3,6 +3,8 @@ import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
 import { selectMenuItem } from "./helpers";
 
+const execFileAsync = promisify(execFile);
+
 test("capture score viewer sample cursor", async ({ page }) => {
   await page.goto("/score-viewer");
   await selectMenuItem(page, {
@@ -40,7 +42,7 @@ test("capture paged score PDF", async ({ page }) => {
 
 test("capture score video", async ({ baseURL }) => {
   // Render a short clip of a MusicXML export through the score video CLI.
-  await promisify(execFile)("node", [
+  await execFileAsync("node", [
     "packages/score-video/bin/cli.js",
     "src/lib/musicxml/__snapshots__/five-string-tab.musicxml",
     ".tmp/score-viewer-debug-video.mp4",
