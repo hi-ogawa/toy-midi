@@ -203,24 +203,19 @@ function createOrderedWriter<T>(
         throw error;
       }
       pending.set(index, item);
-      writing = writing
-        .then(async () => {
-          while (!error && pending.has(nextIndex)) {
-            const next = pending.get(nextIndex)!;
-            pending.delete(nextIndex);
-            await write({ index: nextIndex++, item: next });
-          }
-        })
-        .catch((e) => {
-          error = e;
-        });
+      writing = writing.then(async () => {
+        while (pending.has(nextIndex)) {
+          const next = pending.get(nextIndex)!;
+          pending.delete(nextIndex);
+          await write({ index: nextIndex++, item: next });
+        }
+      });
+      // Record the failure for push, and mark the rejection as handled.
+      writing.catch((e) => {
+        error = e;
+      });
     },
-    async flush() {
-      await writing;
-      if (error) {
-        throw error;
-      }
-    },
+    flush: () => writing,
   };
 }
 
