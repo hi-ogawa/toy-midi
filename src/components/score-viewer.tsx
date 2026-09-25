@@ -135,6 +135,19 @@ export function ScoreViewer({
     },
   });
 
+  // Let the offline video renderer drive the real viewer frame by frame, so
+  // cursor geometry, scrolling, and settings match interactive playback.
+  useEffect(() => {
+    window.__toyMidiScoreVideo = {
+      load: (source) => loadMutation.mutateAsync({ settings, source }),
+      getDuration: () => runtime.getDuration(),
+      seek: (seconds) => clock.seek(seconds),
+    };
+    return () => {
+      delete window.__toyMidiScoreVideo;
+    };
+  }, [clock, runtime, loadMutation.mutateAsync, settings]);
+
   function changeSettings(update: Partial<ScoreViewerSettings>) {
     const nextSettings = { ...settings, ...update };
     setSettings(nextSettings);
@@ -331,6 +344,16 @@ export function ScoreViewer({
       )}
     </main>
   );
+}
+
+declare global {
+  interface Window {
+    __toyMidiScoreVideo?: {
+      load: (source: ScoreSource) => Promise<void>;
+      getDuration: () => number;
+      seek: (seconds: number) => void;
+    };
+  }
 }
 
 function ScoreSamplesMenu({

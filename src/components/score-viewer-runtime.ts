@@ -291,6 +291,12 @@ export class ScoreViewerRuntime {
     this.clock.seek(scoreTimeToSeconds(scoreTime, this.state.tempo));
   }
 
+  /** Playback duration in seconds, ending at the final measure's end. */
+  getDuration() {
+    const last = this.positions.at(-1);
+    return last ? scoreTimeToSeconds(last.time, this.state.tempo) : 0;
+  }
+
   dispose() {
     this.resumeAutoScroll();
     this.scroller.removeEventListener("wheel", this.handleManualScroll);
