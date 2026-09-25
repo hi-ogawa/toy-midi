@@ -146,55 +146,6 @@ async function renderVideo({
   progress.done(options.output);
 }
 
-// Report load time, render progress with an ETA, and total time on stderr.
-class RenderProgress {
-  private readonly startedAt = performance.now();
-  private renderStartedAt = this.startedAt;
-  private frameCount = 0;
-
-  log(message: string) {
-    process.stderr.write(`${message}\n`);
-  }
-
-  loaded({ frameCount, fps }: { frameCount: number; fps: number }) {
-    this.frameCount = frameCount;
-    this.renderStartedAt = performance.now();
-    this.log(
-      `loaded in ${formatDuration(this.renderStartedAt - this.startedAt)}, rendering ${frameCount} frames (${formatDuration((frameCount / fps) * 1000)} of video)`,
-    );
-  }
-
-  frame(written: number) {
-    const elapsed = performance.now() - this.renderStartedAt;
-    const remaining = (elapsed / written) * (this.frameCount - written);
-    const percent = Math.floor((written / this.frameCount) * 100);
-    this.overwrite(
-      `frame ${written}/${this.frameCount} (${percent}%), ${formatDuration(elapsed)} elapsed, ${formatDuration(remaining)} left`,
-    );
-  }
-
-  done(output: string) {
-    this.overwrite(
-      `rendered ${output} in ${formatDuration(performance.now() - this.startedAt)}`,
-    );
-    process.stderr.write("\n");
-  }
-
-  // Rewrite the current line and clear what a longer previous line left.
-  private overwrite(message: string) {
-    process.stderr.write(`\r${message}\x1b[K`);
-  }
-}
-
-function formatDuration(ms: number) {
-  const seconds = ms / 1000;
-  if (seconds < 60) {
-    return `${seconds.toFixed(1)}s`;
-  }
-  const whole = Math.round(seconds);
-  return `${Math.floor(whole / 60)}m${String(whole % 60).padStart(2, "0")}s`;
-}
-
 async function launchBrowser() {
   try {
     // Use full Chromium in headless mode, matching the e2e setup, so a single
@@ -305,6 +256,55 @@ function parsePositiveInteger(option: string, value: string) {
     throw new Error(`${option} requires a positive integer`);
   }
   return parsed;
+}
+
+// Report load time, render progress with an ETA, and total time on stderr.
+class RenderProgress {
+  private readonly startedAt = performance.now();
+  private renderStartedAt = this.startedAt;
+  private frameCount = 0;
+
+  log(message: string) {
+    process.stderr.write(`${message}\n`);
+  }
+
+  loaded({ frameCount, fps }: { frameCount: number; fps: number }) {
+    this.frameCount = frameCount;
+    this.renderStartedAt = performance.now();
+    this.log(
+      `loaded in ${formatDuration(this.renderStartedAt - this.startedAt)}, rendering ${frameCount} frames (${formatDuration((frameCount / fps) * 1000)} of video)`,
+    );
+  }
+
+  frame(written: number) {
+    const elapsed = performance.now() - this.renderStartedAt;
+    const remaining = (elapsed / written) * (this.frameCount - written);
+    const percent = Math.floor((written / this.frameCount) * 100);
+    this.overwrite(
+      `frame ${written}/${this.frameCount} (${percent}%), ${formatDuration(elapsed)} elapsed, ${formatDuration(remaining)} left`,
+    );
+  }
+
+  done(output: string) {
+    this.overwrite(
+      `rendered ${output} in ${formatDuration(performance.now() - this.startedAt)}`,
+    );
+    process.stderr.write("\n");
+  }
+
+  // Rewrite the current line and clear what a longer previous line left.
+  private overwrite(message: string) {
+    process.stderr.write(`\r${message}\x1b[K`);
+  }
+}
+
+function formatDuration(ms: number) {
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(1)}s`;
+  }
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}m${String(whole % 60).padStart(2, "0")}s`;
 }
 
 main().catch((error) => {
