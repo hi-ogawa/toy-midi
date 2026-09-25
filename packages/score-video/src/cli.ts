@@ -190,6 +190,8 @@ async function openScorePage({
 }
 
 // Accept items out of order and consume them one at a time in index order.
+// Every push schedules a drain, so the drain scheduled by the final push sees
+// all items and consumes whatever earlier drains left behind.
 function createReorderBuffer<T>(
   consume: (entry: { index: number; item: T }) => Promise<void>,
 ) {
