@@ -21,12 +21,8 @@ async function main() {
     throw new Error("ffmpeg is required on PATH to encode the video");
   }
 
-  const browser = await launchBrowser();
-  try {
-    await renderVideo({ browser, options, source });
-  } finally {
-    await browser.close();
-  }
+  await using browser = await launchBrowser();
+  await renderVideo({ browser, options, source });
 }
 
 async function renderVideo({
@@ -55,7 +51,8 @@ async function renderVideo({
   }
 
   // Stream frames to FFmpeg in order while workers capture them out of order.
-  const ffmpeg = spawn(
+  // Disposal kills FFmpeg if capture fails, and is a no-op after it exits.
+  using ffmpeg = spawn(
     "ffmpeg",
     [
       ...["-y", "-loglevel", "error"],
@@ -94,37 +91,32 @@ async function renderVideo({
   // steps, so the viewer's cursor-containment scrolling matches sequential
   // playback as long as no system lasts shorter than one step.
   const startedAt = performance.now();
-  try {
-    await Promise.all(
-      pages.map(async ({ page, cdp }, worker) => {
-        // Replay earlier frames without capturing, because the viewer's scroll
-        // position depends on which systems the cursor has passed through.
+  await Promise.all(
+    pages.map(async ({ page, cdp }, worker) => {
+      // Replay earlier frames without capturing, because the viewer's scroll
+      // position depends on which systems the cursor has passed through.
+      await page.evaluate(
+        ({ frames, fps }) => {
+          for (let frame = 0; frame < frames; frame++) {
+            window.__toyMidiScoreViewer!.seek(frame / fps);
+          }
+        },
+        { frames: startFrame + worker, fps: options.fps },
+      );
+      for (let frame = worker; frame < frameCount; frame += options.workers) {
         await page.evaluate(
-          ({ frames, fps }) => {
-            for (let frame = 0; frame < frames; frame++) {
-              window.__toyMidiScoreViewer!.seek(frame / fps);
-            }
-          },
-          { frames: startFrame + worker, fps: options.fps },
+          (seconds) => window.__toyMidiScoreViewer!.seek(seconds),
+          (startFrame + frame) / options.fps,
         );
-        for (let frame = worker; frame < frameCount; frame += options.workers) {
-          await page.evaluate(
-            (seconds) => window.__toyMidiScoreViewer!.seek(seconds),
-            (startFrame + frame) / options.fps,
-          );
-          const { data } = await cdp.send("Page.captureScreenshot", {
-            format: "png",
-            optimizeForSpeed: true,
-          });
-          enqueue(frame, Buffer.from(data, "base64"));
-        }
-      }),
-    );
-    await writing;
-  } catch (error) {
-    ffmpeg.kill();
-    throw error;
-  }
+        const { data } = await cdp.send("Page.captureScreenshot", {
+          format: "png",
+          optimizeForSpeed: true,
+        });
+        enqueue(frame, Buffer.from(data, "base64"));
+      }
+    }),
+  );
+  await writing;
   ffmpeg.stdin.end();
   const exitCode = await exited;
   if (exitCode !== 0) {
