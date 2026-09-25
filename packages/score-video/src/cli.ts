@@ -2,7 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { parseArgs } from "node:util";
+import { parseArgs, styleText } from "node:util";
 import { type Browser, chromium } from "playwright-core";
 
 // Render a silent score video by stepping the real score viewer frame by frame
@@ -42,10 +42,7 @@ async function renderVideo({
   options: CliOptions;
   source: { name: string; xml: string };
 }) {
-  const progress = new RenderProgress();
-  progress.log(
-    `loading ${source.name} in ${options.workers} pages from ${options.url}`,
-  );
+  const progress = new RenderProgress(options);
   const pages = await Promise.all(
     Array.from({ length: options.workers }, () =>
       openScorePage({ browser, options, source }),
@@ -88,7 +85,7 @@ async function renderVideo({
     ffmpeg.once("close", resolve),
   );
   const frameCount = endFrame - startFrame;
-  progress.loaded({ frameCount, fps: options.fps });
+  progress.loaded({ frameCount });
   const pending = new Map<number, Buffer>();
   let nextFrame = 0;
   let writing = Promise.resolve();
@@ -143,7 +140,7 @@ async function renderVideo({
   if (exitCode !== 0) {
     throw new Error(`ffmpeg exited with code ${exitCode}`);
   }
-  progress.done(options.output);
+  progress.done();
 }
 
 async function launchBrowser() {
@@ -258,43 +255,83 @@ function parsePositiveInteger(option: string, value: string) {
   return parsed;
 }
 
-// Report load time, render progress with an ETA, and total time on stderr.
+// Report the render setup, each finished phase with its time, and live frame
+// progress on stderr. Colors and in-place updates apply only on a terminal.
 class RenderProgress {
   private readonly startedAt = performance.now();
-  private renderStartedAt = this.startedAt;
+  private phaseStartedAt = this.startedAt;
   private frameCount = 0;
 
-  log(message: string) {
-    process.stderr.write(`${message}\n`);
+  constructor(private readonly options: CliOptions) {
+    const { input, output, url, width, height, fps, workers } = options;
+    writeLine(style("bold", "score-video"));
+    for (const [label, value] of [
+      ["input", input],
+      ["output", style("cyan", output)],
+      ["app", url],
+      ["video", `${width}x${height} · ${fps} fps · ${workers} workers`],
+    ]) {
+      writeLine(`  ${style("dim", label.padEnd(6))}  ${value}`);
+    }
+    writeLine("");
+    this.pending(`loading ${workers} pages…`);
   }
 
-  loaded({ frameCount, fps }: { frameCount: number; fps: number }) {
+  loaded({ frameCount }: { frameCount: number }) {
     this.frameCount = frameCount;
-    this.renderStartedAt = performance.now();
-    this.log(
-      `loaded in ${formatDuration(this.renderStartedAt - this.startedAt)}, rendering ${frameCount} frames (${formatDuration((frameCount / fps) * 1000)} of video)`,
-    );
+    this.step(`loaded ${this.options.workers} pages`);
   }
 
   frame(written: number) {
-    const elapsed = performance.now() - this.renderStartedAt;
+    const elapsed = performance.now() - this.phaseStartedAt;
     const remaining = (elapsed / written) * (this.frameCount - written);
     const percent = Math.floor((written / this.frameCount) * 100);
-    this.overwrite(
+    this.pending(
       `frame ${written}/${this.frameCount} (${percent}%), ${formatDuration(elapsed)} elapsed, ${formatDuration(remaining)} left`,
     );
   }
 
-  done(output: string) {
-    this.overwrite(
-      `rendered ${output} in ${formatDuration(performance.now() - this.startedAt)}`,
+  done() {
+    const videoLength = (this.frameCount / this.options.fps) * 1000;
+    this.step(
+      `rendered ${this.frameCount} frames (${formatDuration(videoLength)} of video)`,
     );
-    process.stderr.write("\n");
+    this.step(
+      `wrote ${style("cyan", this.options.output)}`,
+      `${formatDuration(performance.now() - this.startedAt)} total`,
+    );
   }
 
-  // Rewrite the current line and clear what a longer previous line left.
-  private overwrite(message: string) {
-    process.stderr.write(`\r${message}\x1b[K`);
+  private pending(message: string) {
+    rewriteLine(`${style("yellow", "○")} ${message}`);
+  }
+
+  private step(message: string, time?: string) {
+    const now = performance.now();
+    time ??= formatDuration(now - this.phaseStartedAt);
+    this.phaseStartedAt = now;
+    finishLine(`${style("green", "✓")} ${message}  ${style("dim", time)}`);
+  }
+}
+
+function style(format: Parameters<typeof styleText>[0], text: string) {
+  return styleText(format, text, { stream: process.stderr });
+}
+
+function writeLine(text: string) {
+  process.stderr.write(`${text}\n`);
+}
+
+// Print a finished line in place of any in-place progress line.
+function finishLine(text: string) {
+  rewriteLine("");
+  writeLine(text);
+}
+
+// Replace the current terminal line. Off a terminal, only finished lines print.
+function rewriteLine(text: string) {
+  if (process.stderr.isTTY) {
+    process.stderr.write(`\r${text}\x1b[K`);
   }
 }
 
@@ -308,7 +345,11 @@ function formatDuration(ms: number) {
 }
 
 main().catch((error) => {
-  // Errors carry user-facing messages, so skip stack traces.
-  console.error(error instanceof Error ? error.message : error);
+  // Errors carry user-facing messages, so skip stack traces. Clear any
+  // in-place progress line first.
+  rewriteLine("");
+  console.error(
+    style("red", error instanceof Error ? error.message : String(error)),
+  );
   process.exitCode = 1;
 });
