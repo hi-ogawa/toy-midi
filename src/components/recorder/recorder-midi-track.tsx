@@ -22,6 +22,7 @@ import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import { exportMidi } from "../../lib/midi-export";
 import { importMidiNotes, parseMidiFile } from "../../lib/midi-import";
 import { isBlackKey, MAX_PITCH } from "../../lib/music";
+import { exportMusicXml } from "../../lib/musicxml/render";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -133,6 +134,35 @@ export function MidiTrackRow({
       );
     },
   });
+  const exportMusicXmlMutation = useMutation({
+    mutationFn: async () => {
+      const state = runtime.store.get();
+      const xml = exportMusicXml({
+        notes: track.notes,
+        title: state.title,
+        tempo: state.tempo,
+        timeSignature: state.timeSignature,
+        keySignature: track.keySignature,
+        openStringPitches: track.tabOpenStringPitches,
+        locators: state.locators.map(({ id, beat, label }) => ({
+          id,
+          position: beat,
+          label,
+        })),
+      });
+      downloadBlob(
+        new Blob([xml], { type: "application/vnd.recordare.musicxml+xml" }),
+        buildExportFileName({
+          baseName: `${state.title}-${track.name}`,
+          extension: "musicxml",
+        }),
+      );
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error(error.message);
+    },
+  });
 
   return (
     <div onFocus={midiInteraction.activate}>
@@ -180,6 +210,7 @@ export function MidiTrackRow({
               })
             }
             onExportMidi={() => exportMidiMutation.mutate()}
+            onExportMusicXml={() => exportMusicXmlMutation.mutate()}
           />
         }
       >
@@ -232,6 +263,7 @@ function MidiTrackActions({
   isImporting,
   onImportMidi,
   onExportMidi,
+  onExportMusicXml,
   label,
   viewMode,
   onViewModeToggle,
@@ -243,6 +275,7 @@ function MidiTrackActions({
   isImporting: boolean;
   onImportMidi: () => void;
   onExportMidi: () => void;
+  onExportMusicXml: () => void;
   label: string;
   viewMode: MidiTrackState["viewMode"];
   onViewModeToggle: () => void;
@@ -291,6 +324,10 @@ function MidiTrackActions({
         <DropdownMenuItem onSelect={onExportMidi}>
           <DownloadIcon />
           Export MIDI
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onExportMusicXml}>
+          <DownloadIcon />
+          Export MusicXML
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
