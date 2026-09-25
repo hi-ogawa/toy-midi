@@ -6,8 +6,8 @@ export const SCORE_CAPTURE_BRIDGE_VERSION = 1;
 export type ScoreCaptureBridge = {
   version: number;
   load: (source: { name: string; xml: string }) => Promise<void>;
-  getDuration: () => number;
   seek: (seconds: number) => void;
+  getDuration: () => number;
 };
 
 declare global {
