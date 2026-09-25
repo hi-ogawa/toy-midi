@@ -9,11 +9,9 @@ import { type Browser, chromium } from "@playwright/test";
 //
 //   pnpm render-score-video score.musicxml score.mp4
 //   pnpm render-score-video score.musicxml score.mp4 --url http://localhost:5173
+//   pnpm render-score-video score.musicxml clip.mp4 --start 60 --end 75
 
 const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
-
-// Fixed score layout width plus the continuous sheet and viewport padding.
-const VIEWPORT_WIDTH = 1190;
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
@@ -30,6 +28,15 @@ async function main() {
     ),
   );
   const { duration } = pages[0];
+  const startFrame = Math.floor(options.start * options.fps);
+  const endFrame = Math.ceil(
+    Math.min(options.end ?? duration, duration) * options.fps,
+  );
+  if (startFrame >= endFrame) {
+    throw new Error(
+      `--start must be before the end of the score (${duration.toFixed(1)}s)`,
+    );
+  }
 
   // Stream frames to FFmpeg in order while workers capture them out of order.
   const ffmpeg = spawn(
@@ -46,7 +53,7 @@ async function main() {
   const exited = new Promise<number | null>((resolve) =>
     ffmpeg.once("close", resolve),
   );
-  const frameCount = Math.ceil(duration * options.fps);
+  const frameCount = endFrame - startFrame;
   const pending = new Map<number, Buffer>();
   let nextFrame = 0;
   let writing = Promise.resolve();
@@ -73,10 +80,20 @@ async function main() {
   const startedAt = performance.now();
   await Promise.all(
     pages.map(async ({ page, cdp }, worker) => {
+      // Replay earlier frames without capturing, because the viewer's scroll
+      // position depends on which systems the cursor has passed through.
+      await page.evaluate(
+        ({ frames, fps }) => {
+          for (let frame = 0; frame < frames; frame++) {
+            window.__toyMidiScoreVideo!.seek(frame / fps);
+          }
+        },
+        { frames: startFrame + worker, fps: options.fps },
+      );
       for (let frame = worker; frame < frameCount; frame += options.workers) {
         await page.evaluate(
           (seconds) => window.__toyMidiScoreVideo!.seek(seconds),
-          frame / options.fps,
+          (startFrame + frame) / options.fps,
         );
         const { data } = await cdp.send("Page.captureScreenshot", {
           format: "png",
@@ -95,7 +112,7 @@ async function main() {
   }
   const elapsed = (performance.now() - startedAt) / 1000;
   process.stderr.write(
-    `\rrendered ${frameCount} frames (${duration.toFixed(1)}s) in ${elapsed.toFixed(1)}s\n`,
+    `\rrendered ${frameCount} frames (${(frameCount / options.fps).toFixed(1)}s) in ${elapsed.toFixed(1)}s\n`,
   );
 }
 
@@ -108,9 +125,10 @@ async function openScorePage({
   options: Options;
   source: { name: string; xml: string };
 }) {
-  // Video mode shows only the score area, so the viewport is the video frame.
+  // Video mode shows only the score area scaled to the viewport width, so the
+  // viewport is the video frame.
   const page = await browser.newPage({
-    viewport: { width: VIEWPORT_WIDTH, height: options.height },
+    viewport: { width: options.width, height: options.height },
   });
   await page.goto(new URL("/score-viewer?mode=video", options.url).href);
   await page.waitForFunction(() => window.__toyMidiScoreVideo);
@@ -131,29 +149,49 @@ function parseOptions(args: string[]) {
     allowPositionals: true,
     options: {
       fps: { type: "string", default: "30" },
-      height: { type: "string", default: "556" },
+      width: { type: "string", default: "1920" },
+      height: { type: "string", default: "900" },
       url: { type: "string", default: DEFAULT_URL },
       workers: { type: "string", default: "4" },
+      start: { type: "string", default: "0" },
+      end: { type: "string" },
     },
   });
   const [input, output] = positionals;
   if (!input || !output || positionals.length > 2) {
     throw new Error(
-      "Usage: render-score-video <input.musicxml> <output.mp4> [--fps 30] [--height 556] [--workers 4] [--url URL]",
+      "Usage: render-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1920] [--height 900] [--start 0] [--end SECONDS] [--workers 4] [--url URL]",
     );
-  }
-  const height = parsePositiveInteger("--height", values.height);
-  if (height % 2 !== 0) {
-    throw new Error("--height must be even for H.264 YUV420 output");
   }
   return {
     input,
     output,
     fps: parsePositiveInteger("--fps", values.fps),
-    height,
+    width: parseEvenInteger("--width", values.width),
+    height: parseEvenInteger("--height", values.height),
     url: values.url,
     workers: parsePositiveInteger("--workers", values.workers),
+    start: parseSeconds("--start", values.start),
+    end:
+      values.end === undefined ? undefined : parseSeconds("--end", values.end),
   };
+}
+
+// H.264 with YUV 4:2:0 chroma subsampling requires even frame dimensions.
+function parseEvenInteger(option: string, value: string) {
+  const parsed = parsePositiveInteger(option, value);
+  if (parsed % 2 !== 0) {
+    throw new Error(`${option} must be even for H.264 YUV420 output`);
+  }
+  return parsed;
+}
+
+function parseSeconds(option: string, value: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${option} requires a non-negative number of seconds`);
+  }
+  return parsed;
 }
 
 function parsePositiveInteger(option: string, value: string) {

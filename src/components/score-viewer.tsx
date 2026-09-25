@@ -145,7 +145,11 @@ export function ScoreViewer({
       return;
     }
     window.__toyMidiScoreVideo = {
-      load: (source) => loadMutation.mutateAsync({ settings, source }),
+      load: async (source) => {
+        await loadMutation.mutateAsync({ settings, source });
+        // Fill the frame width without reflowing the score's system breaks.
+        runtime.setScaleToFitViewport();
+      },
       getDuration: () => runtime.getDuration(),
       seek: (seconds) => clock.seek(seconds),
     };
