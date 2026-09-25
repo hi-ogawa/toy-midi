@@ -108,6 +108,8 @@ export class ScoreViewerRuntime {
   private timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   private readonly listeners = new Set<() => void>();
   private manualScrollTimer?: ReturnType<typeof setTimeout>;
+  /** Unscaled top of the active system's cursor. */
+  private cursorTop = 0;
 
   private readonly clock: ScoreViewerClock;
   private readonly scrollerClassName: string;
@@ -290,9 +292,15 @@ export class ScoreViewerRuntime {
     this.restart();
   }
 
-  seek(scoreTime: number) {
+  seek(seconds: number) {
     this.resumeAutoScroll();
-    this.clock.seek(scoreTimeToSeconds(scoreTime, this.state.tempo));
+    this.clock.seek(seconds);
+  }
+
+  /** Used by the offline score video render in packages/score-video. */
+  getDuration() {
+    const last = this.positions.at(-1);
+    return last ? scoreTimeToSeconds(last.time, this.state.tempo) : 0;
   }
 
   dispose() {
@@ -313,7 +321,9 @@ export class ScoreViewerRuntime {
     if (!target) {
       return;
     }
-    this.seek(Number(target.dataset.scoreTime));
+    this.seek(
+      scoreTimeToSeconds(Number(target.dataset.scoreTime), this.state.tempo),
+    );
   };
 
   private handleManualScroll = () => {
@@ -366,6 +376,7 @@ export class ScoreViewerRuntime {
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
+    this.cursorTop = currentAnchor.top;
     const cursorTop = currentAnchor.top * this.scale;
     const cursorBottom =
       (currentAnchor.top + currentAnchor.height) * this.scale;
@@ -375,11 +386,19 @@ export class ScoreViewerRuntime {
       this.manualScrollTimer === undefined &&
       (cursorTop < viewportTop || viewportBottom < cursorBottom)
     ) {
-      // The sheet starts below the scroller's top padding in scroll content.
-      const sheetTop = parseFloat(getComputedStyle(this.scroller).paddingTop);
-      const headroomTop = (currentAnchor.top - SCROLL_HEADROOM) * this.scale;
-      this.scroller.scrollTo({ top: Math.max(sheetTop + headroomTop, 0) });
+      this.scrollToCursor();
     }
+  }
+
+  /**
+   * Scroll the active system to the top, as auto-scroll does on reveal. Also
+   * used by the offline score video render in packages/score-video.
+   */
+  scrollToCursor() {
+    // The sheet starts below the scroller's top padding in scroll content.
+    const sheetTop = parseFloat(getComputedStyle(this.scroller).paddingTop);
+    const headroomTop = (this.cursorTop - SCROLL_HEADROOM) * this.scale;
+    this.scroller.scrollTo({ top: Math.max(sheetTop + headroomTop, 0) });
   }
 
   private setState(update: Partial<ScoreViewerRuntimeState>) {

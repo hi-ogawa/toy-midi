@@ -4,6 +4,7 @@ import { Preview } from "./components/preview";
 import { Recorder } from "./components/recorder";
 import { RecorderScorePage } from "./components/recorder/recorder-score-page";
 import { RouteError } from "./components/route-error";
+import { ScoreCapture } from "./components/score-capture";
 import { ScoreViewer } from "./components/score-viewer";
 import { matchRoute, routes } from "./lib/routes";
 import { preloadMidiAssetsWhenIdle } from "./lib/runtime-assets";
@@ -24,6 +25,9 @@ export function App() {
     }
     case "scoreViewer": {
       return <ScoreViewerRoute />;
+    }
+    case "scoreCapture": {
+      return <ScoreCapture />;
     }
     case "projectScore": {
       return <LegacyProjectRoute />;

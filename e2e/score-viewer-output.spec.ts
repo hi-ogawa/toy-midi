@@ -1,5 +1,10 @@
+import { execFile } from "node:child_process";
+import fs from "node:fs";
+import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
 import { selectMenuItem } from "./helpers";
+
+const execFileAsync = promisify(execFile);
 
 test("capture score viewer sample cursor", async ({ page }) => {
   await page.goto("/score-viewer");
@@ -34,4 +39,20 @@ test("capture paged score PDF", async ({ page }) => {
     format: "A4",
     printBackground: true,
   });
+});
+
+test("capture score video", async ({ baseURL }) => {
+  // Render a short clip of a MusicXML export through the score video CLI.
+  const output = ".tmp/score-viewer-output-video.mp4";
+  fs.rmSync(output, { force: true });
+  await execFileAsync("node", [
+    "packages/score-video/bin/cli.js",
+    "src/lib/musicxml/__snapshots__/five-string-tab.musicxml",
+    output,
+    "--url",
+    baseURL!,
+    "--end",
+    "2",
+  ]);
+  expect(fs.existsSync(output)).toBe(true);
 });
