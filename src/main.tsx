@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
+import { matchRoute } from "./lib/routes";
 import { preloadMidiAssets } from "./lib/runtime-assets";
 import "./e2e";
 
@@ -33,10 +34,14 @@ function main() {
     </StrictMode>,
   );
 
-  // Preload large assets after initial render
-  requestIdleCallback(() => {
-    void preloadMidiAssets();
-  });
+  // Preload large MIDI assets after initial render, only on routes that lead
+  // to MIDI playback, so pages such as the score viewer skip the soundfont.
+  const route = matchRoute(window.location.href)?.data;
+  if (route === "home" || route === "recorderProject") {
+    requestIdleCallback(() => {
+      void preloadMidiAssets();
+    });
+  }
 }
 
 main();
