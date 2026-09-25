@@ -31,7 +31,7 @@ async function renderVideo({
   source,
 }: {
   browser: Browser;
-  options: Options;
+  options: CliOptions;
   source: { name: string; xml: string };
 }) {
   const pages = await Promise.all(
@@ -150,7 +150,7 @@ async function openScorePage({
   source,
 }: {
   browser: Browser;
-  options: Options;
+  options: CliOptions;
   source: { name: string; xml: string };
 }) {
   // Capture mode shows only the score area scaled to the viewport width, so the
@@ -185,7 +185,7 @@ async function openScorePage({
   return { page, cdp, duration };
 }
 
-type Options = ReturnType<typeof parseOptions>;
+type CliOptions = ReturnType<typeof parseOptions>;
 
 function parseOptions(args: string[]) {
   const { positionals, values } = parseArgs({
