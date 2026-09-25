@@ -1,13 +1,9 @@
-import type {
-  ScoreSource,
-  ScoreViewerRuntime,
-} from "../../../src/components/score-viewer-runtime";
+import type { ScoreViewerRuntime } from "../../../src/components/score-viewer-runtime";
 
-// The CLI drives the viewer's capture mode through these globals, so the video
+// The CLI drives the score capture page through this global, so the video
 // matches interactive playback.
 declare global {
   interface Window {
     __toyMidiScoreViewer?: ScoreViewerRuntime;
-    __toyMidiScoreViewerCaptureSource?: ScoreSource;
   }
 }

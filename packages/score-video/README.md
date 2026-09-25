@@ -42,7 +42,7 @@ Rendering is faster than real time with the default settings. For example, a 2:1
 
 ## How It Works
 
-The CLI opens `/score-viewer` with the score injected as `window.__toyMidiScoreViewerCaptureSource`, which puts the viewer in capture mode. Capture mode reduces the viewer to its score area and exposes the viewer runtime as `window.__toyMidiScoreViewer`, which the CLI uses to fit the score to the frame width, read its duration, and seek the playhead. For each frame, the CLI seeks the viewer to the frame time and captures a screenshot, then pipes the frames to `ffmpeg`.
+The CLI opens `/score-capture`, a bare page that renders only the score viewer runtime and exposes it as `window.__toyMidiScoreViewer`. The CLI uses the runtime to load the score, fit it to the frame width, read its duration, and seek the playhead. For each frame, the CLI seeks the viewer to the frame time and captures a screenshot, then pipes the frames to `ffmpeg`.
 
 Several pages capture interleaved frames in parallel. Each page still steps forward through the score, so the viewer's scroll position, which depends on which systems the cursor has passed, matches a sequential render. A time range render replays earlier seeks without capturing for the same reason.
 

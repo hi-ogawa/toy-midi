@@ -161,34 +161,30 @@ async function openScorePage({
   options: CliOptions;
   source: { name: string; xml: string };
 }) {
-  // Capture mode shows only the score area scaled to the viewport width, so the
+  // The capture page shows only the score scaled to the viewport width, so the
   // viewport is the video frame.
   const page = await browser.newPage({
     viewport: { width: options.width, height: options.height },
   });
-  const url = new URL("/score-viewer", options.url).href;
-  await page.addInitScript((source) => {
-    window.__toyMidiScoreViewerCaptureSource = source;
-  }, source);
+  const url = new URL("/score-capture", options.url).href;
   await page.goto(url);
-  // The deployed app may predate capture mode, so fail with a clear message.
+  // The deployed app may predate the capture page, so fail with a clear message.
   try {
-    await page.waitForFunction(
-      () => window.__toyMidiScoreViewer?.getSnapshot().isReady,
-      undefined,
-      { timeout: 10_000 },
-    );
+    await page.waitForFunction(() => window.__toyMidiScoreViewer, undefined, {
+      timeout: 10_000,
+    });
   } catch {
     throw new Error(
-      `No score viewer found at ${url}. The app may predate capture mode.`,
+      `No score capture page found at ${url}. The app may predate it.`,
     );
   }
-  const duration = await page.evaluate(async () => {
-    await document.fonts.ready;
+  const duration = await page.evaluate(async (score) => {
     const viewer = window.__toyMidiScoreViewer!;
+    await viewer.load({ score });
+    await document.fonts.ready;
     viewer.setScaleToFitViewport();
     return viewer.getDuration();
-  });
+  }, source);
   const cdp = await page.context().newCDPSession(page);
   return { page, cdp, duration };
 }

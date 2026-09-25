@@ -41,11 +41,8 @@ import { cn } from "./ui/utils";
 
 export function ScoreViewer({
   initialSource,
-  captureMode,
 }: {
   initialSource?: ScoreSource;
-  /** Show only the score area for frame capture. */
-  captureMode?: boolean;
 }) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
 
@@ -82,9 +79,7 @@ export function ScoreViewer({
     }
     runtime.attach(root);
     setIsRuntimeAttached(true);
-    window.__toyMidiScoreViewer = runtime;
     return () => {
-      delete window.__toyMidiScoreViewer;
       clock.pause();
       runtime.dispose();
     };
@@ -156,7 +151,6 @@ export function ScoreViewer({
       className={cn(
         "flex h-screen flex-col overflow-hidden bg-neutral-100 text-neutral-950",
         settings.layout === "paged" && "score-viewer-root-paged",
-        captureMode && "score-viewer-root-capture",
       )}
     >
       <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
