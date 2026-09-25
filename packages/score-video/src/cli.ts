@@ -42,8 +42,9 @@ async function renderVideo({
   options: CliOptions;
   source: { name: string; xml: string };
 }) {
-  process.stderr.write(
-    `loading ${source.name} in ${options.workers} pages from ${options.url}\n`,
+  const progress = new RenderProgress();
+  progress.log(
+    `loading ${source.name} in ${options.workers} pages from ${options.url}`,
   );
   const pages = await Promise.all(
     Array.from({ length: options.workers }, () =>
@@ -87,6 +88,7 @@ async function renderVideo({
     ffmpeg.once("close", resolve),
   );
   const frameCount = endFrame - startFrame;
+  progress.loaded({ frameCount, fps: options.fps });
   const pending = new Map<number, Buffer>();
   let nextFrame = 0;
   let writing = Promise.resolve();
@@ -101,7 +103,7 @@ async function renderVideo({
           await new Promise((resolve) => ffmpeg.stdin.once("drain", resolve));
         }
         if (nextFrame % options.fps === 0) {
-          process.stderr.write(`\rframe ${nextFrame}/${frameCount}`);
+          progress.frame(nextFrame);
         }
       }
     });
@@ -110,7 +112,6 @@ async function renderVideo({
   // Interleave frames across workers. Each page still moves forward in small
   // steps, so the viewer's cursor-containment scrolling matches sequential
   // playback as long as no system lasts shorter than one step.
-  const startedAt = performance.now();
   await Promise.all(
     pages.map(async ({ page, cdp }, worker) => {
       // Replay earlier frames without capturing, because the viewer's scroll
@@ -142,10 +143,56 @@ async function renderVideo({
   if (exitCode !== 0) {
     throw new Error(`ffmpeg exited with code ${exitCode}`);
   }
-  const elapsed = (performance.now() - startedAt) / 1000;
-  process.stderr.write(
-    `\rrendered ${frameCount} frames (${(frameCount / options.fps).toFixed(1)}s) in ${elapsed.toFixed(1)}s\n`,
-  );
+  progress.done(options.output);
+}
+
+// Report load time, render progress with an ETA, and total time on stderr.
+class RenderProgress {
+  private readonly startedAt = performance.now();
+  private renderStartedAt = this.startedAt;
+  private frameCount = 0;
+
+  log(message: string) {
+    process.stderr.write(`${message}\n`);
+  }
+
+  loaded({ frameCount, fps }: { frameCount: number; fps: number }) {
+    this.frameCount = frameCount;
+    this.renderStartedAt = performance.now();
+    this.log(
+      `loaded in ${formatDuration(this.renderStartedAt - this.startedAt)}, rendering ${frameCount} frames (${formatDuration((frameCount / fps) * 1000)} of video)`,
+    );
+  }
+
+  frame(written: number) {
+    const elapsed = performance.now() - this.renderStartedAt;
+    const remaining = (elapsed / written) * (this.frameCount - written);
+    const percent = Math.floor((written / this.frameCount) * 100);
+    this.overwrite(
+      `frame ${written}/${this.frameCount} (${percent}%), ${formatDuration(elapsed)} elapsed, ${formatDuration(remaining)} left`,
+    );
+  }
+
+  done(output: string) {
+    this.overwrite(
+      `rendered ${output} in ${formatDuration(performance.now() - this.startedAt)}`,
+    );
+    process.stderr.write("\n");
+  }
+
+  // Rewrite the current line and clear what a longer previous line left.
+  private overwrite(message: string) {
+    process.stderr.write(`\r${message}\x1b[K`);
+  }
+}
+
+function formatDuration(ms: number) {
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(1)}s`;
+  }
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}m${String(whole % 60).padStart(2, "0")}s`;
 }
 
 async function launchBrowser() {
