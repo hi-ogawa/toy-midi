@@ -54,6 +54,13 @@ type ScoreViewerPresentation = {
  * system ends let the cursor finish a row before jumping to the next system.
  * Playback interpolates horizontally between adjacent anchors in one system.
  */
+/** Full drawn vertical extent of one system, in CSS pixels within the score. */
+type SystemExtent = {
+  systemId: number;
+  top: number;
+  bottom: number;
+};
+
 type CursorPosition = {
   /** Score time in whole-note units, matching OSMD's Fraction.RealValue. */
   time: number;
@@ -110,6 +117,11 @@ export class ScoreViewerRuntime {
   private manualScrollTimer?: ReturnType<typeof setTimeout>;
   /** Unscaled top of the active system's cursor. */
   private cursorTop = 0;
+  private cursorSystemId = 0;
+  private systemExtents: SystemExtent[] = [];
+  /** Page through this many systems at a time, centered, instead of revealing systems at the top. */
+  private systemsPerPage?: number;
+  private shownPage?: number;
 
   private readonly clock: ScoreViewerClock;
   private readonly scrollerClassName: string;
@@ -249,6 +261,8 @@ export class ScoreViewerRuntime {
         : "relative";
     this.updateScale();
     this.positions = buildCursorPositions(this.osmd, this.container);
+    this.systemExtents = buildSystemExtents(this.osmd, this.container);
+    this.shownPage = undefined;
     buildMeasureTargets(this.osmd, this.measureLayers, this.container);
     this.timeSignature = parseTimeSignature(score.xml);
     const tempo = parseTempo(score.xml);
@@ -376,6 +390,7 @@ export class ScoreViewerRuntime {
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
     this.cursorTop = currentAnchor.top;
+    this.cursorSystemId = currentAnchor.systemId;
     const cursorTop = currentAnchor.top * this.scale;
     const cursorBottom =
       (currentAnchor.top + currentAnchor.height) * this.scale;
@@ -383,18 +398,47 @@ export class ScoreViewerRuntime {
     const viewportBottom = viewportTop + this.scroller.clientHeight;
     if (
       this.manualScrollTimer === undefined &&
-      (cursorTop < viewportTop || viewportBottom < cursorBottom)
+      (cursorTop < viewportTop ||
+        viewportBottom < cursorBottom ||
+        (this.systemsPerPage !== undefined &&
+          this.getCursorPage() !== this.shownPage))
     ) {
       this.scrollToCursor();
     }
   }
 
-  /** Scroll the active system to the top, as auto-scroll does on reveal. */
+  setSystemsPerPage(count: number) {
+    this.systemsPerPage = count;
+  }
+
+  /** Scroll to the active system, as auto-scroll does on reveal. */
   scrollToCursor() {
     // The sheet starts below the scroller's top padding in scroll content.
     const sheetTop = parseFloat(getComputedStyle(this.scroller).paddingTop);
-    const headroomTop = (this.cursorTop - SCROLL_HEADROOM) * this.scale;
-    this.scroller.scrollTo({ top: Math.max(sheetTop + headroomTop, 0) });
+    if (this.systemsPerPage === undefined) {
+      const headroomTop = (this.cursorTop - SCROLL_HEADROOM) * this.scale;
+      this.scroller.scrollTo({ top: Math.max(sheetTop + headroomTop, 0) });
+      return;
+    }
+    // Center the page of systems containing the cursor.
+    const page = this.getCursorPage();
+    const systems = this.systemExtents.slice(
+      page * this.systemsPerPage,
+      (page + 1) * this.systemsPerPage,
+    );
+    const pageCenter =
+      ((systems[0].top + systems.at(-1)!.bottom) / 2) * this.scale;
+    this.shownPage = page;
+    this.scroller.scrollTo({
+      top: Math.max(sheetTop + pageCenter - this.scroller.clientHeight / 2, 0),
+    });
+  }
+
+  private getCursorPage() {
+    const index = this.systemExtents.findIndex(
+      (system) => system.systemId === this.cursorSystemId,
+    );
+    return Math.floor(index / this.systemsPerPage!);
   }
 
   private setState(update: Partial<ScoreViewerRuntimeState>) {
@@ -486,20 +530,7 @@ function buildCursorPositions(
   // OSMD exposes entry geometry, so add each system's final timestamp and
   // right border to prevent a freeze before wrapping.
   const result: CursorPosition[] = [];
-  // Each paged backend reports page-local score geometry. Match graphical
-  // pages to their rendered DOM pages to convert cursor y positions to the
-  // shared container coordinate space.
-  const containerBounds = container.getBoundingClientRect();
-  const pageElements = container.querySelectorAll<HTMLElement>(
-    ':scope > [id^="osmdCanvasPage"]',
-  );
-  const pageOffsets = new Map(
-    osmd.GraphicSheet.MusicPages.map((page, index) => [
-      page,
-      (pageElements[index]?.getBoundingClientRect().top ??
-        containerBounds.top) - containerBounds.top,
-    ]),
-  );
+  const pageOffsets = getPageOffsets(osmd, container);
 
   // Add real anchors at rendered staff entries and their score timestamps.
   for (const container of osmd.GraphicSheet
@@ -547,6 +578,56 @@ function buildCursorPositions(
     }
   }
   return result.sort((a, b) => a.time - b.time || a.systemId - b.systemId);
+}
+
+/** Full drawn extents of each system, including markings above and below. */
+function buildSystemExtents(
+  osmd: OpenSheetMusicDisplay,
+  container: HTMLDivElement,
+): SystemExtent[] {
+  // OSMD places tempo, rehearsal marks, and other markings against each staff
+  // line's skyline and bottom line, relative to the staff line top in units.
+  const pageOffsets = getPageOffsets(osmd, container);
+  return osmd.GraphicSheet.MusicPages.flatMap((page) =>
+    page.MusicSystems.map((system) => {
+      const pageTop = pageOffsets.get(page) ?? 0;
+      const topStaff = system.StaffLines[0];
+      const bottomStaff = system.StaffLines.at(-1)!;
+      return {
+        systemId: system.Id,
+        top:
+          pageTop +
+          (topStaff.PositionAndShape.AbsolutePosition.y +
+            topStaff.SkyBottomLineCalculator.getSkyLineMin()) *
+            10,
+        bottom:
+          pageTop +
+          (bottomStaff.PositionAndShape.AbsolutePosition.y +
+            bottomStaff.SkyBottomLineCalculator.getBottomLineMax()) *
+            10,
+      };
+    }),
+  );
+}
+
+function getPageOffsets(
+  osmd: OpenSheetMusicDisplay,
+  container: HTMLDivElement,
+) {
+  // Each paged backend reports page-local score geometry. Match graphical
+  // pages to their rendered DOM pages to convert cursor y positions to the
+  // shared container coordinate space.
+  const containerBounds = container.getBoundingClientRect();
+  const pageElements = container.querySelectorAll<HTMLElement>(
+    ':scope > [id^="osmdCanvasPage"]',
+  );
+  return new Map(
+    osmd.GraphicSheet.MusicPages.map((page, index) => [
+      page,
+      (pageElements[index]?.getBoundingClientRect().top ??
+        containerBounds.top) - containerBounds.top,
+    ]),
+  );
 }
 
 // OSMD does not render measure-level hit targets. Build transparent overlays
