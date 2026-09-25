@@ -67,25 +67,14 @@ async function renderVideo({
     "ffmpeg",
     [
       // Overwrite the output and print only errors.
-      "-y",
-      "-loglevel",
-      "error",
+      ...["-y", "-loglevel", "error"],
       // Read concatenated PNG screenshots from stdin. Images carry no
       // timestamps, so the frame rate sets each image's duration.
-      "-f",
-      "image2pipe",
-      "-framerate",
-      String(options.fps),
-      "-c:v",
-      "png",
-      "-i",
-      "-",
+      ...["-f", "image2pipe", "-framerate", String(options.fps)],
+      ...["-c:v", "png", "-i", "-"],
       // Encode H.264 with 4:2:0 chroma, which players and video editors
       // widely support. This is why frame dimensions must be even.
-      "-c:v",
-      "libx264",
-      "-pix_fmt",
-      "yuv420p",
+      ...["-c:v", "libx264", "-pix_fmt", "yuv420p"],
       options.output,
     ],
     { stdio: ["pipe", "inherit", "inherit"] },
