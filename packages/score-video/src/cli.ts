@@ -11,7 +11,7 @@ import { type Browser, chromium } from "playwright-core";
 const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
 
 async function main() {
-  const options = parseOptions(process.argv.slice(2));
+  const options = parseCliOptions(process.argv.slice(2));
   const source = {
     name: path.basename(options.input),
     xml: await readFile(options.input, "utf8"),
@@ -185,9 +185,9 @@ async function openScorePage({
   return { page, cdp, duration };
 }
 
-type CliOptions = ReturnType<typeof parseOptions>;
+type CliOptions = ReturnType<typeof parseCliOptions>;
 
-function parseOptions(args: string[]) {
+function parseCliOptions(args: string[]) {
   const { positionals, values } = parseArgs({
     args,
     allowPositionals: true,
