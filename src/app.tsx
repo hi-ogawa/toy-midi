@@ -6,6 +6,7 @@ import { RecorderScorePage } from "./components/recorder/recorder-score-page";
 import { RouteError } from "./components/route-error";
 import { ScoreViewer } from "./components/score-viewer";
 import { matchRoute, routes } from "./lib/routes";
+import { preloadMidiAssetsWhenIdle } from "./lib/runtime-assets";
 
 export function App() {
   const match = matchRoute(window.location.href);
@@ -15,6 +16,7 @@ export function App() {
       return <Preview />;
     }
     case "recorderProject": {
+      preloadMidiAssetsWhenIdle();
       return <Recorder projectId={match.params.projectId} />;
     }
     case "latencyChecker": {
@@ -31,6 +33,7 @@ export function App() {
     }
     case "home":
     default: {
+      preloadMidiAssetsWhenIdle();
       return <Home />;
     }
   }
