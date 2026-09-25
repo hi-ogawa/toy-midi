@@ -62,5 +62,5 @@ function ScoreViewerRoute() {
       />
     );
   }
-  return <ScoreViewer />;
+  return <ScoreViewer videoMode={params.get("mode") === "video"} />;
 }

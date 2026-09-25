@@ -41,8 +41,11 @@ import { cn } from "./ui/utils";
 
 export function ScoreViewer({
   initialSource,
+  videoMode,
 }: {
   initialSource?: ScoreSource;
+  /** Show only the score area and expose the offline video render bridge. */
+  videoMode?: boolean;
 }) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
 
@@ -138,6 +141,9 @@ export function ScoreViewer({
   // Let the offline video renderer drive the real viewer frame by frame, so
   // cursor geometry, scrolling, and settings match interactive playback.
   useEffect(() => {
+    if (!videoMode) {
+      return;
+    }
     window.__toyMidiScoreVideo = {
       load: (source) => loadMutation.mutateAsync({ settings, source }),
       getDuration: () => runtime.getDuration(),
@@ -146,7 +152,7 @@ export function ScoreViewer({
     return () => {
       delete window.__toyMidiScoreVideo;
     };
-  }, [clock, runtime, loadMutation.mutateAsync, settings]);
+  }, [videoMode, clock, runtime, loadMutation.mutateAsync, settings]);
 
   function changeSettings(update: Partial<ScoreViewerSettings>) {
     const nextSettings = { ...settings, ...update };
@@ -164,6 +170,7 @@ export function ScoreViewer({
       className={cn(
         "flex h-screen flex-col overflow-hidden bg-neutral-100 text-neutral-950",
         settings.layout === "paged" && "score-viewer-root-paged",
+        videoMode && "score-viewer-root-video",
       )}
     >
       <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">

@@ -59,6 +59,17 @@
   }
 }
 
+/* Reduce the viewer to the score area for offline video frame capture. */
+.score-viewer-root-video > header,
+.score-viewer-root-video [data-testid="score-settings-panel"],
+.score-viewer-root-video [data-testid="score-viewer-measure-layers"] {
+  display: none;
+}
+
+.score-viewer-root-video [data-testid="score-viewer-scroll"] {
+  scrollbar-width: none;
+}
+
 /* Present OSMD's page SVGs as separate sheets on the workspace. */
 .score-viewer-root-paged [data-testid="score-viewer-renderer"] {
   display: flex;

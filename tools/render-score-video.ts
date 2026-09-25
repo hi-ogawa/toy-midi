@@ -14,7 +14,6 @@ const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
 
 // Fixed score layout width plus the continuous sheet and viewport padding.
 const VIEWPORT_WIDTH = 1190;
-const HEADER_HEIGHT = 53;
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
@@ -30,7 +29,7 @@ async function main() {
       openScorePage({ browser, options, source }),
     ),
   );
-  const { duration, clip } = pages[0];
+  const { duration } = pages[0];
 
   // Stream frames to FFmpeg in order while workers capture them out of order.
   const ffmpeg = spawn(
@@ -81,7 +80,6 @@ async function main() {
         );
         const { data } = await cdp.send("Page.captureScreenshot", {
           format: "png",
-          clip: { ...clip, scale: 1 },
           optimizeForSpeed: true,
         });
         enqueue(frame, Buffer.from(data, "base64"));
@@ -110,37 +108,19 @@ async function openScorePage({
   options: Options;
   source: { name: string; xml: string };
 }) {
+  // Video mode shows only the score area, so the viewport is the video frame.
   const page = await browser.newPage({
-    viewport: {
-      width: VIEWPORT_WIDTH,
-      height: HEADER_HEIGHT + options.height,
-    },
+    viewport: { width: VIEWPORT_WIDTH, height: options.height },
   });
-  await page.goto(new URL("/score-viewer", options.url).href);
+  await page.goto(new URL("/score-viewer?mode=video", options.url).href);
   await page.waitForFunction(() => window.__toyMidiScoreVideo);
   const duration = await page.evaluate(async (source) => {
     await window.__toyMidiScoreVideo!.load(source);
     await document.fonts.ready;
     return window.__toyMidiScoreVideo!.getDuration();
   }, source);
-  // Hide the scrollbar so the frame shows only the score.
-  await page.addStyleTag({
-    content: "::-webkit-scrollbar { display: none; }",
-  });
-  const root = await page
-    .getByTestId("score-viewer-runtime-root")
-    .boundingBox();
-  if (!root) {
-    throw new Error("Score viewer is not visible");
-  }
-  const clip = {
-    x: 0,
-    y: root.y,
-    width: VIEWPORT_WIDTH,
-    height: options.height,
-  };
   const cdp = await page.context().newCDPSession(page);
-  return { page, cdp, duration, clip };
+  return { page, cdp, duration };
 }
 
 type Options = ReturnType<typeof parseOptions>;
