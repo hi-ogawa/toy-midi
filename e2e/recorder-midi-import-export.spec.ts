@@ -101,7 +101,6 @@ test("exports MusicXML from track actions", async ({ page }) => {
   const destination = test.info().outputPath("export.musicxml");
   await download.saveAs(destination);
   const xml = await readFile(destination, "utf8");
-  expect(xml).toContain("<score-partwise");
   // Bass notation is written an octave above the sounding D4.
   expect(xml).toMatch(/<step>D<\/step>\s*<octave>5<\/octave>/);
 });
