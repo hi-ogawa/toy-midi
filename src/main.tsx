@@ -1,3 +1,7 @@
+// Explicit resource management is not yet in stable Safari. The build lowers
+// `using` syntax, but the runtime still needs these globals.
+import "core-js/actual/disposable-stack";
+import "core-js/actual/symbol/dispose";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

@@ -1,6 +1,7 @@
 packages:
   - crates/bass-pitch-wasm
 allowBuilds:
+  core-js: false
   esbuild: true
   gl: false
   wasm-pack: true

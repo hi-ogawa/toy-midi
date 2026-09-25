@@ -42,12 +42,14 @@ export class CaptureInput {
     onNotification: (message: CaptureWorkletNotification) => void;
   }) {
     await ensureCaptureWorklet(context);
+    // Release the device if opening fails at any step after acquiring it.
+    using cleanup = new DisposableStack();
     const stream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
     );
+    cleanup.defer(() => stream.getTracks().forEach((track) => track.stop()));
     const track = stream.getAudioTracks()[0];
     if (!track) {
-      stream.getTracks().forEach((track) => track.stop());
       throw new Error("The selected device did not provide an audio track.");
     }
     const channelCountPromise = Promise.withResolvers<number>();
@@ -62,6 +64,7 @@ export class CaptureInput {
         onNotification(message);
       },
     });
+    cleanup.adopt(input, (input) => input.dispose());
     const channelCount = await Promise.race([
       channelCountPromise.promise,
       new Promise<never>((_resolve, reject) => {
@@ -70,6 +73,8 @@ export class CaptureInput {
         }, 3_000);
       }),
     ]);
+    // Hand the opened input to the caller.
+    cleanup.move();
     return {
       input,
       channelCount,

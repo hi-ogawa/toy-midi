@@ -31,6 +31,7 @@
     "@tanstack/react-query": "^5.90.16",
     "@tonejs/midi": "^2.0.28",
     "cmdk": "^1.1.1",
+    "core-js": "^3.50.0",
     "jszip": "^3.10.1",
     "lucide-react": "^1.33.0",
     "opensheetmusicdisplay": "^2.1.1",
