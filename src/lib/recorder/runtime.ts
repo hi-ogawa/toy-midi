@@ -420,9 +420,10 @@ export class RecorderRuntime {
       program,
     });
     await this.insertMidiTrack({ track });
+    const orderIndex = state.trackOrder.length;
     this.history.pushMidiTrack({
       track,
-      orderIndex: this.store.get().trackOrder.indexOf(track.id),
+      orderIndex,
     });
   }
 
