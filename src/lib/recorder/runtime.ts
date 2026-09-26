@@ -205,7 +205,6 @@ export type RecorderClipInsertRemoveSnapshot = {
     trackId: string;
     clips: { clip: AudioClip; index: number }[];
   }[];
-  referenceVideo?: ReferenceVideoState;
 };
 
 export type RecorderClipInsertRemove = {
@@ -515,10 +514,10 @@ export class RecorderRuntime {
         );
         return clips.length > 0 ? [{ trackId: track.id, clips }] : [];
       }),
-      ...(clipIds.has(REFERENCE_VIDEO_CLIP_ID)
-        ? { referenceVideo: state.referenceVideo }
-        : {}),
     };
+    if (snapshot.tracks.length === 0) {
+      return;
+    }
     this.applyClipInsertRemove({ operation: "remove", snapshot });
     this.history.pushClips({ snapshot, reverse: true });
   }
@@ -970,7 +969,8 @@ export class RecorderRuntime {
   }
 
   removeReferenceVideo(): void {
-    this.removeClips([REFERENCE_VIDEO_CLIP_ID]);
+    this.store.update({ referenceVideo: undefined });
+    this.syncYouTubePlayer();
   }
 
   private syncYouTubePlayer(): void {
@@ -1319,15 +1319,9 @@ function deriveClipInsertRemoveState(
       },
     });
   }
-  function updateReferenceVideo() {
-    if (!snapshot.referenceVideo) {
-      return state.referenceVideo;
-    }
-    return operation === "insert" ? snapshot.referenceVideo : undefined;
-  }
   return {
     audioTracks: state.audioTracks.map(updateTrack),
-    referenceVideo: updateReferenceVideo(),
+    referenceVideo: state.referenceVideo,
   };
 }
 
