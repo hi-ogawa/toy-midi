@@ -1,6 +1,7 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import { useRefreshStorageEstimate } from "../../hooks/use-browser-storage";
 import {
   type ProjectMetadata,
   projectStorage,
@@ -14,10 +15,12 @@ import {
 import { routes } from "../../lib/routes";
 import { pluralCount } from "../../utils/plural-count";
 import { toResult } from "../../utils/result";
+import { BrowserStoragePanel } from "../browser-storage";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
 
 export function RecorderProjectList() {
+  const refreshStorageEstimate = useRefreshStorageEstimate();
   const [showLegacy, setShowLegacy] = useState(false);
   const [query, setQuery] = useState("");
   const [legacyProjects, setLegacyProjects] = useState(() =>
@@ -28,16 +31,19 @@ export function RecorderProjectList() {
     queryFn: () => toResult(recorderProjectStorage.list()),
   });
   const createProjectMutation = useMutation({
+    onSettled: refreshStorageEstimate,
     mutationFn: () => recorderProjectStorage.create(),
     onSuccess: (projectId) => {
       window.location.href = routes.recorderProject.href({ projectId });
     },
   });
   const deleteProjectMutation = useMutation({
+    onSettled: refreshStorageEstimate,
     mutationFn: (projectId: string) => recorderProjectStorage.delete(projectId),
     onSuccess: () => projectsQuery.refetch(),
   });
   const importProjectMutation = useMutation({
+    onSettled: refreshStorageEstimate,
     mutationFn: async (file: File) => {
       const content = await importRecorderProject(file);
       return recorderProjectStorage.createWithContent(content);
@@ -48,6 +54,7 @@ export function RecorderProjectList() {
   });
 
   const migrateMutation = useMutation({
+    onSettled: refreshStorageEstimate,
     mutationFn: async (project: ProjectMetadata) => {
       // Convert stored data and audio before saving a separate recorder copy.
       const content = await convertLegacyProject({
@@ -176,6 +183,7 @@ export function RecorderProjectList() {
                 onMigrate={() => migrateMutation.mutate(project)}
                 onDelete={() => {
                   projectStorage.delete(project.id);
+                  refreshStorageEstimate();
                   const remaining = projectStorage.listMetadata();
                   setLegacyProjects(remaining);
                   if (remaining.length === 0) {
@@ -212,6 +220,9 @@ export function RecorderProjectList() {
           ))
         )}
       </section>
+      <div className="shrink-0 border-t border-neutral-700/70 p-4">
+        <BrowserStoragePanel />
+      </div>
     </div>
   );
 }
@@ -362,6 +373,7 @@ function ProjectListSearch({
       </div>
       <p
         role="status"
+        aria-label="Project count"
         className="text-right text-xs whitespace-nowrap tabular-nums text-neutral-400"
       >
         {query.trim() ? `${count} of ` : ""}

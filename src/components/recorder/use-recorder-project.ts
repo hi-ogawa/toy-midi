@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { useRefreshStorageEstimate } from "../../hooks/use-browser-storage";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
@@ -15,6 +16,7 @@ export function useRecorderProject({
   projectId: string;
   runtime: RecorderRuntime;
 }) {
+  const refreshStorageEstimate = useRefreshStorageEstimate();
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
 
@@ -33,6 +35,7 @@ export function useRecorderProject({
   });
 
   const saveMutation = useMutation({
+    onSettled: refreshStorageEstimate,
     mutationFn: async () => {
       // Never write default state over a project that did not initialize.
       if (!projectQuery.isSuccess) {
