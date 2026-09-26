@@ -5,6 +5,7 @@ import {
   ChevronRightIcon,
   HeadphonesIcon,
   MoreVerticalIcon,
+  PencilIcon,
   SlidersHorizontalIcon,
   Trash2Icon,
   UploadIcon,
@@ -26,11 +27,13 @@ import { RecorderGainSlider } from "./recorder-mixer";
 
 export function AudioTrackActions({
   label,
+  onRename,
   onEffectsOpen,
   onFileChange,
   onRemove,
 }: {
   label: string;
+  onRename: (name: string) => void;
   onEffectsOpen: () => void;
   onFileChange: (file: File) => void;
   onRemove: () => void;
@@ -41,6 +44,7 @@ export function AudioTrackActions({
         <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <RenameTrackMenuItem name={label} onRename={onRename} />
         <DropdownMenuItem onSelect={onEffectsOpen}>
           <SlidersHorizontalIcon />
           Effects…
@@ -87,22 +91,49 @@ export function TrackMenuButton({
 }
 
 export function CaptureTrackActions({
+  label,
+  onRename,
   onEffectsOpen,
 }: {
+  label: string;
+  onRename: (name: string) => void;
   onEffectsOpen: () => void;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <TrackMenuButton label="Capture" />
+        <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <RenameTrackMenuItem name={label} onRename={onRename} />
         <DropdownMenuItem onSelect={onEffectsOpen}>
           <SlidersHorizontalIcon />
           Effects…
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function RenameTrackMenuItem({
+  name,
+  onRename,
+}: {
+  name: string;
+  onRename: (name: string) => void;
+}) {
+  return (
+    <DropdownMenuItem
+      onSelect={() => {
+        const nextName = window.prompt("Track name", name)?.trim();
+        if (nextName && nextName !== name) {
+          onRename(nextName);
+        }
+      }}
+    >
+      <PencilIcon />
+      Rename…
+    </DropdownMenuItem>
   );
 }
 

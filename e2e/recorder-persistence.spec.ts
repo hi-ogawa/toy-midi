@@ -182,6 +182,14 @@ test("loads and resaves a project stored with single-clip tracks and a separate 
   await expect(take).toContainText("Take 3");
   await expect(take.locator("svg")).toBeVisible();
 
+  // Name the unnamed tracks with the labels they were shown with before.
+  await expect(
+    page.getByRole("button", { name: "Capture actions" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Audio 1 actions" }),
+  ).toBeVisible();
+
   // Rename and save, which rewrites both tracks as clip arrays in audioTracks.
   page.once("dialog", (dialog) => dialog.accept("Resaved clip"));
   await page.getByTestId("recorder-project-name").click();
@@ -194,12 +202,14 @@ test("loads and resaves a project stored with single-clip tracks and a separate 
   expect(saved.audioTracks).toMatchObject([
     {
       id: RECORDING_TRACK_ID,
+      name: "Capture",
       gain: 0.8,
       nextTakeNumber: 4,
       clips: [{ id: "take", name: "Take 3", timelineOffset: 2 }],
     },
     {
       id: "backing",
+      name: "Audio 1",
       clips: [
         {
           name: "single.wav",
