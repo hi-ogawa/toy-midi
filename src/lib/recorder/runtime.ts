@@ -385,11 +385,9 @@ export class RecorderRuntime {
   async importAudioClip({
     trackId,
     file,
-    timelineOffset,
   }: {
     trackId: string;
     file: File;
-    timelineOffset: number;
   }): Promise<void> {
     const buffer = await this.context.decodeAudioData(await file.arrayBuffer());
     const { audioTracks, captureStatus } = this.store.get();
@@ -401,10 +399,7 @@ export class RecorderRuntime {
     if (!track) {
       return;
     }
-    const clip: AudioClip = {
-      ...createAudioClip({ buffer, name: file.name }),
-      timelineOffset,
-    };
+    const clip = createAudioClip({ buffer, name: file.name });
     const snapshot: RecorderClipInsertRemoveSnapshot = {
       tracks: [{ trackId, clips: [{ clip, index: track.clips.length }] }],
     };
