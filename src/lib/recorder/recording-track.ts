@@ -15,3 +15,14 @@ export function getRecordingTrack(
   }
   return track;
 }
+
+/** Separate the Capture track, which the UI still renders on its own row. */
+export function splitRecordingTrack(audioTracks: AudioTrackState[]): {
+  recordingTrack: AudioTrackState;
+  audioTracks: AudioTrackState[];
+} {
+  return {
+    recordingTrack: getRecordingTrack(audioTracks),
+    audioTracks: audioTracks.filter((track) => track.id !== RECORDING_TRACK_ID),
+  };
+}

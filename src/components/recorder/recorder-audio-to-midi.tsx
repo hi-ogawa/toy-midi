@@ -9,10 +9,7 @@ import {
 } from "../../lib/bass-pitch/transcription";
 import { getClipSources } from "../../lib/recorder/audio-sources";
 import { transcribeRecorderAudio } from "../../lib/recorder/audio-to-midi";
-import {
-  getRecordingTrack,
-  RECORDING_TRACK_ID,
-} from "../../lib/recorder/recording-track";
+import { splitRecordingTrack } from "../../lib/recorder/recording-track";
 import type {
   MidiTrackState,
   RecorderRuntime,
@@ -251,17 +248,15 @@ export function RecorderAudioToMidi({
 }
 
 function getTranscriptionSources(state: RecorderRuntimeState) {
+  const { recordingTrack, audioTracks } = splitRecordingTrack(
+    state.audioTracks,
+  );
   return [
-    ...state.audioTracks
-      .filter((track) => track.id !== RECORDING_TRACK_ID)
-      .map((source, index) => ({
-        track: source,
-        label: `Audio ${index + 1}${source.clips[0] ? ` · ${source.clips[0].name}` : ""}`,
-      })),
-    {
-      track: getRecordingTrack(state.audioTracks),
-      label: "Capture · committed takes",
-    },
+    ...audioTracks.map((source, index) => ({
+      track: source,
+      label: `Audio ${index + 1}${source.clips[0] ? ` · ${source.clips[0].name}` : ""}`,
+    })),
+    { track: recordingTrack, label: "Capture · committed takes" },
   ].filter(({ track }) =>
     track.regions.some(
       ({ clip, timelineStart, timelineEnd }) =>
