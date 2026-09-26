@@ -165,7 +165,7 @@ export function TrackRow({
         </div>
         <div className="flex self-center gap-1">
           {action}
-          {recording && <TrackRecordingToggles {...recording} />}
+          {recording && <TrackRecordingToggles title={title} {...recording} />}
           <RecorderMixToggle
             active={muted}
             kind="mute"
@@ -211,13 +211,20 @@ interface TrackRecordingControls {
 
 /** Arm chooses where the next take goes; monitor routes input through this track. */
 function TrackRecordingToggles({
+  title,
   armed,
   armDisabled,
   monitoring,
   monitorDisabled,
   onArmedChange,
   onMonitoringChange,
-}: TrackRecordingControls) {
+}: TrackRecordingControls & { title: string }) {
+  const armLabel = armed
+    ? `Disarm ${title} for recording`
+    : `Arm ${title} for recording`;
+  const monitorLabel = monitoring
+    ? `Disable ${title} input monitoring`
+    : `Enable ${title} input monitoring`;
   return (
     <>
       <Button
@@ -229,8 +236,8 @@ function TrackRecordingToggles({
           armed &&
             "border-red-500/60 bg-red-500/35 hover:!bg-red-500/40 hover:!text-red-300",
         )}
-        title={armed ? "Disarm for recording" : "Arm for recording"}
-        aria-label={armed ? "Disarm for recording" : "Arm for recording"}
+        title={armLabel}
+        aria-label={armLabel}
         aria-pressed={armed}
       >
         R
@@ -239,10 +246,10 @@ function TrackRecordingToggles({
         className="inline-flex"
         title={
           monitorDisabled
-            ? "Turn input on to monitor"
+            ? "Turn input on and arm this track to monitor"
             : monitoring
-              ? "Disable input monitoring"
-              : "Enable input monitoring (use headphones to avoid feedback)"
+              ? monitorLabel
+              : `${monitorLabel} (use headphones to avoid feedback)`
         }
       >
         <Button
@@ -254,9 +261,7 @@ function TrackRecordingToggles({
             monitoring &&
               "border-sky-500/60 bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
           )}
-          aria-label={
-            monitoring ? "Disable input monitoring" : "Enable input monitoring"
-          }
+          aria-label={monitorLabel}
           aria-pressed={monitoring}
         >
           <HeadphonesIcon className="size-3.5" />

@@ -4,6 +4,7 @@ import { useFakeAudioInput } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
+  armTrack,
   enableInput,
   getRecorderPosition,
   seekRecorderByPixels,
@@ -21,6 +22,7 @@ test("selects and moves audio and take clips together", async ({ page }) => {
 
   // Record a take away from zero.
   await enableInput(page);
+  await armTrack(page, { track: "Capture" });
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();

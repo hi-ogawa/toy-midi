@@ -4,6 +4,7 @@ import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   dragBy,
+  armTrack,
   enableInput,
   getRecorderPosition,
   saveRecorderProject,
@@ -19,8 +20,12 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Connect the browser input before recording is available.
   await enableInput(page);
 
-  // Input monitoring can be enabled before recording starts.
+  // Monitoring routes through the armed track, so it waits for the arm.
   const monitorButton = page.getByTestId("recorder-input-monitor");
+  await expect(monitorButton).toBeDisabled();
+  await armTrack(page, { track: "Capture" });
+
+  // Input monitoring can be enabled before recording starts.
   await expect(monitorButton).toBeEnabled();
   await expect(monitorButton).toHaveAttribute("aria-pressed", "false");
   await monitorButton.click();
@@ -118,6 +123,13 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
       await take.nth(1).evaluate((element) => element.style.left),
     ),
   ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 4, -2);
+
+  // Disarm Capture, which also turns monitoring off because nothing is armed.
+  await page
+    .getByRole("button", { name: "Disarm Capture for recording", exact: true })
+    .click();
+  await expect(monitorButton).toHaveAttribute("aria-pressed", "false");
+  await expect(monitorButton).toBeDisabled();
 
   // Show the latest take first by default, then switch to oldest first.
   await expect(takeRows.nth(0)).toContainText("Take 2");
