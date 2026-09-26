@@ -70,7 +70,7 @@ export function RecorderInputPanel({
             <Settings2Icon className="ml-auto size-3.5 shrink-0 text-neutral-400" />
           </button>
           <Button
-            aria-label={inputActive ? "Turn input off" : "Turn input on"}
+            aria-label="Input power"
             aria-pressed={inputActive}
             title={inputActive ? "Turn input off" : "Turn input on"}
             disabled={toggleDisabled}
