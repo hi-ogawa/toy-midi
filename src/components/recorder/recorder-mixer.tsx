@@ -44,12 +44,12 @@ export function RecorderMixer({
         inputProps={masterInput.props}
         data-testid="recorder-mixer-master"
       />
-      {audioTracks.map((track, index) => (
+      {audioTracks.map((track) => (
         <RecorderTrackChannel
           key={track.id}
           effectsOpen={openEffects.has(track.id)}
           onEffectsToggle={() => onEffectsToggle(track.id)}
-          label={`Audio ${index + 1}`}
+          label={track.name}
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}
@@ -74,7 +74,7 @@ export function RecorderMixer({
         />
       ))}
       <RecorderTrackChannel
-        label="Capture"
+        label={recordingTrack.name}
         effectsOpen={openEffects.has("capture")}
         onEffectsToggle={() => onEffectsToggle("capture")}
         gain={recordingTrack.gain}

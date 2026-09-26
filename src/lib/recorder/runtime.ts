@@ -43,7 +43,7 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { RECORDING_TRACK_ID } from "./recording-track.ts";
+import { RECORDING_TRACK_ID, splitRecordingTrack } from "./recording-track.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
@@ -61,6 +61,7 @@ type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 // nextTakeNumber numbers the takes recorded into each track.
 export interface AudioTrackState {
   id: string;
+  name: string;
   eq: MultibandEqParameters;
   height: number;
   gain: number;
@@ -365,10 +366,18 @@ export class RecorderRuntime {
   }
 
   addAudioTrack(): string {
-    const track = createAudioTrackState();
-    this.store.update({
-      audioTracks: [...this.store.get().audioTracks, track],
+    const { audioTracks } = this.store.get();
+    // Capture keeps its own name, so ordinary tracks number from Audio 1.
+    const audioTrackNames = splitRecordingTrack(audioTracks).audioTracks.map(
+      (track) => track.name,
+    );
+    const track = createAudioTrackState({
+      name: createNumberedName({
+        names: audioTrackNames,
+        prefix: "Audio",
+      }),
     });
+    this.store.update({ audioTracks: [...audioTracks, track] });
     return track.id;
   }
 
@@ -559,6 +568,14 @@ export class RecorderRuntime {
       ...track,
       height: clampTrackHeight(height),
     }));
+  }
+
+  setTrackName({ id, name }: { id: string; name: string }): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, name }));
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, name }));
+    }
   }
 
   removeAudioTrack(id: string): void {
@@ -1457,10 +1474,11 @@ function findAudioTrackById(
   return track;
 }
 
-function createAudioTrackState(): AudioTrackState {
+function createAudioTrackState({ name }: { name: string }): AudioTrackState {
   return {
     eq: createDefaultMultibandEq(),
     id: crypto.randomUUID(),
+    name,
     nextTakeNumber: 1,
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
@@ -1474,6 +1492,7 @@ function createAudioTrackState(): AudioTrackState {
 function createRecordingTrackState(): AudioTrackState {
   return {
     id: RECORDING_TRACK_ID,
+    name: "Capture",
     eq: createDefaultMultibandEq(),
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,

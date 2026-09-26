@@ -434,11 +434,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onRemove={() => runtime.removeReferenceVideo()}
               />
             )}
-            {audioTracks.map((track, index) => (
+            {audioTracks.map((track) => (
               <TrackRow
                 key={track.id}
                 data-testid="recorder-audio-track-row"
-                title={`Audio ${index + 1}`}
+                title={track.name}
                 height={track.height}
                 gain={track.gain}
                 muted={track.muted}
@@ -455,7 +455,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 }
                 action={
                   <AudioTrackActions
-                    label={`Audio ${index + 1}`}
+                    label={track.name}
+                    onRename={(name) =>
+                      runtime.setTrackName({ id: track.id, name })
+                    }
                     onEffectsOpen={() => effects.showEffects(track.id)}
                     onFileChange={(file) =>
                       audioTrackMutation.mutate({ file, id: track.id })
@@ -516,13 +519,17 @@ export function Recorder({ projectId }: { projectId: string }) {
             ))}
 
             <TrackRow
-              title="Capture"
+              title={recordingTrack.name}
               gain={recordingTrack.gain}
               height={recordingTrack.height}
               muted={recordingTrack.muted}
               soloed={recordingTrack.soloed}
               action={
                 <CaptureTrackActions
+                  label={recordingTrack.name}
+                  onRename={(name) =>
+                    runtime.setTrackName({ id: recordingTrack.id, name })
+                  }
                   onEffectsOpen={() => effects.showEffects("capture")}
                 />
               }
@@ -692,11 +699,11 @@ export function Recorder({ projectId }: { projectId: string }) {
         {effects.openEffects.size > 0 && (
           <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
             {audioTracks.map(
-              (track, index) =>
+              (track) =>
                 effects.openEffects.has(track.id) && (
                   <RecorderEffects
                     key={track.id}
-                    label={`Audio ${index + 1}`}
+                    label={track.name}
                     eq={track.eq}
                     onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
                     onClose={() => effects.closeEffects(track.id)}
@@ -717,7 +724,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             )}
             {effects.openEffects.has("capture") && (
               <RecorderEffects
-                label="Capture"
+                label={recordingTrack.name}
                 eq={recordingTrack.eq}
                 onChange={(eq) =>
                   runtime.setTrackEq({ id: recordingTrack.id, eq })
