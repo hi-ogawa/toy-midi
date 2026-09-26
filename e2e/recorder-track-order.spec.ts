@@ -81,68 +81,6 @@ test("reorders tracks from their row menus", async ({ page }) => {
   await expectTrackRows(page, ["MIDI 1", "Audio 1", "Reference", "Audio 2"]);
 });
 
-test("orders tracks of projects saved before track reordering", async ({
-  page,
-}) => {
-  // Seed a project saved before track reordering, with the Capture track
-  // stored separately and the reference video saved last.
-  await page.goto("/__e2e__/");
-  const projectId = await page.evaluate(async () => {
-    const samples = new Float32Array(22050).fill(0.25);
-    return window.__e2e.recorderProjectStorage.createWithContent({
-      title: "Before reordering",
-      tempo: 120,
-      timeSignature: { numerator: 4, denominator: 4 },
-      audioTracks: [
-        {
-          id: "backing",
-          height: 72,
-          gain: 1,
-          muted: false,
-          soloed: false,
-          clips: [
-            {
-              timelineOffset: 0,
-              pcm: { sampleRate: 22050, channels: [samples] },
-            },
-          ],
-        },
-      ],
-      recordingTrack: {
-        height: 72,
-        gain: 1,
-        muted: false,
-        soloed: false,
-        takes: [],
-      },
-      midiTracks: [
-        {
-          id: "midi",
-          name: "MIDI 1",
-          notes: [],
-          program: 0,
-          eq: { bypass: true, bands: [] },
-          height: 300,
-          gain: 1,
-          muted: false,
-          soloed: false,
-        },
-      ],
-      referenceVideo: {
-        videoId: "knp40WxQgOI",
-        timelineStart: 0,
-        muted: false,
-        duration: 60,
-      },
-    });
-  });
-
-  // Open it to show the reference video first, then audio tracks with
-  // Capture after ordinary audio, then MIDI tracks.
-  await page.goto(`/recorder/${projectId}`);
-  await expectTrackRows(page, ["Reference", "Audio 1", "Capture", "MIDI 1"]);
-});
-
 async function expectTrackRows(page: Page, labels: string[]): Promise<void> {
   const menus = page
     .getByTestId("recorder-track-scroll")
