@@ -17,11 +17,7 @@ import type {
 /** A state change that runtime can apply directly, including during undo and redo. */
 type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
-  | {
-      type: "midi-track-insert";
-      track: MidiTrackState;
-      index: number;
-    }
+  | { type: "midi-track-insert"; track: MidiTrackState; index: number }
   | { type: "midi-track-delete"; trackId: string }
   | ({ type: "clips" } & RecorderClipInsertRemove);
 
