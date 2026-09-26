@@ -34,7 +34,6 @@ export function AudioTrackActions({
   onRemove,
 }: {
   label: string;
-  /** The track being recorded into stays until the take is committed. */
   removeDisabled: boolean;
   onRename: (name: string) => void;
   onEffectsOpen: () => void;
