@@ -548,11 +548,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                 monitoring:
                   state.inputMonitoring &&
                   state.armedTrackId === recordingTrack.id,
-                monitorBlocker: !input.active
-                  ? "input"
-                  : state.armedTrackId !== recordingTrack.id
-                    ? "arm"
-                    : undefined,
+                monitorDisabled:
+                  !input.active || state.armedTrackId !== recordingTrack.id,
                 onArmedChange: (armed) => {
                   runtime.setArmedTrack(armed ? recordingTrack.id : undefined);
                   if (armed && !input.active) {
