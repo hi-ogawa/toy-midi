@@ -543,7 +543,10 @@ export class RecorderRuntime {
         this.syncTrackPlayback(track);
       }
     }
-    if (next.referenceVideo !== state.referenceVideo) {
+    if (
+      "referenceVideo" in next &&
+      next.referenceVideo !== state.referenceVideo
+    ) {
       this.syncYouTubePlayer();
     }
     if (wasPlaying) {
@@ -1262,7 +1265,7 @@ export class RecorderRuntime {
 
 /** Derive a clip property update without committing state or touching playback. */
 function deriveClipStateById(
-  state: RecorderRuntimeState,
+  state: Pick<RecorderRuntimeState, "audioTracks">,
   {
     id,
     update,
@@ -1270,7 +1273,7 @@ function deriveClipStateById(
     id: string;
     update: (clip: AudioClip) => AudioClip;
   },
-): RecorderRuntimeClipsState {
+): Pick<RecorderRuntimeState, "audioTracks"> {
   function updateTrack(track: AudioTrackState): AudioTrackState {
     return updateTrackClips({
       track,
@@ -1280,15 +1283,14 @@ function deriveClipStateById(
   }
   return {
     audioTracks: state.audioTracks.map(updateTrack),
-    referenceVideo: state.referenceVideo,
   };
 }
 
 /** Derive clip insertion or removal without mutating the supplied state. */
 function deriveClipInsertRemoveState(
-  state: RecorderRuntimeState,
+  state: Pick<RecorderRuntimeState, "audioTracks">,
   { operation, snapshot }: RecorderClipInsertRemove,
-): RecorderRuntimeClipsState {
+): Pick<RecorderRuntimeState, "audioTracks"> {
   function updateTrack(track: AudioTrackState): AudioTrackState {
     const trackEdits = snapshot.tracks.find(
       (entry) => entry.trackId === track.id,
@@ -1321,7 +1323,6 @@ function deriveClipInsertRemoveState(
   }
   return {
     audioTracks: state.audioTracks.map(updateTrack),
-    referenceVideo: state.referenceVideo,
   };
 }
 
