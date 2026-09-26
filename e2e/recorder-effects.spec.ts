@@ -9,8 +9,7 @@ import {
 test("edits and persists independent EQ settings per audio track", async ({
   page,
 }) => {
-  // Open independent effects panels for backing audio on Audio 2 and the
-  // empty Audio 1.
+  // Open independent effects panels for backing audio on Audio 2 and capture on Audio 1.
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
@@ -18,7 +17,7 @@ test("edits and persists independent EQ settings per audio track", async ({
   const audio = page.getByTestId("recorder-effects-panel").filter({
     has: page.getByRole("heading", { name: "Audio 2 Effects", exact: true }),
   });
-  const empty = page.getByTestId("recorder-effects-panel").filter({
+  const capture = page.getByTestId("recorder-effects-panel").filter({
     has: page.getByRole("heading", { name: "Audio 1 Effects", exact: true }),
   });
 
@@ -49,8 +48,8 @@ test("edits and persists independent EQ settings per audio track", async ({
   await audio.getByRole("textbox", { name: "Frequency" }).fill("3000");
   await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
   await audio.getByRole("checkbox", { name: "Bypass" }).first().check();
-  await empty.getByRole("textbox", { name: "Gain", exact: true }).fill("-4");
-  await empty
+  await capture.getByRole("textbox", { name: "Gain", exact: true }).fill("-4");
+  await capture
     .getByRole("textbox", { name: "Gain", exact: true })
     .press("Enter");
 
@@ -81,7 +80,7 @@ test("edits and persists independent EQ settings per audio track", async ({
     "3000",
   );
   await expect(
-    empty.getByRole("textbox", { name: "Gain", exact: true }),
+    capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "saved");
 
@@ -100,7 +99,7 @@ test("edits and persists independent EQ settings per audio track", async ({
     audio.getByRole("checkbox", { name: "Bypass" }).first(),
   ).not.toBeChecked();
   await expect(
-    empty.getByRole("textbox", { name: "Gain", exact: true }),
+    capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "unsaved");
 });
