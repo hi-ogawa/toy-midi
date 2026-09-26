@@ -305,7 +305,9 @@ test("arms before input is on and records once input starts", async ({
   // Press Record before input is on, which warns without recording.
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
-  await expect(page.getByText("Turn input on to record")).toBeVisible();
+  await expect(
+    page.getByText("Turn input on to record", { exact: true }),
+  ).toBeVisible();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
 
   // Turn input on, which routes monitoring through the armed track.

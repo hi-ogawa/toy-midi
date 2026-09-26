@@ -1087,9 +1087,6 @@ export class RecorderRuntime {
       audioTracks,
       position: 0,
     });
-    // The arm is session state for the previous project's tracks. Disarming
-    // also points the open input away from the disposed track playbacks.
-    this.setArmedTrack(undefined);
     this.syncYouTubePlayer();
     this.transport.seek(0);
     this.metronome.setTempo(project.tempo);
