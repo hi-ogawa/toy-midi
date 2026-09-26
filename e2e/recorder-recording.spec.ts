@@ -241,6 +241,38 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(compRegion).toHaveCount(0);
 });
 
+test("arms before input is on and records once input starts", async ({
+  page,
+}) => {
+  await createRecorderProject(page);
+
+  // Arm Audio 1 while input is off, which keeps the arm, asks for input, and
+  // opens the input panel.
+  const arm = page.getByTestId("recorder-arm-toggle");
+  await arm.click();
+  await expect(arm).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Turn input on to record")).toBeVisible();
+  const panel = page.getByTestId("recorder-input-panel");
+  await expect(panel).toBeVisible();
+
+  // Press Record before input is on, which does not start recording.
+  const recordButton = page.getByTestId("recorder-record-button");
+  await recordButton.click();
+  await expect(recordButton).toHaveAttribute("aria-pressed", "false");
+
+  // Turn input on from the panel, which leaves the arm in place.
+  const inputPower = panel.getByRole("button", { name: "Input power" });
+  await inputPower.click();
+  await expect(inputPower).toHaveAttribute("aria-pressed", "true");
+  await expect(arm).toHaveAttribute("aria-pressed", "true");
+
+  // Record into the track armed before input started.
+  await recordButton.click();
+  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await recordButton.click();
+  await expect(page.getByTestId("recorder-clip-audio")).toContainText("Take 1");
+});
+
 test("records into whichever audio track is armed", async ({ page }) => {
   await createRecorderProject(page);
   await page.getByTitle("Add empty audio track").click();
@@ -289,36 +321,4 @@ test("records into whichever audio track is armed", async ({ page }) => {
   await expect(rows).toHaveCount(1);
   await recordButton.click();
   await expect(page.getByText("Arm a track to record")).toBeVisible();
-});
-
-test("arms before input is on and records once input starts", async ({
-  page,
-}) => {
-  await createRecorderProject(page);
-
-  // Arm Audio 1 while input is off, which keeps the arm, asks for input, and
-  // opens the input panel.
-  const arm = page.getByTestId("recorder-arm-toggle");
-  await arm.click();
-  await expect(arm).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Turn input on to record")).toBeVisible();
-  const panel = page.getByTestId("recorder-input-panel");
-  await expect(panel).toBeVisible();
-
-  // Press Record before input is on, which does not start recording.
-  const recordButton = page.getByTestId("recorder-record-button");
-  await recordButton.click();
-  await expect(recordButton).toHaveAttribute("aria-pressed", "false");
-
-  // Turn input on from the panel, which leaves the arm in place.
-  const inputPower = panel.getByRole("button", { name: "Input power" });
-  await inputPower.click();
-  await expect(inputPower).toHaveAttribute("aria-pressed", "true");
-  await expect(arm).toHaveAttribute("aria-pressed", "true");
-
-  // Record into the track armed before input started.
-  await recordButton.click();
-  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
-  await recordButton.click();
-  await expect(page.getByTestId("recorder-clip-audio")).toContainText("Take 1");
 });
