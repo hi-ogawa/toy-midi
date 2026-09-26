@@ -4,8 +4,9 @@ import {
   addRecorderMidiTrack,
   createRecorderProject,
   enableInput,
-  saveRecorderProject,
+  openInputSetup,
   openRecorderMidiInstrument,
+  saveRecorderProject,
   selectRecorderMidiInstrument,
 } from "./recorder-helpers";
 
@@ -24,7 +25,7 @@ test("input edits preserve newer timeline preferences across projects", async ({
   });
   await autoScroll.click();
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
-  await page.getByRole("button", { name: "Configure audio input" }).click();
+  await openInputSetup(page);
   await page.getByLabel("Device").selectOption({ label: "Fake Audio Input 1" });
   await page
     .getByTestId("recorder-input-setup")
