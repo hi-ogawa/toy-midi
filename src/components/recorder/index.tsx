@@ -449,7 +449,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             )}
             {clipInteraction.audioTracks.map((track) => {
               const armed = state.armedTrackId === track.id;
-              const recordingIntoTrack =
+              const pendingRecording =
                 state.pendingRecording?.trackId === track.id
                   ? state.pendingRecording
                   : undefined;
@@ -478,7 +478,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     action={
                       <AudioTrackActions
                         label={track.name}
-                        removeDisabled={recordingIntoTrack !== undefined}
+                        removeDisabled={pendingRecording !== undefined}
                         onRename={(name) =>
                           runtime.setTrackName({ id: track.id, name })
                         }
@@ -519,10 +519,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   >
                     <AudioTimelineLane
                       clips={track.clips}
-                      regions={recordingIntoTrack?.regions ?? track.regions}
+                      regions={pendingRecording?.regions ?? track.regions}
                       testId="audio"
                       emptyLabel="Record or import audio"
-                      recordingClipId={recordingIntoTrack?.id}
+                      recordingClipId={pendingRecording?.id}
                       pixelsPerBeat={timeline.pixelsPerBeat}
                       beatsPerBar={timeline.beatsPerBar}
                       subdivisionsPerBeat={timeline.subdivisionsPerBeat}
