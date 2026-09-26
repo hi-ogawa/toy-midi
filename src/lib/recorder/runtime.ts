@@ -44,6 +44,7 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
+import { syncTrackOrder, type RecorderTrackListsState } from "./track-order.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
@@ -218,11 +219,6 @@ export type RecorderClipInsertRemove = {
 type RecorderRuntimeClipsState = Pick<
   RecorderRuntimeState,
   "audioTracks" | "referenceVideo"
->;
-
-type RecorderTrackListsState = Pick<
-  RecorderRuntimeState,
-  "audioTracks" | "midiTracks" | "trackOrder"
 >;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
@@ -1296,25 +1292,6 @@ export class RecorderRuntime {
 
   undo = () => this.history.undo();
   redo = () => this.history.redo();
-}
-
-/**
- * Keep the positions of present tracks, drop removed ids, and append new
- * tracks. An empty order places audio tracks before MIDI tracks.
- */
-function syncTrackOrder({
-  trackOrder,
-  audioTracks,
-  midiTracks,
-}: RecorderTrackListsState): string[] {
-  const ids = new Set([
-    ...audioTracks.map((track) => track.id),
-    ...midiTracks.map((track) => track.id),
-  ]);
-  const kept = trackOrder.filter((id) => ids.has(id));
-  const added = [...ids].filter((id) => !kept.includes(id));
-  const next = [...kept, ...added];
-  return next;
 }
 
 /** Derive a clip property update without committing state or touching playback. */
