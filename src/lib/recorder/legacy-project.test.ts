@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDefaultSavedProject, type SavedProject } from "../project-store";
 import { convertLegacyProject } from "./legacy-project";
-import { RECORDING_TRACK_ID } from "./recording-track";
 
 vi.hoisted(() => {
   vi.stubGlobal("AudioWorkletNode", class {});
@@ -80,7 +79,7 @@ describe("legacy recorder conversion", () => {
           tabOpenStringPitches: project.tabOpenStringPitches,
         },
       ],
-      audioTracks: [{ id: RECORDING_TRACK_ID, clips: [] }],
+      audioTracks: [{ name: "Audio 1", clips: [] }],
     });
   });
 
@@ -107,6 +106,7 @@ describe("legacy recorder conversion", () => {
     });
     expect(result.audioTracks[1]).toMatchObject({
       id: "backing",
+      name: "Audio 2",
       gain: 0.6,
       soloed: true,
       clips: [

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
-import { useFakeAudioInput } from "./helpers";
+import { selectMenuItem, useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   dragBy,
@@ -23,7 +23,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Monitoring routes through the armed track, so it waits for the arm.
   const monitorButton = page.getByTestId("recorder-input-monitor");
   await expect(monitorButton).toBeDisabled();
-  await armTrack(page, { track: "Capture" });
+  await armTrack(page, { track: "Audio 1" });
 
   // Input monitoring can be enabled before recording starts.
   await expect(monitorButton).toBeEnabled();
@@ -52,19 +52,13 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-comp-source");
+  const take = page.getByTestId("recorder-clip-audio-source");
   const takeLane = page
     .getByTestId("recorder-take-row")
     .getByTestId("recorder-clip-take-lane-source");
   const takeRows = page.getByTestId("recorder-take-row");
-  const compRegion = page.getByTestId("recorder-clip-comp");
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(takeRows).toHaveCount(0);
+  const compRegion = page.getByTestId("recorder-clip-audio");
   await expect(take).toHaveCount(1);
-  await takesToggle.click();
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
-  await expect(takeLane).toHaveCount(1);
-  await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
   expect(
@@ -114,8 +108,13 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await waitForRecordingSamples(secondRecording);
   await recordButton.click();
 
-  // The second recording is retained as a new source take.
+  // The second recording is retained as a new source take, and the track
+  // offers its takes once it has more than one clip.
   await expect(take).toHaveCount(2);
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takeRows).toHaveCount(0);
+  await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
   await expect(takeLane).toHaveCount(2);
   await expect(takeRows).toHaveCount(2);
   expect(
@@ -124,9 +123,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     ),
   ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 4, -2);
 
-  // Disarm Capture, which also turns monitoring off because nothing is armed.
+  // Disarm Audio 1, which also turns monitoring off because nothing is armed.
   await page
-    .getByRole("button", { name: "Disarm Capture for recording", exact: true })
+    .getByRole("button", { name: "Disarm Audio 1 for recording", exact: true })
     .click();
   await expect(monitorButton).toHaveAttribute("aria-pressed", "false");
   await expect(monitorButton).toBeDisabled();
@@ -150,7 +149,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows.nth(0)).toContainText("Take 1");
   await expect(takeRows.nth(1)).toContainText("Take 2");
 
-  // Muting removes a take from Capture without deleting its source lane.
+  // Muting removes a take from the comp without deleting its source lane.
   const muteTake = page.getByTestId("recorder-take-mute");
   await muteTake.nth(1).click();
   await expect(muteTake.nth(1)).toHaveAttribute("aria-pressed", "true");
@@ -187,7 +186,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   ).toBeVisible();
   await expect(compRegion).not.toContainText("Take 2");
 
-  // Solo derives Capture from soloed, unmuted take lanes.
+  // Solo derives the comp from soloed, unmuted take lanes.
   const soloTake = page.getByTestId("recorder-take-solo");
   await soloTake.nth(1).click();
   await expect(soloTake.nth(1)).toHaveAttribute("aria-pressed", "true");
@@ -223,7 +222,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(take).toHaveCount(0);
   await expect(takeRows).toHaveCount(0);
 
-  // Undo restores both source lanes in their original order and rebuilds Capture.
+  // Undo restores both source lanes in their original order and rebuilds the comp.
   await page.keyboard.press("Control+z");
   await expect(takeRows).toHaveCount(2);
   await expect(takeRows.nth(0)).toContainText("Take 1");
@@ -237,4 +236,54 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(take).toHaveCount(0);
   await expect(takeRows).toHaveCount(0);
   await expect(compRegion).toHaveCount(0);
+});
+
+test("records into whichever audio track is armed", async ({ page }) => {
+  await createRecorderProject(page);
+  await page.getByTitle("Add empty audio track").click();
+  const rows = page.getByTestId("recorder-audio-track-row");
+  await expect(rows).toHaveCount(2);
+  const monitors = page.getByTestId("recorder-input-monitor");
+
+  // Arm Audio 2, which leaves monitoring available only on that row.
+  await enableInput(page);
+  await armTrack(page, { track: "Audio 2" });
+  await expect(monitors.nth(0)).toBeDisabled();
+  await expect(monitors.nth(1)).toBeEnabled();
+
+  // Record into Audio 2 while Audio 1 stays empty.
+  const recordButton = page.getByTestId("recorder-record-button");
+  await recordButton.click();
+  await waitForRecordingSamples(
+    rows.nth(1).getByTestId("recorder-clip-recording"),
+  );
+  await expect(rows.nth(1).getByTestId("recorder-arm-toggle")).toBeDisabled();
+  await recordButton.click();
+  await expect(rows.nth(1).getByTestId("recorder-clip-audio")).toContainText(
+    "Take 1",
+  );
+  await expect(rows.nth(0).getByTestId("recorder-clip-audio")).toHaveCount(0);
+
+  // Move the arm to Audio 1, which starts its own take numbering.
+  await armTrack(page, { track: "Audio 1" });
+  await expect(
+    page.getByRole("button", {
+      name: "Arm Audio 2 for recording",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await recordButton.click();
+  await waitForRecordingSamples(
+    rows.nth(0).getByTestId("recorder-clip-recording"),
+  );
+  await recordButton.click();
+  await expect(rows.nth(0).getByTestId("recorder-clip-audio")).toContainText(
+    "Take 1",
+  );
+
+  // Remove the armed Audio 1, which leaves nothing armed.
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Remove track" });
+  await expect(rows).toHaveCount(1);
+  await recordButton.click();
+  await expect(page.getByText("Arm a track to record")).toBeVisible();
 });

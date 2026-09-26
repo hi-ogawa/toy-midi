@@ -32,7 +32,8 @@ test("keeps notes, audio, and tempo isolated between saved projects", async ({
   );
   const secondUrl = page.url();
   expect(secondUrl).not.toBe(firstUrl);
-  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(0);
+  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(1);
+  await expect(page.getByTestId("recorder-clip-audio")).toHaveCount(0);
   await expect(page.getByTestId("recorder-midi-track-row")).toHaveCount(0);
   await expect(tempo).toHaveValue("120");
   row = await addRecorderMidiTrack(page);
@@ -57,6 +58,7 @@ test("keeps notes, audio, and tempo isolated between saved projects", async ({
   await expect(
     getRecorderMidiNote(row, { beat: 1, pitch: "E4" }),
   ).toBeVisible();
-  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(0);
+  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(1);
+  await expect(page.getByTestId("recorder-clip-audio")).toHaveCount(0);
   await expect(tempo).toHaveValue("140");
 });

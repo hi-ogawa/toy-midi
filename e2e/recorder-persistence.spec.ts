@@ -173,10 +173,12 @@ test("loads and resaves a project stored with single-clip tracks and a separate 
     });
   });
 
-  // Open the stored project and show the clip and take with decoded waveforms.
+  // Open the stored project and show the take on the former Capture track
+  // above the clip, both with decoded waveforms.
   await page.goto(`/recorder/${projectId}`);
-  const clip = page.getByTestId("recorder-clip-audio");
-  const take = page.getByTestId("recorder-clip-comp");
+  const rows = page.getByTestId("recorder-audio-track-row");
+  const take = rows.nth(0).getByTestId("recorder-clip-audio");
+  const clip = rows.nth(1).getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
   await expect(take).toContainText("Take 3");

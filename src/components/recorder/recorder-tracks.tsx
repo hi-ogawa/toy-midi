@@ -27,12 +27,15 @@ import { RecorderGainSlider } from "./recorder-mixer";
 
 export function AudioTrackActions({
   label,
+  removeDisabled,
   onRename,
   onEffectsOpen,
   onFileChange,
   onRemove,
 }: {
   label: string;
+  /** The track being recorded into stays until the take is committed. */
+  removeDisabled: boolean;
   onRename: (name: string) => void;
   onEffectsOpen: () => void;
   onFileChange: (file: File) => void;
@@ -59,7 +62,11 @@ export function AudioTrackActions({
           Replace audio
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+        <DropdownMenuItem
+          disabled={removeDisabled}
+          onSelect={onRemove}
+          className="text-red-400"
+        >
           <Trash2Icon />
           Remove track
         </DropdownMenuItem>
@@ -87,31 +94,6 @@ export function TrackMenuButton({
     >
       <MoreVerticalIcon className="size-3.5" />
     </button>
-  );
-}
-
-export function CaptureTrackActions({
-  label,
-  onRename,
-  onEffectsOpen,
-}: {
-  label: string;
-  onRename: (name: string) => void;
-  onEffectsOpen: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <TrackMenuButton label={label} />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <RenameTrackMenuItem name={label} onRename={onRename} />
-        <DropdownMenuItem onSelect={onEffectsOpen}>
-          <SlidersHorizontalIcon />
-          Effects…
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 

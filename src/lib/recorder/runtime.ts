@@ -43,7 +43,6 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { RECORDING_TRACK_ID } from "./recording-track.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
@@ -233,7 +232,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     punch: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
-    audioTracks: [createRecordingTrackState()],
+    audioTracks: [createAudioTrackState({ name: "Audio 1" })],
     midiTracks: [],
     captureStatus: "disabled",
     inputChannelCount: 0,
@@ -365,10 +364,7 @@ export class RecorderRuntime {
     const { audioTracks } = this.store.get();
     const track = createAudioTrackState({
       name: createNumberedName({
-        // Capture keeps its own name, so ordinary tracks number from Audio 1.
-        names: audioTracks
-          .filter((track) => track.id !== RECORDING_TRACK_ID)
-          .map((track) => track.name),
+        names: audioTracks.map((track) => track.name),
         prefix: "Audio",
       }),
     });
@@ -570,9 +566,6 @@ export class RecorderRuntime {
   }
 
   removeAudioTrack(id: string): void {
-    if (id === RECORDING_TRACK_ID) {
-      throw new Error("The recording track cannot be removed.");
-    }
     if (id === this.store.get().pendingRecording?.trackId) {
       throw new Error("Cannot remove the track being recorded into.");
     }
@@ -1476,21 +1469,6 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
     soloed: false,
     clips: [],
     regions: [],
-  };
-}
-
-function createRecordingTrackState(): AudioTrackState {
-  return {
-    id: RECORDING_TRACK_ID,
-    name: "Capture",
-    eq: createDefaultMultibandEq(),
-    height: DEFAULT_TRACK_HEIGHT,
-    gain: 1,
-    muted: false,
-    soloed: false,
-    clips: [],
-    regions: [],
-    nextTakeNumber: 1,
   };
 }
 

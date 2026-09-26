@@ -9,10 +9,6 @@ import {
 } from "../../lib/bass-pitch/transcription";
 import { getClipSources } from "../../lib/recorder/audio-sources";
 import { transcribeRecorderAudio } from "../../lib/recorder/audio-to-midi";
-import {
-  getRecordingTrack,
-  RECORDING_TRACK_ID,
-} from "../../lib/recorder/recording-track";
 import type {
   MidiTrackState,
   RecorderRuntime,
@@ -251,23 +247,21 @@ export function RecorderAudioToMidi({
 }
 
 function getTranscriptionSources(state: RecorderRuntimeState) {
-  return [
-    ...state.audioTracks
-      .filter((track) => track.id !== RECORDING_TRACK_ID)
-      .map((source) => ({
-        track: source,
-        label: `${source.name}${source.clips[0] ? ` · ${source.clips[0].name}` : ""}`,
-      })),
-    {
-      track: getRecordingTrack(state.audioTracks),
-      label: `${getRecordingTrack(state.audioTracks).name} · committed takes`,
-    },
-  ].filter(({ track }) =>
-    track.regions.some(
-      ({ clip, timelineStart, timelineEnd }) =>
-        clip.buffer && timelineEnd > Math.max(0, timelineStart),
-    ),
-  );
+  return state.audioTracks
+    .map((track) => ({
+      track,
+      // A single clip names its source, like an imported file.
+      label:
+        track.clips.length === 1
+          ? `${track.name} · ${track.clips[0]!.name}`
+          : track.name,
+    }))
+    .filter(({ track }) =>
+      track.regions.some(
+        ({ clip, timelineStart, timelineEnd }) =>
+          clip.buffer && timelineEnd > Math.max(0, timelineStart),
+      ),
+    );
 }
 
 function ParamSlider({

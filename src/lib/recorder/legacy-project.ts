@@ -1,3 +1,4 @@
+import { createNumberedName } from "../../utils/name";
 import { createDefaultMultibandEq } from "../dsp/biquad-eq-node";
 import { type AnySavedProject, fromSavedProject } from "../project-store";
 import {
@@ -66,6 +67,10 @@ export async function convertLegacyProject({
       const buffer = await context!.decodeAudioData(await blob.arrayBuffer());
       content.audioTracks.push({
         id: track.id,
+        name: createNumberedName({
+          names: content.audioTracks.map((track) => track.name ?? ""),
+          prefix: "Audio",
+        }),
         height: clampTrackHeight(track.waveformHeight),
         gain: track.volume,
         muted: track.muted,
