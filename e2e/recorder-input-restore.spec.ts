@@ -15,32 +15,32 @@ test("restores input after interaction and remembers explicit off", async ({
   await createRecorderProject(page);
   await enableInput(page);
   await page.reload();
-  const monitor = page.getByTestId("recorder-input-monitor");
-  await expect(monitor).toBeDisabled();
+  // The monitor toggle is enabled only while input is on. Observe input state
+  // through it because opening the Audio Input panel needs a click, and any
+  // click is the user gesture that restores input.
+  const monitorToggle = page.getByTestId("recorder-input-monitor");
+  await expect(monitorToggle).toBeDisabled();
 
   // Press a key to restore input without arming or monitoring.
   await page.keyboard.press("Shift");
-  await expect(monitor).toBeEnabled();
+  await expect(monitorToggle).toBeEnabled();
   const panel = await openInputPanel(page);
-  await expect(
-    panel.getByRole("button", { name: "Turn input off" }),
-  ).toBeEnabled();
+  const inputPower = panel.getByRole("button", { name: "Input power" });
+  await expect(inputPower).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("recorder-arm-toggle")).toHaveAttribute(
     "aria-pressed",
     "false",
   );
-  await expect(monitor).toHaveAttribute("aria-pressed", "false");
+  await expect(monitorToggle).toHaveAttribute("aria-pressed", "false");
 
   // Turn input off and keep it off through more interactions and a reload.
-  await panel.getByRole("button", { name: "Turn input off" }).click();
+  await inputPower.click();
   await page.keyboard.press("Escape");
-  await expect(monitor).toBeDisabled();
+  await expect(monitorToggle).toBeDisabled();
   await page.reload();
   await openInputPanel(page);
-  await expect(
-    panel.getByRole("button", { name: "Turn input on" }),
-  ).toBeEnabled();
-  await expect(monitor).toBeDisabled();
+  await expect(inputPower).toHaveAttribute("aria-pressed", "false");
+  await expect(monitorToggle).toBeDisabled();
 });
 
 test("remembers an interaction before device discovery finishes", async ({
@@ -72,6 +72,6 @@ test("remembers an interaction before device discovery finishes", async ({
     window.dispatchEvent(new Event("release-input-devices")),
   );
   await expect(
-    panel.getByRole("button", { name: "Turn input off" }),
-  ).toBeEnabled();
+    panel.getByRole("button", { name: "Input power" }),
+  ).toHaveAttribute("aria-pressed", "true");
 });
