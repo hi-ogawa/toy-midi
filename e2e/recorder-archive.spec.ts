@@ -44,7 +44,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toHaveCount(2);
   // Balance one take independently before archiving the project. Audio 1's
   // takes list comes before the backing track's.
-  const takesToggle = page.getByTestId("recorder-takes-toggle").first();
+  const takesToggle = page.getByTestId("recorder-clips-toggle").first();
   await takesToggle.click();
   const takeGain = page.getByRole("slider", {
     name: "Take 1 gain",

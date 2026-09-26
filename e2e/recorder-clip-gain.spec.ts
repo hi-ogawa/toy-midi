@@ -18,7 +18,7 @@ test("adjusts take gain and updates its waveform", async ({ page }) => {
   await record.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await record.click();
-  await page.getByTestId("recorder-takes-toggle").click();
+  await page.getByTestId("recorder-clips-toggle").click();
   const gain = page.getByRole("slider", { name: "Take 1 gain", exact: true });
   await expect(gain).toHaveAttribute("aria-valuenow", "0");
   const waveform = page.getByTestId("recorder-clip-audio").locator("svg path");

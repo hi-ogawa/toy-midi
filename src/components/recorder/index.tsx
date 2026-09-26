@@ -49,8 +49,8 @@ import {
 } from "./recorder-timeline";
 import {
   AudioTrackActions,
-  TakesDisclosureRow,
-  TakeTrackRow,
+  ClipsDisclosureRow,
+  ClipTrackRow,
   TrackRow,
 } from "./recorder-tracks";
 import { RecorderTuner } from "./recorder-tuner";
@@ -67,8 +67,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     useRecorderPreference("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
-  const [expandedTakeTracks, setTakeExpanded] = useSetState<string>();
-  const [takesNewestFirst, setTakesNewestFirst] =
+  const [expandedClipTracks, setClipExpanded] = useSetState<string>();
+  const [clipsNewestFirst, setClipsNewestFirst] =
     useRecorderPreference("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
@@ -434,7 +434,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 state.pendingRecording?.trackId === track.id
                   ? state.pendingRecording
                   : undefined;
-              const takesExpanded = expandedTakeTracks.has(track.id);
+              const clipsExpanded = expandedClipTracks.has(track.id);
               return (
                 <Fragment key={track.id}>
                   <TrackRow
@@ -514,43 +514,43 @@ export function Recorder({ projectId }: { projectId: string }) {
                     />
                   </TrackRow>
                   {track.clips.length > 0 && (
-                    <TakesDisclosureRow
-                      expanded={takesExpanded}
-                      takeCount={track.clips.length}
+                    <ClipsDisclosureRow
+                      expanded={clipsExpanded}
+                      clipCount={track.clips.length}
                       onExpandedChange={(expanded) =>
-                        setTakeExpanded({ value: track.id, present: expanded })
+                        setClipExpanded({ value: track.id, present: expanded })
                       }
-                      newestFirst={takesNewestFirst}
-                      onNewestFirstChange={setTakesNewestFirst}
+                      newestFirst={clipsNewestFirst}
+                      onNewestFirstChange={setClipsNewestFirst}
                     />
                   )}
                   {track.clips.length > 0 &&
-                    takesExpanded &&
-                    (takesNewestFirst
+                    clipsExpanded &&
+                    (clipsNewestFirst
                       ? track.clips.toReversed()
                       : track.clips
-                    ).map((take) => (
-                      <TakeTrackRow
-                        key={take.id}
-                        label={take.name}
-                        gain={take.gain}
+                    ).map((clip) => (
+                      <ClipTrackRow
+                        key={clip.id}
+                        label={clip.name}
+                        gain={clip.gain}
                         onGainChange={(gain) =>
-                          runtime.setClipGain({ id: take.id, gain })
+                          runtime.setClipGain({ id: clip.id, gain })
                         }
-                        muted={take.muted}
-                        soloed={take.soloed}
+                        muted={clip.muted}
+                        soloed={clip.soloed}
                         onMutedChange={(muted) =>
-                          runtime.setClipMuted({ id: take.id, muted })
+                          runtime.setClipMuted({ id: clip.id, muted })
                         }
                         onSoloedChange={(soloed) =>
-                          runtime.setClipSoloed({ id: take.id, soloed })
+                          runtime.setClipSoloed({ id: clip.id, soloed })
                         }
-                        onDelete={() => runtime.removeClips([take.id])}
+                        onDelete={() => runtime.removeClips([clip.id])}
                       >
                         <AudioTimelineLane
-                          clips={[take]}
-                          regions={deriveClipRegions([take])}
-                          testId="take-lane"
+                          clips={[clip]}
+                          regions={deriveClipRegions([clip])}
+                          testId="clip-lane"
                           pixelsPerBeat={timeline.pixelsPerBeat}
                           beatsPerBar={timeline.beatsPerBar}
                           subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -569,7 +569,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                             runtime.seek(position);
                           }}
                         />
-                      </TakeTrackRow>
+                      </ClipTrackRow>
                     ))}
                 </Fragment>
               );

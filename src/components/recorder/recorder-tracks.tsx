@@ -283,15 +283,15 @@ function TrackRecordingToggles({
   );
 }
 
-export function TakesDisclosureRow({
+export function ClipsDisclosureRow({
   expanded,
-  takeCount,
+  clipCount,
   onExpandedChange,
   newestFirst,
   onNewestFirstChange,
 }: {
   expanded: boolean;
-  takeCount: number;
+  clipCount: number;
   newestFirst: boolean;
   onNewestFirstChange: (newestFirst: boolean) => void;
   onExpandedChange: (expanded: boolean) => void;
@@ -301,7 +301,7 @@ export function TakesDisclosureRow({
       <div className="relative border-r border-neutral-700">
         <button
           type="button"
-          data-testid="recorder-takes-toggle"
+          data-testid="recorder-clips-toggle"
           aria-expanded={expanded}
           onClick={() => onExpandedChange(!expanded)}
           className="flex h-full w-full items-center gap-2 pl-3 pr-12 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
@@ -311,17 +311,17 @@ export function TakesDisclosureRow({
           ) : (
             <ChevronRightIcon className="size-3.5 text-neutral-400" />
           )}
-          Takes
+          Clips
           <span className="text-[10px] font-normal text-neutral-500">
-            {takeCount}
+            {clipCount}
           </span>
         </button>
         <Button
-          data-testid="recorder-takes-order"
+          data-testid="recorder-clips-order"
           aria-label={
             newestFirst
-              ? "Order takes oldest first"
-              : "Order takes newest first"
+              ? "Order clips oldest first"
+              : "Order clips newest first"
           }
           title={
             newestFirst
@@ -343,7 +343,7 @@ export function TakesDisclosureRow({
   );
 }
 
-export function TakeTrackRow({
+export function ClipTrackRow({
   label,
   gain,
   onGainChange,
@@ -366,7 +366,7 @@ export function TakeTrackRow({
 }) {
   return (
     <div
-      data-testid="recorder-take-row"
+      data-testid="recorder-clip-row"
       className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
@@ -378,27 +378,27 @@ export function TakeTrackRow({
           <DropdownMenuContent>
             <DropdownMenuItem onSelect={onDelete}>
               <Trash2Icon />
-              Delete take
+              Delete clip
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <RecorderMixToggle
-          data-testid="recorder-take-mute"
+          data-testid="recorder-clip-mute"
           aria-label={`Mute ${label}`}
           active={muted}
           kind="mute"
           onClick={() => onMutedChange(!muted)}
           className="size-6"
-          title="Mute take"
+          title="Mute clip"
         />
         <RecorderMixToggle
-          data-testid="recorder-take-solo"
+          data-testid="recorder-clip-solo"
           aria-label={`Solo ${label}`}
           active={soloed}
           kind="solo"
           onClick={() => onSoloedChange(!soloed)}
           className="size-6"
-          title="Solo take"
+          title="Solo clip"
         />
         <label className="col-span-4 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
           <RecorderGainSlider
