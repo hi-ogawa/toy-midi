@@ -75,16 +75,8 @@ function writeProjectContent(
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
-      clip: track.clip
-        ? {
-            ...track.clip,
-            pcm: writeProjectPcm(
-              zip,
-              track.clip.pcm,
-              `audio/tracks/${trackIndex}`,
-            ),
-          }
-        : undefined,
+      // Only loading reads the single clip shape, and saves always write clips.
+      clip: undefined,
       clips: track.clips?.map((clip, clipIndex) => ({
         ...clip,
         pcm: writeProjectPcm(
@@ -94,13 +86,8 @@ function writeProjectContent(
         ),
       })),
     })),
-    recordingTrack: content.recordingTrack && {
-      ...content.recordingTrack,
-      takes: content.recordingTrack.takes.map((take, takeIndex) => ({
-        ...take,
-        pcm: writeProjectPcm(zip, take.pcm, `audio/takes/${takeIndex}`),
-      })),
-    },
+    // Saves keep the Capture track in audioTracks.
+    recordingTrack: undefined,
   };
 }
 
