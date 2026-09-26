@@ -91,7 +91,7 @@ interface SerializedAudioTrackState<ChannelData> {
   nextTakeNumber?: number;
   // Optional for projects saved with a single clip per track.
   clips?: SerializedAudioClip<ChannelData>[];
-  // Retained for tracks saved with a single clip and track-level timing.
+  // 🔴 Retained for tracks saved with a single clip and track-level timing.
   clip?: {
     name: string;
     gain?: number;
