@@ -24,7 +24,7 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
   const panel = page.getByTestId("recorder-audio-to-midi");
   await panel
     .getByRole("combobox", { name: "Source audio track" })
-    .selectOption({ label: "Audio 1 · test-tones.wav" });
+    .selectOption({ label: "Audio 1" });
   const checkpoint = createCheckpoint();
   await panel
     .getByRole("button", { name: "Convert to MIDI", exact: true })
