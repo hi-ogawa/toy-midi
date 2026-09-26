@@ -100,7 +100,7 @@ export function TrackMenuButton({
   );
 }
 
-function RenameTrackMenuItem({
+export function RenameTrackMenuItem({
   name,
   onRename,
 }: {

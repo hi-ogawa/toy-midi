@@ -28,6 +28,8 @@ interface RecorderProjectManifest {
   exportedAt: string;
 }
 
+// E2E tests also call this directly from Node to build archives to import,
+// including older project shapes.
 export async function exportRecorderProjectArchive(
   content: SerializedRecorderRuntimeState,
 ): Promise<Blob> {
@@ -75,8 +77,19 @@ function writeProjectContent(
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
-      // Only loading reads the single clip shape, and saves always write clips.
-      clip: undefined,
+      // Convert every PCM field the project type allows, mirroring the reader.
+      // Saves no longer produce a single clip, but E2E tests export one to
+      // build archives in the older shape.
+      clip: track.clip
+        ? {
+            ...track.clip,
+            pcm: writeProjectPcm(
+              zip,
+              track.clip.pcm,
+              `audio/tracks/${trackIndex}`,
+            ),
+          }
+        : undefined,
       clips: track.clips?.map((clip, clipIndex) => ({
         ...clip,
         pcm: writeProjectPcm(
@@ -86,8 +99,15 @@ function writeProjectContent(
         ),
       })),
     })),
-    // Saves keep the Capture track in audioTracks.
-    recordingTrack: undefined,
+    // Saves keep the Capture track in audioTracks, but E2E tests export a
+    // separate recording track to build archives in the older shape.
+    recordingTrack: content.recordingTrack && {
+      ...content.recordingTrack,
+      takes: content.recordingTrack.takes.map((take, takeIndex) => ({
+        ...take,
+        pcm: writeProjectPcm(zip, take.pcm, `audio/takes/${takeIndex}`),
+      })),
+    },
   };
 }
 

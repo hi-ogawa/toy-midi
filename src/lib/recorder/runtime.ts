@@ -372,10 +372,6 @@ export class RecorderRuntime {
     return track.id;
   }
 
-  setAudioTrackName({ id, name }: { id: string; name: string }): void {
-    this.updateTrack(id, (track) => ({ ...track, name }));
-  }
-
   /** Append decoded audio as a new clip, which undo removes again. */
   async importAudioClip({
     trackId,
@@ -570,6 +566,14 @@ export class RecorderRuntime {
       ...track,
       height: clampTrackHeight(height),
     }));
+  }
+
+  setTrackName({ id, name }: { id: string; name: string }): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, name }));
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, name }));
+    }
   }
 
   removeAudioTrack(id: string): void {
@@ -1199,16 +1203,20 @@ export class RecorderRuntime {
       timelineOffset,
     };
     const { trackId } = pendingRecording;
-    const newClipIndex = getAudioTrack(this.store.get().audioTracks, trackId)
-      .clips.length;
-    const recordingTrack = this.updateTrack(trackId, (track) => ({
-      ...track,
-      nextTakeNumber: track.nextTakeNumber + 1,
-      clips: [...track.clips, newClip],
-    }));
+    const { audioTracks } = this.store.get();
+    const previousTrack = getAudioTrack(audioTracks, trackId);
+    const newClipIndex = previousTrack.clips.length;
+    const recordingTrack = resolveTrackRegions({
+      ...previousTrack,
+      nextTakeNumber: previousTrack.nextTakeNumber + 1,
+      clips: [...previousTrack.clips, newClip],
+    });
     this.store.update({
       captureStatus: "ready",
       pendingRecording: undefined,
+      audioTracks: audioTracks.map((track) =>
+        track === previousTrack ? recordingTrack : track,
+      ),
     });
     this.syncTrackPlayback(recordingTrack);
     this.syncTrackMix();

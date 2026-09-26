@@ -198,10 +198,20 @@ test("imports ordered stems and persists independent lane heights", async ({
   await selectMenuItem(page, { menu: "Audio 3 actions", item: "Rename…" });
   await expect(bass.getByTitle("Resize Bass", { exact: true })).toBeAttached();
 
+  // Rename the empty Audio 1 from its track menu.
+  page.once("dialog", (dialog) => dialog.accept("Vocals"));
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Rename…" });
+  await expect(
+    page.getByRole("button", { name: "Vocals actions" }),
+  ).toBeVisible();
+
   // Save and reload both stems with their order, names, waveforms, and lane sizes intact.
   await saveRecorderProject(page);
   await page.reload();
   await expect(rows).toHaveCount(3);
+  await expect(
+    page.getByRole("button", { name: "Vocals actions" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Bass actions" }),
   ).toBeVisible();
