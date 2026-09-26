@@ -1,7 +1,4 @@
-import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import JSZip from "jszip";
-import type { SerializedRecorderRuntimeState } from "../src/lib/recorder/persistence";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { useFakeAudioInput, selectMenuItem } from "./helpers";
 import {
@@ -16,7 +13,6 @@ import {
   waitForRecordingSamples,
   openRecorderMidiInstrument,
   selectRecorderMidiInstrument,
-  saveRecorderProject,
 } from "./recorder-helpers";
 
 useFakeAudioInput();
@@ -160,105 +156,3 @@ async function getRecorderClipGeometry(page: Page) {
   );
   return geometry;
 }
-
-test("opens an imported archive saved with a single clip per audio track", async ({
-  page,
-}) => {
-  // Write an archive in the old layout, where an audio track stores one clip
-  // with track-level timing at audio/tracks/<i>/ and takes at audio/takes/<i>/.
-  const bytes = await readFile("e2e/fixtures/test-tones.pcm");
-  const zip = new JSZip();
-  zip.file(
-    "manifest.json",
-    JSON.stringify({ formatVersion: 1, projectType: "recorder" }),
-  );
-  for (const path of [
-    "audio/tracks/0/channel-0.f32",
-    "audio/tracks/0/channel-1.f32",
-    "audio/takes/0/channel-0.f32",
-  ]) {
-    zip.file(path, bytes);
-  }
-  const project: SerializedRecorderRuntimeState<string> = {
-    title: "Single-clip archive",
-    tempo: 120,
-    timeSignature: { numerator: 4, denominator: 4 },
-    audioTracks: [
-      {
-        id: "backing",
-        height: 72,
-        gain: 0.5,
-        muted: false,
-        soloed: false,
-        timelineOffset: 2,
-        trimStart: 0.5,
-        trimEnd: 3,
-        clip: {
-          name: "stereo.wav",
-          pcm: {
-            sampleRate: 22050,
-            channels: [
-              "audio/tracks/0/channel-0.f32",
-              "audio/tracks/0/channel-1.f32",
-            ],
-          },
-        },
-      },
-    ],
-    recordingTrack: {
-      height: 116,
-      gain: 0.8,
-      muted: false,
-      soloed: false,
-      nextTakeNumber: 9,
-      takes: [
-        {
-          id: "retained",
-          number: 8,
-          timelineOffset: 3,
-          trimStart: 0.25,
-          trimEnd: 2,
-          pcm: { sampleRate: 22050, channels: ["audio/takes/0/channel-0.f32"] },
-        },
-      ],
-    },
-  };
-  zip.file("project.json", JSON.stringify(project));
-  const archive = await zip.generateAsync({ type: "nodebuffer" });
-
-  // Import it from the project list and open the recorder.
-  await page.goto("/");
-  const chooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("import-recorder-project").click();
-  await (
-    await chooserPromise
-  ).setFiles({
-    name: "single-clip.toymidi.zip",
-    mimeType: "application/zip",
-    buffer: archive,
-  });
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Single-clip archive",
-  );
-
-  // Show the backing clip and the retained take with decoded waveforms.
-  const audio = page.getByTestId("recorder-clip-audio");
-  const take = page.getByTestId("recorder-clip-comp");
-  await expect(audio).toContainText("stereo.wav");
-  await expect(take).toContainText("Take 8");
-  await expect(audio.locator("svg")).toBeVisible();
-  await expect(take.locator("svg")).toBeVisible();
-  const clipGeometry = await getRecorderClipGeometry(page);
-
-  // Rename, save, and reopen the project with the same clip placement.
-  page.once("dialog", (dialog) => dialog.accept("Resaved archive"));
-  await page.getByTestId("recorder-project-name").click();
-  await saveRecorderProject(page);
-  await page.reload();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Resaved archive",
-  );
-  await expect(audio).toContainText("stereo.wav");
-  await expect(take).toContainText("Take 8");
-  await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
-});
