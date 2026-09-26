@@ -444,10 +444,9 @@ export class RecorderRuntime {
     this.midiTrackPlaybacks.set(track.id, playback);
     this.updateTrackLists({
       midiTracks: [...state.midiTracks, track],
-      trackOrder:
-        orderIndex === undefined
-          ? undefined
-          : state.trackOrder.toSpliced(orderIndex, 0, track.id),
+      ...(orderIndex !== undefined && {
+        trackOrder: state.trackOrder.toSpliced(orderIndex, 0, track.id),
+      }),
     });
     this.syncTrackMix();
   }
@@ -634,17 +633,10 @@ export class RecorderRuntime {
    * tracks. `trackOrder` overrides the current order, for example to restore a
    * removed track at its previous position.
    */
-  private updateTrackLists({
-    trackOrder = this.store.get().trackOrder,
-    ...update
-  }: Partial<RecorderTrackListsState>): void {
+  private updateTrackLists(update: Partial<RecorderTrackListsState>): void {
     this.store.update({
       ...update,
-      trackOrder: syncTrackOrder({
-        ...this.store.get(),
-        ...update,
-        trackOrder,
-      }),
+      trackOrder: syncTrackOrder({ ...this.store.get(), ...update }),
     });
   }
 
