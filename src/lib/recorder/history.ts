@@ -17,7 +17,12 @@ import type {
 /** A state change that runtime can apply directly, including during undo and redo. */
 type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
-  | { type: "midi-track-insert"; track: MidiTrackState; index: number }
+  | {
+      type: "midi-track-insert";
+      track: MidiTrackState;
+      index: number;
+      orderIndex: number;
+    }
   | { type: "midi-track-delete"; trackId: string }
   | ({ type: "clips" } & RecorderClipInsertRemove);
 
@@ -36,10 +41,12 @@ export class RecorderHistory {
   pushMidiTrack({
     track,
     index,
+    orderIndex,
     reverse = false,
   }: {
     track: MidiTrackState;
     index: number;
+    orderIndex: number;
     reverse?: boolean;
   }): void {
     const before: RecorderChange = {
@@ -50,6 +57,7 @@ export class RecorderHistory {
       type: "midi-track-insert",
       track,
       index,
+      orderIndex,
     };
     this.history.push(
       reverse ? { before: after, after: before } : { before, after },

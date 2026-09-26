@@ -1,5 +1,7 @@
 import {
+  ArrowDownIcon,
   ArrowDownWideNarrowIcon,
+  ArrowUpIcon,
   ArrowUpNarrowWideIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -26,11 +28,13 @@ import { RecorderGainSlider } from "./recorder-mixer";
 
 export function AudioTrackActions({
   label,
+  move,
   onEffectsOpen,
   onFileChange,
   onRemove,
 }: {
   label: string;
+  move: TrackMoveControls;
   onEffectsOpen: () => void;
   onFileChange: (file: File) => void;
   onRemove: () => void;
@@ -55,12 +59,40 @@ export function AudioTrackActions({
           Replace audio
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <TrackMoveItems {...move} />
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
           <Trash2Icon />
           Remove track
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+export interface TrackMoveControls {
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMove: (direction: "up" | "down") => void;
+}
+
+/** Menu items that move a row one position within the track list. */
+export function TrackMoveItems({
+  canMoveUp,
+  canMoveDown,
+  onMove,
+}: TrackMoveControls) {
+  return (
+    <>
+      <DropdownMenuItem disabled={!canMoveUp} onSelect={() => onMove("up")}>
+        <ArrowUpIcon />
+        Move up
+      </DropdownMenuItem>
+      <DropdownMenuItem disabled={!canMoveDown} onSelect={() => onMove("down")}>
+        <ArrowDownIcon />
+        Move down
+      </DropdownMenuItem>
+    </>
   );
 }
 
@@ -87,8 +119,10 @@ export function TrackMenuButton({
 }
 
 export function CaptureTrackActions({
+  move,
   onEffectsOpen,
 }: {
+  move: TrackMoveControls;
   onEffectsOpen: () => void;
 }) {
   return (
@@ -101,6 +135,8 @@ export function CaptureTrackActions({
           <SlidersHorizontalIcon />
           Effects…
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <TrackMoveItems {...move} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

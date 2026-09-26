@@ -2,11 +2,14 @@ import { GaugeIcon, Mic2Icon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
-import { splitRecordingTrack } from "../../lib/recorder/recording-track";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
+import {
+  getTrackEntryLabel,
+  resolveTrackOrder,
+} from "../../lib/recorder/track-order";
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { RecorderEffectsToggle } from "./recorder-effects-toggle";
@@ -23,9 +26,8 @@ export function RecorderMixer({
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
-  const { recordingTrack, audioTracks } = splitRecordingTrack(
-    state.audioTracks,
-  );
+  // The reference video plays outside the Web Audio graph, so it has no channel.
+  const trackEntries = resolveTrackOrder(state);
   const masterInput = useGainInput(
     state.masterGain,
     runtime.setMasterGain.bind(runtime),
@@ -44,53 +46,29 @@ export function RecorderMixer({
         inputProps={masterInput.props}
         data-testid="recorder-mixer-master"
       />
-      {audioTracks.map((track, index) => (
-        <RecorderTrackChannel
-          key={track.id}
-          effectsOpen={openEffects.has(track.id)}
-          onEffectsToggle={() => onEffectsToggle(track.id)}
-          label={`Audio ${index + 1}`}
-          gain={track.gain}
-          muted={track.muted}
-          soloed={track.soloed}
-          onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-          onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
-          onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
-        />
-      ))}
-      {state.midiTracks.map((track) => (
-        <RecorderTrackChannel
-          key={track.id}
-          effectsOpen={openEffects.has(track.id)}
-          onEffectsToggle={() => onEffectsToggle(track.id)}
-          label={track.name}
-          gain={track.gain}
-          muted={track.muted}
-          soloed={track.soloed}
-          icon={<Music2Icon className="size-4 text-muted-foreground" />}
-          onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-          onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
-          onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
-        />
-      ))}
-      <RecorderTrackChannel
-        label="Capture"
-        effectsOpen={openEffects.has("capture")}
-        onEffectsToggle={() => onEffectsToggle("capture")}
-        gain={recordingTrack.gain}
-        muted={recordingTrack.muted}
-        soloed={recordingTrack.soloed}
-        icon={<Mic2Icon className="size-4 text-muted-foreground" />}
-        onGainChange={(gain) =>
-          runtime.setTrackMix(recordingTrack.id, { gain })
+      {trackEntries.map((entry) => {
+        if (entry.kind === "reference") {
+          return undefined;
         }
-        onMutedChange={(muted) =>
-          runtime.setTrackMix(recordingTrack.id, { muted })
-        }
-        onSoloedChange={(soloed) =>
-          runtime.setTrackMix(recordingTrack.id, { soloed })
-        }
-      />
+        const { track } = entry;
+        return (
+          <RecorderTrackChannel
+            key={entry.id}
+            effectsOpen={openEffects.has(track.id)}
+            onEffectsToggle={() => onEffectsToggle(track.id)}
+            label={getTrackEntryLabel(entry)}
+            gain={track.gain}
+            muted={track.muted}
+            soloed={track.soloed}
+            icon={TRACK_ICONS[entry.kind]}
+            onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+            onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
+            onSoloedChange={(soloed) =>
+              runtime.setTrackMix(track.id, { soloed })
+            }
+          />
+        );
+      })}
       <MixerChannel
         icon={<MetronomeIcon className="size-4 text-muted-foreground" />}
         label="Metro"
@@ -112,12 +90,18 @@ export function RecorderMixer({
   );
 }
 
+const TRACK_ICONS = {
+  audio: <Volume2Icon className="size-4 text-muted-foreground" />,
+  midi: <Music2Icon className="size-4 text-muted-foreground" />,
+  capture: <Mic2Icon className="size-4 text-muted-foreground" />,
+};
+
 function RecorderTrackChannel({
   label,
   gain,
   muted,
   soloed,
-  icon = <Volume2Icon className="size-4 text-muted-foreground" />,
+  icon,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -128,7 +112,7 @@ function RecorderTrackChannel({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  icon?: ReactNode;
+  icon: ReactNode;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;

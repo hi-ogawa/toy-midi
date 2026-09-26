@@ -36,6 +36,8 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
   })[];
+  // 🟢 Optional for recorder projects saved before track reordering.
+  trackOrder?: string[];
   // 🔴 Retained for projects saved with the Capture track outside audioTracks.
   recordingTrack?: {
     // 🟢 Optional for projects saved before track EQ support.
@@ -138,6 +140,7 @@ export function serializeRecorderRuntimeState(
       clips: track.clips.map(serializeAudioClip),
     })),
     midiTracks: state.midiTracks,
+    trackOrder: state.trackOrder,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
     loop: state.loop,
@@ -180,6 +183,8 @@ export function deserializeRecorderRuntimeState({
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       eq: deserializeEq(track.eq),
     })),
+    // The runtime fills in tracks missing from older or partial orders.
+    trackOrder: project.trackOrder ?? [],
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
     loop: project.loop ?? { enabled: false },

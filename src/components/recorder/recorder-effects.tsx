@@ -15,7 +15,7 @@ import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
 import { RecorderPanel } from "./recorder-panel";
 
 export function useRecorderEffectsUi() {
-  // Audio track UUIDs and the singleton Capture channel identify panels.
+  // Track ids identify panels.
   const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
     new Set(),
   );

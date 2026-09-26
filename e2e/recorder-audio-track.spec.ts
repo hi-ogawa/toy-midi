@@ -68,7 +68,7 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("scrolls overflowing tracks from the track list", async ({ page }) => {
-  // Fill a short desktop viewport until the capture track sits below the fold.
+  // Fill a short desktop viewport until the last track sits below the fold.
   await page.setViewportSize({ width: 1280, height: 400 });
   await createRecorderProject(page);
 
@@ -77,7 +77,7 @@ test("scrolls overflowing tracks from the track list", async ({ page }) => {
     await addTrack.click();
   }
 
-  const lastTrack = page.getByText("Capture", { exact: true });
+  const lastTrack = page.getByText("Audio 4", { exact: true });
   await expect(lastTrack).not.toBeInViewport();
 
   // Scroll from the track list rather than panning the adjacent timeline.

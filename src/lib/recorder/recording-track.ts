@@ -16,7 +16,7 @@ export function getRecordingTrack(
   return track;
 }
 
-/** Separate the Capture track, which the UI still renders on its own row. */
+/** Separate the Capture track, which Audio to MIDI still lists on its own. */
 export function splitRecordingTrack(audioTracks: AudioTrackState[]): {
   recordingTrack: AudioTrackState;
   audioTracks: AudioTrackState[];

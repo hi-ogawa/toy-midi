@@ -33,11 +33,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
-import { TrackMenuButton } from "./recorder-tracks";
+import {
+  TrackMenuButton,
+  type TrackMoveControls,
+  TrackMoveItems,
+} from "./recorder-tracks";
 
 export function TimelineHeader({
   beatsPerBar,
@@ -574,6 +579,7 @@ export function ReferenceTimelineRow({
   onEditCancel,
   muted,
   onMutedChange,
+  move,
   onRemove,
 }: {
   referenceVideo: ReferenceVideoState;
@@ -593,6 +599,7 @@ export function ReferenceTimelineRow({
   onEditCancel: () => void;
   muted: boolean;
   onMutedChange: (muted: boolean) => void;
+  move: TrackMoveControls;
   onRemove: () => void;
 }) {
   return (
@@ -610,6 +617,8 @@ export function ReferenceTimelineRow({
               <TrackMenuButton label="Reference" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+              <TrackMoveItems {...move} />
+              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onRemove} className="text-red-400">
                 <Trash2Icon />
                 Remove reference video

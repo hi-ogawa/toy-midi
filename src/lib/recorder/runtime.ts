@@ -154,6 +154,9 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   midiTracks: MidiTrackState[];
+  // Row order of every track above by id, with REFERENCE_VIDEO_TRACK_ID for
+  // the reference video.
+  trackOrder: string[];
   previewClipRegions?: ClipRegion[];
   pendingRecording?: PendingRecordingState;
   // Capture
@@ -179,11 +182,15 @@ export type PersistableRecorderRuntimeState = Pick<
   | "punch"
   | "referenceVideo"
   | "midiTracks"
+  | "trackOrder"
 > & {
   audioTracks: Omit<AudioTrackState, "regions">[];
 };
 
 export const REFERENCE_VIDEO_CLIP_ID = "__reference_video__";
+// Places the reference video row in trackOrder and identifies its row actions,
+// while REFERENCE_VIDEO_CLIP_ID identifies its clip for selection and editing.
+export const REFERENCE_VIDEO_TRACK_ID = "__reference_video_track__";
 
 export type RecorderClipMove = {
   id: string;
@@ -205,6 +212,8 @@ export type RecorderClipInsertRemoveSnapshot = {
     clips: { clip: AudioClip; index: number }[];
   }[];
   referenceVideo?: ReferenceVideoState;
+  // trackOrder position of the reference video row, restored on insertion.
+  referenceVideoOrderIndex?: number;
 };
 
 export type RecorderClipInsertRemove = {
@@ -215,6 +224,11 @@ export type RecorderClipInsertRemove = {
 type RecorderRuntimeClipsState = Pick<
   RecorderRuntimeState,
   "audioTracks" | "referenceVideo"
+>;
+
+type RecorderTrackListsState = Pick<
+  RecorderRuntimeState,
+  "audioTracks" | "midiTracks" | "referenceVideo"
 >;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
@@ -233,6 +247,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     metronomeGain: 0.5,
     audioTracks: [createRecordingTrackState()],
     midiTracks: [],
+    trackOrder: [RECORDING_TRACK_ID],
     captureStatus: "disabled",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -358,7 +373,7 @@ export class RecorderRuntime {
 
   addAudioTrack(): string {
     const track = createAudioTrackState();
-    this.store.update({
+    this.updateTrackLists({
       audioTracks: [...this.store.get().audioTracks, track],
     });
     return track.id;
@@ -398,16 +413,22 @@ export class RecorderRuntime {
       program,
     });
     const index = await this.insertMidiTrack({ track });
-    this.history.pushMidiTrack({ track, index });
+    this.history.pushMidiTrack({
+      track,
+      index,
+      orderIndex: this.store.get().trackOrder.indexOf(track.id),
+    });
   }
 
   /** @internal for undo */
   async insertMidiTrack({
     track,
     index,
+    orderIndex,
   }: {
     track: MidiTrackState;
     index?: number;
+    orderIndex?: number;
   }): Promise<number> {
     const state = this.store.get();
     const playback = await MidiTrackPlayback.create({
@@ -420,7 +441,12 @@ export class RecorderRuntime {
     index ??= midiTracks.length;
     midiTracks.splice(index, 0, track);
     this.midiTrackPlaybacks.set(track.id, playback);
-    this.store.update({ midiTracks });
+    this.updateTrackLists(
+      { midiTracks },
+      orderIndex === undefined
+        ? undefined
+        : this.store.get().trackOrder.toSpliced(orderIndex, 0, track.id),
+    );
     this.syncTrackMix();
     return index;
   }
@@ -432,15 +458,16 @@ export class RecorderRuntime {
       return;
     }
     const track = state.midiTracks[index];
+    const orderIndex = state.trackOrder.indexOf(id);
     this.deleteMidiTrack(id);
-    this.history.pushMidiTrack({ track, index, reverse: true });
+    this.history.pushMidiTrack({ track, index, orderIndex, reverse: true });
   }
 
   /** @internal for undo */
   deleteMidiTrack(id: string): void {
     this.midiTrackPlaybacks.get(id)?.dispose();
     this.midiTrackPlaybacks.delete(id);
-    this.store.update({
+    this.updateTrackLists({
       midiTracks: this.store
         .get()
         .midiTracks.filter((track) => track.id !== id),
@@ -503,7 +530,12 @@ export class RecorderRuntime {
         return clips.length > 0 ? [{ trackId: track.id, clips }] : [];
       }),
       ...(clipIds.has(REFERENCE_VIDEO_CLIP_ID)
-        ? { referenceVideo: state.referenceVideo }
+        ? {
+            referenceVideo: state.referenceVideo,
+            referenceVideoOrderIndex: state.trackOrder.indexOf(
+              REFERENCE_VIDEO_TRACK_ID,
+            ),
+          }
         : {}),
     };
     this.applyClipInsertRemove({ operation: "remove", snapshot });
@@ -512,12 +544,24 @@ export class RecorderRuntime {
 
   /** @internal for undo */
   applyClipInsertRemove(change: RecorderClipInsertRemove): void {
-    this.updateClips((state) => deriveClipInsertRemoveState(state, change));
+    const { operation, snapshot } = change;
+    const { trackOrder } = this.store.get();
+    this.updateClips(
+      (state) => deriveClipInsertRemoveState(state, change),
+      operation === "insert" && snapshot.referenceVideoOrderIndex !== undefined
+        ? trackOrder.toSpliced(
+            snapshot.referenceVideoOrderIndex,
+            0,
+            REFERENCE_VIDEO_TRACK_ID,
+          )
+        : undefined,
+    );
   }
 
   /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
   private updateClips(
     update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
+    trackOrder?: string[],
   ): void {
     const state = this.store.get();
     const next = update(state);
@@ -525,7 +569,7 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    this.store.update(next);
+    this.updateTrackLists(next, trackOrder);
     for (const [index, track] of next.audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
         this.syncTrackPlayback(track);
@@ -559,12 +603,43 @@ export class RecorderRuntime {
     }
     this.trackPlaybacks.get(id)?.dispose();
     this.trackPlaybacks.delete(id);
-    this.store.update({
+    this.updateTrackLists({
       audioTracks: this.store
         .get()
         .audioTracks.filter((track) => track.id !== id),
     });
     this.syncTrackMix();
+  }
+
+  moveTrack({ id, direction }: { id: string; direction: "up" | "down" }): void {
+    const { trackOrder } = this.store.get();
+    const index = trackOrder.indexOf(id);
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (index === -1 || target < 0 || target >= trackOrder.length) {
+      return;
+    }
+    const next = trackOrder.slice();
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    this.store.update({ trackOrder: next });
+  }
+
+  /**
+   * Commit track list changes with trackOrder listing exactly the resulting
+   * tracks. `trackOrder` overrides the current order, for example to restore a
+   * removed track at its previous position.
+   */
+  private updateTrackLists(
+    update: Partial<RecorderTrackListsState>,
+    trackOrder = this.store.get().trackOrder,
+  ): void {
+    this.store.update({
+      ...update,
+      trackOrder: syncTrackOrder({
+        ...this.store.get(),
+        ...update,
+        trackOrder,
+      }),
+    });
   }
 
   setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
@@ -891,7 +966,7 @@ export class RecorderRuntime {
       currentReference.title !== title ||
       currentReference.duration !== duration
     ) {
-      this.store.update({
+      this.updateTrackLists({
         referenceVideo: {
           videoId,
           timelineStart: currentReference?.timelineStart ?? 0,
@@ -1034,6 +1109,7 @@ export class RecorderRuntime {
     this.store.update({
       ...project,
       audioTracks,
+      trackOrder: syncTrackOrder({ ...project, audioTracks }),
       position: 0,
     });
     // Track playbacks were recreated above, so point the open input at the
@@ -1065,6 +1141,7 @@ export class RecorderRuntime {
           punch: state.punch,
           audioTracks: state.audioTracks,
           midiTracks: state.midiTracks,
+          trackOrder: state.trackOrder,
           referenceVideo: state.referenceVideo,
         }) satisfies PersistableRecorderRuntimeState,
       listener,
@@ -1204,6 +1281,37 @@ export class RecorderRuntime {
 
   undo = () => this.history.undo();
   redo = () => this.history.redo();
+}
+
+/**
+ * Keep the positions of present tracks, drop ids of removed ones, and place
+ * new ones: the reference video first, other tracks last in list order. An
+ * empty order therefore derives reference video, audio tracks, MIDI tracks.
+ */
+function syncTrackOrder({
+  trackOrder,
+  audioTracks,
+  midiTracks,
+  referenceVideo,
+}: RecorderTrackListsState &
+  Pick<RecorderRuntimeState, "trackOrder">): string[] {
+  const ids = new Set([
+    ...audioTracks.map((track) => track.id),
+    ...midiTracks.map((track) => track.id),
+  ]);
+  const kept = trackOrder.filter(
+    (id) => ids.has(id) || (id === REFERENCE_VIDEO_TRACK_ID && referenceVideo),
+  );
+  const added = [...ids].filter((id) => !kept.includes(id));
+  const addedReference =
+    referenceVideo && !kept.includes(REFERENCE_VIDEO_TRACK_ID)
+      ? [REFERENCE_VIDEO_TRACK_ID]
+      : [];
+  const next = [...addedReference, ...kept, ...added];
+  return next.length === trackOrder.length &&
+    next.every((id, index) => id === trackOrder[index])
+    ? trackOrder
+    : next;
 }
 
 /** Derive a clip property update without committing state or touching playback. */

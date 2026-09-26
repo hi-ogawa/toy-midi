@@ -47,7 +47,12 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { MidiInstrument } from "./recorder-midi-instrument";
-import { TrackMenuButton, TrackRow } from "./recorder-tracks";
+import {
+  TrackMenuButton,
+  type TrackMoveControls,
+  TrackMoveItems,
+  TrackRow,
+} from "./recorder-tracks";
 import {
   useRecorderMidiInteraction,
   getMidiGridPosition,
@@ -67,6 +72,7 @@ export function MidiTrackRow({
   beatsPerBar,
   subdivisionsPerBeat,
   viewportStartBeat,
+  move,
   onEffectsOpen,
   onRemove,
   midiInteraction,
@@ -80,6 +86,7 @@ export function MidiTrackRow({
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
+  move: TrackMoveControls;
   onEffectsOpen: () => void;
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
@@ -183,6 +190,7 @@ export function MidiTrackRow({
         action={
           <MidiTrackActions
             label={track.name}
+            move={move}
             onEffectsOpen={onEffectsOpen}
             viewMode={track.viewMode}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
@@ -264,6 +272,7 @@ function MidiTrackActions({
   label,
   viewMode,
   onViewModeToggle,
+  move,
   onRemove,
   onInstrumentOpen,
   onTranscribe,
@@ -277,6 +286,7 @@ function MidiTrackActions({
   label: string;
   viewMode: MidiTrackState["viewMode"];
   onViewModeToggle: () => void;
+  move: TrackMoveControls;
   onRemove: () => void;
   onInstrumentOpen: () => void;
   onTranscribe: () => void;
@@ -326,6 +336,8 @@ function MidiTrackActions({
           <DownloadIcon />
           Export MusicXML
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <TrackMoveItems {...move} />
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
           <Trash2Icon />
