@@ -46,7 +46,8 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   });
   await expect(audio).not.toHaveAttribute("data-selected", "true");
   await marker.click();
-  const audioRow = page.getByTestId("recorder-audio-track-row");
+  // The imported clip is on a new track after the empty Audio 1.
+  const audioRow = page.getByTestId("recorder-audio-track-row").nth(1);
   const audioRowBox = await audioRow.boundingBox();
   expect(audioRowBox).not.toBeNull();
   await audioRow.click({
@@ -56,7 +57,7 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
 
   // Starting a clip trim activates and selects the clip domain.
   await marker.click();
-  await dragBy(page, audio.getByTestId("recorder-take-trim-end"), -10);
+  await dragBy(page, audio.getByTestId("recorder-clip-trim-end"), -10);
   await expect(marker).toHaveAttribute("aria-pressed", "false");
   await expect(audio).toHaveAttribute("data-selected", "true");
 

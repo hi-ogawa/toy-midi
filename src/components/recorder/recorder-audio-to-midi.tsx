@@ -9,7 +9,6 @@ import {
 } from "../../lib/bass-pitch/transcription";
 import { getClipSources } from "../../lib/recorder/audio-sources";
 import { transcribeRecorderAudio } from "../../lib/recorder/audio-to-midi";
-import { splitRecordingTrack } from "../../lib/recorder/recording-track";
 import type {
   MidiTrackState,
   RecorderRuntime,
@@ -248,24 +247,17 @@ export function RecorderAudioToMidi({
 }
 
 function getTranscriptionSources(state: RecorderRuntimeState) {
-  const { recordingTrack, audioTracks } = splitRecordingTrack(
-    state.audioTracks,
-  );
-  return [
-    ...audioTracks.map((source) => ({
-      track: source,
-      label: source.name,
-    })),
-    {
-      track: recordingTrack,
-      label: recordingTrack.name,
-    },
-  ].filter(({ track }) =>
-    track.regions.some(
-      ({ clip, timelineStart, timelineEnd }) =>
-        clip.buffer && timelineEnd > Math.max(0, timelineStart),
-    ),
-  );
+  return state.audioTracks
+    .map((track) => ({
+      track,
+      label: track.name,
+    }))
+    .filter(({ track }) =>
+      track.regions.some(
+        ({ clip, timelineStart, timelineEnd }) =>
+          clip.buffer && timelineEnd > Math.max(0, timelineStart),
+      ),
+    );
 }
 
 function ParamSlider({

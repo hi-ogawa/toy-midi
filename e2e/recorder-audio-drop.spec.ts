@@ -13,8 +13,7 @@ test("drops audio onto a track at the snapped timeline position", async ({
   const sources = row.getByTestId("recorder-clip-audio-source");
   const regions = row.getByTestId("recorder-clip-audio");
 
-  // Add an empty Audio 1 and import a file at the start.
-  await page.getByTitle("Add empty audio track").click();
+  // Import a file into the default Audio 1 at the start.
   const chooser = page.waitForEvent("filechooser");
   await selectMenuItem(page, {
     menu: "Audio 1 actions",
