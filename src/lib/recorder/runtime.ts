@@ -1316,10 +1316,7 @@ function syncTrackOrder({
   const kept = trackOrder.filter((id) => ids.has(id));
   const added = [...ids].filter((id) => !kept.includes(id));
   const next = [...kept, ...added];
-  return next.length === trackOrder.length &&
-    next.every((id, index) => id === trackOrder[index])
-    ? trackOrder
-    : next;
+  return next;
 }
 
 /** Derive a clip property update without committing state or touching playback. */
