@@ -42,8 +42,10 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(
     rows.nth(0).getByTestId("recorder-clip-audio-source"),
   ).toHaveCount(2);
-  // Balance one take independently before archiving the project.
-  await page.getByTestId("recorder-takes-toggle").click();
+  // Balance one take independently before archiving the project. Audio 1's
+  // takes list comes before the backing track's.
+  const takesToggle = page.getByTestId("recorder-takes-toggle").first();
+  await takesToggle.click();
   const takeGain = page.getByRole("slider", {
     name: "Take 1 gain",
     exact: true,
@@ -140,7 +142,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toHaveCount(2);
   await expect(rows.nth(0).getByTestId("recorder-clip-audio")).toHaveCount(2);
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
-  await page.getByTestId("recorder-takes-toggle").click();
+  await takesToggle.click();
   await expect
     .poll(async () => Number(await takeGain.getAttribute("aria-valuenow")))
     .toBeCloseTo(-0.5);

@@ -555,7 +555,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       }}
                     />
                   </TrackRow>
-                  {track.clips.length >= 2 && (
+                  {track.clips.length > 0 && (
                     <TakesDisclosureRow
                       expanded={takesExpanded}
                       takeCount={track.clips.length}
@@ -566,7 +566,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       onNewestFirstChange={setTakesNewestFirst}
                     />
                   )}
-                  {track.clips.length >= 2 &&
+                  {track.clips.length > 0 &&
                     takesExpanded &&
                     (takesNewestFirst
                       ? track.clips.toReversed()
