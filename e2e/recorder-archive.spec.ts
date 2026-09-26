@@ -248,8 +248,9 @@ test("opens an imported archive saved with a single clip per audio track and a s
   await expect(clipsToggle).toHaveCount(1);
   await expect(clipsToggle).toHaveAccessibleName("Clips 1");
 
-  // Rename, save, and reopen the project with the same clip placement.
   const clipGeometry = await getRecorderClipGeometry(page);
+
+  // Rename, save, and reopen the project with the same clip placement.
   page.once("dialog", (dialog) => dialog.accept("Resaved archive"));
   await page.getByTestId("recorder-project-name").click();
   await saveRecorderProject(page);
