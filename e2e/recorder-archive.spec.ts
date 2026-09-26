@@ -171,100 +171,113 @@ async function getRecorderClipGeometry(page: Page) {
   return geometry;
 }
 
-test("opens an imported archive saved with a single clip per audio track and a separate recording track", async ({
-  page,
-}) => {
-  // Export an archive whose audio track stores one clip with track-level timing
-  // and whose takes live on a separate recording track.
-  const bytes = await readFile("e2e/fixtures/test-tones.pcm");
-  const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
-  const project: SerializedRecorderRuntimeState = {
-    title: "Single-clip archive",
-    tempo: 120,
-    timeSignature: { numerator: 4, denominator: 4 },
-    audioTracks: [
-      {
-        id: "backing",
-        height: 72,
-        gain: 0.5,
-        muted: false,
-        soloed: false,
-        timelineOffset: 2,
-        trimStart: 0.5,
-        trimEnd: 3,
-        clip: {
-          name: "stereo.wav",
-          pcm: { sampleRate: 22050, channels: [pcm, pcm] },
-        },
-      },
-    ],
-    recordingTrack: {
-      height: 116,
-      gain: 0.8,
-      muted: false,
-      soloed: false,
-      nextTakeNumber: 9,
-      takes: [
+for (const captureFormat of ["separate", "embedded"] as const) {
+  test(`opens an imported archive with a Capture track (${captureFormat})`, async ({
+    page,
+  }) => {
+    // Export an archive whose audio track stores one clip with track-level timing
+    // and whose Capture track uses an older storage format.
+    const bytes = await readFile("e2e/fixtures/test-tones.pcm");
+    const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
+    const project: SerializedRecorderRuntimeState = {
+      title: "Single-clip archive",
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      audioTracks: [
         {
-          id: "retained",
-          number: 8,
-          timelineOffset: 3,
-          trimStart: 0.25,
-          trimEnd: 2,
-          pcm: { sampleRate: 22050, channels: [pcm] },
+          id: "backing",
+          height: 72,
+          gain: 0.5,
+          muted: false,
+          soloed: false,
+          timelineOffset: 2,
+          trimStart: 0.5,
+          trimEnd: 3,
+          clip: {
+            name: "stereo.wav",
+            pcm: { sampleRate: 22050, channels: [pcm, pcm] },
+          },
         },
       ],
-    },
-  };
-  const archive = await exportRecorderProjectArchive(project);
+      recordingTrack: {
+        height: 116,
+        gain: 0.8,
+        muted: false,
+        soloed: false,
+        nextTakeNumber: 9,
+        takes: [
+          {
+            id: "retained",
+            number: 8,
+            timelineOffset: 3,
+            trimStart: 0.25,
+            trimEnd: 2,
+            pcm: { sampleRate: 22050, channels: [pcm] },
+          },
+        ],
+      },
+    };
+    if (captureFormat === "embedded") {
+      const { takes, ...track } = project.recordingTrack!;
+      project.audioTracks.unshift({
+        ...track,
+        id: "__capture__",
+        clips: takes,
+      });
+      delete project.recordingTrack;
+    }
+    const archive = await exportRecorderProjectArchive(project);
 
-  // Import it from the project list and open the recorder.
-  await page.goto("/");
-  const chooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("import-recorder-project").click();
-  await (
-    await chooserPromise
-  ).setFiles({
-    name: "single-clip.toymidi.zip",
-    mimeType: "application/zip",
-    buffer: Buffer.from(await archive.arrayBuffer()),
+    // Import it from the project list and open the recorder.
+    await page.goto("/");
+    const chooserPromise = page.waitForEvent("filechooser");
+    await page.getByTestId("import-recorder-project").click();
+    await (
+      await chooserPromise
+    ).setFiles({
+      name: "single-clip.toymidi.zip",
+      mimeType: "application/zip",
+      buffer: Buffer.from(await archive.arrayBuffer()),
+    });
+    await expect(page.getByTestId("recorder-project-name")).toHaveText(
+      "Single-clip archive",
+    );
+
+    // Show the retained take on the former Capture track below the backing
+    // clip, both with decoded waveforms.
+    const rows = page.getByTestId("recorder-audio-track-row");
+    const take = rows.nth(1).getByTestId("recorder-clip-audio");
+    const audio = rows.nth(0).getByTestId("recorder-clip-audio");
+    await expect(audio).toContainText("stereo.wav");
+    await expect(take).toContainText("Take 8");
+    await expect(audio.locator("svg")).toBeVisible();
+    await expect(take.locator("svg")).toBeVisible();
+    const clipGeometry = await getRecorderClipGeometry(page);
+
+    // Rename, save, and reopen the project with the same clip placement.
+    page.once("dialog", (dialog) => dialog.accept("Resaved archive"));
+    await page.getByTestId("recorder-project-name").click();
+    await saveRecorderProject(page);
+    await page.reload();
+    await expect(page.getByTestId("recorder-project-name")).toHaveText(
+      "Resaved archive",
+    );
+    await expect(audio).toContainText("stereo.wav");
+    await expect(take).toContainText("Take 8");
+    await expect
+      .poll(() => getRecorderClipGeometry(page))
+      .toEqual(clipGeometry);
+
+    // Record another take into Capture, which continues the saved take numbering.
+    await enableInput(page);
+    await armTrack(page, { track: "Capture" });
+    const record = page.getByTestId("recorder-record-button");
+    await record.click();
+    await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+    await record.click();
+    await expect(
+      rows.nth(1).getByTestId("recorder-clip-audio-source"),
+    ).toHaveCount(2);
+    await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
   });
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Single-clip archive",
-  );
-
-  // Show the retained take on the former Capture track above the backing
-  // clip, both with decoded waveforms.
-  const rows = page.getByTestId("recorder-audio-track-row");
-  const take = rows.nth(0).getByTestId("recorder-clip-audio");
-  const audio = rows.nth(1).getByTestId("recorder-clip-audio");
-  await expect(audio).toContainText("stereo.wav");
-  await expect(take).toContainText("Take 8");
-  await expect(audio.locator("svg")).toBeVisible();
-  await expect(take.locator("svg")).toBeVisible();
-  const clipGeometry = await getRecorderClipGeometry(page);
-
-  // Rename, save, and reopen the project with the same clip placement.
-  page.once("dialog", (dialog) => dialog.accept("Resaved archive"));
-  await page.getByTestId("recorder-project-name").click();
-  await saveRecorderProject(page);
-  await page.reload();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Resaved archive",
-  );
-  await expect(audio).toContainText("stereo.wav");
-  await expect(take).toContainText("Take 8");
-  await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
-
-  // Record another take into Capture, which continues the saved take numbering.
-  await enableInput(page);
-  await armTrack(page, { track: "Capture" });
-  const record = page.getByTestId("recorder-record-button");
-  await record.click();
-  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
-  await record.click();
-  await expect(
-    rows.nth(0).getByTestId("recorder-clip-audio-source"),
-  ).toHaveCount(2);
-  await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
-});
+}

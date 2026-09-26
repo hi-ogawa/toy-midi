@@ -208,23 +208,27 @@ export function deserializeRecorderRuntimeState({
   };
 }
 
-/** Move a separately saved Capture track into the track list under its fixed id. */
+/** Keep the former Capture track after ordinary audio tracks, as the old UI did. */
 function foldRecordingTrack(
   project: SerializedRecorderRuntimeState,
 ): SerializedAudioTrackState<Float32Array>[] {
   const { recordingTrack } = project;
   if (!recordingTrack) {
-    return project.audioTracks;
+    return project.audioTracks.toSorted(
+      (a, b) =>
+        Number(a.id === RECORDING_TRACK_ID) -
+        Number(b.id === RECORDING_TRACK_ID),
+    );
   }
   const { takes, ...track } = recordingTrack;
   return [
+    ...project.audioTracks,
     {
       ...track,
       id: RECORDING_TRACK_ID,
       nextTakeNumber: track.nextTakeNumber ?? takes.length + 1,
       clips: takes,
     },
-    ...project.audioTracks,
   ];
 }
 
