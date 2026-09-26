@@ -20,7 +20,7 @@ type RecorderChange =
   | {
       type: "midi-track-insert";
       track: MidiTrackState;
-      orderIndex: number;
+      index: number;
     }
   | { type: "midi-track-delete"; trackId: string }
   | ({ type: "clips" } & RecorderClipInsertRemove);
@@ -39,11 +39,11 @@ export class RecorderHistory {
 
   pushMidiTrack({
     track,
-    orderIndex,
+    index,
     reverse = false,
   }: {
     track: MidiTrackState;
-    orderIndex: number;
+    index: number;
     reverse?: boolean;
   }): void {
     const before: RecorderChange = {
@@ -53,7 +53,7 @@ export class RecorderHistory {
     const after: RecorderChange = {
       type: "midi-track-insert",
       track,
-      orderIndex,
+      index,
     };
     this.history.push(
       reverse ? { before: after, after: before } : { before, after },

@@ -420,17 +420,17 @@ export class RecorderRuntime {
       program,
     });
     await this.insertMidiTrack({ track });
-    const orderIndex = this.store.get().trackOrder.indexOf(track.id);
-    this.history.pushMidiTrack({ track, orderIndex });
+    const index = this.store.get().trackOrder.indexOf(track.id);
+    this.history.pushMidiTrack({ track, index });
   }
 
   /** @internal for undo */
   async insertMidiTrack({
     track,
-    orderIndex,
+    index,
   }: {
     track: MidiTrackState;
-    orderIndex?: number;
+    index?: number;
   }): Promise<void> {
     const state = this.store.get();
     const playback = await MidiTrackPlayback.create({
@@ -442,8 +442,8 @@ export class RecorderRuntime {
     this.midiTrackPlaybacks.set(track.id, playback);
     this.updateTrackLists({
       midiTracks: [...state.midiTracks, track],
-      ...(orderIndex !== undefined && {
-        trackOrder: state.trackOrder.toSpliced(orderIndex, 0, track.id),
+      ...(index !== undefined && {
+        trackOrder: state.trackOrder.toSpliced(index, 0, track.id),
       }),
     });
     this.syncTrackMix();
@@ -455,9 +455,9 @@ export class RecorderRuntime {
     if (!track) {
       return;
     }
-    const orderIndex = state.trackOrder.indexOf(id);
+    const index = state.trackOrder.indexOf(id);
     this.deleteMidiTrack(id);
-    this.history.pushMidiTrack({ track, orderIndex, reverse: true });
+    this.history.pushMidiTrack({ track, index, reverse: true });
   }
 
   /** @internal for undo */
