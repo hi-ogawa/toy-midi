@@ -238,7 +238,7 @@ test("appends imported and dropped audio as clips on a track", async ({
     .getByTestId("recorder-timeline-ruler")
     .boundingBox())!;
   expect((await sources.boundingBox())!.x).toBeCloseTo(ruler.x, -1);
-  await expect(takesToggle).toHaveCount(0);
+  await expect(takesToggle).toHaveCount(1);
 
   // Drop another file on the lane, which appends it at the drop position.
   const bytes = [...(await readFile("e2e/fixtures/test-tones.wav"))];
@@ -261,7 +261,7 @@ test("appends imported and dropped audio as clips on a track", async ({
     -1,
   );
 
-  // Both clips stay on the track, so it offers its takes.
+  // Both clips stay on the track and appear in its takes list.
   await takesToggle.click();
   await expect(page.getByTestId("recorder-take-row")).toHaveCount(2);
 
