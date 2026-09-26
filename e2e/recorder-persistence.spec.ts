@@ -179,6 +179,14 @@ test("opens and resaves a project saved with a single clip per audio track and a
   await expect(take).toContainText("Take 3");
   await expect(take.locator("svg")).toBeVisible();
 
+  // Show the unnamed tracks with the labels they were shown with before.
+  await expect(
+    page.getByRole("button", { name: "Capture actions" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Audio 1 actions" }),
+  ).toBeVisible();
+
   // Rename and save the project.
   page.once("dialog", (dialog) => dialog.accept("Resaved clip"));
   await page.getByTestId("recorder-project-name").click();

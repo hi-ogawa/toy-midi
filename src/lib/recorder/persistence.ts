@@ -83,7 +83,7 @@ interface SerializedAudioTrackState<ChannelData> {
   // 🟢 Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
-  // Optional for projects saved before audio tracks had names.
+  // 🟢 Optional for projects saved before audio track names.
   name?: string;
   height: number;
   gain: number;

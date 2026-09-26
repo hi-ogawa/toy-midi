@@ -372,10 +372,6 @@ export class RecorderRuntime {
     return track.id;
   }
 
-  setAudioTrackName({ id, name }: { id: string; name: string }): void {
-    this.updateTrack(id, (track) => ({ ...track, name }));
-  }
-
   async setAudioTrack(id: string, file: File): Promise<void> {
     const buffer = await this.context.decodeAudioData(await file.arrayBuffer());
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
@@ -563,6 +559,14 @@ export class RecorderRuntime {
       ...track,
       height: clampTrackHeight(height),
     }));
+  }
+
+  setTrackName({ id, name }: { id: string; name: string }): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, name }));
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, name }));
+    }
   }
 
   removeAudioTrack(id: string): void {

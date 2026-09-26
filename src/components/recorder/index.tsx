@@ -480,7 +480,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                         label={track.name}
                         removeDisabled={recordingIntoTrack !== undefined}
                         onRename={(name) =>
-                          runtime.setAudioTrackName({ id: track.id, name })
+                          runtime.setTrackName({ id: track.id, name })
                         }
                         onEffectsOpen={() => effects.showEffects(track.id)}
                         onFileChange={(file) =>
