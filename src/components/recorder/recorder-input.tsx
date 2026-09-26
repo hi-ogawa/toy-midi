@@ -300,7 +300,13 @@ async function measureInputLatency({
     throw new Error("Enable input and stop playback before measuring latency.");
   }
   const input = runtime.captureInput;
-  runtime.setInputMonitoring(false);
+  // Measure with monitoring off, and restore it on the same track afterwards.
+  const monitoredTrackId = state.inputMonitoring
+    ? state.armedTrackId
+    : undefined;
+  if (monitoredTrackId) {
+    runtime.setInputMonitoring({ trackId: monitoredTrackId, enabled: false });
+  }
   try {
     const result = await measureLatency(runtime, { outputLevel: -24 });
     if (runtime.captureInput !== input) {
@@ -326,8 +332,8 @@ async function measureInputLatency({
     }
     return { status: "measured", compensation };
   } finally {
-    if (runtime.captureInput === input) {
-      runtime.setInputMonitoring(state.inputMonitoring);
+    if (monitoredTrackId && runtime.captureInput === input) {
+      runtime.setInputMonitoring({ trackId: monitoredTrackId, enabled: true });
     }
   }
 }

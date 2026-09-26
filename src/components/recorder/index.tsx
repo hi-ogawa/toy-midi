@@ -563,7 +563,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                 },
                 onMonitoringChange: (monitoring) =>
-                  runtime.setInputMonitoring(monitoring),
+                  runtime.setInputMonitoring({
+                    trackId: recordingTrack.id,
+                    enabled: monitoring,
+                  }),
               }}
             >
               <AudioTimelineLane
