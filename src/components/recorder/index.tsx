@@ -46,6 +46,7 @@ import {
 } from "./recorder-timeline";
 import {
   AudioTrackActions,
+  CaptureTrackActions,
   TakesDisclosureRow,
   TakeTrackRow,
   TrackRow,
@@ -421,8 +422,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                 gain={track.gain}
                 muted={track.muted}
                 soloed={track.soloed}
-                effectsOpen={effects.openEffects.has(track.id)}
-                onEffectsToggle={() => effects.toggleEffects(track.id)}
                 onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
                 onMutedChange={(muted) =>
                   runtime.setTrackMix(track.id, { muted })
@@ -436,6 +435,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 action={
                   <AudioTrackActions
                     label={`Audio ${index + 1}`}
+                    onEffectsOpen={() => effects.showEffects(track.id)}
                     onFileChange={(file) =>
                       audioTrackMutation.mutate({ file, id: track.id })
                     }
@@ -480,8 +480,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 viewportStartBeat={timeline.viewportStartBeat}
-                effectsOpen={effects.openEffects.has(track.id)}
-                onEffectsToggle={() => effects.toggleEffects(track.id)}
+                onEffectsOpen={() => effects.showEffects(track.id)}
                 onRemove={() => {
                   runtime.removeMidiTrack(track.id);
                   effects.closeEffects(track.id);
@@ -501,8 +500,11 @@ export function Recorder({ projectId }: { projectId: string }) {
               height={state.recordingTrack.height}
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
-              effectsOpen={effects.openEffects.has("capture")}
-              onEffectsToggle={() => effects.toggleEffects("capture")}
+              action={
+                <CaptureTrackActions
+                  onEffectsOpen={() => effects.showEffects("capture")}
+                />
+              }
               onGainChange={(gain) =>
                 runtime.setTrackMix(state.recordingTrack.id, { gain })
               }

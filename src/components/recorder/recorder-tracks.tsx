@@ -6,6 +6,7 @@ import {
   ChevronRightIcon,
   HeadphonesIcon,
   MoreVerticalIcon,
+  SlidersHorizontalIcon,
   Settings2Icon,
   Trash2Icon,
   UploadIcon,
@@ -24,31 +25,31 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
-import { RecorderEffectsToggle } from "./recorder-effects-toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 import { RecorderGainSlider } from "./recorder-mixer";
 
 export function AudioTrackActions({
   label,
+  onEffectsOpen,
   onFileChange,
   onRemove,
 }: {
   label: string;
+  onEffectsOpen: () => void;
   onFileChange: (file: File) => void;
   onRemove: () => void;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-          title={`${label} actions`}
-          aria-label={`${label} actions`}
-        >
-          <MoreVerticalIcon className="size-3.5" />
-        </Button>
+        <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() =>
             openFilePicker({ accept: "audio/*,.wav", onFile: onFileChange })
@@ -67,6 +68,48 @@ export function AudioTrackActions({
   );
 }
 
+/** Actions trigger that leads each track's control group. */
+export function TrackMenuButton({
+  label,
+  className,
+  ...props
+}: { label: string } & React.ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      title={`${label} actions`}
+      aria-label={`${label} actions`}
+      {...props}
+      className={cn(
+        "inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+        className,
+      )}
+    >
+      <MoreVerticalIcon className="size-3.5" />
+    </button>
+  );
+}
+
+export function CaptureTrackActions({
+  onEffectsOpen,
+}: {
+  onEffectsOpen: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <TrackMenuButton label="Capture" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function TrackRow({
   title,
   "data-testid": testId,
@@ -75,8 +118,6 @@ export function TrackRow({
   gain,
   muted,
   soloed,
-  effectsOpen,
-  onEffectsToggle,
   action,
   input,
   onGainChange,
@@ -92,8 +133,6 @@ export function TrackRow({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  effectsOpen: boolean;
-  onEffectsToggle: () => void;
   action?: React.ReactNode;
   input?: TrackInputControls;
   onGainChange: (gain: number) => void;
@@ -137,21 +176,15 @@ export function TrackRow({
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-7"
+            className="size-6"
             title={muted ? `Unmute ${title}` : `Mute ${title}`}
           />
           <RecorderMixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
-            className="size-7"
+            className="size-6"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
-          />
-          <RecorderEffectsToggle
-            label={title}
-            open={effectsOpen}
-            onClick={onEffectsToggle}
-            className="size-7"
           />
         </div>
         {input && <TrackInputRoute {...input} />}
@@ -200,8 +233,8 @@ function TrackInputToggle({
       onClick={onInputToggle}
       className={
         inputActive
-          ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
-          : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
+          ? "size-6 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
+          : "size-6 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
       }
       title={inputActive ? "Disarm capture" : "Arm capture"}
       aria-label={inputActive ? "Disarm capture" : "Arm capture"}
@@ -386,9 +419,7 @@ export function TakeTrackRow({
         <span className="truncate">{label}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button aria-label={`${label} actions`} className="size-7">
-              <MoreVerticalIcon className="size-3.5" />
-            </Button>
+            <TrackMenuButton label={label} />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onSelect={onDelete}>
@@ -403,7 +434,7 @@ export function TakeTrackRow({
           active={muted}
           kind="mute"
           onClick={() => onMutedChange(!muted)}
-          className="size-7"
+          className="size-6"
           title="Mute take"
         />
         <RecorderMixToggle
@@ -412,7 +443,7 @@ export function TakeTrackRow({
           active={soloed}
           kind="solo"
           onClick={() => onSoloedChange(!soloed)}
-          className="size-7"
+          className="size-6"
           title="Solo take"
         />
         <label className="col-span-4 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
