@@ -27,6 +27,8 @@ interface RecorderProjectManifest {
   exportedAt: string;
 }
 
+// E2E tests also call this directly from Node to build archives to import,
+// including older project shapes.
 export async function exportRecorderProjectArchive(
   content: SerializedRecorderRuntimeState,
 ): Promise<Blob> {
