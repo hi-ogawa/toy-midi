@@ -34,7 +34,6 @@ import {
   GRID_DIVISIONS,
 } from "../../lib/timeline";
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../../types";
-import { BrowserStoragePopover } from "../browser-storage";
 import { MetronomeIcon } from "../icons";
 import { Button } from "../ui/button";
 import {
@@ -344,7 +343,6 @@ export function RecorderHeader({
         </span>
       </label>
       <div className="flex-1" />
-      <BrowserStoragePopover />
       <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"

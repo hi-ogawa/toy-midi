@@ -66,7 +66,7 @@ test("Projects search follows the temporary legacy filter", async ({
   );
   await selectMenuItem(page, { menu: "Editor menu", item: "Home" });
   const search = page.getByRole("textbox", { name: "Search projects" });
-  const status = page.getByRole("status", { name: "Project count" });
+  const status = page.getByRole("status");
   const current = page.getByRole("link", { name: /Blue session/ });
   const legacy = page.getByRole("region", { name: "Legacy projects" });
   await expect(status).toHaveText("1 project");

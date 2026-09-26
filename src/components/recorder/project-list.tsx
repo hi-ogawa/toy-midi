@@ -15,7 +15,7 @@ import {
 import { routes } from "../../lib/routes";
 import { pluralCount } from "../../utils/plural-count";
 import { toResult } from "../../utils/result";
-import { BrowserStoragePanel } from "../browser-storage";
+import { BrowserStorageDialog } from "../browser-storage-dialog";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
 
@@ -87,6 +87,7 @@ export function RecorderProjectList() {
           <div className="flex items-center justify-between gap-4">
             <h2 className="font-semibold">Projects</h2>
             <div className="flex gap-2">
+              <BrowserStorageDialog />
               <Button
                 data-testid="new-recorder-project-button"
                 onClick={() => createProjectMutation.mutate()}
@@ -220,9 +221,6 @@ export function RecorderProjectList() {
           ))
         )}
       </section>
-      <div className="shrink-0 border-t border-neutral-700/70 p-4">
-        <BrowserStoragePanel />
-      </div>
     </div>
   );
 }
@@ -373,7 +371,6 @@ function ProjectListSearch({
       </div>
       <p
         role="status"
-        aria-label="Project count"
         className="text-right text-xs whitespace-nowrap tabular-nums text-neutral-400"
       >
         {query.trim() ? `${count} of ` : ""}
