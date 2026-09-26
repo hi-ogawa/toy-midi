@@ -381,7 +381,6 @@ export class RecorderRuntime {
     return track.id;
   }
 
-  /** Append decoded audio as a new clip, which undo removes again. */
   async importAudioClip({
     trackId,
     file,
