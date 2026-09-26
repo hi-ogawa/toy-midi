@@ -161,7 +161,10 @@ export interface RecorderRuntimeState {
   inputChannelCount: number;
   selectedChannel: number;
   latencyCompensation: number;
-  // Monitoring always plays through the armed track's channel.
+  // Monitoring plays through the armed track's channel, so it is only true
+  // while input is on and a track is armed. Arm changes, input changes, and
+  // removing the armed track reset it, and setInputMonitoring refuses to
+  // enable it otherwise.
   inputMonitoring: boolean;
   // The track the next take records into. Input monitoring also routes
   // through it.
