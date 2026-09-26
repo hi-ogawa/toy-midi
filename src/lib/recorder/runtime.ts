@@ -1157,17 +1157,21 @@ export class RecorderRuntime {
       }),
       timelineOffset,
     };
-    const newClipIndex = getRecordingTrack(this.store.get().audioTracks).clips
-      .length;
-    const recordingTrack = this.updateTrack(RECORDING_TRACK_ID, (track) => ({
-      ...track,
-      nextTakeNumber: track.nextTakeNumber + 1,
-      clips: [...track.clips, newClip],
-    }));
+    const { audioTracks } = this.store.get();
+    const previousTrack = getRecordingTrack(audioTracks);
+    const newClipIndex = previousTrack.clips.length;
+    const recordingTrack = resolveTrackRegions({
+      ...previousTrack,
+      nextTakeNumber: previousTrack.nextTakeNumber + 1,
+      clips: [...previousTrack.clips, newClip],
+    });
     this.store.update({
       captureStatus: "ready",
       pendingRecording: undefined,
       previewClipRegions: undefined,
+      audioTracks: audioTracks.map((track) =>
+        track === previousTrack ? recordingTrack : track,
+      ),
     });
     this.syncTrackPlayback(recordingTrack);
     this.syncTrackMix();
