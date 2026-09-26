@@ -419,8 +419,11 @@ export class RecorderRuntime {
       }),
       program,
     });
-    const orderIndex = await this.insertMidiTrack({ track });
-    this.history.pushMidiTrack({ track, orderIndex });
+    await this.insertMidiTrack({ track });
+    this.history.pushMidiTrack({
+      track,
+      orderIndex: this.store.get().trackOrder.indexOf(track.id),
+    });
   }
 
   /** @internal for undo */
@@ -430,7 +433,7 @@ export class RecorderRuntime {
   }: {
     track: MidiTrackState;
     orderIndex?: number;
-  }): Promise<number> {
+  }): Promise<void> {
     const state = this.store.get();
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
@@ -446,7 +449,6 @@ export class RecorderRuntime {
         : state.trackOrder.toSpliced(orderIndex, 0, track.id),
     );
     this.syncTrackMix();
-    return this.store.get().trackOrder.indexOf(track.id);
   }
 
   removeMidiTrack(id: string): void {
