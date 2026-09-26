@@ -1187,16 +1187,20 @@ export class RecorderRuntime {
       timelineOffset,
     };
     const { trackId } = pendingRecording;
-    const newClipIndex = getAudioTrack(this.store.get().audioTracks, trackId)
-      .clips.length;
-    const recordingTrack = this.updateTrack(trackId, (track) => ({
-      ...track,
-      nextTakeNumber: track.nextTakeNumber + 1,
-      clips: [...track.clips, newClip],
-    }));
+    const { audioTracks } = this.store.get();
+    const previousTrack = getAudioTrack(audioTracks, trackId);
+    const newClipIndex = previousTrack.clips.length;
+    const recordingTrack = resolveTrackRegions({
+      ...previousTrack,
+      nextTakeNumber: previousTrack.nextTakeNumber + 1,
+      clips: [...previousTrack.clips, newClip],
+    });
     this.store.update({
       captureStatus: "ready",
       pendingRecording: undefined,
+      audioTracks: audioTracks.map((track) =>
+        track === previousTrack ? recordingTrack : track,
+      ),
     });
     this.syncTrackPlayback(recordingTrack);
     this.syncTrackMix();

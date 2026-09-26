@@ -14,10 +14,7 @@ import { snapToGrid } from "../../lib/music";
 import { deriveClipRegions } from "../../lib/recorder/clip-regions";
 import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
-import {
-  getRecordingTrack,
-  RECORDING_TRACK_ID,
-} from "../../lib/recorder/recording-track";
+import { splitRecordingTrack } from "../../lib/recorder/recording-track";
 import {
   RecorderRuntime,
   REFERENCE_VIDEO_CLIP_ID,
@@ -160,9 +157,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const recordingTrack = getRecordingTrack(clipInteraction.audioTracks);
-  const audioTracks = clipInteraction.audioTracks.filter(
-    (track) => track.id !== RECORDING_TRACK_ID,
+  const { recordingTrack, audioTracks } = splitRecordingTrack(
+    clipInteraction.audioTracks,
   );
   const takes = recordingTrack.clips;
   const recordingIntoTrack =

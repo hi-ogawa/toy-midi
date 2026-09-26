@@ -20,10 +20,10 @@ import {
  */
 export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   title: string;
-  // Optional for recorder projects saved before locator support.
+  // 🟢 Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
-  // Optional for recorder projects saved before MIDI track support.
+  // 🟢 Optional for recorder projects saved before MIDI track support.
   midiTracks?: (Omit<
     MidiTrackState,
     | "tabAnnotationEnabled"
@@ -36,14 +36,19 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
   })[];
-  // Retained for projects saved with the Capture track outside audioTracks.
-  recordingTrack?: Pick<
-    SerializedAudioTrackState<ChannelData>,
-    "eq" | "height" | "gain" | "muted" | "soloed" | "nextTakeNumber"
-  > & {
+  // 🔴 Retained for projects saved with the Capture track outside audioTracks.
+  recordingTrack?: {
+    // 🟢 Optional for projects saved before track EQ support.
+    eq?: MultibandEqParameters | EqParameters;
+    height: number;
+    gain: number;
+    muted: boolean;
+    soloed: boolean;
     takes: SerializedAudioClip<ChannelData>[];
+    // 🟢 Optional for recorder projects saved before multi-take support.
+    nextTakeNumber?: number;
   };
-  // Optional for recorder projects saved before mixer support.
+  // 🟢 Optional for recorder projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
   loop?: {
@@ -75,18 +80,18 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
 }
 
 interface SerializedAudioTrackState<ChannelData> {
-  // Optional for projects saved before track EQ support.
+  // 🟢 Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
-  // Optional for tracks saved before they could record takes.
+  // 🟢 Optional for tracks saved before they could record takes.
   nextTakeNumber?: number;
-  // Optional for projects saved with a single clip per track.
+  // 🟢 Optional for projects saved with a single clip per track.
   clips?: SerializedAudioClip<ChannelData>[];
-  // Retained for tracks saved with a single clip and track-level timing.
+  // 🔴 Retained for tracks saved with a single clip and track-level timing.
   clip?: {
     name: string;
     gain?: number;
@@ -98,7 +103,7 @@ interface SerializedAudioTrackState<ChannelData> {
 }
 
 interface SerializedAudioClip<ChannelData> {
-  // Optional for recorder projects saved before multi-take support.
+  // 🟢 Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
   name?: string;
@@ -147,7 +152,7 @@ export function deserializeRecorderRuntimeState({
   context,
   project,
 }: {
-  context: Pick<AudioContext, "createBuffer">;
+  context: AudioContext;
   project: SerializedRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
   return {
@@ -157,7 +162,7 @@ export function deserializeRecorderRuntimeState({
       id: track.id,
       nextTakeNumber: track.nextTakeNumber ?? 1,
       height: track.height,
-      clips: (track.clips ?? deserializeSingleClip(track)).map((clip, index) =>
+      clips: getTrackClips(track).map((clip, index) =>
         deserializeAudioClip({ context, clip, index }),
       ),
       eq: deserializeEq(track.eq),
@@ -224,9 +229,13 @@ function serializeAudioClip(
   };
 }
 
-function deserializeSingleClip(
+// Older saves store at most one clip with its timing on the track.
+function getTrackClips(
   track: SerializedAudioTrackState<Float32Array>,
 ): SerializedAudioClip<Float32Array>[] {
+  if (track.clips) {
+    return track.clips;
+  }
   if (!track.clip) {
     return [];
   }
@@ -245,7 +254,7 @@ function deserializeAudioClip({
   clip,
   index,
 }: {
-  context: Pick<AudioContext, "createBuffer">;
+  context: AudioContext;
   clip: SerializedAudioClip<Float32Array>;
   index: number;
 }): AudioClip {
@@ -290,7 +299,7 @@ function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm<Float32Array> {
 }
 
 function deserializeAudioBuffer(
-  context: Pick<AudioContext, "createBuffer">,
+  context: AudioContext,
   pcm: RecorderPcm<Float32Array>,
 ): AudioBuffer {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {

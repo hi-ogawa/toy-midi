@@ -2,10 +2,7 @@ import { GaugeIcon, Mic2Icon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
-import {
-  getRecordingTrack,
-  RECORDING_TRACK_ID,
-} from "../../lib/recorder/recording-track";
+import { splitRecordingTrack } from "../../lib/recorder/recording-track";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -26,9 +23,8 @@ export function RecorderMixer({
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
-  const recordingTrack = getRecordingTrack(state.audioTracks);
-  const audioTracks = state.audioTracks.filter(
-    (track) => track.id !== RECORDING_TRACK_ID,
+  const { recordingTrack, audioTracks } = splitRecordingTrack(
+    state.audioTracks,
   );
   const masterInput = useGainInput(
     state.masterGain,
