@@ -42,15 +42,8 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(
     rows.nth(0).getByTestId("recorder-clip-audio-source"),
   ).toHaveCount(2);
-  // Balance one take independently before archiving the project. Audio 1's
-  // takes list comes before the backing track's.
-  // Show the track's clip section to access individual clip controls.
-  await page
-    .getByRole("button", { name: "Audio 1 actions", exact: true })
-    .click();
-  await page
-    .getByRole("menuitemcheckbox", { name: "Show clips", exact: true })
-    .click();
+  // Show Audio 1's clips and balance one take before archiving the project.
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Show clips" });
   const takesToggle = page.getByTestId("recorder-clips-toggle").first();
   await takesToggle.click();
   const takeGain = page.getByRole("slider", {

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { setSliderValue, useFakeAudioInput } from "./helpers";
+import { selectMenuItem, setSliderValue, useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   armTrack,
@@ -19,12 +19,7 @@ test("adjusts take gain and updates its waveform", async ({ page }) => {
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await record.click();
   // Show the track's clip section to access individual clip controls.
-  await page
-    .getByRole("button", { name: "Audio 1 actions", exact: true })
-    .click();
-  await page
-    .getByRole("menuitemcheckbox", { name: "Show clips", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Show clips" });
   await page.getByTestId("recorder-clips-toggle").click();
   const gain = page.getByRole("slider", { name: "Take 1 gain", exact: true });
   await expect(gain).toHaveAttribute("aria-valuenow", "0");

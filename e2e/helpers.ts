@@ -40,9 +40,10 @@ export async function selectMenuItem(
     `Select ${item} from ${menu}`,
     async () => {
       await page.getByRole("button", { name: menu }).click();
-      await page
-        .getByRole("menu", { name: menu })
+      const menuLocator = page.getByRole("menu", { name: menu });
+      await menuLocator
         .getByRole("menuitem", { name: item })
+        .or(menuLocator.getByRole("menuitemcheckbox", { name: item }))
         .click();
     },
     { box: true },

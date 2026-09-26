@@ -59,12 +59,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const takeRows = page.getByTestId("recorder-clip-row");
   const compRegion = page.getByTestId("recorder-clip-audio");
   // Show the track's clip section to access individual clip controls.
-  await page
-    .getByRole("button", { name: "Audio 1 actions", exact: true })
-    .click();
-  await page
-    .getByRole("menuitemcheckbox", { name: "Show clips", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Show clips" });
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await expect(takeRows).toHaveCount(0);
   await expect(take).toHaveCount(1);
