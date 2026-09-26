@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { setSliderValue, useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
+  armTrack,
   enableInput,
   waitForRecordingSamples,
 } from "./recorder-helpers";
@@ -12,6 +13,7 @@ test("adjusts take gain and updates its waveform", async ({ page }) => {
   // Record a take and expand its controls at unity gain.
   await createRecorderProject(page);
   await enableInput(page);
+  await armTrack(page, { track: "Capture" });
   const record = page.getByTestId("recorder-record-button");
   await record.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
