@@ -74,6 +74,9 @@ function writeProjectContent(
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
+      // Convert every PCM field the project type allows, mirroring the reader.
+      // Saves no longer produce a single clip, but E2E tests export one to
+      // build archives in the older shape.
       clip: track.clip
         ? {
             ...track.clip,
