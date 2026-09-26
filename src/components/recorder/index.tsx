@@ -161,10 +161,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     clipInteraction.audioTracks,
   );
   const takes = recordingTrack.clips;
-  const recordingIntoTrack =
-    state.pendingRecording?.trackId === recordingTrack.id
-      ? state.pendingRecording
-      : undefined;
 
   function togglePlay() {
     if (flags.transportDisabled) {
@@ -562,10 +558,12 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <AudioTimelineLane
                 clips={takes}
-                regions={recordingIntoTrack?.regions ?? recordingTrack.regions}
+                regions={
+                  state.pendingRecording?.regions ?? recordingTrack.regions
+                }
                 testId="comp"
                 emptyLabel="Turn input on, arm, place the playhead, then record"
-                recordingClipId={recordingIntoTrack?.id}
+                recordingClipId={state.pendingRecording?.id}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
