@@ -154,8 +154,7 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   midiTracks: MidiTrackState[];
-  // Row order of every track above by id, with REFERENCE_VIDEO_TRACK_ID for
-  // the reference video.
+  // Display order of audio and MIDI tracks by id.
   trackOrder: string[];
   pendingRecording?: PendingRecordingState;
   // Capture
@@ -189,9 +188,6 @@ export type PersistableRecorderRuntimeState = Pick<
 };
 
 export const REFERENCE_VIDEO_CLIP_ID = "__reference_video__";
-// Places the reference video row in trackOrder and identifies its row actions,
-// while REFERENCE_VIDEO_CLIP_ID identifies its clip for selection and editing.
-export const REFERENCE_VIDEO_TRACK_ID = "__reference_video_track__";
 
 export type RecorderClipMove = {
   id: string;
@@ -213,8 +209,6 @@ export type RecorderClipInsertRemoveSnapshot = {
     clips: { clip: AudioClip; index: number }[];
   }[];
   referenceVideo?: ReferenceVideoState;
-  // trackOrder position of the reference video row, restored on insertion.
-  referenceVideoOrderIndex?: number;
 };
 
 export type RecorderClipInsertRemove = {
@@ -229,7 +223,7 @@ type RecorderRuntimeClipsState = Pick<
 
 type RecorderTrackListsState = Pick<
   RecorderRuntimeState,
-  "audioTracks" | "midiTracks" | "referenceVideo"
+  "audioTracks" | "midiTracks"
 >;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
@@ -536,12 +530,7 @@ export class RecorderRuntime {
         return clips.length > 0 ? [{ trackId: track.id, clips }] : [];
       }),
       ...(clipIds.has(REFERENCE_VIDEO_CLIP_ID)
-        ? {
-            referenceVideo: state.referenceVideo,
-            referenceVideoOrderIndex: state.trackOrder.indexOf(
-              REFERENCE_VIDEO_TRACK_ID,
-            ),
-          }
+        ? { referenceVideo: state.referenceVideo }
         : {}),
     };
     this.applyClipInsertRemove({ operation: "remove", snapshot });
@@ -550,24 +539,12 @@ export class RecorderRuntime {
 
   /** @internal for undo */
   applyClipInsertRemove(change: RecorderClipInsertRemove): void {
-    const { operation, snapshot } = change;
-    const { trackOrder } = this.store.get();
-    this.updateClips(
-      (state) => deriveClipInsertRemoveState(state, change),
-      operation === "insert" && snapshot.referenceVideoOrderIndex !== undefined
-        ? trackOrder.toSpliced(
-            snapshot.referenceVideoOrderIndex,
-            0,
-            REFERENCE_VIDEO_TRACK_ID,
-          )
-        : undefined,
-    );
+    this.updateClips((state) => deriveClipInsertRemoveState(state, change));
   }
 
   /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
   private updateClips(
     update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
-    trackOrder?: string[],
   ): void {
     const state = this.store.get();
     const next = update(state);
@@ -575,7 +552,7 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    this.updateTrackLists(next, trackOrder);
+    this.store.update(next);
     for (const [index, track] of next.audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
         this.syncTrackPlayback(track);
@@ -999,7 +976,7 @@ export class RecorderRuntime {
       currentReference.title !== title ||
       currentReference.duration !== duration
     ) {
-      this.updateTrackLists({
+      this.store.update({
         referenceVideo: {
           videoId,
           timelineStart: currentReference?.timelineStart ?? 0,
@@ -1331,30 +1308,22 @@ export class RecorderRuntime {
 }
 
 /**
- * Keep the positions of present tracks, drop ids of removed ones, and place
- * new ones: the reference video first, other tracks last in list order. An
- * empty order therefore derives reference video, audio tracks, MIDI tracks.
+ * Keep the positions of present tracks, drop removed ids, and append new
+ * tracks. An empty order places audio tracks before MIDI tracks.
  */
 function syncTrackOrder({
   trackOrder,
   audioTracks,
   midiTracks,
-  referenceVideo,
 }: RecorderTrackListsState &
   Pick<RecorderRuntimeState, "trackOrder">): string[] {
   const ids = new Set([
     ...audioTracks.map((track) => track.id),
     ...midiTracks.map((track) => track.id),
   ]);
-  const kept = trackOrder.filter(
-    (id) => ids.has(id) || (id === REFERENCE_VIDEO_TRACK_ID && referenceVideo),
-  );
+  const kept = trackOrder.filter((id) => ids.has(id));
   const added = [...ids].filter((id) => !kept.includes(id));
-  const addedReference =
-    referenceVideo && !kept.includes(REFERENCE_VIDEO_TRACK_ID)
-      ? [REFERENCE_VIDEO_TRACK_ID]
-      : [];
-  const next = [...addedReference, ...kept, ...added];
+  const next = [...kept, ...added];
   return next.length === trackOrder.length &&
     next.every((id, index) => id === trackOrder[index])
     ? trackOrder
