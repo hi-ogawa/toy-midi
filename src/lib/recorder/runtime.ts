@@ -721,28 +721,29 @@ export class RecorderRuntime {
   }
 
   setArmedTrack(id?: string): void {
-    const { captureStatus } = this.store.get();
+    const { captureStatus, audioTracks, inputMonitoring } = this.store.get();
     if (captureStatus === "recording" || captureStatus === "processing") {
       throw new Error("Cannot change the armed track while recording.");
     }
-    if (
-      id !== undefined &&
-      !this.store.get().audioTracks.some((track) => track.id === id)
-    ) {
+    if (id !== undefined && !audioTracks.some((track) => track.id === id)) {
       throw new Error("Audio track state is missing.");
     }
-    this.store.update({ armedTrackId: id });
-    if (id === undefined) {
-      this.setInputMonitoring(false);
-    }
+    // Monitoring has no route without an arm, so disarming also turns it off.
+    const nextInputMonitoring = id !== undefined && inputMonitoring;
+    this.store.update({
+      armedTrackId: id,
+      inputMonitoring: nextInputMonitoring,
+    });
+    this.captureInput?.setMonitoring(nextInputMonitoring);
     this.captureInput?.setMonitorOutput(this.getMonitorOutput());
   }
 
   /**
    * Monitoring plays through the armed track's channel so it follows that
-   * track's EQ and gain. With nothing armed, monitoring is off, and the silent
-   * monitor stays connected to the master output so the capture graph keeps
-   * rendering.
+   * track's EQ and gain. With nothing armed, monitoring is off, but the silent
+   * monitor stays connected to the master output: without a path to the
+   * output, Chromium stops rendering the capture chain, and the tuner stops
+   * detecting pitch.
    */
   private getMonitorOutput(): AudioNode {
     const { armedTrackId } = this.store.get();
