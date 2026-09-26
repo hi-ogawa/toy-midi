@@ -284,10 +284,10 @@ export async function enableInput(page: Page) {
       await expect(panel.getByTitle("Audio input setup")).toContainText(
         "Fake Default Audio Input · Channel 1",
       );
-      await panel.getByRole("button", { name: "Turn input on" }).click();
-      await expect(
-        panel.getByRole("button", { name: "Turn input off" }),
-      ).toHaveAttribute("aria-pressed", "true");
+      const inputPower = panel.getByRole("button", { name: "Input power" });
+      await expect(inputPower).toHaveAttribute("aria-pressed", "false");
+      await inputPower.click();
+      await expect(inputPower).toHaveAttribute("aria-pressed", "true");
       await panel
         .getByRole("button", { name: "Close Audio Input", exact: true })
         .click();
