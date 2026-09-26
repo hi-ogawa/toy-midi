@@ -37,11 +37,16 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     viewMode?: MidiTrackState["viewMode"];
   })[];
   // Retained for projects saved with the Capture track outside audioTracks.
-  recordingTrack?: Pick<
-    SerializedAudioTrackState<ChannelData>,
-    "eq" | "height" | "gain" | "muted" | "soloed" | "nextTakeNumber"
-  > & {
+  recordingTrack?: {
+    // Optional for projects saved before track EQ support.
+    eq?: MultibandEqParameters | EqParameters;
+    height: number;
+    gain: number;
+    muted: boolean;
+    soloed: boolean;
     takes: SerializedAudioClip<ChannelData>[];
+    // Optional for recorder projects saved before multi-take support.
+    nextTakeNumber?: number;
   };
   // Optional for recorder projects saved before mixer support.
   masterGain?: number;
