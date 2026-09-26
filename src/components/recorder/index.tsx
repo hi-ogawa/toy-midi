@@ -556,7 +556,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onArmedChange: (armed) => {
                   runtime.setArmedTrack(armed ? recordingTrack.id : undefined);
                   if (armed && !input.active) {
-                    promptInputOn();
+                    // The arm succeeded, so confirm it rather than warn, and
+                    // lead to the one step still missing.
+                    toast.info("Armed. Turn input on to record");
+                    setIsInputPanelOpen(true);
                   }
                 },
                 onMonitoringChange: (monitoring) =>

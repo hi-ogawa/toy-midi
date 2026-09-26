@@ -238,3 +238,35 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows).toHaveCount(0);
   await expect(compRegion).toHaveCount(0);
 });
+
+test("arms before input is on and records once input starts", async ({
+  page,
+}) => {
+  await createRecorderProject(page);
+
+  // Arm Capture while input is off, which keeps the arm, confirms it, and
+  // opens the input panel for the missing step.
+  await armTrack(page, { track: "Capture" });
+  await expect(page.getByText("Armed. Turn input on to record")).toBeVisible();
+  await expect(page.getByTestId("recorder-input-panel")).toBeVisible();
+  const monitorButton = page.getByTestId("recorder-input-monitor");
+  await expect(monitorButton).toBeDisabled();
+
+  // Press Record before input is on, which warns without recording.
+  const recordButton = page.getByTestId("recorder-record-button");
+  await recordButton.click();
+  await expect(page.getByText("Turn input on to record")).toBeVisible();
+  await expect(recordButton).toHaveAttribute("aria-pressed", "false");
+
+  // Turn input on, which routes monitoring through the armed track.
+  await enableInput(page);
+  await expect(monitorButton).toBeEnabled();
+  await monitorButton.click();
+  await expect(monitorButton).toHaveAttribute("aria-pressed", "true");
+
+  // Record into the track that was armed before input started.
+  await recordButton.click();
+  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await recordButton.click();
+  await expect(page.getByTestId("recorder-clip-comp")).toContainText("Take 1");
+});
