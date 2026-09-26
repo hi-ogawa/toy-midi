@@ -1,5 +1,5 @@
 import path from "node:path";
-import { test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /** Call at file scope to enable a fake microphone for this test file. */
 export function useFakeAudioInput({
@@ -45,6 +45,26 @@ export async function selectMenuItem(
         .getByRole("menuitem", { name: item })
         .or(menuLocator.getByRole("menuitemcheckbox", { name: item }))
         .click();
+    },
+    { box: true },
+  );
+}
+
+/** Open a named menu, check that an item is disabled, and close the menu. */
+export async function expectMenuItemDisabled(
+  page: Page,
+  { menu, item }: { menu: string; item: string | RegExp },
+): Promise<void> {
+  await test.step(
+    `Expect ${item} in ${menu} to be disabled`,
+    async () => {
+      await page.getByRole("button", { name: menu }).click();
+      await expect(
+        page
+          .getByRole("menu", { name: menu })
+          .getByRole("menuitem", { name: item }),
+      ).toBeDisabled();
+      await page.keyboard.press("Escape");
     },
     { box: true },
   );
