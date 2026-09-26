@@ -17,6 +17,7 @@ import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -28,6 +29,8 @@ import { RecorderGainSlider } from "./recorder-mixer";
 export function AudioTrackActions({
   label,
   removeDisabled,
+  showClips,
+  onShowClipsChange,
   onRename,
   onEffectsOpen,
   onFileChange,
@@ -35,6 +38,8 @@ export function AudioTrackActions({
 }: {
   label: string;
   removeDisabled: boolean;
+  showClips: boolean;
+  onShowClipsChange: (showClips: boolean) => void;
   onRename: (name: string) => void;
   onEffectsOpen: () => void;
   onFileChange: (file: File) => void;
@@ -51,6 +56,12 @@ export function AudioTrackActions({
           <SlidersHorizontalIcon />
           Effects…
         </DropdownMenuItem>
+        <DropdownMenuCheckboxItem
+          checked={showClips}
+          onCheckedChange={onShowClipsChange}
+        >
+          Show clips
+        </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() =>

@@ -55,8 +55,6 @@ const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-// The ordinary-track UI currently keeps zero or one imported clip and has
-// no clip-level mute/solo controls. Imported clips initialize both flags to false.
 // nextTakeNumber numbers the takes recorded into each track.
 export interface AudioTrackState {
   id: string;
@@ -69,6 +67,7 @@ export interface AudioTrackState {
   clips: AudioClip[];
   regions: ClipRegion[];
   nextTakeNumber: number;
+  showClips: boolean;
 }
 
 export interface MidiTrackState {
@@ -572,6 +571,16 @@ export class RecorderRuntime {
     } else {
       this.updateTrack(id, (track) => ({ ...track, name }));
     }
+  }
+
+  setTrackShowClips({
+    id,
+    showClips,
+  }: {
+    id: string;
+    showClips: boolean;
+  }): void {
+    this.updateTrack(id, (track) => ({ ...track, showClips }));
   }
 
   removeAudioTrack(id: string): void {
@@ -1473,6 +1482,7 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
     id: crypto.randomUUID(),
     name,
     nextTakeNumber: 1,
+    showClips: false,
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
     muted: false,

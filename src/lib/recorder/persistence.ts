@@ -84,6 +84,8 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
 }
 
 interface SerializedAudioTrackState<ChannelData> {
+  // 🟢 Optional for projects saved before per-track clip visibility.
+  showClips?: boolean;
   // 🟢 Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
@@ -142,6 +144,7 @@ export function serializeRecorderRuntimeState(
       muted: track.muted,
       soloed: track.soloed,
       nextTakeNumber: track.nextTakeNumber,
+      showClips: track.showClips,
       clips: track.clips.map(serializeAudioClip),
     })),
     midiTracks: state.midiTracks,
@@ -179,6 +182,7 @@ export function deserializeRecorderRuntimeState({
           ? "Capture"
           : `Audio ${ordinaryTrackIds.indexOf(track.id) + 1}`),
       nextTakeNumber: track.nextTakeNumber ?? 1,
+      showClips: track.showClips ?? track.id === RECORDING_TRACK_ID,
       height: track.height,
       clips: getTrackClips(track).map((clip, index) =>
         deserializeAudioClip({ context, clip, index }),

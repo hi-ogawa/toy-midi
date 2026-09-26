@@ -68,6 +68,65 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(2);
 });
 
+test("shows and persists clip controls per audio track", async ({ page }) => {
+  // Import backing audio and keep its clip section hidden by default.
+  await createRecorderProject(page);
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  const clipsToggle = page.getByTestId("recorder-clips-toggle");
+  const clipRows = page.getByTestId("recorder-clip-row");
+  const actions = page.getByRole("button", {
+    name: "Audio 2 actions",
+    exact: true,
+  });
+  const showClips = page.getByRole("menuitemcheckbox", {
+    name: "Show clips",
+    exact: true,
+  });
+  await expect(clipsToggle).toHaveCount(0);
+  await actions.click();
+  await expect(showClips).not.toBeChecked();
+
+  // Show and expand the imported track's clip controls.
+  await showClips.click();
+  await expect(clipsToggle).toHaveCount(1);
+  await clipsToggle.click();
+  await expect(clipRows).toContainText("test-audio.wav");
+
+  // Hide the section while expanded, including its individual clip rows.
+  await actions.click();
+  await expect(showClips).toBeChecked();
+  await showClips.click();
+  await expect(clipsToggle).toHaveCount(0);
+  await expect(clipRows).toHaveCount(0);
+
+  // Show it again and preserve visibility when saving and reloading.
+  await actions.click();
+  await showClips.click();
+  await saveRecorderProject(page);
+  await page.reload();
+  await expect(clipsToggle).toHaveCount(1);
+  await expect(clipsToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(clipRows).toHaveCount(0);
+
+  // Keep the other track's visibility independent from the imported track.
+  await page
+    .getByRole("button", { name: "Audio 1 actions", exact: true })
+    .click();
+  await expect(showClips).not.toBeChecked();
+  await page.keyboard.press("Escape");
+
+  // Save a hidden section and restore that choice on reload too.
+  await actions.click();
+  await expect(showClips).toBeChecked();
+  await showClips.click();
+  await saveRecorderProject(page);
+  await page.reload();
+  await expect(page.getByTestId("recorder-clip-audio")).toContainText(
+    "test-audio.wav",
+  );
+  await expect(clipsToggle).toHaveCount(0);
+});
+
 test("scrolls overflowing tracks from the track list", async ({ page }) => {
   // Fill a short desktop viewport until the last track sits below the fold.
   await page.setViewportSize({ width: 1280, height: 400 });

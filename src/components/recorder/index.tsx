@@ -460,6 +460,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                       <AudioTrackActions
                         label={track.name}
                         removeDisabled={flags.isRecording}
+                        showClips={track.showClips}
+                        onShowClipsChange={(showClips) =>
+                          runtime.setTrackShowClips({ id: track.id, showClips })
+                        }
                         onRename={(name) =>
                           runtime.setTrackName({ id: track.id, name })
                         }
@@ -513,7 +517,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       }}
                     />
                   </TrackRow>
-                  {track.clips.length > 0 && (
+                  {track.showClips && track.clips.length > 0 && (
                     <ClipsDisclosureRow
                       expanded={clipsExpanded}
                       clipCount={track.clips.length}
@@ -524,7 +528,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                       onNewestFirstChange={setClipsNewestFirst}
                     />
                   )}
-                  {track.clips.length > 0 &&
+                  {track.showClips &&
+                    track.clips.length > 0 &&
                     clipsExpanded &&
                     (clipsNewestFirst
                       ? track.clips.toReversed()

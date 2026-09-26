@@ -44,6 +44,13 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toHaveCount(2);
   // Balance one take independently before archiving the project. Audio 1's
   // takes list comes before the backing track's.
+  // Show the track's clip section to access individual clip controls.
+  await page
+    .getByRole("button", { name: "Audio 1 actions", exact: true })
+    .click();
+  await page
+    .getByRole("menuitemcheckbox", { name: "Show clips", exact: true })
+    .click();
   const takesToggle = page.getByTestId("recorder-clips-toggle").first();
   await takesToggle.click();
   const takeGain = page.getByRole("slider", {
@@ -252,6 +259,10 @@ for (const captureFormat of ["separate", "embedded"] as const) {
     await expect(take).toContainText("Take 8");
     await expect(audio.locator("svg")).toBeVisible();
     await expect(take.locator("svg")).toBeVisible();
+    // Keep Capture's clip section visible by default and ordinary tracks hidden.
+    const clipsToggle = page.getByTestId("recorder-clips-toggle");
+    await expect(clipsToggle).toHaveCount(1);
+    await expect(clipsToggle).toHaveAccessibleName("Clips 1");
     const clipGeometry = await getRecorderClipGeometry(page);
 
     // Rename, save, and reopen the project with the same clip placement.
@@ -279,5 +290,20 @@ for (const captureFormat of ["separate", "embedded"] as const) {
       rows.nth(1).getByTestId("recorder-clip-audio-source"),
     ).toHaveCount(2);
     await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
+
+    // Override the migrated Capture default and retain the choice after reload.
+    await page
+      .getByRole("button", { name: "Capture actions", exact: true })
+      .click();
+    const showClips = page.getByRole("menuitemcheckbox", {
+      name: "Show clips",
+      exact: true,
+    });
+    await expect(showClips).toBeChecked();
+    await showClips.click();
+    await saveRecorderProject(page);
+    await page.reload();
+    await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
+    await expect(clipsToggle).toHaveCount(0);
   });
 }
