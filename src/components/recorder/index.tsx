@@ -3,6 +3,7 @@ import { Mic2Icon } from "lucide-react";
 import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { useSetState } from "../../hooks/use-set-state";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -66,9 +67,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     useRecorderPreference("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
-  const [expandedTakeTracks, setExpandedTakeTracks] = useState<
-    ReadonlySet<string>
-  >(() => new Set());
+  const [expandedTakeTracks, setTakeExpanded] = useSetState<string>();
   const [takesNewestFirst, setTakesNewestFirst] =
     useRecorderPreference("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
@@ -156,24 +155,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       );
     },
   });
-
-  function setTakesExpanded({
-    id,
-    expanded,
-  }: {
-    id: string;
-    expanded: boolean;
-  }) {
-    setExpandedTakeTracks((ids) => {
-      const next = new Set(ids);
-      if (expanded) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
-      return next;
-    });
-  }
 
   function togglePlay() {
     if (flags.transportDisabled) {
@@ -537,7 +518,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       expanded={takesExpanded}
                       takeCount={track.clips.length}
                       onExpandedChange={(expanded) =>
-                        setTakesExpanded({ id: track.id, expanded })
+                        setTakeExpanded({ value: track.id, present: expanded })
                       }
                       newestFirst={takesNewestFirst}
                       onNewestFirstChange={setTakesNewestFirst}
