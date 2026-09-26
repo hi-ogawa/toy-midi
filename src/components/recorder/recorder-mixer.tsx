@@ -23,7 +23,6 @@ export function RecorderMixer({
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
-  const trackEntries = resolveTrackOrder(state);
   const masterInput = useGainInput(
     state.masterGain,
     runtime.setMasterGain.bind(runtime),
@@ -32,6 +31,7 @@ export function RecorderMixer({
     state.metronomeGain,
     runtime.setMetronomeGain.bind(runtime),
   );
+  const trackEntries = resolveTrackOrder(state);
   return (
     <div className="flex min-w-max justify-center gap-8 py-1">
       <MixerChannel
