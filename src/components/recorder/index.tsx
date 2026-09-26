@@ -548,8 +548,11 @@ export function Recorder({ projectId }: { projectId: string }) {
               recording={{
                 armed: state.armedTrackId === recordingTrack.id,
                 armDisabled: flags.isRecording,
-                monitoring: state.inputMonitoring,
-                monitorDisabled: !input.active,
+                monitoring:
+                  state.inputMonitoring &&
+                  state.armedTrackId === recordingTrack.id,
+                monitorDisabled:
+                  !input.active || state.armedTrackId !== recordingTrack.id,
                 onArmedChange: (armed) => {
                   runtime.setArmedTrack(armed ? recordingTrack.id : undefined);
                   if (armed && !input.active) {
@@ -562,7 +565,9 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <AudioTimelineLane
                 clips={takes}
-                regions={state.previewClipRegions ?? recordingTrack.regions}
+                regions={
+                  state.pendingRecording?.regions ?? recordingTrack.regions
+                }
                 testId="comp"
                 emptyLabel="Turn input on, arm, place the playhead, then record"
                 recordingClipId={state.pendingRecording?.id}

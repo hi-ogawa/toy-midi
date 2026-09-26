@@ -4,6 +4,7 @@ import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   dragBy,
+  armTrack,
   enableInput,
   getRecorderPosition,
   saveRecorderProject,
@@ -19,8 +20,12 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Connect the browser input before recording is available.
   await enableInput(page);
 
-  // Input monitoring can be enabled before recording starts.
+  // Monitoring routes through the armed track, so it waits for the arm.
   const monitorButton = page.getByTestId("recorder-input-monitor");
+  await expect(monitorButton).toBeDisabled();
+  await armTrack(page, { track: "Capture" });
+
+  // Input monitoring can be enabled before recording starts.
   await expect(monitorButton).toBeEnabled();
   await expect(monitorButton).toHaveAttribute("aria-pressed", "false");
   await monitorButton.click();
@@ -118,6 +123,13 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
       await take.nth(1).evaluate((element) => element.style.left),
     ),
   ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 4, -2);
+
+  // Disarm Capture, which also turns monitoring off because nothing is armed.
+  await page
+    .getByRole("button", { name: "Disarm Capture for recording", exact: true })
+    .click();
+  await expect(monitorButton).toHaveAttribute("aria-pressed", "false");
+  await expect(monitorButton).toBeDisabled();
 
   // Show the latest take first by default, then switch to oldest first.
   await expect(takeRows.nth(0)).toContainText("Take 2");
@@ -225,4 +237,36 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(take).toHaveCount(0);
   await expect(takeRows).toHaveCount(0);
   await expect(compRegion).toHaveCount(0);
+});
+
+test("arms before input is on and records once input starts", async ({
+  page,
+}) => {
+  await createRecorderProject(page);
+
+  // Arm Capture while input is off, which keeps the arm, asks for input, and
+  // opens the input panel.
+  const arm = page.getByTestId("recorder-arm-toggle");
+  await arm.click();
+  await expect(arm).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Turn input on to record")).toBeVisible();
+  const panel = page.getByTestId("recorder-input-panel");
+  await expect(panel).toBeVisible();
+
+  // Press Record before input is on, which does not start recording.
+  const recordButton = page.getByTestId("recorder-record-button");
+  await recordButton.click();
+  await expect(recordButton).toHaveAttribute("aria-pressed", "false");
+
+  // Turn input on from the panel, which leaves the arm in place.
+  const inputPower = panel.getByRole("button", { name: "Input power" });
+  await inputPower.click();
+  await expect(inputPower).toHaveAttribute("aria-pressed", "true");
+  await expect(arm).toHaveAttribute("aria-pressed", "true");
+
+  // Record into the track armed before input started.
+  await recordButton.click();
+  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await recordButton.click();
+  await expect(page.getByTestId("recorder-clip-comp")).toContainText("Take 1");
 });
