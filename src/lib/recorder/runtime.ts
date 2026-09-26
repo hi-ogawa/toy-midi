@@ -295,7 +295,9 @@ export class RecorderRuntime {
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: this.getMonitorOutput(),
+      // Silent until syncMonitor routes it. The path keeps the capture chain
+      // rendering while channels are discovered.
+      output: this.masterOutput,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -1110,12 +1112,6 @@ export class RecorderRuntime {
     }
   }
 
-  /** Apply the monitor route and gain derived from the arm and monitoring state. */
-  private syncMonitor(): void {
-    this.captureInput?.setMonitorOutput(this.getMonitorOutput());
-    this.captureInput?.setMonitoring(this.store.get().inputMonitoring);
-  }
-
   /**
    * Monitoring plays through the armed track's channel so it follows that
    * track's EQ and gain. With nothing armed, monitoring is off, but the silent
@@ -1123,11 +1119,14 @@ export class RecorderRuntime {
    * output, Chromium stops rendering the capture chain, and the tuner stops
    * detecting pitch.
    */
-  private getMonitorOutput(): AudioNode {
-    const { armedTrackId } = this.store.get();
-    return armedTrackId === undefined
-      ? this.masterOutput
-      : this.getTrackPlayback(armedTrackId).channel.input;
+  private syncMonitor(): void {
+    const { armedTrackId, inputMonitoring } = this.store.get();
+    this.captureInput?.setMonitorOutput(
+      armedTrackId === undefined
+        ? this.masterOutput
+        : this.getTrackPlayback(armedTrackId).channel.input,
+    );
+    this.captureInput?.setMonitoring(inputMonitoring);
   }
 
   private syncMetronomeGain(): void {
