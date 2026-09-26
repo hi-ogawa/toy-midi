@@ -366,9 +366,10 @@ export class RecorderRuntime {
 
   addAudioTrack(): string {
     const { audioTracks } = this.store.get();
+    const audioTrackNames = audioTracks.map((track) => track.name);
     const track = createAudioTrackState({
       name: createNumberedName({
-        names: audioTracks.map((track) => track.name),
+        names: audioTrackNames,
         prefix: "Audio",
       }),
     });
