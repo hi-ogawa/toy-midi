@@ -582,7 +582,7 @@ export class RecorderRuntime {
         inputMonitoring: false,
       }),
     });
-    // Move the monitor off the track before its channel is disposed.
+    // Sync before disposing, so the monitor never points at a disposed channel.
     this.syncMonitor();
     this.trackPlaybacks.get(id)?.dispose();
     this.trackPlaybacks.delete(id);
