@@ -773,7 +773,7 @@ export class RecorderRuntime {
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
     const state = this.store.get();
-    const track = getAudioTrack(state.audioTracks, trackId);
+    const track = findAudioTrackById(state.audioTracks, trackId);
     const punchRange =
       state.punch.enabled && state.punch.range
         ? {
@@ -1191,7 +1191,7 @@ export class RecorderRuntime {
     };
     const { trackId } = pendingRecording;
     const { audioTracks } = this.store.get();
-    const previousTrack = getAudioTrack(audioTracks, trackId);
+    const previousTrack = findAudioTrackById(audioTracks, trackId);
     const newClipIndex = previousTrack.clips.length;
     const recordingTrack = resolveTrackRegions({
       ...previousTrack,
@@ -1227,7 +1227,7 @@ export class RecorderRuntime {
   private updatePendingRecording(
     pendingRecording: PendingRecordingState,
   ): void {
-    const track = getAudioTrack(
+    const track = findAudioTrackById(
       this.store.get().audioTracks,
       pendingRecording.trackId,
     );
@@ -1448,7 +1448,7 @@ function deriveRecordingTrim({
   };
 }
 
-function getAudioTrack(
+function findAudioTrackById(
   audioTracks: readonly AudioTrackState[],
   id: string,
 ): AudioTrackState {
