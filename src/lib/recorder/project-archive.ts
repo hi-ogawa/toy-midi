@@ -1,6 +1,5 @@
 import JSZip from "jszip";
 import type {
-  LoadableRecorderRuntimeState,
   RecorderPcm,
   SerializedRecorderRuntimeState,
 } from "./persistence.ts";
@@ -44,7 +43,7 @@ export async function exportRecorderProjectArchive(
 
 export async function readRecorderProjectArchive(
   zip: JSZip,
-): Promise<LoadableRecorderRuntimeState> {
+): Promise<SerializedRecorderRuntimeState> {
   const manifest = await readJson<RecorderProjectManifest>(zip, MANIFEST_PATH);
   if (manifest.projectType !== "recorder") {
     throw new Error("This is not a recorder project archive.");
@@ -60,7 +59,7 @@ export async function readRecorderProjectArchive(
       `Recorder project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
     );
   }
-  const project = await readJson<LoadableRecorderRuntimeState<string>>(
+  const project = await readJson<SerializedRecorderRuntimeState<string>>(
     zip,
     PROJECT_PATH,
   );
@@ -75,7 +74,17 @@ function writeProjectContent(
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
-      clips: track.clips.map((clip, clipIndex) => ({
+      clip: track.clip
+        ? {
+            ...track.clip,
+            pcm: writeProjectPcm(
+              zip,
+              track.clip.pcm,
+              `audio/tracks/${trackIndex}`,
+            ),
+          }
+        : undefined,
+      clips: track.clips?.map((clip, clipIndex) => ({
         ...clip,
         pcm: writeProjectPcm(
           zip,
@@ -96,8 +105,8 @@ function writeProjectContent(
 
 async function readProjectContent(
   zip: JSZip,
-  content: LoadableRecorderRuntimeState<string>,
-): Promise<LoadableRecorderRuntimeState> {
+  content: SerializedRecorderRuntimeState<string>,
+): Promise<SerializedRecorderRuntimeState> {
   return {
     ...content,
     audioTracks: await Promise.all(
