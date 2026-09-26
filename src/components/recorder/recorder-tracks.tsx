@@ -204,7 +204,6 @@ interface TrackRecordingControls {
   armed: boolean;
   armDisabled: boolean;
   monitoring: boolean;
-  /** Monitoring needs live input and routes through the armed track. */
   monitorDisabled: boolean;
   onArmedChange: (armed: boolean) => void;
   onMonitoringChange: (monitoring: boolean) => void;
