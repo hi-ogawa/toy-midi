@@ -284,3 +284,51 @@ test("shows and persists clip controls per audio track", async ({ page }) => {
   );
   await expect(clipsToggle).toHaveCount(0);
 });
+
+test("appends imported audio to an existing track", async ({ page }) => {
+  // Create a project and import the first clip into its empty Audio 1.
+  await createRecorderProject(page);
+  const row = page.getByTestId("recorder-audio-track-row");
+  const sources = row.getByTestId("recorder-clip-audio-source");
+  const regions = row.getByTestId("recorder-clip-audio");
+  const firstChooser = page.waitForEvent("filechooser");
+  await selectMenuItem(page, {
+    menu: "Audio 1 actions",
+    item: "Import audio…",
+  });
+  await (await firstChooser).setFiles("e2e/fixtures/test-tones.wav");
+  await expect(sources).toHaveCount(1);
+
+  // Import a shorter clip at zero and keep the first clip's remaining tail.
+  const secondChooser = page.waitForEvent("filechooser");
+  await selectMenuItem(page, {
+    menu: "Audio 1 actions",
+    item: "Import audio…",
+  });
+  await (await secondChooser).setFiles("e2e/fixtures/test-audio.wav");
+  await expect(row).toHaveCount(1);
+  await expect(sources).toHaveCount(2);
+  await expect(regions.filter({ hasText: "test-audio.wav" })).toBeVisible();
+  await expect(regions.filter({ hasText: "test-tones.wav" })).toBeVisible();
+  const ruler = (await page
+    .getByTestId("recorder-timeline-ruler")
+    .boundingBox())!;
+  for (const source of await sources.all()) {
+    expect((await source.boundingBox())!.x).toBeCloseTo(ruler.x, -1);
+  }
+
+  // Undo the second import and restore the complete first clip.
+  await page.keyboard.press("Control+z");
+  await expect(sources).toHaveCount(1);
+  await expect(regions).toHaveCount(1);
+  await expect(regions).toContainText("test-tones.wav");
+
+  // Redo the import and save both clips, then reload the same comp.
+  await page.keyboard.press("Control+Shift+z");
+  await expect(sources).toHaveCount(2);
+  await saveRecorderProject(page);
+  await page.reload();
+  await expect(sources).toHaveCount(2);
+  await expect(regions.filter({ hasText: "test-audio.wav" })).toBeVisible();
+  await expect(regions.filter({ hasText: "test-tones.wav" })).toBeVisible();
+});
