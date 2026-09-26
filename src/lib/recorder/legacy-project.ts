@@ -70,7 +70,6 @@ export async function convertLegacyProject({
         gain: track.volume,
         muted: track.muted,
         soloed: track.soloed,
-        nextTakeNumber: 1,
         clips: [
           {
             id: crypto.randomUUID(),

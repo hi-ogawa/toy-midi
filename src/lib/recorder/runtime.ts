@@ -40,7 +40,6 @@ import {
 } from "./mix.ts";
 import {
   deserializeRecorderRuntimeState,
-  type LoadableRecorderRuntimeState,
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
@@ -976,7 +975,7 @@ export class RecorderRuntime {
   }
 
   async deserializeProject(
-    project: LoadableRecorderRuntimeState,
+    project: SerializedRecorderRuntimeState,
   ): Promise<void> {
     await this.replacePersistableState(
       deserializeRecorderRuntimeState({
