@@ -1,8 +1,7 @@
-import { GaugeIcon, Mic2Icon, Music2Icon, Volume2Icon } from "lucide-react";
+import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
-import { splitRecordingTrack } from "../../lib/recorder/recording-track";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -23,9 +22,6 @@ export function RecorderMixer({
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
-  const { recordingTrack, audioTracks } = splitRecordingTrack(
-    state.audioTracks,
-  );
   const masterInput = useGainInput(
     state.masterGain,
     runtime.setMasterGain.bind(runtime),
@@ -44,7 +40,7 @@ export function RecorderMixer({
         inputProps={masterInput.props}
         data-testid="recorder-mixer-master"
       />
-      {audioTracks.map((track) => (
+      {state.audioTracks.map((track) => (
         <RecorderTrackChannel
           key={track.id}
           effectsOpen={openEffects.has(track.id)}
@@ -73,24 +69,6 @@ export function RecorderMixer({
           onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
         />
       ))}
-      <RecorderTrackChannel
-        label={recordingTrack.name}
-        effectsOpen={openEffects.has("capture")}
-        onEffectsToggle={() => onEffectsToggle("capture")}
-        gain={recordingTrack.gain}
-        muted={recordingTrack.muted}
-        soloed={recordingTrack.soloed}
-        icon={<Mic2Icon className="size-4 text-muted-foreground" />}
-        onGainChange={(gain) =>
-          runtime.setTrackMix(recordingTrack.id, { gain })
-        }
-        onMutedChange={(muted) =>
-          runtime.setTrackMix(recordingTrack.id, { muted })
-        }
-        onSoloedChange={(soloed) =>
-          runtime.setTrackMix(recordingTrack.id, { soloed })
-        }
-      />
       <MixerChannel
         icon={<MetronomeIcon className="size-4 text-muted-foreground" />}
         label="Metro"

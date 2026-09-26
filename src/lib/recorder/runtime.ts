@@ -43,7 +43,6 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { RECORDING_TRACK_ID, splitRecordingTrack } from "./recording-track.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
@@ -56,8 +55,6 @@ const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-// The ordinary-track UI has no clip-level mute/solo controls.
-// Imported clips initialize both flags to false.
 // nextTakeNumber numbers the takes recorded into each track.
 export interface AudioTrackState {
   id: string;
@@ -70,6 +67,7 @@ export interface AudioTrackState {
   clips: AudioClip[];
   regions: ClipRegion[];
   nextTakeNumber: number;
+  showClips: boolean;
 }
 
 export interface MidiTrackState {
@@ -234,7 +232,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     punch: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
-    audioTracks: [createRecordingTrackState()],
+    audioTracks: [createAudioTrackState({ name: "Audio 1" })],
     midiTracks: [],
     captureStatus: "disabled",
     inputChannelCount: 0,
@@ -367,10 +365,7 @@ export class RecorderRuntime {
 
   addAudioTrack(): string {
     const { audioTracks } = this.store.get();
-    // Capture keeps its own name, so ordinary tracks number from Audio 1.
-    const audioTrackNames = splitRecordingTrack(audioTracks).audioTracks.map(
-      (track) => track.name,
-    );
+    const audioTrackNames = audioTracks.map((track) => track.name);
     const track = createAudioTrackState({
       name: createNumberedName({
         names: audioTrackNames,
@@ -579,10 +574,17 @@ export class RecorderRuntime {
     }
   }
 
+  setTrackShowClips({
+    id,
+    showClips,
+  }: {
+    id: string;
+    showClips: boolean;
+  }): void {
+    this.updateTrack(id, (track) => ({ ...track, showClips }));
+  }
+
   removeAudioTrack(id: string): void {
-    if (id === RECORDING_TRACK_ID) {
-      throw new Error("The recording track cannot be removed.");
-    }
     if (id === this.store.get().pendingRecording?.trackId) {
       throw new Error("Cannot remove the track being recorded into.");
     }
@@ -1481,27 +1483,13 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
     id: crypto.randomUUID(),
     name,
     nextTakeNumber: 1,
+    showClips: false,
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
     muted: false,
     soloed: false,
     clips: [],
     regions: [],
-  };
-}
-
-function createRecordingTrackState(): AudioTrackState {
-  return {
-    id: RECORDING_TRACK_ID,
-    name: "Capture",
-    eq: createDefaultMultibandEq(),
-    height: DEFAULT_TRACK_HEIGHT,
-    gain: 1,
-    muted: false,
-    soloed: false,
-    clips: [],
-    regions: [],
-    nextTakeNumber: 1,
   };
 }
 

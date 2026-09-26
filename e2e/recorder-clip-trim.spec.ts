@@ -19,16 +19,16 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   const second = clips.nth(1);
   const originalBox = (await first.boundingBox())!;
   const trimPixels = DEFAULT_PIXELS_PER_BEAT;
-  await dragBy(page, first.getByTestId("recorder-take-trim-start"), trimPixels);
-  await dragBy(page, first.getByTestId("recorder-take-trim-end"), -trimPixels);
+  await dragBy(page, first.getByTestId("recorder-clip-trim-start"), trimPixels);
+  await dragBy(page, first.getByTestId("recorder-clip-trim-end"), -trimPixels);
   await dragBy(
     page,
-    second.getByTestId("recorder-take-trim-start"),
+    second.getByTestId("recorder-clip-trim-start"),
     trimPixels * 2,
   );
   await dragBy(
     page,
-    second.getByTestId("recorder-take-trim-end"),
+    second.getByTestId("recorder-clip-trim-end"),
     -trimPixels * 2,
   );
   await saveRecorderProject(page);
@@ -43,7 +43,7 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   await page.keyboard.down("Control");
   await dragBy(
     page,
-    second.getByTestId("recorder-take-trim-start"),
+    second.getByTestId("recorder-clip-trim-start"),
     -trimPixels * 3,
     { release: false },
   );
@@ -74,7 +74,7 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   // Extend both end edges without a modifier and clamp at the first clip's source end.
   await dragBy(
     page,
-    second.getByTestId("recorder-take-trim-end"),
+    second.getByTestId("recorder-clip-trim-end"),
     trimPixels * 3,
     {
       release: false,

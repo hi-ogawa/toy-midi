@@ -412,10 +412,10 @@ type RecorderTimelineClip = {
   testId:
     | "audio"
     | "comp"
-    | "take-lane"
+    | "clip-lane"
     | "audio-source"
     | "comp-source"
-    | "take-lane-source"
+    | "clip-lane-source"
     | "recording"
     | "reference";
   variant?: "audio" | "reference";
@@ -453,7 +453,7 @@ export function AudioTimelineLane({
   beatsPerBar: number;
   clips: readonly AudioClip[];
   regions: readonly ClipRegion[];
-  testId: "audio" | "comp" | "take-lane";
+  testId: "audio" | "comp" | "clip-lane";
   recordingClipId?: string;
   emptyLabel?: string;
   pixelsPerBeat: number;
@@ -856,7 +856,7 @@ function TimelineClip({
       {canTrim && (
         <div
           ref={trimStartRef}
-          data-testid="recorder-take-trim-start"
+          data-testid="recorder-clip-trim-start"
           onClick={(event) => event.stopPropagation()}
           className="absolute inset-y-0 -left-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:left-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />
@@ -864,7 +864,7 @@ function TimelineClip({
       {canTrim && (
         <div
           ref={trimEndRef}
-          data-testid="recorder-take-trim-end"
+          data-testid="recorder-clip-trim-end"
           onClick={(event) => event.stopPropagation()}
           className="absolute inset-y-0 -right-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:right-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />
