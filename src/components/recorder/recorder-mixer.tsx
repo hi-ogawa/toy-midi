@@ -6,10 +6,7 @@ import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-import {
-  getTrackEntryLabel,
-  resolveTrackOrder,
-} from "../../lib/recorder/track-order";
+import { resolveTrackOrder } from "../../lib/recorder/track-order";
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { RecorderEffectsToggle } from "./recorder-effects-toggle";
@@ -26,7 +23,6 @@ export function RecorderMixer({
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
-  // The reference video plays outside the Web Audio graph, so it has no channel.
   const trackEntries = resolveTrackOrder(state);
   const masterInput = useGainInput(
     state.masterGain,
@@ -47,16 +43,13 @@ export function RecorderMixer({
         data-testid="recorder-mixer-master"
       />
       {trackEntries.map((entry) => {
-        if (entry.kind === "reference") {
-          return undefined;
-        }
         const { track } = entry;
         return (
           <RecorderTrackChannel
             key={entry.id}
             effectsOpen={openEffects.has(track.id)}
             onEffectsToggle={() => onEffectsToggle(track.id)}
-            label={getTrackEntryLabel(entry)}
+            label={track.name}
             gain={track.gain}
             muted={track.muted}
             soloed={track.soloed}

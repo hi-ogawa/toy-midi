@@ -19,10 +19,7 @@ import {
   RecorderRuntime,
   REFERENCE_VIDEO_CLIP_ID,
 } from "../../lib/recorder/runtime";
-import {
-  resolveTrackOrder,
-  getTrackEntryLabel,
-} from "../../lib/recorder/track-order";
+import { resolveTrackOrder } from "../../lib/recorder/track-order";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
@@ -411,6 +408,38 @@ export function Recorder({ projectId }: { projectId: string }) {
                 runtime.setPunch({ range: undefined, enabled: false })
               }
             />
+            {state.referenceVideo && (
+              <ReferenceTimelineRow
+                referenceVideo={clipInteraction.referenceVideo!}
+                position={state.position}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
+                tempo={timeline.tempo}
+                viewportWidth={timeline.viewportWidth}
+                onSeek={(position) => {
+                  recorderInteraction.clearSelection();
+                  runtime.seek(position);
+                }}
+                selected={clipInteraction.isSelected(REFERENCE_VIDEO_CLIP_ID)}
+                onClipClick={(additive) =>
+                  clipInteraction.select(REFERENCE_VIDEO_CLIP_ID, additive)
+                }
+                onEditStart={(edit) =>
+                  clipInteraction.startEdit({
+                    ...edit,
+                    id: REFERENCE_VIDEO_CLIP_ID,
+                  })
+                }
+                onEditUpdate={clipInteraction.updateEdit}
+                onEditFinish={clipInteraction.finishEdit}
+                onEditCancel={clipInteraction.cancelEdit}
+                muted={state.referenceVideo.muted}
+                onMutedChange={(muted) => runtime.setReferenceVideoMuted(muted)}
+                onRemove={() => runtime.removeReferenceVideo()}
+              />
+            )}
             {trackEntries.map((entry, index) => {
               const move: TrackMoveControls = {
                 canMoveUp: index > 0,
@@ -419,49 +448,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                   runtime.moveTrack({ id: entry.id, direction }),
               };
               switch (entry.kind) {
-                case "reference": {
-                  return (
-                    <ReferenceTimelineRow
-                      key={entry.id}
-                      move={move}
-                      referenceVideo={clipInteraction.referenceVideo!}
-                      position={state.position}
-                      pixelsPerBeat={timeline.pixelsPerBeat}
-                      beatsPerBar={timeline.beatsPerBar}
-                      subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                      viewportStartBeat={timeline.viewportStartBeat}
-                      tempo={timeline.tempo}
-                      viewportWidth={timeline.viewportWidth}
-                      onSeek={(position) => {
-                        recorderInteraction.clearSelection();
-                        runtime.seek(position);
-                      }}
-                      selected={clipInteraction.isSelected(
-                        REFERENCE_VIDEO_CLIP_ID,
-                      )}
-                      onClipClick={(additive) =>
-                        clipInteraction.select(
-                          REFERENCE_VIDEO_CLIP_ID,
-                          additive,
-                        )
-                      }
-                      onEditStart={(edit) =>
-                        clipInteraction.startEdit({
-                          ...edit,
-                          id: REFERENCE_VIDEO_CLIP_ID,
-                        })
-                      }
-                      onEditUpdate={clipInteraction.updateEdit}
-                      onEditFinish={clipInteraction.finishEdit}
-                      onEditCancel={clipInteraction.cancelEdit}
-                      muted={state.referenceVideo!.muted}
-                      onMutedChange={(muted) =>
-                        runtime.setReferenceVideoMuted(muted)
-                      }
-                      onRemove={() => runtime.removeReferenceVideo()}
-                    />
-                  );
-                }
                 case "audio": {
                   const { track } = entry;
                   const armed = state.armedTrackId === track.id;
@@ -711,17 +697,14 @@ export function Recorder({ projectId }: { projectId: string }) {
         {effects.openEffects.size > 0 && (
           <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
             {trackEntries.map((entry) => {
-              if (
-                entry.kind === "reference" ||
-                !effects.openEffects.has(entry.id)
-              ) {
+              if (!effects.openEffects.has(entry.id)) {
                 return undefined;
               }
               const { track } = entry;
               return (
                 <RecorderEffects
                   key={entry.id}
-                  label={getTrackEntryLabel(entry)}
+                  label={track.name}
                   eq={track.eq}
                   onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
                   onClose={() => effects.closeEffects(track.id)}
