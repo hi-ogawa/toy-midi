@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { selectMenuItem } from "./helpers";
-import { createRecorderProject, dragBy } from "./recorder-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  dragBy,
+} from "./recorder-helpers";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
   await createRecorderProject(page);
@@ -109,6 +113,26 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     -1,
   );
 
+  // Import audio, then press Delete on the selected video without changing undo history.
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  const audioClip = page.getByTestId("recorder-clip-audio-source");
+  await referenceClip.click();
+  await page.keyboard.press("Delete");
+  await expect(referenceClip).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+Z");
+  await expect(audioClip).toHaveCount(0);
+  await page.keyboard.press("ControlOrMeta+Shift+Z");
+  await expect(audioClip).toBeVisible();
+
+  // Delete a mixed selection, then undo to restore only the audio clip.
+  await referenceClip.click();
+  await audioClip.click({ modifiers: ["ControlOrMeta"] });
+  await page.keyboard.press("Delete");
+  await expect(audioClip).toHaveCount(0);
+  await expect(referenceClip).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+Z");
+  await expect(audioClip).toBeVisible();
+
   // The reference can be removed from its track actions.
   await selectMenuItem(page, {
     menu: "Reference actions",
@@ -123,4 +147,9 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     .click();
   await expect(reference).toHaveCount(0);
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+  // Undo the audio import after closing the focused URL field; keep the reference removed.
+  await page.keyboard.press("ControlOrMeta+Z");
+  await expect(audioClip).toHaveCount(0);
+  await expect(referenceTrack).toHaveCount(0);
 });
