@@ -72,7 +72,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     useRecorderPreference("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
-  const [isInputPanelOpen, setIsInputPanelOpen] = useState(false);
+  // Input setup is per user, so the panel stays open across reloads and projects.
+  const [isInputPanelOpen, setIsInputPanelOpen] =
+    useRecorderPreference("inputPanelOpen");
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
