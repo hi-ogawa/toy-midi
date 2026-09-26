@@ -443,10 +443,10 @@ export class RecorderRuntime {
     });
     this.midiTrackPlaybacks.set(track.id, playback);
     this.updateTrackLists(
-      { midiTracks: [...this.store.get().midiTracks, track] },
+      { midiTracks: [...state.midiTracks, track] },
       orderIndex === undefined
         ? undefined
-        : this.store.get().trackOrder.toSpliced(orderIndex, 0, track.id),
+        : state.trackOrder.toSpliced(orderIndex, 0, track.id),
     );
     this.syncTrackMix();
   }
