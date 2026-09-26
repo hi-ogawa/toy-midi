@@ -36,13 +36,6 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
   })[];
-  // Retained for projects saved with the Capture track outside audioTracks.
-  recordingTrack?: Pick<
-    SerializedAudioTrackState<ChannelData>,
-    "eq" | "height" | "gain" | "muted" | "soloed" | "nextTakeNumber"
-  > & {
-    takes: SerializedAudioClip<ChannelData>[];
-  };
   // Optional for recorder projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
@@ -82,6 +75,32 @@ interface SerializedAudioTrackState<ChannelData> {
   gain: number;
   muted: boolean;
   soloed: boolean;
+  nextTakeNumber: number;
+  clips: SerializedAudioClip<ChannelData>[];
+}
+
+/**
+ * Any saved shape that loading still accepts, from IndexedDB or project
+ * archives. New saves always use {@link SerializedRecorderRuntimeState}.
+ */
+export type LoadableRecorderRuntimeState<ChannelData = Float32Array> = Omit<
+  SerializedRecorderRuntimeState<ChannelData>,
+  "audioTracks"
+> & {
+  audioTracks: LoadableAudioTrackState<ChannelData>[];
+  // Retained for projects saved with the Capture track outside audioTracks.
+  recordingTrack?: Pick<
+    LoadableAudioTrackState<ChannelData>,
+    "eq" | "height" | "gain" | "muted" | "soloed" | "nextTakeNumber"
+  > & {
+    takes: SerializedAudioClip<ChannelData>[];
+  };
+};
+
+type LoadableAudioTrackState<ChannelData> = Omit<
+  SerializedAudioTrackState<ChannelData>,
+  "nextTakeNumber" | "clips"
+> & {
   // Optional for tracks saved before they could record takes.
   nextTakeNumber?: number;
   // Optional for projects saved with a single clip per track.
@@ -95,7 +114,7 @@ interface SerializedAudioTrackState<ChannelData> {
   timelineOffset?: number;
   trimStart?: number;
   trimEnd?: number;
-}
+};
 
 interface SerializedAudioClip<ChannelData> {
   // Optional for recorder projects saved before multi-take support.
@@ -148,7 +167,7 @@ export function deserializeRecorderRuntimeState({
   project,
 }: {
   context: Pick<AudioContext, "createBuffer">;
-  project: SerializedRecorderRuntimeState;
+  project: LoadableRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
   return {
     title: project.title,
@@ -187,8 +206,8 @@ export function deserializeRecorderRuntimeState({
 
 /** Move a separately saved Capture track into the track list under its fixed id. */
 function foldRecordingTrack(
-  project: SerializedRecorderRuntimeState,
-): SerializedAudioTrackState<Float32Array>[] {
+  project: LoadableRecorderRuntimeState,
+): LoadableAudioTrackState<Float32Array>[] {
   const { recordingTrack } = project;
   if (!recordingTrack) {
     return project.audioTracks;
@@ -225,7 +244,7 @@ function serializeAudioClip(
 }
 
 function deserializeSingleClip(
-  track: SerializedAudioTrackState<Float32Array>,
+  track: LoadableAudioTrackState<Float32Array>,
 ): SerializedAudioClip<Float32Array>[] {
   if (!track.clip) {
     return [];
