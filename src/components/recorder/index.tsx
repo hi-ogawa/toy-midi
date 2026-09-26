@@ -166,6 +166,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     audioTracks: clipInteraction.audioTracks,
     midiTracks: state.midiTracks,
   });
+  const orderedMidiTracks = trackEntries
+    .filter((entry) => entry.kind === "midi")
+    .map((entry) => entry.track);
 
   function togglePlay() {
     if (flags.transportDisabled) {
@@ -727,7 +730,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             })}
           </div>
         )}
-        {state.midiTracks.map(
+        {orderedMidiTracks.map(
           (track) =>
             scoreUi.openTracks.has(track.id) && (
               <RecorderScorePanel
@@ -749,7 +752,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             ),
         )}
-        {state.midiTracks.map(
+        {orderedMidiTracks.map(
           (track) =>
             transcriptions.openTranscriptions.has(track.id) && (
               <RecorderAudioToMidi

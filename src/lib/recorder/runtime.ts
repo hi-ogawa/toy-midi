@@ -426,10 +426,9 @@ export class RecorderRuntime {
       }),
       program,
     });
-    const index = await this.insertMidiTrack({ track });
+    await this.insertMidiTrack({ track });
     this.history.pushMidiTrack({
       track,
-      index,
       orderIndex: this.store.get().trackOrder.indexOf(track.id),
     });
   }
@@ -437,13 +436,11 @@ export class RecorderRuntime {
   /** @internal for undo */
   async insertMidiTrack({
     track,
-    index,
     orderIndex,
   }: {
     track: MidiTrackState;
-    index?: number;
     orderIndex?: number;
-  }): Promise<number> {
+  }): Promise<void> {
     const state = this.store.get();
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
@@ -451,30 +448,25 @@ export class RecorderRuntime {
       track,
       tempo: state.tempo,
     });
-    const midiTracks = [...state.midiTracks];
-    index ??= midiTracks.length;
-    midiTracks.splice(index, 0, track);
     this.midiTrackPlaybacks.set(track.id, playback);
     this.updateTrackLists(
-      { midiTracks },
+      { midiTracks: [...this.store.get().midiTracks, track] },
       orderIndex === undefined
         ? undefined
         : this.store.get().trackOrder.toSpliced(orderIndex, 0, track.id),
     );
     this.syncTrackMix();
-    return index;
   }
 
   removeMidiTrack(id: string): void {
     const state = this.store.get();
-    const index = state.midiTracks.findIndex((track) => track.id === id);
-    if (index === -1) {
+    const track = state.midiTracks.find((track) => track.id === id);
+    if (!track) {
       return;
     }
-    const track = state.midiTracks[index];
     const orderIndex = state.trackOrder.indexOf(id);
     this.deleteMidiTrack(id);
-    this.history.pushMidiTrack({ track, index, orderIndex, reverse: true });
+    this.history.pushMidiTrack({ track, orderIndex, reverse: true });
   }
 
   /** @internal for undo */
