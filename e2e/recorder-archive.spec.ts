@@ -243,19 +243,20 @@ test("opens an imported archive saved with a single clip per audio track and a s
   // Show the retained take on the former Capture track below the backing
   // clip, both with decoded waveforms.
   const rows = page.getByTestId("recorder-audio-track-row");
-  const take = rows.nth(1).getByTestId("recorder-clip-audio");
   const audio = rows.nth(0).getByTestId("recorder-clip-audio");
+  const take = rows.nth(1).getByTestId("recorder-clip-audio");
   await expect(audio).toContainText("stereo.wav");
   await expect(take).toContainText("Take 8");
   await expect(audio.locator("svg")).toBeVisible();
   await expect(take.locator("svg")).toBeVisible();
+
   // Keep Capture's clip section visible by default and ordinary tracks hidden.
   const clipsToggle = page.getByTestId("recorder-clips-toggle");
   await expect(clipsToggle).toHaveCount(1);
   await expect(clipsToggle).toHaveAccessibleName("Clips 1");
-  const clipGeometry = await getRecorderClipGeometry(page);
 
   // Rename, save, and reopen the project with the same clip placement.
+  const clipGeometry = await getRecorderClipGeometry(page);
   page.once("dialog", (dialog) => dialog.accept("Resaved archive"));
   await page.getByTestId("recorder-project-name").click();
   await saveRecorderProject(page);
