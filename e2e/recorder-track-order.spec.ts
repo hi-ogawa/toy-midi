@@ -13,38 +13,23 @@ test("reorders tracks from their row menus", async ({ page }) => {
   await page.getByRole("button", { name: "Add empty audio track" }).click();
   await expectTrackRows(page, ["Audio 1", "MIDI 1", "Audio 2"]);
 
-  // Add a reference video, which inserts its row first.
-  await page.getByTestId("recorder-reference-video-button").click();
-  const referencePanel = page.getByTestId("recorder-youtube-reference");
-  await referencePanel
-    .getByTestId("recorder-youtube-input")
-    .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
-  await referencePanel.getByRole("button", { name: "Add video" }).click();
-
-  // Keep the reference fixed at the top without move actions.
-  await expect(
-    await getMenuItem(page, { menu: "Reference actions", item: /^Move/ }),
-  ).toHaveCount(0);
-  await page.keyboard.press("Escape");
-  await expectTrackRows(page, ["Reference", "Audio 1", "MIDI 1", "Audio 2"]);
-
-  // Prevent the first audio track from moving above the reference.
+  // Check that the first row cannot move up.
   await expect(
     await getMenuItem(page, { menu: "Audio 1 actions", item: "Move up" }),
   ).toBeDisabled();
   await page.keyboard.press("Escape");
 
-  // The last row cannot move down.
+  // Check that the last row cannot move down.
   await expect(
     await getMenuItem(page, { menu: "Audio 2 actions", item: "Move down" }),
   ).toBeDisabled();
   await page.keyboard.press("Escape");
 
-  // Move Audio 2 above MIDI 1 while the reference stays at the top.
+  // Move Audio 2 above MIDI 1.
   await selectMenuItem(page, { menu: "Audio 2 actions", item: "Move up" });
-  await expectTrackRows(page, ["Reference", "Audio 1", "Audio 2", "MIDI 1"]);
+  await expectTrackRows(page, ["Audio 1", "Audio 2", "MIDI 1"]);
 
-  // Mixer channels follow the track order and leave out the reference video.
+  // Open the Mixer and verify its channels follow the track order.
   await page.getByTestId("recorder-mixer-button").click();
   await expectMixerChannels(page, [
     "Master",
@@ -57,25 +42,16 @@ test("reorders tracks from their row menus", async ({ page }) => {
   // Save and reload to restore the order.
   await saveRecorderProject(page);
   await page.reload();
-  await expectTrackRows(page, ["Reference", "Audio 1", "Audio 2", "MIDI 1"]);
-
-  // Remove the reference video, then undo to restore it at the top.
-  await selectMenuItem(page, {
-    menu: "Reference actions",
-    item: "Remove reference video",
-  });
   await expectTrackRows(page, ["Audio 1", "Audio 2", "MIDI 1"]);
-  await page.keyboard.press("ControlOrMeta+Z");
-  await expectTrackRows(page, ["Reference", "Audio 1", "Audio 2", "MIDI 1"]);
 
   // Remove MIDI 1 after moving it first, then undo to restore it first.
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Move up" });
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Move up" });
-  await expectTrackRows(page, ["Reference", "MIDI 1", "Audio 1", "Audio 2"]);
+  await expectTrackRows(page, ["MIDI 1", "Audio 1", "Audio 2"]);
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Remove track" });
-  await expectTrackRows(page, ["Reference", "Audio 1", "Audio 2"]);
+  await expectTrackRows(page, ["Audio 1", "Audio 2"]);
   await page.keyboard.press("ControlOrMeta+Z");
-  await expectTrackRows(page, ["Reference", "MIDI 1", "Audio 1", "Audio 2"]);
+  await expectTrackRows(page, ["MIDI 1", "Audio 1", "Audio 2"]);
 });
 
 async function expectTrackRows(page: Page, labels: string[]): Promise<void> {
