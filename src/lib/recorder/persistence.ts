@@ -166,7 +166,7 @@ export function deserializeRecorderRuntimeState({
       id: track.id,
       nextTakeNumber: 1,
       height: track.height,
-      clips: (track.clips ?? deserializeSingleClip(track)).map((clip, index) =>
+      clips: getTrackClips(track).map((clip, index) =>
         deserializeAudioClip({ context, clip, index }),
       ),
       eq: deserializeEq(track.eq),
@@ -227,9 +227,13 @@ function serializeAudioClip(
   };
 }
 
-function deserializeSingleClip(
+// Older saves store at most one clip with its timing on the track.
+function getTrackClips(
   track: SerializedAudioTrackState<Float32Array>,
 ): SerializedAudioClip<Float32Array>[] {
+  if (track.clips) {
+    return track.clips;
+  }
   if (!track.clip) {
     return [];
   }
