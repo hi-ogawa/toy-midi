@@ -43,7 +43,7 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { RECORDING_TRACK_ID } from "./recording-track.ts";
+import { RECORDING_TRACK_ID, splitRecordingTrack } from "./recording-track.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
@@ -370,9 +370,9 @@ export class RecorderRuntime {
     const track = createAudioTrackState({
       name: createNumberedName({
         // Capture keeps its own name, so ordinary tracks number from Audio 1.
-        names: audioTracks
-          .filter((track) => track.id !== RECORDING_TRACK_ID)
-          .map((track) => track.name),
+        names: splitRecordingTrack(audioTracks).audioTracks.map(
+          (track) => track.name,
+        ),
         prefix: "Audio",
       }),
     });
