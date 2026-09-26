@@ -111,11 +111,9 @@ interface PendingRecordingState extends Pick<
   AudioClip,
   "id" | "name" | "duration" | "timelineOffset"
 > {
-  /** The track armed at Record, so the take commits where it started. */
   trackId: string;
   recording: ActiveRecording;
   punchRange?: { start: number; end: number };
-  /** That track's comp including the in-progress take. */
   regions: ClipRegion[];
 }
 
@@ -572,7 +570,6 @@ export class RecorderRuntime {
     const { audioTracks, armedTrackId } = this.store.get();
     this.store.update({
       audioTracks: audioTracks.filter((track) => track.id !== id),
-      // Removing the armed track disarms it, like any other arm change.
       ...(id === armedTrackId && {
         armedTrackId: undefined,
         inputMonitoring: false,
@@ -727,8 +724,6 @@ export class RecorderRuntime {
     if (id !== undefined && !audioTracks.some((track) => track.id === id)) {
       throw new Error("Audio track state is missing.");
     }
-    // Monitoring starts only from the armed track's own toggle, so any arm
-    // change turns it off rather than carrying it to another track.
     this.store.update({ armedTrackId: id, inputMonitoring: false });
     this.syncMonitor();
   }
