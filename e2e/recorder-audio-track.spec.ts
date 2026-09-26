@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { selectMenuItem } from "./helpers";
@@ -214,4 +215,59 @@ test("imports ordered stems and persists independent lane heights", async ({
   ).toBeVisible();
   expect((await backing.boundingBox())!.height).toBe(firstHeight + 30);
   expect((await bass.boundingBox())!.height).toBe(secondHeight + 50);
+});
+
+test("appends imported and dropped audio as clips on a track", async ({
+  page,
+}) => {
+  await createRecorderProject(page);
+  const row = page.getByTestId("recorder-audio-track-row");
+  const sources = row.getByTestId("recorder-clip-audio-source");
+  const regions = row.getByTestId("recorder-clip-audio");
+  const takesToggle = page.getByTestId("recorder-takes-toggle");
+
+  // Import a file into Audio 1, which places it at the start.
+  const chooser = page.waitForEvent("filechooser");
+  await selectMenuItem(page, {
+    menu: "Audio 1 actions",
+    item: "Import audio…",
+  });
+  await (await chooser).setFiles("e2e/fixtures/test-audio.wav");
+  await expect(sources).toHaveCount(1);
+  const ruler = (await page
+    .getByTestId("recorder-timeline-ruler")
+    .boundingBox())!;
+  expect((await sources.boundingBox())!.x).toBeCloseTo(ruler.x, -1);
+  await expect(takesToggle).toHaveCount(0);
+
+  // Drop another file on the lane, which appends it at the drop position.
+  const bytes = [...(await readFile("e2e/fixtures/test-tones.wav"))];
+  const dataTransfer = await page.evaluateHandle((bytes) => {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(
+      new File([new Uint8Array(bytes)], "dropped.wav", { type: "audio/wav" }),
+    );
+    return dataTransfer;
+  }, bytes);
+  await sources.first().dispatchEvent("drop", {
+    dataTransfer,
+    clientX: ruler.x + DEFAULT_PIXELS_PER_BEAT * 4,
+  });
+  await expect(sources).toHaveCount(2);
+  // The newer clip wins the comp from its start onward.
+  const dropped = regions.filter({ hasText: "dropped.wav" });
+  expect((await dropped.boundingBox())!.x).toBeCloseTo(
+    ruler.x + DEFAULT_PIXELS_PER_BEAT * 4,
+    -1,
+  );
+
+  // Both clips stay on the track, so it offers its takes.
+  await takesToggle.click();
+  await expect(page.getByTestId("recorder-take-row")).toHaveCount(2);
+
+  // Undo removes only the dropped clip.
+  await page.keyboard.press("Control+z");
+  await expect(sources).toHaveCount(1);
+  await expect(regions).toHaveCount(1);
+  await expect(regions).toContainText("test-audio.wav");
 });

@@ -125,17 +125,21 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
     },
   });
-  const audioTrackMutation = useMutation({
-    mutationFn: ({ file, id }: { file: File; id: string }) => {
-      return runtime.setAudioTrack(id, file);
+  const importClipMutation = useMutation({
+    mutationFn: (input: {
+      trackId: string;
+      file: File;
+      timelineOffset: number;
+    }) => {
+      return runtime.importAudioClip(input);
     },
   });
   const addAudioMutation = useMutation({
     mutationFn: async (input: File) => {
       const files = await resolveAudioFiles(input);
       for (const file of files) {
-        const id = runtime.addAudioTrack();
-        await runtime.setAudioTrack(id, file);
+        const trackId = runtime.addAudioTrack();
+        await runtime.importAudioClip({ trackId, file, timelineOffset: 0 });
       }
     },
   });
@@ -479,12 +483,17 @@ export function Recorder({ projectId }: { projectId: string }) {
                       <AudioTrackActions
                         label={track.name}
                         removeDisabled={recordingIntoTrack !== undefined}
+                        importDisabled={flags.isRecording}
                         onRename={(name) =>
                           runtime.setAudioTrackName({ id: track.id, name })
                         }
                         onEffectsOpen={() => effects.showEffects(track.id)}
-                        onFileChange={(file) =>
-                          audioTrackMutation.mutate({ file, id: track.id })
+                        onImport={(file) =>
+                          importClipMutation.mutate({
+                            trackId: track.id,
+                            file,
+                            timelineOffset: 0,
+                          })
                         }
                         onRemove={() => {
                           runtime.removeAudioTrack(track.id);
@@ -517,6 +526,16 @@ export function Recorder({ projectId }: { projectId: string }) {
                       testId="audio"
                       emptyLabel="Record or import audio"
                       recordingClipId={recordingIntoTrack?.id}
+                      onFileDrop={
+                        flags.isRecording
+                          ? undefined
+                          : ({ file, position }) =>
+                              importClipMutation.mutate({
+                                trackId: track.id,
+                                file,
+                                timelineOffset: position,
+                              })
+                      }
                       pixelsPerBeat={timeline.pixelsPerBeat}
                       beatsPerBar={timeline.beatsPerBar}
                       subdivisionsPerBeat={timeline.subdivisionsPerBeat}

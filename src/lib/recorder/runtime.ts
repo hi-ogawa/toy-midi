@@ -376,28 +376,35 @@ export class RecorderRuntime {
     this.updateTrack(id, (track) => ({ ...track, name }));
   }
 
-  async setAudioTrack(id: string, file: File): Promise<void> {
+  /** Append decoded audio as a new clip, which undo removes again. */
+  async importAudioClip({
+    trackId,
+    file,
+    timelineOffset,
+  }: {
+    trackId: string;
+    file: File;
+    timelineOffset: number;
+  }): Promise<void> {
     const buffer = await this.context.decodeAudioData(await file.arrayBuffer());
-    if (!this.store.get().audioTracks.some((track) => track.id === id)) {
+    const { audioTracks, captureStatus } = this.store.get();
+    if (captureStatus === "recording" || captureStatus === "processing") {
+      throw new Error("Cannot import audio while recording.");
+    }
+    // The track can be removed while the file decodes.
+    const track = audioTracks.find((track) => track.id === trackId);
+    if (!track) {
       return;
     }
-    const track = this.updateTrack(id, (track) => ({
-      ...track,
-      clips: [
-        createAudioClip({
-          buffer,
-          name: file.name,
-        }),
-      ],
-    }));
-    const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    this.syncTrackPlayback(track);
-    if (wasPlaying) {
-      this.transport.play();
-    }
+    const clip: AudioClip = {
+      ...createAudioClip({ buffer, name: file.name }),
+      timelineOffset,
+    };
+    const snapshot: RecorderClipInsertRemoveSnapshot = {
+      tracks: [{ trackId, clips: [{ clip, index: track.clips.length }] }],
+    };
+    this.applyClipInsertRemove({ operation: "insert", snapshot });
+    this.history.pushClips({ snapshot });
   }
 
   async addMidiTrack({ program }: { program: number }): Promise<void> {

@@ -434,6 +434,7 @@ export function AudioTimelineLane({
   recordingClipId,
   testId,
   emptyLabel,
+  onFileDrop,
   pixelsPerBeat,
   viewportStartBeat,
   tempo,
@@ -454,6 +455,8 @@ export function AudioTimelineLane({
   testId: "audio" | "comp" | "take-lane";
   recordingClipId?: string;
   emptyLabel?: string;
+  /** Receives a dropped file with the snapped timeline position under it. */
+  onFileDrop?: (input: { file: File; position: number }) => void;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   tempo: number;
@@ -483,6 +486,29 @@ export function AudioTimelineLane({
         tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
+      })}
+      {...(onFileDrop && {
+        onDragOver: (event: React.DragEvent<HTMLDivElement>) => {
+          if (event.dataTransfer.types.includes("Files")) {
+            event.preventDefault();
+          }
+        },
+        onDrop: (event: React.DragEvent<HTMLDivElement>) => {
+          const file = event.dataTransfer.files[0];
+          if (!file) {
+            return;
+          }
+          event.preventDefault();
+          onFileDrop({
+            file,
+            position: getTimelinePointerPosition(event, {
+              pixelsPerBeat,
+              subdivisionsPerBeat,
+              tempo,
+              viewportStartBeat,
+            }),
+          });
+        },
       })}
     >
       {emptyLabel && clips.length === 0 && recordingClipId === undefined && (
@@ -919,12 +945,37 @@ function getTimelineSurfaceProps({
       viewportStartBeat,
     }),
     onPointerDown: (event) => {
-      const rect = event.currentTarget.getBoundingClientRect();
-      const beat = snapToGrid(
-        (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        1 / subdivisionsPerBeat,
+      onSeek(
+        getTimelinePointerPosition(event, {
+          pixelsPerBeat,
+          subdivisionsPerBeat,
+          tempo,
+          viewportStartBeat,
+        }),
       );
-      onSeek(beatsToSeconds(Math.max(0, beat), tempo));
     },
   };
+}
+
+/** Timeline seconds under the pointer, snapped to the grid and clamped at zero. */
+function getTimelinePointerPosition(
+  event: React.MouseEvent<HTMLElement>,
+  {
+    pixelsPerBeat,
+    subdivisionsPerBeat,
+    tempo,
+    viewportStartBeat,
+  }: {
+    pixelsPerBeat: number;
+    subdivisionsPerBeat: number;
+    tempo: number;
+    viewportStartBeat: number;
+  },
+): number {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const beat = snapToGrid(
+    (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+    1 / subdivisionsPerBeat,
+  );
+  return beatsToSeconds(Math.max(0, beat), tempo);
 }
