@@ -6,16 +6,7 @@ import {
   openInputPanel,
 } from "./recorder-helpers";
 
-useFakeAudioInput();
-test.use({
-  launchOptions: {
-    args: [
-      "--autoplay-policy=user-gesture-required",
-      "--use-fake-device-for-media-stream",
-      "--use-fake-ui-for-media-stream",
-    ],
-  },
-});
+useFakeAudioInput({ requireUserGesture: true });
 
 test("restores input after interaction and remembers explicit off", async ({
   page,

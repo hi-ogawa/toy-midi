@@ -4,13 +4,21 @@ import { test, type Locator, type Page } from "@playwright/test";
 /** Call at file scope to enable a fake microphone for this test file. */
 export function useFakeAudioInput({
   audioFilePath,
-}: { audioFilePath?: string } = {}): void {
+  requireUserGesture,
+}: {
+  audioFilePath?: string;
+  // Keep Chromium's default autoplay policy for tests that depend on a user
+  // gesture resuming the AudioContext.
+  requireUserGesture?: boolean;
+} = {}): void {
   test.use({
     permissions: ["microphone"],
     launchOptions: {
       // launchOptions replaces the config value, so retain the autoplay flag.
       args: [
-        "--autoplay-policy=no-user-gesture-required",
+        requireUserGesture
+          ? "--autoplay-policy=user-gesture-required"
+          : "--autoplay-policy=no-user-gesture-required",
         "--use-fake-device-for-media-stream",
         "--use-fake-ui-for-media-stream",
         // Chromium loops WAV input by default (%noloop plays once).
