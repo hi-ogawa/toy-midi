@@ -20,10 +20,10 @@ import {
  */
 export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   title: string;
-  // Optional for recorder projects saved before locator support.
+  // 🟢 Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
-  // Optional for recorder projects saved before MIDI track support.
+  // 🟢 Optional for recorder projects saved before MIDI track support.
   midiTracks?: (Omit<
     MidiTrackState,
     | "tabAnnotationEnabled"
@@ -37,17 +37,17 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     viewMode?: MidiTrackState["viewMode"];
   })[];
   recordingTrack: {
-    // Optional for projects saved before track EQ support.
+    // 🟢 Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
     soloed: boolean;
     takes: SerializedAudioClip<ChannelData>[];
-    // Optional for recorder projects saved before multi-take support.
+    // 🟢 Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
-  // Optional for recorder projects saved before mixer support.
+  // 🟢 Optional for recorder projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
   loop?: {
@@ -79,7 +79,7 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
 }
 
 interface SerializedAudioTrackState<ChannelData> {
-  // Optional for projects saved before track EQ support.
+  // 🟢 Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
@@ -92,13 +92,13 @@ interface SerializedAudioTrackState<ChannelData> {
   muted: boolean;
   soloed: boolean;
   timelineOffset: number;
-  // optional for back compat
+  // 🟢 Optional for recorder projects saved before clip trim support.
   trimStart?: number;
   trimEnd?: number;
 }
 
 interface SerializedAudioClip<ChannelData> {
-  // Optional for recorder projects saved before multi-take support.
+  // 🟢 Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
   name?: string;
