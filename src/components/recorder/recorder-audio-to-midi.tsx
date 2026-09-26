@@ -254,11 +254,11 @@ function getTranscriptionSources(state: RecorderRuntimeState) {
   return [
     ...audioTracks.map((source) => ({
       track: source,
-      label: `${source.name}${source.clips[0] ? ` · ${source.clips[0].name}` : ""}`,
+      label: source.name,
     })),
     {
       track: recordingTrack,
-      label: `${recordingTrack.name} · committed takes`,
+      label: recordingTrack.name,
     },
   ].filter(({ track }) =>
     track.regions.some(
