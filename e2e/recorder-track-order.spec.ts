@@ -82,22 +82,36 @@ test("reorders tracks from their row menus", async ({ page }) => {
 });
 
 async function expectTrackRows(page: Page, labels: string[]): Promise<void> {
-  const menus = page
-    .getByTestId("recorder-track-scroll")
-    .getByRole("button", { name: / actions$/ });
-  await expect
-    .poll(() => getAriaLabels(menus))
-    .toEqual(labels.map((label) => `${label} actions`));
+  await test.step(
+    `Expect track rows: ${labels.join(", ")}`,
+    async () => {
+      const menus = page
+        .getByTestId("recorder-track-scroll")
+        .getByRole("button", { name: / actions$/ });
+      await expect
+        .poll(() => getAriaLabels(menus))
+        .toEqual(labels.map((label) => `${label} actions`));
+    },
+    { box: true },
+  );
 }
 
 async function expectMixerChannels(
   page: Page,
   labels: string[],
 ): Promise<void> {
-  const sliders = page.getByTestId("recorder-mixer-panel").getByRole("slider");
-  await expect
-    .poll(() => getAriaLabels(sliders))
-    .toEqual(labels.map((label) => `${label} gain`));
+  await test.step(
+    `Expect mixer channels: ${labels.join(", ")}`,
+    async () => {
+      const sliders = page
+        .getByTestId("recorder-mixer-panel")
+        .getByRole("slider");
+      await expect
+        .poll(() => getAriaLabels(sliders))
+        .toEqual(labels.map((label) => `${label} gain`));
+    },
+    { box: true },
+  );
 }
 
 function getAriaLabels(locator: Locator): Promise<(string | null)[]> {
