@@ -9,8 +9,8 @@ export function useFakeAudioInput({
   audioFilePath?: string;
   // Keep Chromium's default autoplay policy for tests that depend on a user
   // gesture resuming the AudioContext. page.evaluate() also grants user
-  // activation, so avoid it before the interaction under test. Any keydown,
-  // including Escape, counts as a gesture.
+  // activation, so avoid it before the interaction under test. An Escape
+  // keydown also counts as a gesture in Chromium.
   requireUserGesture?: boolean;
 } = {}): void {
   test.use({
