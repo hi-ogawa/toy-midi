@@ -32,6 +32,12 @@ export function useRecorderEffectsUi() {
     });
   }
 
+  function showEffects(id: string) {
+    setOpenEffects((current) =>
+      current.has(id) ? current : new Set(current).add(id),
+    );
+  }
+
   function closeEffects(id: string) {
     setOpenEffects((current) => {
       if (!current.has(id)) {
@@ -43,7 +49,7 @@ export function useRecorderEffectsUi() {
     });
   }
 
-  return { openEffects, toggleEffects, closeEffects };
+  return { openEffects, toggleEffects, showEffects, closeEffects };
 }
 
 export function RecorderEffects({

@@ -52,7 +52,6 @@ const MAX_RECORDING_SECONDS = 5 * 60;
 export const MIN_CLIP_DURATION = 0.01;
 const DEFAULT_TRACK_HEIGHT = 72;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
-const MIN_RECORDING_TRACK_HEIGHT = 116;
 const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
@@ -163,6 +162,9 @@ export interface RecorderRuntimeState {
   selectedChannel: number;
   latencyCompensation: number;
   inputMonitoring: boolean;
+  // Destination for the next take. Currently only the recording track can be
+  // armed because other audio tracks cannot record.
+  armedTrackId?: string;
 }
 
 export type PersistableRecorderRuntimeState = Pick<
@@ -547,11 +549,7 @@ export class RecorderRuntime {
     }
     this.updateTrack(id, (track) => ({
       ...track,
-      // The Capture row carries input controls and needs more room.
-      height:
-        id === RECORDING_TRACK_ID
-          ? clampRecordingTrackHeight(height)
-          : clampTrackHeight(height),
+      height: clampTrackHeight(height),
     }));
   }
 
@@ -703,9 +701,23 @@ export class RecorderRuntime {
     this.transport.seek(position);
   }
 
+  setArmedTrack(id?: string): void {
+    const { captureStatus } = this.store.get();
+    if (captureStatus === "recording" || captureStatus === "processing") {
+      throw new Error("Cannot change the armed track while recording.");
+    }
+    if (id !== undefined && id !== RECORDING_TRACK_ID) {
+      throw new Error("Only the recording track can be armed.");
+    }
+    this.store.update({ armedTrackId: id });
+  }
+
   async startRecording(): Promise<void> {
     if (!this.captureInput) {
       throw new Error("Enable an audio input before recording.");
+    }
+    if (this.store.get().armedTrackId !== RECORDING_TRACK_ID) {
+      throw new Error("Arm a track before recording.");
     }
     const context = this.context;
     await context.resume();
@@ -992,14 +1004,8 @@ export class RecorderRuntime {
       playback.dispose();
     }
     this.midiTrackPlaybacks.clear();
-    // Clamp loaded external state at the runtime boundary so older projects
-    // cannot restore a Capture row too short for its current controls.
     const audioTracks = project.audioTracks.map((track) =>
-      resolveTrackRegions(
-        track.id === RECORDING_TRACK_ID
-          ? { ...track, height: clampRecordingTrackHeight(track.height) }
-          : track,
-      ),
+      resolveTrackRegions(track),
     );
     for (const track of audioTracks) {
       if (track.clips.length === 0) {
@@ -1420,7 +1426,7 @@ function createRecordingTrackState(): AudioTrackState {
   return {
     id: RECORDING_TRACK_ID,
     eq: createDefaultMultibandEq(),
-    height: MIN_RECORDING_TRACK_HEIGHT,
+    height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
     muted: false,
     soloed: false,
@@ -1456,8 +1462,4 @@ function createMidiTrackState({
 
 export function clampTrackHeight(height: number): number {
   return clamp(height, MIN_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
-}
-
-function clampRecordingTrackHeight(height: number): number {
-  return clamp(height, MIN_RECORDING_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
 }

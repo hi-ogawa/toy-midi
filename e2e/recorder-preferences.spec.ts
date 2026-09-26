@@ -4,8 +4,10 @@ import {
   addRecorderMidiTrack,
   createRecorderProject,
   enableInput,
-  saveRecorderProject,
+  openInputPanel,
+  openInputSetup,
   openRecorderMidiInstrument,
+  saveRecorderProject,
   selectRecorderMidiInstrument,
 } from "./recorder-helpers";
 
@@ -24,7 +26,7 @@ test("input edits preserve newer timeline preferences across projects", async ({
   });
   await autoScroll.click();
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
-  await page.getByRole("button", { name: "Configure audio input" }).click();
+  await openInputSetup(page);
   await page.getByLabel("Device").selectOption({ label: "Fake Audio Input 1" });
   await page
     .getByTestId("recorder-input-setup")
@@ -36,6 +38,29 @@ test("input edits preserve newer timeline preferences across projects", async ({
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
   await createRecorderProject(page);
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
+});
+
+test("remembers the Audio Input panel across reloads and projects", async ({
+  page,
+}) => {
+  // Open the Audio Input panel.
+  await createRecorderProject(page);
+  const panel = await openInputPanel(page);
+
+  // Reload and open another project with the panel still open.
+  await page.reload();
+  await expect(panel).toBeVisible();
+  await createRecorderProject(page);
+  await expect(panel).toBeVisible();
+
+  // Close the panel and keep it closed after a reload.
+  await panel
+    .getByRole("button", { name: "Close Audio Input", exact: true })
+    .click();
+  await expect(panel).toBeHidden();
+  await page.reload();
+  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+  await expect(panel).toBeHidden();
 });
 
 test("remembers the instrument preference without changing saved tracks", async ({

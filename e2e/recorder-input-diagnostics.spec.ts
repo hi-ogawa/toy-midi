@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { useFakeAudioInput } from "./helpers";
-import { createRecorderProject } from "./recorder-helpers";
+import { createRecorderProject, openInputSetup } from "./recorder-helpers";
 
 useFakeAudioInput();
 
 test("inspect live editor input diagnostics", async ({ page }) => {
   // Open diagnostic readings without activating capture or assuming missing latency is zero.
   await createRecorderProject(page);
-  await page.getByRole("button", { name: "Configure audio input" }).click();
+  await openInputSetup(page);
   const setup = page.getByTestId("recorder-input-setup");
   const readings = setup.getByRole("region", {
     name: "Audio diagnostic readings",

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -11,12 +12,8 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   // Open independent effects panels for backing audio and Capture.
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  await page
-    .getByRole("button", { name: "Audio 1 effects", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  await selectMenuItem(page, { menu: "Capture actions", item: "Effects…" });
   const audio = page.getByTestId("recorder-effects-panel").filter({
     has: page.getByRole("heading", { name: "Audio 1 Effects", exact: true }),
   });
@@ -62,14 +59,10 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Audio 1 effects", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
   await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
   await audio.getByRole("button", { name: "Select band 1" }).click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Capture actions", item: "Effects…" });
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "500",
   );
@@ -156,9 +149,7 @@ test("resizes an effects panel", async ({ page }) => {
   // Open Capture effects with room to grow the panel.
   await page.setViewportSize({ width: 1600, height: 1000 });
   await createRecorderProject(page);
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Capture actions", item: "Effects…" });
   const panel = page.getByTestId("recorder-effects-panel");
   const initial = (await panel.boundingBox())!;
 

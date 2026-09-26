@@ -1,5 +1,6 @@
-// The Capture track is an ordinary audioTracks entry with this fixed id. Only
-// the Capture row UI, its minimum height, and its removal guard depend on it.
+// The Capture track is an ordinary audioTracks entry with this fixed id. Until
+// every audio track can record, arming, recording, and monitoring target only
+// this track, and the Capture row UI and removal guard also depend on it.
 export const RECORDING_TRACK_ID = "__capture__";
 
 /** The Capture track is always present in audioTracks. */
