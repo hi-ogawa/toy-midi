@@ -58,7 +58,13 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     .getByTestId("recorder-clip-take-lane-source");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-audio");
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takeRows).toHaveCount(0);
   await expect(take).toHaveCount(1);
+  await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(takeLane).toHaveCount(1);
+  await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
   expect(
@@ -108,13 +114,8 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await waitForRecordingSamples(secondRecording);
   await recordButton.click();
 
-  // The second recording is retained as a new source take, and the track
-  // offers its takes once it has more than one clip.
+  // The second recording is retained as a new source take.
   await expect(take).toHaveCount(2);
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(takeRows).toHaveCount(0);
-  await takesToggle.click();
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
   await expect(takeLane).toHaveCount(2);
   await expect(takeRows).toHaveCount(2);
   expect(
