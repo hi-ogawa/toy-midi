@@ -126,7 +126,11 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
   const importClipMutation = useMutation({
-    mutationFn: (input: { trackId: string; file: File }) => {
+    mutationFn: (input: {
+      trackId: string;
+      file: File;
+      timelineOffset: number;
+    }) => {
       return runtime.importAudioClip(input);
     },
   });
@@ -135,7 +139,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       const files = await resolveAudioFiles(input);
       for (const file of files) {
         const trackId = runtime.addAudioTrack();
-        await runtime.importAudioClip({ trackId, file });
+        await runtime.importAudioClip({ trackId, file, timelineOffset: 0 });
       }
     },
   });
@@ -466,6 +470,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       importClipMutation.mutate({
                         trackId: track.id,
                         file,
+                        timelineOffset: 0,
                       })
                     }
                     onRemove={() => {
@@ -479,6 +484,16 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clips={track.clips}
                   regions={track.regions}
                   testId="audio"
+                  onFileDrop={
+                    flags.isRecording
+                      ? undefined
+                      : ({ file, position }) =>
+                          importClipMutation.mutate({
+                            trackId: track.id,
+                            file,
+                            timelineOffset: position,
+                          })
+                  }
                   pixelsPerBeat={timeline.pixelsPerBeat}
                   beatsPerBar={timeline.beatsPerBar}
                   subdivisionsPerBeat={timeline.subdivisionsPerBeat}
