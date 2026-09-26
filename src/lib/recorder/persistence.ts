@@ -83,6 +83,8 @@ interface SerializedAudioTrackState<ChannelData> {
   // 🟢 Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
+  // 🟢 Optional for projects saved before audio track names.
+  name?: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -129,6 +131,7 @@ export function serializeRecorderRuntimeState(
     locators: state.locators,
     audioTracks: state.audioTracks.map((track) => ({
       id: track.id,
+      name: track.name,
       height: track.height,
       eq: track.eq,
       gain: track.gain,
@@ -155,11 +158,22 @@ export function deserializeRecorderRuntimeState({
   context: AudioContext;
   project: SerializedRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
+  const audioTracks = foldRecordingTrack(project);
+  // Unnamed tracks keep the labels they were shown with: Capture, and ordinary
+  // tracks numbered in order without it.
+  const ordinaryTrackIds = audioTracks
+    .filter((track) => track.id !== RECORDING_TRACK_ID)
+    .map((track) => track.id);
   return {
     title: project.title,
     locators: project.locators ?? [],
-    audioTracks: foldRecordingTrack(project).map((track) => ({
+    audioTracks: audioTracks.map((track) => ({
       id: track.id,
+      name:
+        track.name ??
+        (track.id === RECORDING_TRACK_ID
+          ? "Capture"
+          : `Audio ${ordinaryTrackIds.indexOf(track.id) + 1}`),
       nextTakeNumber: track.nextTakeNumber ?? 1,
       height: track.height,
       clips: getTrackClips(track).map((clip, index) =>

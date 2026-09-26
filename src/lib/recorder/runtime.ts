@@ -62,6 +62,7 @@ type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 // the Capture track records takes.
 export interface AudioTrackState {
   id: string;
+  name: string;
   eq: MultibandEqParameters;
   height: number;
   gain: number;
@@ -357,10 +358,17 @@ export class RecorderRuntime {
   }
 
   addAudioTrack(): string {
-    const track = createAudioTrackState();
-    this.store.update({
-      audioTracks: [...this.store.get().audioTracks, track],
+    const { audioTracks } = this.store.get();
+    const track = createAudioTrackState({
+      name: createNumberedName({
+        // Capture keeps its own name, so ordinary tracks number from Audio 1.
+        names: audioTracks
+          .filter((track) => track.id !== RECORDING_TRACK_ID)
+          .map((track) => track.name),
+        prefix: "Audio",
+      }),
     });
+    this.store.update({ audioTracks: [...audioTracks, track] });
     return track.id;
   }
 
@@ -551,6 +559,14 @@ export class RecorderRuntime {
       ...track,
       height: clampTrackHeight(height),
     }));
+  }
+
+  setTrackName({ id, name }: { id: string; name: string }): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, name }));
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, name }));
+    }
   }
 
   removeAudioTrack(id: string): void {
@@ -1412,10 +1428,11 @@ function deriveRecordingTrim({
   };
 }
 
-function createAudioTrackState(): AudioTrackState {
+function createAudioTrackState({ name }: { name: string }): AudioTrackState {
   return {
     eq: createDefaultMultibandEq(),
     id: crypto.randomUUID(),
+    name,
     nextTakeNumber: 1,
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
@@ -1429,6 +1446,7 @@ function createAudioTrackState(): AudioTrackState {
 function createRecordingTrackState(): AudioTrackState {
   return {
     id: RECORDING_TRACK_ID,
+    name: "Capture",
     eq: createDefaultMultibandEq(),
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,

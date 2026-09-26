@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { selectMenuItem } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -188,10 +189,30 @@ test("imports ordered stems and persists independent lane heights", async ({
     .toBe(secondHeight + 50);
   expect((await rows.nth(0).boundingBox())!.height).toBe(firstHeight + 30);
 
-  // Save and reload both stems with their order, waveforms, and lane sizes intact.
+  // Rename the second stem from its track menu.
+  page.once("dialog", (dialog) => dialog.accept("Bass"));
+  await selectMenuItem(page, { menu: "Audio 2 actions", item: "Rename…" });
+  await expect(
+    rows.nth(1).getByTitle("Resize Bass", { exact: true }),
+  ).toBeAttached();
+
+  // Rename the Capture track from its track menu.
+  page.once("dialog", (dialog) => dialog.accept("Vocals"));
+  await selectMenuItem(page, { menu: "Capture actions", item: "Rename…" });
+  await expect(
+    page.getByRole("button", { name: "Vocals actions" }),
+  ).toBeVisible();
+
+  // Save and reload both stems with their order, names, waveforms, and lane sizes intact.
   await saveRecorderProject(page);
   await page.reload();
   await expect(rows).toHaveCount(2);
+  await expect(
+    page.getByRole("button", { name: "Bass actions" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Vocals actions" }),
+  ).toBeVisible();
   await expect(rows.nth(0)).toContainText("backing.wav");
   await expect(rows.nth(1)).toContainText("bass.wav");
   await expect(
