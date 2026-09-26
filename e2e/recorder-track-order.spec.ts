@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { openMenu, selectMenuItem } from "./helpers";
+import { getMenuItem, selectMenuItem } from "./helpers";
 import {
   addRecorderMidiTrack,
   createRecorderProject,
@@ -23,17 +23,15 @@ test("reorders tracks from their row menus", async ({ page }) => {
 
   // The first row cannot move up. Opening its menu also waits for YouTube to
   // load the video, which took up to 8.5s in parallel runs.
-  const referenceMenu = await openMenu(page, "Reference actions");
   await expect(
-    referenceMenu.getByRole("menuitem", { name: "Move up" }),
+    await getMenuItem(page, { menu: "Reference actions", item: "Move up" }),
   ).toBeDisabled();
   await page.keyboard.press("Escape");
   await expectTrackRows(page, ["Reference", "Audio 1", "MIDI 1", "Audio 2"]);
 
   // The last row cannot move down.
-  const audioMenu = await openMenu(page, "Audio 2 actions");
   await expect(
-    audioMenu.getByRole("menuitem", { name: "Move down" }),
+    await getMenuItem(page, { menu: "Audio 2 actions", item: "Move down" }),
   ).toBeDisabled();
   await page.keyboard.press("Escape");
 

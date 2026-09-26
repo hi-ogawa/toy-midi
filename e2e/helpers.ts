@@ -39,23 +39,26 @@ export async function selectMenuItem(
   await test.step(
     `Select ${item} from ${menu}`,
     async () => {
-      const menuLocator = await openMenu(page, menu);
-      await menuLocator
-        .getByRole("menuitem", { name: item })
-        .or(menuLocator.getByRole("menuitemcheckbox", { name: item }))
-        .click();
+      const menuItem = await getMenuItem(page, { menu, item });
+      await menuItem.click();
     },
     { box: true },
   );
 }
 
-/** Open a named menu and return its locator. */
-export async function openMenu(page: Page, name: string): Promise<Locator> {
+/** Open a named menu and return an item locator. */
+export async function getMenuItem(
+  page: Page,
+  { menu, item }: { menu: string; item: string | RegExp },
+): Promise<Locator> {
   return test.step(
-    `Open ${name}`,
+    `Get ${item} from ${menu}`,
     async () => {
-      await page.getByRole("button", { name }).click();
-      return page.getByRole("menu", { name });
+      await page.getByRole("button", { name: menu }).click();
+      const menuLocator = page.getByRole("menu", { name: menu });
+      return menuLocator
+        .getByRole("menuitem", { name: item })
+        .or(menuLocator.getByRole("menuitemcheckbox", { name: item }));
     },
     { box: true },
   );
