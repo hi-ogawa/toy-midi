@@ -13,6 +13,7 @@ import {
   getRecorderMidiNote,
   getRecorderBeat,
   createRecorderProject,
+  armTrack,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
@@ -30,6 +31,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   await enableInput(page);
+  await armTrack(page, { track: "Capture" });
   const recordButton = page.getByTestId("recorder-record-button");
   for (const beat of [2, 4]) {
     await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
@@ -270,6 +272,7 @@ test("imports a recorder archive with single-clip tracks and a separate recordin
 
   // Record another take, which continues the saved take numbering.
   await enableInput(page);
+  await armTrack(page, { track: "Capture" });
   const record = page.getByTestId("recorder-record-button");
   await record.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));

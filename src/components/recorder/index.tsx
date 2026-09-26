@@ -165,6 +165,10 @@ export function Recorder({ projectId }: { projectId: string }) {
     (track) => track.id !== RECORDING_TRACK_ID,
   );
   const takes = recordingTrack.clips;
+  const recordingIntoTrack =
+    state.pendingRecording?.trackId === recordingTrack.id
+      ? state.pendingRecording
+      : undefined;
 
   function togglePlay() {
     if (flags.transportDisabled) {
@@ -545,8 +549,14 @@ export function Recorder({ projectId }: { projectId: string }) {
               recording={{
                 armed: state.armedTrackId === recordingTrack.id,
                 armDisabled: flags.isRecording,
-                monitoring: state.inputMonitoring,
-                monitorDisabled: !input.active,
+                monitoring:
+                  state.inputMonitoring &&
+                  state.armedTrackId === recordingTrack.id,
+                monitorBlocker: !input.active
+                  ? "input"
+                  : state.armedTrackId !== recordingTrack.id
+                    ? "arm"
+                    : undefined,
                 onArmedChange: (armed) => {
                   runtime.setArmedTrack(armed ? recordingTrack.id : undefined);
                   if (armed && !input.active) {
@@ -559,10 +569,10 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <AudioTimelineLane
                 clips={takes}
-                regions={state.previewClipRegions ?? recordingTrack.regions}
+                regions={recordingIntoTrack?.regions ?? recordingTrack.regions}
                 testId="comp"
                 emptyLabel="Turn input on, arm, place the playhead, then record"
-                recordingClipId={state.pendingRecording?.id}
+                recordingClipId={recordingIntoTrack?.id}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}

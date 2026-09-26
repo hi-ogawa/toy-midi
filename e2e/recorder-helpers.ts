@@ -291,10 +291,27 @@ export async function enableInput(page: Page) {
       await panel
         .getByRole("button", { name: "Close Audio Input", exact: true })
         .click();
-      // Arm Capture so callers are ready to record.
-      const arm = page.getByTestId("recorder-arm-toggle");
+    },
+    { box: true },
+  );
+}
+
+/** Arm an audio track by its displayed name as the recording destination. */
+export async function armTrack(page: Page, { track }: { track: string }) {
+  await test.step(
+    `Arm ${track}`,
+    async () => {
+      const arm = page.getByRole("button", {
+        name: `Arm ${track} for recording`,
+        exact: true,
+      });
       await arm.click();
-      await expect(arm).toHaveAttribute("aria-pressed", "true");
+      await expect(
+        page.getByRole("button", {
+          name: `Disarm ${track} for recording`,
+          exact: true,
+        }),
+      ).toHaveAttribute("aria-pressed", "true");
     },
     { box: true },
   );
