@@ -163,6 +163,7 @@ export interface RecorderRuntimeState {
   inputChannelCount: number;
   selectedChannel: number;
   latencyCompensation: number;
+  // Monitoring always plays through the armed track's channel.
   inputMonitoring: boolean;
   // Destination for the next take. Input monitoring also routes through it.
   armedTrackId?: string;
@@ -349,15 +350,22 @@ export class RecorderRuntime {
     this.store.update({ selectedChannel: channel });
   }
 
-  setInputMonitoring(inputMonitoring: boolean): void {
-    if (
-      inputMonitoring &&
-      (!this.captureInput || this.store.get().armedTrackId === undefined)
-    ) {
-      return;
+  /** Monitoring routes through the armed track, so callers name that track. */
+  setInputMonitoring({
+    trackId,
+    enabled,
+  }: {
+    trackId: string;
+    enabled: boolean;
+  }): void {
+    if (!this.captureInput) {
+      throw new Error("Turn input on before changing monitoring.");
     }
-    this.captureInput?.setMonitoring(inputMonitoring);
-    this.store.update({ inputMonitoring });
+    if (trackId !== this.store.get().armedTrackId) {
+      throw new Error("Only the armed track can be monitored.");
+    }
+    this.captureInput.setMonitoring(enabled);
+    this.store.update({ inputMonitoring: enabled });
   }
 
   addAudioTrack(): string {
