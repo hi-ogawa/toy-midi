@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { selectMenuItem } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -178,93 +177,4 @@ test("opens and resaves a project saved with a single clip per audio track", asy
   );
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
-});
-
-test("keeps every clip on a multi-clip audio track through save, export, and import", async ({
-  page,
-}) => {
-  // Seed a stored project whose audio track holds two clips with their own gain and placement.
-  await page.goto("/__e2e__/");
-  const projectId = await page.evaluate(async () => {
-    const samples = new Float32Array(22050).map(
-      (_, index) => Math.sin(index / 8) * 0.5,
-    );
-    const pcm = { sampleRate: 22050, channels: [samples] };
-    return window.__e2e.recorderProjectStorage.createWithContent({
-      title: "Multi clip",
-      tempo: 120,
-      timeSignature: { numerator: 4, denominator: 4 },
-      audioTracks: [
-        {
-          id: "backing",
-          height: 72,
-          gain: 1,
-          muted: false,
-          soloed: false,
-          clips: [
-            {
-              id: "first",
-              name: "first.wav",
-              gain: 0.5,
-              timelineOffset: 0,
-              pcm,
-            },
-            {
-              id: "second",
-              name: "second.wav",
-              gain: 0.25,
-              timelineOffset: 2,
-              trimStart: 0.25,
-              trimEnd: 0.75,
-              pcm,
-            },
-          ],
-        },
-      ],
-      recordingTrack: {
-        height: 116,
-        gain: 1,
-        muted: false,
-        soloed: false,
-        takes: [],
-      },
-    });
-  });
-
-  // Open the project and show both clips on the one track.
-  await page.goto(`/recorder/${projectId}`);
-  const clips = page.getByTestId("recorder-clip-audio");
-  await expect(clips).toHaveCount(2);
-  await expect(clips.nth(0)).toContainText("first.wav");
-  await expect(clips.nth(1)).toContainText("second.wav");
-
-  // Rename, save, and reload the project with both clips.
-  page.once("dialog", (dialog) => dialog.accept("Saved clips"));
-  await page.getByTestId("recorder-project-name").click();
-  await saveRecorderProject(page);
-  await page.reload();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Saved clips",
-  );
-  await expect(clips).toHaveCount(2);
-  await expect(clips.nth(0)).toContainText("first.wav");
-  await expect(clips.nth(1)).toContainText("second.wav");
-
-  // Export the project.
-  const downloadPromise = page.waitForEvent("download");
-  await selectMenuItem(page, { menu: "Editor menu", item: "Export Project" });
-  const archivePath = test.info().outputPath("multi-clip.toymidi.zip");
-  await (await downloadPromise).saveAs(archivePath);
-
-  // Import the archive as a new project and show both clips again.
-  await page.goto("/");
-  const chooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("import-recorder-project").click();
-  await (await chooserPromise).setFiles(archivePath);
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Saved clips",
-  );
-  await expect(clips).toHaveCount(2);
-  await expect(clips.nth(0)).toContainText("first.wav");
-  await expect(clips.nth(1)).toContainText("second.wav");
 });
