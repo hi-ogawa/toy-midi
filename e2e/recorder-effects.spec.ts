@@ -9,16 +9,16 @@ import {
 test("edits and persists independent EQ settings per audio track", async ({
   page,
 }) => {
-  // Open independent effects panels for backing audio on Audio 2 and capture on Audio 1.
+  // Open independent effects panels for capture on Audio 1 and backing audio on Audio 2.
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
-  const audio = page.getByTestId("recorder-effects-panel").filter({
-    has: page.getByRole("heading", { name: "Audio 2 Effects", exact: true }),
-  });
+  await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
   const capture = page.getByTestId("recorder-effects-panel").filter({
     has: page.getByRole("heading", { name: "Audio 1 Effects", exact: true }),
+  });
+  const audio = page.getByTestId("recorder-effects-panel").filter({
+    has: page.getByRole("heading", { name: "Audio 2 Effects", exact: true }),
   });
 
   // Verify the default EQ settings on the backing track.
@@ -59,10 +59,10 @@ test("edits and persists independent EQ settings per audio track", async ({
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
   await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
   await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
   await audio.getByRole("button", { name: "Select band 1" }).click();
-  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "500",
   );
