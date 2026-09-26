@@ -109,12 +109,19 @@ describe("legacy recorder conversion", () => {
       id: "backing",
       gain: 0.6,
       soloed: true,
-      timelineOffset: 1.25,
-      trimStart: 0,
-      trimEnd: 2 / 48000,
-      clip: { name: "backing.wav", pcm: { sampleRate: 48000, channels } },
+      clips: [
+        {
+          name: "backing.wav",
+          timelineOffset: 1.25,
+          trimStart: 0,
+          trimEnd: 2 / 48000,
+          pcm: { sampleRate: 48000, channels },
+        },
+      ],
     });
-    expect(result.audioTracks[0].clip!.pcm.channels[0]).not.toBe(channels[0]);
+    expect(result.audioTracks[0].clips![0].pcm.channels[0]).not.toBe(
+      channels[0],
+    );
   });
 
   it("converts saved v1 data with legacy defaults", async () => {
