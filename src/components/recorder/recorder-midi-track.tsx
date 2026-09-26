@@ -2,11 +2,11 @@ import { useMutation } from "@tanstack/react-query";
 import {
   DownloadIcon,
   UploadIcon,
-  MoreVerticalIcon,
   Music2Icon,
   FileMusicIcon,
   Settings2Icon,
   Trash2Icon,
+  SlidersHorizontalIcon,
 } from "lucide-react";
 import {
   useCallback,
@@ -22,6 +22,7 @@ import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import { exportMidi } from "../../lib/midi-export";
 import { importMidiNotes, parseMidiFile } from "../../lib/midi-import";
 import { isBlackKey, MAX_PITCH } from "../../lib/music";
+import { exportMusicXml } from "../../lib/musicxml/render";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -35,7 +36,6 @@ import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import type { Note } from "../../types";
 import { pluralCount } from "../../utils/plural-count";
 import { openFilePicker } from "../file-drop-input";
-import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import {
   DropdownMenu,
@@ -47,7 +47,7 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { MidiInstrument } from "./recorder-midi-instrument";
-import { TrackRow } from "./recorder-tracks";
+import { TrackMenuButton, TrackRow } from "./recorder-tracks";
 import {
   useRecorderMidiInteraction,
   getMidiGridPosition,
@@ -67,8 +67,7 @@ export function MidiTrackRow({
   beatsPerBar,
   subdivisionsPerBeat,
   viewportStartBeat,
-  effectsOpen,
-  onEffectsToggle,
+  onEffectsOpen,
   onRemove,
   midiInteraction,
   onTranscribe,
@@ -81,8 +80,7 @@ export function MidiTrackRow({
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
-  effectsOpen: boolean;
-  onEffectsToggle: () => void;
+  onEffectsOpen: () => void;
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
@@ -133,6 +131,35 @@ export function MidiTrackRow({
       );
     },
   });
+  const exportMusicXmlMutation = useMutation({
+    mutationFn: async () => {
+      const state = runtime.store.get();
+      const xml = exportMusicXml({
+        notes: track.notes,
+        title: state.title,
+        tempo: state.tempo,
+        timeSignature: state.timeSignature,
+        keySignature: track.keySignature,
+        openStringPitches: track.tabOpenStringPitches,
+        locators: state.locators.map(({ id, beat, label }) => ({
+          id,
+          position: beat,
+          label,
+        })),
+      });
+      downloadBlob(
+        new Blob([xml], { type: "application/vnd.recordare.musicxml+xml" }),
+        buildExportFileName({
+          baseName: `${state.title}-${track.name}`,
+          extension: "musicxml",
+        }),
+      );
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error(error.message);
+    },
+  });
 
   return (
     <div onFocus={midiInteraction.activate}>
@@ -149,8 +176,6 @@ export function MidiTrackRow({
         gain={track.gain}
         muted={track.muted}
         soloed={track.soloed}
-        effectsOpen={effectsOpen}
-        onEffectsToggle={onEffectsToggle}
         onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
         onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
         onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
@@ -158,6 +183,7 @@ export function MidiTrackRow({
         action={
           <MidiTrackActions
             label={track.name}
+            onEffectsOpen={onEffectsOpen}
             viewMode={track.viewMode}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
             onRemove={onRemove}
@@ -180,6 +206,7 @@ export function MidiTrackRow({
               })
             }
             onExportMidi={() => exportMidiMutation.mutate()}
+            onExportMusicXml={() => exportMusicXmlMutation.mutate()}
           />
         }
       >
@@ -229,9 +256,11 @@ export function MidiTrackRow({
 }
 
 function MidiTrackActions({
+  onEffectsOpen,
   isImporting,
   onImportMidi,
   onExportMidi,
+  onExportMusicXml,
   label,
   viewMode,
   onViewModeToggle,
@@ -240,9 +269,11 @@ function MidiTrackActions({
   onTranscribe,
   onScorePreview,
 }: {
+  onEffectsOpen: () => void;
   isImporting: boolean;
   onImportMidi: () => void;
   onExportMidi: () => void;
+  onExportMusicXml: () => void;
   label: string;
   viewMode: MidiTrackState["viewMode"];
   onViewModeToggle: () => void;
@@ -254,13 +285,7 @@ function MidiTrackActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-          title={`${label} actions`}
-          aria-label={`${label} actions`}
-        >
-          <MoreVerticalIcon className="size-3.5" />
-        </Button>
+        <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuCheckboxItem
@@ -270,7 +295,12 @@ function MidiTrackActions({
         >
           Overview
         </DropdownMenuCheckboxItem>
+
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onInstrumentOpen}>
           <Settings2Icon />
           Instrument…
@@ -291,6 +321,10 @@ function MidiTrackActions({
         <DropdownMenuItem onSelect={onExportMidi}>
           <DownloadIcon />
           Export MIDI
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onExportMusicXml}>
+          <DownloadIcon />
+          Export MusicXML
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
@@ -408,10 +442,12 @@ function getMidiOverviewPitchDomain(notes: Note[]) {
     noteMin = Math.min(noteMin, note.pitch);
     noteMax = Math.max(noteMax, note.pitch);
   }
+  // Include the C octave around the note center so at least two octave guides
+  // are visible. Ranges that already contain two Cs stay unchanged.
   const center = (noteMin + noteMax) / 2;
-  const span = Math.max(12, noteMax - noteMin); // ensure at least one octave
-  const min = center - span / 2;
-  const max = center + span / 2;
+  const octaveMin = Math.floor(center / 12) * 12;
+  const min = Math.min(noteMin, octaveMin);
+  const max = Math.max(noteMax, octaveMin + 12);
   return { min, max };
 }
 

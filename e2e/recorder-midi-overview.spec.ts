@@ -39,16 +39,16 @@ test("switches MIDI views and persists overview mode", async ({ page }) => {
   await page.keyboard.press("Escape");
   await createRecorderMidiNote(page, row, { beat: 0, pitch: "C4" });
 
-  // Switch to overview and orient the note against its labeled C octave guide.
+  // Switch to overview and orient the note between two labeled C octave guides.
   await actions.click();
   await toggle.click();
   await page.keyboard.press("Escape");
   await expect(overview).toHaveAccessibleName("MIDI 1 note overview, 1 note");
   await expect(row.getByText("No notes", { exact: true })).toBeHidden();
-  const octaveGuide = overview.getByTestId("recorder-midi-octave-guide");
-  await expect(octaveGuide).toHaveCount(1);
-  await expect(octaveGuide).toHaveAttribute("data-pitch", "60");
-  await expect(octaveGuide).toHaveText("C4");
+  const octaveGuides = overview.getByTestId("recorder-midi-octave-guide");
+  await expect(octaveGuides).toHaveText(["C4", "C5"]);
+  await expect(octaveGuides.nth(0)).toHaveAttribute("data-pitch", "60");
+  await expect(octaveGuides.nth(1)).toHaveAttribute("data-pitch", "72");
   await expect(grid).toHaveCount(0);
 
   // Save and reload the project with overview mode still selected.

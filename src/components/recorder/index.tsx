@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -31,6 +32,7 @@ import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
+import { RecorderInputPanel } from "./recorder-input-panel";
 import { RecorderLocatorRow } from "./recorder-locators";
 import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
@@ -46,6 +48,7 @@ import {
 } from "./recorder-timeline";
 import {
   AudioTrackActions,
+  CaptureTrackActions,
   TakesDisclosureRow,
   TakeTrackRow,
   TrackRow,
@@ -69,6 +72,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     useRecorderPreference("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
+  const [isInputPanelOpen, setIsInputPanelOpen] =
+    useRecorderPreference("inputPanelOpen");
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -91,10 +96,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const flags = deriveRecorderFlags({
-    captureStatus: state.captureStatus,
-    project,
-  });
+  const flags = deriveRecorderFlags({ state, project });
   const recorderInteraction = useRecorderInteraction({
     runtime,
     state,
@@ -157,7 +159,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const takes = clipInteraction.recordingTrack.clips;
 
   function togglePlay() {
-    if (flags.playDisabled) {
+    if (flags.transportDisabled) {
       return;
     }
     if (flags.isRecording) {
@@ -170,10 +172,23 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function toggleRecord() {
-    if (flags.recordDisabled) {
+    if (flags.transportDisabled) {
+      return;
+    }
+    if (flags.recordBlocker === "arm") {
+      toast.warning("Arm a track to record");
+      return;
+    }
+    if (flags.recordBlocker === "input") {
+      promptInputOn();
       return;
     }
     recordMutation.mutate(flags.isRecording ? "stop" : "start");
+  }
+
+  function promptInputOn() {
+    toast.warning("Turn input on to record");
+    setIsInputPanelOpen(true);
   }
 
   useWindowEvent("keydown", (event) => {
@@ -325,6 +340,9 @@ export function Recorder({ projectId }: { projectId: string }) {
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
+        inputPanelOpen={isInputPanelOpen}
+        inputAccessRequired={input.initialized && !input.hasAccess}
+        onInputPanelToggle={() => setIsInputPanelOpen((open) => !open)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -421,8 +439,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                 gain={track.gain}
                 muted={track.muted}
                 soloed={track.soloed}
-                effectsOpen={effects.openEffects.has(track.id)}
-                onEffectsToggle={() => effects.toggleEffects(track.id)}
                 onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
                 onMutedChange={(muted) =>
                   runtime.setTrackMix(track.id, { muted })
@@ -436,6 +452,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 action={
                   <AudioTrackActions
                     label={`Audio ${index + 1}`}
+                    onEffectsOpen={() => effects.showEffects(track.id)}
                     onFileChange={(file) =>
                       audioTrackMutation.mutate({ file, id: track.id })
                     }
@@ -480,8 +497,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 viewportStartBeat={timeline.viewportStartBeat}
-                effectsOpen={effects.openEffects.has(track.id)}
-                onEffectsToggle={() => effects.toggleEffects(track.id)}
+                onEffectsOpen={() => effects.showEffects(track.id)}
                 onRemove={() => {
                   runtime.removeMidiTrack(track.id);
                   effects.closeEffects(track.id);
@@ -501,8 +517,11 @@ export function Recorder({ projectId }: { projectId: string }) {
               height={state.recordingTrack.height}
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
-              effectsOpen={effects.openEffects.has("capture")}
-              onEffectsToggle={() => effects.toggleEffects("capture")}
+              action={
+                <CaptureTrackActions
+                  onEffectsOpen={() => effects.showEffects("capture")}
+                />
+              }
               onGainChange={(gain) =>
                 runtime.setTrackMix(state.recordingTrack.id, { gain })
               }
@@ -515,23 +534,21 @@ export function Recorder({ projectId }: { projectId: string }) {
               onHeightChange={(height) =>
                 runtime.setTrackHeight(state.recordingTrack.id, height)
               }
-              input={{
-                route: input.route.label,
-                routeNeedsSetup: input.route.needsSetup,
-                inputActive: input.active,
-                inputAnalyser: runtime.captureInput?.analyser,
-                inputMonitoring: state.inputMonitoring,
-                inputToggleDisabled:
-                  input.mutationPending ||
-                  !input.initialized ||
-                  flags.isRecording ||
-                  (!input.active && input.route.needsSetup),
-                tunerOpen: isTunerOpen,
-                onInputSetup: () => setIsInputSetupOpen(true),
-                onInputMonitoringChange: (monitoring) =>
+              recording={{
+                armed: state.armedTrackId === state.recordingTrack.id,
+                armDisabled: flags.isRecording,
+                monitoring: state.inputMonitoring,
+                monitorDisabled: !input.active,
+                onArmedChange: (armed) => {
+                  runtime.setArmedTrack(
+                    armed ? state.recordingTrack.id : undefined,
+                  );
+                  if (armed && !input.active) {
+                    promptInputOn();
+                  }
+                },
+                onMonitoringChange: (monitoring) =>
                   runtime.setInputMonitoring(monitoring),
-                onInputToggle: input.toggle,
-                onTunerToggle: () => setIsTunerOpen((open) => !open),
               }}
             >
               <AudioTimelineLane
@@ -541,7 +558,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clipInteraction.recordingTrack.regions
                 }
                 testId="comp"
-                emptyLabel="Enable input, place the playhead, then record"
+                emptyLabel="Turn input on, arm, place the playhead, then record"
                 recordingClipId={state.pendingRecording?.id}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -749,6 +766,27 @@ export function Recorder({ projectId }: { projectId: string }) {
               runtime.captureInput?.tunerAnalyser
             }
             onClose={() => setIsTunerOpen(false)}
+          />
+        )}
+        {isInputPanelOpen && (
+          <RecorderInputPanel
+            route={input.route.label}
+            routeNeedsSetup={input.route.needsSetup}
+            accessRequired={input.initialized && !input.hasAccess}
+            inputActive={input.active}
+            inputAnalyser={runtime.captureInput?.analyser}
+            toggleDisabled={
+              input.mutationPending ||
+              !input.initialized ||
+              flags.isRecording ||
+              (input.hasAccess && !input.active && input.route.needsSetup)
+            }
+            togglePending={input.togglePending}
+            tunerOpen={isTunerOpen}
+            onInputSetup={() => setIsInputSetupOpen(true)}
+            onInputToggle={input.toggle}
+            onTunerToggle={() => setIsTunerOpen((open) => !open)}
+            onClose={() => setIsInputPanelOpen(false)}
           />
         )}
         {isMixerOpen && (

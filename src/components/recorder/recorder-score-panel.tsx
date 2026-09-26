@@ -125,7 +125,7 @@ function RecorderScorePreview({
     () =>
       new ScoreViewerRuntime({
         clock: createRecorderScoreClock(recorder),
-        presentation: { scale: 1, viewportPadding: 12 },
+        presentation: { scale: 1, scrollerClassName: "p-3" },
       }),
   );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);

@@ -43,7 +43,8 @@ export type ScoreSource = {
 
 type ScoreViewerPresentation = {
   scale: number;
-  viewportPadding: number;
+  /** Classes for the scroll container, such as its surface padding. */
+  scrollerClassName: string;
 };
 
 /**
@@ -72,11 +73,16 @@ type CursorPosition = {
 // TODO: Expose this as a layout density control without coupling it to view zoom.
 const SCORE_LAYOUT_WIDTH = 1110;
 const MANUAL_SCROLL_IDLE_MS = 2000;
+// Room above the active system's cursor after auto-scroll, for markings drawn
+// above it such as tempo and section labels. In sheet pixels, so it scales
+// with the score.
+const SCROLL_HEADROOM = 48;
 
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
   // root
-  //   scroller             viewport-sized scroll container with surface padding
+  //   scroller             viewport-sized scroll container with caller-styled
+  //                        surface padding
   //     layoutBox          manually sized to sheet dimensions multiplied by scale;
   //                        supplies scroll extent since transforms do not affect layout
   //       sheet            fixed SCORE_LAYOUT_WIDTH OSMD coordinate space;
@@ -102,9 +108,11 @@ export class ScoreViewerRuntime {
   private timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   private readonly listeners = new Set<() => void>();
   private manualScrollTimer?: ReturnType<typeof setTimeout>;
+  /** Unscaled top of the active system's cursor. */
+  private cursorTop = 0;
 
   private readonly clock: ScoreViewerClock;
-  private readonly viewportPadding: number;
+  private readonly scrollerClassName: string;
   private scale: number;
 
   constructor({
@@ -116,7 +124,7 @@ export class ScoreViewerRuntime {
   }) {
     this.clock = clock;
     this.scale = presentation.scale;
-    this.viewportPadding = presentation.viewportPadding;
+    this.scrollerClassName = presentation.scrollerClassName;
     this.clock.subscribe(() => {
       const { currentTime, isPlaying } = this.clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.state.tempo);
@@ -148,8 +156,7 @@ export class ScoreViewerRuntime {
 
     this.scroller = document.createElement("section");
     this.scroller.dataset.testid = "score-viewer-scroll";
-    this.scroller.className = "h-full overflow-y-auto";
-    this.scroller.style.padding = `${this.viewportPadding}px`;
+    this.scroller.className = `h-full overflow-y-auto ${this.scrollerClassName}`;
     this.scroller.addEventListener("wheel", this.handleManualScroll);
     this.scroller.addEventListener("pointerdown", this.handleManualScroll);
 
@@ -205,8 +212,12 @@ export class ScoreViewerRuntime {
     if (sheetWidth === 0) {
       return;
     }
+    const { paddingLeft, paddingRight } = getComputedStyle(this.scroller);
     this.setScale(
-      (this.scroller.clientWidth - 2 * this.viewportPadding) / sheetWidth,
+      (this.scroller.clientWidth -
+        parseFloat(paddingLeft) -
+        parseFloat(paddingRight)) /
+        sheetWidth,
     );
   }
 
@@ -281,9 +292,15 @@ export class ScoreViewerRuntime {
     this.restart();
   }
 
-  seek(scoreTime: number) {
+  seek(seconds: number) {
     this.resumeAutoScroll();
-    this.clock.seek(scoreTimeToSeconds(scoreTime, this.state.tempo));
+    this.clock.seek(seconds);
+  }
+
+  /** Used by the offline score video render in packages/score-video. */
+  getDuration() {
+    const last = this.positions.at(-1);
+    return last ? scoreTimeToSeconds(last.time, this.state.tempo) : 0;
   }
 
   dispose() {
@@ -304,7 +321,9 @@ export class ScoreViewerRuntime {
     if (!target) {
       return;
     }
-    this.seek(Number(target.dataset.scoreTime));
+    this.seek(
+      scoreTimeToSeconds(Number(target.dataset.scoreTime), this.state.tempo),
+    );
   };
 
   private handleManualScroll = () => {
@@ -357,6 +376,7 @@ export class ScoreViewerRuntime {
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
+    this.cursorTop = currentAnchor.top;
     const cursorTop = currentAnchor.top * this.scale;
     const cursorBottom =
       (currentAnchor.top + currentAnchor.height) * this.scale;
@@ -366,8 +386,19 @@ export class ScoreViewerRuntime {
       this.manualScrollTimer === undefined &&
       (cursorTop < viewportTop || viewportBottom < cursorBottom)
     ) {
-      this.scroller.scrollTo({ top: Math.max(cursorTop - 24, 0) });
+      this.scrollToCursor();
     }
+  }
+
+  /**
+   * Scroll the active system to the top, as auto-scroll does on reveal. Also
+   * used by the offline score video render in packages/score-video.
+   */
+  scrollToCursor() {
+    // The sheet starts below the scroller's top padding in scroll content.
+    const sheetTop = parseFloat(getComputedStyle(this.scroller).paddingTop);
+    const headroomTop = (this.cursorTop - SCROLL_HEADROOM) * this.scale;
+    this.scroller.scrollTo({ top: Math.max(sheetTop + headroomTop, 0) });
   }
 
   private setState(update: Partial<ScoreViewerRuntimeState>) {

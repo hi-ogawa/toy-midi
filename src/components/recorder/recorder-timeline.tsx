@@ -1,7 +1,6 @@
 import {
   LoaderCircleIcon,
   Music2Icon,
-  MoreVerticalIcon,
   PlusIcon,
   UploadIcon,
   Trash2Icon,
@@ -38,6 +37,7 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
+import { TrackMenuButton } from "./recorder-tracks";
 
 export function TimelineHeader({
   beatsPerBar,
@@ -88,7 +88,7 @@ export function TimelineHeader({
             data-testid="recorder-add-midi-track"
             onClick={onAddMidiTrack}
             disabled={isAddingMidi}
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
             title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
           >
             <Music2Icon className="size-3.5" />
@@ -96,7 +96,7 @@ export function TimelineHeader({
           <Button
             onClick={onAddAudioTrack}
             disabled={isAddingAudio}
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
             title="Add empty audio track"
           >
             <PlusIcon className="size-3.5" />
@@ -113,7 +113,7 @@ export function TimelineHeader({
             title={
               isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
             }
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
           >
             {isAddingAudio ? (
               <LoaderCircleIcon className="size-3.5 animate-spin" />
@@ -607,13 +607,7 @@ export function ReferenceTimelineRow({
         <div className="flex self-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                title="Reference actions"
-                aria-label="Reference actions"
-                className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-              >
-                <MoreVerticalIcon className="size-3.5" />
-              </Button>
+              <TrackMenuButton label="Reference" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem onSelect={onRemove} className="text-red-400">
@@ -627,7 +621,7 @@ export function ReferenceTimelineRow({
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-7"
+            className="size-6"
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
         </div>

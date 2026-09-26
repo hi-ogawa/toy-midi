@@ -4,6 +4,7 @@ import midiPackage from "@tonejs/midi";
 import { selectMenuItem } from "./helpers";
 import {
   addRecorderMidiTrack,
+  createRecorderMidiNote,
   createRecorderProject,
   getRecorderMidiNote,
   openRecorderMidiInstrument,
@@ -70,4 +71,36 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
         duration: note.durationTicks / exported.header.ppq,
       })),
   ).toEqual([{ pitch: 60, beat: 1, duration: 0.5 }]);
+});
+
+test("exports MusicXML from track actions", async ({ page }) => {
+  // Create an empty MIDI track.
+  await createRecorderProject(page);
+  const row = await addRecorderMidiTrack(page);
+
+  // Export the empty track and show why MusicXML cannot be exported.
+  await selectMenuItem(page, {
+    menu: "MIDI 1 actions",
+    item: "Export MusicXML",
+  });
+  await expect(
+    page.locator('[data-sonner-toast][data-type="error"]'),
+  ).toHaveText("Add at least one note before exporting MusicXML");
+
+  // Add a D4 note and download MusicXML containing it.
+  await createRecorderMidiNote(page, row, { beat: 1, pitch: "D4" });
+  const downloadPromise = page.waitForEvent("download");
+  await selectMenuItem(page, {
+    menu: "MIDI 1 actions",
+    item: "Export MusicXML",
+  });
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(
+    /^Untitled-MIDI_1-.*\.musicxml$/,
+  );
+  const destination = test.info().outputPath("export.musicxml");
+  await download.saveAs(destination);
+  const xml = await readFile(destination, "utf8");
+  // Bass notation is written an octave above the sounding D4.
+  expect(xml).toMatch(/<step>D<\/step>\s*<octave>5<\/octave>/);
 });

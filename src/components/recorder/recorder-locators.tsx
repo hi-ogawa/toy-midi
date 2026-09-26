@@ -87,10 +87,10 @@ export function RecorderLocatorRow({
         <Button
           title="Add locator at playhead (L)"
           aria-label="Add locator at playhead"
-          className="size-6 hover:bg-neutral-700"
+          className="size-5 hover:bg-neutral-700"
           onClick={locatorInteraction.add}
         >
-          <PlusIcon className="size-3.5" />
+          <PlusIcon className="size-3" />
         </Button>
       </div>
       <div

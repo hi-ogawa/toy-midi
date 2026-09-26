@@ -8,6 +8,7 @@ import {
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
+  MicIcon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -85,6 +86,9 @@ export function RecorderHeader({
   onMixerToggle,
   onHelpOpen,
   mixerOpen,
+  inputPanelOpen,
+  inputAccessRequired,
+  onInputPanelToggle,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
@@ -122,6 +126,9 @@ export function RecorderHeader({
   onMixerToggle: () => void;
   onHelpOpen: () => void;
   mixerOpen: boolean;
+  inputPanelOpen: boolean;
+  inputAccessRequired: boolean;
+  onInputPanelToggle: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -140,7 +147,7 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-play-button"
         onClick={onPlayToggle}
-        disabled={flags.playDisabled}
+        disabled={flags.transportDisabled}
         aria-pressed={isPlaying}
         className={cn(
           "size-9",
@@ -161,7 +168,7 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-record-button"
         onClick={onRecordToggle}
-        disabled={flags.recordDisabled}
+        disabled={flags.transportDisabled}
         aria-pressed={flags.isRecording}
         className={cn(
           "size-9",
@@ -385,6 +392,26 @@ export function RecorderHeader({
         )}
       >
         <SlidersVerticalIcon className="size-5" />
+      </Button>
+      <Button
+        data-testid="recorder-input-panel-button"
+        onClick={onInputPanelToggle}
+        aria-pressed={inputPanelOpen}
+        title={
+          inputAccessRequired
+            ? "Audio Input (microphone access required)"
+            : "Audio Input"
+        }
+        className={cn(
+          "size-9",
+          inputAccessRequired
+            ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
+            : inputPanelOpen
+              ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+              : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
+        )}
+      >
+        <MicIcon className="size-5" />
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
