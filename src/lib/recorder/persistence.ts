@@ -36,7 +36,7 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
   })[];
-  // Retained for projects saved with the Capture track outside audioTracks.
+  // 🔴 Retained for projects saved with the Capture track outside audioTracks.
   recordingTrack?: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
