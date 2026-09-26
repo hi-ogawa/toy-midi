@@ -27,15 +27,17 @@ import { RecorderGainSlider } from "./recorder-mixer";
 
 export function AudioTrackActions({
   label,
+  importDisabled,
   onRename,
   onEffectsOpen,
-  onFileChange,
+  onImport,
   onRemove,
 }: {
   label: string;
+  importDisabled: boolean;
   onRename: (name: string) => void;
   onEffectsOpen: () => void;
-  onFileChange: (file: File) => void;
+  onImport: (file: File) => void;
   onRemove: () => void;
 }) {
   return (
@@ -51,12 +53,13 @@ export function AudioTrackActions({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
+          disabled={importDisabled}
           onSelect={() =>
-            openFilePicker({ accept: "audio/*,.wav", onFile: onFileChange })
+            openFilePicker({ accept: "audio/*,.wav", onFile: onImport })
           }
         >
           <UploadIcon />
-          Replace audio
+          Import audio…
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">

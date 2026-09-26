@@ -125,17 +125,21 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
     },
   });
-  const audioTrackMutation = useMutation({
-    mutationFn: ({ file, id }: { file: File; id: string }) => {
-      return runtime.setAudioTrack(id, file);
+  const importClipMutation = useMutation({
+    mutationFn: (input: {
+      trackId: string;
+      file: File;
+      timelineOffset: number;
+    }) => {
+      return runtime.importAudioClip(input);
     },
   });
   const addAudioMutation = useMutation({
     mutationFn: async (input: File) => {
       const files = await resolveAudioFiles(input);
       for (const file of files) {
-        const id = runtime.addAudioTrack();
-        await runtime.setAudioTrack(id, file);
+        const trackId = runtime.addAudioTrack();
+        await runtime.importAudioClip({ trackId, file, timelineOffset: 0 });
       }
     },
   });
@@ -386,6 +390,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
               isAddingAudio={addAudioMutation.isPending}
+              isRecording={flags.isRecording}
               isAddingMidi={addMidiMutation.isPending}
               onAddMidiTrack={() => addMidiMutation.mutate()}
               onAddAudioTrack={() => runtime.addAudioTrack()}
@@ -460,8 +465,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                       runtime.setTrackName({ id: track.id, name })
                     }
                     onEffectsOpen={() => effects.showEffects(track.id)}
-                    onFileChange={(file) =>
-                      audioTrackMutation.mutate({ file, id: track.id })
+                    importDisabled={flags.isRecording}
+                    onImport={(file) =>
+                      importClipMutation.mutate({
+                        trackId: track.id,
+                        file,
+                        timelineOffset: 0,
+                      })
                     }
                     onRemove={() => {
                       runtime.removeAudioTrack(track.id);
@@ -474,6 +484,16 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clips={track.clips}
                   regions={track.regions}
                   testId="audio"
+                  onFileDrop={
+                    flags.isRecording
+                      ? undefined
+                      : ({ file, position }) =>
+                          importClipMutation.mutate({
+                            trackId: track.id,
+                            file,
+                            timelineOffset: position,
+                          })
+                  }
                   pixelsPerBeat={timeline.pixelsPerBeat}
                   beatsPerBar={timeline.beatsPerBar}
                   subdivisionsPerBeat={timeline.subdivisionsPerBeat}
