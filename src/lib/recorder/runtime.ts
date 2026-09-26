@@ -367,12 +367,13 @@ export class RecorderRuntime {
 
   addAudioTrack(): string {
     const { audioTracks } = this.store.get();
+    // Capture keeps its own name, so ordinary tracks number from Audio 1.
+    const audioTrackNames = splitRecordingTrack(audioTracks).audioTracks.map(
+      (track) => track.name,
+    );
     const track = createAudioTrackState({
       name: createNumberedName({
-        // Capture keeps its own name, so ordinary tracks number from Audio 1.
-        names: splitRecordingTrack(audioTracks).audioTracks.map(
-          (track) => track.name,
-        ),
+        names: audioTrackNames,
         prefix: "Audio",
       }),
     });
