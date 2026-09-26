@@ -74,16 +74,8 @@ function writeProjectContent(
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
-      clip: track.clip
-        ? {
-            ...track.clip,
-            pcm: writeProjectPcm(
-              zip,
-              track.clip.pcm,
-              `audio/tracks/${trackIndex}`,
-            ),
-          }
-        : undefined,
+      // Only loading reads the single clip shape, and saves always write clips.
+      clip: undefined,
       clips: track.clips?.map((clip, clipIndex) => ({
         ...clip,
         pcm: writeProjectPcm(
