@@ -720,20 +720,17 @@ export class RecorderRuntime {
   }
 
   setArmedTrack(id?: string): void {
-    const { captureStatus, audioTracks, inputMonitoring } = this.store.get();
+    const { captureStatus, audioTracks } = this.store.get();
     if (captureStatus === "recording" || captureStatus === "processing") {
       throw new Error("Cannot change the armed track while recording.");
     }
     if (id !== undefined && !audioTracks.some((track) => track.id === id)) {
       throw new Error("Audio track state is missing.");
     }
-    // Monitoring has no route without an arm, so disarming also turns it off.
-    const nextInputMonitoring = id !== undefined && inputMonitoring;
-    this.store.update({
-      armedTrackId: id,
-      inputMonitoring: nextInputMonitoring,
-    });
-    this.captureInput?.setMonitoring(nextInputMonitoring);
+    // Monitoring starts only from the armed track's own toggle, so any arm
+    // change turns it off rather than carrying it to another track.
+    this.store.update({ armedTrackId: id, inputMonitoring: false });
+    this.captureInput?.setMonitoring(false);
     this.captureInput?.setMonitorOutput(this.getMonitorOutput());
   }
 
