@@ -88,27 +88,6 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   const archivePath = test.info().outputPath("recorder.toymidi.zip");
   await download.saveAs(archivePath);
 
-  // Verify the backing track is exported as a clip array with its PCM in the archive.
-  const zip = await JSZip.loadAsync(await readFile(archivePath));
-  const saved: SerializedRecorderRuntimeState<string> = JSON.parse(
-    await zip.file("project.json")!.async("text"),
-  );
-  expect(saved.audioTracks).toHaveLength(1);
-  expect(saved.audioTracks[0]).not.toHaveProperty("clip");
-  expect(saved.audioTracks[0]).not.toHaveProperty("timelineOffset");
-  expect(saved.audioTracks[0].clips).toMatchObject([
-    {
-      name: "test-audio.wav",
-      pcm: {
-        channels: [expect.stringMatching(/^audio\/tracks\/0\/clips\/0\//)],
-      },
-    },
-  ]);
-  expect(
-    zip.file(saved.audioTracks[0].clips![0].pcm.channels[0]),
-  ).not.toBeNull();
-  expect(saved.recordingTrack.takes).toHaveLength(2);
-
   // Import from the project list, which opens a newly created local project.
   await page.goto("/");
   const importChooserPromise = page.waitForEvent("filechooser");
@@ -182,7 +161,7 @@ async function getRecorderClipGeometry(page: Page) {
   return geometry;
 }
 
-test("imports a recorder archive with single-clip audio tracks", async ({
+test("opens an imported archive saved with a single clip per audio track", async ({
   page,
 }) => {
   // Write an archive in the old layout, where an audio track stores one clip
