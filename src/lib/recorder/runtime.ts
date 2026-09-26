@@ -354,19 +354,12 @@ export class RecorderRuntime {
     this.store.update({ selectedChannel: channel });
   }
 
-  /** Monitoring routes through the armed track, so callers name that track. */
-  setInputMonitoring({
-    trackId,
-    enabled,
-  }: {
-    trackId: string;
-    enabled: boolean;
-  }): void {
-    if (!this.captureInput) {
-      throw new Error("Turn input on before changing monitoring.");
+  setInputMonitoring(enabled: boolean): void {
+    if (enabled && !this.captureInput) {
+      throw new Error("Turn input on before monitoring.");
     }
-    if (trackId !== this.store.get().armedTrackId) {
-      throw new Error("Only the armed track can be monitored.");
+    if (enabled && this.store.get().armedTrackId === undefined) {
+      throw new Error("Arm a track before monitoring.");
     }
     this.store.update({ inputMonitoring: enabled });
     this.syncMonitor();
