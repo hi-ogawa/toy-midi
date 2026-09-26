@@ -4,7 +4,6 @@ import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   dragBy,
-  armTrack,
   enableInput,
   getRecorderPosition,
   saveRecorderProject,
@@ -17,9 +16,8 @@ useFakeAudioInput();
 test("records, plays, and manages multiple takes", async ({ page }) => {
   await createRecorderProject(page);
 
-  // Connect the browser input and arm Capture before recording.
+  // Connect the browser input before recording is available.
   await enableInput(page);
-  await armTrack(page, { track: "Capture" });
 
   // Input monitoring can be enabled before recording starts.
   const monitorButton = page.getByTestId("recorder-input-monitor");
@@ -236,17 +234,25 @@ test("arms before input is on and records once input starts", async ({
 
   // Arm Capture while input is off, which keeps the arm, asks for input, and
   // opens the input panel.
-  await armTrack(page, { track: "Capture" });
+  const arm = page.getByTestId("recorder-arm-toggle");
+  await arm.click();
+  await expect(arm).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Turn input on to record")).toBeVisible();
-  await expect(page.getByTestId("recorder-input-panel")).toBeVisible();
+  const panel = page.getByTestId("recorder-input-panel");
+  await expect(panel).toBeVisible();
 
   // Press Record before input is on, which does not start recording.
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
 
-  // Turn input on and record into the track armed before input started.
-  await enableInput(page);
+  // Turn input on from the panel, which leaves the arm in place.
+  const inputPower = panel.getByRole("button", { name: "Input power" });
+  await inputPower.click();
+  await expect(inputPower).toHaveAttribute("aria-pressed", "true");
+  await expect(arm).toHaveAttribute("aria-pressed", "true");
+
+  // Record into the track armed before input started.
   await recordButton.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await recordButton.click();

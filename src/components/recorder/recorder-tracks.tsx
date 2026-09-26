@@ -165,7 +165,7 @@ export function TrackRow({
         </div>
         <div className="flex self-center gap-1">
           {action}
-          {recording && <TrackRecordingToggles title={title} {...recording} />}
+          {recording && <TrackRecordingToggles {...recording} />}
           <RecorderMixToggle
             active={muted}
             kind="mute"
@@ -211,17 +211,13 @@ interface TrackRecordingControls {
 
 /** Arm chooses where the next take goes; monitor routes input through this track. */
 function TrackRecordingToggles({
-  title,
   armed,
   armDisabled,
   monitoring,
   monitorDisabled,
   onArmedChange,
   onMonitoringChange,
-}: TrackRecordingControls & { title: string }) {
-  const armLabel = armed
-    ? `Disarm ${title} for recording`
-    : `Arm ${title} for recording`;
+}: TrackRecordingControls) {
   return (
     <>
       <Button
@@ -233,8 +229,8 @@ function TrackRecordingToggles({
           armed &&
             "border-red-500/60 bg-red-500/35 hover:!bg-red-500/40 hover:!text-red-300",
         )}
-        title={armLabel}
-        aria-label={armLabel}
+        title={armed ? "Disarm for recording" : "Arm for recording"}
+        aria-label={armed ? "Disarm for recording" : "Arm for recording"}
         aria-pressed={armed}
       >
         R

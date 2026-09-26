@@ -5,7 +5,6 @@ import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   dragBy,
-  armTrack,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
@@ -16,7 +15,6 @@ useFakeAudioInput();
 test("records only the punched interval into the comp", async ({ page }) => {
   await createRecorderProject(page);
   await enableInput(page);
-  await armTrack(page, { track: "Capture" });
 
   const recordButton = page.getByTestId("recorder-record-button");
   const take = page.getByTestId("recorder-clip-comp-source");
