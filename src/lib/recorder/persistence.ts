@@ -7,6 +7,7 @@ import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "../pitch-spelling.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { type AudioClip, createAudioClip } from "./audio-clip.ts";
+import { RECORDING_TRACK_ID } from "./recording-track.ts";
 import {
   type PersistableRecorderRuntimeState,
   type RecorderLocator,
@@ -35,7 +36,8 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
   })[];
-  recordingTrack: {
+  // 🔴 Retained for projects saved with the Capture track outside audioTracks.
+  recordingTrack?: {
     // 🟢 Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
     height: number;
@@ -85,6 +87,8 @@ interface SerializedAudioTrackState<ChannelData> {
   gain: number;
   muted: boolean;
   soloed: boolean;
+  // 🟢 Optional for tracks saved before they could record takes.
+  nextTakeNumber?: number;
   // 🟢 Optional for projects saved with a single clip per track.
   clips?: SerializedAudioClip<ChannelData>[];
   // 🔴 Retained for tracks saved with a single clip and track-level timing.
@@ -130,18 +134,10 @@ export function serializeRecorderRuntimeState(
       gain: track.gain,
       muted: track.muted,
       soloed: track.soloed,
+      nextTakeNumber: track.nextTakeNumber,
       clips: track.clips.map(serializeAudioClip),
     })),
     midiTracks: state.midiTracks,
-    recordingTrack: {
-      height: state.recordingTrack.height,
-      eq: state.recordingTrack.eq,
-      gain: state.recordingTrack.gain,
-      muted: state.recordingTrack.muted,
-      soloed: state.recordingTrack.soloed,
-      nextTakeNumber: state.recordingTrack.nextTakeNumber,
-      takes: state.recordingTrack.clips.map(serializeAudioClip),
-    },
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
     loop: state.loop,
@@ -162,9 +158,9 @@ export function deserializeRecorderRuntimeState({
   return {
     title: project.title,
     locators: project.locators ?? [],
-    audioTracks: project.audioTracks.map((track) => ({
+    audioTracks: foldRecordingTrack(project).map((track) => ({
       id: track.id,
-      nextTakeNumber: 1,
+      nextTakeNumber: track.nextTakeNumber ?? 1,
       height: track.height,
       clips: getTrackClips(track).map((clip, index) =>
         deserializeAudioClip({ context, clip, index }),
@@ -184,20 +180,6 @@ export function deserializeRecorderRuntimeState({
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       eq: deserializeEq(track.eq),
     })),
-    recordingTrack: {
-      id: crypto.randomUUID(),
-      height: project.recordingTrack.height,
-      eq: deserializeEq(project.recordingTrack.eq),
-      gain: project.recordingTrack.gain,
-      muted: project.recordingTrack.muted,
-      soloed: project.recordingTrack.soloed,
-      nextTakeNumber:
-        project.recordingTrack.nextTakeNumber ??
-        project.recordingTrack.takes.length + 1,
-      clips: project.recordingTrack.takes.map((clip, index) =>
-        deserializeAudioClip({ context, clip, index }),
-      ),
-    },
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
     loop: project.loop ?? { enabled: false },
@@ -206,6 +188,26 @@ export function deserializeRecorderRuntimeState({
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
   };
+}
+
+/** Move a separately saved Capture track into the track list under its fixed id. */
+function foldRecordingTrack(
+  project: SerializedRecorderRuntimeState,
+): SerializedAudioTrackState<Float32Array>[] {
+  const { recordingTrack } = project;
+  if (!recordingTrack) {
+    return project.audioTracks;
+  }
+  const { takes, ...track } = recordingTrack;
+  return [
+    {
+      ...track,
+      id: RECORDING_TRACK_ID,
+      nextTakeNumber: track.nextTakeNumber ?? takes.length + 1,
+      clips: takes,
+    },
+    ...project.audioTracks,
+  ];
 }
 
 function serializeAudioClip(

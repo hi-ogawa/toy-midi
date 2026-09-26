@@ -161,10 +161,11 @@ async function getRecorderClipGeometry(page: Page) {
   return geometry;
 }
 
-test("opens an imported archive saved with a single clip per audio track", async ({
+test("opens an imported archive saved with a single clip per audio track and a separate recording track", async ({
   page,
 }) => {
-  // Export an archive whose audio track stores one clip with track-level timing.
+  // Export an archive whose audio track stores one clip with track-level timing
+  // and whose takes live on a separate recording track.
   const bytes = await readFile("e2e/fixtures/test-tones.pcm");
   const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
   const project: SerializedRecorderRuntimeState = {
@@ -242,4 +243,15 @@ test("opens an imported archive saved with a single clip per audio track", async
   await expect(audio).toContainText("stereo.wav");
   await expect(take).toContainText("Take 8");
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
+
+  // Record another take, which continues the saved take numbering.
+  await enableInput(page);
+  const record = page.getByTestId("recorder-record-button");
+  await record.click();
+  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await record.click();
+  await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
+  await expect(
+    page.getByTestId("recorder-clip-comp").filter({ hasText: "Take 9" }),
+  ).toHaveCount(1);
 });

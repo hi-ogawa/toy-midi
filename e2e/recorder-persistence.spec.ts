@@ -119,10 +119,11 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(page.getByText(/Recorder project .* not found/)).toBeVisible();
 });
 
-test("opens and resaves a project saved with a single clip per audio track", async ({
+test("opens and resaves a project saved with a single clip per audio track and a separate recording track", async ({
   page,
 }) => {
-  // Seed a stored project whose audio track keeps one clip with track-level timing.
+  // Seed a stored project whose audio track keeps one clip with track-level
+  // timing and whose take lives on a separate recording track.
   await page.goto("/__e2e__/");
   const projectId = await page.evaluate(async () => {
     const samples = new Float32Array(22050 * 2).map(
@@ -151,30 +152,42 @@ test("opens and resaves a project saved with a single clip per audio track", asy
       ],
       recordingTrack: {
         height: 116,
-        gain: 1,
+        gain: 0.8,
         muted: false,
         soloed: false,
-        takes: [],
+        nextTakeNumber: 4,
+        takes: [
+          {
+            id: "take",
+            number: 3,
+            timelineOffset: 2,
+            pcm: { sampleRate: 22050, channels: [samples] },
+          },
+        ],
       },
     });
   });
 
-  // Open the stored project and show the clip with its decoded waveform.
+  // Open the stored project and show the clip and take with decoded waveforms.
   await page.goto(`/recorder/${projectId}`);
   const clip = page.getByTestId("recorder-clip-audio");
+  const take = page.getByTestId("recorder-clip-comp");
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
+  await expect(take).toContainText("Take 3");
+  await expect(take.locator("svg")).toBeVisible();
 
   // Rename and save the project.
   page.once("dialog", (dialog) => dialog.accept("Resaved clip"));
   await page.getByTestId("recorder-project-name").click();
   await saveRecorderProject(page);
 
-  // Reload the resaved project and show the same clip.
+  // Reload the resaved project and show the same clip and take.
   await page.reload();
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Resaved clip",
   );
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
+  await expect(take).toContainText("Take 3");
 });
