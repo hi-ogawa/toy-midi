@@ -7,12 +7,16 @@ import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "../pitch-spelling.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { type AudioClip, createAudioClip } from "./audio-clip.ts";
-import { RECORDING_TRACK_ID } from "./recording-track.ts";
 import {
   type PersistableRecorderRuntimeState,
   type RecorderLocator,
   type MidiTrackState,
 } from "./runtime.ts";
+
+// Projects saved before every audio track could record kept their takes on a
+// separate Capture track. Loading folds it into audioTracks under this id, and
+// it is an ordinary track from then on.
+const RECORDING_TRACK_ID = "__capture__";
 
 /**
  * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
