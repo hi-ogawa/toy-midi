@@ -222,7 +222,7 @@ type RecorderRuntimeClipsState = Pick<
 
 type RecorderTrackListsState = Pick<
   RecorderRuntimeState,
-  "audioTracks" | "midiTracks"
+  "audioTracks" | "midiTracks" | "trackOrder"
 >;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
@@ -442,12 +442,13 @@ export class RecorderRuntime {
       tempo: state.tempo,
     });
     this.midiTrackPlaybacks.set(track.id, playback);
-    this.updateTrackLists(
-      { midiTracks: [...state.midiTracks, track] },
-      orderIndex === undefined
-        ? undefined
-        : state.trackOrder.toSpliced(orderIndex, 0, track.id),
-    );
+    this.updateTrackLists({
+      midiTracks: [...state.midiTracks, track],
+      trackOrder:
+        orderIndex === undefined
+          ? undefined
+          : state.trackOrder.toSpliced(orderIndex, 0, track.id),
+    });
     this.syncTrackMix();
   }
 
@@ -633,10 +634,10 @@ export class RecorderRuntime {
    * tracks. `trackOrder` overrides the current order, for example to restore a
    * removed track at its previous position.
    */
-  private updateTrackLists(
-    update: Partial<RecorderTrackListsState>,
+  private updateTrackLists({
     trackOrder = this.store.get().trackOrder,
-  ): void {
+    ...update
+  }: Partial<RecorderTrackListsState>): void {
     this.store.update({
       ...update,
       trackOrder: syncTrackOrder({
@@ -1315,8 +1316,7 @@ function syncTrackOrder({
   trackOrder,
   audioTracks,
   midiTracks,
-}: RecorderTrackListsState &
-  Pick<RecorderRuntimeState, "trackOrder">): string[] {
+}: RecorderTrackListsState): string[] {
   const ids = new Set([
     ...audioTracks.map((track) => track.id),
     ...midiTracks.map((track) => track.id),
