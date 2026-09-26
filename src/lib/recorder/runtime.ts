@@ -473,22 +473,17 @@ export class RecorderRuntime {
   }
 
   commitClipEdit(edit: RecorderClipEdit): void {
-    const state = this.store.get();
-    const next = deriveClipEditState(state, edit);
-    this.updateAudioClips(next.audioTracks);
-    if (next.referenceVideo && next.referenceVideo !== state.referenceVideo) {
-      this.setReferenceVideoTimelineStart(next.referenceVideo.timelineStart);
-    }
+    this.updateClips((state) => deriveClipEditState(state, edit));
   }
 
-  /** Gain preserves comp regions, so bypass updateAudioClips and adjust playback in place. */
+  /** Gain preserves comp regions, so bypass updateClips and adjust playback in place. */
   setClipGain({ id, gain }: { id: string; gain: number }): void {
     const state = this.store.get();
-    const audioTracks = deriveClipStateById(state.audioTracks, {
+    const next = deriveClipStateById(state, {
       id,
       update: (clip) => ({ ...clip, gain }),
     });
-    this.store.update({ audioTracks });
+    this.store.update(next);
     for (const playback of this.trackPlaybacks.values()) {
       playback.setClipGain({ clipId: id, gain });
     }
@@ -506,9 +501,7 @@ export class RecorderRuntime {
     id: string,
     update: (clip: AudioClip) => AudioClip,
   ): void {
-    this.updateAudioClips(
-      deriveClipStateById(this.store.get().audioTracks, { id, update }),
-    );
+    this.updateClips((state) => deriveClipStateById(state, { id, update }));
   }
 
   removeClips(ids: readonly string[]): void {
@@ -531,23 +524,27 @@ export class RecorderRuntime {
 
   /** @internal for undo */
   applyClipInsertRemove(change: RecorderClipInsertRemove): void {
-    this.updateAudioClips(
-      deriveClipInsertRemoveState(this.store.get().audioTracks, change),
-    );
+    this.updateClips((state) => deriveClipInsertRemoveState(state, change));
   }
 
-  /** Commit audio clips and synchronize playback while preserving transport status. */
-  private updateAudioClips(audioTracks: AudioTrackState[]): void {
+  /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
+  private updateClips(
+    update: (state: RecorderRuntimeState) => RecorderRuntimeClipsState,
+  ): void {
     const state = this.store.get();
+    const next = update(state);
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    this.store.update({ audioTracks });
-    for (const [index, track] of audioTracks.entries()) {
+    this.store.update(next);
+    for (const [index, track] of next.audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
         this.syncTrackPlayback(track);
       }
+    }
+    if (next.referenceVideo !== state.referenceVideo) {
+      this.syncYouTubePlayer();
     }
     if (wasPlaying) {
       this.transport.play();
@@ -1265,7 +1262,7 @@ export class RecorderRuntime {
 
 /** Derive a clip property update without committing state or touching playback. */
 function deriveClipStateById(
-  audioTracks: AudioTrackState[],
+  state: RecorderRuntimeState,
   {
     id,
     update,
@@ -1273,7 +1270,7 @@ function deriveClipStateById(
     id: string;
     update: (clip: AudioClip) => AudioClip;
   },
-): AudioTrackState[] {
+): RecorderRuntimeClipsState {
   function updateTrack(track: AudioTrackState): AudioTrackState {
     return updateTrackClips({
       track,
@@ -1281,14 +1278,17 @@ function deriveClipStateById(
         clips.map((clip) => (clip.id === id ? update(clip) : clip)),
     });
   }
-  return audioTracks.map(updateTrack);
+  return {
+    audioTracks: state.audioTracks.map(updateTrack),
+    referenceVideo: state.referenceVideo,
+  };
 }
 
 /** Derive clip insertion or removal without mutating the supplied state. */
 function deriveClipInsertRemoveState(
-  audioTracks: AudioTrackState[],
+  state: RecorderRuntimeState,
   { operation, snapshot }: RecorderClipInsertRemove,
-): AudioTrackState[] {
+): RecorderRuntimeClipsState {
   function updateTrack(track: AudioTrackState): AudioTrackState {
     const trackEdits = snapshot.tracks.find(
       (entry) => entry.trackId === track.id,
@@ -1319,7 +1319,10 @@ function deriveClipInsertRemoveState(
       },
     });
   }
-  return audioTracks.map(updateTrack);
+  return {
+    audioTracks: state.audioTracks.map(updateTrack),
+    referenceVideo: state.referenceVideo,
+  };
 }
 
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
