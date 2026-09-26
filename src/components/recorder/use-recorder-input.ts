@@ -108,12 +108,14 @@ export function useRecorderInput({
   });
 
   useEffect(() => {
+    // Listen for the events that grant user activation, in the capture phase
+    // so handlers that stop propagation cannot hide the first gesture.
     const interact = () => onInteraction();
-    window.addEventListener("click", interact);
-    window.addEventListener("keydown", interact);
+    window.addEventListener("pointerdown", interact, true);
+    window.addEventListener("keydown", interact, true);
     return () => {
-      window.removeEventListener("click", interact);
-      window.removeEventListener("keydown", interact);
+      window.removeEventListener("pointerdown", interact, true);
+      window.removeEventListener("keydown", interact, true);
     };
   }, []);
 
