@@ -10,6 +10,7 @@ const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
 const recorderPreferencesSchema = z.object({
   autoScrollEnabled: z.boolean(),
+  inputPanelOpen: z.boolean(),
   defaultMidiProgram: z.number().int().min(0).max(127),
   takesNewestFirst: z.boolean(),
   timelinePixelsPerBeat: z
@@ -34,6 +35,7 @@ export type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
 const DEFAULT_PREFERENCES: RecorderPreferences = {
   autoScrollEnabled: true,
+  inputPanelOpen: false,
   defaultMidiProgram: 0,
   takesNewestFirst: true,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
