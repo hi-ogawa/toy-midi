@@ -1,6 +1,7 @@
 import { createAvailableName } from "../../utils/name.ts";
 import { IdbStore } from "../idb.ts";
 import {
+  type LoadableRecorderRuntimeState,
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
@@ -9,7 +10,7 @@ import { createDefaultRecorderRuntimeState } from "./runtime.ts";
 interface StoredRecorderProject {
   id: string;
   updatedAt: number;
-  content: SerializedRecorderRuntimeState;
+  content: LoadableRecorderRuntimeState;
 }
 
 export interface RecorderProjectMetadata {
@@ -49,7 +50,7 @@ export const recorderProjectStorage = {
   },
 
   async createWithContent(
-    content: SerializedRecorderRuntimeState,
+    content: LoadableRecorderRuntimeState,
   ): Promise<string> {
     const id = crypto.randomUUID();
     const project: StoredRecorderProject = {
@@ -62,7 +63,7 @@ export const recorderProjectStorage = {
     return id;
   },
 
-  async load(id: string): Promise<SerializedRecorderRuntimeState> {
+  async load(id: string): Promise<LoadableRecorderRuntimeState> {
     const project = await projects.get(id);
     if (!project) {
       throw new Error(`Recorder project ${id} not found.`);

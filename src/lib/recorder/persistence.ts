@@ -85,6 +85,24 @@ interface SerializedAudioTrackState<ChannelData> {
   gain: number;
   muted: boolean;
   soloed: boolean;
+  clips: SerializedAudioClip<ChannelData>[];
+}
+
+/**
+ * Any saved shape that loading still accepts, from IndexedDB or project
+ * archives. New saves always use {@link SerializedRecorderRuntimeState}.
+ */
+export type LoadableRecorderRuntimeState<ChannelData = Float32Array> = Omit<
+  SerializedRecorderRuntimeState<ChannelData>,
+  "audioTracks"
+> & {
+  audioTracks: LoadableAudioTrackState<ChannelData>[];
+};
+
+type LoadableAudioTrackState<ChannelData> = Omit<
+  SerializedAudioTrackState<ChannelData>,
+  "clips"
+> & {
   // Optional for projects saved with a single clip per track.
   clips?: SerializedAudioClip<ChannelData>[];
   // Retained for tracks saved with a single clip and track-level timing.
@@ -96,7 +114,7 @@ interface SerializedAudioTrackState<ChannelData> {
   timelineOffset?: number;
   trimStart?: number;
   trimEnd?: number;
-}
+};
 
 interface SerializedAudioClip<ChannelData> {
   // Optional for recorder projects saved before multi-take support.
@@ -157,7 +175,7 @@ export function deserializeRecorderRuntimeState({
   project,
 }: {
   context: Pick<AudioContext, "createBuffer">;
-  project: SerializedRecorderRuntimeState;
+  project: LoadableRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
   return {
     title: project.title,
@@ -228,7 +246,7 @@ function serializeAudioClip(
 }
 
 function deserializeSingleClip(
-  track: SerializedAudioTrackState<Float32Array>,
+  track: LoadableAudioTrackState<Float32Array>,
 ): SerializedAudioClip<Float32Array>[] {
   if (!track.clip) {
     return [];
