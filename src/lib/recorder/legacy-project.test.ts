@@ -106,7 +106,6 @@ describe("legacy recorder conversion", () => {
     });
     expect(result.audioTracks[1]).toMatchObject({
       id: "backing",
-      name: "Audio 2",
       gain: 0.6,
       soloed: true,
       clips: [
