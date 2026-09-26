@@ -111,11 +111,9 @@ interface PendingRecordingState extends Pick<
   AudioClip,
   "id" | "name" | "duration" | "timelineOffset"
 > {
-  /** Destination captured at Record, so the take commits where it started. */
   trackId: string;
   recording: ActiveRecording;
   punchRange?: { start: number; end: number };
-  /** The destination track's comp including the in-progress take. */
   regions: ClipRegion[];
 }
 
@@ -163,9 +161,11 @@ export interface RecorderRuntimeState {
   inputChannelCount: number;
   selectedChannel: number;
   latencyCompensation: number;
-  // Monitoring always plays through the armed track's channel.
+  // Monitoring plays through the armed track's channel, so it is only on
+  // while input is on and a track is armed.
   inputMonitoring: boolean;
-  // Destination for the next take. Input monitoring also routes through it.
+  // The track the next take records into. Input monitoring also routes
+  // through it.
   armedTrackId?: string;
 }
 
@@ -294,7 +294,9 @@ export class RecorderRuntime {
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: this.getMonitorOutput(),
+      // Silent until syncMonitor routes it. The path keeps the capture chain
+      // rendering while channels are discovered.
+      output: this.masterOutput,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -332,6 +334,7 @@ export class RecorderRuntime {
       selectedChannel: 0,
       inputMonitoring: false,
     });
+    this.syncMonitor();
     return { channelCount };
   }
 
@@ -350,22 +353,15 @@ export class RecorderRuntime {
     this.store.update({ selectedChannel: channel });
   }
 
-  /** Monitoring routes through the armed track, so callers name that track. */
-  setInputMonitoring({
-    trackId,
-    enabled,
-  }: {
-    trackId: string;
-    enabled: boolean;
-  }): void {
-    if (!this.captureInput) {
-      throw new Error("Turn input on before changing monitoring.");
+  setInputMonitoring(enabled: boolean): void {
+    if (enabled && !this.captureInput) {
+      throw new Error("Turn input on before monitoring.");
     }
-    if (trackId !== this.store.get().armedTrackId) {
-      throw new Error("Only the armed track can be monitored.");
+    if (enabled && this.store.get().armedTrackId === undefined) {
+      throw new Error("Arm a track before monitoring.");
     }
-    this.captureInput.setMonitoring(enabled);
     this.store.update({ inputMonitoring: enabled });
+    this.syncMonitor();
   }
 
   addAudioTrack(): string {
@@ -581,16 +577,18 @@ export class RecorderRuntime {
     if (id === this.store.get().pendingRecording?.trackId) {
       throw new Error("Cannot remove the track being recorded into.");
     }
-    if (id === this.store.get().armedTrackId) {
-      this.setArmedTrack(undefined);
-    }
+    const { audioTracks, armedTrackId } = this.store.get();
+    this.store.update({
+      audioTracks: audioTracks.filter((track) => track.id !== id),
+      ...(id === armedTrackId && {
+        armedTrackId: undefined,
+        inputMonitoring: false,
+      }),
+    });
+    // Sync before disposing, so the monitor never points at a disposed channel.
+    this.syncMonitor();
     this.trackPlaybacks.get(id)?.dispose();
     this.trackPlaybacks.delete(id);
-    this.store.update({
-      audioTracks: this.store
-        .get()
-        .audioTracks.filter((track) => track.id !== id),
-    });
     this.syncTrackMix();
   }
 
@@ -736,25 +734,8 @@ export class RecorderRuntime {
     if (id !== undefined && !audioTracks.some((track) => track.id === id)) {
       throw new Error("Audio track state is missing.");
     }
-    // Monitoring starts only from the armed track's own toggle, so any arm
-    // change turns it off rather than carrying it to another track.
     this.store.update({ armedTrackId: id, inputMonitoring: false });
-    this.captureInput?.setMonitoring(false);
-    this.captureInput?.setMonitorOutput(this.getMonitorOutput());
-  }
-
-  /**
-   * Monitoring plays through the armed track's channel so it follows that
-   * track's EQ and gain. With nothing armed, monitoring is off, but the silent
-   * monitor stays connected to the master output: without a path to the
-   * output, Chromium stops rendering the capture chain, and the tuner stops
-   * detecting pitch.
-   */
-  private getMonitorOutput(): AudioNode {
-    const { armedTrackId } = this.store.get();
-    return armedTrackId === undefined
-      ? this.masterOutput
-      : this.getTrackPlayback(armedTrackId).channel.input;
+    this.syncMonitor();
   }
 
   async startRecording(): Promise<void> {
@@ -782,7 +763,7 @@ export class RecorderRuntime {
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
     const state = this.store.get();
-    const track = getAudioTrack(state.audioTracks, trackId);
+    const track = findAudioTrackById(state.audioTracks, trackId);
     const punchRange =
       state.punch.enabled && state.punch.range
         ? {
@@ -1121,12 +1102,29 @@ export class RecorderRuntime {
       this.trackPlaybacks.get(id)?.channel.setGain(gain);
       this.midiTrackPlaybacks.get(id)?.channel.setGain(gain);
     }
-    // Suppress the destination's comp independently so channel mix edits
-    // cannot unmute it while a take is recorded over it.
+    // Suppress the comp of the track being recorded into independently, so
+    // channel mix edits cannot unmute it while a take is recorded over it.
     const recordingTrackId = state.pendingRecording?.trackId;
     for (const [id, playback] of this.trackPlaybacks) {
       playback.setPlaybackGain(id === recordingTrackId ? 0 : 1);
     }
+  }
+
+  /**
+   * Monitoring plays through the armed track's channel so it follows that
+   * track's EQ and gain. With nothing armed, monitoring is off, but the silent
+   * monitor stays connected to the master output: without a path to the
+   * output, Chromium stops rendering the capture chain, and the tuner stops
+   * detecting pitch.
+   */
+  private syncMonitor(): void {
+    const { armedTrackId, inputMonitoring } = this.store.get();
+    this.captureInput?.setMonitorOutput(
+      armedTrackId === undefined
+        ? this.masterOutput
+        : this.getTrackPlayback(armedTrackId).channel.input,
+    );
+    this.captureInput?.setMonitoring(inputMonitoring);
   }
 
   private syncMetronomeGain(): void {
@@ -1200,7 +1198,7 @@ export class RecorderRuntime {
     };
     const { trackId } = pendingRecording;
     const { audioTracks } = this.store.get();
-    const previousTrack = getAudioTrack(audioTracks, trackId);
+    const previousTrack = findAudioTrackById(audioTracks, trackId);
     const newClipIndex = previousTrack.clips.length;
     const recordingTrack = resolveTrackRegions({
       ...previousTrack,
@@ -1236,7 +1234,7 @@ export class RecorderRuntime {
   private updatePendingRecording(
     pendingRecording: PendingRecordingState,
   ): void {
-    const track = getAudioTrack(
+    const track = findAudioTrackById(
       this.store.get().audioTracks,
       pendingRecording.trackId,
     );
@@ -1457,7 +1455,7 @@ function deriveRecordingTrim({
   };
 }
 
-function getAudioTrack(
+function findAudioTrackById(
   audioTracks: readonly AudioTrackState[],
   id: string,
 ): AudioTrackState {

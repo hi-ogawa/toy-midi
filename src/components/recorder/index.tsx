@@ -496,25 +496,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                       armed,
                       armDisabled: flags.isRecording,
                       monitoring: state.inputMonitoring && armed,
-                      monitorBlocker: !input.active
-                        ? "input"
-                        : !armed
-                          ? "arm"
-                          : undefined,
+                      monitorDisabled: !input.active || !armed,
                       onArmedChange: (armed) => {
                         runtime.setArmedTrack(armed ? track.id : undefined);
                         if (armed && !input.active) {
-                          // The arm succeeded, so confirm it rather than warn,
-                          // and lead to the one step still missing.
-                          toast.info("Armed. Turn input on to record");
-                          setIsInputPanelOpen(true);
+                          promptInputOn();
                         }
                       },
                       onMonitoringChange: (monitoring) =>
-                        runtime.setInputMonitoring({
-                          trackId: track.id,
-                          enabled: monitoring,
-                        }),
+                        runtime.setInputMonitoring(monitoring),
                     }}
                   >
                     <AudioTimelineLane

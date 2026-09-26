@@ -217,8 +217,7 @@ interface TrackRecordingControls {
   armed: boolean;
   armDisabled: boolean;
   monitoring: boolean;
-  /** Monitoring needs live input and routes through the armed track. */
-  monitorBlocker?: "input" | "arm";
+  monitorDisabled: boolean;
   onArmedChange: (armed: boolean) => void;
   onMonitoringChange: (monitoring: boolean) => void;
 }
@@ -229,7 +228,7 @@ function TrackRecordingToggles({
   armed,
   armDisabled,
   monitoring,
-  monitorBlocker,
+  monitorDisabled,
   onArmedChange,
   onMonitoringChange,
 }: TrackRecordingControls & { title: string }) {
@@ -259,18 +258,16 @@ function TrackRecordingToggles({
       <span
         className="inline-flex"
         title={
-          monitorBlocker === "input"
-            ? "Turn input on to monitor"
-            : monitorBlocker === "arm"
-              ? `Arm ${title} to monitor`
-              : monitoring
-                ? monitorLabel
-                : `${monitorLabel} (use headphones to avoid feedback)`
+          monitorDisabled
+            ? "Turn input on and arm this track to monitor"
+            : monitoring
+              ? monitorLabel
+              : `${monitorLabel} (use headphones to avoid feedback)`
         }
       >
         <Button
           data-testid="recorder-input-monitor"
-          disabled={monitorBlocker !== undefined}
+          disabled={monitorDisabled}
           onClick={() => onMonitoringChange(!monitoring)}
           className={cn(
             "size-6 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
