@@ -250,11 +250,7 @@ function getTranscriptionSources(state: RecorderRuntimeState) {
   return state.audioTracks
     .map((track) => ({
       track,
-      // A single clip names its source, like an imported file.
-      label:
-        track.clips.length === 1
-          ? `${track.name} · ${track.clips[0]!.name}`
-          : track.name,
+      label: track.name,
     }))
     .filter(({ track }) =>
       track.regions.some(
