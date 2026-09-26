@@ -48,6 +48,7 @@ import { cn } from "../ui/utils";
 import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
+import type { RecorderInputStatus } from "./use-recorder-input";
 import type { SaveStatus } from "./use-recorder-project";
 
 export function RecorderHeader({
@@ -88,6 +89,7 @@ export function RecorderHeader({
   mixerOpen,
   inputPanelOpen,
   inputAccessRequired,
+  inputStatus,
   onInputPanelToggle,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
@@ -128,6 +130,7 @@ export function RecorderHeader({
   mixerOpen: boolean;
   inputPanelOpen: boolean;
   inputAccessRequired: boolean;
+  inputStatus: RecorderInputStatus;
   onInputPanelToggle: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
@@ -397,13 +400,14 @@ export function RecorderHeader({
         data-testid="recorder-input-panel-button"
         onClick={onInputPanelToggle}
         aria-pressed={inputPanelOpen}
+        aria-label="Audio Input"
         title={
           inputAccessRequired
             ? "Audio Input (microphone access required)"
-            : "Audio Input"
+            : INPUT_STATUS_TITLES[inputStatus]
         }
         className={cn(
-          "size-9",
+          "relative size-9",
           inputAccessRequired
             ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
             : inputPanelOpen
@@ -412,6 +416,15 @@ export function RecorderHeader({
         )}
       >
         <MicIcon className="size-5" />
+        {!inputAccessRequired && inputStatus !== "off" && (
+          <span
+            className={cn(
+              "absolute top-1.5 right-1.5 size-2 rounded-full",
+              inputStatus === "live" ? "bg-emerald-400" : "bg-amber-400",
+              inputStatus === "waiting" && "animate-pulse",
+            )}
+          />
+        )}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -514,3 +527,10 @@ function RecorderSaveButton({
     </div>
   );
 }
+
+const INPUT_STATUS_TITLES: Record<RecorderInputStatus, string> = {
+  off: "Audio Input (input off)",
+  waiting: "Audio Input (click anywhere to turn input back on)",
+  starting: "Audio Input (turning input on…)",
+  live: "Audio Input (input on)",
+};

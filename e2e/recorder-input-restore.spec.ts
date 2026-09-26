@@ -15,32 +15,59 @@ test("restores input after interaction and remembers explicit off", async ({
   await createRecorderProject(page);
   await enableInput(page);
   await page.reload();
-  // The monitor toggle is enabled only while input is on. Observe input state
-  // through it because opening the Audio Input panel needs a click, and any
-  // click is the user gesture that restores input.
-  const monitorToggle = page.getByTestId("recorder-input-monitor");
-  await expect(monitorToggle).toBeDisabled();
 
-  // Press a key to restore input without arming or monitoring.
+  // See the header input button ask for a gesture before input is restored.
+  const inputButton = page.getByRole("button", {
+    name: "Audio Input",
+    exact: true,
+  });
+  await expect(inputButton).toHaveAccessibleDescription(
+    "Audio Input (click anywhere to turn input back on)",
+  );
+
+  // Press a key to restore input without enabling monitoring.
   await page.keyboard.press("Shift");
-  await expect(monitorToggle).toBeEnabled();
-  const panel = await openInputPanel(page);
-  const inputPower = panel.getByRole("button", { name: "Input power" });
-  await expect(inputPower).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("recorder-arm-toggle")).toHaveAttribute(
+  await expect(inputButton).toHaveAccessibleDescription(
+    "Audio Input (input on)",
+  );
+  await expect(page.getByTestId("recorder-input-monitor")).toHaveAttribute(
     "aria-pressed",
     "false",
   );
-  await expect(monitorToggle).toHaveAttribute("aria-pressed", "false");
 
-  // Turn input off and keep it off through more interactions and a reload.
+  // Turn input off and keep it off through a reload without asking for a gesture.
+  const panel = await openInputPanel(page);
+  const inputPower = panel.getByRole("button", { name: "Input power" });
   await inputPower.click();
-  await page.keyboard.press("Escape");
-  await expect(monitorToggle).toBeDisabled();
+  await expect(inputPower).toHaveAttribute("aria-pressed", "false");
   await page.reload();
+  await expect(inputButton).toHaveAccessibleDescription(
+    "Audio Input (input off)",
+  );
+  await page.keyboard.press("Shift");
   await openInputPanel(page);
   await expect(inputPower).toHaveAttribute("aria-pressed", "false");
-  await expect(monitorToggle).toBeDisabled();
+});
+
+test("arms a track as the first interaction without prompting for input", async ({
+  page,
+}) => {
+  // Enable input, then reload with Capture unarmed.
+  await createRecorderProject(page);
+  await enableInput(page);
+  await page.reload();
+
+  // Arm Capture as the first gesture, which also restores input.
+  const arm = page.getByTestId("recorder-arm-toggle");
+  await arm.click();
+  await expect(arm).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("button", { name: "Audio Input", exact: true }),
+  ).toHaveAccessibleDescription("Audio Input (input on)");
+
+  // See the Audio Input panel stay closed, because input was already starting.
+  // The panel is checked instead of the prompt toast, which dismisses itself.
+  await expect(page.getByTestId("recorder-input-panel")).toBeHidden();
 });
 
 test("remembers an interaction before device discovery finishes", async ({

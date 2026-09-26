@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import {
   getCaptureInputs,
   requestCaptureAccess,
@@ -9,6 +9,10 @@ import {
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { useRecorderPreference } from "./use-recorder-preference";
+
+// "waiting" means the remembered input is ready to restore on the next user
+// gesture, and "starting" means it is opening and will be live shortly.
+export type RecorderInputStatus = "off" | "waiting" | "starting" | "live";
 
 export function useRecorderInput({
   runtime,
@@ -20,7 +24,7 @@ export function useRecorderInput({
   const active = state.captureStatus !== "disabled";
   const [inputPreference, setInputPreference] = useRecorderPreference("input");
   const [inputEnabled, setInputEnabled] = useRecorderPreference("inputEnabled");
-  const restorePending = useRef(inputEnabled);
+  const [restorePending, setRestorePending] = useState(inputEnabled);
   const [interacted, setInteracted] = useState(false);
   const [resumeError, setResumeError] = useState<Error>();
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -48,7 +52,7 @@ export function useRecorderInput({
     }
     setDeviceId(nextDeviceId);
     if (remember) {
-      restorePending.current = false;
+      setRestorePending(false);
       setInputPreference(
         nextDeviceId ? { deviceId: nextDeviceId, channel: 0 } : undefined,
       );
@@ -99,7 +103,7 @@ export function useRecorderInput({
     grantMutation.isPending || devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
   const onInteraction = useEffectEvent(() => {
-    if (!restorePending.current || interacted) {
+    if (!restorePending || interacted) {
       return;
     }
     // Resume in the gesture even when device enumeration is still pending.
@@ -120,14 +124,15 @@ export function useRecorderInput({
   }, []);
 
   useEffect(() => {
-    if (!restorePending.current || !interacted || !initialized) {
+    if (!restorePending || !interacted || !initialized) {
       return;
     }
-    restorePending.current = false;
+    setRestorePending(false);
     if (inputEnabled && hasAccess && selectedDevice && !active) {
       startMutation.mutate(selectedDevice.deviceId);
     }
   }, [
+    restorePending,
     interacted,
     initialized,
     inputEnabled,
@@ -136,6 +141,18 @@ export function useRecorderInput({
     active,
     startMutation.mutate,
   ]);
+
+  const status: RecorderInputStatus = active
+    ? "live"
+    : startMutation.isPending || (restorePending && inputEnabled && interacted)
+      ? "starting"
+      : restorePending &&
+          inputEnabled &&
+          initialized &&
+          hasAccess &&
+          selectedDevice
+        ? "waiting"
+        : "off";
 
   const route = !initialized
     ? { label: "Loading audio inputs…", needsSetup: false }
@@ -184,8 +201,9 @@ export function useRecorderInput({
         latencyCompensation,
       }));
     },
+    status,
     toggle: () => {
-      restorePending.current = false;
+      setRestorePending(false);
       setResumeError(undefined);
       if (!hasAccess) {
         grantMutation.mutate();

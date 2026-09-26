@@ -341,6 +341,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onHelpOpen={() => setIsHelpOpen(true)}
         inputPanelOpen={isInputPanelOpen}
         inputAccessRequired={input.initialized && !input.hasAccess}
+        inputStatus={input.status}
         onInputPanelToggle={() => setIsInputPanelOpen((open) => !open)}
       />
 
@@ -542,7 +543,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                   runtime.setArmedTrack(
                     armed ? state.recordingTrack.id : undefined,
                   );
-                  if (armed && !input.active) {
+                  // Input restored by this gesture is already starting.
+                  if (armed && input.status === "off") {
                     promptInputOn();
                   }
                 },
