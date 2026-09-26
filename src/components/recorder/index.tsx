@@ -459,7 +459,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     action={
                       <AudioTrackActions
                         label={track.name}
-                        removeDisabled={pendingRecording !== undefined}
+                        removeDisabled={flags.isRecording}
                         onRename={(name) =>
                           runtime.setTrackName({ id: track.id, name })
                         }
