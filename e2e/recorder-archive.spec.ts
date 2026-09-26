@@ -11,6 +11,7 @@ import {
   getRecorderMidiNote,
   getRecorderBeat,
   createRecorderProject,
+  armTrack,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
@@ -24,10 +25,13 @@ useFakeAudioInput();
 test("exports and imports a recorder project archive", async ({ page }) => {
   await createRecorderProject(page);
 
-  // Build an editable project with backing audio and two retained takes.
+  // Build an editable project with backing audio on a new track and two
+  // retained takes on Audio 1.
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  const rows = page.getByTestId("recorder-audio-track-row");
 
   await enableInput(page);
+  await armTrack(page, { track: "Audio 1" });
   const recordButton = page.getByTestId("recorder-record-button");
   for (const beat of [2, 4]) {
     await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
@@ -35,9 +39,13 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
     await recordButton.click();
   }
-  await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
-  // Balance one take independently before archiving the project.
-  await page.getByTestId("recorder-takes-toggle").click();
+  await expect(
+    rows.nth(0).getByTestId("recorder-clip-audio-source"),
+  ).toHaveCount(2);
+  // Show Audio 1's clips and balance one take before archiving the project.
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Show clips" });
+  const takesToggle = page.getByTestId("recorder-clips-toggle").first();
+  await takesToggle.click();
   const takeGain = page.getByRole("slider", {
     name: "Take 1 gain",
     exact: true,
@@ -105,12 +113,14 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     "Archived recording",
   );
   await expect(
-    page.getByTestId("recorder-clip-audio").locator("svg"),
+    rows.nth(1).getByTestId("recorder-clip-audio").locator("svg"),
   ).toBeVisible();
-  await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
-  await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
+  await expect(
+    rows.nth(0).getByTestId("recorder-clip-audio-source"),
+  ).toHaveCount(2);
+  await expect(rows.nth(0).getByTestId("recorder-clip-audio")).toHaveCount(2);
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
-  await page.getByTestId("recorder-takes-toggle").click();
+  await takesToggle.click();
   await expect
     .poll(async () => Number(await takeGain.getAttribute("aria-valuenow")))
     .toBeCloseTo(-0.5);
@@ -146,7 +156,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
 
 async function getRecorderClipGeometry(page: Page) {
   const geometry = await Promise.all(
-    (["audio-source", "comp-source", "comp"] as const).map(async (variant) => ({
+    (["audio-source", "audio"] as const).map(async (variant) => ({
       variant,
       clips: await page
         .getByTestId(`recorder-clip-${variant}`)
@@ -223,13 +233,21 @@ test("opens an imported archive saved with a single clip per audio track and a s
     "Single-clip archive",
   );
 
-  // Show the backing clip and the retained take with decoded waveforms.
-  const audio = page.getByTestId("recorder-clip-audio");
-  const take = page.getByTestId("recorder-clip-comp");
+  // Show the retained take on the former Capture track below the backing
+  // clip, both with decoded waveforms.
+  const rows = page.getByTestId("recorder-audio-track-row");
+  const audio = rows.nth(0).getByTestId("recorder-clip-audio");
+  const take = rows.nth(1).getByTestId("recorder-clip-audio");
   await expect(audio).toContainText("stereo.wav");
   await expect(take).toContainText("Take 8");
   await expect(audio.locator("svg")).toBeVisible();
   await expect(take.locator("svg")).toBeVisible();
+
+  // Keep Capture's clip section visible by default and ordinary tracks hidden.
+  const clipsToggle = page.getByTestId("recorder-clips-toggle");
+  await expect(clipsToggle).toHaveCount(1);
+  await expect(clipsToggle).toHaveAccessibleName("Clips 1");
+
   const clipGeometry = await getRecorderClipGeometry(page);
 
   // Rename, save, and reopen the project with the same clip placement.
@@ -244,14 +262,22 @@ test("opens an imported archive saved with a single clip per audio track and a s
   await expect(take).toContainText("Take 8");
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
 
-  // Record another take, which continues the saved take numbering.
+  // Record another take into Capture, which continues the saved take numbering.
   await enableInput(page);
+  await armTrack(page, { track: "Capture" });
   const record = page.getByTestId("recorder-record-button");
   await record.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await record.click();
-  await expect(page.getByTestId("recorder-clip-comp-source")).toHaveCount(2);
   await expect(
-    page.getByTestId("recorder-clip-comp").filter({ hasText: "Take 9" }),
-  ).toHaveCount(1);
+    rows.nth(1).getByTestId("recorder-clip-audio-source"),
+  ).toHaveCount(2);
+  await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
+
+  // Override the migrated Capture default and retain the choice after reload.
+  await selectMenuItem(page, { menu: "Capture actions", item: "Show clips" });
+  await saveRecorderProject(page);
+  await page.reload();
+  await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
+  await expect(clipsToggle).toHaveCount(0);
 });

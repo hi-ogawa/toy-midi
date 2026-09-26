@@ -7,12 +7,16 @@ import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "../pitch-spelling.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { type AudioClip, createAudioClip } from "./audio-clip.ts";
-import { RECORDING_TRACK_ID } from "./recording-track.ts";
 import {
   type PersistableRecorderRuntimeState,
   type RecorderLocator,
   type MidiTrackState,
 } from "./runtime.ts";
+
+// Projects saved before every audio track could record kept their takes on a
+// separate Capture track. Loading folds it into audioTracks under this id, and
+// it is an ordinary track from then on.
+const RECORDING_TRACK_ID = "__capture__";
 
 /**
  * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
@@ -36,6 +40,8 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
   })[];
+  // 🟢 Optional for recorder projects saved before track reordering.
+  trackOrder?: string[];
   // 🔴 Retained for projects saved with the Capture track outside audioTracks.
   recordingTrack?: {
     // 🟢 Optional for projects saved before track EQ support.
@@ -80,9 +86,13 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
 }
 
 interface SerializedAudioTrackState<ChannelData> {
+  // 🟢 Optional for projects saved before per-track clip visibility.
+  showClips?: boolean;
   // 🟢 Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
+  // 🟢 Optional for projects saved before audio track names.
+  name?: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -129,15 +139,18 @@ export function serializeRecorderRuntimeState(
     locators: state.locators,
     audioTracks: state.audioTracks.map((track) => ({
       id: track.id,
+      name: track.name,
       height: track.height,
       eq: track.eq,
       gain: track.gain,
       muted: track.muted,
       soloed: track.soloed,
       nextTakeNumber: track.nextTakeNumber,
+      showClips: track.showClips,
       clips: track.clips.map(serializeAudioClip),
     })),
     midiTracks: state.midiTracks,
+    trackOrder: state.trackOrder,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
     loop: state.loop,
@@ -155,12 +168,24 @@ export function deserializeRecorderRuntimeState({
   context: AudioContext;
   project: SerializedRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
+  const audioTracks = foldRecordingTrack(project);
+  // Unnamed tracks keep the labels they were shown with: Capture, and ordinary
+  // tracks numbered in order without it.
+  const ordinaryTrackIds = audioTracks
+    .filter((track) => track.id !== RECORDING_TRACK_ID)
+    .map((track) => track.id);
   return {
     title: project.title,
     locators: project.locators ?? [],
-    audioTracks: foldRecordingTrack(project).map((track) => ({
+    audioTracks: audioTracks.map((track) => ({
       id: track.id,
+      name:
+        track.name ??
+        (track.id === RECORDING_TRACK_ID
+          ? "Capture"
+          : `Audio ${ordinaryTrackIds.indexOf(track.id) + 1}`),
       nextTakeNumber: track.nextTakeNumber ?? 1,
+      showClips: track.showClips ?? track.id === RECORDING_TRACK_ID,
       height: track.height,
       clips: getTrackClips(track).map((clip, index) =>
         deserializeAudioClip({ context, clip, index }),
@@ -180,6 +205,8 @@ export function deserializeRecorderRuntimeState({
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       eq: deserializeEq(track.eq),
     })),
+    // The runtime fills in tracks missing from older or partial orders.
+    trackOrder: project.trackOrder ?? [],
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
     loop: project.loop ?? { enabled: false },
@@ -190,23 +217,29 @@ export function deserializeRecorderRuntimeState({
   };
 }
 
-/** Move a separately saved Capture track into the track list under its fixed id. */
+/** Keep the former Capture track after ordinary audio tracks, as the old UI did. */
 function foldRecordingTrack(
   project: SerializedRecorderRuntimeState,
 ): SerializedAudioTrackState<Float32Array>[] {
   const { recordingTrack } = project;
   if (!recordingTrack) {
-    return project.audioTracks;
+    // Earlier saves already stored Capture in audioTracks, usually first, but
+    // the UI split it out and rendered it last. Preserve that displayed order.
+    return project.audioTracks.toSorted(
+      (a, b) =>
+        Number(a.id === RECORDING_TRACK_ID) -
+        Number(b.id === RECORDING_TRACK_ID),
+    );
   }
   const { takes, ...track } = recordingTrack;
   return [
+    ...project.audioTracks,
     {
       ...track,
       id: RECORDING_TRACK_ID,
       nextTakeNumber: track.nextTakeNumber ?? takes.length + 1,
       clips: takes,
     },
-    ...project.audioTracks,
   ];
 }
 

@@ -39,11 +39,26 @@ export async function selectMenuItem(
   await test.step(
     `Select ${item} from ${menu}`,
     async () => {
+      const menuItem = await getMenuItem(page, { menu, item });
+      await menuItem.click();
+    },
+    { box: true },
+  );
+}
+
+/** Open a named menu and return an item locator. */
+export async function getMenuItem(
+  page: Page,
+  { menu, item }: { menu: string; item: string | RegExp },
+): Promise<Locator> {
+  return test.step(
+    `Get ${item} from ${menu}`,
+    async () => {
       await page.getByRole("button", { name: menu }).click();
-      await page
-        .getByRole("menu", { name: menu })
+      const menuLocator = page.getByRole("menu", { name: menu });
+      return menuLocator
         .getByRole("menuitem", { name: item })
-        .click();
+        .or(menuLocator.getByRole("menuitemcheckbox", { name: item }));
     },
     { box: true },
   );

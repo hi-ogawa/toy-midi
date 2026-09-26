@@ -109,6 +109,11 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     -1,
   );
 
+  // Press Delete on the selected reference and keep the video intact.
+  await referenceClip.click();
+  await page.keyboard.press("Delete");
+  await expect(referenceClip).toBeVisible();
+
   // The reference can be removed from its track actions.
   await selectMenuItem(page, {
     menu: "Reference actions",

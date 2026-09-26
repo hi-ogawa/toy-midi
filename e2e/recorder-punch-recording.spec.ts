@@ -5,6 +5,7 @@ import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   dragBy,
+  armTrack,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
@@ -15,10 +16,11 @@ useFakeAudioInput();
 test("records only the punched interval into the comp", async ({ page }) => {
   await createRecorderProject(page);
   await enableInput(page);
+  await armTrack(page, { track: "Audio 1" });
 
   const recordButton = page.getByTestId("recorder-record-button");
-  const take = page.getByTestId("recorder-clip-comp-source");
-  const comp = page.getByTestId("recorder-clip-comp");
+  const take = page.getByTestId("recorder-clip-audio-source");
+  const comp = page.getByTestId("recorder-clip-audio");
 
   // Create a punch range strictly inside the recording span.
   await page.getByTestId("recorder-punch-toggle").click();
@@ -37,7 +39,7 @@ test("records only the punched interval into the comp", async ({ page }) => {
   const punchBox = await punchRange.boundingBox();
   assert(punchBox);
 
-  // Capture surrounding audio, while only its overlap with Punch joins Capture.
+  // Capture surrounding audio, while only its overlap with Punch joins the comp.
   await seekRecorderByPixels(page, 0);
   await recordButton.click();
   const pendingComp = page.getByTestId("recorder-clip-recording");

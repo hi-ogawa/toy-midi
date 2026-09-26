@@ -47,7 +47,13 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { MidiInstrument } from "./recorder-midi-instrument";
-import { TrackMenuButton, TrackRow } from "./recorder-tracks";
+import {
+  TrackMenuButton,
+  type TrackMoveControls,
+  TrackMoveItems,
+  RenameTrackMenuItem,
+  TrackRow,
+} from "./recorder-tracks";
 import {
   useRecorderMidiInteraction,
   getMidiGridPosition,
@@ -67,6 +73,7 @@ export function MidiTrackRow({
   beatsPerBar,
   subdivisionsPerBeat,
   viewportStartBeat,
+  move,
   onEffectsOpen,
   onRemove,
   midiInteraction,
@@ -80,6 +87,7 @@ export function MidiTrackRow({
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
+  move: TrackMoveControls;
   onEffectsOpen: () => void;
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
@@ -183,6 +191,8 @@ export function MidiTrackRow({
         action={
           <MidiTrackActions
             label={track.name}
+            move={move}
+            onRename={(name) => runtime.setTrackName({ id: track.id, name })}
             onEffectsOpen={onEffectsOpen}
             viewMode={track.viewMode}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
@@ -256,6 +266,7 @@ export function MidiTrackRow({
 }
 
 function MidiTrackActions({
+  onRename,
   onEffectsOpen,
   isImporting,
   onImportMidi,
@@ -264,11 +275,13 @@ function MidiTrackActions({
   label,
   viewMode,
   onViewModeToggle,
+  move,
   onRemove,
   onInstrumentOpen,
   onTranscribe,
   onScorePreview,
 }: {
+  onRename: (name: string) => void;
   onEffectsOpen: () => void;
   isImporting: boolean;
   onImportMidi: () => void;
@@ -277,6 +290,7 @@ function MidiTrackActions({
   label: string;
   viewMode: MidiTrackState["viewMode"];
   onViewModeToggle: () => void;
+  move: TrackMoveControls;
   onRemove: () => void;
   onInstrumentOpen: () => void;
   onTranscribe: () => void;
@@ -288,6 +302,7 @@ function MidiTrackActions({
         <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <RenameTrackMenuItem name={label} onRename={onRename} />
         <DropdownMenuCheckboxItem
           checked={viewMode === "overview"}
           onCheckedChange={onViewModeToggle}
@@ -326,6 +341,8 @@ function MidiTrackActions({
           <DownloadIcon />
           Export MusicXML
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <TrackMoveItems {...move} />
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
           <Trash2Icon />
