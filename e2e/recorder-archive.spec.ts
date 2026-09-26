@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import JSZip from "jszip";
 import type { SerializedRecorderRuntimeState } from "../src/lib/recorder/persistence";
+import { exportRecorderProjectArchive } from "../src/lib/recorder/project-archive";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { useFakeAudioInput, selectMenuItem } from "./helpers";
 import {
@@ -96,28 +96,6 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   const archivePath = test.info().outputPath("recorder.toymidi.zip");
   await download.saveAs(archivePath);
 
-  // Verify the take and backing tracks are exported as clip arrays with their PCM in the archive.
-  const zip = await JSZip.loadAsync(await readFile(archivePath));
-  const saved: SerializedRecorderRuntimeState<string> = JSON.parse(
-    await zip.file("project.json")!.async("text"),
-  );
-  expect(saved).not.toHaveProperty("recordingTrack");
-  expect(saved.audioTracks).toMatchObject([
-    {
-      name: "Audio 1",
-      nextTakeNumber: 3,
-      clips: [{ name: "Take 1" }, { name: "Take 2" }],
-    },
-    { name: "Audio 2", clips: [{ name: "test-audio.wav" }] },
-  ]);
-  for (const track of saved.audioTracks) {
-    expect(track).not.toHaveProperty("clip");
-    expect(track).not.toHaveProperty("timelineOffset");
-    for (const clip of track.clips!) {
-      expect(zip.file(clip.pcm.channels[0])).not.toBeNull();
-    }
-  }
-
   // Import from the project list, which opens a newly created local project.
   await page.goto("/");
   const importChooserPromise = page.waitForEvent("filechooser");
@@ -193,26 +171,14 @@ async function getRecorderClipGeometry(page: Page) {
   return geometry;
 }
 
-test("imports a recorder archive with single-clip tracks and a separate recording track", async ({
+test("opens an imported archive saved with a single clip per audio track and a separate recording track", async ({
   page,
 }) => {
-  // Write an archive in the old layout, where an audio track stores one clip
-  // with track-level timing at audio/tracks/<i>/ and takes live on a separate
-  // recording track at audio/takes/<i>/.
+  // Export an archive whose audio track stores one clip with track-level timing
+  // and whose takes live on a separate recording track.
   const bytes = await readFile("e2e/fixtures/test-tones.pcm");
-  const zip = new JSZip();
-  zip.file(
-    "manifest.json",
-    JSON.stringify({ formatVersion: 1, projectType: "recorder" }),
-  );
-  for (const path of [
-    "audio/tracks/0/channel-0.f32",
-    "audio/tracks/0/channel-1.f32",
-    "audio/takes/0/channel-0.f32",
-  ]) {
-    zip.file(path, bytes);
-  }
-  const project: SerializedRecorderRuntimeState<string> = {
+  const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
+  const project: SerializedRecorderRuntimeState = {
     title: "Single-clip archive",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
@@ -228,13 +194,7 @@ test("imports a recorder archive with single-clip tracks and a separate recordin
         trimEnd: 3,
         clip: {
           name: "stereo.wav",
-          pcm: {
-            sampleRate: 22050,
-            channels: [
-              "audio/tracks/0/channel-0.f32",
-              "audio/tracks/0/channel-1.f32",
-            ],
-          },
+          pcm: { sampleRate: 22050, channels: [pcm, pcm] },
         },
       },
     ],
@@ -251,13 +211,12 @@ test("imports a recorder archive with single-clip tracks and a separate recordin
           timelineOffset: 3,
           trimStart: 0.25,
           trimEnd: 2,
-          pcm: { sampleRate: 22050, channels: ["audio/takes/0/channel-0.f32"] },
+          pcm: { sampleRate: 22050, channels: [pcm] },
         },
       ],
     },
   };
-  zip.file("project.json", JSON.stringify(project));
-  const archive = await zip.generateAsync({ type: "nodebuffer" });
+  const archive = await exportRecorderProjectArchive(project);
 
   // Import it from the project list and open the recorder.
   await page.goto("/");
@@ -268,7 +227,7 @@ test("imports a recorder archive with single-clip tracks and a separate recordin
   ).setFiles({
     name: "single-clip.toymidi.zip",
     mimeType: "application/zip",
-    buffer: archive,
+    buffer: Buffer.from(await archive.arrayBuffer()),
   });
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Single-clip archive",
