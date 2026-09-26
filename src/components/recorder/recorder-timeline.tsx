@@ -51,6 +51,7 @@ export function TimelineHeader({
   tempo,
   timelineWidth,
   isAddingAudio,
+  isRecording,
   isAddingMidi,
   subdivisionsPerBeat,
   onAddAudioTrack,
@@ -70,6 +71,7 @@ export function TimelineHeader({
   tempo: number;
   timelineWidth: number;
   isAddingAudio: boolean;
+  isRecording: boolean;
   isAddingMidi: boolean;
   subdivisionsPerBeat: number;
   onAddAudioTrack: () => void;
@@ -108,7 +110,7 @@ export function TimelineHeader({
           </Button>
           <Button
             data-testid="recorder-add-audio-file"
-            disabled={isAddingAudio}
+            disabled={isAddingAudio || isRecording}
             onClick={() =>
               openFilePicker({
                 accept: "audio/*,.zip,application/zip",
