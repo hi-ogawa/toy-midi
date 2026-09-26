@@ -44,6 +44,7 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
+import { syncTrackOrder, type RecorderTrackListsState } from "./track-order.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
@@ -154,6 +155,8 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   midiTracks: MidiTrackState[];
+  // Display order of audio and MIDI tracks by id.
+  trackOrder: string[];
   pendingRecording?: PendingRecordingState;
   // Capture
   captureStatus: CaptureStatus;
@@ -180,6 +183,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "punch"
   | "referenceVideo"
   | "midiTracks"
+  | "trackOrder"
 > & {
   audioTracks: Omit<AudioTrackState, "regions">[];
 };
@@ -218,6 +222,7 @@ type RecorderRuntimeClipsState = Pick<
 >;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
+  const audioTrack = createAudioTrackState({ name: "Audio 1" });
   return {
     title: "Untitled",
     locators: [],
@@ -231,8 +236,9 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     punch: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
-    audioTracks: [createAudioTrackState({ name: "Audio 1" })],
+    audioTracks: [audioTrack],
     midiTracks: [],
+    trackOrder: [audioTrack.id],
     captureStatus: "disabled",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -371,7 +377,7 @@ export class RecorderRuntime {
         prefix: "Audio",
       }),
     });
-    this.store.update({ audioTracks: [...audioTracks, track] });
+    this.updateTrackLists({ audioTracks: [...audioTracks, track] });
     return track.id;
   }
 
@@ -409,7 +415,8 @@ export class RecorderRuntime {
       }),
       program,
     });
-    const index = await this.insertMidiTrack({ track });
+    await this.insertMidiTrack({ track });
+    const index = this.store.get().trackOrder.indexOf(track.id);
     this.history.pushMidiTrack({ track, index });
   }
 
@@ -420,7 +427,7 @@ export class RecorderRuntime {
   }: {
     track: MidiTrackState;
     index?: number;
-  }): Promise<number> {
+  }): Promise<void> {
     const state = this.store.get();
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
@@ -428,22 +435,23 @@ export class RecorderRuntime {
       track,
       tempo: state.tempo,
     });
-    const midiTracks = [...state.midiTracks];
-    index ??= midiTracks.length;
-    midiTracks.splice(index, 0, track);
     this.midiTrackPlaybacks.set(track.id, playback);
-    this.store.update({ midiTracks });
+    this.updateTrackLists({
+      midiTracks: [...state.midiTracks, track],
+      ...(index !== undefined && {
+        trackOrder: state.trackOrder.toSpliced(index, 0, track.id),
+      }),
+    });
     this.syncTrackMix();
-    return index;
   }
 
   removeMidiTrack(id: string): void {
     const state = this.store.get();
-    const index = state.midiTracks.findIndex((track) => track.id === id);
-    if (index === -1) {
+    const track = state.midiTracks.find((track) => track.id === id);
+    if (!track) {
       return;
     }
-    const track = state.midiTracks[index];
+    const index = state.trackOrder.indexOf(id);
     this.deleteMidiTrack(id);
     this.history.pushMidiTrack({ track, index, reverse: true });
   }
@@ -452,7 +460,7 @@ export class RecorderRuntime {
   deleteMidiTrack(id: string): void {
     this.midiTrackPlaybacks.get(id)?.dispose();
     this.midiTrackPlaybacks.delete(id);
-    this.store.update({
+    this.updateTrackLists({
       midiTracks: this.store
         .get()
         .midiTracks.filter((track) => track.id !== id),
@@ -588,7 +596,7 @@ export class RecorderRuntime {
       throw new Error("Cannot remove the track being recorded into.");
     }
     const { audioTracks, armedTrackId } = this.store.get();
-    this.store.update({
+    this.updateTrackLists({
       audioTracks: audioTracks.filter((track) => track.id !== id),
       ...(id === armedTrackId && {
         armedTrackId: undefined,
@@ -600,6 +608,30 @@ export class RecorderRuntime {
     this.trackPlaybacks.get(id)?.dispose();
     this.trackPlaybacks.delete(id);
     this.syncTrackMix();
+  }
+
+  moveTrack({ id, direction }: { id: string; direction: "up" | "down" }): void {
+    const { trackOrder } = this.store.get();
+    const index = trackOrder.indexOf(id);
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (index === -1 || target < 0 || target >= trackOrder.length) {
+      return;
+    }
+    const next = trackOrder.slice();
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    this.store.update({ trackOrder: next });
+  }
+
+  /**
+   * Commit track list changes with trackOrder listing exactly the resulting
+   * tracks. `trackOrder` overrides the current order, for example to restore a
+   * removed track at its previous position.
+   */
+  private updateTrackLists(update: Partial<RecorderTrackListsState>): void {
+    this.store.update({
+      ...update,
+      trackOrder: syncTrackOrder({ ...this.store.get(), ...update }),
+    });
   }
 
   setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
@@ -1074,6 +1106,7 @@ export class RecorderRuntime {
     this.store.update({
       ...project,
       audioTracks,
+      trackOrder: syncTrackOrder({ ...project, audioTracks }),
       position: 0,
     });
     this.syncYouTubePlayer();
@@ -1100,6 +1133,7 @@ export class RecorderRuntime {
           punch: state.punch,
           audioTracks: state.audioTracks,
           midiTracks: state.midiTracks,
+          trackOrder: state.trackOrder,
           referenceVideo: state.referenceVideo,
         }) satisfies PersistableRecorderRuntimeState,
       listener,
