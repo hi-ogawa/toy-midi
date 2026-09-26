@@ -275,15 +275,7 @@ test("opens an imported archive saved with a single clip per audio track and a s
   await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
 
   // Override the migrated Capture default and retain the choice after reload.
-  await page
-    .getByRole("button", { name: "Capture actions", exact: true })
-    .click();
-  const showClips = page.getByRole("menuitemcheckbox", {
-    name: "Show clips",
-    exact: true,
-  });
-  await expect(showClips).toBeChecked();
-  await showClips.click();
+  await selectMenuItem(page, { menu: "Capture actions", item: "Show clips" });
   await saveRecorderProject(page);
   await page.reload();
   await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
