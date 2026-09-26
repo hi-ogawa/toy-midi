@@ -9,8 +9,9 @@ flowchart LR
     captureWorklet --> analyser["captureInput.analyser.node"]
     analyser --> monitorGain["captureInput.monitorGain"]
     monitorGain --> captureInput
+    monitorGain -. "nothing armed (silent)" .-> masterOutput
 
-    subgraph captureTrack["trackPlaybacks.get(RECORDING_TRACK_ID): AudioTrackPlayback"]
+    subgraph captureTrack["trackPlaybacks.get(armedTrackId): AudioTrackPlayback"]
         takeSource["playbacks[i].playback.source"] --> clipGain["clip gain"]
         clipGain --> takeBusInput
         subgraph takePitchShiftBus["bus: PitchShiftBus"]

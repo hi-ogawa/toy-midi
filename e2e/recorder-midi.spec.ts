@@ -74,11 +74,22 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await expect(firstChannel).toBeVisible();
   await expect(rows.nth(0)).toContainText("MIDI 1");
 
-  // Save the removal and verify the deleted track stays absent after reload.
+  // Rename the remaining track, where a blank name keeps the current one.
+  page.once("dialog", (dialog) => dialog.accept("   "));
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Rename…" });
+  await expect(rows.nth(0)).toContainText("MIDI 1");
+  page.once("dialog", (dialog) => dialog.accept("Lead"));
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Rename…" });
+  await expect(rows.nth(0)).toContainText("Lead");
+  await expect(
+    page.getByRole("button", { name: "Toggle Lead mute" }),
+  ).toBeVisible();
+
+  // Save the removal and rename, and verify both survive reload.
   await saveRecorderProject(page);
   await page.reload();
   await expect(rows).toHaveCount(1);
-  await expect(rows.nth(0)).toContainText("MIDI 1");
+  await expect(rows.nth(0)).toContainText("Lead");
 });
 
 test("creates and deletes a note and persists its instrument", async ({

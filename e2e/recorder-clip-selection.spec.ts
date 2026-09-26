@@ -4,6 +4,7 @@ import { useFakeAudioInput } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
+  armTrack,
   enableInput,
   getRecorderPosition,
   seekRecorderByPixels,
@@ -15,18 +16,20 @@ useFakeAudioInput();
 test("selects and moves audio and take clips together", async ({ page }) => {
   await createRecorderProject(page);
 
-  // Import a backing track.
+  // Import a backing track, which lands on a new track after the empty Audio 1.
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  const audio = page.getByTestId("recorder-clip-audio-source");
+  const rows = page.getByTestId("recorder-audio-track-row");
+  const audio = rows.nth(1).getByTestId("recorder-clip-audio-source");
 
-  // Record a take away from zero.
+  // Record a take into Audio 1 away from zero.
   await enableInput(page);
+  await armTrack(page, { track: "Audio 1" });
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await recordButton.click();
-  const take = page.getByTestId("recorder-clip-comp-source");
+  const take = rows.nth(0).getByTestId("recorder-clip-audio-source");
   await expect(take).toBeVisible();
 
   // Ctrl-click adds the take to the selected backing track.
@@ -67,12 +70,12 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   );
   expect(takeAfter!.x - takeBefore!.x).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT, -1);
 
-  // Delete clears every selected clip while preserving the audio track row.
+  // Delete clears every selected clip while preserving both track rows.
   await page.keyboard.press("Delete");
   await expect(audio).toHaveCount(0);
   await expect(take).toHaveCount(0);
-  await expect(page.getByText("Load an audio file")).toBeVisible();
-  await expect(page.getByTestId("recorder-audio-track-row")).toBeVisible();
+  await expect(page.getByText("Record or import audio")).toHaveCount(2);
+  await expect(rows).toHaveCount(2);
 
   // Undo restores the whole selection at its committed positions in one step.
   await page.keyboard.press("Control+z");
@@ -81,9 +84,9 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   expect((await audio.boundingBox())!.x).toBeCloseTo(audioAfter!.x, -1);
   expect((await take.boundingBox())!.x).toBeCloseTo(takeAfter!.x, -1);
 
-  // Redo removes both clips together and keeps the backing track row.
+  // Redo removes both clips together and keeps both track rows.
   await page.keyboard.press("Control+Shift+z");
   await expect(audio).toHaveCount(0);
   await expect(take).toHaveCount(0);
-  await expect(page.getByTestId("recorder-audio-track-row")).toBeVisible();
+  await expect(rows).toHaveCount(2);
 });

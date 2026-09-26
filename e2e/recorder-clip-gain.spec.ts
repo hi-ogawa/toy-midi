@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { setSliderValue, useFakeAudioInput } from "./helpers";
+import { selectMenuItem, setSliderValue, useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
+  armTrack,
   enableInput,
   waitForRecordingSamples,
 } from "./recorder-helpers";
@@ -12,14 +13,17 @@ test("adjusts take gain and updates its waveform", async ({ page }) => {
   // Record a take and expand its controls at unity gain.
   await createRecorderProject(page);
   await enableInput(page);
+  await armTrack(page, { track: "Audio 1" });
   const record = page.getByTestId("recorder-record-button");
   await record.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await record.click();
-  await page.getByTestId("recorder-takes-toggle").click();
+  // Show the track's clip section to access individual clip controls.
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Show clips" });
+  await page.getByTestId("recorder-clips-toggle").click();
   const gain = page.getByRole("slider", { name: "Take 1 gain", exact: true });
   await expect(gain).toHaveAttribute("aria-valuenow", "0");
-  const waveform = page.getByTestId("recorder-clip-comp").locator("svg path");
+  const waveform = page.getByTestId("recorder-clip-audio").locator("svg path");
   const originalPath = await waveform.getAttribute("d");
 
   // Lower the take by 6 dB and verify its waveform updates.

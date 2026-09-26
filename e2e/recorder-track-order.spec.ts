@@ -11,7 +11,7 @@ test("reorders tracks from their row menus", async ({ page }) => {
   await createRecorderProject(page);
   await addRecorderMidiTrack(page);
   await page.getByRole("button", { name: "Add empty audio track" }).click();
-  await expectTrackRows(page, ["Capture", "MIDI 1", "Audio 1"]);
+  await expectTrackRows(page, ["Audio 1", "MIDI 1", "Audio 2"]);
 
   // Add a reference video, which inserts its row first.
   await page.getByTestId("recorder-reference-video-button").click();
@@ -30,28 +30,28 @@ test("reorders tracks from their row menus", async ({ page }) => {
       .getByRole("menuitem", { name: "Move up" }),
   ).toBeDisabled();
   await page.keyboard.press("Escape");
-  await expectTrackRows(page, ["Reference", "Capture", "MIDI 1", "Audio 1"]);
+  await expectTrackRows(page, ["Reference", "Audio 1", "MIDI 1", "Audio 2"]);
 
   // The last row cannot move down.
-  await page.getByRole("button", { name: "Audio 1 actions" }).click();
+  await page.getByRole("button", { name: "Audio 2 actions" }).click();
   await expect(
     page
-      .getByRole("menu", { name: "Audio 1 actions" })
+      .getByRole("menu", { name: "Audio 2 actions" })
       .getByRole("menuitem", { name: "Move down" }),
   ).toBeDisabled();
   await page.keyboard.press("Escape");
 
-  // Move Audio 1 above MIDI 1 and the reference below Capture.
-  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Move up" });
+  // Move Audio 2 above MIDI 1 and the reference below Audio 1.
+  await selectMenuItem(page, { menu: "Audio 2 actions", item: "Move up" });
   await selectMenuItem(page, { menu: "Reference actions", item: "Move down" });
-  await expectTrackRows(page, ["Capture", "Reference", "Audio 1", "MIDI 1"]);
+  await expectTrackRows(page, ["Audio 1", "Reference", "Audio 2", "MIDI 1"]);
 
   // Mixer channels follow the track order and leave out the reference video.
   await page.getByTestId("recorder-mixer-button").click();
   await expectMixerChannels(page, [
     "Master",
-    "Capture",
     "Audio 1",
+    "Audio 2",
     "MIDI 1",
     "Metronome",
   ]);
@@ -59,26 +59,26 @@ test("reorders tracks from their row menus", async ({ page }) => {
   // Save and reload to restore the order.
   await saveRecorderProject(page);
   await page.reload();
-  await expectTrackRows(page, ["Capture", "Reference", "Audio 1", "MIDI 1"]);
+  await expectTrackRows(page, ["Audio 1", "Reference", "Audio 2", "MIDI 1"]);
 
   // Remove the reference video, then undo to restore it at its position.
   await selectMenuItem(page, {
     menu: "Reference actions",
     item: "Remove reference video",
   });
-  await expectTrackRows(page, ["Capture", "Audio 1", "MIDI 1"]);
+  await expectTrackRows(page, ["Audio 1", "Audio 2", "MIDI 1"]);
   await page.keyboard.press("ControlOrMeta+Z");
-  await expectTrackRows(page, ["Capture", "Reference", "Audio 1", "MIDI 1"]);
+  await expectTrackRows(page, ["Audio 1", "Reference", "Audio 2", "MIDI 1"]);
 
   // Remove MIDI 1 after moving it first, then undo to restore it first.
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Move up" });
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Move up" });
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Move up" });
-  await expectTrackRows(page, ["MIDI 1", "Capture", "Reference", "Audio 1"]);
+  await expectTrackRows(page, ["MIDI 1", "Audio 1", "Reference", "Audio 2"]);
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Remove track" });
-  await expectTrackRows(page, ["Capture", "Reference", "Audio 1"]);
+  await expectTrackRows(page, ["Audio 1", "Reference", "Audio 2"]);
   await page.keyboard.press("ControlOrMeta+Z");
-  await expectTrackRows(page, ["MIDI 1", "Capture", "Reference", "Audio 1"]);
+  await expectTrackRows(page, ["MIDI 1", "Audio 1", "Reference", "Audio 2"]);
 });
 
 test("orders tracks of projects saved before track reordering", async ({
@@ -138,9 +138,9 @@ test("orders tracks of projects saved before track reordering", async ({
   });
 
   // Open it to show the reference video first, then audio tracks with
-  // Capture first among them, then MIDI tracks.
+  // Capture after ordinary audio, then MIDI tracks.
   await page.goto(`/recorder/${projectId}`);
-  await expectTrackRows(page, ["Reference", "Capture", "Audio 1", "MIDI 1"]);
+  await expectTrackRows(page, ["Reference", "Audio 1", "Capture", "MIDI 1"]);
 });
 
 async function expectTrackRows(page: Page, labels: string[]): Promise<void> {

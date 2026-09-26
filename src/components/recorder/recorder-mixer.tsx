@@ -1,4 +1,4 @@
-import { GaugeIcon, Mic2Icon, Music2Icon, Volume2Icon } from "lucide-react";
+import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
@@ -93,7 +93,6 @@ export function RecorderMixer({
 const TRACK_ICONS = {
   audio: <Volume2Icon className="size-4 text-muted-foreground" />,
   midi: <Music2Icon className="size-4 text-muted-foreground" />,
-  capture: <Mic2Icon className="size-4 text-muted-foreground" />,
 };
 
 function RecorderTrackChannel({

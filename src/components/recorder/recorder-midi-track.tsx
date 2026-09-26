@@ -51,6 +51,7 @@ import {
   TrackMenuButton,
   type TrackMoveControls,
   TrackMoveItems,
+  RenameTrackMenuItem,
   TrackRow,
 } from "./recorder-tracks";
 import {
@@ -191,6 +192,7 @@ export function MidiTrackRow({
           <MidiTrackActions
             label={track.name}
             move={move}
+            onRename={(name) => runtime.setTrackName({ id: track.id, name })}
             onEffectsOpen={onEffectsOpen}
             viewMode={track.viewMode}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
@@ -264,6 +266,7 @@ export function MidiTrackRow({
 }
 
 function MidiTrackActions({
+  onRename,
   onEffectsOpen,
   isImporting,
   onImportMidi,
@@ -278,6 +281,7 @@ function MidiTrackActions({
   onTranscribe,
   onScorePreview,
 }: {
+  onRename: (name: string) => void;
   onEffectsOpen: () => void;
   isImporting: boolean;
   onImportMidi: () => void;
@@ -298,6 +302,7 @@ function MidiTrackActions({
         <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <RenameTrackMenuItem name={label} onRename={onRename} />
         <DropdownMenuCheckboxItem
           checked={viewMode === "overview"}
           onCheckedChange={onViewModeToggle}
