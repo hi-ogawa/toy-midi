@@ -296,7 +296,7 @@ export async function enableInput(page: Page) {
   );
 }
 
-/** Arm an audio track by its displayed name as the recording destination. */
+/** Arm an audio track by its displayed name so the next take records into it. */
 export async function armTrack(page: Page, { track }: { track: string }) {
   await test.step(
     `Arm ${track}`,

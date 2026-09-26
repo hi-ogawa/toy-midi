@@ -111,11 +111,11 @@ interface PendingRecordingState extends Pick<
   AudioClip,
   "id" | "name" | "duration" | "timelineOffset"
 > {
-  /** Destination captured at Record, so the take commits where it started. */
+  /** The track armed at Record, so the take commits where it started. */
   trackId: string;
   recording: ActiveRecording;
   punchRange?: { start: number; end: number };
-  /** The destination track's comp including the in-progress take. */
+  /** That track's comp including the in-progress take. */
   regions: ClipRegion[];
 }
 
@@ -165,7 +165,8 @@ export interface RecorderRuntimeState {
   latencyCompensation: number;
   // Monitoring always plays through the armed track's channel.
   inputMonitoring: boolean;
-  // Destination for the next take. Input monitoring also routes through it.
+  // The track the next take records into. Input monitoring also routes
+  // through it.
   armedTrackId?: string;
 }
 
@@ -1101,8 +1102,8 @@ export class RecorderRuntime {
       this.trackPlaybacks.get(id)?.channel.setGain(gain);
       this.midiTrackPlaybacks.get(id)?.channel.setGain(gain);
     }
-    // Suppress the destination's comp independently so channel mix edits
-    // cannot unmute it while a take is recorded over it.
+    // Suppress the comp of the track being recorded into independently, so
+    // channel mix edits cannot unmute it while a take is recorded over it.
     const recordingTrackId = state.pendingRecording?.trackId;
     for (const [id, playback] of this.trackPlaybacks) {
       playback.setPlaybackGain(id === recordingTrackId ? 0 : 1);
