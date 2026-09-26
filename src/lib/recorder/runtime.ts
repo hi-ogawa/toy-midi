@@ -332,6 +332,7 @@ export class RecorderRuntime {
       selectedChannel: 0,
       inputMonitoring: false,
     });
+    this.syncMonitor();
     return { channelCount };
   }
 
@@ -364,8 +365,8 @@ export class RecorderRuntime {
     if (trackId !== this.store.get().armedTrackId) {
       throw new Error("Only the armed track can be monitored.");
     }
-    this.captureInput.setMonitoring(enabled);
     this.store.update({ inputMonitoring: enabled });
+    this.syncMonitor();
   }
 
   addAudioTrack(): string {
@@ -572,16 +573,19 @@ export class RecorderRuntime {
     if (id === this.store.get().pendingRecording?.trackId) {
       throw new Error("Cannot remove the track being recorded into.");
     }
-    if (id === this.store.get().armedTrackId) {
-      this.setArmedTrack(undefined);
-    }
+    const { audioTracks, armedTrackId } = this.store.get();
+    this.store.update({
+      audioTracks: audioTracks.filter((track) => track.id !== id),
+      // Removing the armed track disarms it, like any other arm change.
+      ...(id === armedTrackId && {
+        armedTrackId: undefined,
+        inputMonitoring: false,
+      }),
+    });
+    // Move the monitor off the track before its channel is disposed.
+    this.syncMonitor();
     this.trackPlaybacks.get(id)?.dispose();
     this.trackPlaybacks.delete(id);
-    this.store.update({
-      audioTracks: this.store
-        .get()
-        .audioTracks.filter((track) => track.id !== id),
-    });
     this.syncTrackMix();
   }
 
@@ -730,22 +734,7 @@ export class RecorderRuntime {
     // Monitoring starts only from the armed track's own toggle, so any arm
     // change turns it off rather than carrying it to another track.
     this.store.update({ armedTrackId: id, inputMonitoring: false });
-    this.captureInput?.setMonitoring(false);
-    this.captureInput?.setMonitorOutput(this.getMonitorOutput());
-  }
-
-  /**
-   * Monitoring plays through the armed track's channel so it follows that
-   * track's EQ and gain. With nothing armed, monitoring is off, but the silent
-   * monitor stays connected to the master output: without a path to the
-   * output, Chromium stops rendering the capture chain, and the tuner stops
-   * detecting pitch.
-   */
-  private getMonitorOutput(): AudioNode {
-    const { armedTrackId } = this.store.get();
-    return armedTrackId === undefined
-      ? this.masterOutput
-      : this.getTrackPlayback(armedTrackId).channel.input;
+    this.syncMonitor();
   }
 
   async startRecording(): Promise<void> {
@@ -1118,6 +1107,26 @@ export class RecorderRuntime {
     for (const [id, playback] of this.trackPlaybacks) {
       playback.setPlaybackGain(id === recordingTrackId ? 0 : 1);
     }
+  }
+
+  /** Apply the monitor route and gain derived from the arm and monitoring state. */
+  private syncMonitor(): void {
+    this.captureInput?.setMonitorOutput(this.getMonitorOutput());
+    this.captureInput?.setMonitoring(this.store.get().inputMonitoring);
+  }
+
+  /**
+   * Monitoring plays through the armed track's channel so it follows that
+   * track's EQ and gain. With nothing armed, monitoring is off, but the silent
+   * monitor stays connected to the master output: without a path to the
+   * output, Chromium stops rendering the capture chain, and the tuner stops
+   * detecting pitch.
+   */
+  private getMonitorOutput(): AudioNode {
+    const { armedTrackId } = this.store.get();
+    return armedTrackId === undefined
+      ? this.masterOutput
+      : this.getTrackPlayback(armedTrackId).channel.input;
   }
 
   private syncMetronomeGain(): void {

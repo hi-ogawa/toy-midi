@@ -28,6 +28,7 @@ export class CaptureInput {
   readonly analyser: AudioAnalyser;
   readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;
+  private monitorOutput: AudioNode;
   private capture?: { chunks: CaptureChunk[]; startFrame: number };
 
   static async open({
@@ -102,6 +103,7 @@ export class CaptureInput {
     this.tunerAnalyser = new TunerAnalyser(context);
     this.monitorGain = context.createGain();
     this.monitorGain.gain.value = 0;
+    this.monitorOutput = output;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
     // prevents input monitoring and feedback until it is explicitly enabled.
     this.source
@@ -118,8 +120,13 @@ export class CaptureInput {
 
   /** Re-points monitoring at another channel without reopening the device. */
   setMonitorOutput(output: AudioNode): void {
+    // Reconnecting the same node would cut the monitor mid-signal.
+    if (output === this.monitorOutput) {
+      return;
+    }
     this.monitorGain.disconnect();
     this.monitorGain.connect(output);
+    this.monitorOutput = output;
   }
 
   setMonitoring(enabled: boolean): void {
