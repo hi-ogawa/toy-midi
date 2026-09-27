@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
-import { cn } from "./ui/utils";
 
 export function BrowserStorageDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,78 +33,66 @@ function BrowserStorageDetails() {
   const usage = estimate.data?.estimate?.usage;
   const formattedUsage =
     usage === undefined ? undefined : formatStorageBytes(usage);
-  const protectionStatus = persistence.isError
-    ? "Unavailable"
-    : persistence.isPending
-      ? "Checking…"
-      : persisted === undefined
-        ? "Unavailable"
+  const protectionLabel = persistence.isPending
+    ? "Checking…"
+    : persistence.isError || persisted === undefined
+      ? "Unavailable"
+      : protect.isPending
+        ? "Requesting…"
         : persisted
-          ? "On"
-          : "Off";
+          ? "Protection enabled"
+          : "Protect stored projects";
 
   return (
     <div className="text-xs">
       <p className="text-neutral-400">Used by this site</p>
-      {estimate.isError ? (
-        <p className="mt-2 text-neutral-400">
-          Could not estimate storage usage
-        </p>
-      ) : estimate.isPending ? (
-        <p className="mt-2 text-neutral-400">Checking storage usage…</p>
-      ) : formattedUsage ? (
-        <p className="my-2 text-3xl font-medium tracking-tight text-neutral-100">
-          {formattedUsage.amount}{" "}
-          <span className="text-base font-normal tracking-normal text-neutral-400">
-            {formattedUsage.unit}
-          </span>
-        </p>
-      ) : (
-        <p className="mt-2 text-neutral-400">Storage estimate unavailable</p>
-      )}
+      <div className="my-2 flex h-9 items-center">
+        {estimate.isError ? (
+          <p className="text-neutral-400">Could not estimate storage usage</p>
+        ) : estimate.isPending ? (
+          <p className="text-neutral-400">Checking storage usage…</p>
+        ) : formattedUsage ? (
+          <p className="text-3xl font-medium tracking-tight text-neutral-100">
+            {formattedUsage.amount}{" "}
+            <span className="text-base font-normal tracking-normal text-neutral-400">
+              {formattedUsage.unit}
+            </span>
+          </p>
+        ) : (
+          <p className="text-neutral-400">Storage estimate unavailable</p>
+        )}
+      </div>
       <p className="mt-2 text-neutral-500">
         Estimated total, including any legacy project data.
       </p>
       <div className="my-6 border-t border-neutral-700" />
-      <div className="flex items-center justify-between gap-4" role="status">
-        <span className="font-medium text-neutral-200">
-          Automatic cleanup protection
-        </span>
-        <span
-          className={cn(
-            "rounded-full border px-2 py-0.5 text-[11px]",
-            protectionStatus === "On"
-              ? "border-emerald-800 bg-emerald-950/40 text-emerald-300"
-              : "border-neutral-600 text-neutral-400",
-          )}
-        >
-          {protectionStatus}
-        </span>
-      </div>
+      <h3 className="font-medium text-neutral-200">
+        Automatic cleanup protection
+      </h3>
       <p className="my-4 leading-relaxed text-neutral-400">
-        {persistence.isError
-          ? "Could not check storage protection. Reopen this dialog to try again."
-          : persistence.isPending
-            ? "Checking whether your browser protects stored projects from automatic cleanup."
-            : persisted === undefined
-              ? "This browser does not make the storage protection control available. You can still save and export projects."
-              : persisted
-                ? "Your browser has enabled protection against automatic cleanup for this site's stored projects."
-                : "Ask your browser to keep this site's projects when it automatically frees storage space."}
+        Protection keeps this site's projects from being removed during
+        automatic browser cleanup.
       </p>
       <Button
         disabled={
           persisted !== false || persistence.isError || protect.isPending
         }
         onClick={() => protect.mutate()}
+        aria-live="polite"
         className="w-44 border-emerald-600 bg-emerald-600 px-4 py-2.5 text-xs text-white hover:bg-emerald-500"
       >
-        {persisted
-          ? "Protection enabled"
-          : protect.isPending
-            ? "Requesting…"
-            : "Protect stored projects"}
+        {protectionLabel}
       </Button>
+      {persistence.isError ? (
+        <p role="alert" className="mt-3 leading-relaxed text-orange-300">
+          Could not check storage protection. Reopen this dialog to try again.
+        </p>
+      ) : persistence.isSuccess && persisted === undefined ? (
+        <p className="mt-3 leading-relaxed text-neutral-400">
+          This browser does not offer storage protection. You can still save and
+          export projects.
+        </p>
+      ) : undefined}
       {protect.isError && (
         <p role="alert" className="mt-3 leading-relaxed text-orange-300">
           Could not request protection. Try again.
