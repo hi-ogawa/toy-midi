@@ -1,7 +1,6 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
-import { useRefreshStorageEstimate } from "../../hooks/use-browser-storage";
 import {
   type ProjectMetadata,
   projectStorage,
@@ -15,7 +14,10 @@ import {
 import { routes } from "../../lib/routes";
 import { pluralCount } from "../../utils/plural-count";
 import { toResult } from "../../utils/result";
-import { BrowserStorageDialog } from "../browser-storage-dialog";
+import {
+  BrowserStorageDialog,
+  useRefreshStorageEstimate,
+} from "../browser-storage-dialog";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
 

@@ -1,8 +1,11 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useBrowserStorage } from "../hooks/use-browser-storage";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
 import { cn } from "./ui/utils";
+
+const persistenceKey = ["browser-storage", "persistence"];
+const estimateKey = ["browser-storage", "estimate"];
 
 export function BrowserStorageDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -119,6 +122,56 @@ function BrowserStorageDetails() {
       </p>
     </div>
   );
+}
+
+function useBrowserStorage() {
+  const queryClient = useQueryClient();
+  const persistence = useQuery({
+    queryKey: persistenceKey,
+    // Wrap optional API results because query data itself must be defined.
+    queryFn: async () => ({ persisted: await readStoragePersistence() }),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const estimate = useQuery({
+    queryKey: estimateKey,
+    queryFn: async () => ({ estimate: await readStorageEstimate() }),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const protect = useMutation({
+    mutationFn: requestStoragePersistence,
+    onSuccess: (persisted) => {
+      queryClient.setQueryData(persistenceKey, { persisted });
+    },
+    // Keep request failures beside the protection control instead of a toast.
+    onError: () => {},
+  });
+  return { persistence, estimate, protect };
+}
+
+export function useRefreshStorageEstimate() {
+  const queryClient = useQueryClient();
+  return () => {
+    // Diagnostic refresh must not change whether a project write succeeded.
+    void queryClient.invalidateQueries({ queryKey: estimateKey });
+  };
+}
+
+// Storage protection and estimates apply to this site's origin, including existing projects.
+async function readStoragePersistence(): Promise<boolean | undefined> {
+  if (!navigator.storage?.persisted || !navigator.storage.persist) {
+    return undefined;
+  }
+  return navigator.storage.persisted();
+}
+
+async function readStorageEstimate(): Promise<StorageEstimate | undefined> {
+  return navigator.storage?.estimate?.();
+}
+
+async function requestStoragePersistence(): Promise<boolean> {
+  return navigator.storage.persist();
 }
 
 function formatStorageBytes(bytes: number): { amount: string; unit: string } {
