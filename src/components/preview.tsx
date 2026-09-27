@@ -1,9 +1,14 @@
 import { routes } from "../lib/routes";
+import { BrowserStoragePreview } from "./browser-storage-preview";
 import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
 import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
 import { RecorderTunerPreview } from "./recorder/recorder-tuner-preview";
 
 const PREVIEWS = [
+  {
+    label: "Browser storage dialog",
+    component: BrowserStoragePreview,
+  },
   {
     label: "Recorder effects",
     component: RecorderEffectsPreview,

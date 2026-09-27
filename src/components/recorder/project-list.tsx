@@ -14,6 +14,7 @@ import {
 import { routes } from "../../lib/routes";
 import { pluralCount } from "../../utils/plural-count";
 import { toResult } from "../../utils/result";
+import { BrowserStorageDialog } from "../browser-storage-dialog";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
 
@@ -80,6 +81,7 @@ export function RecorderProjectList() {
           <div className="flex items-center justify-between gap-4">
             <h2 className="font-semibold">Projects</h2>
             <div className="flex gap-2">
+              <BrowserStorageDialog />
               <Button
                 data-testid="new-recorder-project-button"
                 onClick={() => createProjectMutation.mutate()}
