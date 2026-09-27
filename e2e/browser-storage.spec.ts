@@ -10,17 +10,13 @@ test("requests browser storage protection from home", async ({ page }) => {
     /Automatic cleanup protection\s*Off/,
   );
 
-  // Request protection and show the browser's granted or declined outcome.
+  // Request protection and show the fresh Chromium context's declined outcome.
   await dialog.getByRole("button", { name: "Protect stored projects" }).click();
   await expect(
-    dialog
-      .getByText("On", { exact: true })
-      .or(
-        dialog.getByText(
-          "The browser did not enable protection. You can continue saving and export a backup.",
-          { exact: true },
-        ),
-      ),
+    dialog.getByText(
+      "The browser did not enable protection. You can continue saving and export a backup.",
+      { exact: true },
+    ),
   ).toBeVisible();
 
   // Close storage management and return to the project actions.
