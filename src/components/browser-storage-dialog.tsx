@@ -93,15 +93,19 @@ function BrowserStorageDetails() {
                 ? "Your browser has enabled protection against automatic cleanup for this site's stored projects."
                 : "Ask your browser to keep this site's projects when it automatically frees storage space."}
       </p>
-      {persisted === false && !persistence.isError && (
-        <Button
-          disabled={protect.isPending}
-          onClick={() => protect.mutate()}
-          className="border-emerald-600 bg-emerald-600 px-4 py-2.5 text-xs text-white hover:bg-emerald-500"
-        >
-          {protect.isPending ? "Requesting…" : "Protect stored projects"}
-        </Button>
-      )}
+      <Button
+        disabled={
+          persisted !== false || persistence.isError || protect.isPending
+        }
+        onClick={() => protect.mutate()}
+        className="w-44 border-emerald-600 bg-emerald-600 px-4 py-2.5 text-xs text-white hover:bg-emerald-500"
+      >
+        {persisted
+          ? "Protection enabled"
+          : protect.isPending
+            ? "Requesting…"
+            : "Protect stored projects"}
+      </Button>
       {protect.isError && (
         <p role="alert" className="mt-3 leading-relaxed text-orange-300">
           Could not request protection. Try again.
