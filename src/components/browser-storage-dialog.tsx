@@ -129,12 +129,12 @@ function useBrowserStorage() {
   const persistence = useQuery({
     queryKey: persistenceKey,
     // Wrap optional API results because query data itself must be defined.
-    queryFn: async () => ({
-      persisted:
-        navigator.storage?.persisted && navigator.storage.persist
-          ? await navigator.storage.persisted()
-          : undefined,
-    }),
+    queryFn: async () => {
+      if (!navigator.storage?.persisted || !navigator.storage.persist) {
+        return { persisted: undefined };
+      }
+      return { persisted: await navigator.storage.persisted() };
+    },
     staleTime: 30_000,
     retry: false,
   });
