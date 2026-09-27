@@ -4,8 +4,8 @@ import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
 import { cn } from "./ui/utils";
 
-const persistenceKey = ["browser-storage", "persistence"];
-const estimateKey = ["browser-storage", "estimate"];
+const PERSISTENCE_KEY = ["browser-storage", "persistence"];
+const ESTIMATE_KEY = ["browser-storage", "estimate"];
 
 export function BrowserStorageDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -127,7 +127,7 @@ function BrowserStorageDetails() {
 function useBrowserStorage() {
   const queryClient = useQueryClient();
   const persistence = useQuery({
-    queryKey: persistenceKey,
+    queryKey: PERSISTENCE_KEY,
     // Wrap optional API results because query data itself must be defined.
     queryFn: async () => {
       if (!navigator.storage?.persisted || !navigator.storage.persist) {
@@ -139,7 +139,7 @@ function useBrowserStorage() {
     retry: false,
   });
   const estimate = useQuery({
-    queryKey: estimateKey,
+    queryKey: ESTIMATE_KEY,
     queryFn: async () => ({
       estimate: await navigator.storage?.estimate?.(),
     }),
@@ -149,7 +149,7 @@ function useBrowserStorage() {
   const protect = useMutation({
     mutationFn: () => navigator.storage.persist(),
     onSuccess: (persisted) => {
-      queryClient.setQueryData(persistenceKey, { persisted });
+      queryClient.setQueryData(PERSISTENCE_KEY, { persisted });
     },
     // Keep request failures beside the protection control instead of a toast.
     onError: () => {},
@@ -161,7 +161,7 @@ export function useRefreshStorageEstimate() {
   const queryClient = useQueryClient();
   return () => {
     // Diagnostic refresh must not change whether a project write succeeded.
-    void queryClient.invalidateQueries({ queryKey: estimateKey });
+    void queryClient.invalidateQueries({ queryKey: ESTIMATE_KEY });
   };
 }
 
