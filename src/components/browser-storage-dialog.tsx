@@ -129,18 +129,25 @@ function useBrowserStorage() {
   const persistence = useQuery({
     queryKey: persistenceKey,
     // Wrap optional API results because query data itself must be defined.
-    queryFn: async () => ({ persisted: await readStoragePersistence() }),
+    queryFn: async () => ({
+      persisted:
+        navigator.storage?.persisted && navigator.storage.persist
+          ? await navigator.storage.persisted()
+          : undefined,
+    }),
     staleTime: 30_000,
     retry: false,
   });
   const estimate = useQuery({
     queryKey: estimateKey,
-    queryFn: async () => ({ estimate: await readStorageEstimate() }),
+    queryFn: async () => ({
+      estimate: await navigator.storage?.estimate?.(),
+    }),
     staleTime: 30_000,
     retry: false,
   });
   const protect = useMutation({
-    mutationFn: requestStoragePersistence,
+    mutationFn: () => navigator.storage.persist(),
     onSuccess: (persisted) => {
       queryClient.setQueryData(persistenceKey, { persisted });
     },
@@ -156,22 +163,6 @@ export function useRefreshStorageEstimate() {
     // Diagnostic refresh must not change whether a project write succeeded.
     void queryClient.invalidateQueries({ queryKey: estimateKey });
   };
-}
-
-// Storage protection and estimates apply to this site's origin, including existing projects.
-async function readStoragePersistence(): Promise<boolean | undefined> {
-  if (!navigator.storage?.persisted || !navigator.storage.persist) {
-    return undefined;
-  }
-  return navigator.storage.persisted();
-}
-
-async function readStorageEstimate(): Promise<StorageEstimate | undefined> {
-  return navigator.storage?.estimate?.();
-}
-
-async function requestStoragePersistence(): Promise<boolean> {
-  return navigator.storage.persist();
 }
 
 function formatStorageBytes(bytes: number): { amount: string; unit: string } {
