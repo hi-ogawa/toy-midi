@@ -4,9 +4,6 @@ import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
 import { cn } from "./ui/utils";
 
-const PERSISTENCE_KEY = ["browser-storage", "persistence"];
-const ESTIMATE_KEY = ["browser-storage", "estimate"];
-
 export function BrowserStorageDialog() {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -123,6 +120,9 @@ function BrowserStorageDetails() {
     </div>
   );
 }
+
+const PERSISTENCE_KEY = ["browser-storage", "persistence"];
+const ESTIMATE_KEY = ["browser-storage", "estimate"];
 
 function useBrowserStorage() {
   const queryClient = useQueryClient();
