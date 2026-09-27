@@ -143,7 +143,6 @@ function useBrowserStorage() {
     queryFn: async () => ({
       estimate: await navigator.storage?.estimate?.(),
     }),
-    staleTime: 30_000,
     retry: false,
   });
   const protect = useMutation({
@@ -155,14 +154,6 @@ function useBrowserStorage() {
     onError: () => {},
   });
   return { persistence, estimate, protect };
-}
-
-export function useRefreshStorageEstimate() {
-  const queryClient = useQueryClient();
-  return () => {
-    // Diagnostic refresh must not change whether a project write succeeded.
-    void queryClient.invalidateQueries({ queryKey: ESTIMATE_KEY });
-  };
 }
 
 function formatStorageBytes(bytes: number): { amount: string; unit: string } {

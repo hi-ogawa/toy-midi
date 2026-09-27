@@ -14,15 +14,11 @@ import {
 import { routes } from "../../lib/routes";
 import { pluralCount } from "../../utils/plural-count";
 import { toResult } from "../../utils/result";
-import {
-  BrowserStorageDialog,
-  useRefreshStorageEstimate,
-} from "../browser-storage-dialog";
+import { BrowserStorageDialog } from "../browser-storage-dialog";
 import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
 
 export function RecorderProjectList() {
-  const refreshStorageEstimate = useRefreshStorageEstimate();
   const [showLegacy, setShowLegacy] = useState(false);
   const [query, setQuery] = useState("");
   const [legacyProjects, setLegacyProjects] = useState(() =>
@@ -33,19 +29,16 @@ export function RecorderProjectList() {
     queryFn: () => toResult(recorderProjectStorage.list()),
   });
   const createProjectMutation = useMutation({
-    onSettled: refreshStorageEstimate,
     mutationFn: () => recorderProjectStorage.create(),
     onSuccess: (projectId) => {
       window.location.href = routes.recorderProject.href({ projectId });
     },
   });
   const deleteProjectMutation = useMutation({
-    onSettled: refreshStorageEstimate,
     mutationFn: (projectId: string) => recorderProjectStorage.delete(projectId),
     onSuccess: () => projectsQuery.refetch(),
   });
   const importProjectMutation = useMutation({
-    onSettled: refreshStorageEstimate,
     mutationFn: async (file: File) => {
       const content = await importRecorderProject(file);
       return recorderProjectStorage.createWithContent(content);
@@ -56,7 +49,6 @@ export function RecorderProjectList() {
   });
 
   const migrateMutation = useMutation({
-    onSettled: refreshStorageEstimate,
     mutationFn: async (project: ProjectMetadata) => {
       // Convert stored data and audio before saving a separate recorder copy.
       const content = await convertLegacyProject({
@@ -186,7 +178,6 @@ export function RecorderProjectList() {
                 onMigrate={() => migrateMutation.mutate(project)}
                 onDelete={() => {
                   projectStorage.delete(project.id);
-                  refreshStorageEstimate();
                   const remaining = projectStorage.listMetadata();
                   setLegacyProjects(remaining);
                   if (remaining.length === 0) {
