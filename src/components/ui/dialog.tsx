@@ -7,7 +7,6 @@ import { cn } from "./utils";
 type DialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onCloseAutoFocus?: (event: Event) => void;
   title: string;
   children: ReactNode;
   "data-testid"?: string;
@@ -17,7 +16,6 @@ type DialogProps = {
 export function Dialog({
   isOpen,
   onClose,
-  onCloseAutoFocus,
   title,
   children,
   "data-testid": testId,
@@ -36,7 +34,6 @@ export function Dialog({
         <DialogPrimitive.Overlay className="fixed inset-0 bg-black/70 z-50" />
         <DialogPrimitive.Content
           data-testid={testId}
-          onCloseAutoFocus={onCloseAutoFocus}
           aria-describedby={undefined}
           className={cn(
             "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-neutral-800 rounded-lg shadow-2xl w-[calc(100%-2rem)]",

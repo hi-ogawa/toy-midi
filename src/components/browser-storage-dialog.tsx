@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useBrowserStorage } from "../hooks/use-browser-storage";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
@@ -6,12 +6,10 @@ import { cn } from "./ui/utils";
 
 export function BrowserStorageDialog() {
   const [isOpen, setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <>
       <button
-        ref={triggerRef}
         type="button"
         aria-haspopup="dialog"
         onClick={() => setIsOpen(true)}
@@ -22,10 +20,6 @@ export function BrowserStorageDialog() {
       <Dialog
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          triggerRef.current?.focus();
-        }}
         title="Browser storage"
       >
         <BrowserStorageDetails />
