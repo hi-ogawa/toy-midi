@@ -12,10 +12,12 @@ flowchart LR
     monitorGain -. "nothing armed (silent)" .-> masterOutput
 
     subgraph captureTrack["trackPlaybacks.get(armedTrackId): AudioTrackPlayback"]
-        takeSource["playbacks[i].playback.source"] --> clipGain["clip gain"]
+        takeSource["playbacks[i].playback.source"] --> takeEnvelope["declick envelope"]
+        takeEnvelope --> clipGain["clip gain"]
         clipGain --> takeBusInput
         subgraph takePitchShiftBus["bus: PitchShiftBus"]
-            takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]
+            takeBusInput["input"] --> takeGate["run gate"]
+            takeGate --> takePitchShifter["pitchShifter (optional)"]
         end
         takePitchShifter --> takePlaybackGain["playbackGain"]
         takePlaybackGain --> captureInput
