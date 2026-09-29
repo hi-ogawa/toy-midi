@@ -24,5 +24,5 @@
 - Prefer `undefined` over `null`
 - Prefer optional properties (`{ x?: T }`) over explicit undefined (`{ x: T | undefined }`)
 - Make props/params required when all call sites always pass them
-- Use an options object when a call site would be ambiguous without names: several arguments of the same type, flags, or parameters likely to grow. Keep a single obvious argument, or a conventional order such as a value and its bounds, positional. When a function acts on one main subject with modifiers, pass the subject positionally and the modifiers in an object
+- Shape arguments the way a reader expects from the operation. Take a value positionally when the operation conventionally takes just that value. Use an options object when a call site would be ambiguous without names, or when the operation is the kind that accumulates options, even if it takes one today. When a function acts on one main subject with modifiers, pass the subject positionally and the modifiers in an object
 - Use braces for every `switch` case body (`case "x": { ... }`, `default: { ... }`)
