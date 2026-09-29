@@ -1,7 +1,10 @@
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
-import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
+import {
+  AudioBufferPlayback,
+  DECLICK_SECONDS,
+} from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import type {
@@ -86,13 +89,25 @@ export class AudioTrackPlayback {
   }
 }
 
+/**
+ * Delay before tearing down a stopped run. Covers the source declick fade plus
+ * pitch shifter latency (about 40 ms), so the faded tail drains to the output.
+ */
+const RUN_TEARDOWN_SECONDS = 0.1;
+
+type PitchShiftRun = {
+  /** Closes this run's input once stopped sources finish their fade. */
+  gate: GainNode;
+  pitchShifter?: AudioWorkletNode;
+};
+
 /** Sums playback sources before pitch correction for one transport run. */
 class PitchShiftBus implements TransportParticipant {
   readonly input: GainNode;
   private readonly transport: AudioContextTransport;
   private readonly output: AudioNode;
   private readonly unregister: () => void;
-  private pitchShifter?: AudioWorkletNode;
+  private run?: PitchShiftRun;
 
   constructor({
     transport,
@@ -108,25 +123,44 @@ class PitchShiftBus implements TransportParticipant {
   }
 
   start(): void {
+    const context = this.transport.context;
     const playbackRate = this.transport.playbackRate;
+    const gate = context.createGain();
+    this.input.connect(gate);
     if (playbackRate === 1) {
-      this.input.connect(this.output);
+      gate.connect(this.output);
+      this.run = { gate };
       return;
     }
-    this.pitchShifter = createPitchShifterNode({
-      context: this.transport.context,
+    const pitchShifter = createPitchShifterNode({
+      context,
       channelCount: 2,
       pitchRatio: 1 / playbackRate,
     });
-    this.input.connect(this.pitchShifter).connect(this.output);
+    gate.connect(pitchShifter).connect(this.output);
+    this.run = { gate, pitchShifter };
   }
 
+  /**
+   * Lets stopped sources fade out through this run, then closes it. The next
+   * run starts after the transport's scheduling lead, so it never overlaps the
+   * closing gate.
+   */
   stop(): void {
-    this.input.disconnect();
-    if (this.pitchShifter) {
-      disposeWorklet(this.pitchShifter);
+    const run = this.run;
+    if (!run) {
+      return;
     }
-    this.pitchShifter = undefined;
+    this.run = undefined;
+    const context = this.transport.context;
+    run.gate.gain.setValueAtTime(0, context.currentTime + DECLICK_SECONDS);
+    setTimeout(() => {
+      this.input.disconnect(run.gate);
+      run.gate.disconnect();
+      if (run.pitchShifter) {
+        disposeWorklet(run.pitchShifter);
+      }
+    }, RUN_TEARDOWN_SECONDS * 1000);
   }
 
   dispose(): void {
