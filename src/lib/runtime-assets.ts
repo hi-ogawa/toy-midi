@@ -1,7 +1,12 @@
 import { toast } from "sonner";
 import wasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
 import workletUrl from "../assets/oxisynth/worklet.js?url";
-import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
+
+// The shared HTTP cache evicts the large soundfont under unrelated browsing, so
+// keep it in origin-scoped Cache Storage. The stable public URL is the cache key,
+// so rename the file when its contents change.
+const soundfontUrl = "/soundfonts/A320U.sf2";
+const SOUNDFONT_CACHE = "midi-soundfont";
 
 export const midiAssetUrls = { wasmUrl, workletUrl, soundfontUrl };
 
@@ -33,11 +38,30 @@ export function preloadMidiAssetsWhenIdle() {
   });
 }
 
-// Warm the browser cache silently. Synth initialization still handles asset failures.
+// Warm the caches silently. Synth initialization still handles asset failures.
 function preloadMidiAssets(): Promise<void> {
-  return (preloadPromise ??= Promise.allSettled(
-    Object.values(midiAssetUrls).map(preloadAsset),
-  ).then(() => {}));
+  return (preloadPromise ??= Promise.allSettled([
+    preloadAsset(wasmUrl),
+    preloadAsset(workletUrl),
+    ensureSoundfontCached(),
+  ]).then(() => {}));
+}
+
+export async function fetchSoundfont(): Promise<ArrayBuffer> {
+  const cache = await ensureSoundfontCached();
+  const response = await cache.match(soundfontUrl);
+  if (!response) {
+    throw new Error(`Missing cached ${soundfontUrl}`);
+  }
+  return response.arrayBuffer();
+}
+
+async function ensureSoundfontCached(): Promise<Cache> {
+  const cache = await caches.open(SOUNDFONT_CACHE);
+  if (!(await cache.match(soundfontUrl))) {
+    await cache.add(soundfontUrl);
+  }
+  return cache;
 }
 
 function preloadAsset(href: string): Promise<void> {

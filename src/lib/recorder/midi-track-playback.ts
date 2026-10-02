@@ -1,7 +1,11 @@
 import type { Note } from "../../types.ts";
 import { startInterval } from "../../utils/timing.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
-import { midiAssetUrls, waitForMidiAssets } from "../runtime-assets";
+import {
+  fetchSoundfont,
+  midiAssetUrls,
+  waitForMidiAssets,
+} from "../runtime-assets";
 import { beatsToSeconds } from "../timeline.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { MidiTrackState } from "./runtime.ts";
@@ -184,9 +188,7 @@ class RecorderMidiSynth {
     );
     await this.sendMessage("init", { wasmBytes: wasm }, "ready", [wasm]);
 
-    const soundfont = await fetch(midiAssetUrls.soundfontUrl).then((response) =>
-      response.arrayBuffer(),
-    );
+    const soundfont = await fetchSoundfont();
     await this.sendMessage(
       "addSoundfont",
       { name: midiAssetUrls.soundfontUrl, data: soundfont },
