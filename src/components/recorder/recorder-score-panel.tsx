@@ -10,7 +10,7 @@ import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-import type { ProjectClientStorage } from "../../lib/recorder/storage";
+import type { ProjectUiStore } from "../../lib/recorder/storage";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
   type ScoreViewerClock,
@@ -18,8 +18,8 @@ import {
 } from "../score-viewer-runtime";
 import { RecorderPanel } from "./recorder-panel";
 
-export function useRecorderScorePanelUi(clientStorage: ProjectClientStorage) {
-  const [openIds, setOpenIds] = clientStorage.useValue("openScorePanels");
+export function useRecorderScorePanelUi(projectUiStore: ProjectUiStore) {
+  const [openIds, setOpenIds] = projectUiStore.useValue("openScorePanels");
   const openTracks: ReadonlySet<string> = new Set(openIds);
   function open(id: string) {
     setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
@@ -31,14 +31,14 @@ export function useRecorderScorePanelUi(clientStorage: ProjectClientStorage) {
 }
 
 export function RecorderScorePanel({
-  clientStorage,
+  projectUiStore,
   runtime,
   state,
   track,
   onClose,
   scoreViewerHref,
 }: {
-  clientStorage: ProjectClientStorage;
+  projectUiStore: ProjectUiStore;
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   track: MidiTrackState;
@@ -47,8 +47,7 @@ export function RecorderScorePanel({
 }) {
   // One size for every score panel in the project, stored when a resize ends.
   const [size, setSize] = useState(
-    () =>
-      clientStorage.store.get().scorePanelSize ?? { width: 640, height: 448 },
+    () => projectUiStore.store.get().scorePanelSize,
   );
   const resizeRef = usePointerDrag({
     onStart: () => ({ start: size, size }),
@@ -60,7 +59,7 @@ export function RecorderScorePanel({
       setSize(data.size);
     },
     onEnd: (_event, { data }) => {
-      clientStorage.update({ scorePanelSize: data.size });
+      projectUiStore.update({ scorePanelSize: data.size });
     },
   });
 

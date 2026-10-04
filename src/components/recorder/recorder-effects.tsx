@@ -9,14 +9,14 @@ import {
 } from "../../lib/dsp/biquad-eq-multiband";
 import { createDefaultEqBand } from "../../lib/dsp/biquad-eq-node";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
-import type { ProjectClientStorage } from "../../lib/recorder/storage";
+import type { ProjectUiStore } from "../../lib/recorder/storage";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
 import { RecorderPanel } from "./recorder-panel";
 
-export function useRecorderEffectsUi(clientStorage: ProjectClientStorage) {
-  const [openIds, setOpenIds] = clientStorage.useValue("openEffects");
+export function useRecorderEffectsUi(projectUiStore: ProjectUiStore) {
+  const [openIds, setOpenIds] = projectUiStore.useValue("openEffects");
   const openEffects: ReadonlySet<string> = new Set(openIds);
 
   function toggleEffects(id: string) {
@@ -37,13 +37,13 @@ export function useRecorderEffectsUi(clientStorage: ProjectClientStorage) {
 }
 
 export function RecorderEffects({
-  clientStorage,
+  projectUiStore,
   label,
   eq,
   onChange,
   onClose,
 }: {
-  clientStorage: ProjectClientStorage;
+  projectUiStore: ProjectUiStore;
   label: string;
   eq: MultibandEqParameters;
   onChange: (eq: MultibandEqParameters) => void;
@@ -51,9 +51,7 @@ export function RecorderEffects({
 }) {
   // One size for every effects panel in the project, stored when a resize ends.
   const [size, setSize] = useState(() =>
-    clampEffectsSize(
-      clientStorage.store.get().effectsSize ?? { width: 384, height: 512 },
-    ),
+    clampEffectsSize(projectUiStore.store.get().effectsSize),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: () => ({ start: size, size }),
@@ -65,7 +63,7 @@ export function RecorderEffects({
       setSize(data.size);
     },
     onEnd: (_event, { data }) => {
-      clientStorage.update({ effectsSize: data.size });
+      projectUiStore.update({ effectsSize: data.size });
     },
   });
 

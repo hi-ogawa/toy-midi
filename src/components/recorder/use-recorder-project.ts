@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
-import type { ProjectClientStorage } from "../../lib/recorder/storage";
+import type { ProjectUiStore } from "../../lib/recorder/storage";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
@@ -12,11 +12,11 @@ export type UseRecorderProjectResult = ReturnType<typeof useRecorderProject>;
 export function useRecorderProject({
   projectId,
   runtime,
-  clientStorage,
+  projectUiStore,
 }: {
   projectId: string;
   runtime: RecorderRuntime;
-  clientStorage: ProjectClientStorage;
+  projectUiStore: ProjectUiStore;
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
@@ -32,7 +32,7 @@ export function useRecorderProject({
       ]);
       await runtime.deserializeProject(project);
       // Loading seeks to the start, so return to where the project was left.
-      const { playhead } = clientStorage.store.get();
+      const { playhead } = projectUiStore.store.get();
       if (playhead !== undefined) {
         runtime.seek(playhead);
       }
@@ -77,7 +77,7 @@ export function useRecorderProject({
     return runtime.store.subscribeWithSelector({
       selector: (state) => (state.isPlaying ? undefined : state.position),
       listener: () =>
-        clientStorage.update({ playhead: runtime.store.get().position }),
+        projectUiStore.update({ playhead: runtime.store.get().position }),
       equals: Object.is,
     });
   }, [projectQuery.isSuccess, runtime]);

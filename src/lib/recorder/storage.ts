@@ -6,9 +6,9 @@ import {
   MIN_PIXELS_PER_BEAT,
 } from "../timeline.ts";
 
-const PREFERENCES_KEY = "toy-midi:recorder-preferences";
+// Browser-wide preferences, which follow the browser into every project, such
+// as the input hardware.
 
-// Preferences that follow the browser, such as the input hardware.
 const recorderPreferencesSchema = z.object({
   defaultMidiProgram: z.number().int().min(0).max(127),
   takesNewestFirst: z.boolean(),
@@ -22,27 +22,38 @@ const recorderPreferencesSchema = z.object({
 });
 type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
-export const recorderStorage = new LocalStorageStore<RecorderPreferences>({
-  key: PREFERENCES_KEY,
-  schema: recorderPreferencesSchema,
-  defaults: { defaultMidiProgram: 0, takesNewestFirst: true },
+const DEFAULT_RECORDER_PREFERENCES: RecorderPreferences = {
+  defaultMidiProgram: 0,
+  takesNewestFirst: true,
+};
+
+export const recorderPreferences = new LocalStorageStore<RecorderPreferences>({
+  key: "toy-midi:recorder-preferences",
+  parse: (stored) =>
+    parseState({
+      schema: recorderPreferencesSchema,
+      defaults: DEFAULT_RECORDER_PREFERENCES,
+      stored,
+    }),
 });
+
+// Per-project UI state, such as zoom and panel layout, which stays in this
+// browser outside the saved project, so changing it never marks the project
+// unsaved.
 
 const panelSizeSchema = z.object({
   width: z.number().positive(),
   height: z.number().positive(),
 });
 
-// View state for one project that stays in this browser, outside the saved
-// project, so changing it never marks the project unsaved.
-const projectClientStateSchema = z.object({
+const projectUiStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
   timelinePixelsPerBeat: z
     .number()
     .min(MIN_PIXELS_PER_BEAT)
     .max(MAX_PIXELS_PER_BEAT),
-  referenceVideoSize: panelSizeSchema.optional(),
+  referenceVideoSize: panelSizeSchema,
   timelineStartBeat: z.number().nonnegative(),
   /** Absent until stored, so a project opens at its start the first time. */
   playhead: z.number().nonnegative().optional(),
@@ -52,29 +63,49 @@ const projectClientStateSchema = z.object({
   expandedClipTracks: z.array(z.string()),
   openEffects: z.array(z.string()),
   openScorePanels: z.array(z.string()),
-  effectsSize: panelSizeSchema.optional(),
-  scorePanelSize: panelSizeSchema.optional(),
+  effectsSize: panelSizeSchema,
+  scorePanelSize: panelSizeSchema,
 });
-type ProjectClientState = z.infer<typeof projectClientStateSchema>;
+type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 
-export type ProjectClientStorage = LocalStorageStore<ProjectClientState>;
+const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
+  autoScrollEnabled: true,
+  inputPanelOpen: false,
+  timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
+  referenceVideoSize: { width: 640, height: 480 },
+  timelineStartBeat: 0,
+  referenceVideoOpen: false,
+  mixerOpen: false,
+  expandedClipTracks: [],
+  openEffects: [],
+  openScorePanels: [],
+  effectsSize: { width: 384, height: 512 },
+  scorePanelSize: { width: 640, height: 448 },
+};
 
-export function createProjectClientStorage(
-  projectId: string,
-): ProjectClientStorage {
-  return new LocalStorageStore<ProjectClientState>({
-    key: `toy-midi:recorder-project-client:${projectId}`,
-    schema: projectClientStateSchema,
-    defaults: {
-      autoScrollEnabled: true,
-      inputPanelOpen: false,
-      timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
-      timelineStartBeat: 0,
-      referenceVideoOpen: false,
-      mixerOpen: false,
-      expandedClipTracks: [],
-      openEffects: [],
-      openScorePanels: [],
-    },
+export type ProjectUiStore = LocalStorageStore<ProjectUiState>;
+
+export function createProjectUiStore(projectId: string): ProjectUiStore {
+  return new LocalStorageStore<ProjectUiState>({
+    key: `toy-midi:recorder-project-ui:${projectId}`,
+    parse: (stored) =>
+      parseState({
+        schema: projectUiStateSchema,
+        defaults: DEFAULT_PROJECT_UI_STATE,
+        stored,
+      }),
   });
+}
+
+function parseState<State>({
+  schema,
+  defaults,
+  stored,
+}: {
+  schema: z.ZodType<State>;
+  defaults: State;
+  stored: unknown;
+}): State {
+  const result = schema.safeParse({ ...defaults, ...(stored as object) });
+  return result.success ? result.data : defaults;
 }
