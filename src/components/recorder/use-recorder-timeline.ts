@@ -32,7 +32,8 @@ export function useRecorderTimeline({
   const [pixelsPerBeat, setPixelsPerBeat] = clientStorage.useValue(
     "timelinePixelsPerBeat",
   );
-  const [viewportStartBeat, setViewportStartBeat] = useState(0);
+  const [viewportStartBeat, setViewportStartBeat] =
+    clientStorage.useValue("timelineStartBeat");
   const [viewportWidth, setViewportWidth] = useState(0);
   const beatsPerBar = getBeatsPerBar(timeSignature);
   const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];

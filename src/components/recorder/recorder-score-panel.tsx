@@ -10,6 +10,7 @@ import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
+import type { ProjectClientStorage } from "../../lib/recorder/storage";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
   type ScoreViewerClock,
@@ -17,42 +18,50 @@ import {
 } from "../score-viewer-runtime";
 import { RecorderPanel } from "./recorder-panel";
 
-export function useRecorderScorePanelUi() {
-  const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
+export function useRecorderScorePanelUi(clientStorage: ProjectClientStorage) {
+  const [openIds, setOpenIds] = clientStorage.useValue("openScorePanels");
+  const openTracks: ReadonlySet<string> = new Set(openIds);
   function open(id: string) {
-    setOpenTracks((current) => new Set([...current, id]));
+    setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
   }
   function close(id: string) {
-    setOpenTracks((current) => {
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
+    setOpenIds((ids) => ids.filter((other) => other !== id));
   }
   return { openTracks, open, close };
 }
 
 export function RecorderScorePanel({
+  clientStorage,
   runtime,
   state,
   track,
   onClose,
   scoreViewerHref,
 }: {
+  clientStorage: ProjectClientStorage;
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   track: MidiTrackState;
   onClose: () => void;
   scoreViewerHref?: string;
 }) {
-  const [size, setSize] = useState({ width: 640, height: 448 });
+  // One size for every score panel in the project, stored when a resize ends.
+  const [size, setSize] = useState(
+    () =>
+      clientStorage.store.get().scorePanelSize ?? { width: 640, height: 448 },
+  );
   const resizeRef = usePointerDrag({
-    onStart: () => size,
-    onMove: (_event, { data, deltaX, deltaY }) =>
-      setSize({
-        width: clamp(data.width - deltaX, 480, window.innerWidth - 32),
-        height: clamp(data.height - deltaY, 288, window.innerHeight - 32),
-      }),
+    onStart: () => ({ start: size, size }),
+    onMove: (_event, { data, deltaX, deltaY }) => {
+      data.size = {
+        width: clamp(data.start.width - deltaX, 480, window.innerWidth - 32),
+        height: clamp(data.start.height - deltaY, 288, window.innerHeight - 32),
+      };
+      setSize(data.size);
+    },
+    onEnd: (_event, { data }) => {
+      clientStorage.update({ scorePanelSize: data.size });
+    },
   });
 
   return (

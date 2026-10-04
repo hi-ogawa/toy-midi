@@ -3,7 +3,6 @@ import { Mic2Icon } from "lucide-react";
 import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { useSetState } from "../../hooks/use-set-state";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -72,15 +71,17 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [defaultMidiProgram, setDefaultMidiProgram] =
     recorderStorage.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
-  const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
-  const [expandedClipTracks, setClipExpanded] = useSetState<string>();
+  const [isReferenceVideoOpen, setIsReferenceVideoOpen] =
+    clientStorage.useValue("referenceVideoOpen");
+  const [expandedClipTracks, setExpandedClipTracks] =
+    clientStorage.useValue("expandedClipTracks");
   const [clipsNewestFirst, setClipsNewestFirst] =
     recorderStorage.useValue("takesNewestFirst");
-  const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isMixerOpen, setIsMixerOpen] = clientStorage.useValue("mixerOpen");
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const [isInputPanelOpen, setIsInputPanelOpen] =
     clientStorage.useValue("inputPanelOpen");
-  const effects = useRecorderEffectsUi();
+  const effects = useRecorderEffectsUi(clientStorage);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
@@ -102,7 +103,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
-  const project = useRecorderProject({ projectId, runtime });
+  const project = useRecorderProject({ projectId, runtime, clientStorage });
   const flags = deriveRecorderFlags({ state, project });
   const recorderInteraction = useRecorderInteraction({
     runtime,
@@ -113,7 +114,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const { clipInteraction, locatorInteraction, midiInteraction } =
     recorderInteraction;
   const transcriptions = useRecorderAudioToMidiUi();
-  const scoreUi = useRecorderScorePanelUi();
+  const scoreUi = useRecorderScorePanelUi(clientStorage);
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -460,7 +461,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     state.pendingRecording?.trackId === track.id
                       ? state.pendingRecording
                       : undefined;
-                  const clipsExpanded = expandedClipTracks.has(track.id);
+                  const clipsExpanded = expandedClipTracks.includes(track.id);
                   return (
                     <Fragment key={track.id}>
                       <TrackRow
@@ -556,10 +557,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                           expanded={clipsExpanded}
                           clipCount={track.clips.length}
                           onExpandedChange={(expanded) =>
-                            setClipExpanded({
-                              value: track.id,
-                              present: expanded,
-                            })
+                            setExpandedClipTracks((ids) =>
+                              expanded
+                                ? [...ids, track.id]
+                                : ids.filter((id) => id !== track.id),
+                            )
                           }
                           newestFirst={clipsNewestFirst}
                           onNewestFirstChange={setClipsNewestFirst}
@@ -709,6 +711,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               return (
                 <RecorderEffects
                   key={entry.id}
+                  clientStorage={clientStorage}
                   label={track.name}
                   eq={track.eq}
                   onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
@@ -723,6 +726,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             scoreUi.openTracks.has(track.id) && (
               <RecorderScorePanel
                 key={track.id}
+                clientStorage={clientStorage}
                 runtime={runtime}
                 state={state}
                 track={track}
