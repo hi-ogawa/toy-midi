@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ProjectClientStorage } from "../../lib/recorder/storage";
+import type { ProjectUiStore } from "../../lib/recorder/storage";
 import {
   DEFAULT_GRID_DIVISION,
   getBeatsPerBar,
@@ -12,13 +12,13 @@ import {
 import type { TimeSignature } from "../../types";
 
 export function useRecorderTimeline({
-  clientStorage,
+  projectUi,
   isPlaying,
   position,
   tempo,
   timeSignature,
 }: {
-  clientStorage: ProjectClientStorage;
+  projectUi: ProjectUiStore;
   isPlaying: boolean;
   position: number;
   tempo: number;
@@ -28,8 +28,8 @@ export function useRecorderTimeline({
     DEFAULT_GRID_DIVISION,
   );
   const [autoScrollEnabled, setAutoScrollEnabled] =
-    clientStorage.useValue("autoScrollEnabled");
-  const [pixelsPerBeat, setPixelsPerBeat] = clientStorage.useValue(
+    projectUi.useValue("autoScrollEnabled");
+  const [pixelsPerBeat, setPixelsPerBeat] = projectUi.useValue(
     "timelinePixelsPerBeat",
   );
   const [viewportStartBeat, setViewportStartBeat] = useState(0);

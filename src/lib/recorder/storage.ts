@@ -27,7 +27,7 @@ const DEFAULT_RECORDER_PREFERENCES: RecorderPreferences = {
   takesNewestFirst: true,
 };
 
-export const recorderStorage = new LocalStorageStore<RecorderPreferences>({
+export const recorderPreferences = new LocalStorageStore<RecorderPreferences>({
   key: "toy-midi:recorder-preferences",
   parse: (stored) =>
     parseState({
@@ -37,10 +37,11 @@ export const recorderStorage = new LocalStorageStore<RecorderPreferences>({
     }),
 });
 
-// Per-project client state, which stays in this browser outside the saved
-// project, so changing it never marks the project unsaved.
+// Per-project UI state, such as zoom and panel layout, which stays in this
+// browser outside the saved project, so changing it never marks the project
+// unsaved.
 
-const projectClientStateSchema = z.object({
+const projectUiStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
   timelinePixelsPerBeat: z
@@ -54,25 +55,23 @@ const projectClientStateSchema = z.object({
     })
     .optional(),
 });
-type ProjectClientState = z.infer<typeof projectClientStateSchema>;
+type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 
-const DEFAULT_PROJECT_CLIENT_STATE: ProjectClientState = {
+const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   autoScrollEnabled: true,
   inputPanelOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
 };
 
-export type ProjectClientStorage = LocalStorageStore<ProjectClientState>;
+export type ProjectUiStore = LocalStorageStore<ProjectUiState>;
 
-export function createProjectClientStorage(
-  projectId: string,
-): ProjectClientStorage {
-  return new LocalStorageStore<ProjectClientState>({
-    key: `toy-midi:recorder-project-client:${projectId}`,
+export function createProjectUiStore(projectId: string): ProjectUiStore {
+  return new LocalStorageStore<ProjectUiState>({
+    key: `toy-midi:recorder-project-ui:${projectId}`,
     parse: (stored) =>
       parseState({
-        schema: projectClientStateSchema,
-        defaults: DEFAULT_PROJECT_CLIENT_STATE,
+        schema: projectUiStateSchema,
+        defaults: DEFAULT_PROJECT_UI_STATE,
         stored,
       }),
   });

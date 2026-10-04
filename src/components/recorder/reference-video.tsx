@@ -7,7 +7,7 @@ import {
   RecorderRuntime,
   type ReferenceVideoState,
 } from "../../lib/recorder/runtime";
-import type { ProjectClientStorage } from "../../lib/recorder/storage";
+import type { ProjectUiStore } from "../../lib/recorder/storage";
 import {
   createYouTubePlayer,
   loadYouTubeApi,
@@ -30,18 +30,18 @@ function clampSize({ width, height }: { width: number; height: number }) {
 }
 
 export function ReferenceVideoPanel({
-  clientStorage,
+  projectUi,
   referenceVideo,
   runtime,
   onClose,
 }: {
-  clientStorage: ProjectClientStorage;
+  projectUi: ProjectUiStore;
   referenceVideo?: ReferenceVideoState;
   runtime: RecorderRuntime;
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampSize(clientStorage.store.get().referenceVideoSize ?? DEFAULT_SIZE),
+    clampSize(projectUi.store.get().referenceVideoSize ?? DEFAULT_SIZE),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
@@ -63,7 +63,7 @@ export function ReferenceVideoPanel({
       setSize(data.size);
     },
     onEnd: (_event, { data }) => {
-      clientStorage.update({ referenceVideoSize: data.size });
+      projectUi.update({ referenceVideoSize: data.size });
     },
   });
 

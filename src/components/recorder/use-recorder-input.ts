@@ -8,7 +8,7 @@ import {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-import { recorderStorage } from "../../lib/recorder/storage";
+import { recorderPreferences } from "../../lib/recorder/storage";
 
 export function useRecorderInput({
   runtime,
@@ -19,7 +19,7 @@ export function useRecorderInput({
 }) {
   const active = state.captureStatus !== "disabled";
   const [inputPreference, setInputPreference] =
-    recorderStorage.useValue("input");
+    recorderPreferences.useValue("input");
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(inputPreference?.deviceId);
 

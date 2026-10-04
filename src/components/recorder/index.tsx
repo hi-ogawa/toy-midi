@@ -20,8 +20,8 @@ import {
   REFERENCE_VIDEO_CLIP_ID,
 } from "../../lib/recorder/runtime";
 import {
-  createProjectClientStorage,
-  recorderStorage,
+  createProjectUiStore,
+  recorderPreferences,
 } from "../../lib/recorder/storage";
 import { resolveTrackOrder } from "../../lib/recorder/track-order";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
@@ -68,18 +68,18 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  const [clientStorage] = useState(() => createProjectClientStorage(projectId));
+  const [projectUi] = useState(() => createProjectUiStore(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =
-    recorderStorage.useValue("defaultMidiProgram");
+    recorderPreferences.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [expandedClipTracks, setClipExpanded] = useSetState<string>();
   const [clipsNewestFirst, setClipsNewestFirst] =
-    recorderStorage.useValue("takesNewestFirst");
+    recorderPreferences.useValue("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const [isInputPanelOpen, setIsInputPanelOpen] =
-    clientStorage.useValue("inputPanelOpen");
+    projectUi.useValue("inputPanelOpen");
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -96,7 +96,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     state,
   });
   const timeline = useRecorderTimeline({
-    clientStorage,
+    projectUi,
     isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
@@ -802,7 +802,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {isReferenceVideoOpen && (
           <ReferenceVideoPanel
-            clientStorage={clientStorage}
+            projectUi={projectUi}
             referenceVideo={state.referenceVideo}
             runtime={runtime}
             onClose={() => setIsReferenceVideoOpen(false)}
