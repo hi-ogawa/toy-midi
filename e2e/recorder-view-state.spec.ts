@@ -32,7 +32,8 @@ test("restores the timeline, playhead, and panels when reopening a project", asy
     "saved",
   );
 
-  // Seek at the same ruler point, and confirm the scroll came back too.
+  // Seek three beats into the view, and confirm it lands at beat 7, which
+  // shows the four-beat scroll came back too.
   await seekRecorderByPixels(page, 3 * DEFAULT_PIXELS_PER_BEAT);
   await expect.poll(() => getRecorderBeat(page)).toBeCloseTo(7, 1);
 
