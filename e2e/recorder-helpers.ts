@@ -182,6 +182,23 @@ export async function seekRecorderByPixels(page: Page, pixels: number) {
   );
 }
 
+export async function scrollRecorderTimelineByPixels(
+  page: Page,
+  pixels: number,
+) {
+  await test.step(
+    `Scroll recorder timeline by ${pixels}px`,
+    async () => {
+      const ruler = page.getByTestId("recorder-timeline-ruler");
+      const box = await ruler.boundingBox();
+      expect(box).not.toBeNull();
+      await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+      await page.mouse.wheel(0, pixels);
+    },
+    { box: true },
+  );
+}
+
 export async function getRecorderPosition(page: Page): Promise<number> {
   return page
     .getByTestId("recorder-position")

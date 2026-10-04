@@ -4,6 +4,7 @@ import { selectMenuItem } from "./helpers";
 import {
   createRecorderProject,
   getRecorderBeat,
+  scrollRecorderTimelineByPixels,
   seekRecorderByPixels,
 } from "./recorder-helpers";
 
@@ -12,10 +13,7 @@ test("restores the timeline, playhead, and panels when reopening a project", asy
 }) => {
   // Scroll the timeline four beats right and seek two beats into the view.
   await createRecorderProject(page);
-  const ruler = page.getByTestId("recorder-timeline-ruler");
-  const rulerBox = (await ruler.boundingBox())!;
-  await page.mouse.move(rulerBox.x + 100, rulerBox.y + rulerBox.height / 2);
-  await page.mouse.wheel(0, 4 * DEFAULT_PIXELS_PER_BEAT);
+  await scrollRecorderTimelineByPixels(page, 4 * DEFAULT_PIXELS_PER_BEAT);
   await seekRecorderByPixels(page, 2 * DEFAULT_PIXELS_PER_BEAT);
   await expect.poll(() => getRecorderBeat(page)).toBeCloseTo(6, 1);
 
