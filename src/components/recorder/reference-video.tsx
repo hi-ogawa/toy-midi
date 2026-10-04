@@ -30,18 +30,18 @@ function clampSize({ width, height }: { width: number; height: number }) {
 }
 
 export function ReferenceVideoPanel({
-  projectUi,
+  projectUiStore,
   referenceVideo,
   runtime,
   onClose,
 }: {
-  projectUi: ProjectUiStore;
+  projectUiStore: ProjectUiStore;
   referenceVideo?: ReferenceVideoState;
   runtime: RecorderRuntime;
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampSize(projectUi.store.get().referenceVideoSize ?? DEFAULT_SIZE),
+    clampSize(projectUiStore.store.get().referenceVideoSize ?? DEFAULT_SIZE),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
@@ -63,7 +63,7 @@ export function ReferenceVideoPanel({
       setSize(data.size);
     },
     onEnd: (_event, { data }) => {
-      projectUi.update({ referenceVideoSize: data.size });
+      projectUiStore.update({ referenceVideoSize: data.size });
     },
   });
 

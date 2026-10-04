@@ -12,13 +12,13 @@ import {
 import type { TimeSignature } from "../../types";
 
 export function useRecorderTimeline({
-  projectUi,
+  projectUiStore,
   isPlaying,
   position,
   tempo,
   timeSignature,
 }: {
-  projectUi: ProjectUiStore;
+  projectUiStore: ProjectUiStore;
   isPlaying: boolean;
   position: number;
   tempo: number;
@@ -28,8 +28,8 @@ export function useRecorderTimeline({
     DEFAULT_GRID_DIVISION,
   );
   const [autoScrollEnabled, setAutoScrollEnabled] =
-    projectUi.useValue("autoScrollEnabled");
-  const [pixelsPerBeat, setPixelsPerBeat] = projectUi.useValue(
+    projectUiStore.useValue("autoScrollEnabled");
+  const [pixelsPerBeat, setPixelsPerBeat] = projectUiStore.useValue(
     "timelinePixelsPerBeat",
   );
   const [viewportStartBeat, setViewportStartBeat] = useState(0);

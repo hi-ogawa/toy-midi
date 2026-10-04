@@ -68,7 +68,7 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  const [projectUi] = useState(() => createProjectUiStore(projectId));
+  const [projectUiStore] = useState(() => createProjectUiStore(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =
     recorderPreferences.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
@@ -79,7 +79,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const [isInputPanelOpen, setIsInputPanelOpen] =
-    projectUi.useValue("inputPanelOpen");
+    projectUiStore.useValue("inputPanelOpen");
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -96,7 +96,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     state,
   });
   const timeline = useRecorderTimeline({
-    projectUi,
+    projectUiStore,
     isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
@@ -802,7 +802,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {isReferenceVideoOpen && (
           <ReferenceVideoPanel
-            projectUi={projectUi}
+            projectUiStore={projectUiStore}
             referenceVideo={state.referenceVideo}
             runtime={runtime}
             onClose={() => setIsReferenceVideoOpen(false)}
