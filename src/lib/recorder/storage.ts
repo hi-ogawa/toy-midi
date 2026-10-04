@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createStore } from "../../utils/store";
+import { LocalStorageStore } from "../../utils/local-storage-store";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -8,11 +8,31 @@ import {
 
 const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
+// Preferences that follow the browser, such as the input hardware.
 const recorderPreferencesSchema = z.object({
-  autoScrollEnabled: z.boolean(),
-  inputPanelOpen: z.boolean(),
   defaultMidiProgram: z.number().int().min(0).max(127),
   takesNewestFirst: z.boolean(),
+  input: z
+    .object({
+      deviceId: z.string(),
+      channel: z.number().int().nonnegative(),
+      latencyCompensation: z.number().nonnegative().optional(),
+    })
+    .optional(),
+});
+type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
+
+export const recorderStorage = new LocalStorageStore<RecorderPreferences>({
+  key: PREFERENCES_KEY,
+  schema: recorderPreferencesSchema,
+  defaults: { defaultMidiProgram: 0, takesNewestFirst: true },
+});
+
+// View state for one project that stays in this browser, outside the saved
+// project, so changing it never marks the project unsaved.
+const projectClientStateSchema = z.object({
+  autoScrollEnabled: z.boolean(),
+  inputPanelOpen: z.boolean(),
   timelinePixelsPerBeat: z
     .number()
     .min(MIN_PIXELS_PER_BEAT)
@@ -23,46 +43,21 @@ const recorderPreferencesSchema = z.object({
       height: z.number().positive(),
     })
     .optional(),
-  input: z
-    .object({
-      deviceId: z.string(),
-      channel: z.number().int().nonnegative(),
-      latencyCompensation: z.number().nonnegative().optional(),
-    })
-    .optional(),
 });
-export type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
+type ProjectClientState = z.infer<typeof projectClientStateSchema>;
 
-const DEFAULT_PREFERENCES: RecorderPreferences = {
-  autoScrollEnabled: true,
-  inputPanelOpen: false,
-  defaultMidiProgram: 0,
-  takesNewestFirst: true,
-  timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
-};
+export type ProjectClientStorage = LocalStorageStore<ProjectClientState>;
 
-class RecorderStorage {
-  // All consumers share one snapshot, including when browser storage is unavailable.
-  readonly store = createStore<RecorderPreferences>(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
-      return recorderPreferencesSchema.parse({
-        ...DEFAULT_PREFERENCES,
-        ...stored,
-      });
-    } catch {
-      return DEFAULT_PREFERENCES;
-    }
+export function createProjectClientStorage(
+  projectId: string,
+): ProjectClientStorage {
+  return new LocalStorageStore<ProjectClientState>({
+    key: `toy-midi:recorder-project-client:${projectId}`,
+    schema: projectClientStateSchema,
+    defaults: {
+      autoScrollEnabled: true,
+      inputPanelOpen: false,
+      timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
+    },
   });
-
-  update(updates: Partial<RecorderPreferences>): void {
-    this.store.update(updates);
-    try {
-      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(this.store.get()));
-    } catch {
-      // Storage can be disabled without preventing recording.
-    }
-  }
 }
-
-export const recorderStorage = new RecorderStorage();

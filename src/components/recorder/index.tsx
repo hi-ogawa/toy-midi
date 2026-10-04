@@ -19,6 +19,10 @@ import {
   RecorderRuntime,
   REFERENCE_VIDEO_CLIP_ID,
 } from "../../lib/recorder/runtime";
+import {
+  createProjectClientStorage,
+  recorderStorage,
+} from "../../lib/recorder/storage";
 import { resolveTrackOrder } from "../../lib/recorder/track-order";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
@@ -59,23 +63,23 @@ import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderInteraction } from "./use-recorder-interaction";
-import { useRecorderPreference } from "./use-recorder-preference";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  const [clientStorage] = useState(() => createProjectClientStorage(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =
-    useRecorderPreference("defaultMidiProgram");
+    recorderStorage.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [expandedClipTracks, setClipExpanded] = useSetState<string>();
   const [clipsNewestFirst, setClipsNewestFirst] =
-    useRecorderPreference("takesNewestFirst");
+    recorderStorage.useValue("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const [isInputPanelOpen, setIsInputPanelOpen] =
-    useRecorderPreference("inputPanelOpen");
+    clientStorage.useValue("inputPanelOpen");
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -92,6 +96,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     state,
   });
   const timeline = useRecorderTimeline({
+    clientStorage,
     isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
@@ -797,6 +802,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {isReferenceVideoOpen && (
           <ReferenceVideoPanel
+            clientStorage={clientStorage}
             referenceVideo={state.referenceVideo}
             runtime={runtime}
             onClose={() => setIsReferenceVideoOpen(false)}
