@@ -37,33 +37,28 @@ export function useRecorderEffectsUi(projectUiStore: ProjectUiStore) {
 }
 
 export function RecorderEffects({
-  projectUiStore,
   label,
   eq,
   onChange,
   onClose,
 }: {
-  projectUiStore: ProjectUiStore;
   label: string;
   eq: MultibandEqParameters;
   onChange: (eq: MultibandEqParameters) => void;
   onClose: () => void;
 }) {
-  // One size for every effects panel in the project, stored when a resize ends.
   const [size, setSize] = useState(() =>
-    clampEffectsSize(projectUiStore.store.get().effectsSize),
+    clampEffectsSize({ width: 384, height: 512 }),
   );
   const resizeHandleRef = usePointerDrag({
-    onStart: () => ({ start: size, size }),
+    onStart: () => size,
     onMove: (_event, { data, deltaX, deltaY }) => {
-      data.size = clampEffectsSize({
-        width: data.start.width - deltaX,
-        height: data.start.height - deltaY,
-      });
-      setSize(data.size);
-    },
-    onEnd: (_event, { data }) => {
-      projectUiStore.update({ effectsSize: data.size });
+      setSize(
+        clampEffectsSize({
+          width: data.width - deltaX,
+          height: data.height - deltaY,
+        }),
+      );
     },
   });
 

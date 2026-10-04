@@ -3,7 +3,6 @@ import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { selectMenuItem } from "./helpers";
 import {
   createRecorderProject,
-  dragBy,
   getRecorderBeat,
   seekRecorderByPixels,
 } from "./recorder-helpers";
@@ -20,29 +19,16 @@ test("restores the timeline, playhead, and panels when reopening a project", asy
   await seekRecorderByPixels(page, 2 * DEFAULT_PIXELS_PER_BEAT);
   await expect.poll(() => getRecorderBeat(page)).toBeCloseTo(6, 1);
 
-  // Open the capture track's effects panel and enlarge it.
+  // Open the capture track's effects panel.
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
   const effects = page.getByTestId("recorder-effects-panel");
-  const initialEffectsBox = (await effects.boundingBox())!;
-  await dragBy(
-    page,
-    page.getByRole("button", { name: "Resize Audio 1 Effects" }),
-    -60,
-    {
-      deltaY: -40,
-    },
-  );
-  const effectsBox = (await effects.boundingBox())!;
-  expect(effectsBox.width).toBeGreaterThan(initialEffectsBox.width);
+  await expect(effects).toBeVisible();
 
-  // Reload, and confirm the playhead, the effects panel, and its size come
-  // back without marking the project unsaved.
+  // Reload, and confirm the playhead and the effects panel come back without
+  // marking the project unsaved.
   await page.reload();
   await expect.poll(() => getRecorderBeat(page)).toBeCloseTo(6, 1);
   await expect(effects).toBeVisible();
-  const reloadedBox = (await effects.boundingBox())!;
-  expect(reloadedBox.width).toBeCloseTo(effectsBox.width, -1);
-  expect(reloadedBox.height).toBeCloseTo(effectsBox.height, -1);
   await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
     "data-status",
     "saved",

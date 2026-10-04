@@ -114,7 +114,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const { clipInteraction, locatorInteraction, midiInteraction } =
     recorderInteraction;
   const transcriptions = useRecorderAudioToMidiUi();
-  const scoreUi = useRecorderScorePanelUi(projectUiStore);
+  const scoreUi = useRecorderScorePanelUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -711,7 +711,6 @@ export function Recorder({ projectId }: { projectId: string }) {
               return (
                 <RecorderEffects
                   key={entry.id}
-                  projectUiStore={projectUiStore}
                   label={track.name}
                   eq={track.eq}
                   onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
@@ -726,7 +725,6 @@ export function Recorder({ projectId }: { projectId: string }) {
             scoreUi.openTracks.has(track.id) && (
               <RecorderScorePanel
                 key={track.id}
-                projectUiStore={projectUiStore}
                 runtime={runtime}
                 state={state}
                 track={track}

@@ -41,11 +41,6 @@ export const recorderPreferences = new LocalStorageStore<RecorderPreferences>({
 // browser outside the saved project, so changing it never marks the project
 // unsaved.
 
-const panelSizeSchema = z.object({
-  width: z.number().positive(),
-  height: z.number().positive(),
-});
-
 const projectUiStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
@@ -53,7 +48,10 @@ const projectUiStateSchema = z.object({
     .number()
     .min(MIN_PIXELS_PER_BEAT)
     .max(MAX_PIXELS_PER_BEAT),
-  referenceVideoSize: panelSizeSchema,
+  referenceVideoSize: z.object({
+    width: z.number().positive(),
+    height: z.number().positive(),
+  }),
   timelineStartBeat: z.number().nonnegative(),
   /** Absent until stored, so a project opens at its start the first time. */
   playhead: z.number().nonnegative().optional(),
@@ -62,9 +60,6 @@ const projectUiStateSchema = z.object({
   /** Track ids. A deleted track's id stays harmlessly, since nothing matches it. */
   expandedClipTracks: z.array(z.string()),
   openEffects: z.array(z.string()),
-  openScorePanels: z.array(z.string()),
-  effectsSize: panelSizeSchema,
-  scorePanelSize: panelSizeSchema,
 });
 type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 
@@ -78,9 +73,6 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   mixerOpen: false,
   expandedClipTracks: [],
   openEffects: [],
-  openScorePanels: [],
-  effectsSize: { width: 384, height: 512 },
-  scorePanelSize: { width: 640, height: 448 },
 };
 
 export type ProjectUiStore = LocalStorageStore<ProjectUiState>;

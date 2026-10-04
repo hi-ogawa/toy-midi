@@ -10,7 +10,6 @@ import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-import type { ProjectUiStore } from "../../lib/recorder/storage";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
   type ScoreViewerClock,
@@ -18,49 +17,42 @@ import {
 } from "../score-viewer-runtime";
 import { RecorderPanel } from "./recorder-panel";
 
-export function useRecorderScorePanelUi(projectUiStore: ProjectUiStore) {
-  const [openIds, setOpenIds] = projectUiStore.useValue("openScorePanels");
-  const openTracks: ReadonlySet<string> = new Set(openIds);
+export function useRecorderScorePanelUi() {
+  const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
   function open(id: string) {
-    setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
+    setOpenTracks((current) => new Set([...current, id]));
   }
   function close(id: string) {
-    setOpenIds((ids) => ids.filter((other) => other !== id));
+    setOpenTracks((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
   }
   return { openTracks, open, close };
 }
 
 export function RecorderScorePanel({
-  projectUiStore,
   runtime,
   state,
   track,
   onClose,
   scoreViewerHref,
 }: {
-  projectUiStore: ProjectUiStore;
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   track: MidiTrackState;
   onClose: () => void;
   scoreViewerHref?: string;
 }) {
-  // One size for every score panel in the project, stored when a resize ends.
-  const [size, setSize] = useState(
-    () => projectUiStore.store.get().scorePanelSize,
-  );
+  const [size, setSize] = useState({ width: 640, height: 448 });
   const resizeRef = usePointerDrag({
-    onStart: () => ({ start: size, size }),
-    onMove: (_event, { data, deltaX, deltaY }) => {
-      data.size = {
-        width: clamp(data.start.width - deltaX, 480, window.innerWidth - 32),
-        height: clamp(data.start.height - deltaY, 288, window.innerHeight - 32),
-      };
-      setSize(data.size);
-    },
-    onEnd: (_event, { data }) => {
-      projectUiStore.update({ scorePanelSize: data.size });
-    },
+    onStart: () => size,
+    onMove: (_event, { data, deltaX, deltaY }) =>
+      setSize({
+        width: clamp(data.width - deltaX, 480, window.innerWidth - 32),
+        height: clamp(data.height - deltaY, 288, window.innerHeight - 32),
+      }),
   });
 
   return (
