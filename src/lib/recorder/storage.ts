@@ -22,10 +22,19 @@ const recorderPreferencesSchema = z.object({
 });
 type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
+const DEFAULT_RECORDER_PREFERENCES: RecorderPreferences = {
+  defaultMidiProgram: 0,
+  takesNewestFirst: true,
+};
+
 export const recorderStorage = new LocalStorageStore<RecorderPreferences>({
   key: PREFERENCES_KEY,
-  schema: recorderPreferencesSchema,
-  defaults: { defaultMidiProgram: 0, takesNewestFirst: true },
+  parse: (stored) =>
+    parseState({
+      schema: recorderPreferencesSchema,
+      defaults: DEFAULT_RECORDER_PREFERENCES,
+      stored,
+    }),
 });
 
 // View state for one project that stays in this browser, outside the saved
@@ -46,6 +55,12 @@ const projectClientStateSchema = z.object({
 });
 type ProjectClientState = z.infer<typeof projectClientStateSchema>;
 
+const DEFAULT_PROJECT_CLIENT_STATE: ProjectClientState = {
+  autoScrollEnabled: true,
+  inputPanelOpen: false,
+  timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
+};
+
 export type ProjectClientStorage = LocalStorageStore<ProjectClientState>;
 
 export function createProjectClientStorage(
@@ -53,11 +68,28 @@ export function createProjectClientStorage(
 ): ProjectClientStorage {
   return new LocalStorageStore<ProjectClientState>({
     key: `toy-midi:recorder-project-client:${projectId}`,
-    schema: projectClientStateSchema,
-    defaults: {
-      autoScrollEnabled: true,
-      inputPanelOpen: false,
-      timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
-    },
+    parse: (stored) =>
+      parseState({
+        schema: projectClientStateSchema,
+        defaults: DEFAULT_PROJECT_CLIENT_STATE,
+        stored,
+      }),
   });
+}
+
+/**
+ * Fill the stored state over its defaults, which covers keys added by a later
+ * build, and fall back to the defaults when it does not validate.
+ */
+function parseState<State>({
+  schema,
+  defaults,
+  stored,
+}: {
+  schema: z.ZodType<State>;
+  defaults: State;
+  stored: unknown;
+}): State {
+  const result = schema.safeParse({ ...defaults, ...(stored as object) });
+  return result.success ? result.data : defaults;
 }
