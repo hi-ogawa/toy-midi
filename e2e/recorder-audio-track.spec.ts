@@ -257,14 +257,15 @@ test("shows and persists clip controls per audio track", async ({ page }) => {
   await expect(clipsToggle).toHaveCount(0);
   await expect(clipRows).toHaveCount(0);
 
-  // Show it again and preserve visibility when saving and reloading.
+  // Show it again, and preserve visibility and expansion when saving and
+  // reloading.
   await actions.click();
   await showClips.click();
   await saveRecorderProject(page);
   await page.reload();
   await expect(clipsToggle).toHaveCount(1);
-  await expect(clipsToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(clipRows).toHaveCount(0);
+  await expect(clipsToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(clipRows).toContainText("test-audio.wav");
 
   // Keep the other track's visibility independent from the imported track.
   await page

@@ -143,11 +143,11 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows.nth(0)).toContainText("Take 1");
   await expect(takeRows.nth(1)).toContainText("Take 2");
 
-  // Reload the project and retain the preferred lane order.
+  // Reload the project and retain the expanded takes and the preferred lane
+  // order.
   await saveRecorderProject(page);
   await page.reload();
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
-  await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
   await expect(takeOrder).toHaveAccessibleName("Order clips newest first");
   await expect(takeRows.nth(0)).toContainText("Take 1");
   await expect(takeRows.nth(1)).toContainText("Take 2");

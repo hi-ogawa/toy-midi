@@ -52,6 +52,14 @@ const projectUiStateSchema = z.object({
     width: z.number().positive(),
     height: z.number().positive(),
   }),
+  timelineStartBeat: z.number().nonnegative(),
+  /** Absent until stored, so a project opens at its start the first time. */
+  playhead: z.number().nonnegative().optional(),
+  referenceVideoOpen: z.boolean(),
+  mixerOpen: z.boolean(),
+  /** Track ids. A deleted track's id stays harmlessly, since nothing matches it. */
+  expandedClipTracks: z.array(z.string()),
+  openEffects: z.array(z.string()),
 });
 type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 
@@ -60,6 +68,11 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   inputPanelOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   referenceVideoSize: { width: 640, height: 480 },
+  timelineStartBeat: 0,
+  referenceVideoOpen: false,
+  mixerOpen: false,
+  expandedClipTracks: [],
+  openEffects: [],
 };
 
 export type ProjectUiStore = LocalStorageStore<ProjectUiState>;

@@ -9,43 +9,28 @@ import {
 } from "../../lib/dsp/biquad-eq-multiband";
 import { createDefaultEqBand } from "../../lib/dsp/biquad-eq-node";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
+import type { ProjectUiStore } from "../../lib/recorder/storage";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
 import { RecorderPanel } from "./recorder-panel";
 
-export function useRecorderEffectsUi() {
-  const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
+export function useRecorderEffectsUi(projectUiStore: ProjectUiStore) {
+  const [openIds, setOpenIds] = projectUiStore.useValue("openEffects");
+  const openEffects: ReadonlySet<string> = new Set(openIds);
 
   function toggleEffects(id: string) {
-    setOpenEffects((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  function showEffects(id: string) {
-    setOpenEffects((current) =>
-      current.has(id) ? current : new Set(current).add(id),
+    setOpenIds((ids) =>
+      ids.includes(id) ? ids.filter((other) => other !== id) : [...ids, id],
     );
   }
 
+  function showEffects(id: string) {
+    setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
+  }
+
   function closeEffects(id: string) {
-    setOpenEffects((current) => {
-      if (!current.has(id)) {
-        return current;
-      }
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
+    setOpenIds((ids) => ids.filter((other) => other !== id));
   }
 
   return { openEffects, toggleEffects, showEffects, closeEffects };

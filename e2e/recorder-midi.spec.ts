@@ -56,7 +56,6 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
     rows.nth(1).getByTitle("Disable MIDI 2 solo", { exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(rows.nth(1)).toContainText("-6.0 dB");
-  await page.getByTestId("recorder-mixer-button").click();
   await expect(secondLevel).toHaveValue("-6.0");
 
   // Play the restored project and pause after the transport advances.
