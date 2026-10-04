@@ -77,10 +77,6 @@ export function createProjectUiStore(projectId: string): ProjectUiStore {
   });
 }
 
-/**
- * Fill the stored state over its defaults, which covers keys added by a later
- * build, and fall back to the defaults when it does not validate.
- */
 function parseState<State>({
   schema,
   defaults,
