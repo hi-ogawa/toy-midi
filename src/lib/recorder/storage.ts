@@ -6,9 +6,9 @@ import {
   MIN_PIXELS_PER_BEAT,
 } from "../timeline.ts";
 
-const PREFERENCES_KEY = "toy-midi:recorder-preferences";
+// Browser-wide preferences, which follow the browser into every project, such
+// as the input hardware.
 
-// Preferences that follow the browser, such as the input hardware.
 const recorderPreferencesSchema = z.object({
   defaultMidiProgram: z.number().int().min(0).max(127),
   takesNewestFirst: z.boolean(),
@@ -28,7 +28,7 @@ const DEFAULT_RECORDER_PREFERENCES: RecorderPreferences = {
 };
 
 export const recorderStorage = new LocalStorageStore<RecorderPreferences>({
-  key: PREFERENCES_KEY,
+  key: "toy-midi:recorder-preferences",
   parse: (stored) =>
     parseState({
       schema: recorderPreferencesSchema,
@@ -37,8 +37,9 @@ export const recorderStorage = new LocalStorageStore<RecorderPreferences>({
     }),
 });
 
-// View state for one project that stays in this browser, outside the saved
+// Per-project client state, which stays in this browser outside the saved
 // project, so changing it never marks the project unsaved.
+
 const projectClientStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
