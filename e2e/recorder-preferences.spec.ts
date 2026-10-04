@@ -4,7 +4,6 @@ import {
   addRecorderMidiTrack,
   createRecorderProject,
   enableInput,
-  openInputPanel,
   openInputSetup,
   openRecorderMidiInstrument,
   saveRecorderProject,
@@ -13,12 +12,13 @@ import {
 
 useFakeAudioInput();
 
-test("keeps auto-scroll per project and the input device across projects", async ({
+test("keeps auto-scroll and the Audio Input panel per project, and the input device across projects", async ({
   page,
 }) => {
   // Enable the default input, disable auto-scroll, and choose a different
-  // input device.
+  // input device, which leaves the Audio Input panel open.
   await createRecorderProject(page);
+  const firstUrl = page.url();
   await enableInput(page);
   const autoScroll = page.getByRole("button", {
     name: "Toggle auto-scroll (F)",
@@ -30,38 +30,28 @@ test("keeps auto-scroll per project and the input device across projects", async
     .getByLabel("Device")
     .selectOption({ label: "Fake Audio Input 1" });
   await setup.getByRole("button", { name: "Close", exact: true }).click();
+  const panel = page.getByTestId("recorder-input-panel");
+  await expect(panel).toBeVisible();
 
-  // Reload, and confirm the project keeps auto-scroll disabled.
+  // Reload, and confirm the project keeps auto-scroll disabled and the panel
+  // open.
   await page.reload();
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
+  await expect(panel).toBeVisible();
 
-  // Open another project, and confirm it starts with auto-scroll enabled
-  // while the input device carries over.
+  // Open another project, and confirm it starts with auto-scroll enabled and
+  // the panel closed, while the input device carries over.
   await createRecorderProject(page);
   await expect(autoScroll).toHaveAttribute("aria-pressed", "true");
+  await expect(panel).toBeHidden();
   const nextSetup = await openInputSetup(page);
   await expect(
     nextSetup.getByLabel("Device").locator("option:checked"),
   ).toHaveText("Fake Audio Input 1");
-});
 
-test("remembers the Audio Input panel per project", async ({ page }) => {
-  // Open the Audio Input panel.
-  await createRecorderProject(page);
-  const firstUrl = page.url();
-  const panel = await openInputPanel(page);
-
-  // Reload, and confirm the panel stays open.
-  await page.reload();
-  await expect(panel).toBeVisible();
-
-  // Open another project, and confirm its panel starts closed.
-  await createRecorderProject(page);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
-  await expect(panel).toBeHidden();
-
-  // Return to the first project, and confirm its panel is still open.
+  // Return to the first project, and confirm it still has its own settings.
   await page.goto(firstUrl);
+  await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
   await expect(panel).toBeVisible();
 });
 
