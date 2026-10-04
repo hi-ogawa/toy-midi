@@ -17,7 +17,14 @@ export class LocalStorageStore<State extends object> {
     this.key = key;
     // All consumers share one snapshot, including when browser storage is
     // unavailable.
-    this.store = createStore<State>(() => parse(readStoredValue(key)));
+    this.store = createStore<State>(() => {
+      let stored: unknown;
+      try {
+        const json = localStorage.getItem(key);
+        stored = json === null ? undefined : JSON.parse(json);
+      } catch {}
+      return parse(stored);
+    });
   }
 
   update(update: Partial<State>): void {
@@ -46,14 +53,5 @@ export class LocalStorageStore<State extends object> {
       this.update(update);
     };
     return [value, setValue];
-  }
-}
-
-function readStoredValue(key: string): unknown {
-  try {
-    const json = localStorage.getItem(key);
-    return json === null ? undefined : JSON.parse(json);
-  } catch {
-    return undefined;
   }
 }
