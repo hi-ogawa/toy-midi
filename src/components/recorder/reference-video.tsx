@@ -18,7 +18,6 @@ import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { RecorderPanel } from "./recorder-panel";
 
-const DEFAULT_SIZE = { width: 640, height: 480 };
 const MIN_WIDTH = 360;
 const MIN_HEIGHT = 300;
 
@@ -41,7 +40,7 @@ export function ReferenceVideoPanel({
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampSize(projectUiStore.store.get().referenceVideoSize ?? DEFAULT_SIZE),
+    clampSize(projectUiStore.store.get().referenceVideoSize),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {

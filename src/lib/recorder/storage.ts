@@ -48,12 +48,10 @@ const projectUiStateSchema = z.object({
     .number()
     .min(MIN_PIXELS_PER_BEAT)
     .max(MAX_PIXELS_PER_BEAT),
-  referenceVideoSize: z
-    .object({
-      width: z.number().positive(),
-      height: z.number().positive(),
-    })
-    .optional(),
+  referenceVideoSize: z.object({
+    width: z.number().positive(),
+    height: z.number().positive(),
+  }),
 });
 type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 
@@ -61,6 +59,7 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   autoScrollEnabled: true,
   inputPanelOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
+  referenceVideoSize: { width: 640, height: 480 },
 };
 
 export type ProjectUiStore = LocalStorageStore<ProjectUiState>;
