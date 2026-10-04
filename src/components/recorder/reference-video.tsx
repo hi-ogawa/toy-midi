@@ -7,7 +7,7 @@ import {
   RecorderRuntime,
   type ReferenceVideoState,
 } from "../../lib/recorder/runtime";
-import { recorderStorage } from "../../lib/recorder/storage";
+import type { ProjectUiStore } from "../../lib/recorder/storage";
 import {
   createYouTubePlayer,
   loadYouTubeApi,
@@ -18,7 +18,6 @@ import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { RecorderPanel } from "./recorder-panel";
 
-const DEFAULT_SIZE = { width: 640, height: 480 };
 const MIN_WIDTH = 360;
 const MIN_HEIGHT = 300;
 
@@ -30,16 +29,18 @@ function clampSize({ width, height }: { width: number; height: number }) {
 }
 
 export function ReferenceVideoPanel({
+  projectUiStore,
   referenceVideo,
   runtime,
   onClose,
 }: {
+  projectUiStore: ProjectUiStore;
   referenceVideo?: ReferenceVideoState;
   runtime: RecorderRuntime;
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampSize(recorderStorage.store.get().referenceVideoSize ?? DEFAULT_SIZE),
+    clampSize(projectUiStore.store.get().referenceVideoSize),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
@@ -61,7 +62,7 @@ export function ReferenceVideoPanel({
       setSize(data.size);
     },
     onEnd: (_event, { data }) => {
-      recorderStorage.update({ referenceVideoSize: data.size });
+      projectUiStore.update({ referenceVideoSize: data.size });
     },
   });
 
