@@ -20,7 +20,7 @@ import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import { exportMidi } from "../../lib/midi-export";
-import { importMidiNotes, parseMidiFile } from "../../lib/midi-import";
+import { readMidiTracks } from "../../lib/midi-import";
 import { isBlackKey, MAX_PITCH } from "../../lib/music";
 import { exportMusicXml } from "../../lib/musicxml/render";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
@@ -99,22 +99,45 @@ export function MidiTrackRow({
   const programMutation = useMutation({
     mutationFn: (program: number) =>
       runtime.setMidiTrackProgram(track.id, program),
-    onSuccess: (_data, program) => onProgramSelected(program),
+    onSuccess: (_data, program) => {
+      // Drum kit programs are not instruments for new tracks.
+      if (!track.drums) {
+        onProgramSelected(program);
+      }
+    },
   });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
-      const parsed = await parseMidiFile(file);
-      const { notes } = await importMidiNotes(file, {
-        trackIndices: parsed.tracks.map((source) => source.index),
-        replaceExisting: true,
-        importTempo: false,
-        importTimeSignature: false,
-      });
-      runtime.setMidiTrackNotes(track.id, notes);
-      return notes.length;
+      const tracks = await readMidiTracks(file);
+      // A single part goes into this track with its sound. Multiple parts
+      // replace it with one track each, keeping their names and sounds.
+      if (tracks.length <= 1) {
+        const notes = tracks[0]?.notes ?? [];
+        if (
+          !confirm(
+            `Import MIDI into ${track.name}? This will replace all notes in this track. Project tempo, time signature, and instrument will stay unchanged.`,
+          )
+        ) {
+          return;
+        }
+        runtime.setMidiTrackNotes(track.id, notes);
+        return `Imported ${pluralCount(notes.length, "note")} from MIDI file`;
+      }
+      if (
+        !confirm(
+          `Replace ${track.name} with ${tracks.length} tracks from the MIDI file? Project tempo and time signature will stay unchanged.`,
+        )
+      ) {
+        return;
+      }
+      await runtime.replaceMidiTrackWithImport({ id: track.id, tracks });
+      return `Imported ${tracks.length} tracks from MIDI file`;
     },
-    onSuccess: (count) =>
-      toast.success(`Imported ${count} notes from MIDI file`),
+    onSuccess: (message) => {
+      if (message) {
+        toast.success(message);
+      }
+    },
     onError: (error) => {
       console.error(error);
       toast.error("Failed to import MIDI file");
@@ -204,15 +227,7 @@ export function MidiTrackRow({
             onImportMidi={() =>
               openFilePicker({
                 accept: ".mid,.midi",
-                onFile: (file) => {
-                  if (
-                    confirm(
-                      `Import MIDI into ${track.name}? This will replace all notes in this track. Project tempo, time signature, and instrument will stay unchanged.`,
-                    )
-                  ) {
-                    importMidiMutation.mutate(file);
-                  }
-                },
+                onFile: (file) => importMidiMutation.mutate(file),
               })
             }
             onExportMidi={() => exportMidiMutation.mutate()}

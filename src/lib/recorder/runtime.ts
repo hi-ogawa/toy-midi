@@ -13,6 +13,7 @@ import {
   ensureBiquadEqWorklet,
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
+import type { ImportedMidiTrack } from "../midi-import.ts";
 import { clamp } from "../music.ts";
 import { sliceSamples } from "../pcm.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "../pitch-spelling.ts";
@@ -76,6 +77,8 @@ export interface MidiTrackState {
   name: string;
   notes: Note[];
   program: number;
+  // Play the program from the drum kit bank, as General MIDI channel 10 does.
+  drums: boolean;
   eq: MultibandEqParameters;
   height: number;
   viewMode: "editor" | "overview";
@@ -443,6 +446,39 @@ export class RecorderRuntime {
       }),
     });
     this.syncTrackMix();
+  }
+
+  /** Replace a MIDI track with one track per imported source track, as one edit. */
+  async replaceMidiTrackWithImport({
+    id,
+    tracks,
+  }: {
+    id: string;
+    tracks: ImportedMidiTrack[];
+  }): Promise<void> {
+    const state = this.store.get();
+    const replaced = state.midiTracks.find((track) => track.id === id);
+    if (!replaced) {
+      throw new Error("MIDI track state is missing.");
+    }
+    const index = state.trackOrder.indexOf(id);
+    const names = state.midiTracks
+      .filter((track) => track.id !== id)
+      .map((track) => track.name);
+    const inserted = tracks.map((source) => {
+      const name = source.name ?? createNumberedName({ names, prefix: "MIDI" });
+      names.push(name);
+      return createMidiTrackState({ ...source, name });
+    });
+    for (const [offset, track] of inserted.entries()) {
+      await this.insertMidiTrack({ track, index: index + offset });
+    }
+    this.deleteMidiTrack(id);
+    this.history.pushMidiTrackReplacement({
+      replaced,
+      inserted,
+      index,
+    });
   }
 
   removeMidiTrack(id: string): void {
@@ -1524,15 +1560,20 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
 function createMidiTrackState({
   name,
   program,
+  drums = false,
+  notes = [],
 }: {
   name: string;
   program: number;
+  drums?: boolean;
+  notes?: Note[];
 }): MidiTrackState {
   return {
     id: crypto.randomUUID(),
     name,
-    notes: [],
+    notes,
     program,
+    drums,
     eq: createDefaultMultibandEq(),
     height: 300,
     viewMode: "editor",

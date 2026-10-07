@@ -34,7 +34,10 @@ export class MidiTrackPlayback implements TransportParticipant {
     track: MidiTrackState;
     tempo: number;
   }): Promise<MidiTrackPlayback> {
-    const synth = new RecorderMidiSynth(transport.context);
+    const synth = new RecorderMidiSynth({
+      context: transport.context,
+      drums: track.drums,
+    });
     try {
       await synth.init(track.program);
       return new MidiTrackPlayback({ transport, output, track, tempo, synth });
@@ -158,13 +161,20 @@ interface OxiSynthState {
   }>;
 }
 
+// The soundfont bank holding General MIDI drum kits, as fluidsynth selects for channel 10.
+const DRUM_KIT_BANK = 128;
+
 class RecorderMidiSynth {
   readonly output: GainNode;
+  private readonly context: AudioContext;
+  private readonly drums: boolean;
   private node?: AudioWorkletNode;
   private soundfontId?: string;
   private pendingCallbacks = new Map<string, (data: unknown) => void>();
 
-  constructor(private readonly context: AudioContext) {
+  constructor({ context, drums }: { context: AudioContext; drums: boolean }) {
+    this.context = context;
+    this.drums = drums;
     this.output = context.createGain();
   }
 
@@ -205,11 +215,18 @@ class RecorderMidiSynth {
     const response = (await this.sendMessage("getState", {}, "state")) as {
       state: OxiSynthState;
     };
-    const preset = response.state.soundfonts
-      .find((soundfont) => soundfont.id === soundfontId)
-      ?.presets.find(
-        (preset) => preset.bank === 0 && preset.preset_num === program,
+    const presets =
+      response.state.soundfonts.find(
+        (soundfont) => soundfont.id === soundfontId,
+      )?.presets ?? [];
+    const bank = this.drums ? DRUM_KIT_BANK : 0;
+    const findPreset = (program: number) =>
+      presets.find(
+        (preset) => preset.bank === bank && preset.preset_num === program,
       );
+    // Like fluidsynth, fall back to the standard kit when a drum program has no kit.
+    const preset =
+      findPreset(program) ?? (this.drums ? findPreset(0) : undefined);
     if (!preset) {
       throw new Error(`MIDI program ${program} is unavailable.`);
     }

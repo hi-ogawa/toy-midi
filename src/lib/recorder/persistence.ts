@@ -34,11 +34,14 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     | "tabOpenStringPitches"
     | "keySignature"
     | "viewMode"
+    | "drums"
   > & {
     tabAnnotationEnabled?: boolean;
     tabOpenStringPitches?: number[];
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
+    // 🟢 Optional for recorder projects saved before drum kit support.
+    drums?: boolean;
   })[];
   // 🟢 Optional for recorder projects saved before track reordering.
   trackOrder?: string[];
@@ -198,6 +201,7 @@ export function deserializeRecorderRuntimeState({
     midiTracks: (project.midiTracks ?? []).map((track) => ({
       ...track,
       viewMode: track.viewMode ?? "editor",
+      drums: track.drums ?? false,
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,

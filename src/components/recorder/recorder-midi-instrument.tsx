@@ -1,3 +1,4 @@
+import { GM_DRUM_KITS } from "../../lib/general-midi";
 import { KEY_SIGNATURE_OPTION_GROUPS } from "../../lib/pitch-spelling";
 import type { MidiTrackState } from "../../lib/recorder/runtime";
 import {
@@ -21,13 +22,29 @@ export function MidiInstrument({
     <div className="grid w-96 grid-cols-[64px_1fr] items-center gap-x-4 gap-y-4">
       <div className="contents">
         <span className="text-sm text-neutral-300">Sound</span>
-        <InstrumentCombobox
-          className="w-full!"
-          aria-label={`${track.name} program`}
-          value={track.program}
-          disabled={programPending}
-          onValueChange={onProgramChange}
-        />
+        {track.drums ? (
+          <select
+            aria-label={`${track.name} drum kit`}
+            value={track.program}
+            disabled={programPending}
+            onChange={(event) => onProgramChange(Number(event.target.value))}
+            className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
+          >
+            {GM_DRUM_KITS.map((kit) => (
+              <option key={kit.program} value={kit.program}>
+                {kit.name} kit
+              </option>
+            ))}
+          </select>
+        ) : (
+          <InstrumentCombobox
+            className="w-full!"
+            aria-label={`${track.name} program`}
+            value={track.program}
+            disabled={programPending}
+            onValueChange={onProgramChange}
+          />
+        )}
       </div>
       <label className="contents">
         <span className="text-sm text-neutral-300">Key signature</span>

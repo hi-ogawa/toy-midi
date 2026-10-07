@@ -19,7 +19,8 @@ type RecorderChange =
   | { type: "midi-notes"; trackId: string; notes: Note[] }
   | { type: "midi-track-insert"; track: MidiTrackState; index: number }
   | { type: "midi-track-delete"; trackId: string }
-  | ({ type: "clips" } & RecorderClipInsertRemove);
+  | ({ type: "clips" } & RecorderClipInsertRemove)
+  | { type: "batch"; changes: RecorderChange[] };
 
 export class RecorderHistory {
   private history = new UndoRedoHistory<RecorderChange>();
@@ -54,6 +55,45 @@ export class RecorderHistory {
     this.history.push(
       reverse ? { before: after, after: before } : { before, after },
     );
+  }
+
+  /** Record replacing one MIDI track with tracks inserted at its position. */
+  pushMidiTrackReplacement({
+    replaced,
+    inserted,
+    index,
+  }: {
+    replaced: MidiTrackState;
+    inserted: MidiTrackState[];
+    index: number;
+  }): void {
+    this.history.push({
+      before: {
+        type: "batch",
+        changes: [
+          ...inserted.map(
+            (track): RecorderChange => ({
+              type: "midi-track-delete",
+              trackId: track.id,
+            }),
+          ),
+          { type: "midi-track-insert", track: replaced, index },
+        ],
+      },
+      after: {
+        type: "batch",
+        changes: [
+          { type: "midi-track-delete", trackId: replaced.id },
+          ...inserted.map(
+            (track, offset): RecorderChange => ({
+              type: "midi-track-insert",
+              track,
+              index: index + offset,
+            }),
+          ),
+        ],
+      },
+    });
   }
 
   pushClips({
@@ -94,6 +134,12 @@ export class RecorderHistory {
       }
       case "clips": {
         this.runtime.applyClipInsertRemove(change);
+        break;
+      }
+      case "batch": {
+        for (const nested of change.changes) {
+          await this.apply(nested);
+        }
         break;
       }
     }
