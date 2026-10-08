@@ -82,8 +82,10 @@ async function main() {
       break;
     }
     case "pages": {
-      const response = await fetch(`http://127.0.0.1:${port}/pages`);
-      console.log(JSON.stringify(await response.json(), null, 2));
+      const response = await requestBridge({ port, path: "/pages" });
+      if (response) {
+        console.log(JSON.stringify(await response.json(), null, 2));
+      }
       break;
     }
     default: {
@@ -228,11 +230,14 @@ async function runEval({
   page?: string;
   code: string;
 }) {
-  const url = new URL(`http://127.0.0.1:${port}/eval`);
-  if (page) {
-    url.searchParams.set("page", page);
+  const response = await requestBridge({
+    port,
+    path: page ? `/eval?page=${encodeURIComponent(page)}` : "/eval",
+    init: { method: "POST", body: code },
+  });
+  if (!response) {
+    return;
   }
-  const response = await fetch(url, { method: "POST", body: code });
   const result = (await response.json()) as EvalResult;
   if (!result.ok) {
     console.error(result.error);
@@ -241,6 +246,25 @@ async function runEval({
   }
   if (result.value !== undefined) {
     console.log(JSON.stringify(result.value, null, 2));
+  }
+}
+
+async function requestBridge({
+  port,
+  path,
+  init,
+}: {
+  port: number;
+  path: string;
+  init?: RequestInit;
+}): Promise<Response | undefined> {
+  try {
+    return await fetch(`http://127.0.0.1:${port}${path}`, init);
+  } catch {
+    console.error(
+      `no bridge on port ${port}, start one with \`agent-bridge serve\``,
+    );
+    process.exitCode = 1;
   }
 }
 

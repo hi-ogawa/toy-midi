@@ -32,14 +32,22 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 - The bridge waits 30 seconds for the page before failing with a timeout. The code keeps running in the page after that.
 - An eval goes to the most recently connected page unless one is chosen by id.
 
+### CLI
+
+| Command                    | Input                                     | Output                                                                  |
+| -------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
+| `agent-bridge serve`       | `--origin <origin>`, repeatable, required | Runs the bridge in the foreground and logs pages connecting and leaving |
+| `agent-bridge eval [code]` | Code from the argument, or stdin without  | The result as indented JSON on stdout, or nothing for an empty result   |
+| `agent-bridge pages`       |                                           | Connected pages as indented JSON on stdout                              |
+
+Every command takes `--port <number>`, and `eval` takes `--page <id>` to choose the page. A failed eval, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
+
 ### Agent endpoints
 
 | Request              | Body      | Response                                                                              |
 | -------------------- | --------- | ------------------------------------------------------------------------------------- |
 | `POST /eval?page=id` | code text | 200 `{ ok: true, value? }`, 500 `{ ok: false, error }`, 503 when no page is connected |
 | `GET /pages`         |           | `[{ id, origin, url, connectedAt }]`                                                  |
-
-`agent-bridge eval` prints `value` as JSON on success, and prints `error` to stderr with exit code 1 otherwise.
 
 ### Page endpoints
 
