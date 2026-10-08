@@ -1,4 +1,4 @@
-// Page client for the local agent bridge in tools/agent-bridge.ts. The bridge
+// Page client for the local agent bridge in cli.ts. The bridge
 // streams `eval` requests over Server-Sent Events, and each one runs as an
 // async function body with `app` in scope. Its return value, or the error it
 // throws, is posted back as JSON.

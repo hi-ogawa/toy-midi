@@ -2,29 +2,25 @@
 //
 // A page connects to the bridge with Server-Sent Events and posts results
 // back. The agent posts JavaScript to `/eval`, the bridge forwards it to the
-// page, and the page's result becomes the response. Nothing here is specific
-// to toy-midi, which only provides the page client in src/lib/agent-bridge.ts.
+// page, and the page's result becomes the response. The app decides what
+// `app` is when it connects with the client in client.ts.
 //
 // Usage:
-//   node tools/agent-bridge.ts serve
-//   node tools/agent-bridge.ts eval 'return app.runtime.store.get().tempo'
-//   echo 'await app.runtime.play()' | node tools/agent-bridge.ts eval
-//   node tools/agent-bridge.ts pages
+//   agent-bridge serve --origin https://example.com
+//   agent-bridge eval 'return app.runtime.store.get().tempo'
+//   echo 'await app.runtime.play()' | agent-bridge eval
+//   agent-bridge pages
 
 import { randomUUID } from "node:crypto";
 import http from "node:http";
 import { parseArgs } from "node:util";
 
 const DEFAULT_PORT = 4747;
-const DEFAULT_ORIGINS = [
-  "https://toy-midi.hiro18181.workers.dev",
-  "http://localhost:5173",
-];
 const EVAL_TIMEOUT_MS = 30_000;
 const PING_INTERVAL_MS = 15_000;
 
 const USAGE = `\
-usage: node tools/agent-bridge.ts <command> [options]
+usage: agent-bridge <command> [options]
 
 commands:
   serve            run the bridge
@@ -35,8 +31,7 @@ commands:
 
 options:
   --port <number>    bridge port (default ${DEFAULT_PORT})
-  --origin <origin>  page origin to accept, repeatable (serve only,
-                     default ${DEFAULT_ORIGINS.join(", ")})
+  --origin <origin>  page origin to accept, repeatable (serve only, required)
   --page <id>        target page (eval only, default the latest connected)
   -h, --help         show this help`;
 
@@ -70,7 +65,12 @@ async function main() {
   }
   switch (command) {
     case "serve": {
-      serve({ port, origins: values.origin ?? DEFAULT_ORIGINS });
+      if (!values.origin) {
+        console.error("serve requires at least one --origin");
+        process.exitCode = 1;
+        return;
+      }
+      serve({ port, origins: values.origin });
       break;
     }
     case "eval": {

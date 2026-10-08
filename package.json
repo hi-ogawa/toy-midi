@@ -20,9 +20,10 @@
     "test-e2e-trace": "E2E_TRACE=1 playwright test",
     "render-score-video": "node packages/score-video/bin/cli.js",
     "wsola": "tsx tools/wsola.ts",
-    "agent-bridge": "node tools/agent-bridge.ts"
+    "agent-bridge-serve": "agent-bridge serve --origin https://toy-midi.hiro18181.workers.dev --origin http://localhost:5173"
   },
   "dependencies": {
+    "@hiogawa/agent-bridge": "workspace:*",
     "@hiogawa/bass-pitch-wasm": "https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.16",

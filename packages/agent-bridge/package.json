@@ -1,0 +1,15 @@
+{
+  "name": "@hiogawa/agent-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "bin": {
+    "agent-bridge": "./bin/cli.js"
+  },
+  "type": "module",
+  "exports": {
+    "./client": "./src/client.ts"
+  },
+  "dependencies": {
+    "tsx": "^4.23.13"
+  }
+}

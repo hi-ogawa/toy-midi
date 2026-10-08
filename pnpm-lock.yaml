@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@hiogawa/agent-bridge':
+        specifier: workspace:*
+        version: link:packages/agent-bridge
       '@hiogawa/bass-pitch-wasm':
         specifier: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656
         version: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656
@@ -111,6 +114,12 @@ importers:
       wasm-pack:
         specifier: 0.15.0
         version: 0.15.0
+
+  packages/agent-bridge:
+    dependencies:
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
 
   packages/score-video:
     dependencies:

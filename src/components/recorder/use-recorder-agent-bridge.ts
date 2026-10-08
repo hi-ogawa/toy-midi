@@ -1,5 +1,5 @@
+import { connectAgentBridge } from "@hiogawa/agent-bridge/client";
 import { useEffect, useEffectEvent } from "react";
-import { connectAgentBridge } from "../../lib/agent-bridge";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import type { UseRecorderProjectResult } from "./use-recorder-project";
 
