@@ -33,4 +33,4 @@ jobs:
 
       - run: pnpm build-wasm
 
-      - run: pnpm exec pkg-pr-new publish --no-compact ./crates/bass-pitch-wasm
+      - run: pnpm exec pkg-pr-new publish --no-compact ./crates/bass-pitch-wasm ./packages/agent-bridge
