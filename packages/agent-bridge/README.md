@@ -24,6 +24,8 @@ const disconnect = connectAgentBridge({
 });
 ```
 
+By convention, a page documents what it exposes as a plain-text `app.__agent_bridge_doc__`, and `agent-bridge --help` tells agents to read it before anything else. The bridge itself does not know about it.
+
 Only pages from the listed origins can connect. The agent endpoints reject any request that carries an `Origin` header, so other sites cannot drive the page.
 
 ## Contract
@@ -40,11 +42,11 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 
 ### CLI
 
-| Command                    | Input                                     | Output                                                                  |
-| -------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
-| `agent-bridge serve`       | `--origin <origin>`, repeatable, required | Runs the bridge in the foreground and logs pages connecting and leaving |
-| `agent-bridge eval [code]` | Code from the argument, or stdin without  | The result as indented JSON on stdout, or nothing for an empty result   |
-| `agent-bridge pages`       |                                           | Connected pages as indented JSON on stdout                              |
+| Command                    | Input                                     | Output                                                                       |
+| -------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------- |
+| `agent-bridge serve`       | `--origin <origin>`, repeatable, required | Runs the bridge in the foreground and logs pages connecting and leaving      |
+| `agent-bridge eval [code]` | Code from the argument, or stdin without  | A string result as is, anything else as indented JSON, or nothing when empty |
+| `agent-bridge pages`       |                                           | Connected pages as indented JSON on stdout                                   |
 
 Every command takes `--port <number>`, and `eval` takes `--page <id>` to choose the page. A failed eval, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
 

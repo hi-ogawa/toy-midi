@@ -1,6 +1,7 @@
 import { connectAgentBridge } from "@hiogawa/agent-bridge/client";
 import { useEffect, useEffectEvent } from "react";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
+import agentBridgeDoc from "./agent-bridge-doc.md?raw";
 import type { UseRecorderProjectResult } from "./use-recorder-project";
 
 const DEFAULT_BRIDGE_PORT = "4747";
@@ -27,7 +28,11 @@ export function useRecorderAgentBridge({
     const port = params.get("agent-bridge") || DEFAULT_BRIDGE_PORT;
     return connectAgentBridge({
       bridgeUrl: `http://localhost:${port}`,
-      app: { runtime, project: getProject },
+      app: {
+        runtime,
+        project: getProject,
+        __agent_bridge_doc__: agentBridgeDoc,
+      },
     });
   }, [runtime]);
 }

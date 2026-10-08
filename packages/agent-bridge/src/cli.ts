@@ -25,15 +25,20 @@ usage: agent-bridge <command> [options]
 commands:
   serve            run the bridge
   eval [code]      run code in the connected page, from the argument or stdin.
-                   The code is an async function body with \`app\` in scope,
-                   and its return value is printed as JSON.
+                   The code is an async function body with \`app\` in scope.
+                   A string result is printed as is, and anything else as JSON.
   pages            list connected pages
 
 options:
   --port <number>    bridge port (default ${DEFAULT_PORT})
   --origin <origin>  page origin to accept, repeatable (serve only, required)
   --page <id>        target page (eval only, default the latest connected)
-  -h, --help         show this help`;
+  -h, --help         show this help
+
+Before driving a page, read what it exposes:
+  agent-bridge eval 'return app.__agent_bridge_doc__'
+Pages describe \`app\` there in plain text. If it is undefined, the page has
+no doc, and \`Object.keys(app)\` is the fallback.`;
 
 interface Page {
   id: string;
@@ -244,7 +249,9 @@ async function runEval({
     process.exitCode = 1;
     return;
   }
-  if (result.value !== undefined) {
+  if (typeof result.value === "string") {
+    console.log(result.value);
+  } else if (result.value !== undefined) {
     console.log(JSON.stringify(result.value, null, 2));
   }
 }
