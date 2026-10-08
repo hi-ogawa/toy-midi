@@ -19,7 +19,8 @@
     "test-e2e": "playwright test",
     "test-e2e-trace": "E2E_TRACE=1 playwright test",
     "render-score-video": "node packages/score-video/bin/cli.js",
-    "wsola": "tsx tools/wsola.ts"
+    "wsola": "tsx tools/wsola.ts",
+    "agent-bridge": "node tools/agent-bridge.ts"
   },
   "dependencies": {
     "@hiogawa/bass-pitch-wasm": "https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656",
