@@ -19,8 +19,7 @@
     "test-e2e": "playwright test",
     "test-e2e-trace": "E2E_TRACE=1 playwright test",
     "render-score-video": "node packages/score-video/bin/cli.js",
-    "wsola": "tsx tools/wsola.ts",
-    "agent-bridge-serve": "agent-bridge serve --origin https://toy-midi.hiro18181.workers.dev --origin http://localhost:5173"
+    "wsola": "tsx tools/wsola.ts"
   },
   "dependencies": {
     "@hiogawa/agent-bridge": "workspace:*",
