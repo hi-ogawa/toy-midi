@@ -4,7 +4,7 @@
 // live in rpc.ts. Internal to this package, so the `./client` entry does not
 // export them.
 
-import type { AgentToolResult } from "./client.ts";
+import type { AgentTool, AgentToolResult } from "./client.ts";
 import type { RpcRequest } from "./rpc.ts";
 
 /**
@@ -51,12 +51,8 @@ export interface PageEvents {
   [PAGE_EVENTS.request]: RpcRequest;
 }
 
-/** The fields of a WebMCP `RegisteredTool` that the agent needs. */
-export interface ToolInfo {
-  name: string;
-  description: string;
-  inputSchema: object;
-}
+/** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
+export type ToolInfo = Pick<AgentTool, "name" | "description" | "inputSchema">;
 
 /** An entry of the `GET /pages` response. */
 export interface PageInfo {
