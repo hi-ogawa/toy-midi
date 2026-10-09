@@ -14,12 +14,11 @@ export const PAGE_ENDPOINTS = {
 } as const;
 
 /**
- * Endpoints the CLI requests, named after the `PageRpc` methods they call.
- * `getTools` and `executeTool` take `?page=<id>` to choose the page.
+ * Endpoints the CLI requests. `POST rpc?page=<id>` takes an `RpcCall` and
+ * forwards it to the page as is, so the bridge needs no endpoint per method.
  */
 export const AGENT_ENDPOINTS = {
-  getTools: "/get-tools",
-  executeTool: "/execute-tool",
+  rpc: "/rpc",
   pages: "/pages",
 } as const;
 
@@ -37,35 +36,27 @@ export interface PageRpc {
   executeTool(tool: { name: string }, input: unknown): Promise<AgentToolResult>;
 }
 
-/** A `PageRpc` method's result, as the page posts it and the bridge returns it. */
-export type PageRpcResult<K extends keyof PageRpc> = BridgeResult<
-  Awaited<ReturnType<PageRpc[K]>>
->;
-
 /** Server-Sent Events the bridge streams to a page, by event name. */
 export interface PageEvents {
   hello: { pageId: string };
   request: PageRequest;
 }
 
-export interface PageRequest {
-  requestId: string;
+/** A `PageRpc` method call, as the CLI posts it and the page receives it. */
+export interface RpcCall {
   method: keyof PageRpc;
   args: unknown[];
 }
 
+export type PageRequest = RpcCall & { requestId: string };
+
 /** The `POST /result` body. */
 export type PageResult = BridgeResult & { requestId: string };
 
-// Agent side: the CLI commands' requests and responses.
-
-/** The outcome of a request, as the page posts it and the bridge returns it. */
-export type BridgeResult<T = unknown> =
-  | { ok: true; value?: T }
+/** The outcome of a call, as the page posts it and the bridge returns it. */
+export type BridgeResult =
+  | { ok: true; value: unknown }
   | { ok: false; error: string };
-
-/** The `GET /get-tools` response. */
-export type GetToolsResponse = PageRpcResult<"getTools">;
 
 /** The fields of a WebMCP `RegisteredTool` that the agent needs. */
 export interface ToolInfo {
@@ -73,14 +64,6 @@ export interface ToolInfo {
   description: string;
   inputSchema: object;
 }
-
-/** The `POST /execute-tool` body and response. */
-export interface ExecuteToolRequest {
-  name: string;
-  input: unknown;
-}
-
-export type ExecuteToolResponse = PageRpcResult<"executeTool">;
 
 /** An entry of the `GET /pages` response. */
 export interface PageInfo {

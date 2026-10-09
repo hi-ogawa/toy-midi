@@ -68,17 +68,18 @@ Every command takes `--port <number>`, and `serve --port 0` listens on a free po
 
 ### Agent endpoints
 
-| Request                      | Body              | Response                                                                              |
-| ---------------------------- | ----------------- | ------------------------------------------------------------------------------------- |
-| `GET /get-tools?page=id`     |                   | 200 `{ ok: true, value: [{ name, description, inputSchema }] }`                       |
-| `POST /execute-tool?page=id` | `{ name, input }` | 200 `{ ok: true, value? }`, 500 `{ ok: false, error }`, 503 when no page is connected |
-| `GET /pages`                 |                   | `[{ id, origin, url, connectedAt }]`                                                  |
+| Request             | Body               | Response                                                                             |
+| ------------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| `POST /rpc?page=id` | `{ method, args }` | 200 `{ ok: true, value }`, 500 `{ ok: false, error }`, 503 when no page is connected |
+| `GET /pages`        |                    | `[{ id, origin, url, connectedAt }]`                                                 |
+
+`/rpc` forwards the call to the page as is, so the bridge has no endpoint per method. The CLI's `get-tools` and `execute-tool` call `getTools()` and `executeTool({ name }, input)` through it.
 
 ### Page endpoints
 
-| Request                 | Body                                                                        | Response                                                                                                                                                                                            |
-| ----------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /connect?url=href` |                                                                             | Server-Sent Events: `hello` `{ pageId }`, then `request` `{ requestId, method, args }`, which calls `getTools()` or `executeTool({ name }, input)` on the page, named after WebMCP's `ModelContext` |
-| `POST /result`          | JSON `{ requestId, ok: true, value? }` or `{ requestId, ok: false, error }` | 204                                                                                                                                                                                                 |
+| Request                 | Body                                                                       | Response                                                                                                                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /connect?url=href` |                                                                            | Server-Sent Events: `hello` `{ pageId }`, then `request` `{ requestId, method, args }`, which calls `getTools()` or `executeTool({ name }, input)` on the page, named after WebMCP's `ModelContext` |
+| `POST /result`          | JSON `{ requestId, ok: true, value }` or `{ requestId, ok: false, error }` | 204                                                                                                                                                                                                 |
 
 The methods and message types are in `src/protocol.ts`. The bridge sends a comment every 15 seconds to keep the stream open. A page that reconnects gets a new id. `connectAgentBridge` implements the page side, posting results as `text/plain` so they need no CORS preflight.

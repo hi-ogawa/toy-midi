@@ -19,14 +19,11 @@ import {
   AGENT_ENDPOINTS,
   PAGE_ENDPOINTS,
   type BridgeResult,
-  type ExecuteToolRequest,
-  type ExecuteToolResponse,
-  type GetToolsResponse,
   type PageEvents,
   type PageInfo,
   type PageResult,
   type PageRpc,
-  type PageRpcResult,
+  type RpcCall,
   type ToolInfo,
 } from "./protocol.ts";
 
@@ -58,11 +55,11 @@ options:
 Before executing tools, read what the page exposes with
 \`agent-bridge get-tools\`.`;
 
-/** `PageRpc` as the bridge calls it, with each result wrapped for failures. */
+/** `PageRpc` as the CLI calls it through the bridge, where every method is async. */
 type PageRpcClient = {
   [K in keyof PageRpc]: (
     ...args: Parameters<PageRpc[K]>
-  ) => Promise<PageRpcResult<K>>;
+  ) => Promise<Awaited<ReturnType<PageRpc[K]>>>;
 };
 
 interface Page extends PageInfo {
@@ -97,14 +94,8 @@ async function main() {
       break;
     }
     case "get-tools": {
-      const tools = await requestPage<GetToolsResponse>({
-        port,
-        page: values.page,
-        path: AGENT_ENDPOINTS.getTools,
-      });
-      if (tools) {
-        console.log(formatTools(tools));
-      }
+      const rpc = createPageRpcClient({ port, page: values.page });
+      console.log(formatTools(await rpc.getTools()));
       break;
     }
     case "execute-tool": {
@@ -118,21 +109,10 @@ async function main() {
         ...(json ? JSON.parse(json) : {}),
         ...(await parseArgInputs(values.arg ?? [])),
       };
-      const result = await requestPage<ExecuteToolResponse>({
-        port,
-        page: values.page,
-        path: AGENT_ENDPOINTS.executeTool,
-        init: {
-          method: "POST",
-          body: JSON.stringify({ name, input } satisfies ExecuteToolRequest),
-        },
-      });
-      if (!result) {
-        return;
-      }
+      const rpc = createPageRpcClient({ port, page: values.page });
+      const result = await rpc.executeTool({ name }, input);
       if (result.isError) {
-        console.error(result.error);
-        process.exitCode = 1;
+        throw new Error(result.error);
       } else if (typeof result.value === "string") {
         console.log(result.value);
       } else if (result.value !== undefined) {
@@ -145,10 +125,8 @@ async function main() {
         port,
         path: AGENT_ENDPOINTS.pages,
       });
-      if (response) {
-        const pages = (await response.json()) as PageInfo[];
-        console.log(JSON.stringify(pages, null, 2));
-      }
+      const pages = (await response.json()) as PageInfo[];
+      console.log(JSON.stringify(pages, null, 2));
       break;
     }
     default: {
@@ -162,11 +140,11 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
   const pages = new Map<string, Page>();
   const pending = new Map<string, (result: BridgeResult) => void>();
 
-  // Responds with the result of a `PageRpc` call on the chosen page, by
-  // default the most recently connected one.
+  // Forwards a `PageRpc` call to the chosen page, by default the most
+  // recently connected one, and responds with the result it posts back.
   async function callPage(
     pageId: string | null,
-    call: (rpc: PageRpcClient) => Promise<BridgeResult>,
+    call: RpcCall,
   ): Promise<Response> {
     const page = pages.get(pageId ?? [...pages.keys()].at(-1) ?? "");
     if (!page) {
@@ -175,43 +153,33 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
         { status: 503 },
       );
     }
-    const result = await call(createPageRpcClient(page));
+    const result = await sendRequest(page, call);
     return Response.json(result, { status: result.ok ? 200 : 500 });
   }
 
-  // Calls `PageRpc` methods over the page's event stream. Each call resolves
-  // once the page posts its result back, or fails after a timeout.
-  function createPageRpcClient(page: Page): PageRpcClient {
-    return new Proxy({} as PageRpcClient, {
-      get:
-        (_, method) =>
-        async (...args: unknown[]): Promise<BridgeResult> => {
-          const requestId = randomUUID();
-          try {
-            return await new Promise((resolve) => {
-              const timer = setTimeout(
-                () =>
-                  resolve({
-                    ok: false,
-                    error: `timed out after ${REQUEST_TIMEOUT_MS} ms`,
-                  }),
-                REQUEST_TIMEOUT_MS,
-              );
-              pending.set(requestId, (result) => {
-                clearTimeout(timer);
-                resolve(result);
-              });
-              page.send("request", {
-                requestId,
-                method: method as keyof PageRpc,
-                args,
-              });
-            });
-          } finally {
-            pending.delete(requestId);
-          }
-        },
-    });
+  // Sends a call over the page's event stream, and resolves once the page
+  // posts its result back, or fails after a timeout.
+  async function sendRequest(page: Page, call: RpcCall): Promise<BridgeResult> {
+    const requestId = randomUUID();
+    try {
+      return await new Promise((resolve) => {
+        const timer = setTimeout(
+          () =>
+            resolve({
+              ok: false,
+              error: `timed out after ${REQUEST_TIMEOUT_MS} ms`,
+            }),
+          REQUEST_TIMEOUT_MS,
+        );
+        pending.set(requestId, (result) => {
+          clearTimeout(timer);
+          resolve(result);
+        });
+        page.send("request", { requestId, ...call });
+      });
+    } finally {
+      pending.delete(requestId);
+    }
   }
 
   function connect(url: URL, origin: string): Response {
@@ -303,12 +271,8 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
           ),
         );
       }
-      case `GET ${AGENT_ENDPOINTS.getTools}`: {
-        return callPage(pageId, (rpc) => rpc.getTools());
-      }
-      case `POST ${AGENT_ENDPOINTS.executeTool}`: {
-        const { name, input } = (await request.json()) as ExecuteToolRequest;
-        return callPage(pageId, (rpc) => rpc.executeTool({ name }, input));
+      case `POST ${AGENT_ENDPOINTS.rpc}`: {
+        return callPage(pageId, (await request.json()) as RpcCall);
       }
       default: {
         return new Response("not found\n", { status: 404 });
@@ -365,34 +329,36 @@ function isLocalHost(host: string | null) {
   return name === "localhost" || name === "127.0.0.1";
 }
 
-// Requests a page through the bridge and returns the result value. Failures
-// are printed to stderr with exit code 1 and return undefined.
-async function requestPage<T extends BridgeResult>({
+// Calls `PageRpc` methods on a page through the bridge. A failed call, such
+// as one with no page connected or one the page fails, throws the bridge's
+// error.
+function createPageRpcClient({
   port,
   page,
-  path,
-  init,
 }: {
   port: number;
   page?: string;
-  path: string;
-  init?: RequestInit;
-}): Promise<Extract<T, { ok: true }>["value"]> {
-  const response = await requestBridge({
-    port,
-    path: page ? `${path}?page=${encodeURIComponent(page)}` : path,
-    init,
+}): PageRpcClient {
+  const path = page
+    ? `${AGENT_ENDPOINTS.rpc}?page=${encodeURIComponent(page)}`
+    : AGENT_ENDPOINTS.rpc;
+  return new Proxy({} as PageRpcClient, {
+    get:
+      (_, method) =>
+      async (...args: unknown[]) => {
+        const call: RpcCall = { method: method as keyof PageRpc, args };
+        const response = await requestBridge({
+          port,
+          path,
+          init: { method: "POST", body: JSON.stringify(call) },
+        });
+        const result = (await response.json()) as BridgeResult;
+        if (!result.ok) {
+          throw new Error(result.error);
+        }
+        return result.value;
+      },
   });
-  if (!response) {
-    return;
-  }
-  const result = (await response.json()) as T;
-  if (!result.ok) {
-    console.error(result.error);
-    process.exitCode = 1;
-    return;
-  }
-  return result.value;
 }
 
 async function requestBridge({
@@ -403,14 +369,13 @@ async function requestBridge({
   port: number;
   path: string;
   init?: RequestInit;
-}): Promise<Response | undefined> {
+}): Promise<Response> {
   try {
     return await fetch(`http://127.0.0.1:${port}${path}`, init);
   } catch {
-    console.error(
+    throw new Error(
       `no bridge on port ${port}, start one with \`agent-bridge serve\``,
     );
-    process.exitCode = 1;
   }
 }
 
