@@ -1,32 +1,11 @@
 // The bridge's contract between the server in cli.ts, the page client in
-// client.ts, and the CLI commands: the endpoints, the methods a page serves,
-// and the data they carry. The RPC messages that carry calls are generic and
-// live in rpc.ts. Internal to this package, so the `./client` entry does not
-// export them.
+// client.ts, and the CLI commands: the methods a page serves, the endpoints
+// and events that carry them, and the data they return. The RPC messages that
+// carry calls are generic and live in rpc.ts. Internal to this package, so the
+// `./client` entry does not export them.
 
 import type { AgentTool, AgentToolResult } from "./client.ts";
 import type { RpcRequest } from "./rpc.ts";
-
-/**
- * Endpoints pages request. `GET connect?url=<page href>` streams
- * `PageEvents`, and `POST result` takes an `RpcResponse`.
- */
-export const PAGE_ENDPOINTS = {
-  connect: "/connect",
-  result: "/result",
-} as const;
-
-/**
- * Endpoints the CLI requests. `POST rpc?page=<id>` takes an `RpcCall` and
- * forwards it to the page as is, so the bridge needs no endpoint per method.
- */
-export const AGENT_ENDPOINTS = {
-  rpc: "/rpc",
-  pages: "/pages",
-} as const;
-
-// Page side: the bridge calls `PageRpc` methods on a page over the
-// `PAGE_ENDPOINTS`.
 
 /**
  * Methods a page serves to the bridge, named after WebMCP's `ModelContext`.
@@ -38,6 +17,21 @@ export interface PageRpc {
   getTools(): ToolInfo[];
   executeTool(tool: { name: string }, input: unknown): Promise<AgentToolResult>;
 }
+
+/** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
+export type ToolInfo = Pick<AgentTool, "name" | "description" | "inputSchema">;
+
+// Page side: the bridge calls `PageRpc` methods on a page over these
+// endpoints and events.
+
+/**
+ * Endpoints pages request. `GET connect?url=<page href>` streams
+ * `PageEvents`, and `POST result` takes an `RpcResponse`.
+ */
+export const PAGE_ENDPOINTS = {
+  connect: "/connect",
+  result: "/result",
+} as const;
 
 /** Names of the Server-Sent Events the bridge streams to a page. */
 export const PAGE_EVENTS = {
@@ -51,10 +45,19 @@ export interface PageEvents {
   [PAGE_EVENTS.request]: RpcRequest;
 }
 
-/** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
-export type ToolInfo = Pick<AgentTool, "name" | "description" | "inputSchema">;
+// Agent side: the CLI commands reach pages through these endpoints.
 
-/** An entry of the `GET /pages` response. */
+/**
+ * Endpoints the CLI requests. `POST rpc?page=<id>` takes an `RpcCall` and
+ * forwards it to the page as is, so the bridge needs no endpoint per method.
+ * `GET pages` returns `PageInfo[]`.
+ */
+export const AGENT_ENDPOINTS = {
+  rpc: "/rpc",
+  pages: "/pages",
+} as const;
+
+/** A connected page, as `GET pages` lists it. */
 export interface PageInfo {
   id: string;
   origin: string;
