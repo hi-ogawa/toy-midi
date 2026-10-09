@@ -157,6 +157,7 @@ export interface RecorderRuntimeState {
   midiTracks: MidiTrackState[];
   // Display order of audio and MIDI tracks by id.
   trackOrder: string[];
+  /** @internal */
   pendingRecording?: PendingRecordingState;
   // Capture
   captureStatus: CaptureStatus;
@@ -253,6 +254,7 @@ export class RecorderRuntime {
   readonly context = new AudioContext();
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
+  /** @internal */
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
@@ -934,6 +936,7 @@ export class RecorderRuntime {
     });
   }
 
+  /** @internal */
   attachYouTubePlayer({
     videoId,
     player,
@@ -1042,10 +1045,12 @@ export class RecorderRuntime {
     });
   }
 
+  /** @internal */
   serializeProject(): SerializedRecorderRuntimeState {
     return serializeRecorderRuntimeState(this.store.get());
   }
 
+  /** @internal */
   async deserializeProject(
     project: SerializedRecorderRuntimeState,
   ): Promise<void> {
@@ -1119,6 +1124,7 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
+  /** @internal */
   subscribePersistableState(listener: () => void): () => void {
     return this.store.subscribeWithSelector({
       selector: (state) =>

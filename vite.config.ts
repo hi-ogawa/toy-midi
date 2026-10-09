@@ -20,4 +20,13 @@ export default defineConfig({
   staged: {
     "*": "vp check --fix",
   },
+  pack: [
+    {
+      entry: { "agent-api": "src/lib/agent-api.ts" },
+      outDir: ".tmp/agent-api",
+      platform: "browser",
+      dts: { emitDtsOnly: true, compilerOptions: { stripInternal: true } },
+      report: false,
+    },
+  ],
 });
