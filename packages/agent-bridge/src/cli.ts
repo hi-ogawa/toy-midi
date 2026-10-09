@@ -18,14 +18,12 @@ import * as srvx from "srvx";
 import {
   AGENT_ENDPOINTS,
   PAGE_ENDPOINTS,
-  type BridgeResult,
   type PageEvents,
   type PageInfo,
-  type PageResult,
   type PageRpc,
-  type RpcCall,
   type ToolInfo,
 } from "./protocol.ts";
+import type { RpcCall, RpcResponse, RpcResult } from "./rpc.ts";
 
 const DEFAULT_PORT = 4747;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -131,7 +129,7 @@ async function main() {
 
 async function serve({ port, origins }: { port: number; origins: string[] }) {
   const pages = new Map<string, Page>();
-  const pending = new Map<string, (result: BridgeResult) => void>();
+  const pending = new Map<string, (result: RpcResult) => void>();
 
   // Forwards a `PageRpc` call to the chosen page, by default the most
   // recently connected one, and responds with the result it posts back.
@@ -142,7 +140,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
     const page = pages.get(pageId ?? [...pages.keys()].at(-1) ?? "");
     if (!page) {
       return Response.json(
-        { ok: false, error: "no page connected" } satisfies BridgeResult,
+        { ok: false, error: "no page connected" } satisfies RpcResult,
         { status: 503 },
       );
     }
@@ -152,7 +150,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
 
   // Sends a call over the page's event stream, and resolves once the page
   // posts its result back, or fails after a timeout.
-  async function sendRequest(page: Page, call: RpcCall): Promise<BridgeResult> {
+  async function sendRequest(page: Page, call: RpcCall): Promise<RpcResult> {
     const requestId = randomUUID();
     try {
       return await new Promise((resolve) => {
@@ -239,7 +237,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
         return connect(url, origin);
       }
       case `POST ${PAGE_ENDPOINTS.result}`: {
-        const { requestId, ...result } = (await request.json()) as PageResult;
+        const { requestId, ...result } = (await request.json()) as RpcResponse;
         pending.get(requestId)?.(result);
         return new Response(undefined, { status: 204 });
       }
@@ -346,13 +344,16 @@ function createPageRpcClient({
     get:
       (_, method) =>
       async (...args: unknown[]) => {
-        const call: RpcCall = { method: method as keyof PageRpc, args };
+        const call: RpcCall<keyof PageRpc> = {
+          method: method as keyof PageRpc,
+          args,
+        };
         const response = await requestBridge({
           port,
           path,
           init: { method: "POST", body: JSON.stringify(call) },
         });
-        const result = (await response.json()) as BridgeResult;
+        const result = (await response.json()) as RpcResult;
         if (!result.ok) {
           throw new Error(result.error);
         }

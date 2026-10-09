@@ -1,9 +1,5 @@
-import {
-  PAGE_ENDPOINTS,
-  type PageRequest,
-  type PageResult,
-  type PageRpc,
-} from "./protocol.ts";
+import { PAGE_ENDPOINTS, type PageRpc } from "./protocol.ts";
+import type { RpcRequest, RpcResponse } from "./rpc.ts";
 
 /**
  * A tool in the WebMCP shape, so the same object can be registered with
@@ -45,7 +41,9 @@ export function connectAgentBridge({
   const rpc = createPageRpc(tools);
   const source = new EventSource(connectUrl);
   source.addEventListener("request", async (event) => {
-    const { requestId, method, args } = JSON.parse(event.data) as PageRequest;
+    const { requestId, method, args } = JSON.parse(event.data) as RpcRequest<
+      keyof PageRpc
+    >;
     let body: string;
     try {
       const value = await (rpc[method] as (...args: unknown[]) => unknown)(
@@ -56,7 +54,7 @@ export function connectAgentBridge({
         requestId,
         ok: true,
         value,
-      } satisfies PageResult);
+      } satisfies RpcResponse);
     } catch (error) {
       body = JSON.stringify({
         requestId,
@@ -65,7 +63,7 @@ export function connectAgentBridge({
           error instanceof Error
             ? (error.stack ?? error.message)
             : String(error),
-      } satisfies PageResult);
+      } satisfies RpcResponse);
     }
     // Posted as text/plain so the request needs no CORS preflight.
     await fetch(new URL(PAGE_ENDPOINTS.result, bridgeUrl), {
