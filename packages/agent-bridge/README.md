@@ -74,7 +74,7 @@ Every command takes `--port <number>`, which defaults to 4747. `serve --port 0` 
 
 Any failure prints a message to standard error and exits with code 1, so the agent can tell success from failure by the exit code alone. Failures include a tool that reports an error, a timeout, no connected page, and no running bridge.
 
-## Pass Requests Between the Terminal and the Page
+## How It Works
 
 ![The page opens a connection to the bridge once and keeps it open. When the command line sends a request, the bridge holds it open, passes the request down the page's connection, and waits for the page to send back the result, which becomes the answer to the command line.](images/rpc-flow.svg)
 
@@ -86,7 +86,7 @@ The bridge only passes requests along and does not know which tools or operation
 
 Each open connection is one page, and the bridge gives each a short id when it connects. `agent-bridge pages` lists them, and the bridge answers it from its own list without asking any page. A page that reloads connects again and gets a new id.
 
-## Keep Other Websites Out
+### Security
 
 The bridge only accepts connections from your own machine. Within your machine, it tells pages and the command line apart by the `Origin` header, which a browser adds when a web page sends a request to another site and a terminal command does not send:
 
