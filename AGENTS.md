@@ -13,6 +13,7 @@
 - This application is desktop-only. Do not propose, evaluate, implement, or mention mobile or responsive behavior
 - Commit messages: use Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`); add `!` for breaking changes
 - File names: kebab-case
+- Function names: start with a verb for the action the function performs, so a call site reads as what happens rather than what comes back. Components, hooks, and other constructs with their own ecosystem naming conventions follow those instead
 - Do not add compatibility paths or handling for edge cases that do not occur in practice
 - Organize code so each chunk can be validated by one body of expertise. A reader meets files and diffs linearly and loads one such body at a time. Ask which single specialist could review a chunk alone, split where the needed expertise changes even with one caller, and keep code together when it shares one domain regardless of length
 - When an existing test fails, first verify from first principles whether its expectation is correct. Do not compensate in the implementation merely to preserve an incorrect test.
@@ -26,3 +27,4 @@
 - Make props/params required when all call sites always pass them
 - Shape arguments the way a reader expects from the operation. Take a value positionally when the operation conventionally takes just that value. Use an options object when a call site would be ambiguous without names, or when the operation is the kind that accumulates options, even if it takes one today. When a function acts on one main subject with modifiers, pass the subject positionally and the modifiers in an object
 - Use braces for every `switch` case body (`case "x": { ... }`, `default: { ... }`)
+- Docs: follow the writing conventions in [docs/AGENTS.md](docs/AGENTS.md)
