@@ -1,22 +1,24 @@
 import type { Note } from "../../types.ts";
-import { startInterval } from "../../utils/timing.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
 import { midiAssetUrls, waitForMidiAssets } from "../runtime-assets";
 import { beatsToSeconds } from "../timeline.ts";
 import { AudioChannel } from "./audio-channel.ts";
+import {
+  type ContextTimeWindow,
+  getPlaybackSegments,
+  getSegmentContextTime,
+  getSegmentRange,
+} from "./playback-segments.ts";
 import type { MidiTrackState } from "./runtime.ts";
-import type {
-  AudioContextTransport,
-  TransportParticipant,
+import {
+  type AudioContextTransport,
+  startLookaheadScheduler,
+  type TransportParticipant,
 } from "./transport.ts";
-
-const SCHEDULE_AHEAD_SECONDS = 0.1;
-const SCHEDULER_INTERVAL_MS = 25;
 
 export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
   private notes: Note[] = [];
-  private nextNoteIndex = 0;
   private tempo = 120;
   private disposeScheduling?: () => void;
   private readonly synth: RecorderMidiSynth;
@@ -95,18 +97,23 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.schedule();
-    this.disposeScheduling = startInterval(
-      () => this.schedule(),
-      SCHEDULER_INTERVAL_MS,
-    );
+    const context = this.transport.context;
+    // Note and tempo edits restart mid-run after the synth has dropped its
+    // queue, so resume from now rather than the run start.
+    this.disposeScheduling = startLookaheadScheduler({
+      context,
+      from: Math.max(
+        this.transport.playbackRun!.contextTime,
+        context.currentTime,
+      ),
+      schedule: (window) => this.schedule(window),
+    });
   }
 
   stop(): void {
     this.disposeScheduling?.();
     this.disposeScheduling = undefined;
     this.synth.reset();
-    this.nextNoteIndex = 0;
   }
 
   dispose(): void {
@@ -121,32 +128,41 @@ export class MidiTrackPlayback implements TransportParticipant {
     }
   }
 
-  private schedule(): void {
-    const anchor = this.transport.playbackAnchor!;
-    const position = this.transport.getPublishedPlaybackPosition();
-    const windowEnd =
-      position + SCHEDULE_AHEAD_SECONDS * this.transport.playbackRate;
-    while (this.nextNoteIndex < this.notes.length) {
-      const note = this.notes[this.nextNoteIndex]!;
-      const start = beatsToSeconds(note.start, this.tempo);
-      if (windowEnd < start) {
-        break;
+  /**
+   * Queues notes starting during the window in every loop pass it covers. Notes
+   * that started before the window, such as before the playhead or loop-in, are
+   * not joined late.
+   */
+  private schedule(window: ContextTimeWindow): void {
+    const playbackRun = this.transport.playbackRun!;
+    const currentTime = this.transport.context.currentTime;
+    for (const segment of getPlaybackSegments(playbackRun, window)) {
+      const range = getSegmentRange(segment, window);
+      for (const note of this.notes) {
+        const start = beatsToSeconds(note.start, this.tempo);
+        if (range.end <= start) {
+          break;
+        }
+        // A stalled timer can hand over a window that already began, so skip
+        // notes that have elapsed rather than playing them late.
+        const startTime = getSegmentContextTime(segment, start);
+        if (start < range.start || startTime < currentTime) {
+          continue;
+        }
+        // A note held past loop-out ends at the wrap. The synth applies
+        // note-offs before note-ons on the same frame, so a repeated pitch at
+        // loop-in still retriggers.
+        const end = Math.min(
+          beatsToSeconds(note.start + note.duration, this.tempo),
+          segment.end,
+        );
+        this.synth.scheduleNoteOnOff({
+          pitch: note.pitch,
+          velocity: note.velocity,
+          startTime,
+          endTime: getSegmentContextTime(segment, end),
+        });
       }
-      this.nextNoteIndex++;
-      if (start < position) {
-        continue;
-      }
-      const end = beatsToSeconds(note.start + note.duration, this.tempo);
-      this.synth.scheduleNoteOnOff({
-        pitch: note.pitch,
-        velocity: note.velocity,
-        startTime:
-          anchor.contextTime +
-          (start - anchor.position) / this.transport.playbackRate,
-        endTime:
-          anchor.contextTime +
-          (end - anchor.position) / this.transport.playbackRate,
-      });
     }
   }
 }

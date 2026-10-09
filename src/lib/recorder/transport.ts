@@ -1,8 +1,17 @@
 import { createStore } from "../../utils/store.ts";
-import { startAnimationFrameLoop } from "../../utils/timing.ts";
+import { startAnimationFrameLoop, startInterval } from "../../utils/timing.ts";
+import {
+  type ContextTimeWindow,
+  getPlaybackPosition,
+  type LoopRange,
+  type PlaybackRun,
+} from "./playback-segments.ts";
 
 /** Gives every participant time to schedule against the same future audio frame. */
 const PLAYBACK_LEAD_SECONDS = 0.03;
+/** Must exceed main-thread timer jitter so the audio clock never outruns scheduling. */
+const SCHEDULE_AHEAD_SECONDS = 0.1;
+const SCHEDULER_INTERVAL_MS = 25;
 
 /** A playback object whose lifecycle follows this transport. */
 export interface TransportParticipant {
@@ -15,19 +24,11 @@ type TransportState = {
   isPlaying: boolean;
 };
 
-type PlaybackAnchor = {
-  contextTime: number;
-  position: number;
-};
-
-type LoopRange = {
-  start: number;
-  end: number;
-};
-
 /**
  * Owns recorder position and synchronizes registered playback objects to one
- * AudioContext timeline.
+ * AudioContext timeline. The audio clock is the ground truth: a run fixes how
+ * it maps to timeline position, including every loop wrap, and participants
+ * schedule ahead in audio-clock order. Position is only published from it.
  */
 export class AudioContextTransport {
   /** Published transport state consumed by recorder runtime and UI. */
@@ -37,10 +38,10 @@ export class AudioContextTransport {
   }));
 
   /**
-   * Maps an absolute AudioContext time to the recorder position at which the
-   * current playback run begins. It is available to participants during start.
+   * Maps the AudioContext clock to recorder position for the current run. It is
+   * available to participants during start.
    */
-  playbackAnchor?: PlaybackAnchor;
+  playbackRun?: PlaybackRun;
   playbackRate = 1;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
@@ -82,7 +83,7 @@ export class AudioContextTransport {
       participant.stop();
     }
     const finalPosition = this.getPublishedPlaybackPosition();
-    this.playbackAnchor = undefined;
+    this.playbackRun = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
   }
@@ -100,14 +101,23 @@ export class AudioContextTransport {
     }
   }
 
+  /**
+   * Changes the loop range. The run has already scheduled ahead with the old
+   * wraps, so an actual change restarts it from the current position.
+   */
   setLoopRange(loopRange?: LoopRange): void {
-    this.loopRange = loopRange;
     if (
-      loopRange &&
-      this.store.get().isPlaying &&
-      this.getPublishedPlaybackPosition() >= loopRange.end
+      loopRange?.start === this.loopRange?.start &&
+      loopRange?.end === this.loopRange?.end
     ) {
-      this.restartParticipants(loopRange.start);
+      return;
+    }
+    this.loopRange = loopRange;
+    if (this.store.get().isPlaying) {
+      const position = this.getPublishedPlaybackPosition();
+      this.restartParticipants(
+        loopRange && position >= loopRange.end ? loopRange.start : position,
+      );
     }
   }
 
@@ -127,27 +137,23 @@ export class AudioContextTransport {
   }
 
   /**
-   * Converts an absolute AudioContext time to published playback position while
-   * excluding the scheduling lead before the playback anchor.
+   * Projects the current AudioContext time to published playback position,
+   * holding the run's start position during the scheduling lead.
    */
   getPublishedPlaybackPosition(): number {
-    const playbackAnchor = this.playbackAnchor!;
-    return Math.max(
-      playbackAnchor.position,
-      this.getPlaybackPositionByContextTime(this.context.currentTime),
-    );
+    const playbackRun = this.playbackRun!;
+    const contextTime = this.context.currentTime;
+    return contextTime < playbackRun.contextTime
+      ? playbackRun.position
+      : getPlaybackPosition(playbackRun, contextTime);
   }
 
   /**
-   * Converts an absolute AudioContext time to its exact position relative to the
-   * active playback anchor. This intentionally includes playback warmup lead time.
+   * Projects an absolute AudioContext time to its exact position in the active
+   * run. This intentionally includes playback warmup lead time.
    */
   getPlaybackPositionByContextTime(contextTime: number): number {
-    const playbackAnchor = this.playbackAnchor!;
-    return (
-      playbackAnchor.position +
-      (contextTime - playbackAnchor.contextTime) * this.playbackRate
-    );
+    return getPlaybackPosition(this.playbackRun!, contextTime);
   }
 
   /** Publishes audio-clock position on animation frames while playing. */
@@ -156,17 +162,8 @@ export class AudioContextTransport {
       return;
     }
     this.disposeTicking = startAnimationFrameLoop(() => {
-      const position = this.getPublishedPlaybackPosition();
-      if (this.loopRange && position >= this.loopRange.end) {
-        // Looping currently follows the UI tick and restarts participants with
-        // fresh scheduling lead, so it is not a gapless audio-clock boundary.
-        // Gapless Web Audio playback would schedule each participant's next
-        // segment ahead of loop-out and use animation frames only for position.
-        this.restartParticipants(this.loopRange.start);
-        return;
-      }
       this.store.update({
-        position,
+        position: this.getPublishedPlaybackPosition(),
       });
     });
   }
@@ -179,9 +176,11 @@ export class AudioContextTransport {
   }
 
   private startParticipants(position: number): void {
-    this.playbackAnchor = {
+    this.playbackRun = {
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position,
+      playbackRate: this.playbackRate,
+      loopRange: this.loopRange,
     };
     this.store.update({ position, isPlaying: true });
     for (const participant of this.participants) {
@@ -194,4 +193,32 @@ export class AudioContextTransport {
     this.disposeTicking?.();
     this.disposeTicking = undefined;
   }
+}
+
+/**
+ * Hands `schedule` consecutive audio-clock windows starting at `from`, each
+ * reaching a little past the current time, until the returned disposer runs.
+ * The main-thread timer only decides when events are queued, while the times
+ * they are queued at stay exact on the audio clock.
+ */
+export function startLookaheadScheduler({
+  context,
+  from,
+  schedule,
+}: {
+  context: BaseAudioContext;
+  from: number;
+  schedule: (window: ContextTimeWindow) => void;
+}): () => void {
+  let scheduledUntil = from;
+  const tick = () => {
+    const to = context.currentTime + SCHEDULE_AHEAD_SECONDS;
+    if (to <= scheduledUntil) {
+      return;
+    }
+    schedule({ from: scheduledUntil, to });
+    scheduledUntil = to;
+  };
+  tick();
+  return startInterval(tick, SCHEDULER_INTERVAL_MS);
 }
