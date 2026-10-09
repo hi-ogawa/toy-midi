@@ -80,7 +80,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [clipsNewestFirst, setClipsNewestFirst] =
     recorderPreferences.useValue("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = projectUiStore.useValue("mixerOpen");
-  const [isTunerOpen, setIsTunerOpen] = useState(false);
+  const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
   const [isInputPanelOpen, setIsInputPanelOpen] =
     projectUiStore.useValue("inputPanelOpen");
   const effects = useRecorderEffectsUi(projectUiStore);
