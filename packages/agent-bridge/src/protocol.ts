@@ -39,10 +39,16 @@ export interface PageRpc {
   executeTool(tool: { name: string }, input: unknown): Promise<AgentToolResult>;
 }
 
-/** Server-Sent Events the bridge streams to a page, by event name. */
+/** Names of the Server-Sent Events the bridge streams to a page. */
+export const PAGE_EVENTS = {
+  hello: "hello",
+  request: "request",
+} as const;
+
+/** Each page event's data, by event name. */
 export interface PageEvents {
-  hello: { pageId: string };
-  request: RpcRequest;
+  [PAGE_EVENTS.hello]: { pageId: string };
+  [PAGE_EVENTS.request]: RpcRequest;
 }
 
 /** The fields of a WebMCP `RegisteredTool` that the agent needs. */

@@ -18,6 +18,7 @@ import * as srvx from "srvx";
 import {
   AGENT_ENDPOINTS,
   PAGE_ENDPOINTS,
+  PAGE_EVENTS,
   type PageEvents,
   type PageInfo,
   type PageRpc,
@@ -166,7 +167,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
           clearTimeout(timer);
           resolve(result);
         });
-        page.send("request", { requestId, ...call });
+        page.send(PAGE_EVENTS.request, { requestId, ...call });
       });
     } finally {
       pending.delete(requestId);
@@ -196,7 +197,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
           PING_INTERVAL_MS,
         );
         pages.set(page.id, page);
-        page.send("hello", { pageId: page.id });
+        page.send(PAGE_EVENTS.hello, { pageId: page.id });
         console.log(
           `[agent-bridge] page ${page.id} connected from ${page.url ?? origin}`,
         );
