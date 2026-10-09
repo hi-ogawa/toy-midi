@@ -13,9 +13,8 @@
 //   agent-bridge pages
 
 import { randomUUID } from "node:crypto";
-import http from "node:http";
-import type { AddressInfo } from "node:net";
 import { parseArgs } from "node:util";
+import * as srvx from "srvx";
 import type { AgentBridgeRequest, AgentToolResult } from "./client.ts";
 
 const DEFAULT_PORT = 4747;
@@ -50,7 +49,7 @@ interface Page {
   origin: string;
   url?: string;
   connectedAt: string;
-  response: http.ServerResponse;
+  send: (event: string, data: unknown) => void;
 }
 
 type BridgeResult =
@@ -83,7 +82,7 @@ async function main() {
         process.exitCode = 1;
         return;
       }
-      serve({ port, origins: values.origin });
+      await serve({ port, origins: values.origin });
       break;
     }
     case "tools": {
@@ -141,20 +140,21 @@ async function main() {
   }
 }
 
-function serve({ port, origins }: { port: number; origins: string[] }) {
+async function serve({ port, origins }: { port: number; origins: string[] }) {
   const pages = new Map<string, Page>();
   const pending = new Map<string, (result: BridgeResult) => void>();
 
   // Sends a request to a page and waits for the result it posts back.
   async function forward(
-    response: http.ServerResponse,
     pageId: string | null,
     request: AgentBridgeRequest,
-  ) {
+  ): Promise<Response> {
     const page = pages.get(pageId ?? [...pages.keys()].at(-1) ?? "");
     if (!page) {
-      sendJson(response, 503, { ok: false, error: "no page connected" });
-      return;
+      return Response.json(
+        { ok: false, error: "no page connected" },
+        { status: 503 },
+      );
     }
     const requestId = randomUUID();
     const result = await new Promise<BridgeResult>((resolve) => {
@@ -170,85 +170,90 @@ function serve({ port, origins }: { port: number; origins: string[] }) {
         clearTimeout(timer);
         resolve(result);
       });
-      sendEvent(page.response, "request", { requestId, ...request });
+      page.send("request", { requestId, ...request });
     }).finally(() => pending.delete(requestId));
-    sendJson(response, result.ok ? 200 : 500, result);
+    return Response.json(result, { status: result.ok ? 200 : 500 });
   }
 
-  const server = http.createServer(async (request, response) => {
-    const url = new URL(request.url ?? "/", "http://localhost");
-    const origin = request.headers.origin;
-    const route = `${request.method} ${url.pathname}`;
-
-    // Requests from pages carry an Origin, and only listed origins may connect.
-    // Agent requests come from a shell, so any request with an Origin is
-    // rejected there, which keeps other sites from driving the page.
-    if (
-      route === "GET /connect" ||
-      route === "POST /result" ||
-      request.method === "OPTIONS"
-    ) {
-      if (!origin || !origins.includes(origin)) {
-        response.writeHead(403).end("origin not allowed\n");
-        return;
-      }
-      response.setHeader("access-control-allow-origin", origin);
-    } else if (origin) {
-      response
-        .writeHead(403)
-        .end("agent endpoints do not accept browser requests\n");
-      return;
-    }
-
-    switch (route) {
-      case "OPTIONS /connect":
-      case "OPTIONS /result": {
-        response.writeHead(204, {
-          "access-control-allow-methods": "GET, POST",
-          "access-control-allow-headers": "content-type",
-          "access-control-allow-private-network": "true",
-        });
-        response.end();
-        return;
-      }
-      case "GET /connect": {
-        const page: Page = {
-          id: randomUUID().slice(0, 8),
-          origin: origin!,
-          url: url.searchParams.get("url") ?? undefined,
-          connectedAt: new Date().toISOString(),
-          response,
-        };
-        pages.set(page.id, page);
-        response.writeHead(200, {
-          "content-type": "text/event-stream",
-          "cache-control": "no-cache",
-        });
-        sendEvent(response, "hello", { pageId: page.id });
-        const ping = setInterval(
-          () => response.write(": ping\n\n"),
+  function connect(url: URL, origin: string): Response {
+    let ping: ReturnType<typeof setInterval>;
+    const page: Page = {
+      id: randomUUID().slice(0, 8),
+      origin,
+      url: url.searchParams.get("url") ?? undefined,
+      connectedAt: new Date().toISOString(),
+      send: () => {},
+    };
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        page.send = (event, data) =>
+          controller.enqueue(
+            encoder.encode(
+              `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+            ),
+          );
+        ping = setInterval(
+          () => controller.enqueue(encoder.encode(": ping\n\n")),
           PING_INTERVAL_MS,
         );
-        request.on("close", () => {
-          clearInterval(ping);
-          pages.delete(page.id);
-          console.log(`[agent-bridge] page ${page.id} disconnected`);
-        });
+        pages.set(page.id, page);
+        page.send("hello", { pageId: page.id });
         console.log(
           `[agent-bridge] page ${page.id} connected from ${page.url ?? origin}`,
         );
-        return;
+      },
+      // The server cancels the body when the page's connection closes.
+      cancel() {
+        clearInterval(ping);
+        pages.delete(page.id);
+        console.log(`[agent-bridge] page ${page.id} disconnected`);
+      },
+    });
+    return new Response(body, {
+      headers: {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache",
+      },
+    });
+  }
+
+  async function handlePage(
+    request: Request,
+    url: URL,
+    origin: string,
+  ): Promise<Response> {
+    switch (`${request.method} ${url.pathname}`) {
+      case "OPTIONS /connect":
+      case "OPTIONS /result": {
+        return new Response(undefined, {
+          status: 204,
+          headers: {
+            "access-control-allow-methods": "GET, POST",
+            "access-control-allow-headers": "content-type",
+            "access-control-allow-private-network": "true",
+          },
+        });
+      }
+      case "GET /connect": {
+        return connect(url, origin);
       }
       case "POST /result": {
-        const { requestId, ...result } = JSON.parse(await readBody(request));
+        const { requestId, ...result } = await request.json();
         pending.get(requestId)?.(result);
-        response.writeHead(204).end();
-        return;
+        return new Response(undefined, { status: 204 });
       }
+      default: {
+        return new Response("not found\n", { status: 404 });
+      }
+    }
+  }
+
+  async function handleAgent(request: Request, url: URL): Promise<Response> {
+    const pageId = url.searchParams.get("page");
+    switch (`${request.method} ${url.pathname}`) {
       case "GET /pages": {
-        sendJson(
-          response,
-          200,
+        return Response.json(
           [...pages.values()].map(({ id, origin, url, connectedAt }) => ({
             id,
             origin,
@@ -256,35 +261,67 @@ function serve({ port, origins }: { port: number; origins: string[] }) {
             connectedAt,
           })),
         );
-        return;
       }
       case "GET /tools": {
-        await forward(response, url.searchParams.get("page"), {
-          method: "list",
-        });
-        return;
+        return forward(pageId, { method: "list" });
       }
       case "POST /call": {
-        const { name, input } = JSON.parse(await readBody(request));
-        await forward(response, url.searchParams.get("page"), {
-          method: "call",
-          name,
-          input,
-        });
-        return;
+        const { name, input } = await request.json();
+        return forward(pageId, { method: "call", name, input });
       }
       default: {
-        response.writeHead(404).end("not found\n");
+        return new Response("not found\n", { status: 404 });
       }
     }
-  });
+  }
 
-  server.listen(port, "127.0.0.1", () => {
-    // Report the bound port, which the OS picks for `--port 0`.
-    const { port: boundPort } = server.address() as AddressInfo;
-    console.log(`[agent-bridge] listening on http://localhost:${boundPort}`);
-    console.log(`[agent-bridge] accepting pages from ${origins.join(", ")}`);
+  const server = srvx.serve({
+    hostname: "127.0.0.1",
+    port,
+    silent: true,
+    fetch: async (request) => {
+      // Only answer requests addressed to the loopback host, so a site that
+      // rebinds its DNS to 127.0.0.1 cannot reach the bridge as same-origin.
+      if (!isLocalHost(request.headers.get("host"))) {
+        return new Response("host not allowed\n", { status: 403 });
+      }
+      const url = new URL(request.url);
+      const origin = request.headers.get("origin");
+      // Requests from pages carry an Origin, and only listed origins may
+      // connect. Agent requests come from a shell, so any request with an
+      // Origin is rejected there, which keeps other sites from driving the
+      // page.
+      if (
+        url.pathname === "/connect" ||
+        url.pathname === "/result" ||
+        request.method === "OPTIONS"
+      ) {
+        if (!origin || !origins.includes(origin)) {
+          return new Response("origin not allowed\n", { status: 403 });
+        }
+        const response = await handlePage(request, url, origin);
+        response.headers.set("access-control-allow-origin", origin);
+        return response;
+      }
+      if (origin) {
+        return new Response(
+          "agent endpoints do not accept browser requests\n",
+          {
+            status: 403,
+          },
+        );
+      }
+      return handleAgent(request, url);
+    },
   });
+  await server.ready();
+  console.log(`[agent-bridge] listening on ${server.url}`);
+  console.log(`[agent-bridge] accepting pages from ${origins.join(", ")}`);
+}
+
+function isLocalHost(host: string | null) {
+  const name = host?.replace(/:\d+$/, "");
+  return name === "localhost" || name === "127.0.0.1";
 }
 
 // Requests a page through the bridge and returns the result value. Failures
@@ -364,23 +401,6 @@ async function parseArgInputs(args: string[]) {
       value === "-" ? await readBody(process.stdin) : value;
   }
   return input;
-}
-
-function sendEvent(
-  response: http.ServerResponse,
-  event: string,
-  data: unknown,
-) {
-  response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-}
-
-function sendJson(
-  response: http.ServerResponse,
-  status: number,
-  data: unknown,
-) {
-  response.writeHead(status, { "content-type": "application/json" });
-  response.end(JSON.stringify(data));
 }
 
 async function readBody(stream: NodeJS.ReadableStream): Promise<string> {

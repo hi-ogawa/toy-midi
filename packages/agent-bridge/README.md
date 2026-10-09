@@ -45,7 +45,7 @@ Only pages from the listed origins can connect. The agent endpoints reject any r
 
 ## Contract
 
-The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use separate endpoints, and the `Origin` header tells them apart: page requests must carry a listed origin, and agent requests must carry none. Anything else gets 403.
+The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use separate endpoints, and the `Origin` header tells them apart: page requests must carry a listed origin, and agent requests must carry none. Anything else gets 403. Every request must also be addressed to `localhost` or `127.0.0.1` in its `Host` header, so a site that rebinds its DNS to the loopback address cannot reach the agent endpoints as same-origin.
 
 ### Calls
 

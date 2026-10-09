@@ -10,6 +10,7 @@
     "./client": "./src/client.ts"
   },
   "dependencies": {
+    "srvx": "^1.0.5",
     "tsx": "^4.23.13"
   }
 }
