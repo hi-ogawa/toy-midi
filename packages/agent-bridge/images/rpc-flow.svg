@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="470" viewBox="0 0 780 470" font-family="system-ui, sans-serif" font-size="13">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+  </defs>
+  <rect width="780" height="470" fill="#fff"/>
+
+  <!-- Participants -->
+  <rect x="40" y="16" width="150" height="46" rx="6" fill="#eef" stroke="#557"/>
+  <text x="115" y="36" text-anchor="middle" font-weight="bold">CLI</text>
+  <text x="115" y="53" text-anchor="middle" fill="#666" font-size="11">the agent's shell (cli.ts)</text>
+  <rect x="300" y="16" width="180" height="46" rx="6" fill="#efe" stroke="#575"/>
+  <text x="390" y="36" text-anchor="middle" font-weight="bold">bridge server</text>
+  <text x="390" y="53" text-anchor="middle" fill="#666" font-size="11">127.0.0.1:4747 (server.ts)</text>
+  <rect x="580" y="16" width="160" height="46" rx="6" fill="#ffe" stroke="#996"/>
+  <text x="660" y="36" text-anchor="middle" font-weight="bold">page</text>
+  <text x="660" y="53" text-anchor="middle" fill="#666" font-size="11">browser tab (client.ts)</text>
+
+  <!-- Lifelines -->
+  <line x1="115" y1="62" x2="115" y2="430" stroke="#bbb" stroke-dasharray="4 4"/>
+  <line x1="390" y1="62" x2="390" y2="430" stroke="#bbb" stroke-dasharray="4 4"/>
+  <line x1="660" y1="62" x2="660" y2="430" stroke="#bbb" stroke-dasharray="4 4"/>
+
+  <!-- 1. Page opens the stream once -->
+  <text x="525" y="94" text-anchor="middle">1. GET /connect?url=…</text>
+  <line x1="658" y1="102" x2="393" y2="102" stroke="#333" marker-end="url(#a)"/>
+  <text x="525" y="120" text-anchor="middle" fill="#666" font-size="11">once, on ?agent-bridge; the stream stays open</text>
+
+  <!-- 2. CLI posts the call -->
+  <text x="252" y="156" text-anchor="middle">2. POST /rpc?page=&lt;id&gt;</text>
+  <line x1="117" y1="164" x2="387" y2="164" stroke="#333" marker-end="url(#a)"/>
+  <text x="252" y="181" text-anchor="middle" fill="#666" font-size="11">{ method, args }</text>
+
+  <!-- Bridge holds the /rpc response -->
+  <rect x="385" y="164" width="10" height="214" fill="#cfc" stroke="#575"/>
+
+  <!-- 3. Bridge streams the request -->
+  <text x="525" y="198" text-anchor="middle">3. SSE event "request"</text>
+  <line x1="397" y1="206" x2="657" y2="206" stroke="#333" marker-end="url(#a)"/>
+  <text x="525" y="223" text-anchor="middle" fill="#666" font-size="11">{ requestId, method, args }</text>
+
+  <!-- 4. Page runs the method -->
+  <rect x="560" y="238" width="200" height="40" rx="5" fill="#fff" stroke="#996"/>
+  <text x="660" y="255" text-anchor="middle">4. rpc[method](...args)</text>
+  <text x="660" y="270" text-anchor="middle" fill="#666" font-size="11">getTools() or executeTool(…)</text>
+
+  <!-- 5. Page posts the result -->
+  <text x="525" y="306" text-anchor="middle">5. POST /result</text>
+  <line x1="658" y1="314" x2="397" y2="314" stroke="#333" marker-end="url(#a)"/>
+  <text x="525" y="331" text-anchor="middle" fill="#666" font-size="11">{ requestId, ok, value | error }</text>
+
+  <!-- Pairing note on the bridge -->
+  <text x="252" y="262" text-anchor="middle" fill="#575" font-size="11">waits for the result with</text>
+  <text x="252" y="277" text-anchor="middle" fill="#575" font-size="11">the same requestId,</text>
+  <text x="252" y="292" text-anchor="middle" fill="#575" font-size="11">or fails after 30 s</text>
+
+  <!-- 6. Bridge answers the CLI -->
+  <text x="252" y="370" text-anchor="middle">6. response to step 2</text>
+  <line x1="387" y1="378" x2="117" y2="378" stroke="#333" marker-end="url(#a)"/>
+  <text x="252" y="395" text-anchor="middle" fill="#666" font-size="11">200 { ok: true, value } or 500 { ok: false, error }</text>
+
+  <!-- Hops -->
+  <text x="252" y="456" text-anchor="middle" fill="#557" font-weight="bold" font-size="12">hop 1: one HTTP request and response</text>
+  <text x="525" y="456" text-anchor="middle" fill="#996" font-weight="bold" font-size="12">hop 2: SSE out, POST back</text>
+</svg>
