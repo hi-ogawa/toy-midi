@@ -22,8 +22,8 @@ export default defineConfig({
   },
   pack: [
     {
-      entry: { "agent-api": "src/lib/agent-api.ts" },
-      outDir: ".tmp/agent-api",
+      entry: { "webmcp-tools-doc": "src/lib/webmcp-tools-doc.ts" },
+      outDir: ".tmp/webmcp-tools-doc",
       platform: "browser",
       dts: { emitDtsOnly: true, compilerOptions: { stripInternal: true } },
       report: false,
