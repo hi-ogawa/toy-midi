@@ -68,6 +68,7 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  useAgentBridge(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =
     recorderPreferences.useValue("defaultMidiProgram");
@@ -105,7 +106,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime, projectUiStore });
-  useAgentBridge(runtime);
   const flags = deriveRecorderFlags({ state, project });
   const recorderInteraction = useRecorderInteraction({
     runtime,
