@@ -69,8 +69,6 @@ interface Page extends PageInfo {
   send: <K extends keyof PageEvents>(event: K, data: PageEvents[K]) => void;
 }
 
-await main();
-
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -447,3 +445,10 @@ async function readBody(stream: NodeJS.ReadableStream): Promise<string> {
   }
   return Buffer.concat(chunks).toString("utf8");
 }
+
+main().catch((error: unknown) => {
+  // Errors carry user-facing messages, such as malformed input, so skip
+  // stack traces.
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});
