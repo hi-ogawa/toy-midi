@@ -1,19 +1,24 @@
 /**
  * A tool in the WebMCP shape, so the same object can be registered with
- * `document.modelContext`. `execute` receives the input object, and its
- * resolved value must be JSON-serializable.
- *
- * WebMCP hides a thrown error's message from the agent, so a tool reports a
- * failure the agent can act on by returning `{ isError: true, error }`, as
- * with `isError` in MCP tool results. The CLI prints `error` and exits with
- * code 1 for such a result.
+ * `document.modelContext`. `execute` receives the input object and resolves
+ * to a JSON-serializable `AgentToolResult`.
  */
 export interface AgentTool {
   name: string;
   description: string;
   inputSchema: object;
-  execute: (input: any) => unknown;
+  execute: (input: any) => AgentToolResult | Promise<AgentToolResult>;
 }
+
+/**
+ * WebMCP hides a thrown error's message from the agent, so a tool reports a
+ * failure the agent can act on in its result, as with `isError` in MCP tool
+ * results. The CLI prints `value` on success, and prints `error` and exits
+ * with code 1 on failure.
+ */
+export type AgentToolResult =
+  | { isError: false; value?: unknown }
+  | { isError: true; error: string };
 
 /** A request the bridge streams to the page, to list or call its tools. */
 export type AgentBridgeRequest =

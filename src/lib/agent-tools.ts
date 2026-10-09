@@ -32,9 +32,7 @@ export function createAgentTools(runtime: RecorderRuntime): AgentTool[] {
         // non-JSON value becomes an error the agent can read.
         try {
           const value = await new AsyncFunction("runtime", code)(runtime);
-          return value === undefined
-            ? undefined
-            : JSON.parse(JSON.stringify(value));
+          return JSON.parse(JSON.stringify({ isError: false, value }));
         } catch (error) {
           return {
             isError: true,

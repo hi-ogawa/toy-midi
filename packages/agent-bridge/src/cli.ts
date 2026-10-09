@@ -15,7 +15,7 @@
 import { randomUUID } from "node:crypto";
 import http from "node:http";
 import { parseArgs } from "node:util";
-import type { AgentBridgeRequest } from "./client.ts";
+import type { AgentBridgeRequest, AgentToolResult } from "./client.ts";
 
 const DEFAULT_PORT = 4747;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -28,7 +28,7 @@ commands:
   serve               run the bridge
   tools               describe the connected page's tools
   call <tool> [json]  call a tool with the JSON input, default {}.
-                      A string result is printed as is, and anything else
+                      A string value is printed as is, and anything else
                       as JSON.
   pages               list connected pages
 
@@ -106,19 +106,22 @@ async function main() {
         ...(json ? JSON.parse(json) : {}),
         ...(await parseArgInputs(values.arg ?? [])),
       };
-      const value = await requestPage({
+      const result = (await requestPage({
         port,
         page: values.page,
         path: "/call",
         init: { method: "POST", body: JSON.stringify({ name, input }) },
-      });
-      if (isToolError(value)) {
-        console.error(value.error);
+      })) as AgentToolResult | undefined;
+      if (!result) {
+        return;
+      }
+      if (result.isError) {
+        console.error(result.error);
         process.exitCode = 1;
-      } else if (typeof value === "string") {
-        console.log(value);
-      } else if (value !== undefined) {
-        console.log(JSON.stringify(value, null, 2));
+      } else if (typeof result.value === "string") {
+        console.log(result.value);
+      } else if (result.value !== undefined) {
+        console.log(JSON.stringify(result.value, null, 2));
       }
       break;
     }
@@ -327,15 +330,6 @@ async function requestBridge({
     );
     process.exitCode = 1;
   }
-}
-
-function isToolError(value: unknown): value is { error: string } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "isError" in value &&
-    value.isError === true
-  );
 }
 
 interface ToolInfo {
