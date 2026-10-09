@@ -35,13 +35,11 @@ export const PAGE_ENDPOINTS = {
 
 /** Names of the Server-Sent Events the bridge streams to a page. */
 export const PAGE_EVENTS = {
-  hello: "hello",
   request: "request",
 } as const;
 
 /** Each page event's data, by event name. */
 export interface PageEvents {
-  [PAGE_EVENTS.hello]: { pageId: string };
   [PAGE_EVENTS.request]: RpcRequest;
 }
 

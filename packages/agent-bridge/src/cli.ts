@@ -78,9 +78,7 @@ async function main() {
   switch (command) {
     case "serve": {
       if (!values.origin) {
-        console.error("serve requires at least one --origin");
-        process.exitCode = 1;
-        return;
+        throw new Error("serve requires at least one --origin");
       }
       await serve({ port, origins: values.origin });
       break;
@@ -93,9 +91,7 @@ async function main() {
     case "execute-tool": {
       const [name, json] = rest;
       if (!name) {
-        console.error(USAGE);
-        process.exitCode = 1;
-        return;
+        throw new Error(USAGE);
       }
       const input = {
         ...(json ? JSON.parse(json) : {}),
@@ -122,8 +118,7 @@ async function main() {
       break;
     }
     default: {
-      console.error(USAGE);
-      process.exitCode = 1;
+      throw new Error(USAGE);
     }
   }
 }
@@ -135,10 +130,10 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
   // Forwards a `PageRpc` call to the chosen page, by default the most
   // recently connected one, and responds with the result it posts back.
   async function callPage(
-    pageId: string | null,
+    pageId: string | undefined,
     call: RpcCall,
   ): Promise<Response> {
-    const page = pages.get(pageId ?? [...pages.keys()].at(-1) ?? "");
+    const page = pageId ? pages.get(pageId) : [...pages.values()].at(-1);
     if (!page) {
       return Response.json(
         { ok: false, error: "no page connected" } satisfies RpcResult,
@@ -192,12 +187,14 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
               `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
             ),
           );
+        // The response headers go out with the first bytes, so write a
+        // comment for the page's EventSource to open right away.
+        controller.enqueue(encoder.encode(": connected\n\n"));
         ping = setInterval(
           () => controller.enqueue(encoder.encode(": ping\n\n")),
           PING_INTERVAL_MS,
         );
         pages.set(page.id, page);
-        page.send(PAGE_EVENTS.hello, { pageId: page.id });
         console.log(
           `[agent-bridge] page ${page.id} connected from ${page.url ?? origin}`,
         );
@@ -223,17 +220,6 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
     origin: string,
   ): Promise<Response> {
     switch (`${request.method} ${url.pathname}`) {
-      case `OPTIONS ${PAGE_ENDPOINTS.connect}`:
-      case `OPTIONS ${PAGE_ENDPOINTS.result}`: {
-        return new Response(undefined, {
-          status: 204,
-          headers: {
-            "access-control-allow-methods": "GET, POST",
-            "access-control-allow-headers": "content-type",
-            "access-control-allow-private-network": "true",
-          },
-        });
-      }
       case `GET ${PAGE_ENDPOINTS.connect}`: {
         return connect(url, origin);
       }
@@ -249,7 +235,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
   }
 
   async function handleAgent(request: Request, url: URL): Promise<Response> {
-    const pageId = url.searchParams.get("page");
+    const pageId = url.searchParams.get("page") ?? undefined;
     switch (`${request.method} ${url.pathname}`) {
       case `GET ${AGENT_ENDPOINTS.pages}`: {
         return Response.json(
@@ -290,8 +276,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
       // page.
       if (
         url.pathname === PAGE_ENDPOINTS.connect ||
-        url.pathname === PAGE_ENDPOINTS.result ||
-        request.method === "OPTIONS"
+        url.pathname === PAGE_ENDPOINTS.result
       ) {
         if (!origin || !origins.includes(origin)) {
           return new Response("origin not allowed\n", { status: 403 });
@@ -396,15 +381,14 @@ async function parseArgInputs(args: string[]) {
       throw new Error(`--arg expects key=value, got ${arg}`);
     }
     const value = arg.slice(separator + 1);
-    input[arg.slice(0, separator)] =
-      value === "-" ? await readBody(process.stdin) : value;
+    input[arg.slice(0, separator)] = value === "-" ? await readStdin() : value;
   }
   return input;
 }
 
-async function readBody(stream: NodeJS.ReadableStream): Promise<string> {
+async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
-  for await (const chunk of stream) {
+  for await (const chunk of process.stdin) {
     chunks.push(Buffer.from(chunk));
   }
   return Buffer.concat(chunks).toString("utf8");
