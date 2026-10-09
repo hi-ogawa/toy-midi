@@ -2,11 +2,13 @@
 
 `agent-bridge` lets a local agent with a shell, such as Claude Code, run JavaScript in an open web app and read the result. The app has no server of its own, so the page connects to a small local process, and the agent talks to that process from the command line.
 
-Each toy-midi commit publishes the package to [pkg.pr.new](https://pkg.pr.new), so other apps can depend on it and the CLI can be installed globally:
+Install the CLI globally from GitHub:
 
 ```sh
-pnpm i -g https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/agent-bridge@<sha>
+pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/agent-bridge"
 ```
+
+Other apps depend on the page client the same way, pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/agent-bridge`. The package ships TypeScript source, so the app's bundler compiles it.
 
 ```sh
 agent-bridge serve --origin https://toy-midi.hiro18181.workers.dev
