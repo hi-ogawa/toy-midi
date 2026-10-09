@@ -62,14 +62,7 @@ export class AudioContextTransport {
     if (this.store.get().isPlaying) {
       return;
     }
-    const currentPosition = this.store.get().position;
-    // Allow preroll before loop-in and starts within the loop, but a playhead at
-    // or after loop-out begins again from loop-in.
-    const position =
-      this.loopRange && currentPosition >= this.loopRange.end
-        ? this.loopRange.start
-        : currentPosition;
-    this.startParticipants(position);
+    this.startParticipants(this.constrainToLoop(this.store.get().position));
     this.startTicking();
   }
 
@@ -93,7 +86,7 @@ export class AudioContextTransport {
     if (wasPlaying) {
       this.pause();
     }
-    const nextPosition = Math.max(0, position);
+    const nextPosition = this.constrainToLoop(Math.max(0, position));
     this.store.update({ position: nextPosition });
     if (wasPlaying) {
       this.play();
@@ -102,13 +95,21 @@ export class AudioContextTransport {
 
   setLoopRange(loopRange?: LoopRange): void {
     this.loopRange = loopRange;
-    if (
-      loopRange &&
-      this.store.get().isPlaying &&
-      this.getPublishedPlaybackPosition() >= loopRange.end
-    ) {
-      this.restartParticipants(loopRange.start);
+    if (this.store.get().isPlaying) {
+      const position = this.getPublishedPlaybackPosition();
+      const nextPosition = this.constrainToLoop(position);
+      if (nextPosition !== position) {
+        this.restartParticipants(nextPosition);
+      }
     }
+  }
+
+  /** Treat the enabled loop as the playback range, including seeks while paused. */
+  private constrainToLoop(position: number): number {
+    const range = this.loopRange;
+    return range && (position < range.start || position >= range.end)
+      ? range.start
+      : position;
   }
 
   /** Changes timeline speed and re-anchors active participants at that rate. */
