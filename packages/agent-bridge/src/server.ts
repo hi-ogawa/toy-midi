@@ -9,7 +9,9 @@ import { randomUUID } from "node:crypto";
 import * as srvx from "srvx";
 import {
   AGENT_ENDPOINTS,
+  AGENT_PREFIX,
   PAGE_ENDPOINTS,
+  PAGE_PREFIX,
   PAGE_EVENTS,
   type PageEvents,
   type PageInfo,
@@ -58,10 +60,7 @@ export class BridgeServer {
     // connect. Agent requests come from a shell, so any request with an
     // Origin is rejected there, which keeps other sites from driving the
     // page.
-    if (
-      url.pathname === PAGE_ENDPOINTS.connect ||
-      url.pathname === PAGE_ENDPOINTS.result
-    ) {
+    if (url.pathname.startsWith(PAGE_PREFIX)) {
       if (!origin || !this.origins.includes(origin)) {
         return new Response("origin not allowed\n", { status: 403 });
       }
@@ -69,12 +68,16 @@ export class BridgeServer {
       response.headers.set("access-control-allow-origin", origin);
       return response;
     }
-    if (origin) {
-      return new Response("agent endpoints do not accept browser requests\n", {
-        status: 403,
-      });
+    if (url.pathname.startsWith(AGENT_PREFIX)) {
+      if (origin) {
+        return new Response(
+          "agent endpoints do not accept browser requests\n",
+          { status: 403 },
+        );
+      }
+      return this.handleAgent(request, url);
     }
-    return this.handleAgent(request, url);
+    return new Response("not found\n", { status: 404 });
   }
 
   private async handlePage(

@@ -24,13 +24,16 @@ export type ToolInfo = Pick<AgentTool, "name" | "description" | "inputSchema">;
 // Page side: the bridge calls `PageRpc` methods on a page over these
 // endpoints and events.
 
+/** Path prefix of every endpoint pages request. */
+export const PAGE_PREFIX = "/page/";
+
 /**
  * Endpoints pages request. `GET connect?url=<page href>` streams
  * `PageEvents`, and `POST result` takes an `RpcResponse`.
  */
 export const PAGE_ENDPOINTS = {
-  connect: "/connect",
-  result: "/result",
+  connect: `${PAGE_PREFIX}connect`,
+  result: `${PAGE_PREFIX}result`,
 } as const;
 
 /** Names of the Server-Sent Events the bridge streams to a page. */
@@ -45,14 +48,17 @@ export interface PageEvents {
 
 // Agent side: the CLI commands reach pages through these endpoints.
 
+/** Path prefix of every endpoint the CLI requests. */
+export const AGENT_PREFIX = "/agent/";
+
 /**
  * Endpoints the CLI requests. `POST rpc?page=<id>` takes an `RpcCall` and
  * forwards it to the page as is, so the bridge needs no endpoint per method.
  * `GET pages` returns `PageInfo[]`.
  */
 export const AGENT_ENDPOINTS = {
-  rpc: "/rpc",
-  pages: "/pages",
+  rpc: `${AGENT_PREFIX}rpc`,
+  pages: `${AGENT_PREFIX}pages`,
 } as const;
 
 /** A connected page, as `GET pages` lists it. */

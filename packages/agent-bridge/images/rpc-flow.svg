@@ -21,16 +21,16 @@
   <line x1="660" y1="62" x2="660" y2="430" stroke="#bbb" stroke-dasharray="4 4"/>
 
   <!-- 1. Page opens the stream once -->
-  <text x="525" y="94" text-anchor="middle">1. GET /connect?url=…</text>
+  <text x="525" y="94" text-anchor="middle">1. GET /page/connect?url=…</text>
   <line x1="658" y1="102" x2="393" y2="102" stroke="#333" marker-end="url(#a)"/>
   <text x="525" y="120" text-anchor="middle" fill="#666" font-size="11">once, when the app connects; it stays open</text>
 
   <!-- 2. CLI posts the call -->
-  <text x="252" y="156" text-anchor="middle">2. POST /rpc?page=&lt;id&gt;</text>
+  <text x="252" y="156" text-anchor="middle">2. POST /agent/rpc?page=&lt;id&gt;</text>
   <line x1="117" y1="164" x2="387" y2="164" stroke="#333" marker-end="url(#a)"/>
   <text x="252" y="181" text-anchor="middle" fill="#666" font-size="11">which operation, with which input</text>
 
-  <!-- Bridge holds the /rpc response -->
+  <!-- Bridge holds the /agent/rpc response -->
   <rect x="385" y="164" width="10" height="214" fill="#cfc" stroke="#575"/>
 
   <!-- 3. Bridge streams the request -->
@@ -44,7 +44,7 @@
   <text x="660" y="270" text-anchor="middle" fill="#666" font-size="11">or list the tools</text>
 
   <!-- 5. Page posts the result -->
-  <text x="525" y="306" text-anchor="middle">5. POST /result</text>
+  <text x="525" y="306" text-anchor="middle">5. POST /page/result</text>
   <line x1="658" y1="314" x2="397" y2="314" stroke="#333" marker-end="url(#a)"/>
   <text x="525" y="331" text-anchor="middle" fill="#666" font-size="11">the result, with the same id</text>
 
