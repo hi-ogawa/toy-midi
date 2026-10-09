@@ -1,8 +1,8 @@
-// Page client for the local agent bridge in cli.ts. The page exposes tools in
-// the WebMCP shape, and the bridge streams requests to list or call them over
-// Server-Sent Events. Each result, or the error a tool throws, is posted back
-// as JSON.
-
+/**
+ * A tool in the WebMCP shape, so the same object can be registered with
+ * `document.modelContext`. `execute` receives the input object, and its
+ * resolved value must be JSON-serializable.
+ */
 export interface AgentTool {
   name: string;
   description: string;
@@ -10,10 +10,17 @@ export interface AgentTool {
   execute: (input: any) => unknown;
 }
 
+/** A request the bridge streams to the page, to list or call its tools. */
 export type AgentBridgeRequest =
   | { method: "list" }
   | { method: "call"; name: string; input: unknown };
 
+/**
+ * Connects the page to the local agent bridge in cli.ts and exposes `tools`
+ * to the agent. The bridge streams requests over Server-Sent Events, and each
+ * result, or the error a tool throws, is posted back as JSON. Returns a
+ * function that disconnects.
+ */
 export function connectAgentBridge({
   bridgeUrl,
   tools,
