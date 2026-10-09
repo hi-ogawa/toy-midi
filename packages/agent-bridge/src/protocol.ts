@@ -4,9 +4,27 @@
 
 import type { AgentToolResult } from "./client.ts";
 
-// Page side: the bridge calls `PageRpc` methods on a page. `GET /connect`
-// streams `PageEvents`, and the page answers each request with
-// `POST /result`.
+/**
+ * Endpoints pages request. `GET connect?url=<page href>` streams
+ * `PageEvents`, and `POST result` takes a `PageResult`.
+ */
+export const PAGE_ENDPOINTS = {
+  connect: "/connect",
+  result: "/result",
+} as const;
+
+/**
+ * Endpoints the CLI requests. `tools` and `call` take `?page=<id>` to choose
+ * the page.
+ */
+export const AGENT_ENDPOINTS = {
+  tools: "/tools",
+  call: "/call",
+  pages: "/pages",
+} as const;
+
+// Page side: the bridge calls `PageRpc` methods on a page over the
+// `PAGE_ENDPOINTS`.
 
 /**
  * Methods a page serves to the bridge, named after WebMCP's `ModelContext`.

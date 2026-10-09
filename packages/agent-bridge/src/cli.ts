@@ -15,17 +15,19 @@
 import { randomUUID } from "node:crypto";
 import { parseArgs } from "node:util";
 import * as srvx from "srvx";
-import type {
-  BridgeResult,
-  CallRequest,
-  CallResponse,
-  PageEvents,
-  PageInfo,
-  PageResult,
-  PageRpc,
-  PageRpcResult,
-  ToolInfo,
-  ToolsResponse,
+import {
+  AGENT_ENDPOINTS,
+  PAGE_ENDPOINTS,
+  type BridgeResult,
+  type CallRequest,
+  type CallResponse,
+  type PageEvents,
+  type PageInfo,
+  type PageResult,
+  type PageRpc,
+  type PageRpcResult,
+  type ToolInfo,
+  type ToolsResponse,
 } from "./protocol.ts";
 
 const DEFAULT_PORT = 4747;
@@ -99,7 +101,7 @@ async function main() {
       const tools = await requestPage<ToolsResponse>({
         port,
         page: values.page,
-        path: "/tools",
+        path: AGENT_ENDPOINTS.tools,
       });
       if (tools) {
         console.log(formatTools(tools));
@@ -120,7 +122,7 @@ async function main() {
       const result = await requestPage<CallResponse>({
         port,
         page: values.page,
-        path: "/call",
+        path: AGENT_ENDPOINTS.call,
         init: {
           method: "POST",
           body: JSON.stringify({ name, input } satisfies CallRequest),
@@ -140,7 +142,10 @@ async function main() {
       break;
     }
     case "pages": {
-      const response = await requestBridge({ port, path: "/pages" });
+      const response = await requestBridge({
+        port,
+        path: AGENT_ENDPOINTS.pages,
+      });
       if (response) {
         const pages = (await response.json()) as PageInfo[];
         console.log(JSON.stringify(pages, null, 2));
@@ -259,8 +264,8 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
     origin: string,
   ): Promise<Response> {
     switch (`${request.method} ${url.pathname}`) {
-      case "OPTIONS /connect":
-      case "OPTIONS /result": {
+      case `OPTIONS ${PAGE_ENDPOINTS.connect}`:
+      case `OPTIONS ${PAGE_ENDPOINTS.result}`: {
         return new Response(undefined, {
           status: 204,
           headers: {
@@ -270,10 +275,10 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
           },
         });
       }
-      case "GET /connect": {
+      case `GET ${PAGE_ENDPOINTS.connect}`: {
         return connect(url, origin);
       }
-      case "POST /result": {
+      case `POST ${PAGE_ENDPOINTS.result}`: {
         const { requestId, ...result } = (await request.json()) as PageResult;
         pending.get(requestId)?.(result);
         return new Response(undefined, { status: 204 });
@@ -287,7 +292,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
   async function handleAgent(request: Request, url: URL): Promise<Response> {
     const pageId = url.searchParams.get("page");
     switch (`${request.method} ${url.pathname}`) {
-      case "GET /pages": {
+      case `GET ${AGENT_ENDPOINTS.pages}`: {
         return Response.json(
           [...pages.values()].map(
             ({ id, origin, url, connectedAt }): PageInfo => ({
@@ -299,10 +304,10 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
           ),
         );
       }
-      case "GET /tools": {
+      case `GET ${AGENT_ENDPOINTS.tools}`: {
         return callPage(pageId, (rpc) => rpc.getTools());
       }
-      case "POST /call": {
+      case `POST ${AGENT_ENDPOINTS.call}`: {
         const { name, input } = (await request.json()) as CallRequest;
         return callPage(pageId, (rpc) => rpc.executeTool({ name }, input));
       }
@@ -329,8 +334,8 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
       // Origin is rejected there, which keeps other sites from driving the
       // page.
       if (
-        url.pathname === "/connect" ||
-        url.pathname === "/result" ||
+        url.pathname === PAGE_ENDPOINTS.connect ||
+        url.pathname === PAGE_ENDPOINTS.result ||
         request.method === "OPTIONS"
       ) {
         if (!origin || !origins.includes(origin)) {
