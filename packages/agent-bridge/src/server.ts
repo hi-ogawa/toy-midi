@@ -19,86 +19,85 @@ import type { RpcCall, RpcResponse, RpcResult } from "./rpc.ts";
 const REQUEST_TIMEOUT_MS = 30_000;
 const PING_INTERVAL_MS = 15_000;
 
-export async function serveBridge({
-  port,
-  origins,
-}: {
-  port: number;
-  origins: string[];
-}) {
-  const pages = new Map<string, PageConnection>();
-  const pending = new Map<string, (result: RpcResult) => void>();
+/**
+ * The bridge server. It keeps one event stream per connected page, and relays
+ * each agent call to a page and the page's result back to the agent.
+ */
+export class BridgeServer {
+  private readonly origins: string[];
+  private readonly pages = new Map<string, PageConnection>();
+  private readonly pending = new Map<string, (result: RpcResult) => void>();
 
-  // Forwards a `PageRpc` call to the chosen page, and responds with the
-  // result it posts back.
-  async function callPage(
-    pageId: string | undefined,
-    call: RpcCall,
-  ): Promise<Response> {
-    const choice = choosePage(pageId);
-    if ("error" in choice) {
-      return Response.json(
-        { ok: false, error: choice.error } satisfies RpcResult,
-        { status: choice.status },
-      );
-    }
-    const result = await sendRequest(choice.page, call);
-    return Response.json(result, { status: result.ok ? 200 : 500 });
+  constructor({ origins }: { origins: string[] }) {
+    this.origins = origins;
   }
 
-  // Picks the page with `pageId`, or the only connected page when no id is
-  // given, so a call never goes to one of several pages by guess.
-  function choosePage(
-    pageId: string | undefined,
-  ): { page: PageConnection } | { error: string; status: number } {
-    if (pageId) {
-      const page = pages.get(pageId);
-      return page
-        ? { page }
-        : { error: `no page ${pageId} connected`, status: 404 };
-    }
-    if (pages.size === 0) {
-      return { error: "no page connected", status: 503 };
-    }
-    if (pages.size > 1) {
-      return {
-        error: `${pages.size} pages connected, choose one with --page <id>: ${[...pages.keys()].join(", ")}`,
-        status: 409,
-      };
-    }
-    const [page] = pages.values();
-    return { page: page! };
+  async listen(port: number) {
+    const server = srvx.serve({
+      hostname: "127.0.0.1",
+      port,
+      silent: true,
+      fetch: (request) => this.handle(request),
+    });
+    await server.ready();
+    console.log(`[agent-bridge] listening on ${server.url}`);
+    console.log(
+      `[agent-bridge] accepting pages from ${this.origins.join(", ")}`,
+    );
   }
 
-  // Sends a call over the page's event stream, and resolves once the page
-  // posts its result back, or fails after a timeout.
-  async function sendRequest(
-    page: PageConnection,
-    call: RpcCall,
-  ): Promise<RpcResult> {
-    const requestId = randomUUID();
-    try {
-      return await new Promise((resolve) => {
-        const timer = setTimeout(
-          () =>
-            resolve({
-              ok: false,
-              error: `timed out after ${REQUEST_TIMEOUT_MS} ms`,
-            }),
-          REQUEST_TIMEOUT_MS,
-        );
-        pending.set(requestId, (result) => {
-          clearTimeout(timer);
-          resolve(result);
-        });
-        page.send(PAGE_EVENTS.request, { requestId, ...call });
+  async handle(request: Request): Promise<Response> {
+    // Only answer requests addressed to the loopback host, so a site that
+    // rebinds its DNS to 127.0.0.1 cannot reach the bridge as same-origin.
+    if (!isLocalHost(request.headers.get("host"))) {
+      return new Response("host not allowed\n", { status: 403 });
+    }
+    const url = new URL(request.url);
+    const origin = request.headers.get("origin");
+    // Requests from pages carry an Origin, and only listed origins may
+    // connect. Agent requests come from a shell, so any request with an
+    // Origin is rejected there, which keeps other sites from driving the
+    // page.
+    if (
+      url.pathname === PAGE_ENDPOINTS.connect ||
+      url.pathname === PAGE_ENDPOINTS.result
+    ) {
+      if (!origin || !this.origins.includes(origin)) {
+        return new Response("origin not allowed\n", { status: 403 });
+      }
+      const response = await this.handlePage(request, url, origin);
+      response.headers.set("access-control-allow-origin", origin);
+      return response;
+    }
+    if (origin) {
+      return new Response("agent endpoints do not accept browser requests\n", {
+        status: 403,
       });
-    } finally {
-      pending.delete(requestId);
+    }
+    return this.handleAgent(request, url);
+  }
+
+  private async handlePage(
+    request: Request,
+    url: URL,
+    origin: string,
+  ): Promise<Response> {
+    switch (`${request.method} ${url.pathname}`) {
+      case `GET ${PAGE_ENDPOINTS.connect}`: {
+        return this.connect(url, origin);
+      }
+      case `POST ${PAGE_ENDPOINTS.result}`: {
+        const { requestId, ...result } = (await request.json()) as RpcResponse;
+        this.pending.get(requestId)?.(result);
+        return new Response(undefined, { status: 204 });
+      }
+      default: {
+        return new Response("not found\n", { status: 404 });
+      }
     }
   }
 
-  function connect(url: URL, origin: string): Response {
+  private connect(url: URL, origin: string): Response {
     let ping: ReturnType<typeof setInterval>;
     const page: PageConnection = {
       id: randomUUID().slice(0, 8),
@@ -108,7 +107,7 @@ export async function serveBridge({
       send: () => {},
     };
     const body = new ReadableStream<Uint8Array>({
-      start(controller) {
+      start: (controller) => {
         const encoder = new TextEncoder();
         page.send = (event, data) =>
           controller.enqueue(
@@ -123,15 +122,15 @@ export async function serveBridge({
           () => controller.enqueue(encoder.encode(": ping\n\n")),
           PING_INTERVAL_MS,
         );
-        pages.set(page.id, page);
+        this.pages.set(page.id, page);
         console.log(
           `[agent-bridge] page ${page.id} connected from ${page.url ?? origin}`,
         );
       },
       // The server cancels the body when the page's connection closes.
-      cancel() {
+      cancel: () => {
         clearInterval(ping);
-        pages.delete(page.id);
+        this.pages.delete(page.id);
         console.log(`[agent-bridge] page ${page.id} disconnected`);
       },
     });
@@ -143,32 +142,11 @@ export async function serveBridge({
     });
   }
 
-  async function handlePage(
-    request: Request,
-    url: URL,
-    origin: string,
-  ): Promise<Response> {
-    switch (`${request.method} ${url.pathname}`) {
-      case `GET ${PAGE_ENDPOINTS.connect}`: {
-        return connect(url, origin);
-      }
-      case `POST ${PAGE_ENDPOINTS.result}`: {
-        const { requestId, ...result } = (await request.json()) as RpcResponse;
-        pending.get(requestId)?.(result);
-        return new Response(undefined, { status: 204 });
-      }
-      default: {
-        return new Response("not found\n", { status: 404 });
-      }
-    }
-  }
-
-  async function handleAgent(request: Request, url: URL): Promise<Response> {
-    const pageId = url.searchParams.get("page") ?? undefined;
+  private async handleAgent(request: Request, url: URL): Promise<Response> {
     switch (`${request.method} ${url.pathname}`) {
       case `GET ${AGENT_ENDPOINTS.pages}`: {
         return Response.json(
-          [...pages.values()].map(
+          [...this.pages.values()].map(
             ({ id, origin, url, connectedAt }): PageInfo => ({
               id,
               origin,
@@ -179,7 +157,10 @@ export async function serveBridge({
         );
       }
       case `POST ${AGENT_ENDPOINTS.rpc}`: {
-        return callPage(pageId, (await request.json()) as RpcCall);
+        return this.callPage(
+          url.searchParams.get("page") ?? undefined,
+          (await request.json()) as RpcCall,
+        );
       }
       default: {
         return new Response("not found\n", { status: 404 });
@@ -187,47 +168,74 @@ export async function serveBridge({
     }
   }
 
-  const server = srvx.serve({
-    hostname: "127.0.0.1",
-    port,
-    silent: true,
-    fetch: async (request) => {
-      // Only answer requests addressed to the loopback host, so a site that
-      // rebinds its DNS to 127.0.0.1 cannot reach the bridge as same-origin.
-      if (!isLocalHost(request.headers.get("host"))) {
-        return new Response("host not allowed\n", { status: 403 });
-      }
-      const url = new URL(request.url);
-      const origin = request.headers.get("origin");
-      // Requests from pages carry an Origin, and only listed origins may
-      // connect. Agent requests come from a shell, so any request with an
-      // Origin is rejected there, which keeps other sites from driving the
-      // page.
-      if (
-        url.pathname === PAGE_ENDPOINTS.connect ||
-        url.pathname === PAGE_ENDPOINTS.result
-      ) {
-        if (!origin || !origins.includes(origin)) {
-          return new Response("origin not allowed\n", { status: 403 });
-        }
-        const response = await handlePage(request, url, origin);
-        response.headers.set("access-control-allow-origin", origin);
-        return response;
-      }
-      if (origin) {
-        return new Response(
-          "agent endpoints do not accept browser requests\n",
-          {
-            status: 403,
-          },
+  // Forwards a `PageRpc` call to the chosen page, and responds with the
+  // result it posts back.
+  private async callPage(
+    pageId: string | undefined,
+    call: RpcCall,
+  ): Promise<Response> {
+    const choice = this.choosePage(pageId);
+    if ("error" in choice) {
+      return Response.json(
+        { ok: false, error: choice.error } satisfies RpcResult,
+        { status: choice.status },
+      );
+    }
+    const result = await this.sendRequest(choice.page, call);
+    return Response.json(result, { status: result.ok ? 200 : 500 });
+  }
+
+  // Picks the page with `pageId`, or the only connected page when no id is
+  // given, so a call never goes to one of several pages by guess.
+  private choosePage(
+    pageId: string | undefined,
+  ): { page: PageConnection } | { error: string; status: number } {
+    if (pageId) {
+      const page = this.pages.get(pageId);
+      return page
+        ? { page }
+        : { error: `no page ${pageId} connected`, status: 404 };
+    }
+    if (this.pages.size === 0) {
+      return { error: "no page connected", status: 503 };
+    }
+    if (this.pages.size > 1) {
+      return {
+        error: `${this.pages.size} pages connected, choose one with --page <id>: ${[...this.pages.keys()].join(", ")}`,
+        status: 409,
+      };
+    }
+    const [page] = this.pages.values();
+    return { page: page! };
+  }
+
+  // Sends a call over the page's event stream, and resolves once the page
+  // posts its result back, or fails after a timeout.
+  private async sendRequest(
+    page: PageConnection,
+    call: RpcCall,
+  ): Promise<RpcResult> {
+    const requestId = randomUUID();
+    try {
+      return await new Promise((resolve) => {
+        const timer = setTimeout(
+          () =>
+            resolve({
+              ok: false,
+              error: `timed out after ${REQUEST_TIMEOUT_MS} ms`,
+            }),
+          REQUEST_TIMEOUT_MS,
         );
-      }
-      return handleAgent(request, url);
-    },
-  });
-  await server.ready();
-  console.log(`[agent-bridge] listening on ${server.url}`);
-  console.log(`[agent-bridge] accepting pages from ${origins.join(", ")}`);
+        this.pending.set(requestId, (result) => {
+          clearTimeout(timer);
+          resolve(result);
+        });
+        page.send(PAGE_EVENTS.request, { requestId, ...call });
+      });
+    } finally {
+      this.pending.delete(requestId);
+    }
+  }
 }
 
 function isLocalHost(host: string | null) {

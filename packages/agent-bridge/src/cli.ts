@@ -17,7 +17,7 @@ import {
   type ToolInfo,
 } from "./protocol.ts";
 import type { RpcCall, RpcResult } from "./rpc.ts";
-import { serveBridge } from "./server.ts";
+import { BridgeServer } from "./server.ts";
 
 const DEFAULT_PORT = 4747;
 
@@ -67,7 +67,7 @@ async function main() {
       if (!values.origin) {
         throw new Error("serve requires at least one --origin");
       }
-      await serveBridge({ port, origins: values.origin });
+      await new BridgeServer({ origins: values.origin }).listen(port);
       break;
     }
     case "get-tools": {
