@@ -62,7 +62,6 @@ export interface AudioTrackState {
   eq: MultibandEqParameters;
   /** Row height in pixels */
   height: number;
-  /** Linear gain */
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -85,7 +84,6 @@ export interface MidiTrackState {
   /** Row height in pixels */
   height: number;
   viewMode: "editor" | "overview";
-  /** Linear gain */
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -163,9 +161,7 @@ export interface RecorderRuntimeState {
   loop: RecorderLoopState;
   punch: RecorderPunchState;
   referenceVideo?: ReferenceVideoState;
-  /** Linear gain */
   masterGain: number;
-  /** Linear gain */
   metronomeGain: number;
   audioTracks: AudioTrackState[];
   midiTracks: MidiTrackState[];
@@ -274,7 +270,8 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
  * because they also update playback, the metronome, and undo history.
  *
  * Units: notes, loop and punch ranges, and locators are in beats. The
- * playhead, clips, and the reference video are in seconds. Gains are linear.
+ * playhead, clips, and the reference video are in seconds. Gains are linear
+ * factors, so 1 leaves the level unchanged and 0 is silent.
  *
  * Undo history covers MIDI note edits, adding and removing MIDI tracks, and
  * clip edits. Other changes, such as tempo and mix, are not undoable.

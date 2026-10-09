@@ -3,7 +3,6 @@ import { createAudioView, type AudioView } from "../audio-view.ts";
 export interface AudioClip {
   id: string;
   name: string;
-  /** Linear gain */
   gain: number;
   muted: boolean;
   soloed: boolean;
