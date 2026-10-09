@@ -47,8 +47,9 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 ### Calls
 
 - `execute` receives the input object and may return a promise. Its resolved value is the result.
+- A tool reports a failure the agent can act on by returning `{ isError: true, error }`, as with `isError` in MCP tool results. WebMCP hides a thrown error's message from the agent, so this is the only way an error reaches it there.
 - The result must be JSON-serializable. A value that `JSON.stringify` rejects, such as a circular object, comes back as an error. Returning nothing gives an empty result.
-- A thrown error, or a call to an unknown tool, comes back with its stack.
+- The bridge itself reports a thrown error, or a call to an unknown tool, with its stack.
 - The bridge waits 30 seconds for the page before failing with a timeout. The tool keeps running in the page after that.
 - A request goes to the most recently connected page unless one is chosen by id.
 
@@ -61,7 +62,7 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 | `agent-bridge call <tool> [json]` | Input JSON, default `{}`, plus `--arg key=value` fields | A string result as is, anything else as indented JSON, or nothing when empty |
 | `agent-bridge pages`              |                                                         | Connected pages as indented JSON on stdout                                   |
 
-Every command takes `--port <number>`, and `tools` and `call` take `--page <id>` to choose the page. `--arg` is repeatable and sets a string field, and a value of `-` reads stdin, so code or long text can be piped in without JSON escaping. A failed call, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
+Every command takes `--port <number>`, and `tools` and `call` take `--page <id>` to choose the page. `--arg` is repeatable and sets a string field, and a value of `-` reads stdin, so code or long text can be piped in without JSON escaping. A failed call, an `isError` result, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
 
 ### Agent endpoints
 

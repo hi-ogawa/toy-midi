@@ -2,6 +2,11 @@
  * A tool in the WebMCP shape, so the same object can be registered with
  * `document.modelContext`. `execute` receives the input object, and its
  * resolved value must be JSON-serializable.
+ *
+ * WebMCP hides a thrown error's message from the agent, so a tool reports a
+ * failure the agent can act on by returning `{ isError: true, error }`, as
+ * with `isError` in MCP tool results. The CLI prints `error` and exits with
+ * code 1 for such a result.
  */
 export interface AgentTool {
   name: string;

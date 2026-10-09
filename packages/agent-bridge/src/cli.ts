@@ -112,7 +112,10 @@ async function main() {
         path: "/call",
         init: { method: "POST", body: JSON.stringify({ name, input }) },
       });
-      if (typeof value === "string") {
+      if (isToolError(value)) {
+        console.error(value.error);
+        process.exitCode = 1;
+      } else if (typeof value === "string") {
         console.log(value);
       } else if (value !== undefined) {
         console.log(JSON.stringify(value, null, 2));
@@ -324,6 +327,15 @@ async function requestBridge({
     );
     process.exitCode = 1;
   }
+}
+
+function isToolError(value: unknown): value is { error: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "isError" in value &&
+    value.isError === true
+  );
 }
 
 interface ToolInfo {

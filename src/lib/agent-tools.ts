@@ -26,8 +26,25 @@ export function createAgentTools(runtime: RecorderRuntime): AgentTool[] {
         },
         required: ["code"],
       },
-      execute: ({ code }: { code: string }) =>
-        new AsyncFunction("runtime", code)(runtime),
+      execute: async ({ code }: { code: string }) => {
+        // WebMCP hides a thrown error's message from the agent, so failures
+        // come back in the result. Serialize here for the same reason, so a
+        // non-JSON value becomes an error the agent can read.
+        try {
+          const value = await new AsyncFunction("runtime", code)(runtime);
+          return value === undefined
+            ? undefined
+            : JSON.parse(JSON.stringify(value));
+        } catch (error) {
+          return {
+            isError: true,
+            error:
+              error instanceof Error
+                ? (error.stack ?? error.message)
+                : String(error),
+          };
+        }
+      },
     },
   ];
 }
