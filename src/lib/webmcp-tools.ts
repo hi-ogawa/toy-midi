@@ -28,7 +28,7 @@ export function createWebMcpTools(runtime: RecorderRuntime): WebMcpTool[] {
     {
       name: "toy_midi_eval",
       description: [
-        "Run JavaScript against the open toy-midi project. `runtime` owns the project state and playback. Read state with `runtime.store.get()` and change it only through runtime methods.",
+        "Run JavaScript against the open toy-midi project, with `runtime` in scope.",
         runtimeTypes,
       ]
         .filter(Boolean)
