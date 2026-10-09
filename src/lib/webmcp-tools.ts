@@ -1,6 +1,20 @@
 import type { WebMcpTool } from "@hiogawa/webmcp-bridge/client";
 import type { RecorderRuntime } from "./recorder/runtime";
 
+// The runtime API as one declaration file from `pnpm build-webmcp-tools-doc`,
+// which `pnpm build` runs for deploys.
+// Until that has run, the description goes without it.
+const [runtimeTypes] = Object.values(
+  import.meta.glob<string>(
+    "../../.tmp/webmcp-tools-doc/webmcp-tools-doc.d.ts",
+    {
+      query: "?raw",
+      import: "default",
+      eager: true,
+    },
+  ),
+);
+
 const AsyncFunction = async function () {}.constructor as new (
   ...args: string[]
 ) => (...args: unknown[]) => Promise<unknown>;
@@ -13,8 +27,12 @@ export function createWebMcpTools(runtime: RecorderRuntime): WebMcpTool[] {
   return [
     {
       name: "toy_midi_eval",
-      description:
-        "Run JavaScript against the open toy-midi project. `runtime` owns the project state and playback. Read state with `runtime.store.get()` and change it only through runtime methods.",
+      description: [
+        "Run JavaScript against the open toy-midi project, with `runtime` in scope.",
+        runtimeTypes,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       inputSchema: {
         type: "object",
         properties: {
