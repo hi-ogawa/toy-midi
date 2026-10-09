@@ -12,17 +12,93 @@ Install the command globally from GitHub:
 pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/agent-bridge"
 ```
 
-Start the bridge, and list each site whose pages may connect to it:
+Start the bridge, and list each site whose pages may connect to it. It keeps running and logs pages as they connect and leave:
 
-```sh
-agent-bridge serve --origin https://toy-midi.hiro18181.workers.dev
+```console
+$ agent-bridge serve --origin https://toy-midi.hiro18181.workers.dev
+[agent-bridge] listening on http://127.0.0.1:4747/
+[agent-bridge] accepting pages from https://toy-midi.hiro18181.workers.dev
+[agent-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…?agent-bridge
 ```
 
-Then open the app so that it connects. Toy MIDI connects when a project is opened with `?agent-bridge` at the end of its URL. From another terminal, or from the agent, list the page's tools and run one:
+Then open the app so that it connects. Toy MIDI connects when a project is opened with `?agent-bridge` at the end of its URL. The rest of this section runs from another terminal, or from the agent.
 
-```sh
-agent-bridge get-tools
-agent-bridge execute-tool toy_midi_eval --arg code='return runtime.store.get().tempo'
+## Example Session
+
+Check that the page is connected:
+
+```console
+$ agent-bridge pages
+[
+  {
+    "id": "cbfe8f6b",
+    "origin": "https://toy-midi.hiro18181.workers.dev",
+    "url": "https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…?agent-bridge",
+    "connectedAt": "2026-10-09T18:11:40.672Z"
+  }
+]
+```
+
+List the page's tools. Each one comes with its description and input schema, which is all the agent needs to call it:
+
+```console
+$ agent-bridge get-tools
+# toy_midi_eval
+
+Run JavaScript against the open toy-midi project. `runtime` owns the project state and playback. Read state with `runtime.store.get()` and change it only through runtime methods.
+
+## Input schema
+
+{
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Body of an async function with `runtime` in scope. Return a JSON-serializable value."
+    }
+  },
+  "required": [
+    "code"
+  ]
+}
+```
+
+Run a tool. Its result prints as JSON, or as is when it is a string:
+
+```console
+$ agent-bridge execute-tool toy_midi_eval --arg code='return runtime.store.get().tempo'
+120
+```
+
+Pipe longer input from standard input with `--arg code=-`:
+
+```console
+$ agent-bridge execute-tool toy_midi_eval --arg code=- <<'JS'
+await runtime.addMidiTrack({ program: 33 });
+const id = runtime.store.get().midiTracks.at(-1).id;
+runtime.setMidiTrackNotes(id, [
+  { id: crypto.randomUUID(), pitch: 33, start: 0, duration: 1, velocity: 100 },
+]);
+return runtime.store.get().midiTracks.map(({ name, program, notes }) => ({ name, program, notes: notes.length }));
+JS
+[
+  {
+    "name": "MIDI 1",
+    "program": 33,
+    "notes": 1
+  }
+]
+```
+
+A failing tool prints its error to standard error and exits with code 1:
+
+```console
+$ agent-bridge execute-tool toy_midi_eval --arg code='return runtime.nope()'
+TypeError: runtime.nope is not a function
+    at eval (eval at execute (…/src/lib/agent-tools.ts:23:25), <anonymous>:3:16)
+    …
+$ echo $?
+1
 ```
 
 ## Expose Tools from a Page
