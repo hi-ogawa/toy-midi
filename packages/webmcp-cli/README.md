@@ -1,48 +1,48 @@
-# Agent Bridge
+# WebMCP CLI
 
-Agent Bridge lets an agent working in a terminal, such as Claude Code, call tools that a web page open in your browser exposes. The page connects to a small server on your machine, the bridge, and the agent talks to the bridge with the `agent-bridge` command.
+WebMCP CLI lets an agent working in a terminal, such as Claude Code, call the tools that a web page open in your browser exposes in the shape of [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents. The page connects to a small server on your machine, the bridge, and the agent talks to the bridge with the `webmcp-cli` command.
 
 ## Usage
 
 Install the command from GitHub:
 
 ```sh
-pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/agent-bridge"
+pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/webmcp-cli"
 ```
 
 Run the bridge, listing each site whose pages may connect. It stays in the foreground and logs pages as they connect and leave:
 
 ```console
-$ agent-bridge serve --origin https://toy-midi.hiro18181.workers.dev
-[agent-bridge] listening on http://127.0.0.1:4747/
-[agent-bridge] accepting pages from https://toy-midi.hiro18181.workers.dev
-[agent-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…?agent-bridge
+$ webmcp-cli serve --origin https://toy-midi.hiro18181.workers.dev
+[webmcp-cli] listening on http://127.0.0.1:4747/
+[webmcp-cli] accepting pages from https://toy-midi.hiro18181.workers.dev
+[webmcp-cli] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…?webmcp-cli
 ```
 
-Then open the app so that it connects. Toy MIDI connects when a project is opened with `?agent-bridge` at the end of its URL. The commands below run from another terminal, or from the agent.
+Then open the app so that it connects. Toy MIDI connects when a project is opened with `?webmcp-cli` at the end of its URL. The commands below run from another terminal, or from the agent.
 
-### `agent-bridge pages`
+### `webmcp-cli pages`
 
 Lists the connected pages:
 
 ```console
-$ agent-bridge pages
+$ webmcp-cli pages
 [
   {
     "id": "cbfe8f6b",
     "origin": "https://toy-midi.hiro18181.workers.dev",
-    "url": "https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…?agent-bridge",
+    "url": "https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…?webmcp-cli",
     "connectedAt": "2026-10-09T18:11:40.672Z"
   }
 ]
 ```
 
-### `agent-bridge get-tools`
+### `webmcp-cli get-tools`
 
 Describes the page's tools. Each comes with its description and input schema, which is all the agent needs to call it:
 
 ```console
-$ agent-bridge get-tools
+$ webmcp-cli get-tools
 # toy_midi_eval
 
 Run JavaScript against the open toy-midi project. `runtime` owns the project state and playback. Read state with `runtime.store.get()` and change it only through runtime methods.
@@ -63,19 +63,19 @@ Run JavaScript against the open toy-midi project. `runtime` owns the project sta
 }
 ```
 
-### `agent-bridge execute-tool <tool> [json]`
+### `webmcp-cli execute-tool <tool> [json]`
 
 Runs a tool with the JSON input, `{}` by default, and prints the result as JSON, or as is when it is a string:
 
 ```console
-$ agent-bridge execute-tool toy_midi_eval --arg code='return runtime.store.get().tempo'
+$ webmcp-cli execute-tool toy_midi_eval --arg code='return runtime.store.get().tempo'
 120
 ```
 
 `--arg key=value` sets one string field of the input and can be repeated. A value of `-` reads the field from standard input, so code or long text can be piped in without escaping it as JSON:
 
 ```console
-$ agent-bridge execute-tool toy_midi_eval --arg code=- <<'JS'
+$ webmcp-cli execute-tool toy_midi_eval --arg code=- <<'JS'
 await runtime.addMidiTrack({ program: 33 });
 const id = runtime.store.get().midiTracks.at(-1).id;
 runtime.setMidiTrackNotes(id, [
@@ -95,9 +95,9 @@ JS
 A tool that fails prints its error to standard error:
 
 ```console
-$ agent-bridge execute-tool toy_midi_eval --arg code='return runtime.nope()'
+$ webmcp-cli execute-tool toy_midi_eval --arg code='return runtime.nope()'
 TypeError: runtime.nope is not a function
-    at eval (eval at execute (…/src/lib/agent-tools.ts:23:25), <anonymous>:3:16)
+    at eval (eval at execute (…/src/lib/webmcp-tools.ts:23:25), <anonymous>:3:16)
     …
 $ echo $?
 1
@@ -115,12 +115,12 @@ Any failure prints a message to standard error and exits with code 1, so the age
 
 ## Exposing Tools from an App
 
-An app adds the client to its page and passes the tools it wants to offer. Apps depend on the package from GitHub, pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/agent-bridge`. The package ships TypeScript source, so the app's bundler compiles it.
+An app adds the client to its page and passes the tools it wants to offer. Apps depend on the package from GitHub, pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-cli`. The package ships TypeScript source, so the app's bundler compiles it.
 
 ```ts
-import { connectAgentBridge } from "@hiogawa/agent-bridge/client";
+import { connectWebMcpCli } from "@hiogawa/webmcp-cli/client";
 
-const disconnect = connectAgentBridge({
+const disconnect = connectWebMcpCli({
   bridgeUrl: "http://localhost:4747",
   tools: [
     {
@@ -153,11 +153,11 @@ A tool has the same shape as in [WebMCP](https://webmachinelearning.github.io/we
 
 A web app with no server of its own cannot be reached from a terminal, so the bridge runs on your machine where both sides can reach it. The bridge cannot open a connection to a browser page, though. So when the app connects, the page opens a connection to the bridge and keeps it open. The bridge uses that open connection to send requests to the page later, using [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
 
-When the agent runs `agent-bridge get-tools` or `execute-tool`, the command sends an ordinary HTTP request to the bridge, and the bridge does not answer right away. It passes the request down the page's open connection, tagged with a new id. The page runs the tool and sends the result back to the bridge in a separate HTTP request with the same id. The bridge matches the id, and the result becomes its answer to the waiting command.
+When the agent runs `webmcp-cli get-tools` or `execute-tool`, the command sends an ordinary HTTP request to the bridge, and the bridge does not answer right away. It passes the request down the page's open connection, tagged with a new id. The page runs the tool and sends the result back to the bridge in a separate HTTP request with the same id. The bridge matches the id, and the result becomes its answer to the waiting command.
 
 The bridge only passes requests along and does not know which tools or operations exist. Only the command line and the page client need to agree on those, so adding a new kind of request does not change the bridge.
 
-Each open connection is one page, and the bridge gives each a short id when it connects. `agent-bridge pages` lists them, and the bridge answers it from its own list without asking any page. A page that reloads connects again and gets a new id.
+Each open connection is one page, and the bridge gives each a short id when it connects. `webmcp-cli pages` lists them, and the bridge answers it from its own list without asking any page. A page that reloads connects again and gets a new id.
 
 ## Security
 

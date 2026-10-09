@@ -42,10 +42,8 @@ export class BridgeServer {
       fetch: (request) => this.handle(request),
     });
     await server.ready();
-    console.log(`[agent-bridge] listening on ${server.url}`);
-    console.log(
-      `[agent-bridge] accepting pages from ${this.origins.join(", ")}`,
-    );
+    console.log(`[webmcp-cli] listening on ${server.url}`);
+    console.log(`[webmcp-cli] accepting pages from ${this.origins.join(", ")}`);
   }
 
   async handle(request: Request): Promise<Response> {
@@ -127,14 +125,14 @@ export class BridgeServer {
         );
         this.pages.set(page.id, page);
         console.log(
-          `[agent-bridge] page ${page.id} connected from ${page.url ?? origin}`,
+          `[webmcp-cli] page ${page.id} connected from ${page.url ?? origin}`,
         );
       },
       // The server cancels the body when the page's connection closes.
       cancel: () => {
         clearInterval(ping);
         this.pages.delete(page.id);
-        console.log(`[agent-bridge] page ${page.id} disconnected`);
+        console.log(`[webmcp-cli] page ${page.id} disconnected`);
       },
     });
     return new Response(body, {

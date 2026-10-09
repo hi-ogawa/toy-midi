@@ -9,13 +9,13 @@ import type { RpcResponse } from "./rpc.ts";
 /**
  * A tool in the WebMCP shape, so the same object can be registered with
  * `document.modelContext`. `execute` receives the input object and resolves
- * to a JSON-serializable `AgentToolResult`.
+ * to a JSON-serializable `WebMcpToolResult`.
  */
-export interface AgentTool {
+export interface WebMcpTool {
   name: string;
   description: string;
   inputSchema: object;
-  execute: (input: any) => AgentToolResult | Promise<AgentToolResult>;
+  execute: (input: any) => WebMcpToolResult | Promise<WebMcpToolResult>;
 }
 
 /**
@@ -24,22 +24,22 @@ export interface AgentTool {
  * results. The CLI prints `value` on success, and prints `error` and exits
  * with code 1 on failure.
  */
-export type AgentToolResult =
+export type WebMcpToolResult =
   | { isError: false; value?: unknown }
   | { isError: true; error: string };
 
 /**
- * Connects the page to the local agent bridge in server.ts and exposes `tools`
+ * Connects the page to the local bridge in server.ts and exposes `tools`
  * to the agent. The bridge streams requests over Server-Sent Events, and each
  * result, or the error a tool throws, is posted back as JSON. Returns a
  * function that disconnects.
  */
-export function connectAgentBridge({
+export function connectWebMcpCli({
   bridgeUrl,
   tools,
 }: {
   bridgeUrl: string;
-  tools: AgentTool[];
+  tools: WebMcpTool[];
 }): () => void {
   const connectUrl = new URL(PAGE_ENDPOINTS.connect, bridgeUrl);
   connectUrl.searchParams.set("url", window.location.href);
@@ -79,7 +79,7 @@ export function connectAgentBridge({
   return () => source.close();
 }
 
-function createPageRpc(tools: AgentTool[]): PageRpc {
+function createPageRpc(tools: WebMcpTool[]): PageRpc {
   return {
     getTools: () =>
       tools.map(({ name, description, inputSchema }) => ({

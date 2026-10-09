@@ -1,4 +1,4 @@
-import type { AgentTool } from "@hiogawa/agent-bridge/client";
+import type { WebMcpTool } from "@hiogawa/webmcp-cli/client";
 import type { RecorderRuntime } from "./recorder/runtime";
 
 const AsyncFunction = async function () {}.constructor as new (
@@ -9,7 +9,7 @@ const AsyncFunction = async function () {}.constructor as new (
  * Tools for an agent to act on the open project, in the WebMCP tool
  * shape.
  */
-export function createAgentTools(runtime: RecorderRuntime): AgentTool[] {
+export function createWebMcpTools(runtime: RecorderRuntime): WebMcpTool[] {
   return [
     {
       name: "toy_midi_eval",

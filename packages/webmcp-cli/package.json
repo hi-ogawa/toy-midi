@@ -1,9 +1,9 @@
 {
-  "name": "@hiogawa/agent-bridge",
+  "name": "@hiogawa/webmcp-cli",
   "version": "0.0.0",
   "private": true,
   "bin": {
-    "agent-bridge": "./bin/cli.js"
+    "webmcp-cli": "./bin/cli.js"
   },
   "type": "module",
   "exports": {

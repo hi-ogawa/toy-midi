@@ -4,7 +4,7 @@
 // carry calls are generic and live in rpc.ts. Internal to this package, so the
 // `./client` entry does not export them.
 
-import type { AgentTool, AgentToolResult } from "./client.ts";
+import type { WebMcpTool, WebMcpToolResult } from "./client.ts";
 import type { RpcRequest } from "./rpc.ts";
 
 /**
@@ -15,11 +15,14 @@ import type { RpcRequest } from "./rpc.ts";
  */
 export interface PageRpc {
   getTools(): ToolInfo[];
-  executeTool(tool: { name: string }, input: unknown): Promise<AgentToolResult>;
+  executeTool(
+    tool: { name: string },
+    input: unknown,
+  ): Promise<WebMcpToolResult>;
 }
 
 /** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
-export type ToolInfo = Pick<AgentTool, "name" | "description" | "inputSchema">;
+export type ToolInfo = Pick<WebMcpTool, "name" | "description" | "inputSchema">;
 
 // Page side: the bridge calls `PageRpc` methods on a page over these
 // endpoints and events.

@@ -60,15 +60,15 @@ import {
 } from "./recorder-tracks";
 import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
-import { useAgentBridge } from "./use-agent-bridge";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderInteraction } from "./use-recorder-interaction";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
+import { useWebMcpCli } from "./use-webmcp-cli";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  useAgentBridge(runtime);
+  useWebMcpCli(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =
     recorderPreferences.useValue("defaultMidiProgram");
