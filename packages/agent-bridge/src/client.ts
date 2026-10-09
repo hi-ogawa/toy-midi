@@ -1,9 +1,8 @@
 import type {
-  AgentBridgeRequest,
   BridgeResult,
   PageRequest,
   PageResult,
-  ToolInfo,
+  PageRpc,
 } from "./protocol.ts";
 
 /**
@@ -43,20 +42,18 @@ export function connectAgentBridge({
 }): () => void {
   const connectUrl = new URL("/connect", bridgeUrl);
   connectUrl.searchParams.set("url", window.location.href);
+  const rpc = createPageRpc(tools);
   const source = new EventSource(connectUrl);
   source.addEventListener("request", async (event) => {
-    const request = JSON.parse(event.data) as PageRequest;
+    const { requestId, method, args } = JSON.parse(event.data) as PageRequest;
     const serialize = (result: BridgeResult) =>
-      JSON.stringify({
-        requestId: request.requestId,
-        ...result,
-      } satisfies PageResult);
+      JSON.stringify({ requestId, ...result } satisfies PageResult);
     let body: string;
     try {
       // Serialize inside try, so a non-JSON value is reported as an error.
       body = serialize({
         ok: true,
-        value: await handleRequest(tools, request),
+        value: await (rpc[method] as (...args: unknown[]) => unknown)(...args),
       });
     } catch (error) {
       body = serialize({
@@ -73,24 +70,20 @@ export function connectAgentBridge({
   return () => source.close();
 }
 
-async function handleRequest(
-  tools: AgentTool[],
-  request: AgentBridgeRequest,
-): Promise<ToolInfo[] | AgentToolResult> {
-  switch (request.method) {
-    case "list": {
-      return tools.map(({ name, description, inputSchema }) => ({
+function createPageRpc(tools: AgentTool[]): PageRpc {
+  return {
+    listTools: () =>
+      tools.map(({ name, description, inputSchema }) => ({
         name,
         description,
         inputSchema,
-      }));
-    }
-    case "call": {
-      const tool = tools.find((tool) => tool.name === request.name);
+      })),
+    callTool: async ({ name, input }) => {
+      const tool = tools.find((tool) => tool.name === name);
       if (!tool) {
-        throw new Error(`unknown tool: ${request.name}`);
+        throw new Error(`unknown tool: ${name}`);
       }
-      return await tool.execute(request.input);
-    }
-  }
+      return await tool.execute(input);
+    },
+  };
 }

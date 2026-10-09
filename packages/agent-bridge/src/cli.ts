@@ -16,13 +16,14 @@ import { randomUUID } from "node:crypto";
 import { parseArgs } from "node:util";
 import * as srvx from "srvx";
 import type {
-  AgentBridgeRequest,
   BridgeResult,
   CallRequest,
   CallResponse,
   PageEvents,
   PageInfo,
   PageResult,
+  PageRpc,
+  PageRpcResult,
   ToolInfo,
   ToolsResponse,
 } from "./protocol.ts";
@@ -53,6 +54,13 @@ options:
   -h, --help          show this help
 
 Before calling tools, read what the page exposes with \`agent-bridge tools\`.`;
+
+/** `PageRpc` as the bridge calls it, with each result wrapped for failures. */
+type PageRpcClient = {
+  [K in keyof PageRpc]: (
+    ...args: Parameters<PageRpc[K]>
+  ) => Promise<PageRpcResult<K>>;
+};
 
 interface Page extends PageInfo {
   send: <K extends keyof PageEvents>(event: K, data: PageEvents[K]) => void;
@@ -150,10 +158,11 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
   const pages = new Map<string, Page>();
   const pending = new Map<string, (result: BridgeResult) => void>();
 
-  // Sends a request to a page and waits for the result it posts back.
-  async function forward(
+  // Responds with the result of a `PageRpc` call on the chosen page, by
+  // default the most recently connected one.
+  async function callPage(
     pageId: string | null,
-    request: AgentBridgeRequest,
+    call: (rpc: PageRpcClient) => Promise<BridgeResult>,
   ): Promise<Response> {
     const page = pages.get(pageId ?? [...pages.keys()].at(-1) ?? "");
     if (!page) {
@@ -162,23 +171,43 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
         { status: 503 },
       );
     }
-    const requestId = randomUUID();
-    const result = await new Promise<BridgeResult>((resolve) => {
-      const timer = setTimeout(
-        () =>
-          resolve({
-            ok: false,
-            error: `timed out after ${REQUEST_TIMEOUT_MS} ms`,
-          }),
-        REQUEST_TIMEOUT_MS,
-      );
-      pending.set(requestId, (result) => {
-        clearTimeout(timer);
-        resolve(result);
-      });
-      page.send("request", { requestId, ...request });
-    }).finally(() => pending.delete(requestId));
+    const result = await call(createPageRpcClient(page));
     return Response.json(result, { status: result.ok ? 200 : 500 });
+  }
+
+  // Calls `PageRpc` methods over the page's event stream. Each call resolves
+  // once the page posts its result back, or fails after a timeout.
+  function createPageRpcClient(page: Page): PageRpcClient {
+    return new Proxy({} as PageRpcClient, {
+      get:
+        (_, method) =>
+        async (...args: unknown[]): Promise<BridgeResult> => {
+          const requestId = randomUUID();
+          try {
+            return await new Promise((resolve) => {
+              const timer = setTimeout(
+                () =>
+                  resolve({
+                    ok: false,
+                    error: `timed out after ${REQUEST_TIMEOUT_MS} ms`,
+                  }),
+                REQUEST_TIMEOUT_MS,
+              );
+              pending.set(requestId, (result) => {
+                clearTimeout(timer);
+                resolve(result);
+              });
+              page.send("request", {
+                requestId,
+                method: method as keyof PageRpc,
+                args,
+              });
+            });
+          } finally {
+            pending.delete(requestId);
+          }
+        },
+    });
   }
 
   function connect(url: URL, origin: string): Response {
@@ -271,11 +300,11 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
         );
       }
       case "GET /tools": {
-        return forward(pageId, { method: "list" });
+        return callPage(pageId, (rpc) => rpc.listTools());
       }
       case "POST /call": {
-        const { name, input } = (await request.json()) as CallRequest;
-        return forward(pageId, { method: "call", name, input });
+        const body = (await request.json()) as CallRequest;
+        return callPage(pageId, (rpc) => rpc.callTool(body));
       }
       default: {
         return new Response("not found\n", { status: 404 });

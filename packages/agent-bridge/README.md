@@ -76,9 +76,9 @@ Every command takes `--port <number>`, and `serve --port 0` listens on a free po
 
 ### Page endpoints
 
-| Request                 | Body                                                                        | Response                                                                                                                                 |
-| ----------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /connect?url=href` |                                                                             | Server-Sent Events: `hello` `{ pageId }`, then `request` `{ requestId, method: "list" }` or `{ requestId, method: "call", name, input }` |
-| `POST /result`          | JSON `{ requestId, ok: true, value? }` or `{ requestId, ok: false, error }` | 204                                                                                                                                      |
+| Request                 | Body                                                                        | Response                                                                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /connect?url=href` |                                                                             | Server-Sent Events: `hello` `{ pageId }`, then `request` `{ requestId, method, args }`, which calls `listTools()` or `callTool({ name, input })` on the page |
+| `POST /result`          | JSON `{ requestId, ok: true, value? }` or `{ requestId, ok: false, error }` | 204                                                                                                                                                          |
 
-The bridge sends a comment every 15 seconds to keep the stream open. A page that reconnects gets a new id. `connectAgentBridge` implements the page side, posting results as `text/plain` so they need no CORS preflight.
+The methods and message types are in `src/protocol.ts`. The bridge sends a comment every 15 seconds to keep the stream open. A page that reconnects gets a new id. `connectAgentBridge` implements the page side, posting results as `text/plain` so they need no CORS preflight.

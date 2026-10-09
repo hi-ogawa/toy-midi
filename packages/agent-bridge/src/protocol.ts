@@ -4,8 +4,20 @@
 
 import type { AgentToolResult } from "./client.ts";
 
-// Page side: `GET /connect` streams `PageEvents`, and the page answers each
-// request with `POST /result`.
+// Page side: the bridge calls `PageRpc` methods on a page. `GET /connect`
+// streams `PageEvents`, and the page answers each request with
+// `POST /result`.
+
+/** Methods a page serves to the bridge. */
+export interface PageRpc {
+  listTools(): ToolInfo[];
+  callTool(request: CallRequest): Promise<AgentToolResult>;
+}
+
+/** A `PageRpc` method's result, as the page posts it and the bridge returns it. */
+export type PageRpcResult<K extends keyof PageRpc> = BridgeResult<
+  Awaited<ReturnType<PageRpc[K]>>
+>;
 
 /** Server-Sent Events the bridge streams to a page, by event name. */
 export interface PageEvents {
@@ -13,12 +25,11 @@ export interface PageEvents {
   request: PageRequest;
 }
 
-/** A request to list or call the page's tools, without its id. */
-export type AgentBridgeRequest =
-  | { method: "list" }
-  | { method: "call"; name: string; input: unknown };
-
-export type PageRequest = AgentBridgeRequest & { requestId: string };
+export interface PageRequest {
+  requestId: string;
+  method: keyof PageRpc;
+  args: unknown[];
+}
 
 /** The `POST /result` body. */
 export type PageResult = BridgeResult & { requestId: string };
@@ -31,7 +42,7 @@ export type BridgeResult<T = unknown> =
   | { ok: false; error: string };
 
 /** The `GET /tools` response. */
-export type ToolsResponse = BridgeResult<ToolInfo[]>;
+export type ToolsResponse = PageRpcResult<"listTools">;
 
 export interface ToolInfo {
   name: string;
@@ -45,7 +56,7 @@ export interface CallRequest {
   input: unknown;
 }
 
-export type CallResponse = BridgeResult<AgentToolResult>;
+export type CallResponse = PageRpcResult<"callTool">;
 
 /** An entry of the `GET /pages` response. */
 export interface PageInfo {
