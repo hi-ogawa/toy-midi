@@ -1,5 +1,9 @@
 export interface KeySignature {
-  /** Number of flats (-) or sharps (+) */
+  /**
+   * Sharps as a positive count and flats as a negative one, as in MusicXML,
+   * so `{ fifths: 2, mode: "major" }` is D major and
+   * `{ fifths: -3, mode: "minor" }` is C minor.
+   */
   fifths: number;
   mode: "major" | "minor";
 }
