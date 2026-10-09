@@ -12,7 +12,7 @@ import { type Browser, chromium } from "playwright-core";
 const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
 
 const USAGE =
-  "Usage: toy-midi-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--start 0] [--end SECONDS] [--workers 4] [--url URL]";
+  "Usage: toy-midi-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--systems 2] [--start 0] [--end SECONDS] [--workers 4] [--url URL]";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -178,25 +178,29 @@ async function openScorePage({
       `No score capture page found at ${url}. The app may predate it.`,
     );
   }
-  const duration = await page.evaluate(async (score) => {
-    const viewer = window.__toyMidiScoreViewer!;
-    // The composition adds its own title, so the score layer omits it.
-    await viewer.load({
-      score,
-      settings: {
-        layout: "continuous",
-        showSectionLabels: true,
-        showTitle: false,
-        titleSpacing: 0,
-      },
-    });
-    await document.fonts.ready;
-    viewer.setScaleToFitViewport();
-    // Frame the first system like every later one, instead of showing the
-    // sheet's top margin, which never scrolls into view again.
-    viewer.scrollToCursor();
-    return viewer.getDuration();
-  }, source);
+  const duration = await page.evaluate(
+    async ({ score, systems }) => {
+      const viewer = window.__toyMidiScoreViewer!;
+      // The composition adds its own title, so the score layer omits it.
+      await viewer.load({
+        score,
+        settings: {
+          layout: "continuous",
+          showSectionLabels: true,
+          showTitle: false,
+          titleSpacing: 0,
+        },
+      });
+      await document.fonts.ready;
+      viewer.setScaleToFitViewport();
+      viewer.setSystemsPerPage(systems);
+      // Frame the first page like every later one, instead of showing the
+      // sheet's top margin, which never scrolls into view again.
+      viewer.scrollToCursor();
+      return viewer.getDuration();
+    },
+    { score: source, systems: options.systems },
+  );
   const cdp = await page.context().newCDPSession(page);
   return { page, cdp, duration };
 }
@@ -247,6 +251,8 @@ function parseCliOptions(args: string[]) {
       // 720p width with a height that fits two systems of typical bass scores.
       width: { type: "string", default: "1280" },
       height: { type: "string", default: "480" },
+      // Systems shown per page, centered in the frame.
+      systems: { type: "string", default: "2" },
       url: { type: "string", default: DEFAULT_URL },
       workers: { type: "string", default: "4" },
       start: { type: "string", default: "0" },
@@ -264,6 +270,7 @@ function parseCliOptions(args: string[]) {
     width: parseEvenInteger("--width", values.width),
     height: parseEvenInteger("--height", values.height),
     url: values.url,
+    systems: parsePositiveInteger("--systems", values.systems),
     workers: parsePositiveInteger("--workers", values.workers),
     start: parseSeconds("--start", values.start),
     end:
