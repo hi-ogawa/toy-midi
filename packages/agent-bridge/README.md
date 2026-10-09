@@ -59,7 +59,6 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 - The result must be JSON-serializable. A value that `JSON.stringify` rejects, such as a circular object, comes back as an error.
 - The bridge itself reports a thrown error, or a call to an unknown tool, with its stack.
 - The bridge waits 30 seconds for the page before failing with a timeout. The tool keeps running in the page after that.
-- A request goes to the most recently connected page unless one is chosen by id.
 
 ## CLI
 
