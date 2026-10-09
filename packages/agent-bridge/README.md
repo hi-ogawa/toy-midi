@@ -41,20 +41,6 @@ const disconnect = connectAgentBridge({
 });
 ```
 
-## How it works
-
-![The page opens an event stream to the bridge once. Each CLI call is a POST to /rpc that the bridge holds open while it forwards the call to the page as an SSE event, and the page's POST to /result, paired by requestId, becomes the response.](images/rpc-flow.svg)
-
-A call takes two hops, because the page can only reach the bridge and never the other way around. The CLI's hop is one HTTP request and response. The page's hop is split in two: the bridge pushes the call down the page's event stream, and the page posts the result back, which the bridge pairs with the waiting `/rpc` request by `requestId`. The bridge forwards `{ method, args }` without knowing the methods, so only the CLI and the page know `PageRpc`.
-
-Each open event stream is one connected page with its own id. `GET /pages` lists them and never reaches a page, because the bridge answers it from its own list. A call goes to the page chosen with `?page=<id>`, which the CLI sets from `--page`, or else to the most recently connected one. A page that reconnects gets a new id.
-
-The endpoints, events, and messages are defined in `src/protocol.ts` and `src/rpc.ts`.
-
-### Security
-
-The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use separate endpoints, and the `Origin` header tells them apart: page requests must carry a listed origin, and agent requests must carry none. Anything else gets 403. Every request must also be addressed to `localhost` or `127.0.0.1` in its `Host` header, so a site that rebinds its DNS to the loopback address cannot reach the agent endpoints as same-origin.
-
 ## Tools
 
 - `execute` receives the input object and resolves to `{ isError: false, value? }` on success or `{ isError: true, error }` on failure, as with `isError` in MCP tool results. WebMCP hides a thrown error's message from the agent, so a failure the agent can act on belongs in the result.
@@ -72,3 +58,17 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 | `agent-bridge pages`                      |                                                         | Connected pages as indented JSON on stdout                                                       |
 
 Every command takes `--port <number>`, and `serve --port 0` listens on a free port and logs it. `get-tools` and `execute-tool` take `--page <id>` to choose the page. `--arg` is repeatable and sets a string field, and a value of `-` reads stdin, so code or long text can be piped in without JSON escaping. A failed request, an `isError` result, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
+
+## How it works
+
+![The page opens an event stream to the bridge once. Each CLI call is a POST to /rpc that the bridge holds open while it forwards the call to the page as an SSE event, and the page's POST to /result, paired by requestId, becomes the response.](images/rpc-flow.svg)
+
+A call takes two hops, because the page can only reach the bridge and never the other way around. The CLI's hop is one HTTP request and response. The page's hop is split in two: the bridge pushes the call down the page's event stream, and the page posts the result back, which the bridge pairs with the waiting `/rpc` request by `requestId`. The bridge forwards `{ method, args }` without knowing the methods, so only the CLI and the page know `PageRpc`.
+
+Each open event stream is one connected page with its own id. `GET /pages` lists them and never reaches a page, because the bridge answers it from its own list. A call goes to the page chosen with `?page=<id>`, which the CLI sets from `--page`, or else to the most recently connected one. A page that reconnects gets a new id.
+
+The endpoints, events, and messages are defined in `src/protocol.ts` and `src/rpc.ts`.
+
+### Security
+
+The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use separate endpoints, and the `Origin` header tells them apart: page requests must carry a listed origin, and agent requests must carry none. Anything else gets 403. Every request must also be addressed to `localhost` or `127.0.0.1` in its `Host` header, so a site that rebinds its DNS to the loopback address cannot reach the agent endpoints as same-origin.
