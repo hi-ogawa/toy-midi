@@ -140,7 +140,7 @@ const disconnect = connectWebMcpCli({
 });
 ```
 
-A tool has the same shape as in [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for the same purpose, so the same definitions can later be registered with the browser directly.
+A tool has the WebMCP shape, so the same definitions can later be registered with the browser directly.
 
 - `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
 - The result must be convertible to JSON. A value that is not, such as an object that refers to itself, comes back as an error.
