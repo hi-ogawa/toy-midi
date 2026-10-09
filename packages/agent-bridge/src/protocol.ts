@@ -1,4 +1,4 @@
-// The bridge's contract between the server in cli.ts, the page client in
+// The bridge's contract between the server in server.ts, the page client in
 // client.ts, and the CLI commands: the methods a page serves, the endpoints
 // and events that carry them, and the data they return. The RPC messages that
 // carry calls are generic and live in rpc.ts. Internal to this package, so the

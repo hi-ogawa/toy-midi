@@ -29,7 +29,7 @@ export type AgentToolResult =
   | { isError: true; error: string };
 
 /**
- * Connects the page to the local agent bridge in cli.ts and exposes `tools`
+ * Connects the page to the local agent bridge in server.ts and exposes `tools`
  * to the agent. The bridge streams requests over Server-Sent Events, and each
  * result, or the error a tool throws, is posted back as JSON. Returns a
  * function that disconnects.
