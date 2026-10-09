@@ -44,6 +44,7 @@ export const recorderPreferences = new LocalStorageStore<RecorderPreferences>({
 const projectUiStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
+  tunerOpen: z.boolean(),
   timelinePixelsPerBeat: z
     .number()
     .min(MIN_PIXELS_PER_BEAT)
@@ -66,6 +67,7 @@ type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   autoScrollEnabled: true,
   inputPanelOpen: false,
+  tunerOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   referenceVideoSize: { width: 640, height: 480 },
   timelineStartBeat: 0,

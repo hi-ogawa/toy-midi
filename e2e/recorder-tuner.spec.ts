@@ -27,6 +27,10 @@ test("opens the tuner and detects the input pitch", async ({ page }) => {
     "false",
   );
 
+  // Reload, and confirm the project keeps the tuner open.
+  await page.reload();
+  await expect(panel).toBeVisible();
+
   // Close the tuner and restore its inactive toggle in the input panel.
   await panel.getByRole("button", { name: "Close Tuner", exact: true }).click();
   await expect(panel).toBeHidden();

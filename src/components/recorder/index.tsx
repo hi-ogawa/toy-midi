@@ -64,9 +64,11 @@ import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderInteraction } from "./use-recorder-interaction";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
+import { useWebMcpBridge } from "./use-webmcp-bridge";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  useWebMcpBridge(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =
     recorderPreferences.useValue("defaultMidiProgram");
@@ -78,7 +80,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [clipsNewestFirst, setClipsNewestFirst] =
     recorderPreferences.useValue("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = projectUiStore.useValue("mixerOpen");
-  const [isTunerOpen, setIsTunerOpen] = useState(false);
+  const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
   const [isInputPanelOpen, setIsInputPanelOpen] =
     projectUiStore.useValue("inputPanelOpen");
   const effects = useRecorderEffectsUi(projectUiStore);
