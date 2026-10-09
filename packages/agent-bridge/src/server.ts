@@ -26,7 +26,7 @@ export async function serveBridge({
   port: number;
   origins: string[];
 }) {
-  const pages = new Map<string, Page>();
+  const pages = new Map<string, PageConnection>();
   const pending = new Map<string, (result: RpcResult) => void>();
 
   // Forwards a `PageRpc` call to the chosen page, by default the most
@@ -48,7 +48,10 @@ export async function serveBridge({
 
   // Sends a call over the page's event stream, and resolves once the page
   // posts its result back, or fails after a timeout.
-  async function sendRequest(page: Page, call: RpcCall): Promise<RpcResult> {
+  async function sendRequest(
+    page: PageConnection,
+    call: RpcCall,
+  ): Promise<RpcResult> {
     const requestId = randomUUID();
     try {
       return await new Promise((resolve) => {
@@ -73,7 +76,7 @@ export async function serveBridge({
 
   function connect(url: URL, origin: string): Response {
     let ping: ReturnType<typeof setInterval>;
-    const page: Page = {
+    const page: PageConnection = {
       id: randomUUID().slice(0, 8),
       origin,
       url: url.searchParams.get("url") ?? undefined,
@@ -208,6 +211,7 @@ function isLocalHost(host: string | null) {
   return name === "localhost" || name === "127.0.0.1";
 }
 
-interface Page extends PageInfo {
+/** A connected page: what `GET pages` lists, and the stream that sends it events. */
+interface PageConnection extends PageInfo {
   send: <K extends keyof PageEvents>(event: K, data: PageEvents[K]) => void;
 }
