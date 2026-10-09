@@ -55,13 +55,6 @@ options:
 Before executing tools, read what the page exposes with
 \`agent-bridge get-tools\`.`;
 
-/** `PageRpc` as the CLI calls it through the bridge, where every method is async. */
-type PageRpcClient = {
-  [K in keyof PageRpc]: (
-    ...args: Parameters<PageRpc[K]>
-  ) => Promise<Awaited<ReturnType<PageRpc[K]>>>;
-};
-
 interface Page extends PageInfo {
   send: <K extends keyof PageEvents>(event: K, data: PageEvents[K]) => void;
 }
@@ -328,6 +321,13 @@ function isLocalHost(host: string | null) {
   const name = host?.replace(/:\d+$/, "");
   return name === "localhost" || name === "127.0.0.1";
 }
+
+/** `PageRpc` as the CLI calls it through the bridge, where every method is async. */
+type PageRpcClient = {
+  [K in keyof PageRpc]: (
+    ...args: Parameters<PageRpc[K]>
+  ) => Promise<Awaited<ReturnType<PageRpc[K]>>>;
+};
 
 // Calls `PageRpc` methods on a page through the bridge. A failed call, such
 // as one with no page connected or one the page fails, throws the bridge's
