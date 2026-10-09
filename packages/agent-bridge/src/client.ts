@@ -1,3 +1,11 @@
+import type {
+  AgentBridgeRequest,
+  BridgeResult,
+  PageRequest,
+  PageResult,
+  ToolInfo,
+} from "./protocol.ts";
+
 /**
  * A tool in the WebMCP shape, so the same object can be registered with
  * `document.modelContext`. `execute` receives the input object and resolves
@@ -20,11 +28,6 @@ export type AgentToolResult =
   | { isError: false; value?: unknown }
   | { isError: true; error: string };
 
-/** A request the bridge streams to the page, to list or call its tools. */
-export type AgentBridgeRequest =
-  | { method: "list" }
-  | { method: "call"; name: string; input: unknown };
-
 /**
  * Connects the page to the local agent bridge in cli.ts and exposes `tools`
  * to the agent. The bridge streams requests over Server-Sent Events, and each
@@ -42,16 +45,21 @@ export function connectAgentBridge({
   connectUrl.searchParams.set("url", window.location.href);
   const source = new EventSource(connectUrl);
   source.addEventListener("request", async (event) => {
-    const request = JSON.parse(event.data) as AgentBridgeRequest & {
-      requestId: string;
-    };
+    const request = JSON.parse(event.data) as PageRequest;
+    const serialize = (result: BridgeResult) =>
+      JSON.stringify({
+        requestId: request.requestId,
+        ...result,
+      } satisfies PageResult);
     let body: string;
     try {
-      const value = await handleRequest(tools, request);
-      body = JSON.stringify({ requestId: request.requestId, ok: true, value });
+      // Serialize inside try, so a non-JSON value is reported as an error.
+      body = serialize({
+        ok: true,
+        value: await handleRequest(tools, request),
+      });
     } catch (error) {
-      body = JSON.stringify({
-        requestId: request.requestId,
+      body = serialize({
         ok: false,
         error:
           error instanceof Error
@@ -65,7 +73,10 @@ export function connectAgentBridge({
   return () => source.close();
 }
 
-async function handleRequest(tools: AgentTool[], request: AgentBridgeRequest) {
+async function handleRequest(
+  tools: AgentTool[],
+  request: AgentBridgeRequest,
+): Promise<ToolInfo[] | AgentToolResult> {
   switch (request.method) {
     case "list": {
       return tools.map(({ name, description, inputSchema }) => ({

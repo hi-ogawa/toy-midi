@@ -15,7 +15,17 @@
 import { randomUUID } from "node:crypto";
 import { parseArgs } from "node:util";
 import * as srvx from "srvx";
-import type { AgentBridgeRequest, AgentToolResult } from "./client.ts";
+import type {
+  AgentBridgeRequest,
+  BridgeResult,
+  CallRequest,
+  CallResponse,
+  PageEvents,
+  PageInfo,
+  PageResult,
+  ToolInfo,
+  ToolsResponse,
+} from "./protocol.ts";
 
 const DEFAULT_PORT = 4747;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -44,17 +54,9 @@ options:
 
 Before calling tools, read what the page exposes with \`agent-bridge tools\`.`;
 
-interface Page {
-  id: string;
-  origin: string;
-  url?: string;
-  connectedAt: string;
-  send: (event: string, data: unknown) => void;
+interface Page extends PageInfo {
+  send: <K extends keyof PageEvents>(event: K, data: PageEvents[K]) => void;
 }
-
-type BridgeResult =
-  | { ok: true; value?: unknown }
-  | { ok: false; error: string };
 
 await main();
 
@@ -86,13 +88,13 @@ async function main() {
       break;
     }
     case "tools": {
-      const tools = await requestPage({
+      const tools = await requestPage<ToolsResponse>({
         port,
         page: values.page,
         path: "/tools",
       });
       if (tools) {
-        console.log(formatTools(tools as ToolInfo[]));
+        console.log(formatTools(tools));
       }
       break;
     }
@@ -107,12 +109,15 @@ async function main() {
         ...(json ? JSON.parse(json) : {}),
         ...(await parseArgInputs(values.arg ?? [])),
       };
-      const result = (await requestPage({
+      const result = await requestPage<CallResponse>({
         port,
         page: values.page,
         path: "/call",
-        init: { method: "POST", body: JSON.stringify({ name, input }) },
-      })) as AgentToolResult | undefined;
+        init: {
+          method: "POST",
+          body: JSON.stringify({ name, input } satisfies CallRequest),
+        },
+      });
       if (!result) {
         return;
       }
@@ -129,7 +134,8 @@ async function main() {
     case "pages": {
       const response = await requestBridge({ port, path: "/pages" });
       if (response) {
-        console.log(JSON.stringify(await response.json(), null, 2));
+        const pages = (await response.json()) as PageInfo[];
+        console.log(JSON.stringify(pages, null, 2));
       }
       break;
     }
@@ -152,7 +158,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
     const page = pages.get(pageId ?? [...pages.keys()].at(-1) ?? "");
     if (!page) {
       return Response.json(
-        { ok: false, error: "no page connected" },
+        { ok: false, error: "no page connected" } satisfies BridgeResult,
         { status: 503 },
       );
     }
@@ -239,7 +245,7 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
         return connect(url, origin);
       }
       case "POST /result": {
-        const { requestId, ...result } = await request.json();
+        const { requestId, ...result } = (await request.json()) as PageResult;
         pending.get(requestId)?.(result);
         return new Response(undefined, { status: 204 });
       }
@@ -254,19 +260,21 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
     switch (`${request.method} ${url.pathname}`) {
       case "GET /pages": {
         return Response.json(
-          [...pages.values()].map(({ id, origin, url, connectedAt }) => ({
-            id,
-            origin,
-            url,
-            connectedAt,
-          })),
+          [...pages.values()].map(
+            ({ id, origin, url, connectedAt }): PageInfo => ({
+              id,
+              origin,
+              url,
+              connectedAt,
+            }),
+          ),
         );
       }
       case "GET /tools": {
         return forward(pageId, { method: "list" });
       }
       case "POST /call": {
-        const { name, input } = await request.json();
+        const { name, input } = (await request.json()) as CallRequest;
         return forward(pageId, { method: "call", name, input });
       }
       default: {
@@ -326,7 +334,7 @@ function isLocalHost(host: string | null) {
 
 // Requests a page through the bridge and returns the result value. Failures
 // are printed to stderr with exit code 1 and return undefined.
-async function requestPage({
+async function requestPage<T extends BridgeResult>({
   port,
   page,
   path,
@@ -336,7 +344,7 @@ async function requestPage({
   page?: string;
   path: string;
   init?: RequestInit;
-}): Promise<unknown> {
+}): Promise<Extract<T, { ok: true }>["value"]> {
   const response = await requestBridge({
     port,
     path: page ? `${path}?page=${encodeURIComponent(page)}` : path,
@@ -345,7 +353,7 @@ async function requestPage({
   if (!response) {
     return;
   }
-  const result = (await response.json()) as BridgeResult;
+  const result = (await response.json()) as T;
   if (!result.ok) {
     console.error(result.error);
     process.exitCode = 1;
@@ -371,12 +379,6 @@ async function requestBridge({
     );
     process.exitCode = 1;
   }
-}
-
-interface ToolInfo {
-  name: string;
-  description: string;
-  inputSchema: object;
 }
 
 // Plain text rather than JSON, so multi-line descriptions read as written.
