@@ -41,7 +41,7 @@ const disconnect = connectAgentBridge({
 });
 ```
 
-## Architecture
+## How it works
 
 ![The page opens an event stream to the bridge once. Each CLI call is a POST to /rpc that the bridge holds open while it forwards the call to the page as an SSE event, and the page's POST to /result, paired by requestId, becomes the response.](images/rpc-flow.svg)
 
