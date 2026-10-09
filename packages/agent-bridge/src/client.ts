@@ -1,9 +1,4 @@
-import type {
-  BridgeResult,
-  PageRequest,
-  PageResult,
-  PageRpc,
-} from "./protocol.ts";
+import type { PageRequest, PageResult, PageRpc } from "./protocol.ts";
 
 /**
  * A tool in the WebMCP shape, so the same object can be registered with
@@ -46,23 +41,26 @@ export function connectAgentBridge({
   const source = new EventSource(connectUrl);
   source.addEventListener("request", async (event) => {
     const { requestId, method, args } = JSON.parse(event.data) as PageRequest;
-    const serialize = (result: BridgeResult) =>
-      JSON.stringify({ requestId, ...result } satisfies PageResult);
     let body: string;
     try {
+      const value = await (rpc[method] as (...args: unknown[]) => unknown)(
+        ...args,
+      );
       // Serialize inside try, so a non-JSON value is reported as an error.
-      body = serialize({
+      body = JSON.stringify({
+        requestId,
         ok: true,
-        value: await (rpc[method] as (...args: unknown[]) => unknown)(...args),
-      });
+        value,
+      } satisfies PageResult);
     } catch (error) {
-      body = serialize({
+      body = JSON.stringify({
+        requestId,
         ok: false,
         error:
           error instanceof Error
             ? (error.stack ?? error.message)
             : String(error),
-      });
+      } satisfies PageResult);
     }
     // Posted as text/plain so the request needs no CORS preflight.
     await fetch(new URL("/result", bridgeUrl), { method: "POST", body });
