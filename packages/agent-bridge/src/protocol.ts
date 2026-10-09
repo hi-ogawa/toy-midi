@@ -14,12 +14,12 @@ export const PAGE_ENDPOINTS = {
 } as const;
 
 /**
- * Endpoints the CLI requests. `tools` and `call` take `?page=<id>` to choose
- * the page.
+ * Endpoints the CLI requests, named after the `PageRpc` methods they call.
+ * `getTools` and `executeTool` take `?page=<id>` to choose the page.
  */
 export const AGENT_ENDPOINTS = {
-  tools: "/tools",
-  call: "/call",
+  getTools: "/get-tools",
+  executeTool: "/execute-tool",
   pages: "/pages",
 } as const;
 
@@ -64,8 +64,8 @@ export type BridgeResult<T = unknown> =
   | { ok: true; value?: T }
   | { ok: false; error: string };
 
-/** The `GET /tools` response. */
-export type ToolsResponse = PageRpcResult<"getTools">;
+/** The `GET /get-tools` response. */
+export type GetToolsResponse = PageRpcResult<"getTools">;
 
 /** The fields of a WebMCP `RegisteredTool` that the agent needs. */
 export interface ToolInfo {
@@ -74,13 +74,13 @@ export interface ToolInfo {
   inputSchema: object;
 }
 
-/** The `POST /call` body and response. */
-export interface CallRequest {
+/** The `POST /execute-tool` body and response. */
+export interface ExecuteToolRequest {
   name: string;
   input: unknown;
 }
 
-export type CallResponse = PageRpcResult<"executeTool">;
+export type ExecuteToolResponse = PageRpcResult<"executeTool">;
 
 /** An entry of the `GET /pages` response. */
 export interface PageInfo {

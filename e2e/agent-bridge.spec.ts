@@ -15,13 +15,13 @@ test("drives the open project from the agent bridge CLI", async ({
     .toHaveLength(1);
 
   // List the tools the project exposes.
-  const tools = await bridge.run(["tools"]);
+  const tools = await bridge.run(["get-tools"]);
   expect(tools.code).toBe(0);
   expect(tools.stdout).toContain("# toy_midi_eval");
 
   // Read the tempo through the eval tool.
   const tempo = await bridge.run([
-    "call",
+    "execute-tool",
     "toy_midi_eval",
     "--arg",
     "code=return runtime.store.get().tempo",
@@ -30,7 +30,7 @@ test("drives the open project from the agent bridge CLI", async ({
 
   // Pipe a multi-step edit from stdin, and see it in the editor.
   const edit = await bridge.run(
-    ["call", "toy_midi_eval", "--arg", "code=-"],
+    ["execute-tool", "toy_midi_eval", "--arg", "code=-"],
     `
       runtime.setTempo(98);
       await runtime.addMidiTrack({ program: 33 });
@@ -46,7 +46,7 @@ test("drives the open project from the agent bridge CLI", async ({
 
   // Throw from the agent's code, and get the error back with a failing exit code.
   const failure = await bridge.run([
-    "call",
+    "execute-tool",
     "toy_midi_eval",
     "--arg",
     "code=throw new Error('boom')",

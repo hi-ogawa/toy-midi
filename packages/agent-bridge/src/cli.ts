@@ -7,9 +7,9 @@
 //
 // Usage:
 //   agent-bridge serve --origin https://example.com
-//   agent-bridge tools
-//   agent-bridge call some_tool '{"key":"value"}'
-//   echo 'multi-line text' | agent-bridge call some_tool --arg key=-
+//   agent-bridge get-tools
+//   agent-bridge execute-tool some_tool '{"key":"value"}'
+//   echo 'multi-line text' | agent-bridge execute-tool some_tool --arg key=-
 //   agent-bridge pages
 
 import { randomUUID } from "node:crypto";
@@ -19,15 +19,15 @@ import {
   AGENT_ENDPOINTS,
   PAGE_ENDPOINTS,
   type BridgeResult,
-  type CallRequest,
-  type CallResponse,
+  type ExecuteToolRequest,
+  type ExecuteToolResponse,
+  type GetToolsResponse,
   type PageEvents,
   type PageInfo,
   type PageResult,
   type PageRpc,
   type PageRpcResult,
   type ToolInfo,
-  type ToolsResponse,
 } from "./protocol.ts";
 
 const DEFAULT_PORT = 4747;
@@ -38,24 +38,25 @@ const USAGE = `\
 usage: agent-bridge <command> [options]
 
 commands:
-  serve               run the bridge
-  tools               describe the connected page's tools
-  call <tool> [json]  call a tool with the JSON input, default {}.
-                      A string value is printed as is, and anything else
-                      as JSON.
-  pages               list connected pages
+  serve                       run the bridge
+  get-tools                   describe the connected page's tools
+  execute-tool <tool> [json]  execute a tool with the JSON input, default {}.
+                              A string value is printed as is, and anything
+                              else as JSON.
+  pages                       list connected pages
 
 options:
   --port <number>     bridge port (default ${DEFAULT_PORT}, serve accepts 0
                       for any free port)
   --origin <origin>   page origin to accept, repeatable (serve only, required)
   --page <id>         target page (default the latest connected)
-  --arg <key=value>   set a string field of the call input, repeatable.
+  --arg <key=value>   set a string field of the tool input, repeatable.
                       A value of - reads stdin, so code or long text needs no
                       JSON escaping.
   -h, --help          show this help
 
-Before calling tools, read what the page exposes with \`agent-bridge tools\`.`;
+Before executing tools, read what the page exposes with
+\`agent-bridge get-tools\`.`;
 
 /** `PageRpc` as the bridge calls it, with each result wrapped for failures. */
 type PageRpcClient = {
@@ -97,18 +98,18 @@ async function main() {
       await serve({ port, origins: values.origin });
       break;
     }
-    case "tools": {
-      const tools = await requestPage<ToolsResponse>({
+    case "get-tools": {
+      const tools = await requestPage<GetToolsResponse>({
         port,
         page: values.page,
-        path: AGENT_ENDPOINTS.tools,
+        path: AGENT_ENDPOINTS.getTools,
       });
       if (tools) {
         console.log(formatTools(tools));
       }
       break;
     }
-    case "call": {
+    case "execute-tool": {
       const [name, json] = rest;
       if (!name) {
         console.error(USAGE);
@@ -119,13 +120,13 @@ async function main() {
         ...(json ? JSON.parse(json) : {}),
         ...(await parseArgInputs(values.arg ?? [])),
       };
-      const result = await requestPage<CallResponse>({
+      const result = await requestPage<ExecuteToolResponse>({
         port,
         page: values.page,
-        path: AGENT_ENDPOINTS.call,
+        path: AGENT_ENDPOINTS.executeTool,
         init: {
           method: "POST",
-          body: JSON.stringify({ name, input } satisfies CallRequest),
+          body: JSON.stringify({ name, input } satisfies ExecuteToolRequest),
         },
       });
       if (!result) {
@@ -304,11 +305,11 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
           ),
         );
       }
-      case `GET ${AGENT_ENDPOINTS.tools}`: {
+      case `GET ${AGENT_ENDPOINTS.getTools}`: {
         return callPage(pageId, (rpc) => rpc.getTools());
       }
-      case `POST ${AGENT_ENDPOINTS.call}`: {
-        const { name, input } = (await request.json()) as CallRequest;
+      case `POST ${AGENT_ENDPOINTS.executeTool}`: {
+        const { name, input } = (await request.json()) as ExecuteToolRequest;
         return callPage(pageId, (rpc) => rpc.executeTool({ name }, input));
       }
       default: {

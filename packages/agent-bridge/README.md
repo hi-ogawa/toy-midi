@@ -12,8 +12,8 @@ Other apps depend on the page client the same way, pinned to a commit with `gith
 
 ```sh
 agent-bridge serve --origin https://toy-midi.hiro18181.workers.dev
-agent-bridge tools
-agent-bridge call toy_midi_eval --arg code='return runtime.store.get().tempo'
+agent-bridge get-tools
+agent-bridge execute-tool toy_midi_eval --arg code='return runtime.store.get().tempo'
 ```
 
 The page decides which tools it exposes when it connects. A tool has the [WebMCP](https://webmachinelearning.github.io/webmcp/) shape, so the same definitions can later be registered with `document.modelContext`:
@@ -57,22 +57,22 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 
 ### CLI
 
-| Command                           | Input                                                   | Output                                                                                           |
-| --------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `agent-bridge serve`              | `--origin <origin>`, repeatable, required               | Runs the bridge in the foreground and logs pages connecting and leaving                          |
-| `agent-bridge tools`              |                                                         | Each tool's name, description, and input schema as plain text                                    |
-| `agent-bridge call <tool> [json]` | Input JSON, default `{}`, plus `--arg key=value` fields | The `value` of the result, a string as is, anything else as indented JSON, or nothing when empty |
-| `agent-bridge pages`              |                                                         | Connected pages as indented JSON on stdout                                                       |
+| Command                                   | Input                                                   | Output                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `agent-bridge serve`                      | `--origin <origin>`, repeatable, required               | Runs the bridge in the foreground and logs pages connecting and leaving                          |
+| `agent-bridge get-tools`                  |                                                         | Each tool's name, description, and input schema as plain text                                    |
+| `agent-bridge execute-tool <tool> [json]` | Input JSON, default `{}`, plus `--arg key=value` fields | The `value` of the result, a string as is, anything else as indented JSON, or nothing when empty |
+| `agent-bridge pages`                      |                                                         | Connected pages as indented JSON on stdout                                                       |
 
-Every command takes `--port <number>`, and `serve --port 0` listens on a free port and logs it. `tools` and `call` take `--page <id>` to choose the page. `--arg` is repeatable and sets a string field, and a value of `-` reads stdin, so code or long text can be piped in without JSON escaping. A failed call, an `isError` result, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
+Every command takes `--port <number>`, and `serve --port 0` listens on a free port and logs it. `get-tools` and `execute-tool` take `--page <id>` to choose the page. `--arg` is repeatable and sets a string field, and a value of `-` reads stdin, so code or long text can be piped in without JSON escaping. A failed request, an `isError` result, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
 
 ### Agent endpoints
 
-| Request              | Body              | Response                                                                              |
-| -------------------- | ----------------- | ------------------------------------------------------------------------------------- |
-| `GET /tools?page=id` |                   | 200 `{ ok: true, value: [{ name, description, inputSchema }] }`                       |
-| `POST /call?page=id` | `{ name, input }` | 200 `{ ok: true, value? }`, 500 `{ ok: false, error }`, 503 when no page is connected |
-| `GET /pages`         |                   | `[{ id, origin, url, connectedAt }]`                                                  |
+| Request                      | Body              | Response                                                                              |
+| ---------------------------- | ----------------- | ------------------------------------------------------------------------------------- |
+| `GET /get-tools?page=id`     |                   | 200 `{ ok: true, value: [{ name, description, inputSchema }] }`                       |
+| `POST /execute-tool?page=id` | `{ name, input }` | 200 `{ ok: true, value? }`, 500 `{ ok: false, error }`, 503 when no page is connected |
+| `GET /pages`                 |                   | `[{ id, origin, url, connectedAt }]`                                                  |
 
 ### Page endpoints
 
