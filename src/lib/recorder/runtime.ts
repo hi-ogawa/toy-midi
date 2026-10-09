@@ -60,7 +60,6 @@ export interface AudioTrackState {
   id: string;
   name: string;
   eq: MultibandEqParameters;
-  /** Row height in pixels */
   height: number;
   gain: number;
   muted: boolean;
@@ -69,7 +68,6 @@ export interface AudioTrackState {
   clips: AudioClip[];
   /** The parts of the takes that are heard, derived from `clips` */
   regions: ClipRegion[];
-  /** Numbers the takes recorded into the track */
   nextTakeNumber: number;
   showClips: boolean;
 }
@@ -81,7 +79,6 @@ export interface MidiTrackState {
   /** General MIDI program number (0-127) */
   program: number;
   eq: MultibandEqParameters;
-  /** Row height in pixels */
   height: number;
   viewMode: "editor" | "overview";
   gain: number;
