@@ -64,7 +64,7 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 | `agent-bridge call <tool> [json]` | Input JSON, default `{}`, plus `--arg key=value` fields | The `value` of the result, a string as is, anything else as indented JSON, or nothing when empty |
 | `agent-bridge pages`              |                                                         | Connected pages as indented JSON on stdout                                                       |
 
-Every command takes `--port <number>`, and `tools` and `call` take `--page <id>` to choose the page. `--arg` is repeatable and sets a string field, and a value of `-` reads stdin, so code or long text can be piped in without JSON escaping. A failed call, an `isError` result, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
+Every command takes `--port <number>`, and `serve --port 0` listens on a free port and logs it. `tools` and `call` take `--page <id>` to choose the page. `--arg` is repeatable and sets a string field, and a value of `-` reads stdin, so code or long text can be piped in without JSON escaping. A failed call, an `isError` result, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
 
 ### Agent endpoints
 

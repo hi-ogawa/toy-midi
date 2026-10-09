@@ -1,17 +1,15 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import net from "node:net";
 import { test as base, expect } from "@playwright/test";
 import { createRecorderProject } from "./recorder-helpers";
 
 const test = base.extend<{ bridge: AgentBridge }>({
   bridge: async ({ baseURL }, use) => {
-    const port = await getFreePort();
     const server = spawn(process.execPath, [
       CLI_PATH,
       "serve",
       "--port",
-      String(port),
+      "0",
       "--origin",
       new URL(baseURL!).origin,
     ]);
@@ -21,7 +19,7 @@ const test = base.extend<{ bridge: AgentBridge }>({
         throw new Error("agent bridge exited before listening");
       }),
     ]);
-    expect(String(listening)).toContain("listening");
+    const port = Number(String(listening).match(/listening on .*:(\d+)/)![1]);
     await use({
       port,
       run: (args, stdin) => runCli([...args, "--port", String(port)], stdin),
@@ -105,15 +103,4 @@ async function runCli(args: string[], stdin?: string): Promise<CliResult> {
   child.stdin.end(stdin);
   const [code] = await once(child, "close");
   return { code, stdout, stderr };
-}
-
-function getFreePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.once("error", reject);
-    server.listen(0, () => {
-      const { port } = server.address() as net.AddressInfo;
-      server.close(() => resolve(port));
-    });
-  });
 }

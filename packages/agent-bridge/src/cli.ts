@@ -14,6 +14,7 @@
 
 import { randomUUID } from "node:crypto";
 import http from "node:http";
+import type { AddressInfo } from "node:net";
 import { parseArgs } from "node:util";
 import type { AgentBridgeRequest, AgentToolResult } from "./client.ts";
 
@@ -33,7 +34,8 @@ commands:
   pages               list connected pages
 
 options:
-  --port <number>     bridge port (default ${DEFAULT_PORT})
+  --port <number>     bridge port (default ${DEFAULT_PORT}, serve accepts 0
+                      for any free port)
   --origin <origin>   page origin to accept, repeatable (serve only, required)
   --page <id>         target page (default the latest connected)
   --arg <key=value>   set a string field of the call input, repeatable.
@@ -278,7 +280,9 @@ function serve({ port, origins }: { port: number; origins: string[] }) {
   });
 
   server.listen(port, "127.0.0.1", () => {
-    console.log(`[agent-bridge] listening on http://localhost:${port}`);
+    // Report the bound port, which the OS picks for `--port 0`.
+    const { port: boundPort } = server.address() as AddressInfo;
+    console.log(`[agent-bridge] listening on http://localhost:${boundPort}`);
     console.log(`[agent-bridge] accepting pages from ${origins.join(", ")}`);
   });
 }
