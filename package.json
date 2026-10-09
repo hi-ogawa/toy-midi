@@ -6,7 +6,7 @@
   "scripts": {
     "prepare": "vp config",
     "dev": "vite dev --config vite.app.config.ts",
-    "build": "pnpm build-wasm && pnpm build-app",
+    "build": "pnpm build-wasm && pnpm build-webmcp-tools-doc && pnpm build-app",
     "build-app": "vite build --config vite.app.config.ts",
     "preview": "vite preview --config vite.app.config.ts",
     "override-wasm": "yq -i '.overrides.\"@hiogawa/bass-pitch-wasm\" = \"workspace:*\"' pnpm-workspace.yaml",

@@ -1,7 +1,8 @@
 import type { WebMcpTool } from "@hiogawa/webmcp-bridge/client";
 import type { RecorderRuntime } from "./recorder/runtime";
 
-// The runtime API as one declaration file from `pnpm build-webmcp-tools-doc`.
+// The runtime API as one declaration file from `pnpm build-webmcp-tools-doc`,
+// which `pnpm build` runs for deploys.
 // Until that has run, the description goes without it.
 const [runtimeTypes] = Object.values(
   import.meta.glob<string>(
