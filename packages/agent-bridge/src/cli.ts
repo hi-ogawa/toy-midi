@@ -36,7 +36,7 @@ options:
   --port <number>     bridge port (default ${DEFAULT_PORT}, serve accepts 0
                       for any free port)
   --origin <origin>   page origin to accept, repeatable (serve only, required)
-  --page <id>         target page (default the latest connected)
+  --page <id>         target page, required when several pages are connected
   --arg <key=value>   set a string field of the tool input, repeatable.
                       A value of - reads stdin, so code or long text needs no
                       JSON escaping.

@@ -29,21 +29,45 @@ export async function serveBridge({
   const pages = new Map<string, PageConnection>();
   const pending = new Map<string, (result: RpcResult) => void>();
 
-  // Forwards a `PageRpc` call to the chosen page, by default the most
-  // recently connected one, and responds with the result it posts back.
+  // Forwards a `PageRpc` call to the chosen page, and responds with the
+  // result it posts back.
   async function callPage(
     pageId: string | undefined,
     call: RpcCall,
   ): Promise<Response> {
-    const page = pageId ? pages.get(pageId) : [...pages.values()].at(-1);
-    if (!page) {
+    const choice = choosePage(pageId);
+    if ("error" in choice) {
       return Response.json(
-        { ok: false, error: "no page connected" } satisfies RpcResult,
-        { status: 503 },
+        { ok: false, error: choice.error } satisfies RpcResult,
+        { status: choice.status },
       );
     }
-    const result = await sendRequest(page, call);
+    const result = await sendRequest(choice.page, call);
     return Response.json(result, { status: result.ok ? 200 : 500 });
+  }
+
+  // Picks the page with `pageId`, or the only connected page when no id is
+  // given, so a call never goes to one of several pages by guess.
+  function choosePage(
+    pageId: string | undefined,
+  ): { page: PageConnection } | { error: string; status: number } {
+    if (pageId) {
+      const page = pages.get(pageId);
+      return page
+        ? { page }
+        : { error: `no page ${pageId} connected`, status: 404 };
+    }
+    if (pages.size === 0) {
+      return { error: "no page connected", status: 503 };
+    }
+    if (pages.size > 1) {
+      return {
+        error: `${pages.size} pages connected, choose one with --page <id>: ${[...pages.keys()].join(", ")}`,
+        status: 409,
+      };
+    }
+    const [page] = pages.values();
+    return { page: page! };
   }
 
   // Sends a call over the page's event stream, and resolves once the page

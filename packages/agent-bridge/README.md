@@ -68,11 +68,11 @@ A tool has the same shape as in [WebMCP](https://webmachinelearning.github.io/we
 | `agent-bridge execute-tool <tool> [json]` | Input JSON, default `{}`, plus `--arg key=value` fields | The `value` of the result, a string as is, anything else as indented JSON, or nothing when empty |
 | `agent-bridge pages`                      |                                                         | Connected pages as indented JSON                                                                 |
 
-Every command takes `--port <number>`, which defaults to 4747. `serve --port 0` picks a free port and prints it. `get-tools` and `execute-tool` take `--page <id>` to choose one of several connected pages, and otherwise use the one that connected most recently.
+Every command takes `--port <number>`, which defaults to 4747. `serve --port 0` picks a free port and prints it. `get-tools` and `execute-tool` take `--page <id>` to choose a page. Without it they use the only connected page, and fail with the list of ids when several pages are connected.
 
 `--arg` sets one string field of the input and can be repeated. A value of `-` reads the field from standard input, so code or long text can be piped in without escaping it as JSON.
 
-Any failure prints a message to standard error and exits with code 1, so the agent can tell success from failure by the exit code alone. Failures include a tool that reports an error, a timeout, no connected page, and no running bridge.
+Any failure prints a message to standard error and exits with code 1, so the agent can tell success from failure by the exit code alone. Failures include a tool that reports an error, a timeout, no connected page, several connected pages without `--page`, and no running bridge.
 
 ## How It Works
 
