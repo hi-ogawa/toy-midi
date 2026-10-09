@@ -36,9 +36,12 @@
 // coverage boundaries.
 
 export interface AudioView {
-  data: number[]; // amplitude values (0-1)
-  samplesPerPoint: number; // each point represents this many samples (exact integer)
-  sampleRate: number; // for time↔sample conversion
+  /** Amplitude values (0-1) */
+  data: number[];
+  /** Each point represents this many samples (exact integer) */
+  samplesPerPoint: number;
+  /** For time↔sample conversion */
+  sampleRate: number;
 }
 
 export const EMPTY_AUDIO_VIEW: AudioView = {

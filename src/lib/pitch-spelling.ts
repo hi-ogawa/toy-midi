@@ -1,5 +1,6 @@
 export interface KeySignature {
-  fifths: number; // Number of flats (-) or sharps (+)
+  /** Number of flats (-) or sharps (+) */
+  fifths: number;
   mode: "major" | "minor";
 }
 
