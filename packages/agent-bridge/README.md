@@ -47,6 +47,8 @@ const disconnect = connectAgentBridge({
 
 A call takes two hops, because the page can only reach the bridge and never the other way around. The CLI's hop is one HTTP request and response. The page's hop is split in two: the bridge pushes the call down the page's event stream, and the page posts the result back, which the bridge pairs with the waiting `/rpc` request by `requestId`. The bridge forwards `{ method, args }` without knowing the methods, so only the CLI and the page know `PageRpc`.
 
+Each open event stream is one connected page with its own id. `GET /pages` lists them and never reaches a page, because the bridge answers it from its own list. A call goes to the page chosen with `?page=<id>`, which the CLI sets from `--page`, or else to the most recently connected one.
+
 ### Security
 
 The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use separate endpoints, and the `Origin` header tells them apart: page requests must carry a listed origin, and agent requests must carry none. Anything else gets 403. Every request must also be addressed to `localhost` or `127.0.0.1` in its `Host` header, so a site that rebinds its DNS to the loopback address cannot reach the agent endpoints as same-origin.
