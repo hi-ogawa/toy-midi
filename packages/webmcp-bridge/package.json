@@ -1,0 +1,16 @@
+{
+  "name": "@hiogawa/webmcp-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "bin": {
+    "webmcp-bridge": "./bin/cli.js"
+  },
+  "type": "module",
+  "exports": {
+    "./client": "./src/client.ts"
+  },
+  "dependencies": {
+    "srvx": "^1.0.5",
+    "tsx": "^4.23.13"
+  }
+}
