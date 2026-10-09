@@ -1,9 +1,9 @@
 {
-  "name": "@hiogawa/webmcp-cli",
+  "name": "@hiogawa/webmcp-bridge",
   "version": "0.0.0",
   "private": true,
   "bin": {
-    "webmcp-cli": "./bin/cli.js"
+    "webmcp-bridge": "./bin/cli.js"
   },
   "type": "module",
   "exports": {

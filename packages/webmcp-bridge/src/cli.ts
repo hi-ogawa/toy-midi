@@ -1,13 +1,13 @@
-// The webmcp-cli command. `serve` runs the bridge in server.ts,
+// The webmcp-bridge command. `serve` runs the bridge in server.ts,
 // and the other commands let an agent with a shell list and execute the
 // connected page's tools through it.
 //
 // Usage:
-//   webmcp-cli serve --origin https://example.com
-//   webmcp-cli get-tools
-//   webmcp-cli execute-tool some_tool '{"key":"value"}'
-//   echo 'multi-line text' | webmcp-cli execute-tool some_tool --arg key=-
-//   webmcp-cli pages
+//   webmcp-bridge serve --origin https://example.com
+//   webmcp-bridge get-tools
+//   webmcp-bridge execute-tool some_tool '{"key":"value"}'
+//   echo 'multi-line text' | webmcp-bridge execute-tool some_tool --arg key=-
+//   webmcp-bridge pages
 
 import { parseArgs } from "node:util";
 import {
@@ -22,7 +22,7 @@ import { BridgeServer } from "./server.ts";
 const DEFAULT_PORT = 4747;
 
 const USAGE = `\
-usage: webmcp-cli <command> [options]
+usage: webmcp-bridge <command> [options]
 
 commands:
   serve                       run the bridge
@@ -43,7 +43,7 @@ options:
   -h, --help          show this help
 
 Before executing tools, read what the page exposes with
-\`webmcp-cli get-tools\`.`;
+\`webmcp-bridge get-tools\`.`;
 
 async function main() {
   const { values, positionals } = parseArgs({
@@ -162,7 +162,7 @@ async function requestBridge({
     return await fetch(`http://127.0.0.1:${port}${path}`, init);
   } catch {
     throw new Error(
-      `no bridge on port ${port}, start one with \`webmcp-cli serve\``,
+      `no bridge on port ${port}, start one with \`webmcp-bridge serve\``,
     );
   }
 }

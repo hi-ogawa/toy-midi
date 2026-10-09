@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { test as base } from "@playwright/test";
 
-/** Playwright `test` with a `bridge` fixture, which runs a webmcp-cli bridge that accepts the app's origin. */
+/** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
 export const test = base.extend<{ bridge: BridgeFixture }>({
   bridge: async ({ baseURL }, use) => {
     const server = spawn(process.execPath, [
@@ -16,7 +16,7 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
     const [listening] = await Promise.race([
       once(server.stdout, "data"),
       once(server, "exit").then(() => {
-        throw new Error("webmcp-cli bridge exited before listening");
+        throw new Error("webmcp-bridge exited before listening");
       }),
     ]);
     const port = Number(String(listening).match(/listening on .*:(\d+)/)![1]);
@@ -28,7 +28,7 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
   },
 });
 
-const CLI_PATH = "packages/webmcp-cli/bin/cli.js";
+const CLI_PATH = "packages/webmcp-bridge/bin/cli.js";
 
 interface BridgeFixture {
   port: number;

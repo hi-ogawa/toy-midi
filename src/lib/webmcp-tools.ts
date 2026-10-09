@@ -1,4 +1,4 @@
-import type { WebMcpTool } from "@hiogawa/webmcp-cli/client";
+import type { WebMcpTool } from "@hiogawa/webmcp-bridge/client";
 import type { RecorderRuntime } from "./recorder/runtime";
 
 const AsyncFunction = async function () {}.constructor as new (

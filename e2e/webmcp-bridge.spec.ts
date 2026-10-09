@@ -1,14 +1,14 @@
 import { expect } from "@playwright/test";
 import { createRecorderProject } from "./recorder-helpers";
-import { test } from "./webmcp-cli-helpers";
+import { test } from "./webmcp-bridge-helpers";
 
-test("drives the open project from the webmcp-cli command", async ({
+test("drives the open project from the webmcp-bridge command", async ({
   page,
   bridge,
 }) => {
   // Open a project with the bridge enabled and wait for it to connect.
   await createRecorderProject(page);
-  await page.goto(`${page.url()}?webmcp-cli=${bridge.port}`);
+  await page.goto(`${page.url()}?webmcp-bridge=${bridge.port}`);
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();
   await expect
     .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))

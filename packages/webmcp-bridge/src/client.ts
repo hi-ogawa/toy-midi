@@ -34,7 +34,7 @@ export type WebMcpToolResult =
  * result, or the error a tool throws, is posted back as JSON. Returns a
  * function that disconnects.
  */
-export function connectWebMcpCli({
+export function connectWebMcpBridge({
   bridgeUrl,
   tools,
 }: {
