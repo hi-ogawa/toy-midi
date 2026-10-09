@@ -47,7 +47,9 @@ const disconnect = connectAgentBridge({
 
 A call takes two hops, because the page can only reach the bridge and never the other way around. The CLI's hop is one HTTP request and response. The page's hop is split in two: the bridge pushes the call down the page's event stream, and the page posts the result back, which the bridge pairs with the waiting `/rpc` request by `requestId`. The bridge forwards `{ method, args }` without knowing the methods, so only the CLI and the page know `PageRpc`.
 
-Each open event stream is one connected page with its own id. `GET /pages` lists them and never reaches a page, because the bridge answers it from its own list. A call goes to the page chosen with `?page=<id>`, which the CLI sets from `--page`, or else to the most recently connected one.
+Each open event stream is one connected page with its own id. `GET /pages` lists them and never reaches a page, because the bridge answers it from its own list. A call goes to the page chosen with `?page=<id>`, which the CLI sets from `--page`, or else to the most recently connected one. A page that reconnects gets a new id.
+
+The endpoints, events, and messages are defined in `src/protocol.ts` and `src/rpc.ts`.
 
 ### Security
 
@@ -70,23 +72,3 @@ The bridge listens on `127.0.0.1`, port 4747 by default. Pages and agents use se
 | `agent-bridge pages`                      |                                                         | Connected pages as indented JSON on stdout                                                       |
 
 Every command takes `--port <number>`, and `serve --port 0` listens on a free port and logs it. `get-tools` and `execute-tool` take `--page <id>` to choose the page. `--arg` is repeatable and sets a string field, and a value of `-` reads stdin, so code or long text can be piped in without JSON escaping. A failed request, an `isError` result, a timeout, no connected page, or no running bridge prints the error to stderr and exits with code 1, so the agent can tell success from failure by exit code alone.
-
-## HTTP endpoints
-
-### Agent endpoints
-
-| Request             | Body               | Response                                                                             |
-| ------------------- | ------------------ | ------------------------------------------------------------------------------------ |
-| `POST /rpc?page=id` | `{ method, args }` | 200 `{ ok: true, value }`, 500 `{ ok: false, error }`, 503 when no page is connected |
-| `GET /pages`        |                    | `[{ id, origin, url, connectedAt }]`                                                 |
-
-`/rpc` forwards the call to the page as is, so the bridge has no endpoint per method. The CLI's `get-tools` and `execute-tool` call `getTools()` and `executeTool({ name }, input)` through it.
-
-### Page endpoints
-
-| Request                 | Body                                                                       | Response                                                                                                                                                                 |
-| ----------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /connect?url=href` |                                                                            | Server-Sent Events: `request` `{ requestId, method, args }`, which calls `getTools()` or `executeTool({ name }, input)` on the page, named after WebMCP's `ModelContext` |
-| `POST /result`          | JSON `{ requestId, ok: true, value }` or `{ requestId, ok: false, error }` | 204                                                                                                                                                                      |
-
-The methods, endpoints, and events are in `src/protocol.ts`, and the generic RPC messages in `src/rpc.ts`. The bridge sends a comment every 15 seconds to keep the stream open. A page that reconnects gets a new id. `connectAgentBridge` implements the page side, posting results as `text/plain` so they need no CORS preflight.
