@@ -70,13 +70,13 @@ export function connectAgentBridge({
 
 function createPageRpc(tools: AgentTool[]): PageRpc {
   return {
-    listTools: () =>
+    getTools: () =>
       tools.map(({ name, description, inputSchema }) => ({
         name,
         description,
         inputSchema,
       })),
-    callTool: async ({ name, input }) => {
+    executeTool: async ({ name }, input) => {
       const tool = tools.find((tool) => tool.name === name);
       if (!tool) {
         throw new Error(`unknown tool: ${name}`);

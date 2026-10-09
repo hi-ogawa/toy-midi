@@ -300,11 +300,11 @@ async function serve({ port, origins }: { port: number; origins: string[] }) {
         );
       }
       case "GET /tools": {
-        return callPage(pageId, (rpc) => rpc.listTools());
+        return callPage(pageId, (rpc) => rpc.getTools());
       }
       case "POST /call": {
-        const body = (await request.json()) as CallRequest;
-        return callPage(pageId, (rpc) => rpc.callTool(body));
+        const { name, input } = (await request.json()) as CallRequest;
+        return callPage(pageId, (rpc) => rpc.executeTool({ name }, input));
       }
       default: {
         return new Response("not found\n", { status: 404 });

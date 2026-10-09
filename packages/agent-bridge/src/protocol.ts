@@ -8,10 +8,15 @@ import type { AgentToolResult } from "./client.ts";
 // streams `PageEvents`, and the page answers each request with
 // `POST /result`.
 
-/** Methods a page serves to the bridge. */
+/**
+ * Methods a page serves to the bridge, named after WebMCP's `ModelContext`.
+ * `executeTool` takes the tool by name, because a WebMCP `RegisteredTool`
+ * holds a `window` that cannot be sent, and resolves to the result object
+ * rather than its JSON string.
+ */
 export interface PageRpc {
-  listTools(): ToolInfo[];
-  callTool(request: CallRequest): Promise<AgentToolResult>;
+  getTools(): ToolInfo[];
+  executeTool(tool: { name: string }, input: unknown): Promise<AgentToolResult>;
 }
 
 /** A `PageRpc` method's result, as the page posts it and the bridge returns it. */
@@ -42,8 +47,9 @@ export type BridgeResult<T = unknown> =
   | { ok: false; error: string };
 
 /** The `GET /tools` response. */
-export type ToolsResponse = PageRpcResult<"listTools">;
+export type ToolsResponse = PageRpcResult<"getTools">;
 
+/** The fields of a WebMCP `RegisteredTool` that the agent needs. */
 export interface ToolInfo {
   name: string;
   description: string;
@@ -56,7 +62,7 @@ export interface CallRequest {
   input: unknown;
 }
 
-export type CallResponse = PageRpcResult<"callTool">;
+export type CallResponse = PageRpcResult<"executeTool">;
 
 /** An entry of the `GET /pages` response. */
 export interface PageInfo {
