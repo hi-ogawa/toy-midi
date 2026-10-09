@@ -1,44 +1,47 @@
 // Local bridge between an open web app and an agent with a shell.
 //
-// A page connects to the bridge with Server-Sent Events and posts results
-// back. The agent posts JavaScript to `/eval`, the bridge forwards it to the
-// page, and the page's result becomes the response. The app decides what
-// `app` is when it connects with the client in client.ts.
+// A page connects to the bridge with Server-Sent Events, exposing tools in
+// the WebMCP shape through the client in client.ts. The agent lists and calls
+// those tools through the CLI, the bridge forwards each request to the page,
+// and the page's result becomes the response.
 //
 // Usage:
 //   agent-bridge serve --origin https://example.com
-//   agent-bridge eval 'return app.runtime.store.get().tempo'
-//   echo 'await app.runtime.play()' | agent-bridge eval
+//   agent-bridge tools
+//   agent-bridge call some_tool '{"key":"value"}'
+//   echo 'multi-line text' | agent-bridge call some_tool --arg key=-
 //   agent-bridge pages
 
 import { randomUUID } from "node:crypto";
 import http from "node:http";
 import { parseArgs } from "node:util";
+import type { AgentBridgeRequest } from "./client.ts";
 
 const DEFAULT_PORT = 4747;
-const EVAL_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 const PING_INTERVAL_MS = 15_000;
 
 const USAGE = `\
 usage: agent-bridge <command> [options]
 
 commands:
-  serve            run the bridge
-  eval [code]      run code in the connected page, from the argument or stdin.
-                   The code is an async function body with \`app\` in scope.
-                   A string result is printed as is, and anything else as JSON.
-  pages            list connected pages
+  serve               run the bridge
+  tools               describe the connected page's tools
+  call <tool> [json]  call a tool with the JSON input, default {}.
+                      A string result is printed as is, and anything else
+                      as JSON.
+  pages               list connected pages
 
 options:
-  --port <number>    bridge port (default ${DEFAULT_PORT})
-  --origin <origin>  page origin to accept, repeatable (serve only, required)
-  --page <id>        target page (eval only, default the latest connected)
-  -h, --help         show this help
+  --port <number>     bridge port (default ${DEFAULT_PORT})
+  --origin <origin>   page origin to accept, repeatable (serve only, required)
+  --page <id>         target page (default the latest connected)
+  --arg <key=value>   set a string field of the call input, repeatable.
+                      A value of - reads stdin, so code or long text needs no
+                      JSON escaping.
+  -h, --help          show this help
 
-Before driving a page, read what it exposes:
-  agent-bridge eval 'return app.__agent_bridge_doc__'
-Pages describe \`app\` there in plain text. If it is undefined, the page has
-no doc, and \`Object.keys(app)\` is the fallback.`;
+Before calling tools, read what the page exposes with \`agent-bridge tools\`.`;
 
 interface Page {
   id: string;
@@ -48,7 +51,9 @@ interface Page {
   response: http.ServerResponse;
 }
 
-type EvalResult = { ok: true; value?: unknown } | { ok: false; error: string };
+type BridgeResult =
+  | { ok: true; value?: unknown }
+  | { ok: false; error: string };
 
 await main();
 
@@ -59,10 +64,11 @@ async function main() {
       port: { type: "string", default: String(DEFAULT_PORT) },
       origin: { type: "string", multiple: true },
       page: { type: "string" },
+      arg: { type: "string", multiple: true },
       help: { type: "boolean", short: "h" },
     },
   });
-  const [command, code] = positionals;
+  const [command, ...rest] = positionals;
   const port = Number(values.port);
   if (values.help || !command) {
     console.log(USAGE);
@@ -78,12 +84,39 @@ async function main() {
       serve({ port, origins: values.origin });
       break;
     }
-    case "eval": {
-      await runEval({
+    case "tools": {
+      const tools = await requestPage({
         port,
         page: values.page,
-        code: code ?? (await readStdin()),
+        path: "/tools",
       });
+      if (tools) {
+        console.log(formatTools(tools as ToolInfo[]));
+      }
+      break;
+    }
+    case "call": {
+      const [name, json] = rest;
+      if (!name) {
+        console.error(USAGE);
+        process.exitCode = 1;
+        return;
+      }
+      const input = {
+        ...(json ? JSON.parse(json) : {}),
+        ...(await parseArgInputs(values.arg ?? [])),
+      };
+      const value = await requestPage({
+        port,
+        page: values.page,
+        path: "/call",
+        init: { method: "POST", body: JSON.stringify({ name, input }) },
+      });
+      if (typeof value === "string") {
+        console.log(value);
+      } else if (value !== undefined) {
+        console.log(JSON.stringify(value, null, 2));
+      }
       break;
     }
     case "pages": {
@@ -102,7 +135,37 @@ async function main() {
 
 function serve({ port, origins }: { port: number; origins: string[] }) {
   const pages = new Map<string, Page>();
-  const pending = new Map<string, (result: EvalResult) => void>();
+  const pending = new Map<string, (result: BridgeResult) => void>();
+
+  // Sends a request to a page and waits for the result it posts back.
+  async function forward(
+    response: http.ServerResponse,
+    pageId: string | null,
+    request: AgentBridgeRequest,
+  ) {
+    const page = pages.get(pageId ?? [...pages.keys()].at(-1) ?? "");
+    if (!page) {
+      sendJson(response, 503, { ok: false, error: "no page connected" });
+      return;
+    }
+    const requestId = randomUUID();
+    const result = await new Promise<BridgeResult>((resolve) => {
+      const timer = setTimeout(
+        () =>
+          resolve({
+            ok: false,
+            error: `timed out after ${REQUEST_TIMEOUT_MS} ms`,
+          }),
+        REQUEST_TIMEOUT_MS,
+      );
+      pending.set(requestId, (result) => {
+        clearTimeout(timer);
+        resolve(result);
+      });
+      sendEvent(page.response, "request", { requestId, ...request });
+    }).finally(() => pending.delete(requestId));
+    sendJson(response, result.ok ? 200 : 500, result);
+  }
 
   const server = http.createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://localhost");
@@ -187,31 +250,19 @@ function serve({ port, origins }: { port: number; origins: string[] }) {
         );
         return;
       }
-      case "POST /eval": {
-        const pageId = url.searchParams.get("page") ?? [...pages.keys()].at(-1);
-        const page = pageId ? pages.get(pageId) : undefined;
-        if (!page) {
-          sendJson(response, 503, { ok: false, error: "no page connected" });
-          return;
-        }
-        const code = await readBody(request);
-        const requestId = randomUUID();
-        const result = await new Promise<EvalResult>((resolve) => {
-          const timer = setTimeout(
-            () =>
-              resolve({
-                ok: false,
-                error: `timed out after ${EVAL_TIMEOUT_MS} ms`,
-              }),
-            EVAL_TIMEOUT_MS,
-          );
-          pending.set(requestId, (result) => {
-            clearTimeout(timer);
-            resolve(result);
-          });
-          sendEvent(page.response, "eval", { requestId, code });
-        }).finally(() => pending.delete(requestId));
-        sendJson(response, result.ok ? 200 : 500, result);
+      case "GET /tools": {
+        await forward(response, url.searchParams.get("page"), {
+          method: "list",
+        });
+        return;
+      }
+      case "POST /call": {
+        const { name, input } = JSON.parse(await readBody(request));
+        await forward(response, url.searchParams.get("page"), {
+          method: "call",
+          name,
+          input,
+        });
         return;
       }
       default: {
@@ -226,34 +277,34 @@ function serve({ port, origins }: { port: number; origins: string[] }) {
   });
 }
 
-async function runEval({
+// Requests a page through the bridge and returns the result value. Failures
+// are printed to stderr with exit code 1 and return undefined.
+async function requestPage({
   port,
   page,
-  code,
+  path,
+  init,
 }: {
   port: number;
   page?: string;
-  code: string;
-}) {
+  path: string;
+  init?: RequestInit;
+}): Promise<unknown> {
   const response = await requestBridge({
     port,
-    path: page ? `/eval?page=${encodeURIComponent(page)}` : "/eval",
-    init: { method: "POST", body: code },
+    path: page ? `${path}?page=${encodeURIComponent(page)}` : path,
+    init,
   });
   if (!response) {
     return;
   }
-  const result = (await response.json()) as EvalResult;
+  const result = (await response.json()) as BridgeResult;
   if (!result.ok) {
     console.error(result.error);
     process.exitCode = 1;
     return;
   }
-  if (typeof result.value === "string") {
-    console.log(result.value);
-  } else if (result.value !== undefined) {
-    console.log(JSON.stringify(result.value, null, 2));
-  }
+  return result.value;
 }
 
 async function requestBridge({
@@ -273,6 +324,36 @@ async function requestBridge({
     );
     process.exitCode = 1;
   }
+}
+
+interface ToolInfo {
+  name: string;
+  description: string;
+  inputSchema: object;
+}
+
+// Plain text rather than JSON, so multi-line descriptions read as written.
+function formatTools(tools: ToolInfo[]) {
+  return tools
+    .map(
+      (tool) =>
+        `# ${tool.name}\n\n${tool.description.trim()}\n\n## Input schema\n\n${JSON.stringify(tool.inputSchema, null, 2)}\n`,
+    )
+    .join("\n");
+}
+
+async function parseArgInputs(args: string[]) {
+  const input: Record<string, string> = {};
+  for (const arg of args) {
+    const separator = arg.indexOf("=");
+    if (separator < 0) {
+      throw new Error(`--arg expects key=value, got ${arg}`);
+    }
+    const value = arg.slice(separator + 1);
+    input[arg.slice(0, separator)] =
+      value === "-" ? await readBody(process.stdin) : value;
+  }
+  return input;
 }
 
 function sendEvent(
@@ -298,8 +379,4 @@ async function readBody(stream: NodeJS.ReadableStream): Promise<string> {
     chunks.push(Buffer.from(chunk));
   }
   return Buffer.concat(chunks).toString("utf8");
-}
-
-function readStdin(): Promise<string> {
-  return readBody(process.stdin);
 }
