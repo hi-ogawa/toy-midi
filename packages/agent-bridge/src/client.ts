@@ -41,14 +41,12 @@ export function connectAgentBridge({
   const rpc = createPageRpc(tools);
   const source = new EventSource(connectUrl);
   source.addEventListener("request", async (event) => {
-    const { requestId, method, args } = JSON.parse(event.data) as RpcRequest<
-      keyof PageRpc
-    >;
+    const { requestId, method, args } = JSON.parse(event.data) as RpcRequest;
     let body: string;
     try {
-      const value = await (rpc[method] as (...args: unknown[]) => unknown)(
-        ...args,
-      );
+      const value = await (
+        rpc[method as keyof PageRpc] as (...args: unknown[]) => unknown
+      )(...args);
       // Serialize inside try, so a non-JSON value is reported as an error.
       body = JSON.stringify({
         requestId,

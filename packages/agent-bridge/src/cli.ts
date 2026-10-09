@@ -344,10 +344,7 @@ function createPageRpcClient({
     get:
       (_, method) =>
       async (...args: unknown[]) => {
-        const call: RpcCall<keyof PageRpc> = {
-          method: method as keyof PageRpc,
-          args,
-        };
+        const call: RpcCall = { method: method as string, args };
         const response = await requestBridge({
           port,
           path,

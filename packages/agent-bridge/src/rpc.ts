@@ -3,8 +3,8 @@
 // that send the two as separate messages pair them by `requestId`.
 
 /** A method call, with arguments that must be JSON-serializable. */
-export interface RpcCall<Method extends string = string> {
-  method: Method;
+export interface RpcCall {
+  method: string;
   args: unknown[];
 }
 
@@ -13,8 +13,6 @@ export type RpcResult =
   | { ok: true; value: unknown }
   | { ok: false; error: string };
 
-export type RpcRequest<Method extends string = string> = RpcCall<Method> & {
-  requestId: string;
-};
+export type RpcRequest = RpcCall & { requestId: string };
 
 export type RpcResponse = RpcResult & { requestId: string };
