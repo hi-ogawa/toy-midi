@@ -1,5 +1,4 @@
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
-import { DeclickGain } from "../dsp/declick-gain.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
@@ -88,29 +87,17 @@ export class AudioTrackPlayback {
 }
 
 /**
- * Delay before disconnecting a closed route. Its output is already silent, so
- * this only needs to outlast the close ramp with room for main-thread timer drift.
- */
-const ROUTE_TEARDOWN_MS = 50;
-
-/** Pitch correction for one playback rate, from the bus input to its output. */
-type PitchShiftRoute = {
-  playbackRate: number;
-  pitchShifter?: AudioWorkletNode;
-  output: DeclickGain;
-};
-
-/**
- * Sums playback sources before pitch correction. The route stays connected
- * across pause and seek, so stopped sources fade out through it and the pitch
- * shifter is reused. Only a playback rate change replaces it.
+ * Sums playback sources before pitch correction. The connection stays up across
+ * pause and seek, so stopped sources fade out through it and the pitch shifter
+ * is reused. Only a playback rate change replaces it.
  */
 class PitchShiftBus implements TransportParticipant {
   readonly input: GainNode;
   private readonly transport: AudioContextTransport;
   private readonly output: AudioNode;
   private readonly unregister: () => void;
-  private route?: PitchShiftRoute;
+  private playbackRate?: number;
+  private pitchShifter?: AudioWorkletNode;
 
   constructor({
     transport,
@@ -127,51 +114,35 @@ class PitchShiftBus implements TransportParticipant {
 
   start(): void {
     const playbackRate = this.transport.playbackRate;
-    if (this.route?.playbackRate === playbackRate) {
+    if (playbackRate === this.playbackRate) {
       return;
     }
-    const previousRoute = this.route;
-    if (previousRoute) {
-      // The old pitch shifter still holds audio from before the change, so
-      // fade it out at its output rather than cutting it.
-      previousRoute.output.close();
-      setTimeout(() => this.disconnectRoute(previousRoute), ROUTE_TEARDOWN_MS);
-    }
-    const context = this.transport.context;
-    const output = new DeclickGain(context);
-    output.node.connect(this.output);
-    let pitchShifter: AudioWorkletNode | undefined;
+    this.disconnectRoute();
+    this.playbackRate = playbackRate;
     if (playbackRate === 1) {
-      this.input.connect(output.node);
-    } else {
-      pitchShifter = createPitchShifterNode({
-        context,
-        channelCount: 2,
-        pitchRatio: 1 / playbackRate,
-      });
-      this.input.connect(pitchShifter).connect(output.node);
+      this.input.connect(this.output);
+      return;
     }
-    // Open with the run's sources, so the new route never carries the tail of
-    // sources stopped just before it.
-    output.open(this.transport.playbackAnchor!.contextTime);
-    this.route = { playbackRate, pitchShifter, output };
+    this.pitchShifter = createPitchShifterNode({
+      context: this.transport.context,
+      channelCount: 2,
+      pitchRatio: 1 / playbackRate,
+    });
+    this.input.connect(this.pitchShifter).connect(this.output);
   }
 
   stop(): void {}
 
   dispose(): void {
     this.unregister();
-    if (this.route) {
-      this.disconnectRoute(this.route);
-      this.route = undefined;
-    }
+    this.disconnectRoute();
   }
 
-  private disconnectRoute(route: PitchShiftRoute): void {
-    this.input.disconnect(route.pitchShifter ?? route.output.node);
-    if (route.pitchShifter) {
-      disposeWorklet(route.pitchShifter);
+  private disconnectRoute(): void {
+    this.input.disconnect();
+    if (this.pitchShifter) {
+      disposeWorklet(this.pitchShifter);
     }
-    route.output.node.disconnect();
+    this.pitchShifter = undefined;
   }
 }
