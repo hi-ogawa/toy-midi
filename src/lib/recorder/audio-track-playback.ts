@@ -88,7 +88,7 @@ export class AudioTrackPlayback {
   }
 }
 
-/** Sums playback sources and corrects their pitch for the playback rate. */
+/** Keeps the original pitch when playback sources play at a changed speed. */
 class PitchShiftBus {
   readonly input: GainNode;
   private readonly context: AudioContext;
