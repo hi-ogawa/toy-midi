@@ -2,7 +2,7 @@
 // client.ts, and the CLI commands: the methods a page serves, the endpoints
 // and events that carry them, and the data they return. The RPC messages that
 // carry calls are generic and live in rpc.ts. Internal to this package, so the
-// `./webmcp` entry does not export them.
+// package entries do not export them.
 
 import type { RpcRequest } from "./rpc.ts";
 import type { WebMcpTool, WebMcpToolResult } from "./webmcp.ts";

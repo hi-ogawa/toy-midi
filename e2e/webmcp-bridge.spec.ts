@@ -52,3 +52,26 @@ test("drives the open project from the webmcp-bridge command", async ({
   expect(failure.code).toBe(1);
   expect(failure.stderr).toContain("Error: boom");
 });
+
+test("connects the open project to the bridge from the URL parameter", async ({
+  page,
+  bridge,
+}) => {
+  // Open a project with `?webmcp-bridge`, so the page connects by itself
+  // rather than through the extension.
+  await createRecorderProject(page);
+  await page.goto(`${page.url()}?webmcp-bridge=${bridge.port}`);
+  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+  await expect
+    .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
+    .toMatchObject([{ url: expect.stringContaining("?webmcp-bridge=") }]);
+
+  // Read the tempo through the eval tool.
+  const tempo = await bridge.run([
+    "execute-tool",
+    "toy_midi_eval",
+    "--arg",
+    "code=return runtime.store.get().tempo",
+  ]);
+  expect(tempo).toEqual({ code: 0, stdout: "120\n", stderr: "" });
+});

@@ -28,7 +28,7 @@ $ webmcp-bridge serve --origin https://toy-midi.hiro18181.workers.dev
 [webmcp-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…
 ```
 
-Then open the app. A page connects once it registers a tool, and Toy MIDI registers its tools when a project is open. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs. The commands below run from another terminal, or from the agent.
+Then open the app. A page connects once it registers a tool, and Toy MIDI registers its tools when a project is open. Without the extension, Toy MIDI connects by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs. The commands below run from another terminal, or from the agent.
 
 ### `webmcp-bridge pages`
 
@@ -147,7 +147,18 @@ document.modelContext?.registerTool(
 );
 ```
 
-A TypeScript app can import the tool types and the `document.modelContext` declaration from `@hiogawa/webmcp-bridge/webmcp`, depending on the package from GitHub pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`.
+A TypeScript app can import the tool types and the `document.modelContext` declaration from `@hiogawa/webmcp-bridge/webmcp`, depending on the package from GitHub pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`. The package ships TypeScript source, so the app's bundler compiles it.
+
+To work without the extension, an app can also connect to the bridge itself with the client the extension uses, passing the same tools by name:
+
+```ts
+import { connectWebMcpBridge } from "@hiogawa/webmcp-bridge/client";
+
+const disconnect = connectWebMcpBridge({
+  bridgeUrl: "http://localhost:4747",
+  tools: new Map([[tool.name, tool]]),
+});
+```
 
 - `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
 - The result must be convertible to JSON. A value that is not, such as an object that refers to itself, comes back as an error.
