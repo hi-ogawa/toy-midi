@@ -120,9 +120,10 @@ An app registers its tools with WebMCP's `document.modelContext`. In browsers wi
 ```ts
 import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 
-const modelContext = (document.modelContext ??= createModelContextPolyfill());
+document.modelContext ??= createModelContextPolyfill();
+
 const controller = new AbortController();
-modelContext.registerTool(
+document.modelContext.registerTool(
   {
     name: "set_tempo",
     description: "Set the project tempo in BPM.",
