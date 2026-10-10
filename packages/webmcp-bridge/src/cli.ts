@@ -12,14 +12,13 @@
 import { parseArgs } from "node:util";
 import {
   AGENT_ENDPOINTS,
+  DEFAULT_BRIDGE_PORT,
   type PageInfo,
   type PageRpc,
   type ToolInfo,
 } from "./protocol.ts";
 import type { RpcCall, RpcResult } from "./rpc.ts";
 import { BridgeServer } from "./server.ts";
-
-const DEFAULT_PORT = 4747;
 
 const USAGE = `\
 usage: webmcp-bridge <command> [options]
@@ -33,7 +32,7 @@ commands:
   pages                       list connected pages
 
 options:
-  --port <number>     bridge port (default ${DEFAULT_PORT}, serve accepts 0
+  --port <number>     bridge port (default ${DEFAULT_BRIDGE_PORT}, serve accepts 0
                       for any free port)
   --origin <origin>   page origin to accept, repeatable (serve only, required)
   --page <id>         target page, required when several pages are connected
@@ -49,7 +48,7 @@ async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
-      port: { type: "string", default: String(DEFAULT_PORT) },
+      port: { type: "string", default: String(DEFAULT_BRIDGE_PORT) },
       origin: { type: "string", multiple: true },
       page: { type: "string" },
       arg: { type: "string", multiple: true },

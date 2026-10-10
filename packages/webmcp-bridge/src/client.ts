@@ -5,6 +5,8 @@ import {
   type PageRpc,
 } from "./protocol.ts";
 import type { RpcResponse } from "./rpc.ts";
+
+export { DEFAULT_BRIDGE_PORT } from "./protocol.ts";
 import type { ModelContext, WebMcpToolResult } from "./webmcp.ts";
 
 /**
