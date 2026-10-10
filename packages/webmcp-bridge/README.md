@@ -141,14 +141,14 @@ modelContext.registerTool(
 );
 ```
 
-Then the app exposes its `modelContext` to the bridge:
+Then the app exposes `document.modelContext` to the bridge:
 
 ```ts
 import { exposeModelContext } from "@hiogawa/webmcp-bridge/client";
 
 const unexpose = exposeModelContext({
   bridgeUrl: "http://localhost:4747",
-  modelContext,
+  modelContext: document.modelContext,
 });
 ```
 
