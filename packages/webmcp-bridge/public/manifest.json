@@ -9,7 +9,7 @@
         "http://localhost/*",
         "https://toy-midi.hiro18181.workers.dev/*"
       ],
-      "js": ["content-script.js"],
+      "js": ["content.js"],
       "run_at": "document_start",
       "world": "MAIN"
     }

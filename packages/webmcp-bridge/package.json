@@ -12,7 +12,7 @@
     "./webmcp": "./src/webmcp.ts"
   },
   "scripts": {
-    "build-extension": "vite build"
+    "build-extension": "vite build --config vite.ext.config.ts"
   },
   "dependencies": {
     "srvx": "^1.0.5",

@@ -2,8 +2,8 @@
 // page's own scripts, installs the WebMCP polyfill where the browser has no
 // `document.modelContext`, and exposes the page's tools to the local bridge.
 
-import { exposeModelContext } from "./client.ts";
-import { createModelContextPolyfill } from "./model-context-polyfill.ts";
+import { exposeModelContext } from "../client.ts";
+import { createModelContextPolyfill } from "../model-context-polyfill.ts";
 
 // Set by the build.
 declare const __WEBMCP_BRIDGE_PORT__: string;
