@@ -181,11 +181,7 @@ class DeclickedBufferPlayer {
     node.buffer = buffer;
     node.playbackRate.value = playbackRate;
     const envelope = new DeclickGain(this.context);
-    if (fadeIn) {
-      envelope.open(time);
-    } else {
-      envelope.openImmediately(time);
-    }
+    envelope.open(time, { fade: fadeIn });
     node.connect(envelope.node).connect(this.output);
     // Disconnect after the fade has rendered, not when stop() is called.
     const ended = new Promise<void>((resolve) => {
