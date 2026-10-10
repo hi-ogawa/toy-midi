@@ -80,9 +80,9 @@ export class AudioBufferPlayback implements TransportParticipant {
   }
 }
 
-/** One buffer source and its envelope, from start until the source ends. */
-type Voice = {
-  source: AudioBufferSourceNode;
+/** One buffer source and its fade, from start until it ends. */
+type DeclickedSource = {
+  node: AudioBufferSourceNode;
   envelope: DeclickGain;
   stopped: boolean;
 };
@@ -95,7 +95,7 @@ class DeclickedSources {
   private readonly context: BaseAudioContext;
   private readonly output: AudioNode;
   /** Sources still sounding, including stopped ones that are fading out. */
-  private readonly voices = new Set<Voice>();
+  private readonly sources = new Set<DeclickedSource>();
   private onSilent?: () => void;
 
   constructor({
@@ -123,41 +123,41 @@ class DeclickedSources {
     offset: number;
     duration: number;
   }): void {
-    const source = this.context.createBufferSource();
-    source.buffer = buffer;
-    source.playbackRate.value = playbackRate;
+    const node = this.context.createBufferSource();
+    node.buffer = buffer;
+    node.playbackRate.value = playbackRate;
     const envelope = new DeclickGain(this.context);
     envelope.open(time);
-    source.connect(envelope.node).connect(this.output);
-    const voice: Voice = { source, envelope, stopped: false };
+    node.connect(envelope.node).connect(this.output);
+    const source: DeclickedSource = { node, envelope, stopped: false };
     // Disconnect after the fade has rendered, not when stop() is called.
-    source.onended = () => {
-      source.disconnect();
+    node.onended = () => {
+      node.disconnect();
       envelope.node.disconnect();
-      this.voices.delete(voice);
-      if (this.voices.size === 0) {
+      this.sources.delete(source);
+      if (this.sources.size === 0) {
         const onSilent = this.onSilent;
         this.onSilent = undefined;
         onSilent?.();
       }
     };
-    source.start(time, offset, duration);
-    this.voices.add(voice);
+    node.start(time, offset, duration);
+    this.sources.add(source);
   }
 
   /** Fades out every source still playing and stops each once silent. */
   stop(): void {
-    for (const voice of this.voices) {
-      if (!voice.stopped) {
-        voice.stopped = true;
-        voice.source.stop(voice.envelope.close());
+    for (const source of this.sources) {
+      if (!source.stopped) {
+        source.stopped = true;
+        source.node.stop(source.envelope.close());
       }
     }
   }
 
   /** Runs `callback` once every source has ended, right away if none are sounding. */
   whenSilent(callback: () => void): void {
-    if (this.voices.size === 0) {
+    if (this.sources.size === 0) {
       callback();
       return;
     }
