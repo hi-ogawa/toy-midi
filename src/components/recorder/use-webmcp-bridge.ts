@@ -9,9 +9,10 @@ import { createWebMcpTools } from "../../lib/webmcp-tools";
 
 /**
  * Registers the open project's WebMCP tools with `document.modelContext`,
- * installing a polyfill in browsers without WebMCP. With `?webmcp-bridge` or
- * `?webmcp-bridge=<port>` in the page URL, the page also exposes them to the
- * local webmcp-bridge.
+ * installing a polyfill in browsers without WebMCP, so the webmcp-bridge
+ * extension can expose them. With `?webmcp-bridge` or `?webmcp-bridge=<port>`
+ * in the page URL, the page also exposes them to the local webmcp-bridge
+ * itself.
  */
 export function useWebMcpBridge(runtime: RecorderRuntime) {
   useEffect(() => {

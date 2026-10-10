@@ -1,6 +1,9 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
-import { test as base } from "@playwright/test";
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { promisify } from "node:util";
+import { chromium, expect, test as base, type Page } from "@playwright/test";
 
 /** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
 export const test = base.extend<{
@@ -42,7 +45,116 @@ export const test = base.extend<{
   },
 });
 
-const CLI_PATH = "packages/webmcp-bridge/bin/cli.js";
+/**
+ * `test` whose browser has the webmcp-bridge extension, connecting to the
+ * bridge's port, with an `extension` fixture that turns a page's tab on or off
+ * as the extension's button would, and reads the tab's badge.
+ */
+export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
+  context: async (
+    {
+      channel,
+      launchOptions,
+      contextOptions,
+      viewport,
+      userAgent,
+      deviceScaleFactor,
+      baseURL,
+      bridge,
+    },
+    use,
+    testInfo,
+  ) => {
+    // Build the extension.
+    const extensionPath = testInfo.outputPath("extension");
+    await execFileAsync("pnpm", [
+      "-C",
+      PACKAGE_PATH,
+      "build-extension",
+      "--outDir",
+      extensionPath,
+    ]);
+    // Allow the app's site up front, as clicking the extension's button would.
+    const manifestPath = path.join(extensionPath, "manifest.json");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    manifest.host_permissions = [`http://${new URL(baseURL!).hostname}/*`];
+    writeFileSync(manifestPath, JSON.stringify(manifest));
+    // Load it into a persistent context, the only kind that loads extensions.
+    const context = await chromium.launchPersistentContext("", {
+      ...launchOptions,
+      ...contextOptions,
+      channel,
+      viewport,
+      userAgent,
+      deviceScaleFactor,
+      baseURL,
+      args: [
+        ...(launchOptions.args ?? []),
+        `--disable-extensions-except=${extensionPath}`,
+        `--load-extension=${extensionPath}`,
+      ],
+    });
+    // Wait for the background worker to register the scripts for the site.
+    const worker =
+      context.serviceWorkers()[0] ??
+      (await context.waitForEvent("serviceworker"));
+    await expect
+      .poll(() =>
+        worker.evaluate(
+          "chrome.scripting.getRegisteredContentScripts().then((scripts) => scripts.length)",
+        ),
+      )
+      .toBe(2);
+    // Point the extension at the bridge's port.
+    await worker.evaluate(
+      (port) => (globalThis as any).__e2e.setBridgePort(port),
+      bridge.port,
+    );
+    await use(context);
+    await context.close();
+  },
+  page: async ({ context }, use) => {
+    await use(context.pages()[0] ?? (await context.newPage()));
+  },
+  extension: async ({ context }, use) => {
+    const [worker] = context.serviceWorkers();
+    const callOnTab = async (
+      page: Page,
+      method: string,
+      ...args: unknown[]
+    ) => {
+      await page.bringToFront();
+      return await worker!.evaluate(
+        async ([method, args]) => {
+          const { chrome, __e2e } = globalThis as any;
+          const [tab] = await chrome.tabs.query({
+            active: true,
+            currentWindow: true,
+          });
+          return await __e2e[method](tab.id, ...args);
+        },
+        [method, args] as const,
+      );
+    };
+    await use({
+      toggleTab: async (page) => {
+        await callOnTab(page, "toggleTab", new URL(page.url()).origin);
+      },
+      getBadgeText: async (page) =>
+        (await callOnTab(page, "getBadgeText")) as string,
+    });
+  },
+});
+
+const execFileAsync = promisify(execFile);
+
+const PACKAGE_PATH = "packages/webmcp-bridge";
+const CLI_PATH = `${PACKAGE_PATH}/bin/cli.js`;
+
+interface ExtensionFixture {
+  toggleTab: (page: Page) => Promise<void>;
+  getBadgeText: (page: Page) => Promise<string>;
+}
 
 interface BridgeFixture {
   port: number;

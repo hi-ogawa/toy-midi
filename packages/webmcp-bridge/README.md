@@ -1,6 +1,6 @@
 # WebMCP Bridge
 
-WebMCP Bridge lets an agent working in a terminal, such as Claude Code, call the tools that a web page open in your browser exposes in the shape of [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents. The page connects to a small server on your machine, the bridge, and the agent talks to the bridge with the `webmcp-bridge` command.
+WebMCP Bridge lets an agent working in a terminal, such as Claude Code, call the tools that a web page open in your browser exposes in the shape of [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents. A page registers its tools with WebMCP's `document.modelContext`, a browser extension or the page itself exposes them to a small server on your machine, the bridge, and the agent talks to the bridge with the `webmcp-bridge` command.
 
 ## Usage
 
@@ -9,6 +9,15 @@ Install the command from GitHub:
 ```sh
 pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/webmcp-bridge"
 ```
+
+Build the extension from a clone of this repository:
+
+```sh
+pnpm i
+pnpm -C packages/webmcp-bridge build-extension
+```
+
+Then load it in Chrome. Open `chrome://extensions`, turn on Developer mode, choose Load unpacked, and select `packages/webmcp-bridge/dist/extension`.
 
 Allow each site whose pages may connect. The site is saved to `~/.config/webmcp-bridge/config.json`, under `$XDG_CONFIG_HOME` when it is set, so this is needed once per site:
 
@@ -23,10 +32,24 @@ Run the bridge. It stays in the foreground and logs pages as they connect and le
 $ webmcp-bridge serve
 [webmcp-bridge] listening on http://127.0.0.1:4747/
 [webmcp-bridge] accepting pages from /home/me/.config/webmcp-bridge/config.json
-[webmcp-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…?webmcp-bridge
+[webmcp-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…
 ```
 
-Then open the app so that it connects. Toy MIDI connects when a project is opened with `?webmcp-bridge` at the end of its URL. The commands below run from another terminal, or from the agent.
+Then open a project in the app and click the extension's button in the toolbar to turn the tab on. The first click on a site asks you to allow the extension there and reloads the tab. The tab stays on across reloads until you click the button again or the tab leaves the site. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs.
+
+The button shows the tab's connection:
+
+| Badge | Meaning                                                                                                  |
+| ----- | -------------------------------------------------------------------------------------------------------- |
+| ON    | Connected to the bridge                                                                                  |
+| …     | Connecting, or the bridge is not running                                                                 |
+| !     | The bridge refused the site. Allow it with `webmcp-bridge allow`, then click the button to connect again |
+
+To stop the extension running on a site, remove the site under the extension's Site access settings.
+
+Without the extension, Toy MIDI exposes its tools by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port.
+
+The commands below run from another terminal, or from the agent.
 
 ### `webmcp-bridge pages`
 
@@ -38,7 +61,7 @@ $ webmcp-bridge pages
   {
     "id": "cbfe8f6b",
     "origin": "https://toy-midi.hiro18181.workers.dev",
-    "url": "https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…?webmcp-bridge",
+    "url": "https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…",
     "connectedAt": "2026-10-09T18:11:40.672Z"
   }
 ]
@@ -112,7 +135,7 @@ $ echo $?
 
 ### Options
 
-- `--port <number>` chooses the bridge's port for every command, 4747 by default. `serve --port 0` picks a free port and prints it.
+- `--port <number>` chooses the bridge's port for every command, 4747 by default. `serve --port 0` picks a free port and prints it. The extension connects to 4747.
 - `--origin <origin>` lets `serve` also accept a site that is not saved with `allow`, for that run only. It can be repeated.
 - `--page <id>` chooses the page for `get-tools` and `execute-tool`. Without it they use the only connected page, and fail with the list of ids when several pages are connected.
 
@@ -122,7 +145,7 @@ Any failure prints a message to standard error and exits with code 1, so the age
 
 ## Exposing Tools from an App
 
-An app registers its tools with WebMCP's `document.modelContext`. In browsers without WebMCP, it can install the package's polyfill first:
+An app registers its tools with WebMCP's `document.modelContext`. In browsers without WebMCP, the extension installs a polyfill, or the app can install the same polyfill itself:
 
 ```ts
 import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
@@ -149,7 +172,7 @@ document.modelContext.registerTool(
 );
 ```
 
-Then the app exposes `document.modelContext` to the bridge:
+The extension exposes `document.modelContext` to the bridge. Without the extension, the app can expose it itself:
 
 ```ts
 import { exposeModelContext } from "@hiogawa/webmcp-bridge/client";
@@ -171,7 +194,7 @@ The bridge reads the tools with `getTools()` and runs them with `executeTool()`,
 
 ![The page opens a connection to the bridge once and keeps it open. When the command line sends a request, the bridge holds it open, passes the request down the page's connection, and waits for the page to send back the result, which becomes the answer to the command line.](images/rpc-flow.svg)
 
-A web app with no server of its own cannot be reached from a terminal, so the bridge runs on your machine where both sides can reach it. The bridge cannot open a connection to a browser page, though. So when the app exposes its tools, the page opens a connection to the bridge and keeps it open. The bridge uses that open connection to send requests to the page later, using [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
+A web app with no server of its own cannot be reached from a terminal, so the bridge runs on your machine where both sides can reach it. The bridge cannot open a connection to a browser page, though. So exposing a page opens a connection from the page to the bridge and keeps it open. The bridge uses that open connection to send requests to the page later, using [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
 
 When the agent runs `webmcp-bridge get-tools` or `execute-tool`, the command sends an ordinary HTTP request to the bridge, and the bridge does not answer right away. It passes the request down the page's open connection, tagged with a new id. The page runs the tool and sends the result back to the bridge in a separate HTTP request with the same id. The bridge matches the id, and the result becomes its answer to the waiting command.
 
@@ -185,5 +208,7 @@ The bridge only accepts connections from your own machine. Within your machine, 
 
 - Pages may connect only from the sites saved with `allow` or listed with `--origin`.
 - Requests meant for the command line are refused if they carry an `Origin` header at all, so a page on another site cannot run tools.
+
+The extension runs only on the sites you allow, connects only the tabs you turn on, and its script makes its requests as the page, with the page's `Origin`. So the bridge's allowed sites still decide which sites' tools reach the agent, and any other site is refused when it connects.
 
 Every request must also be addressed to `localhost` or `127.0.0.1`. That stops a site that points its own domain name at your machine. Its page would otherwise count as the bridge's own site, so the browser would send no `Origin` header and let the page read the bridge's answers.
