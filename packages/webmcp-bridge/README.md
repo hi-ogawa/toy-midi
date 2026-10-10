@@ -115,8 +115,6 @@ Any failure prints a message to standard error and exits with code 1, so the age
 
 ## Exposing Tools from an App
 
-Apps depend on the package from GitHub, pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`. The package ships TypeScript source, so the app's bundler compiles it, and `@hiogawa/webmcp-bridge/webmcp` declares the tool types and `document.modelContext` for TypeScript.
-
 An app registers its tools with WebMCP's `document.modelContext`. In browsers without WebMCP, it can install the package's polyfill first:
 
 ```ts
