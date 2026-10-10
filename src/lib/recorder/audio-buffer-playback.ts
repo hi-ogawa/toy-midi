@@ -76,7 +76,7 @@ export class AudioBufferPlayback implements TransportParticipant {
   dispose(): void {
     this.unregister();
     // Keep the clip connected until its stopped sources finish fading.
-    this.player.whenSilent(() => this.gain.disconnect());
+    void this.player.waitForSilence().then(() => this.gain.disconnect());
   }
 }
 
@@ -84,6 +84,8 @@ export class AudioBufferPlayback implements TransportParticipant {
 type DeclickedSource = {
   node: AudioBufferSourceNode;
   envelope: DeclickGain;
+  /** Resolves once the source has ended and been disconnected. */
+  ended: Promise<void>;
   stopped: boolean;
 };
 
@@ -96,7 +98,6 @@ class DeclickedBufferPlayer {
   private readonly output: AudioNode;
   /** Sources still sounding, including stopped ones that are fading out. */
   private readonly sources = new Set<DeclickedSource>();
-  private onSilent?: () => void;
 
   constructor({
     context,
@@ -129,18 +130,16 @@ class DeclickedBufferPlayer {
     const envelope = new DeclickGain(this.context);
     envelope.open(time);
     node.connect(envelope.node).connect(this.output);
-    const source: DeclickedSource = { node, envelope, stopped: false };
     // Disconnect after the fade has rendered, not when stop() is called.
-    node.onended = () => {
-      node.disconnect();
-      envelope.node.disconnect();
-      this.sources.delete(source);
-      if (this.sources.size === 0) {
-        const onSilent = this.onSilent;
-        this.onSilent = undefined;
-        onSilent?.();
-      }
-    };
+    const ended = new Promise<void>((resolve) => {
+      node.onended = () => {
+        node.disconnect();
+        envelope.node.disconnect();
+        this.sources.delete(source);
+        resolve();
+      };
+    });
+    const source: DeclickedSource = { node, envelope, ended, stopped: false };
     node.start(time, offset, duration);
     this.sources.add(source);
   }
@@ -155,12 +154,8 @@ class DeclickedBufferPlayer {
     }
   }
 
-  /** Runs `callback` once every source has ended, right away if none are sounding. */
-  whenSilent(callback: () => void): void {
-    if (this.sources.size === 0) {
-      callback();
-      return;
-    }
-    this.onSilent = callback;
+  /** Resolves once every source started so far has ended. */
+  async waitForSilence(): Promise<void> {
+    await Promise.all([...this.sources].map((source) => source.ended));
   }
 }
