@@ -1,4 +1,4 @@
-import type { WebMcpTool } from "@hiogawa/webmcp-bridge/client";
+import type { WebMcpTool } from "@hiogawa/webmcp-bridge/webmcp";
 import type { RecorderRuntime } from "./recorder/runtime";
 
 // The runtime API as one declaration file from `pnpm build-webmcp-tools-doc`,
@@ -45,9 +45,8 @@ export function createWebMcpTools(runtime: RecorderRuntime): WebMcpTool[] {
         required: ["code"],
       },
       execute: async ({ code }: { code: string }) => {
-        // WebMCP hides a thrown error's message from the agent, so failures
-        // come back in the result. Serialize here for the same reason, so a
-        // non-JSON value becomes an error the agent can read.
+        // Serialize here, so a non-JSON value becomes an error the agent can
+        // read.
         try {
           const value = await new AsyncFunction("runtime", code)(runtime);
           return JSON.parse(JSON.stringify({ isError: false, value }));
