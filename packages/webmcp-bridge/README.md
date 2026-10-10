@@ -28,7 +28,7 @@ $ webmcp-bridge serve --origin https://toy-midi.hiro18181.workers.dev
 [webmcp-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…
 ```
 
-Then open the app. A page connects once it registers a tool, and Toy MIDI registers its tools when a project is open. Without the extension, Toy MIDI connects by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs. The commands below run from another terminal, or from the agent.
+Then open the app. A page connects once it registers a tool, and Toy MIDI registers its tools when a project is open. Without the extension, Toy MIDI falls back to connecting by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs. The commands below run from another terminal, or from the agent.
 
 ### `webmcp-bridge pages`
 
@@ -149,15 +149,14 @@ document.modelContext?.registerTool(
 
 A TypeScript app can import the tool types and the `document.modelContext` declaration from `@hiogawa/webmcp-bridge/webmcp`, depending on the package from GitHub pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`. The package ships TypeScript source, so the app's bundler compiles it.
 
-To work without the extension, an app can also connect to the bridge itself with the client the extension uses, passing the same tools by name:
+To work without the extension, an app can fall back to the `modelContext` the extension uses, which relays the tools registered with it to the bridge. The tools are registered the same way either way:
 
 ```ts
-import { connectWebMcpBridge } from "@hiogawa/webmcp-bridge/client";
+import { createBridgeModelContext } from "@hiogawa/webmcp-bridge/client";
 
-const disconnect = connectWebMcpBridge({
-  bridgeUrl: "http://localhost:4747",
-  tools: new Map([[tool.name, tool]]),
-});
+const modelContext =
+  document.modelContext ??
+  createBridgeModelContext({ bridgeUrl: "http://localhost:4747" });
 ```
 
 - `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
