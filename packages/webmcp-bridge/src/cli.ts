@@ -56,28 +56,11 @@ async function main() {
   }
   switch (command) {
     case "serve": {
-      const origins = values.origin ?? [];
-      const server = new BridgeServer({
-        getOrigins: () => [...origins, ...readConfigOrigins()],
-      });
-      await server.listen(port);
-      const sources = [...origins, getConfigPath()].join(", ");
-      console.log(`[webmcp-bridge] accepting pages from ${sources}`);
+      await runServeCommand({ port, origins: values.origin ?? [] });
       break;
     }
     case "allow": {
-      const [origin] = rest;
-      if (
-        !origin ||
-        !URL.canParse(origin) ||
-        new URL(origin).origin !== origin
-      ) {
-        throw new Error(
-          "allow requires an origin, such as https://example.com",
-        );
-      }
-      addConfigOrigin(origin);
-      console.log(`allowed ${origin} in ${getConfigPath()}`);
+      runAllowCommand(rest[0]);
       break;
     }
     case "get-tools": {
@@ -118,6 +101,29 @@ async function main() {
       throw new Error(USAGE);
     }
   }
+}
+
+async function runServeCommand({
+  port,
+  origins,
+}: {
+  port: number;
+  origins: string[];
+}) {
+  const server = new BridgeServer({
+    getOrigins: () => [...origins, ...readConfigOrigins()],
+  });
+  await server.listen(port);
+  const sources = [...origins, getConfigPath()].join(", ");
+  console.log(`[webmcp-bridge] accepting pages from ${sources}`);
+}
+
+function runAllowCommand(origin: string | undefined) {
+  if (!origin || !URL.canParse(origin) || new URL(origin).origin !== origin) {
+    throw new Error("allow requires an origin, such as https://example.com");
+  }
+  addConfigOrigin(origin);
+  console.log(`allowed ${origin} in ${getConfigPath()}`);
 }
 
 type PageRpcClient = {
