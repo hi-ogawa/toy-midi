@@ -15,7 +15,7 @@ type ClipPlayback = {
 export class AudioTrackPlayback {
   private readonly transport: AudioContextTransport;
   private playbacks: ClipPlayback[] = [];
-  private readonly pitchCorrectionBus: PitchCorrectionBus;
+  private readonly pitchShiftBus: PitchShiftBus;
   /** Mutes region playback without muting other sources connected to channel.input. */
   private readonly playbackGain: GainNode;
   readonly channel: AudioChannel;
@@ -40,7 +40,7 @@ export class AudioTrackPlayback {
     });
     this.playbackGain = transport.context.createGain();
     this.playbackGain.connect(this.channel.input);
-    this.pitchCorrectionBus = new PitchCorrectionBus({
+    this.pitchShiftBus = new PitchShiftBus({
       context: transport.context,
       output: this.playbackGain,
       playbackRate: transport.playbackRate,
@@ -54,7 +54,7 @@ export class AudioTrackPlayback {
     this.playbacks = sources.map((source) => {
       const playback = new AudioBufferPlayback({
         transport: this.transport,
-        output: this.pitchCorrectionBus.input,
+        output: this.pitchShiftBus.input,
       });
       playback.setSource(source);
       return { clipId: source.clipId, playback };
@@ -70,7 +70,7 @@ export class AudioTrackPlayback {
   }
 
   setPlaybackRate(playbackRate: number): void {
-    this.pitchCorrectionBus.setPlaybackRate(playbackRate);
+    this.pitchShiftBus.setPlaybackRate(playbackRate);
   }
 
   setPlaybackGain(gain: number): void {
@@ -82,14 +82,14 @@ export class AudioTrackPlayback {
 
   dispose(): void {
     this.setSources([]);
-    this.pitchCorrectionBus.dispose();
+    this.pitchShiftBus.dispose();
     this.playbackGain.disconnect();
     this.channel.dispose();
   }
 }
 
 /** Keeps the original pitch when playback sources play at a changed speed. */
-class PitchCorrectionBus {
+class PitchShiftBus {
   readonly input: GainNode;
   private readonly context: AudioContext;
   private readonly output: AudioNode;
