@@ -6,10 +6,8 @@ test("drives the open project from the webmcp-bridge command", async ({
   page,
   bridge,
 }) => {
-  // Open a project with the bridge enabled and wait for it to connect.
+  // Open a project, and wait for the extension to connect its tools.
   await createRecorderProject(page);
-  await page.goto(`${page.url()}?webmcp-bridge=${bridge.port}`);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
   await expect
     .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
     .toHaveLength(1);

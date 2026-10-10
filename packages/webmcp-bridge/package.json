@@ -7,7 +7,10 @@
   },
   "type": "module",
   "exports": {
-    "./client": "./src/client.ts"
+    "./webmcp": "./src/webmcp.ts"
+  },
+  "scripts": {
+    "build-extension": "vite build"
   },
   "dependencies": {
     "srvx": "^1.0.5",

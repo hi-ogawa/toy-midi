@@ -1,9 +1,38 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
-import { test as base } from "@playwright/test";
+import { chromium, test as base } from "@playwright/test";
 
-/** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
+/**
+ * Playwright `test` whose browser has the webmcp-bridge extension, with a
+ * `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin.
+ */
 export const test = base.extend<{ bridge: BridgeFixture }>({
+  // Build the extension for the bridge's port, and load it into a persistent
+  // context, the only kind that loads extensions.
+  context: async ({ baseURL, bridge }, use, testInfo) => {
+    const extensionPath = testInfo.outputPath("extension");
+    execFileSync(
+      "pnpm",
+      ["-C", PACKAGE_PATH, "build-extension", "--outDir", extensionPath],
+      {
+        env: { ...process.env, WEBMCP_BRIDGE_PORT: String(bridge.port) },
+        stdio: "pipe",
+      },
+    );
+    const context = await chromium.launchPersistentContext("", {
+      channel: "chromium",
+      baseURL,
+      args: [
+        `--disable-extensions-except=${extensionPath}`,
+        `--load-extension=${extensionPath}`,
+      ],
+    });
+    await use(context);
+    await context.close();
+  },
+  page: async ({ context }, use) => {
+    await use(context.pages()[0] ?? (await context.newPage()));
+  },
   bridge: async ({ baseURL }, use) => {
     const server = spawn(process.execPath, [
       CLI_PATH,
@@ -28,7 +57,8 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
   },
 });
 
-const CLI_PATH = "packages/webmcp-bridge/bin/cli.js";
+const PACKAGE_PATH = "packages/webmcp-bridge";
+const CLI_PATH = `${PACKAGE_PATH}/bin/cli.js`;
 
 interface BridgeFixture {
   port: number;

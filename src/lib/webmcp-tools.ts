@@ -1,4 +1,4 @@
-import type { WebMcpTool } from "@hiogawa/webmcp-bridge/client";
+import type { WebMcpTool } from "@hiogawa/webmcp-bridge/webmcp";
 import type { RecorderRuntime } from "./recorder/runtime";
 
 // The runtime API as one declaration file from `pnpm build-webmcp-tools-doc`,

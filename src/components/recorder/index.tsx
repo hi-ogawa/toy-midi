@@ -64,11 +64,11 @@ import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderInteraction } from "./use-recorder-interaction";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
-import { useWebMcpBridge } from "./use-webmcp-bridge";
+import { useWebMcpTools } from "./use-webmcp-tools";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  useWebMcpBridge(runtime);
+  useWebMcpTools(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =
     recorderPreferences.useValue("defaultMidiProgram");
