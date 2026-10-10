@@ -4,10 +4,7 @@ import { disposeWorklet } from "../dsp/worklet-disposal.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
-import type {
-  AudioContextTransport,
-  TransportParticipant,
-} from "./transport.ts";
+import type { AudioContextTransport } from "./transport.ts";
 
 type ClipPlayback = {
   clipId: string;
@@ -44,8 +41,9 @@ export class AudioTrackPlayback {
     this.playbackGain = transport.context.createGain();
     this.playbackGain.connect(this.channel.input);
     this.pitchShiftBus = new PitchShiftBus({
-      transport,
+      context: transport.context,
       output: this.playbackGain,
+      playbackRate: transport.playbackRate,
     });
   }
 
@@ -71,6 +69,10 @@ export class AudioTrackPlayback {
     }
   }
 
+  setPlaybackRate(playbackRate: number): void {
+    this.pitchShiftBus.setPlaybackRate(playbackRate);
+  }
+
   setPlaybackGain(gain: number): void {
     this.playbackGain.gain.setValueAtTime(
       gain,
@@ -86,50 +88,61 @@ export class AudioTrackPlayback {
   }
 }
 
-/** Sums playback sources before pitch correction for one transport run. */
-class PitchShiftBus implements TransportParticipant {
+/**
+ * Sums playback sources before pitch correction for the current playback rate.
+ * Only a playback rate change rewires it, so pause and seek neither cut the
+ * audio the pitch shifter still holds nor rebuild the pitch shifter.
+ */
+class PitchShiftBus {
   readonly input: GainNode;
-  private readonly transport: AudioContextTransport;
+  private readonly context: AudioContext;
   private readonly output: AudioNode;
-  private readonly unregister: () => void;
+  private playbackRate = 1;
   private pitchShifter?: AudioWorkletNode;
 
   constructor({
-    transport,
+    context,
     output,
+    playbackRate,
   }: {
-    transport: AudioContextTransport;
+    context: AudioContext;
     output: AudioNode;
+    playbackRate: number;
   }) {
-    this.transport = transport;
+    this.context = context;
     this.output = output;
-    this.input = transport.context.createGain();
-    this.unregister = transport.register(this);
+    this.input = context.createGain();
+    this.input.connect(output);
+    this.setPlaybackRate(playbackRate);
   }
 
-  start(): void {
-    const playbackRate = this.transport.playbackRate;
+  setPlaybackRate(playbackRate: number): void {
+    if (playbackRate === this.playbackRate) {
+      return;
+    }
+    this.playbackRate = playbackRate;
+    this.disconnectRoute();
     if (playbackRate === 1) {
       this.input.connect(this.output);
       return;
     }
     this.pitchShifter = createPitchShifterNode({
-      context: this.transport.context,
+      context: this.context,
       channelCount: 2,
       pitchRatio: 1 / playbackRate,
     });
     this.input.connect(this.pitchShifter).connect(this.output);
   }
 
-  stop(): void {
+  dispose(): void {
+    this.disconnectRoute();
+  }
+
+  private disconnectRoute(): void {
     this.input.disconnect();
     if (this.pitchShifter) {
       disposeWorklet(this.pitchShifter);
     }
     this.pitchShifter = undefined;
-  }
-
-  dispose(): void {
-    this.unregister();
   }
 }
