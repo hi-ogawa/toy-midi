@@ -64,37 +64,22 @@ async function main() {
       break;
     }
     case "get-tools": {
-      const rpc = createPageRpcClient({ port, page: values.page });
-      console.log(formatTools(await rpc.getTools()));
+      await runGetToolsCommand({ port, page: values.page });
       break;
     }
     case "execute-tool": {
       const [name, json] = rest;
-      if (!name) {
-        throw new Error(USAGE);
-      }
-      const input = {
-        ...(json ? JSON.parse(json) : {}),
-        ...(await parseArgInputs(values.arg ?? [])),
-      };
-      const rpc = createPageRpcClient({ port, page: values.page });
-      const result = await rpc.executeTool({ name }, input);
-      if (result.isError) {
-        throw new Error(result.error);
-      } else if (typeof result.value === "string") {
-        console.log(result.value);
-      } else if (result.value !== undefined) {
-        console.log(JSON.stringify(result.value, null, 2));
-      }
+      await runExecuteToolCommand({
+        port,
+        page: values.page,
+        name,
+        json,
+        args: values.arg ?? [],
+      });
       break;
     }
     case "pages": {
-      const response = await requestBridge({
-        port,
-        path: AGENT_ENDPOINTS.pages,
-      });
-      const pages = (await response.json()) as PageInfo[];
-      console.log(JSON.stringify(pages, null, 2));
+      await runPagesCommand(port);
       break;
     }
     default: {
@@ -124,6 +109,54 @@ function runAllowCommand(origin: string | undefined) {
   }
   addConfigOrigin(origin);
   console.log(`allowed ${origin} in ${getConfigPath()}`);
+}
+
+async function runGetToolsCommand({
+  port,
+  page,
+}: {
+  port: number;
+  page?: string;
+}) {
+  const rpc = createPageRpcClient({ port, page });
+  console.log(formatTools(await rpc.getTools()));
+}
+
+async function runExecuteToolCommand({
+  port,
+  page,
+  name,
+  json,
+  args,
+}: {
+  port: number;
+  page?: string;
+  name?: string;
+  json?: string;
+  args: string[];
+}) {
+  if (!name) {
+    throw new Error(USAGE);
+  }
+  const input = {
+    ...(json ? JSON.parse(json) : {}),
+    ...(await parseArgInputs(args)),
+  };
+  const rpc = createPageRpcClient({ port, page });
+  const result = await rpc.executeTool({ name }, input);
+  if (result.isError) {
+    throw new Error(result.error);
+  } else if (typeof result.value === "string") {
+    console.log(result.value);
+  } else if (result.value !== undefined) {
+    console.log(JSON.stringify(result.value, null, 2));
+  }
+}
+
+async function runPagesCommand(port: number) {
+  const response = await requestBridge({ port, path: AGENT_ENDPOINTS.pages });
+  const pages = (await response.json()) as PageInfo[];
+  console.log(JSON.stringify(pages, null, 2));
 }
 
 type PageRpcClient = {
