@@ -898,6 +898,9 @@ export class RecorderRuntime {
   }
 
   setPlaybackRate(playbackRate: number): void {
+    if (playbackRate === this.store.get().playbackRate) {
+      return;
+    }
     this.transport.setPlaybackRate(playbackRate);
     for (const playback of this.trackPlaybacks.values()) {
       playback.setPlaybackRate(playbackRate);
