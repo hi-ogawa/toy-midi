@@ -9,44 +9,46 @@ import { EXPOSE_EVENT } from "./expose-event.ts";
 
 const CONTENT_SCRIPT_ID = "content";
 
-chrome.action.onClicked.addListener(async (tab) => {
-  // `activeTab` makes the URL readable for this click.
-  const origin = new URL(tab.url!).origin;
-  // Requested before any other await, while the click still counts as a user
-  // gesture. It resolves right away for a site already allowed.
-  const granted = await chrome.permissions.request({
-    origins: [`${origin}/*`],
+function main() {
+  chrome.action.onClicked.addListener(async (tab) => {
+    // `activeTab` makes the URL readable for this click.
+    const origin = new URL(tab.url!).origin;
+    // Requested before any other await, while the click still counts as a user
+    // gesture. It resolves right away for a site already allowed.
+    const granted = await chrome.permissions.request({
+      origins: [`${origin}/*`],
+    });
+    if (granted) {
+      await toggleTab(tab.id!, origin);
+    }
   });
-  if (granted) {
-    await toggleTab(tab.id!, origin);
-  }
-});
-chrome.runtime.onInstalled.addListener(syncContentScript);
-chrome.permissions.onAdded.addListener(syncContentScript);
-chrome.permissions.onRemoved.addListener(syncContentScript);
+  chrome.runtime.onInstalled.addListener(syncContentScript);
+  chrome.permissions.onAdded.addListener(syncContentScript);
+  chrome.permissions.onRemoved.addListener(syncContentScript);
 
-// An opted-in tab stays exposed across reloads, until it leaves the site.
-chrome.tabs.onUpdated.addListener(async (tabId, { status }, tab) => {
-  if (status !== "loading") {
-    return;
-  }
-  const origin = await getExposedOrigin(tabId);
-  if (!origin) {
-    return;
-  }
-  if (!tab.url || new URL(tab.url).origin !== origin) {
-    await setExposedOrigin(tabId, undefined);
-    return;
-  }
-  await setExposedOrigin(tabId, origin);
-  await dispatchExpose(tabId, true);
-});
-chrome.tabs.onRemoved.addListener((tabId) =>
-  chrome.storage.session.remove(tabKey(tabId)),
-);
+  // An opted-in tab stays exposed across reloads, until it leaves the site.
+  chrome.tabs.onUpdated.addListener(async (tabId, { status }, tab) => {
+    if (status !== "loading") {
+      return;
+    }
+    const origin = await getExposedOrigin(tabId);
+    if (!origin) {
+      return;
+    }
+    if (!tab.url || new URL(tab.url).origin !== origin) {
+      await setExposedOrigin(tabId, undefined);
+      return;
+    }
+    await setExposedOrigin(tabId, origin);
+    await dispatchExpose(tabId, true);
+  });
+  chrome.tabs.onRemoved.addListener((tabId) =>
+    chrome.storage.session.remove(tabKey(tabId)),
+  );
 
-// For E2E, which cannot click the extension's button.
-Object.assign(globalThis, { __e2e: { toggleTab } });
+  // For E2E, which cannot click the extension's button.
+  Object.assign(globalThis, { __e2e: { toggleTab } });
+}
 
 async function toggleTab(tabId: number, origin: string) {
   const exposed = !(await getExposedOrigin(tabId));
@@ -122,3 +124,5 @@ async function registerContentScript() {
     },
   ]);
 }
+
+main();

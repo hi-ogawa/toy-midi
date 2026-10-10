@@ -10,16 +10,20 @@ import { EXPOSE_EVENT } from "./expose-event.ts";
 // Set by the build.
 declare const __WEBMCP_BRIDGE_PORT__: string;
 
-const modelContext = (document.modelContext ??= createModelContextPolyfill());
-let dispose: (() => void) | undefined;
+function main() {
+  const modelContext = (document.modelContext ??= createModelContextPolyfill());
+  let dispose: (() => void) | undefined;
 
-window.addEventListener(EXPOSE_EVENT, (event) => {
-  dispose?.();
-  dispose = undefined;
-  if ((event as CustomEvent<boolean>).detail) {
-    dispose = exposeModelContext({
-      bridgeUrl: `http://localhost:${__WEBMCP_BRIDGE_PORT__}`,
-      modelContext,
-    });
-  }
-});
+  window.addEventListener(EXPOSE_EVENT, (event) => {
+    dispose?.();
+    dispose = undefined;
+    if ((event as CustomEvent<boolean>).detail) {
+      dispose = exposeModelContext({
+        bridgeUrl: `http://localhost:${__WEBMCP_BRIDGE_PORT__}`,
+        modelContext,
+      });
+    }
+  });
+}
+
+main();
