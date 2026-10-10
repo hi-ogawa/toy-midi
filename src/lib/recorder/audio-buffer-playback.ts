@@ -69,8 +69,8 @@ export class AudioBufferPlayback implements TransportParticipant {
     });
   }
 
-  stop(): void {
-    this.sources.stop();
+  stop(time: number): void {
+    this.sources.stop(time);
   }
 
   dispose(): void {
