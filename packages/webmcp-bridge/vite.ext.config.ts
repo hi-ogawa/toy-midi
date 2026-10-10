@@ -21,8 +21,12 @@ export default defineConfig({
   },
   environments: {
     content: scriptBuild("content", "./src/extension/content.ts"),
-    // Keep the content build's output, which already has public/.
+    // Later builds keep the content build's output, which already has public/.
     background: scriptBuild("background", "./src/extension/background.ts", {
+      emptyOutDir: false,
+      copyPublicDir: false,
+    }),
+    relay: scriptBuild("relay", "./src/extension/relay.ts", {
       emptyOutDir: false,
       copyPublicDir: false,
     }),
@@ -31,6 +35,7 @@ export default defineConfig({
     async buildApp(builder) {
       await builder.build(builder.environments.content!);
       await builder.build(builder.environments.background!);
+      await builder.build(builder.environments.relay!);
 
       if (process.env.PATCH_MANIFEST === "true") {
         const revision = execFileSync("git", ["rev-parse", "--short", "HEAD"], {

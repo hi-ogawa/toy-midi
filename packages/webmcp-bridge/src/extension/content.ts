@@ -5,7 +5,7 @@
 
 import { exposeModelContext } from "../client.ts";
 import { createModelContextPolyfill } from "../model-context-polyfill.ts";
-import { EXPOSE_EVENT } from "./shared.ts";
+import { EXPOSE_EVENT, type StatusMessage } from "./shared.ts";
 
 function main() {
   const modelContext = (document.modelContext ??= createModelContextPolyfill());
@@ -16,7 +16,15 @@ function main() {
     dispose = undefined;
     const bridgeUrl = (event as CustomEvent<string | undefined>).detail;
     if (bridgeUrl) {
-      dispose = exposeModelContext({ bridgeUrl, modelContext });
+      dispose = exposeModelContext({
+        bridgeUrl,
+        modelContext,
+        onStatus: (status) =>
+          window.postMessage(
+            { type: "webmcp-bridge:status", status } satisfies StatusMessage,
+            window.location.origin,
+          ),
+      });
     }
   });
 }

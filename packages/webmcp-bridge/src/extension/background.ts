@@ -5,10 +5,12 @@
 // to the bridge. Clicking the extension's button allows the current site and
 // opts its tab in, or opts an allowed site's tab in or out.
 
+import type { BridgeStatus } from "../client.ts";
 import { DEFAULT_BRIDGE_PORT } from "../protocol.ts";
-import { EXPOSE_EVENT } from "./shared.ts";
+import { EXPOSE_EVENT, type StatusMessage } from "./shared.ts";
 
 const CONTENT_SCRIPT_ID = "content";
+const RELAY_SCRIPT_ID = "relay";
 // Set only by E2E for now, as an options page would.
 const BRIDGE_PORT_KEY = "bridgePort";
 
@@ -45,12 +47,19 @@ function main() {
     await setExposedOrigin(tabId, origin);
     await dispatchExpose(tabId, true);
   });
+  chrome.runtime.onMessage.addListener((message: StatusMessage, sender) => {
+    if (message.type === "webmcp-bridge:status" && sender.tab?.id) {
+      void showStatus(sender.tab.id, message.status);
+    }
+  });
   chrome.tabs.onRemoved.addListener((tabId) =>
     chrome.storage.session.remove(tabKey(tabId)),
   );
 
   // For E2E, which cannot click the extension's button.
-  Object.assign(globalThis, { __e2e: { toggleTab, setBridgePort } });
+  Object.assign(globalThis, {
+    __e2e: { toggleTab, setBridgePort, getBadgeText },
+  });
 }
 
 async function toggleTab(tabId: number, origin: string) {
@@ -76,7 +85,69 @@ async function setExposedOrigin(tabId: number, origin: string | undefined) {
   await (origin
     ? chrome.storage.session.set({ [tabKey(tabId)]: origin })
     : chrome.storage.session.remove(tabKey(tabId)));
-  await chrome.action.setBadgeText({ tabId, text: origin ? "ON" : "" });
+  await showBadge(tabId, origin ? connectingBadge() : offBadge());
+}
+
+async function showStatus(tabId: number, status: BridgeStatus) {
+  const origin = await getExposedOrigin(tabId);
+  // A status that arrives after the tab is turned off is stale.
+  if (!origin) {
+    return;
+  }
+  switch (status) {
+    case "connecting": {
+      await showBadge(tabId, connectingBadge());
+      break;
+    }
+    case "connected": {
+      await showBadge(tabId, {
+        text: "ON",
+        color: "#16a34a",
+        title: "Connected to the bridge",
+      });
+      break;
+    }
+    case "closed": {
+      await showBadge(tabId, {
+        text: "!",
+        color: "#dc2626",
+        title: `The bridge refused this site. Start it with --origin ${origin}`,
+      });
+      break;
+    }
+  }
+}
+
+function connectingBadge(): Badge {
+  return {
+    text: "…",
+    color: "#d97706",
+    title: "Connecting to the bridge. Is webmcp-bridge serve running?",
+  };
+}
+
+function offBadge(): Badge {
+  return {
+    text: "",
+    color: "#000000",
+    title: chrome.runtime.getManifest().action!.default_title!,
+  };
+}
+
+interface Badge {
+  text: string;
+  color: string;
+  title: string;
+}
+
+async function showBadge(tabId: number, { text, color, title }: Badge) {
+  await chrome.action.setBadgeText({ tabId, text });
+  await chrome.action.setBadgeBackgroundColor({ tabId, color });
+  await chrome.action.setTitle({ tabId, title });
+}
+
+async function getBadgeText(tabId: number) {
+  return await chrome.action.getBadgeText({ tabId });
 }
 
 function tabKey(tabId: number) {
@@ -133,6 +204,13 @@ async function registerContentScript() {
       js: ["content.js"],
       runAt: "document_start",
       world: "MAIN",
+      persistAcrossSessions: true,
+    },
+    {
+      id: RELAY_SCRIPT_ID,
+      matches: origins,
+      js: ["relay.js"],
+      runAt: "document_start",
       persistAcrossSessions: true,
     },
   ]);

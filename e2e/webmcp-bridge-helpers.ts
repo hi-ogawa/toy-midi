@@ -37,6 +37,7 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
  */
 export const extensionTest = test.extend<{
   toggleTab: (page: Page) => Promise<void>;
+  getBadgeText: (page: Page) => Promise<string>;
 }>({
   // Build the extension, allow the app's site as clicking the extension's
   // button would, load it into a persistent context, the only kind that loads
@@ -88,7 +89,7 @@ export const extensionTest = test.extend<{
           "chrome.scripting.getRegisteredContentScripts().then((scripts) => scripts.length)",
         ),
       )
-      .toBe(1);
+      .toBe(2);
     await worker.evaluate(
       (port) => (globalThis as any).__e2e.setBridgePort(port),
       bridge.port,
@@ -111,6 +112,20 @@ export const extensionTest = test.extend<{
         });
         await __e2e.toggleTab(tab.id, origin);
       }, new URL(page.url()).origin);
+    });
+  },
+  getBadgeText: async ({ context }, use) => {
+    const [worker] = context.serviceWorkers();
+    await use(async (page) => {
+      await page.bringToFront();
+      return await worker!.evaluate(async () => {
+        const { chrome, __e2e } = globalThis as any;
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        return await __e2e.getBadgeText(tab.id);
+      });
     });
   },
 });

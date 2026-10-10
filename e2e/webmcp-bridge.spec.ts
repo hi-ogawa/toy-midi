@@ -4,16 +4,17 @@ import { extensionTest, test } from "./webmcp-bridge-helpers";
 
 extensionTest(
   "drives the open project from the webmcp-bridge command",
-  async ({ page, bridge, toggleTab }) => {
+  async ({ page, bridge, toggleTab, getBadgeText }) => {
     // Open a project, and see that it does not connect before the tab opts in.
     await createRecorderProject(page);
     expect(JSON.parse((await bridge.run(["pages"])).stdout)).toEqual([]);
 
-    // Opt the tab in from the extension, and wait for it to connect.
+    // Opt the tab in from the extension, and see it connect and the badge say so.
     await toggleTab(page);
     await expect
       .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
       .toHaveLength(1);
+    await expect.poll(() => getBadgeText(page)).toBe("ON");
 
     // List the tools the project exposes.
     const tools = await bridge.run(["get-tools"]);
@@ -62,11 +63,12 @@ extensionTest(
       .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
       .toEqual([expect.not.objectContaining({ id: before.id })]);
 
-    // Opt the tab out, and see it disconnect.
+    // Opt the tab out, and see it disconnect and the badge clear.
     await toggleTab(page);
     await expect
       .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
       .toEqual([]);
+    await expect.poll(() => getBadgeText(page)).toBe("");
   },
 );
 
