@@ -645,7 +645,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                       }
                       onScorePreview={() => scoreUi.open(track.id)}
                       onPresetSelected={(preset) => {
-                        // New tracks start from the last General MIDI program, not a drum kit.
+                        // New tracks start from the last General MIDI
+                        // program, not a drum kit.
                         if (!preset.bank) {
                           setDefaultMidiProgram(preset.program);
                         }

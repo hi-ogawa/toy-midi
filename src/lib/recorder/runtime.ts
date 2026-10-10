@@ -80,13 +80,9 @@ export interface MidiTrackState {
   program: number;
   /**
    * SoundFont bank of the preset, 0 when absent. Bank 0 holds the 128 General
-   * MIDI programs. Bank 128 holds the drum kits that General MIDI channel 10
-   * plays: 0 Standard, 8 Room, 16 Power, 24 Electronic, 25 TR-808, 32 Jazz,
-   * 40 Brush, 48 Orchestra, 56 SFX. Drum note pitches follow the General MIDI
-   * percussion key map, such as 36 Bass Drum 1, 38 Acoustic Snare,
-   * 42 Closed Hi-Hat, 46 Open Hi-Hat, and 49 Crash Cymbal 1. A missing preset
-   * falls back as in fluidsynth: a missing drum kit to Standard, and any other
-   * missing preset to the same program in bank 0.
+   * MIDI programs. Bank 128 holds the bundled soundfont's GS drum kits:
+   * 0 Standard, 8 Room, 16 Power, 24 Electronic, 25 TR-808, 32 Jazz, 40 Brush,
+   * 48 Orchestra, 56 SFX.
    */
   bank?: number;
   eq: MultibandEqParameters;
@@ -101,7 +97,6 @@ export interface MidiTrackState {
   keySignature: KeySignature;
 }
 
-/** The SoundFont preset a MIDI track plays, addressed by bank and program */
 export type MidiPreset = Pick<MidiTrackState, "bank" | "program">;
 
 export interface RecorderLoopRange {

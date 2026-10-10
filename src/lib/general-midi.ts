@@ -146,12 +146,10 @@ export const GM_PROGRAMS = [
   "Gunshot",
 ] as const;
 
-// The SoundFont bank that holds drum kits, which General MIDI channel 10 selects
-// from.
+// General MIDI channel 10 selects its drum kit from this bank.
 export const DRUM_KIT_BANK = 128;
 
-// GS drum kits by program number in the drum kit bank. These are the kits the
-// bundled soundfont ships.
+// The kits the bundled soundfont ships.
 export const DRUM_KITS = [
   { program: 0, name: "Standard" },
   { program: 8, name: "Room" },
@@ -164,8 +162,7 @@ export const DRUM_KITS = [
   { program: 56, name: "SFX" },
 ] as const;
 
-// The presets to try in order for a missing preset, as fluidsynth substitutes on
-// a program change.
+// Follows how fluidsynth substitutes a missing preset on a program change.
 export function listPresetFallbacks({
   bank = 0,
   program,

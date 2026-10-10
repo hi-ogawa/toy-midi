@@ -153,7 +153,7 @@ test("plays a MIDI track as a drum kit and persists it", async ({ page }) => {
   });
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
-  // Save and reload, and keep the drum kit.
+  // Save and reload, then verify the drum kit persists.
   await saveRecorderProject(page);
   await page.reload();
   await openRecorderMidiInstrument(page, { name: "MIDI 1" });
@@ -161,7 +161,8 @@ test("plays a MIDI track as a drum kit and persists it", async ({ page }) => {
     "Drums 25: TR-808",
   );
 
-  // Switch back to a melodic program with the same number.
+  // Switch back to the melodic program with the same number, and verify it
+  // persists after reload.
   await selectRecorderMidiInstrument(instrument, {
     option: "25: Acoustic Guitar (steel)",
   });
