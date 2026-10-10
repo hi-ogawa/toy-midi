@@ -141,7 +141,7 @@ modelContext.registerTool(
 );
 ```
 
-Registering a tool does not expose it. The app exposes its `modelContext` to the bridge separately:
+Then the app exposes its `modelContext` to the bridge:
 
 ```ts
 import { exposeModelContext } from "@hiogawa/webmcp-bridge/client";
@@ -152,7 +152,7 @@ const unexpose = exposeModelContext({
 });
 ```
 
-The bridge reads the tools with `getTools()` and runs them with `executeTool()`, as an agent built into the browser would, so it works the same with native WebMCP and the polyfill. Apps depend on the package from GitHub, pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`, and can import the tool types and the `document.modelContext` declaration from `@hiogawa/webmcp-bridge/webmcp`. The package ships TypeScript source, so the app's bundler compiles it.
+The bridge reads the tools with `getTools()` and runs them with `executeTool()`, as an agent built into the browser would. Apps depend on the package from GitHub, pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`, and can import the tool types and the `document.modelContext` declaration from `@hiogawa/webmcp-bridge/webmcp`. The package ships TypeScript source, so the app's bundler compiles it.
 
 - `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
 - The result must be convertible to JSON. A value that is not, such as an object that refers to itself, comes back as an error.
