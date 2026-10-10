@@ -88,11 +88,7 @@ export class AudioTrackPlayback {
   }
 }
 
-/**
- * Sums playback sources and corrects their pitch for the playback rate. It
- * depends only on that rate, so it stays connected across pause and seek and is
- * rewired only when the rate changes.
- */
+/** Sums playback sources and corrects their pitch for the playback rate. */
 class PitchShiftBus {
   readonly input: GainNode;
   private readonly context: AudioContext;
