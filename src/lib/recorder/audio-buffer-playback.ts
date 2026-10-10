@@ -1,3 +1,4 @@
+import { DeclickGain } from "../dsp/declick-gain.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import type {
   AudioContextTransport,
@@ -8,8 +9,8 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
   private readonly unregister: () => void;
+  private readonly player: DeclickedBufferPlayer;
   private playbackSource?: AudioPlaybackSource;
-  private source?: AudioBufferSourceNode;
 
   constructor({
     transport,
@@ -21,6 +22,10 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.transport = transport;
     this.gain = transport.context.createGain();
     this.gain.connect(output);
+    this.player = new DeclickedBufferPlayer({
+      context: transport.context,
+      output: this.gain,
+    });
     this.unregister = transport.register(this);
   }
 
@@ -51,28 +56,106 @@ export class AudioBufferPlayback implements TransportParticipant {
     if (elapsed >= duration) {
       return;
     }
-    const source = this.transport.context.createBufferSource();
-    source.buffer = buffer;
-    source.playbackRate.value = this.transport.playbackRate;
-    source.connect(this.gain);
-    source.start(
+    const startTime =
       playbackAnchor.contextTime +
-        Math.max(0, timelineStart - playbackAnchor.position) /
-          this.transport.playbackRate,
-      timelineStart - timelineOffset + elapsed,
-      duration - elapsed,
-    );
-    this.source = source;
+      Math.max(0, timelineStart - playbackAnchor.position) /
+        this.transport.playbackRate;
+    this.player.start({
+      buffer,
+      playbackRate: this.transport.playbackRate,
+      time: startTime,
+      offset: timelineStart - timelineOffset + elapsed,
+      duration: duration - elapsed,
+    });
   }
 
   stop(): void {
-    this.source?.stop();
-    this.source?.disconnect();
-    this.source = undefined;
+    this.player.stop();
   }
 
   dispose(): void {
     this.unregister();
-    this.gain.disconnect();
+    // Keep the clip connected until its stopped sources finish fading.
+    void this.player.waitForSilence().then(() => this.gain.disconnect());
+  }
+}
+
+/** One buffer source and its fade, from start until it ends. */
+type DeclickedSource = {
+  node: AudioBufferSourceNode;
+  envelope: DeclickGain;
+  /** Resolves once the source has ended and been disconnected. */
+  ended: Promise<void>;
+  stopped: boolean;
+};
+
+/**
+ * Plays buffer slices into one output, fading each in and out instead of
+ * starting or cutting it mid-waveform.
+ */
+class DeclickedBufferPlayer {
+  private readonly context: BaseAudioContext;
+  private readonly output: AudioNode;
+  /** Sources still sounding, including stopped ones that are fading out. */
+  private readonly sources = new Set<DeclickedSource>();
+
+  constructor({
+    context,
+    output,
+  }: {
+    context: BaseAudioContext;
+    output: AudioNode;
+  }) {
+    this.context = context;
+    this.output = output;
+  }
+
+  /** Plays `duration` buffer seconds from `offset`, starting at audio-clock `time`. */
+  start({
+    buffer,
+    playbackRate,
+    time,
+    offset,
+    duration,
+  }: {
+    buffer: AudioBuffer;
+    playbackRate: number;
+    time: number;
+    offset: number;
+    duration: number;
+  }): void {
+    const node = this.context.createBufferSource();
+    node.buffer = buffer;
+    node.playbackRate.value = playbackRate;
+    const envelope = new DeclickGain(this.context);
+    envelope.open(time);
+    node.connect(envelope.node).connect(this.output);
+    // Disconnect after the fade has rendered, not when stop() is called.
+    const ended = new Promise<void>((resolve) => {
+      node.onended = () => {
+        node.disconnect();
+        envelope.node.disconnect();
+        this.sources.delete(source);
+        resolve();
+      };
+    });
+    const source: DeclickedSource = { node, envelope, ended, stopped: false };
+    node.start(time, offset, duration);
+    this.sources.add(source);
+  }
+
+  /** Fades out every source still playing and stops each once silent. */
+  stop(): void {
+    for (const source of this.sources) {
+      if (!source.stopped) {
+        source.stopped = true;
+        source.node.stop(source.envelope.close());
+      }
+    }
+  }
+
+  /** Resolves once every source started so far has ended. */
+  async waitForSilence(): Promise<void> {
+    await Promise.all([...this.sources].map((source) => source.ended));
   }
 }
