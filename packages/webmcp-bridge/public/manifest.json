@@ -3,12 +3,12 @@
   "name": "WebMCP Bridge",
   "version": "0.0.0",
   "description": "Relays the WebMCP tools a page registers to the local webmcp-bridge.",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "optional_host_permissions": ["https://*/*", "http://localhost/*"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Expose this site's WebMCP tools to the bridge"
+    "default_title": "Expose this tab's WebMCP tools to the bridge"
   }
 }

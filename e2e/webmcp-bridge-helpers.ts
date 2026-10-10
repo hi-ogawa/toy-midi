@@ -2,7 +2,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { chromium, expect, test as base } from "@playwright/test";
+import { chromium, expect, test as base, type Page } from "@playwright/test";
 
 /** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
 export const test = base.extend<{ bridge: BridgeFixture }>({
@@ -30,8 +30,14 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
   },
 });
 
-/** `test` whose browser has the webmcp-bridge extension, built for the bridge's port. */
-export const extensionTest = test.extend({
+/**
+ * `test` whose browser has the webmcp-bridge extension, built for the bridge's
+ * port, with `toggleTab` to opt a page's tab in or out as the extension's
+ * button would.
+ */
+export const extensionTest = test.extend<{
+  toggleTab: (page: Page) => Promise<void>;
+}>({
   // Build the extension for the bridge's port, allow the app's site as clicking
   // the extension's button would, and load it into a persistent context, the
   // only kind that loads extensions.
@@ -91,6 +97,20 @@ export const extensionTest = test.extend({
   },
   page: async ({ context }, use) => {
     await use(context.pages()[0] ?? (await context.newPage()));
+  },
+  toggleTab: async ({ context }, use) => {
+    const [worker] = context.serviceWorkers();
+    await use(async (page) => {
+      await page.bringToFront();
+      await worker!.evaluate(async (origin) => {
+        const { chrome, __e2e } = globalThis as any;
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        await __e2e.toggleTab(tab.id, origin);
+      }, new URL(page.url()).origin);
+    });
   },
 });
 

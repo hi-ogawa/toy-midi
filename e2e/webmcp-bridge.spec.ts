@@ -4,9 +4,13 @@ import { extensionTest, test } from "./webmcp-bridge-helpers";
 
 extensionTest(
   "drives the open project from the webmcp-bridge command",
-  async ({ page, bridge }) => {
-    // Open a project, and wait for the extension to connect its tools.
+  async ({ page, bridge, toggleTab }) => {
+    // Open a project, and see that it does not connect before the tab opts in.
     await createRecorderProject(page);
+    expect(JSON.parse((await bridge.run(["pages"])).stdout)).toEqual([]);
+
+    // Opt the tab in from the extension, and wait for it to connect.
+    await toggleTab(page);
     await expect
       .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
       .toHaveLength(1);
@@ -50,6 +54,19 @@ extensionTest(
     ]);
     expect(failure.code).toBe(1);
     expect(failure.stderr).toContain("Error: boom");
+
+    // Reload the page, and see the opted-in tab connect again.
+    const [before] = JSON.parse((await bridge.run(["pages"])).stdout);
+    await page.reload();
+    await expect
+      .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
+      .toEqual([expect.not.objectContaining({ id: before.id })]);
+
+    // Opt the tab out, and see it disconnect.
+    await toggleTab(page);
+    await expect
+      .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
+      .toEqual([]);
   },
 );
 
