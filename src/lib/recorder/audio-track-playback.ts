@@ -18,7 +18,7 @@ type ClipPlayback = {
 export class AudioTrackPlayback {
   private readonly transport: AudioContextTransport;
   private playbacks: ClipPlayback[] = [];
-  private readonly pitchShiftBus: PitchShiftBus;
+  private readonly pitchCorrectionBus: PitchCorrectionBus;
   /** Mutes region playback without muting other sources connected to channel.input. */
   private readonly playbackGain: GainNode;
   readonly channel: AudioChannel;
@@ -43,7 +43,7 @@ export class AudioTrackPlayback {
     });
     this.playbackGain = transport.context.createGain();
     this.playbackGain.connect(this.channel.input);
-    this.pitchShiftBus = new PitchShiftBus({
+    this.pitchCorrectionBus = new PitchCorrectionBus({
       transport,
       output: this.playbackGain,
     });
@@ -56,7 +56,7 @@ export class AudioTrackPlayback {
     this.playbacks = sources.map((source) => {
       const playback = new AudioBufferPlayback({
         transport: this.transport,
-        output: this.pitchShiftBus.input,
+        output: this.pitchCorrectionBus.input,
       });
       playback.setSource(source);
       return { clipId: source.clipId, playback };
@@ -80,14 +80,14 @@ export class AudioTrackPlayback {
 
   dispose(): void {
     this.setSources([]);
-    this.pitchShiftBus.dispose();
+    this.pitchCorrectionBus.dispose();
     this.playbackGain.disconnect();
     this.channel.dispose();
   }
 }
 
 /** Sums playback sources before pitch correction for one transport run. */
-class PitchShiftBus implements TransportParticipant {
+class PitchCorrectionBus implements TransportParticipant {
   readonly input: GainNode;
   private readonly transport: AudioContextTransport;
   private readonly output: AudioNode;
