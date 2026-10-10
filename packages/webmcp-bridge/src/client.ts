@@ -5,9 +5,9 @@ import {
   type PageRpc,
 } from "./protocol.ts";
 import type { RpcResponse } from "./rpc.ts";
+import type { ModelContext, WebMcpToolResult } from "./webmcp.ts";
 
 export { DEFAULT_BRIDGE_PORT } from "./protocol.ts";
-import type { ModelContext, WebMcpToolResult } from "./webmcp.ts";
 
 /**
  * Exposes the tools of `modelContext` to the agent through the local bridge
