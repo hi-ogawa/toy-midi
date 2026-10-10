@@ -1,25 +1,16 @@
-import { DeclickGain } from "../dsp/declick-gain.ts";
+import { DeclickedSources } from "../dsp/declicked-sources.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
 } from "./transport.ts";
 
-type ActiveSource = {
-  node: AudioBufferSourceNode;
-  /** Per-source declick envelope, kept separate from clip gain automation. */
-  envelope: DeclickGain;
-};
-
 export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
   private readonly unregister: () => void;
+  private readonly sources: DeclickedSources;
   private playbackSource?: AudioPlaybackSource;
-  private source?: ActiveSource;
-  /** Sources that have not ended yet, including ones still fading out. */
-  private liveSources = 0;
-  private disposed = false;
 
   constructor({
     transport,
@@ -31,6 +22,10 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.transport = transport;
     this.gain = transport.context.createGain();
     this.gain.connect(output);
+    this.sources = new DeclickedSources({
+      context: transport.context,
+      output: this.gain,
+    });
     this.unregister = transport.register(this);
   }
 
@@ -53,7 +48,6 @@ export class AudioBufferPlayback implements TransportParticipant {
     if (!playbackSource) {
       return;
     }
-    const context = this.transport.context;
     const playbackAnchor = this.transport.playbackAnchor!;
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
       playbackSource;
@@ -66,48 +60,22 @@ export class AudioBufferPlayback implements TransportParticipant {
       playbackAnchor.contextTime +
       Math.max(0, timelineStart - playbackAnchor.position) /
         this.transport.playbackRate;
-    const node = context.createBufferSource();
-    node.buffer = buffer;
-    node.playbackRate.value = this.transport.playbackRate;
-    const envelope = new DeclickGain(context);
-    envelope.open(startTime);
-    node.connect(envelope.node).connect(this.gain);
-    // Disconnect after the stop fade has rendered, not when stop() is called.
-    node.onended = () => {
-      node.disconnect();
-      envelope.node.disconnect();
-      this.liveSources--;
-      this.releaseIfDone();
-    };
-    node.start(
-      startTime,
-      timelineStart - timelineOffset + elapsed,
-      duration - elapsed,
-    );
-    this.source = { node, envelope };
-    this.liveSources++;
+    this.sources.start({
+      buffer,
+      playbackRate: this.transport.playbackRate,
+      time: startTime,
+      offset: timelineStart - timelineOffset + elapsed,
+      duration: duration - elapsed,
+    });
   }
 
-  /** Fades the active source out and stops it once the fade completes. */
   stop(): void {
-    const source = this.source;
-    if (!source) {
-      return;
-    }
-    this.source = undefined;
-    source.node.stop(source.envelope.close());
+    this.sources.stop();
   }
 
   dispose(): void {
     this.unregister();
-    this.disposed = true;
-    this.releaseIfDone();
-  }
-
-  /** Keeps the output connected until a stopped source finishes its fade. */
-  private releaseIfDone(): void {
-    if (this.disposed && this.liveSources === 0) {
-      this.gain.disconnect();
-    }
+    // Keep the clip connected until its stopped sources finish fading.
+    this.sources.whenSilent(() => this.gain.disconnect());
   }
 }
