@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ProjectUiStore } from "../../lib/recorder/storage";
+import type { TransportStore } from "../../lib/recorder/transport";
 import {
   DEFAULT_GRID_DIVISION,
   getBeatsPerBar,
@@ -13,14 +14,14 @@ import type { TimeSignature } from "../../types";
 
 export function useRecorderTimeline({
   projectUiStore,
+  transportStore,
   isPlaying,
-  position,
   tempo,
   timeSignature,
 }: {
   projectUiStore: ProjectUiStore;
+  transportStore: TransportStore;
   isPlaying: boolean;
-  position: number;
   tempo: number;
   timeSignature: TimeSignature;
 }) {
@@ -37,28 +38,29 @@ export function useRecorderTimeline({
   const [viewportWidth, setViewportWidth] = useState(0);
   const beatsPerBar = getBeatsPerBar(timeSignature);
   const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];
-  const playheadX =
-    (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
-  const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
   useEffect(() => {
     if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
       return;
     }
-    const playheadBeat = secondsToBeats(position, tempo);
-    const visibleBeats = viewportWidth / pixelsPerBeat;
-    if (
-      playheadBeat < viewportStartBeat ||
-      viewportStartBeat + visibleBeats * 0.9 < playheadBeat
-    ) {
-      setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
+    function follow() {
+      const playheadBeat = secondsToBeats(transportStore.get().position, tempo);
+      const visibleBeats = viewportWidth / pixelsPerBeat;
+      if (
+        playheadBeat < viewportStartBeat ||
+        viewportStartBeat + visibleBeats * 0.9 < playheadBeat
+      ) {
+        setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
+      }
     }
+    follow();
+    return transportStore.subscribe(follow);
   }, [
     autoScrollEnabled,
     isPlaying,
     pixelsPerBeat,
-    position,
     tempo,
+    transportStore,
     viewportStartBeat,
     viewportWidth,
   ]);
@@ -119,7 +121,6 @@ export function useRecorderTimeline({
     beatsPerBar,
     gridDivision,
     pixelsPerBeat,
-    playheadX,
     viewportStartBeat,
     setGridDivision,
     subdivisionsPerBeat,
@@ -127,7 +128,6 @@ export function useRecorderTimeline({
     timeSignature,
     viewportRef,
     viewportWidth,
-    showPlayhead,
     autoScrollEnabled,
     setAutoScrollEnabled,
   };

@@ -224,10 +224,10 @@ function RecorderScorePreview({
 function createRecorderScoreClock(recorder: RecorderRuntime): ScoreViewerClock {
   return {
     getSnapshot: () => {
-      const state = recorder.store.get();
-      return { currentTime: state.position, isPlaying: state.isPlaying };
+      const { position, isPlaying } = recorder.transportStore.get();
+      return { currentTime: position, isPlaying };
     },
-    subscribe: recorder.store.subscribe,
+    subscribe: recorder.transportStore.subscribe,
     seek: (position) => recorder.seek(position),
     play: () => {
       recorder.play().catch((error) => toast.error(String(error)));

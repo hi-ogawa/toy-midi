@@ -146,8 +146,6 @@ export type RecorderLocatorUpdate = {
 export interface RecorderRuntimeState {
   title: string;
   locators: RecorderLocator[];
-  /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
-  position: number;
   isPlaying: boolean;
   /** Playback speed, 1 being normal */
   playbackRate: number;
@@ -239,7 +237,6 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
     title: "Untitled",
     locators: [],
-    position: 0,
     isPlaying: false,
     playbackRate: 1,
     tempo: 120,
@@ -281,8 +278,14 @@ export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
   readonly context = new AudioContext();
+  private readonly transport = new AudioContextTransport(this.context);
+  /**
+   * The playhead `position` in seconds, converted from beats with
+   * `beats * 60 / tempo`, and `isPlaying`. It is separate from `store` because
+   * the position changes on every animation frame during playback.
+   */
+  readonly transportStore = this.transport.store;
   private readonly masterOutput: GainNode;
-  private readonly transport: AudioContextTransport;
   /** @internal */
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
@@ -298,16 +301,17 @@ export class RecorderRuntime {
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
-    this.transport = new AudioContextTransport(this.context);
     this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
     this.metronome.setTempo(this.store.get().tempo);
     this.metronome.setTimeSignature(this.store.get().timeSignature);
     this.syncLoopRange();
-    this.transport.store.subscribe(() => {
-      const { position, isPlaying } = this.transport.store.get();
-      this.store.update({ isPlaying, position });
+    this.transport.store.subscribeWithSelector({
+      selector: (state) => state.isPlaying,
+      listener: () =>
+        this.store.update({ isPlaying: this.transport.store.get().isPlaying }),
+      equals: Object.is,
     });
   }
 
@@ -1157,7 +1161,6 @@ export class RecorderRuntime {
       ...project,
       audioTracks,
       trackOrder: syncTrackOrder({ ...project, audioTracks }),
-      position: 0,
     });
     this.syncYouTubePlayer();
     this.transport.seek(0);
