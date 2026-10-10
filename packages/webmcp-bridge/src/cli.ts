@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { addConfigOrigin, getConfigPath, readConfigOrigins } from "./config.ts";
 import {
   AGENT_ENDPOINTS,
   DEFAULT_BRIDGE_PORT,
@@ -14,6 +15,8 @@ usage: webmcp-bridge <command> [options]
 
 commands:
   serve                       run the bridge
+  allow <origin>              let pages from a site connect, saved to
+                              ${getConfigPath()}
   get-tools                   describe the connected page's tools
   execute-tool <tool> [json]  execute a tool with the JSON input, default {}.
                               A string value is printed as is, and anything
@@ -23,7 +26,8 @@ commands:
 options:
   --port <number>     bridge port (default ${DEFAULT_BRIDGE_PORT}, serve accepts 0
                       for any free port)
-  --origin <origin>   page origin to accept, repeatable (serve only, required)
+  --origin <origin>   page origin to accept besides the saved ones,
+                      repeatable (serve only)
   --page <id>         target page, required when several pages are connected
   --arg <key=value>   set a string field of the tool input, repeatable.
                       A value of - reads stdin, so code or long text needs no
@@ -52,10 +56,28 @@ async function main() {
   }
   switch (command) {
     case "serve": {
-      if (!values.origin) {
-        throw new Error("serve requires at least one --origin");
+      const origins = values.origin ?? [];
+      await new BridgeServer({
+        getOrigins: () => [...origins, ...readConfigOrigins()],
+      }).listen(port);
+      console.log(
+        `[webmcp-bridge] accepting pages from ${[...origins, getConfigPath()].join(", ")}`,
+      );
+      break;
+    }
+    case "allow": {
+      const [origin] = rest;
+      if (
+        !origin ||
+        !URL.canParse(origin) ||
+        new URL(origin).origin !== origin
+      ) {
+        throw new Error(
+          "allow requires an origin, such as https://example.com",
+        );
       }
-      await new BridgeServer({ origins: values.origin }).listen(port);
+      addConfigOrigin(origin);
+      console.log(`allowed ${origin} in ${getConfigPath()}`);
       break;
     }
     case "get-tools": {

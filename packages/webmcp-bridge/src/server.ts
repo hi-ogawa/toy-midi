@@ -19,12 +19,14 @@ const PING_INTERVAL_MS = 15_000;
  * each agent call to a page and the page's result back to the agent.
  */
 export class BridgeServer {
-  private readonly origins: string[];
+  private readonly getOrigins: () => string[];
   private readonly pages = new Map<string, PageConnection>();
   private readonly pending = new Map<string, (result: RpcResult) => void>();
 
-  constructor({ origins }: { origins: string[] }) {
-    this.origins = origins;
+  // Origins are read for each request, so a newly allowed site connects
+  // without a restart.
+  constructor({ getOrigins }: { getOrigins: () => string[] }) {
+    this.getOrigins = getOrigins;
   }
 
   async listen(port: number) {
@@ -36,9 +38,6 @@ export class BridgeServer {
     });
     await server.ready();
     console.log(`[webmcp-bridge] listening on ${server.url}`);
-    console.log(
-      `[webmcp-bridge] accepting pages from ${this.origins.join(", ")}`,
-    );
   }
 
   async handle(request: Request): Promise<Response> {
@@ -54,7 +53,12 @@ export class BridgeServer {
     // Origin is rejected there, which keeps other sites from driving the
     // page.
     if (url.pathname.startsWith(PAGE_PREFIX)) {
-      if (!origin || !this.origins.includes(origin)) {
+      if (!origin || !this.getOrigins().includes(origin)) {
+        if (origin && url.pathname === PAGE_ENDPOINTS.connect) {
+          console.log(
+            `[webmcp-bridge] refused a page from ${origin}, allow it with: webmcp-bridge allow ${origin}`,
+          );
+        }
         return new Response("origin not allowed\n", { status: 403 });
       }
       const response = await this.handlePage(request, url, origin);
