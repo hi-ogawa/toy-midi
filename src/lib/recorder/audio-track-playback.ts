@@ -97,7 +97,6 @@ class PitchShiftBus {
   readonly input: GainNode;
   private readonly context: AudioContext;
   private readonly output: AudioNode;
-  private playbackRate = 1;
   private pitchShifter?: AudioWorkletNode;
 
   constructor({
@@ -112,16 +111,19 @@ class PitchShiftBus {
     this.context = context;
     this.output = output;
     this.input = context.createGain();
-    this.input.connect(output);
-    this.setPlaybackRate(playbackRate);
+    this.connectRoute(playbackRate);
   }
 
   setPlaybackRate(playbackRate: number): void {
-    if (playbackRate === this.playbackRate) {
-      return;
-    }
-    this.playbackRate = playbackRate;
     this.disconnectRoute();
+    this.connectRoute(playbackRate);
+  }
+
+  dispose(): void {
+    this.disconnectRoute();
+  }
+
+  private connectRoute(playbackRate: number): void {
     if (playbackRate === 1) {
       this.input.connect(this.output);
       return;
@@ -132,10 +134,6 @@ class PitchShiftBus {
       pitchRatio: 1 / playbackRate,
     });
     this.input.connect(this.pitchShifter).connect(this.output);
-  }
-
-  dispose(): void {
-    this.disconnectRoute();
   }
 
   private disconnectRoute(): void {
