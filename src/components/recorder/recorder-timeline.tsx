@@ -19,6 +19,7 @@ import type {
   RecorderPunchState,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
+import type { TransportStore } from "../../lib/recorder/transport";
 import { formatTimeMinutes } from "../../lib/time-format";
 import {
   beatsToSeconds,
@@ -38,6 +39,39 @@ import {
 import { cn } from "../ui/utils";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 import { TrackMenuButton } from "./recorder-tracks";
+import { usePlaybackPosition } from "./use-playback-position";
+
+export function TimelinePlayhead({
+  transportStore,
+  tempo,
+  pixelsPerBeat,
+  viewportStartBeat,
+  viewportWidth,
+}: {
+  transportStore: TransportStore;
+  tempo: number;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  viewportWidth: number;
+}) {
+  const position = usePlaybackPosition(transportStore);
+  const x =
+    (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
+  if (x < 0 || viewportWidth < x) {
+    return;
+  }
+  return (
+    <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
+      <div
+        data-testid="recorder-playhead"
+        className="absolute inset-y-0 left-0 w-px bg-sky-400 will-change-transform"
+        // A transform moves the line on its own compositor layer, where moving
+        // `left` would repaint the timeline under it on every frame.
+        style={{ transform: `translateX(${x}px)` }}
+      />
+    </div>
+  );
+}
 
 export function TimelineHeader({
   beatsPerBar,
@@ -560,7 +594,7 @@ export function AudioTimelineLane({
 
 export function ReferenceTimelineRow({
   referenceVideo,
-  position,
+  transportStore,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
@@ -579,7 +613,7 @@ export function ReferenceTimelineRow({
   onRemove,
 }: {
   referenceVideo: ReferenceVideoState;
-  position: number;
+  transportStore: TransportStore;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
@@ -628,11 +662,10 @@ export function ReferenceTimelineRow({
           />
         </div>
         <div className="col-span-2 flex items-center gap-1.5 font-mono text-[11px] leading-3.5 text-neutral-400">
-          <span>
-            {formatTimeMinutes(
-              Math.max(0, position - referenceVideo.timelineStart),
-            )}
-          </span>
+          <ReferenceVideoTime
+            transportStore={transportStore}
+            timelineStart={referenceVideo.timelineStart}
+          />
           <span className="text-neutral-600">/</span>
           <span>{formatTimeMinutes(referenceVideo.duration)}</span>
         </div>
@@ -673,6 +706,19 @@ export function ReferenceTimelineRow({
         />
       </div>
     </div>
+  );
+}
+
+function ReferenceVideoTime({
+  transportStore,
+  timelineStart,
+}: {
+  transportStore: TransportStore;
+  timelineStart: number;
+}) {
+  const position = usePlaybackPosition(transportStore);
+  return (
+    <span>{formatTimeMinutes(Math.max(0, position - timelineStart))}</span>
   );
 }
 

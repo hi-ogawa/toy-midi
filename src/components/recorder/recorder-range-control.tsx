@@ -1,5 +1,6 @@
 import { ChevronDownIcon, Repeat2Icon, ScanLineIcon } from "lucide-react";
 import type { RecorderLoopState } from "../../lib/recorder/runtime";
+import type { TransportStore } from "../../lib/recorder/transport";
 import { getBeatsPerBar, secondsToBeats } from "../../lib/timeline";
 import type { TimeSignature } from "../../types";
 import { Button } from "../ui/button";
@@ -14,14 +15,14 @@ import { cn } from "../ui/utils";
 export function RecorderRangeControl({
   kind,
   state,
-  position,
+  transportStore,
   tempo,
   timeSignature,
   onChange,
 }: {
   kind: "loop" | "punch";
   state: RecorderLoopState;
-  position: number;
+  transportStore: TransportStore;
   tempo: number;
   timeSignature: TimeSignature;
   onChange: (update: Partial<RecorderLoopState>) => void;
@@ -32,8 +33,8 @@ export function RecorderRangeControl({
 
   function setAtPlayhead() {
     const beatsPerBar = getBeatsPerBar(timeSignature);
-    const startBeat =
-      Math.floor(secondsToBeats(position, tempo) / beatsPerBar) * beatsPerBar;
+    const playheadBeat = secondsToBeats(transportStore.get().position, tempo);
+    const startBeat = Math.floor(playheadBeat / beatsPerBar) * beatsPerBar;
     onChange({
       range: { startBeat, endBeat: startBeat + beatsPerBar },
       enabled: true,

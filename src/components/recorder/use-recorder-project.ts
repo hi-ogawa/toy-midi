@@ -74,10 +74,12 @@ export function useRecorderProject({
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribeWithSelector({
+    return runtime.transportStore.subscribeWithSelector({
       selector: (state) => (state.isPlaying ? undefined : state.position),
       listener: () =>
-        projectUiStore.update({ playhead: runtime.store.get().position }),
+        projectUiStore.update({
+          playhead: runtime.transportStore.get().position,
+        }),
       equals: Object.is,
     });
   }, [projectQuery.isSuccess, runtime]);

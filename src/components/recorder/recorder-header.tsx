@@ -25,6 +25,7 @@ import type {
   RecorderLoopState,
   RecorderPunchState,
 } from "../../lib/recorder/runtime";
+import type { TransportStore } from "../../lib/recorder/transport";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
@@ -48,6 +49,7 @@ import { cn } from "../ui/utils";
 import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
+import { usePlaybackPosition } from "./use-playback-position";
 import type { SaveStatus } from "./use-recorder-project";
 
 export function RecorderHeader({
@@ -61,7 +63,7 @@ export function RecorderHeader({
   masterGain,
   loop,
   punch,
-  position,
+  transportStore,
   playbackRate,
   tempo,
   timeSignature,
@@ -101,7 +103,7 @@ export function RecorderHeader({
   masterGain: number;
   loop: RecorderLoopState;
   punch: RecorderPunchState;
-  position: number;
+  transportStore: TransportStore;
   playbackRate: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -188,7 +190,7 @@ export function RecorderHeader({
       <RecorderRangeControl
         kind="loop"
         state={loop}
-        position={position}
+        transportStore={transportStore}
         tempo={tempo}
         timeSignature={timeSignature}
         onChange={onLoopChange}
@@ -196,7 +198,7 @@ export function RecorderHeader({
       <RecorderRangeControl
         kind="punch"
         state={punch}
-        position={position}
+        transportStore={transportStore}
         tempo={tempo}
         timeSignature={timeSignature}
         onChange={onPunchChange}
@@ -227,15 +229,11 @@ export function RecorderHeader({
       >
         <LocateFixedIcon className="size-5" />
       </Button>
-      <output
-        data-testid="recorder-position"
-        data-position={position}
-        data-beat={secondsToBeats(position, tempo)}
-        className="font-mono text-sm tabular-nums text-neutral-300"
-      >
-        {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
-        {formatTimeWithMilliseconds(position)}
-      </output>
+      <RecorderPosition
+        transportStore={transportStore}
+        tempo={tempo}
+        timeSignature={timeSignature}
+      />
       <div className="h-5 w-px bg-neutral-600" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -462,6 +460,29 @@ export function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
+  );
+}
+
+function RecorderPosition({
+  transportStore,
+  tempo,
+  timeSignature,
+}: {
+  transportStore: TransportStore;
+  tempo: number;
+  timeSignature: TimeSignature;
+}) {
+  const position = usePlaybackPosition(transportStore);
+  return (
+    <output
+      data-testid="recorder-position"
+      data-position={position}
+      data-beat={secondsToBeats(position, tempo)}
+      className="font-mono text-sm tabular-nums text-neutral-300"
+    >
+      {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
+      {formatTimeWithMilliseconds(position)}
+    </output>
   );
 }
 

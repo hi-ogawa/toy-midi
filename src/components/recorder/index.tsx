@@ -49,6 +49,7 @@ import {
 import {
   ReferenceTimelineRow,
   TimelineHeader,
+  TimelinePlayhead,
   AudioTimelineLane,
 } from "./recorder-timeline";
 import {
@@ -100,8 +101,8 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
   const timeline = useRecorderTimeline({
     projectUiStore,
+    transportStore: runtime.transportStore,
     isPlaying: state.isPlaying,
-    position: state.position,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
@@ -238,7 +239,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     }
     if (matchKeyboardEvent(event, "Ctrl+V")) {
       const beat = snapToGrid(
-        secondsToBeats(state.position, state.tempo),
+        secondsToBeats(runtime.transportStore.get().position, state.tempo),
         1 / timeline.subdivisionsPerBeat,
       );
       if (midiInteraction.paste(beat)) {
@@ -291,8 +292,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         : 0;
     if (seekDirection !== 0 && !flags.isRecording) {
       event.preventDefault();
-      const position = Math.max(0, state.position + seekDirection * 5);
-      runtime.seek(position);
+      const { position } = runtime.transportStore.get();
+      runtime.seek(Math.max(0, position + seekDirection * 5));
       return;
     }
     if (matchKeyboardEvent(event, "Space")) {
@@ -327,7 +328,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         masterGain={state.masterGain}
         loop={state.loop}
         punch={state.punch}
-        position={state.position}
+        transportStore={runtime.transportStore}
         playbackRate={state.playbackRate}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -382,15 +383,13 @@ export function Recorder({ projectId }: { projectId: string }) {
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
           />
           <div className="relative">
-            {timeline.showPlayhead && (
-              <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
-                <div
-                  data-testid="recorder-playhead"
-                  className="absolute inset-y-0 w-px bg-sky-400"
-                  style={{ left: timeline.playheadX }}
-                />
-              </div>
-            )}
+            <TimelinePlayhead
+              transportStore={runtime.transportStore}
+              tempo={timeline.tempo}
+              pixelsPerBeat={timeline.pixelsPerBeat}
+              viewportStartBeat={timeline.viewportStartBeat}
+              viewportWidth={timeline.viewportWidth}
+            />
             <TimelineHeader
               pixelsPerBeat={timeline.pixelsPerBeat}
               beatsPerBar={timeline.beatsPerBar}
@@ -419,7 +418,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             {state.referenceVideo && (
               <ReferenceTimelineRow
                 referenceVideo={clipInteraction.referenceVideo!}
-                position={state.position}
+                transportStore={runtime.transportStore}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
