@@ -33,8 +33,8 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   expect(restoredPanelBox!.width).toBeCloseTo(resizedPanelBox!.width, -1);
   expect(restoredPanelBox!.height).toBeCloseTo(resizedPanelBox!.height, -1);
 
+  // Reload, and the panel stays open at its resized size.
   await page.reload();
-  await page.getByTestId("recorder-reference-video-button").click();
   const reloadedPanelBox = await setup.boundingBox();
   expect(reloadedPanelBox).not.toBeNull();
   expect(reloadedPanelBox!.width).toBeCloseTo(resizedPanelBox!.width, -1);

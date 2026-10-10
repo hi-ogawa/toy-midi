@@ -6,11 +6,12 @@
   "scripts": {
     "prepare": "vp config",
     "dev": "vite dev --config vite.app.config.ts",
-    "build": "pnpm build-wasm && pnpm build-app",
+    "build": "pnpm build-wasm && pnpm build-webmcp-tools-doc && pnpm build-app",
     "build-app": "vite build --config vite.app.config.ts",
     "preview": "vite preview --config vite.app.config.ts",
     "override-wasm": "yq -i '.overrides.\"@hiogawa/bass-pitch-wasm\" = \"workspace:*\"' pnpm-workspace.yaml",
     "build-wasm": "bash tools/build-wasm.sh",
+    "build-webmcp-tools-doc": "vp pack",
     "typecheck": "tsc -b",
     "lint": "cargo fmt && vp check --fix && pnpm lint-dead-code && pnpm typecheck",
     "lint-check": "cargo fmt -- --check && vp check && pnpm lint-dead-code && pnpm typecheck",
@@ -23,6 +24,7 @@
   },
   "dependencies": {
     "@hiogawa/bass-pitch-wasm": "https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656",
+    "@hiogawa/webmcp-bridge": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-popover": "^1.1.15",

@@ -56,7 +56,6 @@ const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-// nextTakeNumber numbers the takes recorded into each track.
 export interface AudioTrackState {
   id: string;
   name: string;
@@ -65,7 +64,9 @@ export interface AudioTrackState {
   gain: number;
   muted: boolean;
   soloed: boolean;
+  /** Every take recorded or imported into the track */
   clips: AudioClip[];
+  /** The parts of the takes that are heard, derived from `clips` */
   regions: ClipRegion[];
   nextTakeNumber: number;
   showClips: boolean;
@@ -75,6 +76,7 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
+  /** General MIDI program number (0-127) */
   program: number;
   eq: MultibandEqParameters;
   height: number;
@@ -83,6 +85,7 @@ export interface MidiTrackState {
   muted: boolean;
   soloed: boolean;
   tabAnnotationEnabled: boolean;
+  /** MIDI note numbers of the open strings, highest string first */
   tabOpenStringPitches: number[];
   keySignature: KeySignature;
 }
@@ -118,10 +121,13 @@ interface PendingRecordingState extends Pick<
 }
 
 export interface ReferenceVideoState {
+  /** YouTube video id */
   videoId: string;
+  /** Timeline position of the video's start, in seconds */
   timelineStart: number;
   muted: boolean;
   title?: string;
+  /** In seconds */
   duration: number;
 }
 
@@ -140,10 +146,12 @@ export type RecorderLocatorUpdate = {
 export interface RecorderRuntimeState {
   title: string;
   locators: RecorderLocator[];
-  // Transport
+  /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
   position: number;
   isPlaying: boolean;
+  /** Playback speed, 1 being normal */
   playbackRate: number;
+  /** Beats per minute */
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
@@ -152,22 +160,27 @@ export interface RecorderRuntimeState {
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
-  // Tracks
   audioTracks: AudioTrackState[];
   midiTracks: MidiTrackState[];
-  // Display order of audio and MIDI tracks by id.
+  /** Display order of audio and MIDI tracks by id. */
   trackOrder: string[];
+  /** @internal */
   pendingRecording?: PendingRecordingState;
-  // Capture
   captureStatus: CaptureStatus;
   inputChannelCount: number;
+  /** Index of the input channel to record */
   selectedChannel: number;
+  /** In seconds, subtracted from each take's timeline position */
   latencyCompensation: number;
-  // Monitoring plays through the armed track's channel, so it is only on
-  // while input is on and a track is armed.
+  /**
+   * Monitoring plays through the armed track's channel, so it is only on
+   * while input is on and a track is armed.
+   */
   inputMonitoring: boolean;
-  // The track the next take records into. Input monitoring also routes
-  // through it.
+  /**
+   * The track the next take records into. Input monitoring also routes
+   * through it.
+   */
   armedTrackId?: string;
 }
 
@@ -247,12 +260,30 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   };
 }
 
+/**
+ * The open recorder project: its state, audio graph, and playback.
+ *
+ * Read state with `store.get()`, and change it only through the methods,
+ * because they also update playback, the metronome, and undo history.
+ *
+ * Units: notes, loop and punch ranges, and locators are in beats. The
+ * playhead, clips, and the reference video are in seconds. Gains are linear
+ * factors, so 1 leaves the level unchanged and 0 is silent.
+ *
+ * Undo history covers MIDI note edits, adding and removing MIDI tracks, and
+ * clip edits. Other changes, such as tempo and mix, are not undoable.
+ */
 export class RecorderRuntime {
+  /**
+   * Read with `get()`. `update()` changes state without updating playback,
+   * so use the runtime methods to make changes.
+   */
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
   readonly context = new AudioContext();
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
+  /** @internal */
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
@@ -280,6 +311,7 @@ export class RecorderRuntime {
     });
   }
 
+  /** Load the audio worklets. The app calls this before loading a project. */
   async init(): Promise<void> {
     await Promise.all([
       ensurePitchShifterWorklet(this.context),
@@ -755,6 +787,7 @@ export class RecorderRuntime {
     this.getTrackPlayback(track.id).setSources(getClipSources(track.regions));
   }
 
+  /** Resume the audio context and start playback from `position`. */
   async play(): Promise<void> {
     await this.context.resume();
     this.transport.play();
@@ -764,6 +797,7 @@ export class RecorderRuntime {
     this.transport.pause();
   }
 
+  /** Move the playhead, in seconds. */
   seek(position: number): void {
     this.transport.seek(position);
   }
@@ -845,10 +879,15 @@ export class RecorderRuntime {
     this.finishRecording(capture);
   }
 
+  /** In seconds */
   setLatencyCompensation(compensation: number): void {
     this.store.update({ latencyCompensation: compensation });
   }
 
+  /**
+   * Set beats per minute. Notes stay at their beats, so they move in time,
+   * while audio clips stay at their seconds.
+   */
   setTempo(tempo: number): void {
     this.store.update({ tempo });
     this.metronome.setTempo(tempo);
@@ -904,6 +943,7 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
+  /** Add a locator at a beat and return its id. */
   addLocator(beat: number): string {
     const { locators } = this.store.get();
     const locator = {
@@ -934,6 +974,7 @@ export class RecorderRuntime {
     });
   }
 
+  /** @internal */
   attachYouTubePlayer({
     videoId,
     player,
@@ -982,6 +1023,7 @@ export class RecorderRuntime {
     };
   }
 
+  /** In seconds */
   setReferenceVideoTimelineStart(timelineStart: number): void {
     const referenceVideo = this.store.get().referenceVideo;
     if (!referenceVideo) {
@@ -1042,10 +1084,12 @@ export class RecorderRuntime {
     });
   }
 
+  /** @internal */
   serializeProject(): SerializedRecorderRuntimeState {
     return serializeRecorderRuntimeState(this.store.get());
   }
 
+  /** @internal */
   async deserializeProject(
     project: SerializedRecorderRuntimeState,
   ): Promise<void> {
@@ -1119,6 +1163,7 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
+  /** @internal */
   subscribePersistableState(listener: () => void): () => void {
     return this.store.subscribeWithSelector({
       selector: (state) =>

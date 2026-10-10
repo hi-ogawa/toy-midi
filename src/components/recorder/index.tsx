@@ -3,7 +3,6 @@ import { Mic2Icon } from "lucide-react";
 import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { useSetState } from "../../hooks/use-set-state";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -19,6 +18,10 @@ import {
   RecorderRuntime,
   REFERENCE_VIDEO_CLIP_ID,
 } from "../../lib/recorder/runtime";
+import {
+  createProjectUiStore,
+  recorderPreferences,
+} from "../../lib/recorder/storage";
 import { resolveTrackOrder } from "../../lib/recorder/track-order";
 import { getRecorderScoreHref, routes } from "../../lib/routes";
 import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
@@ -59,24 +62,28 @@ import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderInteraction } from "./use-recorder-interaction";
-import { useRecorderPreference } from "./use-recorder-preference";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
+import { useWebMcpBridge } from "./use-webmcp-bridge";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  useWebMcpBridge(runtime);
+  const [projectUiStore] = useState(() => createProjectUiStore(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =
-    useRecorderPreference("defaultMidiProgram");
+    recorderPreferences.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
-  const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
-  const [expandedClipTracks, setClipExpanded] = useSetState<string>();
+  const [isReferenceVideoOpen, setIsReferenceVideoOpen] =
+    projectUiStore.useValue("referenceVideoOpen");
+  const [expandedClipTracks, setExpandedClipTracks] =
+    projectUiStore.useValue("expandedClipTracks");
   const [clipsNewestFirst, setClipsNewestFirst] =
-    useRecorderPreference("takesNewestFirst");
-  const [isMixerOpen, setIsMixerOpen] = useState(false);
-  const [isTunerOpen, setIsTunerOpen] = useState(false);
+    recorderPreferences.useValue("takesNewestFirst");
+  const [isMixerOpen, setIsMixerOpen] = projectUiStore.useValue("mixerOpen");
+  const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
   const [isInputPanelOpen, setIsInputPanelOpen] =
-    useRecorderPreference("inputPanelOpen");
-  const effects = useRecorderEffectsUi();
+    projectUiStore.useValue("inputPanelOpen");
+  const effects = useRecorderEffectsUi(projectUiStore);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
@@ -92,12 +99,13 @@ export function Recorder({ projectId }: { projectId: string }) {
     state,
   });
   const timeline = useRecorderTimeline({
+    projectUiStore,
     isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
-  const project = useRecorderProject({ projectId, runtime });
+  const project = useRecorderProject({ projectId, runtime, projectUiStore });
   const flags = deriveRecorderFlags({ state, project });
   const recorderInteraction = useRecorderInteraction({
     runtime,
@@ -455,7 +463,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     state.pendingRecording?.trackId === track.id
                       ? state.pendingRecording
                       : undefined;
-                  const clipsExpanded = expandedClipTracks.has(track.id);
+                  const clipsExpanded = expandedClipTracks.includes(track.id);
                   return (
                     <Fragment key={track.id}>
                       <TrackRow
@@ -551,10 +559,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                           expanded={clipsExpanded}
                           clipCount={track.clips.length}
                           onExpandedChange={(expanded) =>
-                            setClipExpanded({
-                              value: track.id,
-                              present: expanded,
-                            })
+                            setExpandedClipTracks((ids) =>
+                              expanded
+                                ? [...ids, track.id]
+                                : ids.filter((id) => id !== track.id),
+                            )
                           }
                           newestFirst={clipsNewestFirst}
                           onNewestFirstChange={setClipsNewestFirst}
@@ -797,6 +806,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {isReferenceVideoOpen && (
           <ReferenceVideoPanel
+            projectUiStore={projectUiStore}
             referenceVideo={state.referenceVideo}
             runtime={runtime}
             onClose={() => setIsReferenceVideoOpen(false)}

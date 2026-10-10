@@ -88,8 +88,7 @@ test("saves and restores a recorder project", async ({ page }) => {
     page.getByTestId("recorder-reference-video-mute"),
   ).toHaveAttribute("aria-pressed", "true");
 
-  // Mixer levels restore independently from whether the mixer panel was open.
-  await page.getByTestId("recorder-mixer-button").click();
+  // The mixer stays open across the reload, with its levels restored.
   await expect(
     page.getByRole("textbox", { name: "Master level in dB" }),
   ).toHaveValue("-6.0");

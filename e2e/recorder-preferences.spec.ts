@@ -4,7 +4,6 @@ import {
   addRecorderMidiTrack,
   createRecorderProject,
   enableInput,
-  openInputPanel,
   openInputSetup,
   openRecorderMidiInstrument,
   saveRecorderProject,
@@ -13,54 +12,47 @@ import {
 
 useFakeAudioInput();
 
-test("input edits preserve newer timeline preferences across projects", async ({
+test("keeps auto-scroll and the Audio Input panel per project, and the input device across projects", async ({
   page,
 }) => {
-  // Enable the default input before changing the timeline preference.
+  // Enable the default input, disable auto-scroll, and choose a different
+  // input device, which leaves the Audio Input panel open.
   await createRecorderProject(page);
+  const firstUrl = page.url();
   await enableInput(page);
-
-  // Disable auto-scroll, then choose a different input device.
   const autoScroll = page.getByRole("button", {
     name: "Toggle auto-scroll (F)",
   });
   await autoScroll.click();
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
-  await openInputSetup(page);
-  await page.getByLabel("Device").selectOption({ label: "Fake Audio Input 1" });
-  await page
-    .getByTestId("recorder-input-setup")
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
-
-  // Reload to verify the persisted preference, then carry it into another project.
-  await page.reload();
-  await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
-  await createRecorderProject(page);
-  await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
-});
-
-test("remembers the Audio Input panel across reloads and projects", async ({
-  page,
-}) => {
-  // Open the Audio Input panel.
-  await createRecorderProject(page);
-  const panel = await openInputPanel(page);
-
-  // Reload and open another project with the panel still open.
-  await page.reload();
-  await expect(panel).toBeVisible();
-  await createRecorderProject(page);
+  const setup = await openInputSetup(page);
+  await setup
+    .getByLabel("Device")
+    .selectOption({ label: "Fake Audio Input 1" });
+  await setup.getByRole("button", { name: "Close", exact: true }).click();
+  const panel = page.getByTestId("recorder-input-panel");
   await expect(panel).toBeVisible();
 
-  // Close the panel and keep it closed after a reload.
-  await panel
-    .getByRole("button", { name: "Close Audio Input", exact: true })
-    .click();
-  await expect(panel).toBeHidden();
+  // Reload, and confirm the project keeps auto-scroll disabled and the panel
+  // open.
   await page.reload();
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+  await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
+  await expect(panel).toBeVisible();
+
+  // Open another project, and confirm it starts with auto-scroll enabled and
+  // the panel closed, while the input device carries over.
+  await createRecorderProject(page);
+  await expect(autoScroll).toHaveAttribute("aria-pressed", "true");
   await expect(panel).toBeHidden();
+  const nextSetup = await openInputSetup(page);
+  await expect(
+    nextSetup.getByLabel("Device").locator("option:checked"),
+  ).toHaveText("Fake Audio Input 1");
+
+  // Return to the first project, and confirm it still has its own settings.
+  await page.goto(firstUrl);
+  await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
+  await expect(panel).toBeVisible();
 });
 
 test("remembers the instrument preference without changing saved tracks", async ({

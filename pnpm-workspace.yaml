@@ -1,5 +1,6 @@
 packages:
   - crates/bass-pitch-wasm
+  - packages/webmcp-bridge
   - packages/score-video
 allowBuilds:
   esbuild: true

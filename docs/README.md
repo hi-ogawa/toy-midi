@@ -3,6 +3,7 @@
 ## Architecture
 
 - [Architecture overview](architecture.md): project state, persistence, monitoring, and latency.
+- [Audio signal flow](audio-signal-flow.md): how audio routes from the input and every track to the speakers.
 
 ## Concepts
 
