@@ -44,6 +44,17 @@ test("drives the open project from the webmcp-bridge command", async ({
   await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
   await expect(page.getByTestId("recorder-midi-track-row")).toHaveCount(1);
 
+  // Pan the track past hard left, and read back the clamped position.
+  const pan = await bridge.run(
+    ["execute-tool", "toy_midi_eval", "--arg", "code=-"],
+    `
+      const id = runtime.store.get().midiTracks.at(-1).id;
+      runtime.setMidiTrackPan(id, -2);
+      return runtime.store.get().midiTracks.at(-1).pan;
+    `,
+  );
+  expect(pan).toEqual({ code: 0, stdout: "-1\n", stderr: "" });
+
   // Throw from the agent's code, and get the error back with a failing exit code.
   const failure = await bridge.run([
     "execute-tool",

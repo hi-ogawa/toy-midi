@@ -66,30 +66,35 @@
   <text x="430" y="302" text-anchor="middle" class="c">playbackGain</text>
   <line x1="170" y1="283" x2="195" y2="283" stroke="#333" marker-end="url(#a)"/>
   <line x1="335" y1="283" x2="360" y2="283" stroke="#333" marker-end="url(#a)"/>
-  <line x1="500" y1="283" x2="550" y2="283" stroke="#333" marker-end="url(#a)"/>
+  <line x1="500" y1="283" x2="545" y2="283" stroke="#333" marker-end="url(#a)"/>
 
   <rect x="530" y="228" width="430" height="112" rx="6" fill="none" stroke="#9b9" stroke-dasharray="4 3"/>
   <text x="948" y="243" text-anchor="end" fill="#575" font-size="11">channel <tspan class="c">AudioChannel</tspan></text>
-  <rect x="550" y="254" width="110" height="58" rx="6" fill="#fff" stroke="#575"/>
-  <text x="605" y="272" text-anchor="middle" font-weight="bold">Input</text>
-  <text x="605" y="287" text-anchor="middle" fill="#666" font-size="11">sums its sources</text>
-  <text x="605" y="302" text-anchor="middle" class="c">input</text>
-  <rect x="685" y="254" width="110" height="58" rx="6" fill="#fff" stroke="#575"/>
-  <text x="740" y="272" text-anchor="middle" font-weight="bold">EQ</text>
-  <text x="740" y="287" text-anchor="middle" fill="#666" font-size="11">track EQ</text>
-  <text x="740" y="302" text-anchor="middle" class="c">equalizer</text>
-  <rect x="703" y="308" width="74" height="18" rx="9" class="w"/>
-  <text x="740" y="321" text-anchor="middle" class="wt">biquad-eq</text>
-  <rect x="820" y="254" width="120" height="58" rx="6" fill="#fff" stroke="#575"/>
-  <text x="880" y="272" text-anchor="middle" font-weight="bold">Gain</text>
-  <text x="880" y="287" text-anchor="middle" fill="#666" font-size="11">track volume</text>
-  <text x="880" y="302" text-anchor="middle" class="c">gain</text>
-  <line x1="660" y1="283" x2="685" y2="283" stroke="#333" marker-end="url(#a)"/>
-  <line x1="795" y1="283" x2="820" y2="283" stroke="#333" marker-end="url(#a)"/>
+  <rect x="545" y="254" width="90" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="590" y="272" text-anchor="middle" font-weight="bold">Input</text>
+  <text x="590" y="287" text-anchor="middle" fill="#666" font-size="11">sums sources</text>
+  <text x="590" y="302" text-anchor="middle" class="c">input</text>
+  <rect x="651" y="254" width="90" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="696" y="272" text-anchor="middle" font-weight="bold">EQ</text>
+  <text x="696" y="287" text-anchor="middle" fill="#666" font-size="11">track EQ</text>
+  <text x="696" y="302" text-anchor="middle" class="c">equalizer</text>
+  <rect x="659" y="308" width="74" height="18" rx="9" class="w"/>
+  <text x="696" y="321" text-anchor="middle" class="wt">biquad-eq</text>
+  <rect x="757" y="254" width="90" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="802" y="272" text-anchor="middle" font-weight="bold">Gain</text>
+  <text x="802" y="287" text-anchor="middle" fill="#666" font-size="11">track volume</text>
+  <text x="802" y="302" text-anchor="middle" class="c">gain</text>
+  <rect x="863" y="254" width="90" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="908" y="272" text-anchor="middle" font-weight="bold">Pan</text>
+  <text x="908" y="287" text-anchor="middle" fill="#666" font-size="11">track pan</text>
+  <text x="908" y="302" text-anchor="middle" class="c">panner</text>
+  <line x1="635" y1="283" x2="651" y2="283" stroke="#333" marker-end="url(#a)"/>
+  <line x1="741" y1="283" x2="757" y2="283" stroke="#333" marker-end="url(#a)"/>
+  <line x1="847" y1="283" x2="863" y2="283" stroke="#333" marker-end="url(#a)"/>
 
   <!-- Monitoring goes through the armed track's channel -->
-  <path d="M740,144 V185 H605 V254" fill="none" stroke="#333" marker-end="url(#a)"/>
-  <text x="615" y="179" fill="#333" font-size="11">monitoring</text>
+  <path d="M740,144 V185 H590 V254" fill="none" stroke="#333" marker-end="url(#a)"/>
+  <text x="600" y="179" fill="#333" font-size="11">monitoring</text>
 
   <!-- Silent fallback when nothing is armed -->
   <path d="M810,115 H990 V434 H745 V454" fill="none" stroke="#999" stroke-dasharray="5 4" marker-end="url(#g)"/>
@@ -114,7 +119,7 @@
   <path d="M500,571 H570 V495 H640" fill="none" stroke="#333" marker-end="url(#a)"/>
 
   <!-- Master output -->
-  <path d="M880,312 V370 H705 V454" fill="none" stroke="#333" marker-end="url(#a)"/>
+  <path d="M908,312 V370 H705 V454" fill="none" stroke="#333" marker-end="url(#a)"/>
   <rect x="640" y="454" width="130" height="58" rx="6" fill="#eef" stroke="#557"/>
   <text x="705" y="472" text-anchor="middle" font-weight="bold">Master gain</text>
   <text x="705" y="487" text-anchor="middle" fill="#666" font-size="11">master volume</text>

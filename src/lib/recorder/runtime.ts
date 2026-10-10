@@ -82,6 +82,8 @@ export interface MidiTrackState {
   height: number;
   viewMode: "editor" | "overview";
   gain: number;
+  /** Stereo position from -1 (left) to 1 (right) */
+  pan: number;
   muted: boolean;
   soloed: boolean;
   tabAnnotationEnabled: boolean;
@@ -681,6 +683,12 @@ export class RecorderRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({ ...track, program }));
     }
+  }
+
+  setMidiTrackPan(id: string, pan: number): void {
+    pan = clamp(pan, -1, 1);
+    this.updateMidiTrack(id, (track) => ({ ...track, pan }));
+    this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
   }
 
   setMidiTrackSettings(
@@ -1588,6 +1596,7 @@ function createMidiTrackState({
     height: 300,
     viewMode: "editor",
     gain: 1,
+    pan: 0,
     muted: false,
     soloed: false,
     tabAnnotationEnabled: false,
