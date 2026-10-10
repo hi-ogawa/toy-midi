@@ -8,6 +8,7 @@
   "type": "module",
   "exports": {
     "./client": "./src/client.ts",
+    "./model-context": "./src/model-context.ts",
     "./webmcp": "./src/webmcp.ts"
   },
   "scripts": {

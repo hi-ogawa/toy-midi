@@ -1,6 +1,6 @@
 # WebMCP Bridge
 
-WebMCP Bridge lets an agent working in a terminal, such as Claude Code, call the tools that a web page open in your browser exposes in the shape of [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents. A browser extension passes the tools a page registers to a small server on your machine, the bridge, and the agent talks to the bridge with the `webmcp-bridge` command.
+WebMCP Bridge lets an agent working in a terminal, such as Claude Code, call the tools that a web page open in your browser exposes in the shape of [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents. A page registers its tools with WebMCP's `document.modelContext`, a browser extension or the page itself exposes them to a small server on your machine, the bridge, and the agent talks to the bridge with the `webmcp-bridge` command.
 
 ## Usage
 
@@ -28,7 +28,7 @@ $ webmcp-bridge serve --origin https://toy-midi.hiro18181.workers.dev
 [webmcp-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…
 ```
 
-Then open the app. A page connects once it registers a tool, and Toy MIDI registers its tools when a project is open. Without the extension, Toy MIDI falls back to connecting by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs. The commands below run from another terminal, or from the agent.
+Then open the app. The extension exposes every page it runs on, which for now is `localhost` and the Toy MIDI deploy, and Toy MIDI registers its tools when a project is open. Without the extension, Toy MIDI exposes its tools by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs. The commands below run from another terminal, or from the agent.
 
 ### `webmcp-bridge pages`
 
@@ -124,11 +124,14 @@ Any failure prints a message to standard error and exits with code 1, so the age
 
 ## Exposing Tools from an App
 
-An app registers its tools with WebMCP's `document.modelContext`, which the extension provides in browsers that do not have it yet. The page does not depend on the bridge, so the same tools reach agents built into the browser once it supports WebMCP.
+An app registers its tools with WebMCP's `document.modelContext`. In browsers without WebMCP, the extension installs a polyfill, or the app can install the same polyfill itself:
 
 ```ts
+import { createModelContext } from "@hiogawa/webmcp-bridge/model-context";
+
+const modelContext = (document.modelContext ??= createModelContext());
 const controller = new AbortController();
-document.modelContext?.registerTool(
+modelContext.registerTool(
   {
     name: "set_tempo",
     description: "Set the project tempo in BPM.",
@@ -147,30 +150,31 @@ document.modelContext?.registerTool(
 );
 ```
 
-A TypeScript app can import the tool types and the `document.modelContext` declaration from `@hiogawa/webmcp-bridge/webmcp`, depending on the package from GitHub pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`. The package ships TypeScript source, so the app's bundler compiles it.
-
-To work without the extension, an app can fall back to the `modelContext` the extension uses, which relays the tools registered with it to the bridge. The tools are registered the same way either way:
+Registering a tool does not expose it. The extension exposes the page's `modelContext`, or an app can expose it without the extension:
 
 ```ts
-import { createBridgeModelContext } from "@hiogawa/webmcp-bridge/client";
+import { exposeModelContext } from "@hiogawa/webmcp-bridge/client";
 
-const modelContext =
-  document.modelContext ??
-  createBridgeModelContext({ bridgeUrl: "http://localhost:4747" });
+const unexpose = exposeModelContext({
+  bridgeUrl: "http://localhost:4747",
+  modelContext,
+});
 ```
+
+The bridge reads the tools with `getTools()` and runs them with `executeTool()`, as an agent built into the browser would, so it works the same with native WebMCP and the polyfill. A TypeScript app can import the tool types and the `document.modelContext` declaration from `@hiogawa/webmcp-bridge/webmcp`, depending on the package from GitHub pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`. The package ships TypeScript source, so the app's bundler compiles it.
 
 - `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
 - The result must be convertible to JSON. A value that is not, such as an object that refers to itself, comes back as an error.
-- If the tool throws anyway, or the agent names a tool that does not exist, the bridge reports the error with its stack trace.
+- If the tool throws anyway, it fails as an `OperationError` without its message, as in WebMCP. If the agent names a tool that does not exist, the bridge reports that.
 - The bridge gives up after 30 seconds without a result. The tool keeps running in the page after that.
 
 ## How It Works
 
 ![The page opens a connection to the bridge once and keeps it open. When the command line sends a request, the bridge holds it open, passes the request down the page's connection, and waits for the page to send back the result, which becomes the answer to the command line.](images/rpc-flow.svg)
 
-A web app with no server of its own cannot be reached from a terminal, so the bridge runs on your machine where both sides can reach it. The bridge cannot open a connection to a browser page, though. So the extension runs a script in each page, ahead of the page's own scripts, that notices the tools the page registers. Once the page has registered one, the script opens a connection from the page to the bridge and keeps it open until the page unregisters its last tool. The bridge uses that open connection to send requests to the page later, using [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
+A web app with no server of its own cannot be reached from a terminal, so the bridge runs on your machine where both sides can reach it. The bridge cannot open a connection to a browser page, though. So exposing a page opens a connection from the page to the bridge and keeps it open. The bridge uses that open connection to send requests to the page later, using [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
 
-When the agent runs `webmcp-bridge get-tools` or `execute-tool`, the command sends an ordinary HTTP request to the bridge, and the bridge does not answer right away. It passes the request down the page's open connection, tagged with a new id. The script runs the tool and sends the result back to the bridge in a separate HTTP request with the same id. The bridge matches the id, and the result becomes its answer to the waiting command.
+When the agent runs `webmcp-bridge get-tools` or `execute-tool`, the command sends an ordinary HTTP request to the bridge, and the bridge does not answer right away. It passes the request down the page's open connection, tagged with a new id. The page runs the tool and sends the result back to the bridge in a separate HTTP request with the same id. The bridge matches the id, and the result becomes its answer to the waiting command.
 
 The bridge only passes requests along and does not know which tools or operations exist. Only the command line and the page client need to agree on those, so adding a new kind of request does not change the bridge.
 

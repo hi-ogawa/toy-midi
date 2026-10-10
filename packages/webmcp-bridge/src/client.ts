@@ -5,70 +5,28 @@ import {
   type PageRpc,
 } from "./protocol.ts";
 import type { RpcResponse } from "./rpc.ts";
-import type { ModelContext, WebMcpTool } from "./webmcp.ts";
+import type { ModelContext, WebMcpToolResult } from "./webmcp.ts";
 
 /**
- * A `document.modelContext` that relays the tools registered with it to the
- * local bridge, connecting while at least one is registered. It keeps its
- * own record of the tools and calls their `execute` directly, so it needs no
- * native `getTools()` or `executeTool()`.
+ * Exposes the tools of `modelContext` to the agent through the local bridge
+ * in server.ts, until the returned function is called. Each request reads
+ * the tools with `getTools()` and runs them with `executeTool()`, as an agent
+ * built into the browser would, so tools registered later are served too,
+ * whether `modelContext` is the browser's own or a polyfill.
+ *
+ * The bridge streams requests over Server-Sent Events, and each result, or
+ * the error a call throws, is posted back as JSON.
  */
-export function createBridgeModelContext({
+export function exposeModelContext({
   bridgeUrl,
+  modelContext,
 }: {
   bridgeUrl: string;
-}): ModelContext {
-  const tools = new Map<string, WebMcpTool>();
-  let disconnect: (() => void) | undefined;
-
-  function removeTool(tool: WebMcpTool) {
-    tools.delete(tool.name);
-    if (tools.size === 0) {
-      disconnect?.();
-      disconnect = undefined;
-    }
-  }
-
-  return {
-    registerTool: async (tool, options) => {
-      // Check and record the name in one step, so a second registration of
-      // the name is rejected even before the first one resolves.
-      if (tools.has(tool.name)) {
-        throw new DOMException(
-          `tool already registered: ${tool.name}`,
-          "InvalidStateError",
-        );
-      }
-      const signal = options?.signal;
-      if (signal?.aborted) {
-        return;
-      }
-      tools.set(tool.name, tool);
-      signal?.addEventListener("abort", () => removeTool(tool), {
-        once: true,
-      });
-      disconnect ??= connectWebMcpBridge({ bridgeUrl, tools });
-    },
-  };
-}
-
-/**
- * Connects the page to the local bridge in server.ts and exposes `tools`, by
- * name, to the agent. Each request reads `tools` as it is then, so tools
- * added or removed later are served without reconnecting. The bridge streams
- * requests over Server-Sent Events, and each result, or the error a tool
- * throws, is posted back as JSON. Returns a function that disconnects.
- */
-function connectWebMcpBridge({
-  bridgeUrl,
-  tools,
-}: {
-  bridgeUrl: string;
-  tools: ReadonlyMap<string, WebMcpTool>;
+  modelContext: ModelContext;
 }): () => void {
   const connectUrl = new URL(PAGE_ENDPOINTS.connect, bridgeUrl);
   connectUrl.searchParams.set("url", window.location.href);
-  const rpc = createPageRpc(tools);
+  const rpc = createPageRpc(modelContext);
   const source = new EventSource(connectUrl);
   source.addEventListener(PAGE_EVENTS.request, async (event) => {
     const { requestId, method, args } = JSON.parse(
@@ -104,20 +62,25 @@ function connectWebMcpBridge({
   return () => source.close();
 }
 
-function createPageRpc(tools: ReadonlyMap<string, WebMcpTool>): PageRpc {
+function createPageRpc(modelContext: ModelContext): PageRpc {
   return {
-    getTools: () =>
-      [...tools.values()].map(({ name, description, inputSchema }) => ({
-        name,
-        description,
-        inputSchema,
-      })),
+    getTools: async () =>
+      (await modelContext.getTools()).map(
+        ({ name, description, inputSchema }) => ({
+          name,
+          description,
+          inputSchema,
+        }),
+      ),
     executeTool: async ({ name }, input) => {
-      const tool = tools.get(name);
+      const tools = await modelContext.getTools();
+      const tool = tools.find((tool) => tool.name === name);
       if (!tool) {
         throw new Error(`unknown tool: ${name}`);
       }
-      return await tool.execute(input);
+      return JSON.parse(
+        await modelContext.executeTool(tool, input as object),
+      ) as WebMcpToolResult;
     },
   };
 }

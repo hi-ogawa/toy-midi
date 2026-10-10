@@ -5,7 +5,7 @@
 // package entries do not export them.
 
 import type { RpcRequest } from "./rpc.ts";
-import type { WebMcpTool, WebMcpToolResult } from "./webmcp.ts";
+import type { RegisteredTool, WebMcpToolResult } from "./webmcp.ts";
 
 /**
  * Methods a page serves to the bridge, named after WebMCP's `ModelContext`.
@@ -14,7 +14,7 @@ import type { WebMcpTool, WebMcpToolResult } from "./webmcp.ts";
  * rather than its JSON string.
  */
 export interface PageRpc {
-  getTools(): ToolInfo[];
+  getTools(): Promise<ToolInfo[]>;
   executeTool(
     tool: { name: string },
     input: unknown,
@@ -22,7 +22,7 @@ export interface PageRpc {
 }
 
 /** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
-export type ToolInfo = Pick<WebMcpTool, "name" | "description" | "inputSchema">;
+export type ToolInfo = RegisteredTool;
 
 /** The port the bridge listens on, and the extension connects to, by default. */
 export const DEFAULT_BRIDGE_PORT = 4747;

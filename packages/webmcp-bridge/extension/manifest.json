@@ -5,7 +5,10 @@
   "description": "Relays the WebMCP tools a page registers to the local webmcp-bridge.",
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "http://localhost/*",
+        "https://toy-midi.hiro18181.workers.dev/*"
+      ],
       "js": ["content-script.js"],
       "run_at": "document_start",
       "world": "MAIN"

@@ -1,5 +1,6 @@
 // The part of the WebMCP API (https://webmachinelearning.github.io/webmcp/)
-// that pages and the extension use, as `document.modelContext`.
+// that pages, the polyfill, and the bridge relay use, as
+// `document.modelContext`.
 
 /**
  * A tool in the WebMCP shape, as passed to `document.modelContext.registerTool`.
@@ -23,17 +24,28 @@ export type WebMcpToolResult =
   | { isError: false; value?: unknown }
   | { isError: true; error: string };
 
-/** `document.modelContext`. Aborting `signal` unregisters the tool. */
+/** A tool as `getTools()` describes it, without its `execute`. */
+export interface RegisteredTool {
+  name: string;
+  description: string;
+  inputSchema?: object;
+}
+
+/** `document.modelContext`. */
 export interface ModelContext {
+  /** Aborting `signal` unregisters the tool. */
   registerTool(
     tool: WebMcpTool,
     options?: { signal?: AbortSignal },
   ): Promise<void>;
+  getTools(): Promise<RegisteredTool[]>;
+  /** Resolves to the tool's result as a JSON string. */
+  executeTool(tool: RegisteredTool, input: object): Promise<string>;
 }
 
 declare global {
   interface Document {
-    /** Present in browsers with WebMCP, or with the webmcp-bridge extension. */
+    /** Present in browsers with WebMCP, or once a polyfill is installed. */
     modelContext?: ModelContext;
   }
 }
