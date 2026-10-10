@@ -3,9 +3,9 @@ import { midiToHz, parseMidiPitch } from "../music.ts";
 import {
   type AudioContextTransport,
   type ContextTimeWindow,
-  getPlaybackSegments,
-  getSegmentContextTime,
-  getSegmentRange,
+  getPlaybackPasses,
+  getPassContextTime,
+  getPassEventRange,
   startLookaheadScheduler,
   type TransportParticipant,
 } from "./transport.ts";
@@ -51,14 +51,9 @@ export class RecorderMetronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    const context = this.transport.context;
-    // Tempo changes restart mid-run, so resume from now rather than the run start.
     this.disposeScheduling = startLookaheadScheduler({
-      context,
-      from: Math.max(
-        this.transport.playbackRun!.contextTime,
-        context.currentTime,
-      ),
+      context: this.transport.context,
+      from: this.transport.playbackRun!.contextTime,
       schedule: (window) => this.schedule(window),
     });
   }
@@ -71,26 +66,16 @@ export class RecorderMetronome implements TransportParticipant {
   /** Queues the clicks of every loop pass that sounds during the window. */
   private schedule(window: ContextTimeWindow): void {
     const playbackRun = this.transport.playbackRun!;
-    const currentTime = this.transport.context.currentTime;
-    for (const segment of getPlaybackSegments(playbackRun, window)) {
-      const range = getSegmentRange(segment, window);
+    for (const pass of getPlaybackPasses(playbackRun, window)) {
+      const range = getPassEventRange(pass, window);
       for (
         let index = Math.ceil(range.start / this.secondsPerClick);
         index * this.secondsPerClick < range.end;
         index++
       ) {
-        const contextTime = getSegmentContextTime(
-          segment,
-          index * this.secondsPerClick,
-        );
-        // A stalled timer can hand over a window that already began, so skip
-        // clicks that have elapsed rather than playing them late.
-        if (contextTime < currentTime) {
-          continue;
-        }
         this.scheduleClick({
           accent: index % this.timeSignature.numerator === 0,
-          contextTime,
+          contextTime: getPassContextTime(pass, index * this.secondsPerClick),
         });
       }
     }

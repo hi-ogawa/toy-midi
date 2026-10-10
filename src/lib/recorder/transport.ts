@@ -7,6 +7,13 @@ const PLAYBACK_LEAD_SECONDS = 0.03;
 const SCHEDULE_AHEAD_SECONDS = 0.1;
 const SCHEDULER_INTERVAL_MS = 25;
 
+/**
+ * Event timelines and loop boundaries are converted from beats separately, so
+ * an event meant to sit exactly on a boundary can land a rounding error to
+ * either side of it.
+ */
+const BOUNDARY_EPSILON = 1e-9;
+
 /** A playback object whose lifecycle follows this transport. */
 export interface TransportParticipant {
   start(): void;
@@ -33,10 +40,10 @@ export type PlaybackRun = {
 
 /**
  * One pass of a run through the timeline. Timeline `start` sounds at
- * `contextTime`, and the pass ends where it would reach `end`. Segment 0 begins
- * at the run's position and every later segment covers the loop range.
+ * `contextTime`, and the pass ends where it would reach `end`. Pass 0 begins at
+ * the run's position and every later pass covers the loop range.
  */
-export type PlaybackSegment = {
+export type PlaybackPass = {
   index: number;
   contextTime: number;
   start: number;
@@ -49,13 +56,6 @@ export type ContextTimeWindow = {
   from: number;
   to: number;
 };
-
-/**
- * Event timelines and loop boundaries are converted from beats separately, so
- * an event meant to sit exactly on a boundary can land a rounding error to
- * either side of it.
- */
-const BOUNDARY_EPSILON = 1e-9;
 
 type TransportState = {
   position: number;
@@ -254,7 +254,9 @@ export function startLookaheadScheduler({
     if (to <= scheduledUntil) {
       return;
     }
-    schedule({ from: scheduledUntil, to });
+    // A stalled timer or a restart mid-run can leave part of the window in
+    // the past. Skip it rather than queue events to play late.
+    schedule({ from: Math.max(scheduledUntil, context.currentTime), to });
     scheduledUntil = to;
   };
   tick();
@@ -266,109 +268,106 @@ export function getPlaybackPosition(
   run: PlaybackRun,
   contextTime: number,
 ): number {
-  return getSegmentPosition(
-    getPlaybackSegmentAt(run, contextTime),
-    contextTime,
-  );
+  return getPassPosition(getPlaybackPassAt(run, contextTime), contextTime);
 }
 
-/** Lists the segments that overlap an audio-clock window, in order. */
-export function getPlaybackSegments(
+/** Lists the passes that overlap an audio-clock window, in order. */
+export function getPlaybackPasses(
   run: PlaybackRun,
   window: ContextTimeWindow,
-): PlaybackSegment[] {
-  const segments: PlaybackSegment[] = [];
-  let segment = getPlaybackSegmentAt(run, window.from);
-  while (segment.contextTime < window.to) {
-    segments.push(segment);
+): PlaybackPass[] {
+  const passes: PlaybackPass[] = [];
+  let pass = getPlaybackPassAt(run, window.from);
+  while (pass.contextTime < window.to) {
+    passes.push(pass);
     if (!run.loopRange) {
       break;
     }
-    segment = getNextLoopSegment(segment, run.loopRange);
+    pass = getLoopPass(run, run.loopRange, pass.index + 1);
   }
-  return segments;
+  return passes;
 }
 
 /**
- * Timeline range that a segment plays during an audio-clock window. Both ends
- * are shifted back by a tiny epsilon, so a point event that lands a rounding
- * error before a boundary still falls on its intended side. Consecutive windows
- * share their boundary, so each point event falls in exactly one window.
+ * Timeline range in which a pass's point events, such as clicks and note
+ * starts, fall during an audio-clock window. Both ends are shifted back by a
+ * tiny epsilon, so an event that lands a rounding error before a boundary still
+ * falls on its intended side. Consecutive windows share their boundary, so each
+ * event falls in exactly one window.
  */
-export function getSegmentRange(
-  segment: PlaybackSegment,
+export function getPassEventRange(
+  pass: PlaybackPass,
   window: ContextTimeWindow,
 ): { start: number; end: number } {
   return {
     start:
-      Math.max(segment.start, getSegmentPosition(segment, window.from)) -
+      Math.max(pass.start, getPassPosition(pass, window.from)) -
       BOUNDARY_EPSILON,
     end:
-      Math.min(segment.end, getSegmentPosition(segment, window.to)) -
-      BOUNDARY_EPSILON,
+      Math.min(pass.end, getPassPosition(pass, window.to)) - BOUNDARY_EPSILON,
   };
 }
 
-export function getSegmentPosition(
-  segment: PlaybackSegment,
+export function getPassPosition(
+  pass: PlaybackPass,
   contextTime: number,
 ): number {
-  return (
-    segment.start + (contextTime - segment.contextTime) * segment.playbackRate
-  );
+  return pass.start + (contextTime - pass.contextTime) * pass.playbackRate;
 }
 
-export function getSegmentContextTime(
-  segment: PlaybackSegment,
+export function getPassContextTime(
+  pass: PlaybackPass,
   position: number,
 ): number {
-  return (
-    segment.contextTime + (position - segment.start) / segment.playbackRate
+  return pass.contextTime + (position - pass.start) / pass.playbackRate;
+}
+
+/** The pass sounding at an audio-clock time, or pass 0 before the run starts. */
+function getPlaybackPassAt(
+  run: PlaybackRun,
+  contextTime: number,
+): PlaybackPass {
+  const { loopRange } = run;
+  const sinceFirstWrap = loopRange
+    ? contextTime - getFirstWrapTime(run, loopRange)
+    : -1;
+  if (!loopRange || sinceFirstWrap < 0) {
+    return {
+      index: 0,
+      contextTime: run.contextTime,
+      start: run.position,
+      end: loopRange?.end ?? Infinity,
+      playbackRate: run.playbackRate,
+    };
+  }
+  const loopSeconds = (loopRange.end - loopRange.start) / run.playbackRate;
+  return getLoopPass(
+    run,
+    loopRange,
+    1 + Math.floor(sinceFirstWrap / loopSeconds),
   );
 }
 
-/** The segment sounding at an audio-clock time, or segment 0 before the run starts. */
-function getPlaybackSegmentAt(
+/**
+ * Loop pass `index`, counting the first full pass after the first wrap as 1. It
+ * sits at an arithmetic offset from the first wrap, so the audio clock never
+ * needs a new anchor.
+ */
+function getLoopPass(
   run: PlaybackRun,
-  contextTime: number,
-): PlaybackSegment {
-  const { loopRange, playbackRate } = run;
-  const first: PlaybackSegment = {
-    index: 0,
-    contextTime: run.contextTime,
-    start: run.position,
-    end: loopRange?.end ?? Infinity,
-    playbackRate,
-  };
-  if (!loopRange) {
-    return first;
-  }
-  const firstWrapTime = getSegmentContextTime(first, loopRange.end);
-  if (contextTime < firstWrapTime) {
-    return first;
-  }
-  // Later segments sit at arithmetic offsets from the first wrap, so the audio
-  // clock never needs a new anchor.
-  const loopSeconds = (loopRange.end - loopRange.start) / playbackRate;
-  const index = 1 + Math.floor((contextTime - firstWrapTime) / loopSeconds);
+  loopRange: LoopRange,
+  index: number,
+): PlaybackPass {
+  const loopSeconds = (loopRange.end - loopRange.start) / run.playbackRate;
   return {
     index,
-    contextTime: firstWrapTime + (index - 1) * loopSeconds,
+    contextTime: getFirstWrapTime(run, loopRange) + (index - 1) * loopSeconds,
     start: loopRange.start,
     end: loopRange.end,
-    playbackRate,
+    playbackRate: run.playbackRate,
   };
 }
 
-function getNextLoopSegment(
-  segment: PlaybackSegment,
-  loopRange: LoopRange,
-): PlaybackSegment {
-  return {
-    index: segment.index + 1,
-    contextTime: getSegmentContextTime(segment, segment.end),
-    start: loopRange.start,
-    end: loopRange.end,
-    playbackRate: segment.playbackRate,
-  };
+function getFirstWrapTime(run: PlaybackRun, loopRange: LoopRange): number {
+  return run.contextTime + (loopRange.end - run.position) / run.playbackRate;
 }

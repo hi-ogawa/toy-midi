@@ -7,9 +7,9 @@ import type { MidiTrackState } from "./runtime.ts";
 import {
   type AudioContextTransport,
   type ContextTimeWindow,
-  getPlaybackSegments,
-  getSegmentContextTime,
-  getSegmentRange,
+  getPlaybackPasses,
+  getPassContextTime,
+  getPassEventRange,
   startLookaheadScheduler,
   type TransportParticipant,
 } from "./transport.ts";
@@ -95,15 +95,9 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   start(): void {
     this.stop();
-    const context = this.transport.context;
-    // Note and tempo edits restart mid-run after the synth has dropped its
-    // queue, so resume from now rather than the run start.
     this.disposeScheduling = startLookaheadScheduler({
-      context,
-      from: Math.max(
-        this.transport.playbackRun!.contextTime,
-        context.currentTime,
-      ),
+      context: this.transport.context,
+      from: this.transport.playbackRun!.contextTime,
       schedule: (window) => this.schedule(window),
     });
   }
@@ -133,18 +127,14 @@ export class MidiTrackPlayback implements TransportParticipant {
    */
   private schedule(window: ContextTimeWindow): void {
     const playbackRun = this.transport.playbackRun!;
-    const currentTime = this.transport.context.currentTime;
-    for (const segment of getPlaybackSegments(playbackRun, window)) {
-      const range = getSegmentRange(segment, window);
+    for (const pass of getPlaybackPasses(playbackRun, window)) {
+      const range = getPassEventRange(pass, window);
       for (const note of this.notes) {
         const start = beatsToSeconds(note.start, this.tempo);
         if (range.end <= start) {
           break;
         }
-        // A stalled timer can hand over a window that already began, so skip
-        // notes that have elapsed rather than playing them late.
-        const startTime = getSegmentContextTime(segment, start);
-        if (start < range.start || startTime < currentTime) {
+        if (start < range.start) {
           continue;
         }
         // A note held past loop-out ends at the wrap. The synth applies
@@ -152,13 +142,13 @@ export class MidiTrackPlayback implements TransportParticipant {
         // loop-in still retriggers.
         const end = Math.min(
           beatsToSeconds(note.start + note.duration, this.tempo),
-          segment.end,
+          pass.end,
         );
         this.synth.scheduleNoteOnOff({
           pitch: note.pitch,
           velocity: note.velocity,
-          startTime,
-          endTime: getSegmentContextTime(segment, end),
+          startTime: getPassContextTime(pass, start),
+          endTime: getPassContextTime(pass, end),
         });
       }
     }

@@ -3,10 +3,10 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import {
   type AudioContextTransport,
   type ContextTimeWindow,
-  getPlaybackSegments,
-  getSegmentContextTime,
-  getSegmentPosition,
-  type PlaybackSegment,
+  getPlaybackPasses,
+  getPassContextTime,
+  getPassPosition,
+  type PlaybackPass,
   startLookaheadScheduler,
   type TransportParticipant,
 } from "./transport.ts";
@@ -22,7 +22,7 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly unregister: () => void;
   private readonly player: DeclickedBufferPlayer;
   private playbackSource?: AudioPlaybackSource;
-  private nextSegmentIndex = 0;
+  private nextPassIndex = 0;
   private disposeScheduling?: () => void;
 
   constructor({
@@ -59,7 +59,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     if (!this.playbackSource) {
       return;
     }
-    this.nextSegmentIndex = 0;
+    this.nextPassIndex = 0;
     this.disposeScheduling = startLookaheadScheduler({
       context: this.transport.context,
       from: this.transport.playbackRun!.contextTime,
@@ -80,30 +80,30 @@ export class AudioBufferPlayback implements TransportParticipant {
     void this.player.waitForSilence().then(() => this.gain.disconnect());
   }
 
-  /** Queues a slice for each loop pass that begins during the window. */
+  /** Queues one slice for each loop pass, in the first window that reaches it. */
   private schedule(window: ContextTimeWindow): void {
     const playbackRun = this.transport.playbackRun!;
-    for (const segment of getPlaybackSegments(playbackRun, window)) {
-      if (segment.index < this.nextSegmentIndex) {
+    for (const pass of getPlaybackPasses(playbackRun, window)) {
+      if (pass.index < this.nextPassIndex) {
         continue;
       }
-      this.nextSegmentIndex = segment.index + 1;
-      this.startSlice(segment);
+      this.nextPassIndex = pass.index + 1;
+      this.startSlice(pass, window);
     }
   }
 
-  /** Plays the part of the region inside one segment, region ∩ segment. */
-  private startSlice(segment: PlaybackSegment): void {
+  /** Plays the part of the region inside one pass. */
+  private startSlice(pass: PlaybackPass, window: ContextTimeWindow): void {
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
       this.playbackSource!;
-    // Join mid-region at the playhead, or at the current time if a stalled
-    // timer let the segment begin before its slice was queued.
+    // Join mid-region at the playhead, or at the window start if a stalled
+    // timer let the pass begin before its slice was queued.
     const start = Math.max(
       timelineStart,
-      segment.start,
-      getSegmentPosition(segment, this.transport.context.currentTime),
+      pass.start,
+      getPassPosition(pass, window.from),
     );
-    const end = Math.min(timelineEnd, segment.end);
+    const end = Math.min(timelineEnd, pass.end);
     if (start >= end) {
       return;
     }
@@ -111,15 +111,13 @@ export class AudioBufferPlayback implements TransportParticipant {
     // loop-out continues the previous pass's slice, which ends at this same
     // instant, so fading in would dip the splice.
     const continuesPreviousPass =
-      segment.index > 0 &&
-      start === segment.start &&
-      timelineEnd >= segment.end;
+      pass.index > 0 && start === pass.start && timelineEnd >= pass.end;
     // Offset and duration are buffer seconds, so the slice ends exactly at the
-    // audio-clock time where the next segment's slice starts.
+    // audio-clock time where the next pass's slice starts.
     this.player.start({
       buffer,
-      playbackRate: segment.playbackRate,
-      time: getSegmentContextTime(segment, start),
+      playbackRate: pass.playbackRate,
+      time: getPassContextTime(pass, start),
       offset: start - timelineOffset,
       duration: end - start,
       fadeIn: !continuesPreviousPass,
@@ -157,11 +155,7 @@ class DeclickedBufferPlayer {
     this.output = output;
   }
 
-  /**
-   * Plays `duration` buffer seconds from `offset`, starting at audio-clock
-   * `time`. Without `fadeIn`, it starts at full level, for a slice that
-   * continues one ending at the same instant.
-   */
+  /** Plays `duration` buffer seconds from `offset`, starting at audio-clock `time`. */
   start({
     buffer,
     playbackRate,
@@ -181,7 +175,7 @@ class DeclickedBufferPlayer {
     node.buffer = buffer;
     node.playbackRate.value = playbackRate;
     const envelope = new DeclickGain(this.context);
-    envelope.open(time, { fade: fadeIn });
+    envelope.open(time, { fadeIn });
     node.connect(envelope.node).connect(this.output);
     // Disconnect after the fade has rendered, not when stop() is called.
     const ended = new Promise<void>((resolve) => {
