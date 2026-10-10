@@ -77,7 +77,7 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
     // Allow the app's site up front, as clicking the extension's button would.
     const manifestPath = path.join(extensionPath, "manifest.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    manifest.host_permissions = [`http://${new URL(baseURL!).hostname}/*`];
+    manifest.host_permissions = [`${new URL(baseURL!).origin}/*`];
     writeFileSync(manifestPath, JSON.stringify(manifest));
     // Load it into a persistent context, the only kind that loads extensions.
     const context = await chromium.launchPersistentContext("", {
@@ -142,6 +142,16 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
       },
       getBadgeText: async (page) =>
         (await callOnTab(page, "getBadgeText")) as string,
+      openBeforeSiteAllowed: async (open) => {
+        await worker!.evaluate(() =>
+          (globalThis as any).chrome.scripting.unregisterContentScripts(),
+        );
+        await open();
+        // Register the scripts again, as allowing the site does.
+        await worker!.evaluate(() =>
+          (globalThis as any).__e2e.syncContentScript(),
+        );
+      },
     });
   },
 });
@@ -154,6 +164,8 @@ const CLI_PATH = `${PACKAGE_PATH}/bin/cli.js`;
 interface ExtensionFixture {
   toggleTab: (page: Page) => Promise<void>;
   getBadgeText: (page: Page) => Promise<string>;
+  /** Runs `open` while the site is not allowed, then allows it. */
+  openBeforeSiteAllowed: (open: () => Promise<void>) => Promise<void>;
 }
 
 interface BridgeFixture {
