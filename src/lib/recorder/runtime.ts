@@ -76,8 +76,19 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
-  /** General MIDI program number (0-127) */
+  /**
+   * General MIDI program number (0-127), or the drum kit number when `drums`
+   * is set
+   */
   program: number;
+  /**
+   * Play the track as a drum kit, like General MIDI channel 10. `program`
+   * selects the GS kit: 0 Standard, 8 Room, 16 Power, 24 Electronic,
+   * 25 TR-808, 32 Jazz, 40 Brush, 48 Orchestra, 56 SFX. Note pitches follow
+   * the General MIDI percussion key map, such as 36 Bass Drum 1,
+   * 38 Acoustic Snare, 42 Closed Hi-Hat, 46 Open Hi-Hat, and 49 Crash Cymbal 1.
+   */
+  drums?: boolean;
   eq: MultibandEqParameters;
   height: number;
   viewMode: "editor" | "overview";
@@ -89,6 +100,9 @@ export interface MidiTrackState {
   tabOpenStringPitches: number[];
   keySignature: KeySignature;
 }
+
+/** The sound a MIDI track plays: a General MIDI program or a drum kit */
+export type MidiTrackSound = Pick<MidiTrackState, "program" | "drums">;
 
 export interface RecorderLoopRange {
   startBeat: number;
@@ -438,14 +452,14 @@ export class RecorderRuntime {
     this.history.pushClips({ snapshot });
   }
 
-  async addMidiTrack({ program }: { program: number }): Promise<void> {
+  async addMidiTrack(sound: MidiTrackSound): Promise<void> {
     const state = this.store.get();
     const track = createMidiTrackState({
       name: createNumberedName({
         names: state.midiTracks.map((track) => track.name),
         prefix: "MIDI",
       }),
-      program,
+      sound,
     });
     await this.insertMidiTrack({ track });
     const index = this.store.get().trackOrder.indexOf(track.id);
@@ -676,10 +690,14 @@ export class RecorderRuntime {
     }
   }
 
-  async setMidiTrackProgram(id: string, program: number): Promise<void> {
-    await this.midiTrackPlaybacks.get(id)?.setProgram(program);
+  async setMidiTrackSound(id: string, sound: MidiTrackSound): Promise<void> {
+    await this.midiTrackPlaybacks.get(id)?.setSound(sound);
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, program }));
+      this.updateMidiTrack(id, (track) => ({
+        ...track,
+        program: sound.program,
+        drums: sound.drums,
+      }));
     }
   }
 
@@ -1574,16 +1592,16 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
 
 function createMidiTrackState({
   name,
-  program,
+  sound,
 }: {
   name: string;
-  program: number;
+  sound: MidiTrackSound;
 }): MidiTrackState {
   return {
     id: crypto.randomUUID(),
     name,
     notes: [],
-    program,
+    ...sound,
     eq: createDefaultMultibandEq(),
     height: 300,
     viewMode: "editor",

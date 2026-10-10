@@ -25,6 +25,7 @@ import { isBlackKey, MAX_PITCH } from "../../lib/music";
 import { exportMusicXml } from "../../lib/musicxml/render";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
+  MidiTrackSound,
   MidiTrackState,
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
@@ -97,9 +98,14 @@ export function MidiTrackRow({
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
   const programMutation = useMutation({
-    mutationFn: (program: number) =>
-      runtime.setMidiTrackProgram(track.id, program),
-    onSuccess: (_data, program) => onProgramSelected(program),
+    mutationFn: (sound: MidiTrackSound) =>
+      runtime.setMidiTrackSound(track.id, sound),
+    // New tracks start from the last melodic program, not a drum kit.
+    onSuccess: (_data, sound) => {
+      if (!sound.drums) {
+        onProgramSelected(sound.program);
+      }
+    },
   });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -255,7 +261,7 @@ export function MidiTrackRow({
         <MidiInstrument
           track={track}
           programPending={programMutation.isPending}
-          onProgramChange={(program) => programMutation.mutate(program)}
+          onProgramChange={(sound) => programMutation.mutate(sound)}
           onSettingsChange={(settings) =>
             runtime.setMidiTrackSettings(track.id, settings)
           }

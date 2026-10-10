@@ -145,3 +145,17 @@ export const GM_PROGRAMS = [
   "Applause",
   "Gunshot",
 ] as const;
+
+// GS drum kits, selected by program number in bank 128 like a program change
+// on General MIDI channel 10. These are the kits the bundled soundfont ships.
+export const DRUM_KITS = [
+  { program: 0, name: "Standard" },
+  { program: 8, name: "Room" },
+  { program: 16, name: "Power" },
+  { program: 24, name: "Electronic" },
+  { program: 25, name: "TR-808" },
+  { program: 32, name: "Jazz" },
+  { program: 40, name: "Brush" },
+  { program: 48, name: "Orchestra" },
+  { program: 56, name: "SFX" },
+] as const;
