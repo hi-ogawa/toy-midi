@@ -51,6 +51,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.1.0",
     "fallow": "^2.50.0",
+    "oxc-transform-react": "^0.153.0",
     "pkg-pr-new": "0.0.75",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
