@@ -22,10 +22,11 @@
 - Add short narrative comments before each logical phase of an E2E test, describing the user action and expected behavior so the comments alone convey the scenario. Use direct, verb-led wording for actions, such as “Load a backing track.”
 - Before adding or increasing an E2E timeout, measure the relevant wait with `createCheckpoint()` from `e2e/helpers.ts`. Prefer Playwright's default timeout when it comfortably covers the measured duration. If a custom timeout is needed, allow reasonable headroom and document the measured duration beside it.
 - Order functions by reading flow, with primary entry points and callers before their implementation helpers
-- Comment only what the code cannot say, such as a non-obvious reason or a constraint the types do not show. Do not restate a name or type, do not describe other files, and state a rationale once, where it is enforced. Write comments without the awkward or defensive tone that builds up when code is revised
+- Comment only what the code cannot say, such as a non-obvious reason or a constraint the types do not show. Do not restate a name or type, do not describe other files, and state a rationale once, where it is enforced
 - Prefer `undefined` over `null`
 - Prefer optional properties (`{ x?: T }`) over explicit undefined (`{ x: T | undefined }`)
 - Make props/params required when all call sites always pass them
 - Shape arguments the way a reader expects from the operation. Take a value positionally when the operation conventionally takes just that value. Use an options object when a call site would be ambiguous without names
 - Use braces for every `switch` case body (`case "x": { ... }`, `default: { ... }`)
+- Write docs, code comments, commit messages, and PR descriptions naturally for a first-time reader, without the awkward or defensive tone that builds up when text is revised alongside code changes
 - Docs: follow the writing conventions in [docs/AGENTS.md](docs/AGENTS.md)
