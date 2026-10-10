@@ -57,12 +57,12 @@ async function main() {
   switch (command) {
     case "serve": {
       const origins = values.origin ?? [];
-      await new BridgeServer({
+      const server = new BridgeServer({
         getOrigins: () => [...origins, ...readConfigOrigins()],
-      }).listen(port);
-      console.log(
-        `[webmcp-bridge] accepting pages from ${[...origins, getConfigPath()].join(", ")}`,
-      );
+      });
+      await server.listen(port);
+      const sources = [...origins, getConfigPath()].join(", ");
+      console.log(`[webmcp-bridge] accepting pages from ${sources}`);
       break;
     }
     case "allow": {
