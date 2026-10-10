@@ -113,9 +113,6 @@ export class AudioContextTransport {
 
   /** Changes timeline speed and re-anchors active participants at that rate. */
   setPlaybackRate(playbackRate: number): void {
-    if (playbackRate === this.playbackRate) {
-      return;
-    }
     const wasPlaying = this.store.get().isPlaying;
     if (wasPlaying) {
       this.pause();
