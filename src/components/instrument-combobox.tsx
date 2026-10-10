@@ -125,7 +125,8 @@ export function InstrumentCombobox({
 function formatSoundLabel({ program, drums }: MidiTrackSound): string {
   if (drums) {
     const kit = DRUM_KITS.find((kit) => kit.program === program);
-    return `Drums ${program}: ${kit?.name ?? "Unknown"}`;
+    // The synth falls back to the standard kit for a program without a kit.
+    return `Drums ${program}: ${kit?.name ?? DRUM_KITS[0].name}`;
   }
   return `${program}: ${GM_PROGRAMS[program]}`;
 }

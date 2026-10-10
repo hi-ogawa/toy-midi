@@ -84,7 +84,8 @@ export interface MidiTrackState {
   /**
    * Play the track as a drum kit, like General MIDI channel 10. `program`
    * selects the GS kit: 0 Standard, 8 Room, 16 Power, 24 Electronic,
-   * 25 TR-808, 32 Jazz, 40 Brush, 48 Orchestra, 56 SFX. Note pitches follow
+   * 25 TR-808, 32 Jazz, 40 Brush, 48 Orchestra, 56 SFX, and any other
+   * program falls back to Standard as in fluidsynth. Note pitches follow
    * the General MIDI percussion key map, such as 36 Bass Drum 1,
    * 38 Acoustic Snare, 42 Closed Hi-Hat, 46 Open Hi-Hat, and 49 Crash Cymbal 1.
    */

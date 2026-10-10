@@ -211,11 +211,16 @@ class RecorderMidiSynth {
       state: OxiSynthState;
     };
     const bank = drums ? DRUM_KIT_BANK : 0;
-    const preset = response.state.soundfonts
-      .find((soundfont) => soundfont.id === soundfontId)
-      ?.presets.find(
-        (preset) => preset.bank === bank && preset.preset_num === program,
+    const presets =
+      response.state.soundfonts.find(
+        (soundfont) => soundfont.id === soundfontId,
+      )?.presets ?? [];
+    const findPreset = (num: number) =>
+      presets.find(
+        (preset) => preset.bank === bank && preset.preset_num === num,
       );
+    // Like fluidsynth, fall back to the standard kit when a drum program has no kit.
+    const preset = findPreset(program) ?? (drums ? findPreset(0) : undefined);
     if (!preset) {
       throw new Error(
         `MIDI ${drums ? "drum kit" : "program"} ${program} is unavailable.`,
