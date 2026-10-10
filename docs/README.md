@@ -2,7 +2,7 @@
 
 ## Architecture
 
-- [Architecture overview](architecture.md): project state, persistence, monitoring, and latency.
+- [Architecture overview](architecture.md): project state, persistence, monitoring, latency, and audio routing.
 
 ## Concepts
 
