@@ -6,7 +6,7 @@ import { createWebMcpTools } from "../../lib/webmcp-tools";
  * Registers the open project's WebMCP tools with `document.modelContext`,
  * which the browser has with WebMCP or with the webmcp-bridge extension.
  */
-export function useWebMcpTools(runtime: RecorderRuntime) {
+export function useWebMcpBridge(runtime: RecorderRuntime) {
   useEffect(() => {
     const { modelContext } = document;
     if (!modelContext) {
