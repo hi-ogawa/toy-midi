@@ -45,7 +45,8 @@ export class BridgeServer {
     // rebinds its DNS to 127.0.0.1 cannot reach the bridge as same-origin.
     const host = request.headers.get("host");
     if (!isLocalHost(host)) {
-      return refuse(`a request to host ${host}`, "host not allowed");
+      console.log(`[webmcp-bridge] refused a request to host ${host}`);
+      return new Response("host not allowed\n", { status: 403 });
     }
     const url = new URL(request.url);
     const origin = request.headers.get("origin");
@@ -55,13 +56,14 @@ export class BridgeServer {
     // page.
     if (url.pathname.startsWith(PAGE_PREFIX)) {
       if (!origin) {
-        return refuse("a page request without an Origin", "origin not allowed");
+        console.log("[webmcp-bridge] refused a page request without an Origin");
+        return new Response("origin not allowed\n", { status: 403 });
       }
       if (!this.getOrigins().includes(origin)) {
-        return refuse(
-          `a page from ${origin}, allow it with: webmcp-bridge allow ${origin}`,
-          "origin not allowed",
+        console.log(
+          `[webmcp-bridge] refused a page from ${origin}, allow it with: webmcp-bridge allow ${origin}`,
         );
+        return new Response("origin not allowed\n", { status: 403 });
       }
       const response = await this.handlePage(request, url, origin);
       response.headers.set("access-control-allow-origin", origin);
@@ -69,9 +71,12 @@ export class BridgeServer {
     }
     if (url.pathname.startsWith(AGENT_PREFIX)) {
       if (origin) {
-        return refuse(
-          `a browser request from ${origin} to an agent endpoint`,
-          "agent endpoints do not accept browser requests",
+        console.log(
+          `[webmcp-bridge] refused a browser request from ${origin} to an agent endpoint`,
+        );
+        return new Response(
+          "agent endpoints do not accept browser requests\n",
+          { status: 403 },
         );
       }
       return this.handleAgent(request, url);
@@ -236,11 +241,6 @@ export class BridgeServer {
       this.pending.delete(requestId);
     }
   }
-}
-
-function refuse(request: string, reason: string) {
-  console.log(`[webmcp-bridge] refused ${request}`);
-  return new Response(`${reason}\n`, { status: 403 });
 }
 
 function isLocalHost(host: string | null) {
