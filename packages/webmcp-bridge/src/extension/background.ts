@@ -5,7 +5,7 @@
 // to the bridge. Clicking the extension's button allows the current site and
 // opts its tab in, or opts an allowed site's tab in or out.
 
-import { EXPOSE_EVENT } from "./expose-event.ts";
+import { EXPOSE_EVENT } from "./shared.ts";
 
 const CONTENT_SCRIPT_ID = "content";
 

@@ -5,7 +5,7 @@
 
 import { exposeModelContext } from "../client.ts";
 import { createModelContextPolyfill } from "../model-context-polyfill.ts";
-import { EXPOSE_EVENT } from "./expose-event.ts";
+import { EXPOSE_EVENT } from "./shared.ts";
 
 // Set by the build.
 declare const __WEBMCP_BRIDGE_PORT__: string;
