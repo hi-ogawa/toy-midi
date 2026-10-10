@@ -10,13 +10,10 @@ import type { ModelContext, WebMcpToolResult } from "./webmcp.ts";
 export { DEFAULT_BRIDGE_PORT } from "./protocol.ts";
 
 /**
- * Exposes the tools of `modelContext` to the agent through the local bridge
- * in server.ts, until the returned function is called. Each request reads
- * the tools with `getTools()` and runs them with `executeTool()`, as an agent
- * built into the browser would.
- *
- * The bridge streams requests over Server-Sent Events, and each result, or
- * the error a call throws, is posted back as JSON.
+ * Exposes the tools of `modelContext` to the agent through the local bridge,
+ * until the returned function is called. Each request reads the tools with
+ * `getTools()` and runs them with `executeTool()`, as an agent built into the
+ * browser would.
  */
 export function exposeModelContext({
   bridgeUrl,
