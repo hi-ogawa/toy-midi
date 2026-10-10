@@ -1,10 +1,3 @@
-// Local bridge between an open web app and an agent with a shell.
-//
-// A page connects with Server-Sent Events and exposes tools through the
-// client in client.ts. The agent posts `PageRpc` calls, the bridge forwards
-// each one to the page, and the result the page posts back becomes the
-// response.
-
 import { randomUUID } from "node:crypto";
 import * as srvx from "srvx";
 import {
@@ -171,8 +164,6 @@ export class BridgeServer {
     }
   }
 
-  // Forwards a `PageRpc` call to the chosen page, and responds with the
-  // result it posts back.
   private async callPage(
     pageId: string | undefined,
     call: RpcCall,
@@ -188,8 +179,8 @@ export class BridgeServer {
     return Response.json(result, { status: result.ok ? 200 : 500 });
   }
 
-  // Picks the page with `pageId`, or the only connected page when no id is
-  // given, so a call never goes to one of several pages by guess.
+  // Without `pageId`, only a single connected page is chosen, so a call never
+  // goes to one of several pages by guess.
   private choosePage(
     pageId: string | undefined,
   ): { page: PageConnection } | { error: string; status: number } {

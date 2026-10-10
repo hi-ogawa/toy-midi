@@ -1,14 +1,3 @@
-// The webmcp-bridge command. `serve` runs the bridge in server.ts,
-// and the other commands let an agent with a shell list and execute the
-// connected page's tools through it.
-//
-// Usage:
-//   webmcp-bridge serve --origin https://example.com
-//   webmcp-bridge get-tools
-//   webmcp-bridge execute-tool some_tool '{"key":"value"}'
-//   echo 'multi-line text' | webmcp-bridge execute-tool some_tool --arg key=-
-//   webmcp-bridge pages
-
 import { parseArgs } from "node:util";
 import {
   AGENT_ENDPOINTS,
@@ -109,15 +98,13 @@ async function main() {
   }
 }
 
-/** `PageRpc` as the CLI calls it through the bridge, where every method is async. */
 type PageRpcClient = {
   [K in keyof PageRpc]: (
     ...args: Parameters<PageRpc[K]>
   ) => Promise<Awaited<ReturnType<PageRpc[K]>>>;
 };
 
-// Calls `PageRpc` methods on a page through the bridge. A failed call, such
-// as one with no page connected or one the page fails, throws the bridge's
+// A failed call, such as one with no page connected, throws the bridge's
 // error.
 function createPageRpcClient({
   port,
