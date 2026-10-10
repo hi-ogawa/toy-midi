@@ -9,7 +9,20 @@ import { chromium, test as base } from "@playwright/test";
 export const test = base.extend<{ bridge: BridgeFixture }>({
   // Build the extension for the bridge's port, and load it into a persistent
   // context, the only kind that loads extensions.
-  context: async ({ baseURL, bridge }, use, testInfo) => {
+  context: async (
+    {
+      channel,
+      launchOptions,
+      contextOptions,
+      viewport,
+      userAgent,
+      deviceScaleFactor,
+      baseURL,
+      bridge,
+    },
+    use,
+    testInfo,
+  ) => {
     const extensionPath = testInfo.outputPath("extension");
     execFileSync(
       "pnpm",
@@ -20,9 +33,15 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
       },
     );
     const context = await chromium.launchPersistentContext("", {
-      channel: "chromium",
+      ...launchOptions,
+      ...contextOptions,
+      channel,
+      viewport,
+      userAgent,
+      deviceScaleFactor,
       baseURL,
       args: [
+        ...(launchOptions.args ?? []),
         `--disable-extensions-except=${extensionPath}`,
         `--load-extension=${extensionPath}`,
       ],

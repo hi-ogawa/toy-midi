@@ -1,4 +1,5 @@
 import { defineConfig } from "vite-plus";
+import { DEFAULT_BRIDGE_PORT } from "./src/protocol.ts";
 
 // Builds the extension into a directory that loads unpacked: the manifest
 // from extension/, and the content script as one classic script, because
@@ -8,7 +9,7 @@ export default defineConfig({
   publicDir: "extension",
   define: {
     __WEBMCP_BRIDGE_PORT__: JSON.stringify(
-      process.env.WEBMCP_BRIDGE_PORT ?? "4747",
+      process.env.WEBMCP_BRIDGE_PORT ?? String(DEFAULT_BRIDGE_PORT),
     ),
   },
   build: {

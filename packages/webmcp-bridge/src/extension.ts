@@ -10,35 +10,45 @@
 import { connectWebMcpBridge } from "./client.ts";
 import type { ModelContext, WebMcpTool } from "./webmcp.ts";
 
-// Set by the build, 4747 by default as in the CLI.
+// Set by the build.
 declare const __WEBMCP_BRIDGE_PORT__: string;
 const BRIDGE_URL = `http://localhost:${__WEBMCP_BRIDGE_PORT__}`;
 
 const tools = new Map<string, WebMcpTool>();
 let disconnect: (() => void) | undefined;
 
-const modelContext = document.modelContext ?? installModelContext();
-const registerTool = modelContext.registerTool.bind(modelContext);
-modelContext.registerTool = async (tool, options) => {
-  await registerTool(tool, options);
-  addTool(tool, options?.signal);
-};
+if (document.modelContext) {
+  recordNativeTools(document.modelContext);
+} else {
+  installModelContext();
+}
 
-// Stands in for `document.modelContext` in browsers without WebMCP. It only
-// checks the name, and `modelContext.registerTool` above records the tool.
-function installModelContext(): ModelContext {
+// Records each tool once the browser has accepted it, so a name the browser
+// rejects as a duplicate is never recorded.
+function recordNativeTools(modelContext: ModelContext) {
+  const registerTool = modelContext.registerTool.bind(modelContext);
+  modelContext.registerTool = async (tool, options) => {
+    await registerTool(tool, options);
+    addTool(tool, options?.signal);
+  };
+}
+
+// Stands in for `document.modelContext` in browsers without WebMCP. It checks
+// the name and records the tool in one step, so a second registration of the
+// name is rejected even before the first one resolves.
+function installModelContext() {
   const polyfill: ModelContext = {
-    registerTool: async (tool) => {
+    registerTool: async (tool, options) => {
       if (tools.has(tool.name)) {
         throw new DOMException(
           `tool already registered: ${tool.name}`,
           "InvalidStateError",
         );
       }
+      addTool(tool, options?.signal);
     },
   };
   Object.defineProperty(document, "modelContext", { value: polyfill });
-  return polyfill;
 }
 
 function addTool(tool: WebMcpTool, signal: AbortSignal | undefined) {
@@ -51,9 +61,6 @@ function addTool(tool: WebMcpTool, signal: AbortSignal | undefined) {
 }
 
 function removeTool(tool: WebMcpTool) {
-  if (tools.get(tool.name) !== tool) {
-    return;
-  }
   tools.delete(tool.name);
   if (tools.size === 0) {
     disconnect?.();

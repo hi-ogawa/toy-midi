@@ -24,6 +24,9 @@ export interface PageRpc {
 /** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
 export type ToolInfo = Pick<WebMcpTool, "name" | "description" | "inputSchema">;
 
+/** The port the bridge listens on, and the extension connects to, by default. */
+export const DEFAULT_BRIDGE_PORT = 4747;
+
 // Page side: the bridge calls `PageRpc` methods on a page over these
 // endpoints and events.
 
