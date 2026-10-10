@@ -80,7 +80,7 @@ export function MidiTrackRow({
   midiInteraction,
   onTranscribe,
   onScorePreview,
-  onProgramSelected,
+  onPresetSelected,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -94,18 +94,13 @@ export function MidiTrackRow({
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
   onScorePreview: () => void;
-  onProgramSelected: (program: number) => void;
+  onPresetSelected: (preset: MidiPreset) => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
-  const programMutation = useMutation({
+  const presetMutation = useMutation({
     mutationFn: (preset: MidiPreset) =>
       runtime.setMidiTrackPreset(track.id, preset),
-    // New tracks start from the last General MIDI program, not a drum kit.
-    onSuccess: (_data, preset) => {
-      if (!preset.bank) {
-        onProgramSelected(preset.program);
-      }
-    },
+    onSuccess: (_data, preset) => onPresetSelected(preset),
   });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -260,8 +255,8 @@ export function MidiTrackRow({
       >
         <MidiInstrument
           track={track}
-          programPending={programMutation.isPending}
-          onProgramChange={(preset) => programMutation.mutate(preset)}
+          presetPending={presetMutation.isPending}
+          onPresetChange={(preset) => presetMutation.mutate(preset)}
           onSettingsChange={(settings) =>
             runtime.setMidiTrackSettings(track.id, settings)
           }

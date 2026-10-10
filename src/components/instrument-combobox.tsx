@@ -116,14 +116,10 @@ export function InstrumentCombobox({
   );
 }
 
-function formatPresetLabel({ bank = 0, program }: MidiPreset): string {
+function formatPresetLabel({ bank, program }: MidiPreset): string {
   if (bank === DRUM_KIT_BANK) {
-    // The synth falls back to the standard kit for a program without a kit.
     const kit = DRUM_KITS.find((kit) => kit.program === program);
-    return `Drums ${program}: ${kit?.name ?? DRUM_KITS[0].name}`;
-  }
-  if (bank !== 0) {
-    return `Bank ${bank}, ${program}`;
+    return kit ? `Drums ${program}: ${kit.name}` : `Drums ${program}`;
   }
   return `${program}: ${GM_PROGRAMS[program]}`;
 }

@@ -8,13 +8,13 @@ import { InstrumentCombobox } from "../instrument-combobox";
 
 export function MidiInstrument({
   track,
-  programPending,
-  onProgramChange,
+  presetPending,
+  onPresetChange,
   onSettingsChange,
 }: {
   track: MidiTrackState;
-  programPending: boolean;
-  onProgramChange: (preset: MidiPreset) => void;
+  presetPending: boolean;
+  onPresetChange: (preset: MidiPreset) => void;
   onSettingsChange: (settings: Partial<MidiTrackState>) => void;
 }) {
   return (
@@ -25,8 +25,8 @@ export function MidiInstrument({
           className="w-full!"
           aria-label={`${track.name} program`}
           value={{ bank: track.bank, program: track.program }}
-          disabled={programPending}
-          onValueChange={onProgramChange}
+          disabled={presetPending}
+          onValueChange={onPresetChange}
         />
       </div>
       <label className="contents">

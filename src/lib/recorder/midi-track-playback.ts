@@ -1,7 +1,7 @@
 import type { Note } from "../../types.ts";
 import { startInterval } from "../../utils/timing.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
-import { DRUM_KIT_BANK } from "../general-midi.ts";
+import { listPresetFallbacks } from "../general-midi.ts";
 import { midiAssetUrls, waitForMidiAssets } from "../runtime-assets";
 import { beatsToSeconds } from "../timeline.ts";
 import { AudioChannel } from "./audio-channel.ts";
@@ -213,20 +213,8 @@ class RecorderMidiSynth {
       response.state.soundfonts.find(
         (soundfont) => soundfont.id === soundfontId,
       )?.presets ?? [];
-    // Substitute a missing preset as fluidsynth does on a program change.
-    const candidates =
-      bank === DRUM_KIT_BANK
-        ? [
-            [bank, program],
-            [bank, 0],
-          ]
-        : [
-            [bank, program],
-            [0, program],
-            [0, 0],
-          ];
-    const preset = candidates
-      .map(([bank, program]) =>
+    const preset = listPresetFallbacks({ bank, program })
+      .map(({ bank, program }) =>
         presets.find(
           (preset) => preset.bank === bank && preset.preset_num === program,
         ),

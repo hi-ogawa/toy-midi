@@ -163,3 +163,25 @@ export const DRUM_KITS = [
   { program: 48, name: "Orchestra" },
   { program: 56, name: "SFX" },
 ] as const;
+
+// The presets to try in order for a missing preset, as fluidsynth substitutes on
+// a program change.
+export function listPresetFallbacks({
+  bank = 0,
+  program,
+}: {
+  bank?: number;
+  program: number;
+}): Array<{ bank: number; program: number }> {
+  if (bank === DRUM_KIT_BANK) {
+    return [
+      { bank, program },
+      { bank, program: 0 },
+    ];
+  }
+  return [
+    { bank, program },
+    { bank: 0, program },
+    { bank: 0, program: 0 },
+  ];
+}
