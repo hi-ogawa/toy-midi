@@ -7,7 +7,9 @@
   },
   "type": "module",
   "exports": {
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./model-context": "./src/model-context.ts",
+    "./webmcp": "./src/webmcp.ts"
   },
   "dependencies": {
     "srvx": "^1.0.5",
