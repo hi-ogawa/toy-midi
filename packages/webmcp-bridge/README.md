@@ -28,7 +28,7 @@ $ webmcp-bridge serve --origin https://toy-midi.hiro18181.workers.dev
 [webmcp-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…
 ```
 
-Then open the app. The extension exposes every page it runs on, which for now is `localhost` and the Toy MIDI deploy, and Toy MIDI registers its tools when a project is open. Without the extension, Toy MIDI exposes its tools by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs. The commands below run from another terminal, or from the agent.
+Then open the app, click the extension's button in the toolbar, and allow the site. The extension runs on the sites you allow and exposes their pages, and Toy MIDI registers its tools when a project is open. To stop, remove the site under the extension's Site access settings. Without the extension, Toy MIDI exposes its tools by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs. The commands below run from another terminal, or from the agent.
 
 ### `webmcp-bridge pages`
 
@@ -188,6 +188,6 @@ The bridge only accepts connections from your own machine. Within your machine, 
 - Pages may connect only from the sites listed with `--origin`.
 - Requests meant for the command line are refused if they carry an `Origin` header at all, so a page on another site cannot run tools.
 
-The extension runs its script on every site, but the script makes its requests as the page, with the page's `Origin`. So `--origin` still decides which sites' tools reach the agent, and a site that is not listed is refused when it connects.
+The extension runs only on the sites you allow, and its script makes its requests as the page, with the page's `Origin`. So `--origin` still decides which sites' tools reach the agent, and a site that is not listed is refused when it connects.
 
 Every request must also be addressed to `localhost` or `127.0.0.1`. That stops a site that points its own domain name at your machine. Its page would otherwise count as the bridge's own site, so the browser would send no `Origin` header and let the page read the bridge's answers.

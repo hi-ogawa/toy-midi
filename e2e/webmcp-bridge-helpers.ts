@@ -1,6 +1,8 @@
 import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
-import { chromium, test as base } from "@playwright/test";
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { chromium, expect, test as base } from "@playwright/test";
 
 /** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
 export const test = base.extend<{ bridge: BridgeFixture }>({
@@ -30,8 +32,9 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
 
 /** `test` whose browser has the webmcp-bridge extension, built for the bridge's port. */
 export const extensionTest = test.extend({
-  // Build the extension for the bridge's port, and load it into a persistent
-  // context, the only kind that loads extensions.
+  // Build the extension for the bridge's port, allow the app's site as clicking
+  // the extension's button would, and load it into a persistent context, the
+  // only kind that loads extensions.
   context: async (
     {
       channel,
@@ -55,6 +58,10 @@ export const extensionTest = test.extend({
         stdio: "pipe",
       },
     );
+    const manifestPath = path.join(extensionPath, "manifest.json");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    manifest.host_permissions = [`http://${new URL(baseURL!).hostname}/*`];
+    writeFileSync(manifestPath, JSON.stringify(manifest));
     const context = await chromium.launchPersistentContext("", {
       ...launchOptions,
       ...contextOptions,
@@ -69,6 +76,16 @@ export const extensionTest = test.extend({
         `--load-extension=${extensionPath}`,
       ],
     });
+    const worker =
+      context.serviceWorkers()[0] ??
+      (await context.waitForEvent("serviceworker"));
+    await expect
+      .poll(() =>
+        worker.evaluate(
+          "chrome.scripting.getRegisteredContentScripts().then((scripts) => scripts.length)",
+        ),
+      )
+      .toBe(1);
     await use(context);
     await context.close();
   },

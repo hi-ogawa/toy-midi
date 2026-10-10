@@ -17,5 +17,8 @@
   "dependencies": {
     "srvx": "^1.0.5",
     "tsx": "^4.23.13"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.4"
   }
 }
