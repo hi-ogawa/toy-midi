@@ -28,6 +28,10 @@ export interface RegisteredTool {
   name: string;
   description: string;
   inputSchema?: object;
+  /** The origin of the page that registered the tool. */
+  origin: string;
+  /** The window that registered the tool. */
+  window: Window;
 }
 
 /** `document.modelContext`. */

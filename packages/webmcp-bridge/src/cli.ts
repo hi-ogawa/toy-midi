@@ -10,10 +10,14 @@
 //   webmcp-bridge pages
 
 import { parseArgs } from "node:util";
-import { AGENT_ENDPOINTS, type PageInfo, type PageRpc } from "./protocol.ts";
+import {
+  AGENT_ENDPOINTS,
+  type PageInfo,
+  type PageRpc,
+  type ToolInfo,
+} from "./protocol.ts";
 import type { RpcCall, RpcResult } from "./rpc.ts";
 import { BridgeServer } from "./server.ts";
-import type { RegisteredTool } from "./webmcp.ts";
 
 const DEFAULT_PORT = 4747;
 
@@ -164,7 +168,7 @@ async function requestBridge({
 }
 
 // Plain text rather than JSON, so multi-line descriptions read as written.
-function formatTools(tools: RegisteredTool[]) {
+function formatTools(tools: ToolInfo[]) {
   return tools
     .map(
       (tool) =>

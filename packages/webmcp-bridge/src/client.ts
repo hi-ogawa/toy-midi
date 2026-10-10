@@ -63,8 +63,6 @@ export function exposeModelContext({
 
 function createPageRpc(modelContext: ModelContext): PageRpc {
   return {
-    // A native tool also holds its `window`, which cannot be sent as JSON, so
-    // keep the fields the agent reads.
     getTools: async () =>
       (await modelContext.getTools()).map(
         ({ name, description, inputSchema }) => ({

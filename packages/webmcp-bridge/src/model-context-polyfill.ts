@@ -30,6 +30,8 @@ export function createModelContextPolyfill(): ModelContext {
         name,
         description,
         inputSchema,
+        origin: window.location.origin,
+        window,
       })),
     executeTool: async ({ name }, input) => {
       const tool = tools.get(name);
