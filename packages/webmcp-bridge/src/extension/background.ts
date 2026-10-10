@@ -111,7 +111,7 @@ async function showStatus(tabId: number, status: BridgeStatus) {
       await showBadge(tabId, {
         text: "!",
         color: "#dc2626",
-        title: `The bridge refused this site. Start it with --origin ${origin}`,
+        title: `The bridge refused this site. Allow it with webmcp-bridge allow ${origin}`,
       });
       break;
     }

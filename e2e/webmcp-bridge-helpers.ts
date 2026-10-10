@@ -5,16 +5,29 @@ import path from "node:path";
 import { chromium, expect, test as base, type Page } from "@playwright/test";
 
 /** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
-export const test = base.extend<{ bridge: BridgeFixture }>({
-  bridge: async ({ baseURL }, use) => {
-    const server = spawn(process.execPath, [
-      CLI_PATH,
-      "serve",
-      "--port",
-      "0",
-      "--origin",
-      new URL(baseURL!).origin,
-    ]);
+export const test = base.extend<{
+  allowAppOrigin: boolean;
+  bridge: BridgeFixture;
+}>({
+  allowAppOrigin: [true, { option: true }],
+  bridge: async ({ baseURL, allowAppOrigin }, use, testInfo) => {
+    const env = {
+      ...process.env,
+      // Keep the user's saved origins out of the test.
+      XDG_CONFIG_HOME: testInfo.outputPath("config"),
+    };
+    const origin = new URL(baseURL!).origin;
+    const server = spawn(
+      process.execPath,
+      [
+        CLI_PATH,
+        "serve",
+        "--port",
+        "0",
+        ...(allowAppOrigin ? ["--origin", origin] : []),
+      ],
+      { env },
+    );
     const [listening] = await Promise.race([
       once(server.stdout, "data"),
       once(server, "exit").then(() => {
@@ -24,7 +37,8 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
     const port = Number(String(listening).match(/listening on .*:(\d+)/)![1]);
     await use({
       port,
-      run: (args, stdin) => runCli([...args, "--port", String(port)], stdin),
+      run: (args, stdin) =>
+        runCli([...args, "--port", String(port)], { env, stdin }),
     });
     server.kill();
   },
@@ -144,8 +158,11 @@ interface CliResult {
   stderr: string;
 }
 
-async function runCli(args: string[], stdin?: string): Promise<CliResult> {
-  const child = spawn(process.execPath, [CLI_PATH, ...args]);
+async function runCli(
+  args: string[],
+  { env, stdin }: { env: NodeJS.ProcessEnv; stdin?: string },
+): Promise<CliResult> {
+  const child = spawn(process.execPath, [CLI_PATH, ...args], { env });
   let stdout = "";
   let stderr = "";
   child.stdout.on("data", (chunk) => (stdout += chunk));
