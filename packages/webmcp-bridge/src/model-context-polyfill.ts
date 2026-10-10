@@ -1,10 +1,10 @@
 import type { ModelContext, WebMcpTool } from "./webmcp.ts";
 
 /**
- * A `document.modelContext` for browsers without WebMCP. It keeps the tools
- * registered with it, and follows the spec where callers can tell: a
- * duplicate name is rejected, `executeTool` resolves to the result's JSON,
- * and a tool that throws fails as an `OperationError` without its message.
+ * A `document.modelContext` for browsers without WebMCP. It behaves as the
+ * spec describes: a duplicate name is rejected, `executeTool` resolves to the
+ * result's JSON, and a tool that throws fails as an `OperationError` without
+ * its message.
  */
 export function createModelContextPolyfill(): ModelContext {
   const tools = new Map<string, WebMcpTool>();

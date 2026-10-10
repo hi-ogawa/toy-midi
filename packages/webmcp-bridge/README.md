@@ -157,7 +157,7 @@ The bridge reads the tools with `getTools()` and runs them with `executeTool()`,
 
 - `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
 - The result must be convertible to JSON. A value that is not, such as an object that refers to itself, comes back as an error.
-- If the tool throws anyway, it fails as an `OperationError` without its message, as in WebMCP. If the agent names a tool that does not exist, the bridge reports that.
+- If the tool throws anyway, the agent sees only an `OperationError`. If the agent names a tool that does not exist, it gets an unknown-tool error.
 - The bridge gives up after 30 seconds without a result. The tool keeps running in the page after that.
 
 ## How It Works

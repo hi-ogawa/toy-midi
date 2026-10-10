@@ -14,15 +14,12 @@ import type { RegisteredTool, WebMcpToolResult } from "./webmcp.ts";
  * rather than its JSON string.
  */
 export interface PageRpc {
-  getTools(): Promise<ToolInfo[]>;
+  getTools(): Promise<RegisteredTool[]>;
   executeTool(
     tool: { name: string },
     input: unknown,
   ): Promise<WebMcpToolResult>;
 }
-
-/** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
-export type ToolInfo = RegisteredTool;
 
 // Page side: the bridge calls `PageRpc` methods on a page over these
 // endpoints and events.

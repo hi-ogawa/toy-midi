@@ -63,6 +63,7 @@ export function exposeModelContext({
 
 function createPageRpc(modelContext: ModelContext): PageRpc {
   return {
+    // Native tools also carry `window` and `origin`, which cannot be sent.
     getTools: async () =>
       (await modelContext.getTools()).map(
         ({ name, description, inputSchema }) => ({

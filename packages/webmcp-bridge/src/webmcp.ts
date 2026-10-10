@@ -1,6 +1,5 @@
 // The part of the WebMCP API (https://webmachinelearning.github.io/webmcp/)
-// that pages, the polyfill, and the bridge relay use, as
-// `document.modelContext`.
+// this package uses, as `document.modelContext`.
 
 /**
  * A tool in the WebMCP shape, as passed to `document.modelContext.registerTool`.
