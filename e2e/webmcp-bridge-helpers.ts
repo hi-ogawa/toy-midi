@@ -1,7 +1,8 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 import { chromium, expect, test as base, type Page } from "@playwright/test";
 
 /** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
@@ -68,11 +69,13 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
     testInfo,
   ) => {
     const extensionPath = testInfo.outputPath("extension");
-    execFileSync(
-      "pnpm",
-      ["-C", PACKAGE_PATH, "build-extension", "--outDir", extensionPath],
-      { stdio: "pipe" },
-    );
+    await execFileAsync("pnpm", [
+      "-C",
+      PACKAGE_PATH,
+      "build-extension",
+      "--outDir",
+      extensionPath,
+    ]);
     const manifestPath = path.join(extensionPath, "manifest.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
     manifest.host_permissions = [`http://${new URL(baseURL!).hostname}/*`];
@@ -140,6 +143,8 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
     });
   },
 });
+
+const execFileAsync = promisify(execFile);
 
 const PACKAGE_PATH = "packages/webmcp-bridge";
 const CLI_PATH = `${PACKAGE_PATH}/bin/cli.js`;
