@@ -146,7 +146,8 @@ export const GM_PROGRAMS = [
   "Gunshot",
 ] as const;
 
-// By SoundFont convention, the presets in this bank are drum kits.
+// SoundFont files keep their drum kits in this bank. In General MIDI, this is
+// the bank that synths play on channel 10, the drum channel.
 export const DRUM_KIT_BANK = 128;
 
 // The kits the bundled soundfont ships.
