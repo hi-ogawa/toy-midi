@@ -1,8 +1,5 @@
 import { KEY_SIGNATURE_OPTION_GROUPS } from "../../lib/pitch-spelling";
-import type {
-  MidiTrackSound,
-  MidiTrackState,
-} from "../../lib/recorder/runtime";
+import type { MidiPreset, MidiTrackState } from "../../lib/recorder/runtime";
 import {
   resolveTabStringPreset,
   TAB_STRING_PRESETS,
@@ -17,7 +14,7 @@ export function MidiInstrument({
 }: {
   track: MidiTrackState;
   programPending: boolean;
-  onProgramChange: (sound: MidiTrackSound) => void;
+  onProgramChange: (preset: MidiPreset) => void;
   onSettingsChange: (settings: Partial<MidiTrackState>) => void;
 }) {
   return (
@@ -27,7 +24,7 @@ export function MidiInstrument({
         <InstrumentCombobox
           className="w-full!"
           aria-label={`${track.name} program`}
-          value={{ program: track.program, drums: track.drums }}
+          value={{ bank: track.bank, program: track.program }}
           disabled={programPending}
           onValueChange={onProgramChange}
         />

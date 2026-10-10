@@ -146,8 +146,12 @@ export const GM_PROGRAMS = [
   "Gunshot",
 ] as const;
 
-// GS drum kits, selected by program number in bank 128 like a program change
-// on General MIDI channel 10. These are the kits the bundled soundfont ships.
+// The SoundFont bank that holds drum kits, which General MIDI channel 10 selects
+// from.
+export const DRUM_KIT_BANK = 128;
+
+// GS drum kits by program number in the drum kit bank. These are the kits the
+// bundled soundfont ships.
 export const DRUM_KITS = [
   { program: 0, name: "Standard" },
   { program: 8, name: "Room" },

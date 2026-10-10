@@ -1,7 +1,7 @@
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { useState } from "react";
-import { DRUM_KITS, GM_PROGRAMS } from "../lib/general-midi";
-import type { MidiTrackSound } from "../lib/recorder/runtime";
+import { DRUM_KIT_BANK, DRUM_KITS, GM_PROGRAMS } from "../lib/general-midi";
+import type { MidiPreset } from "../lib/recorder/runtime";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -41,29 +41,25 @@ export function InstrumentCombobox({
   className,
   "aria-label": ariaLabel,
 }: {
-  value: MidiTrackSound;
+  value: MidiPreset;
   disabled?: boolean;
   className?: string;
   "aria-label"?: string;
-  onValueChange: (value: MidiTrackSound) => void;
+  onValueChange: (value: MidiPreset) => void;
 }) {
   const [open, setOpen] = useState(false);
 
-  function renderItem({
-    sound,
-    label,
-  }: {
-    sound: MidiTrackSound;
-    label: string;
-  }) {
+  function renderItem(preset: MidiPreset) {
+    const label = formatPresetLabel(preset);
     const selected =
-      value.program === sound.program && !!value.drums === !!sound.drums;
+      (value.bank ?? 0) === (preset.bank ?? 0) &&
+      value.program === preset.program;
     return (
       <CommandItem
         key={label}
         value={label}
         onSelect={() => {
-          onValueChange(sound);
+          onValueChange(preset);
           setOpen(false);
         }}
         className="text-xs"
@@ -91,7 +87,7 @@ export function InstrumentCombobox({
           )}
         >
           <span className="min-w-0 flex-1 truncate text-left">
-            {formatSoundLabel(value)}
+            {formatPresetLabel(value)}
           </span>
           <ChevronsUpDownIcon className="ml-1 size-4 shrink-0 opacity-50" />
         </Button>
@@ -103,17 +99,15 @@ export function InstrumentCombobox({
             <CommandEmpty>No instrument found.</CommandEmpty>
             {INSTRUMENT_GROUPS.map((group) => (
               <CommandGroup key={group.label} heading={group.label}>
-                {GM_PROGRAMS.slice(group.start, group.end).map((_, i) => {
-                  const sound = { program: group.start + i };
-                  return renderItem({ sound, label: formatSoundLabel(sound) });
-                })}
+                {GM_PROGRAMS.slice(group.start, group.end).map((_, i) =>
+                  renderItem({ program: group.start + i }),
+                )}
               </CommandGroup>
             ))}
             <CommandGroup heading="Drum Kits">
-              {DRUM_KITS.map(({ program }) => {
-                const sound = { program, drums: true };
-                return renderItem({ sound, label: formatSoundLabel(sound) });
-              })}
+              {DRUM_KITS.map(({ program }) =>
+                renderItem({ bank: DRUM_KIT_BANK, program }),
+              )}
             </CommandGroup>
           </CommandList>
         </Command>
@@ -122,11 +116,14 @@ export function InstrumentCombobox({
   );
 }
 
-function formatSoundLabel({ program, drums }: MidiTrackSound): string {
-  if (drums) {
-    const kit = DRUM_KITS.find((kit) => kit.program === program);
+function formatPresetLabel({ bank = 0, program }: MidiPreset): string {
+  if (bank === DRUM_KIT_BANK) {
     // The synth falls back to the standard kit for a program without a kit.
+    const kit = DRUM_KITS.find((kit) => kit.program === program);
     return `Drums ${program}: ${kit?.name ?? DRUM_KITS[0].name}`;
+  }
+  if (bank !== 0) {
+    return `Bank ${bank}, ${program}`;
   }
   return `${program}: ${GM_PROGRAMS[program]}`;
 }

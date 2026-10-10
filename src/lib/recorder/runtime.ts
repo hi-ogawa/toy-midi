@@ -76,20 +76,19 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
-  /**
-   * General MIDI program number (0-127), or the drum kit number when `drums`
-   * is set
-   */
+  /** MIDI program number (0-127) within `bank` */
   program: number;
   /**
-   * Play the track as a drum kit, like General MIDI channel 10. `program`
-   * selects the GS kit: 0 Standard, 8 Room, 16 Power, 24 Electronic,
-   * 25 TR-808, 32 Jazz, 40 Brush, 48 Orchestra, 56 SFX, and any other
-   * program falls back to Standard as in fluidsynth. Note pitches follow
-   * the General MIDI percussion key map, such as 36 Bass Drum 1,
-   * 38 Acoustic Snare, 42 Closed Hi-Hat, 46 Open Hi-Hat, and 49 Crash Cymbal 1.
+   * SoundFont bank of the preset, 0 when absent. Bank 0 holds the 128 General
+   * MIDI programs. Bank 128 holds the drum kits that General MIDI channel 10
+   * plays: 0 Standard, 8 Room, 16 Power, 24 Electronic, 25 TR-808, 32 Jazz,
+   * 40 Brush, 48 Orchestra, 56 SFX. Drum note pitches follow the General MIDI
+   * percussion key map, such as 36 Bass Drum 1, 38 Acoustic Snare,
+   * 42 Closed Hi-Hat, 46 Open Hi-Hat, and 49 Crash Cymbal 1. A missing preset
+   * falls back as in fluidsynth: a missing drum kit to Standard, and any other
+   * missing preset to the same program in bank 0.
    */
-  drums?: boolean;
+  bank?: number;
   eq: MultibandEqParameters;
   height: number;
   viewMode: "editor" | "overview";
@@ -102,8 +101,8 @@ export interface MidiTrackState {
   keySignature: KeySignature;
 }
 
-/** The sound a MIDI track plays: a General MIDI program or a drum kit */
-export type MidiTrackSound = Pick<MidiTrackState, "program" | "drums">;
+/** The SoundFont preset a MIDI track plays, addressed by bank and program */
+export type MidiPreset = Pick<MidiTrackState, "bank" | "program">;
 
 export interface RecorderLoopRange {
   startBeat: number;
@@ -453,14 +452,14 @@ export class RecorderRuntime {
     this.history.pushClips({ snapshot });
   }
 
-  async addMidiTrack(sound: MidiTrackSound): Promise<void> {
+  async addMidiTrack(preset: MidiPreset): Promise<void> {
     const state = this.store.get();
     const track = createMidiTrackState({
       name: createNumberedName({
         names: state.midiTracks.map((track) => track.name),
         prefix: "MIDI",
       }),
-      sound,
+      preset,
     });
     await this.insertMidiTrack({ track });
     const index = this.store.get().trackOrder.indexOf(track.id);
@@ -691,13 +690,13 @@ export class RecorderRuntime {
     }
   }
 
-  async setMidiTrackSound(id: string, sound: MidiTrackSound): Promise<void> {
-    await this.midiTrackPlaybacks.get(id)?.setSound(sound);
+  async setMidiTrackPreset(id: string, preset: MidiPreset): Promise<void> {
+    await this.midiTrackPlaybacks.get(id)?.setPreset(preset);
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
-        program: sound.program,
-        drums: sound.drums,
+        bank: preset.bank,
+        program: preset.program,
       }));
     }
   }
@@ -1593,16 +1592,16 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
 
 function createMidiTrackState({
   name,
-  sound,
+  preset,
 }: {
   name: string;
-  sound: MidiTrackSound;
+  preset: MidiPreset;
 }): MidiTrackState {
   return {
     id: crypto.randomUUID(),
     name,
     notes: [],
-    ...sound,
+    ...preset,
     eq: createDefaultMultibandEq(),
     height: 300,
     viewMode: "editor",

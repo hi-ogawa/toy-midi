@@ -1,10 +1,11 @@
 import type { Note } from "../../types.ts";
 import { startInterval } from "../../utils/timing.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
+import { DRUM_KIT_BANK } from "../general-midi.ts";
 import { midiAssetUrls, waitForMidiAssets } from "../runtime-assets";
 import { beatsToSeconds } from "../timeline.ts";
 import { AudioChannel } from "./audio-channel.ts";
-import type { MidiTrackSound, MidiTrackState } from "./runtime.ts";
+import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -12,8 +13,6 @@ import type {
 
 const SCHEDULE_AHEAD_SECONDS = 0.1;
 const SCHEDULER_INTERVAL_MS = 25;
-// The SoundFont bank that holds drum kits
-const DRUM_KIT_BANK = 128;
 
 export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
@@ -83,8 +82,8 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.refreshSchedule();
   }
 
-  async setSound(sound: MidiTrackSound): Promise<void> {
-    await this.synth.setSound(sound);
+  async setPreset(preset: MidiPreset): Promise<void> {
+    await this.synth.setPreset(preset);
   }
 
   noteOn(pitch: number): void {
@@ -170,7 +169,7 @@ class RecorderMidiSynth {
     this.output = context.createGain();
   }
 
-  async init(sound: MidiTrackSound): Promise<void> {
+  async init(preset: MidiPreset): Promise<void> {
     await waitForMidiAssets();
     await ensureRecorderMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, "oxisynth", {
@@ -196,13 +195,13 @@ class RecorderMidiSynth {
       [soundfont],
     );
     this.soundfontId = midiAssetUrls.soundfontUrl;
-    await this.setSound(sound);
+    await this.setPreset(preset);
   }
 
-  // Select the preset directly rather than through MIDI bank select, so a drum
-  // kit plays on the player's single channel. oxisynth's drum channel differs
-  // only in how it resolves the bank.
-  async setSound({ program, drums }: MidiTrackSound): Promise<void> {
+  // Select the preset directly rather than through MIDI bank select, so any
+  // bank plays on the player's single channel, including the drum kit bank that
+  // oxisynth otherwise reserves for channel 10.
+  async setPreset({ bank = 0, program }: MidiPreset): Promise<void> {
     const soundfontId = this.soundfontId;
     if (!soundfontId) {
       throw new Error("MIDI soundfont is not loaded.");
@@ -210,21 +209,31 @@ class RecorderMidiSynth {
     const response = (await this.sendMessage("getState", {}, "state")) as {
       state: OxiSynthState;
     };
-    const bank = drums ? DRUM_KIT_BANK : 0;
     const presets =
       response.state.soundfonts.find(
         (soundfont) => soundfont.id === soundfontId,
       )?.presets ?? [];
-    const findPreset = (num: number) =>
-      presets.find(
-        (preset) => preset.bank === bank && preset.preset_num === num,
-      );
-    // Like fluidsynth, fall back to the standard kit when a drum program has no kit.
-    const preset = findPreset(program) ?? (drums ? findPreset(0) : undefined);
+    // Substitute a missing preset as fluidsynth does on a program change.
+    const candidates =
+      bank === DRUM_KIT_BANK
+        ? [
+            [bank, program],
+            [bank, 0],
+          ]
+        : [
+            [bank, program],
+            [0, program],
+            [0, 0],
+          ];
+    const preset = candidates
+      .map(([bank, program]) =>
+        presets.find(
+          (preset) => preset.bank === bank && preset.preset_num === program,
+        ),
+      )
+      .find(Boolean);
     if (!preset) {
-      throw new Error(
-        `MIDI ${drums ? "drum kit" : "program"} ${program} is unavailable.`,
-      );
+      throw new Error(`MIDI preset ${bank}:${program} is unavailable.`);
     }
     this.postMessage({ type: "setPreset", soundfontId, presetId: preset.id });
   }
