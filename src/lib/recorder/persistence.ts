@@ -24,6 +24,8 @@ const RECORDING_TRACK_ID = "__capture__";
  */
 export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   title: string;
+  // 🟢 Optional for recorder projects saved before project notes.
+  projectNotes?: string;
   // 🟢 Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
@@ -136,6 +138,7 @@ export function serializeRecorderRuntimeState(
 ): SerializedRecorderRuntimeState {
   return {
     title: state.title,
+    projectNotes: state.projectNotes,
     locators: state.locators,
     audioTracks: state.audioTracks.map((track) => ({
       id: track.id,
@@ -176,6 +179,7 @@ export function deserializeRecorderRuntimeState({
     .map((track) => track.id);
   return {
     title: project.title,
+    projectNotes: project.projectNotes ?? "",
     locators: project.locators ?? [],
     audioTracks: audioTracks.map((track) => ({
       id: track.id,

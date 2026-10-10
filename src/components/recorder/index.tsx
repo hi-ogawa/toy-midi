@@ -41,6 +41,7 @@ import { RecorderInputPanel } from "./recorder-input-panel";
 import { RecorderLocatorRow } from "./recorder-locators";
 import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
+import { RecorderNotesPanel } from "./recorder-notes-panel";
 import { RecorderPanel } from "./recorder-panel";
 import {
   RecorderScorePanel,
@@ -80,6 +81,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [clipsNewestFirst, setClipsNewestFirst] =
     recorderPreferences.useValue("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = projectUiStore.useValue("mixerOpen");
+  const [isNotesOpen, setIsNotesOpen] = projectUiStore.useValue("notesOpen");
   const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
   const [isInputPanelOpen, setIsInputPanelOpen] =
     projectUiStore.useValue("inputPanelOpen");
@@ -356,6 +358,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
+        notesOpen={isNotesOpen}
+        onNotesToggle={() => setIsNotesOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
         inputPanelOpen={isInputPanelOpen}
         inputAccessRequired={input.initialized && !input.hasAccess}
@@ -809,6 +813,13 @@ export function Recorder({ projectId }: { projectId: string }) {
               onEffectsToggle={effects.toggleEffects}
             />
           </RecorderPanel>
+        )}
+        {isNotesOpen && (
+          <RecorderNotesPanel
+            runtime={runtime}
+            projectNotes={state.projectNotes}
+            onClose={() => setIsNotesOpen(false)}
+          />
         )}
         {isReferenceVideoOpen && (
           <ReferenceVideoPanel

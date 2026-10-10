@@ -46,6 +46,19 @@ extensionTest(
     await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
     await expect(page.getByTestId("recorder-midi-track-row")).toHaveCount(1);
 
+    // Write project notes from the agent, and see them in the notes panel.
+    const notes = await bridge.run([
+      "execute-tool",
+      "toy_midi_eval",
+      "--arg",
+      "code=runtime.setProjectNotes('## Bass\\nRoot, fifth, octave.')",
+    ]);
+    expect(notes.code).toBe(0);
+    await page.getByTestId("recorder-notes-button").click();
+    await expect(page.getByTestId("recorder-notes-input")).toHaveValue(
+      "## Bass\nRoot, fifth, octave.",
+    );
+
     // Throw from the agent's code, and get the error back with a failing exit code.
     const failure = await bridge.run([
       "execute-tool",
