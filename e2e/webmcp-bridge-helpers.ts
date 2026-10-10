@@ -46,13 +46,10 @@ export const test = base.extend<{
 
 /**
  * `test` whose browser has the webmcp-bridge extension, connecting to the
- * bridge's port, with `toggleTab` to opt a page's tab in or out as the
- * extension's button would.
+ * bridge's port, with an `extension` fixture that turns a page's tab on or off
+ * as the extension's button would, and reads the tab's badge.
  */
-export const extensionTest = test.extend<{
-  toggleTab: (page: Page) => Promise<void>;
-  getBadgeText: (page: Page) => Promise<string>;
-}>({
+export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
   // Build the extension, allow the app's site as clicking the extension's
   // button would, load it into a persistent context, the only kind that loads
   // extensions, and point it at the bridge's port.
@@ -114,38 +111,43 @@ export const extensionTest = test.extend<{
   page: async ({ context }, use) => {
     await use(context.pages()[0] ?? (await context.newPage()));
   },
-  toggleTab: async ({ context }, use) => {
+  extension: async ({ context }, use) => {
     const [worker] = context.serviceWorkers();
-    await use(async (page) => {
+    const callOnTab = async (
+      page: Page,
+      method: string,
+      ...args: unknown[]
+    ) => {
       await page.bringToFront();
-      await worker!.evaluate(async (origin) => {
-        const { chrome, __e2e } = globalThis as any;
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        await __e2e.toggleTab(tab.id, origin);
-      }, new URL(page.url()).origin);
-    });
-  },
-  getBadgeText: async ({ context }, use) => {
-    const [worker] = context.serviceWorkers();
-    await use(async (page) => {
-      await page.bringToFront();
-      return await worker!.evaluate(async () => {
-        const { chrome, __e2e } = globalThis as any;
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        return await __e2e.getBadgeText(tab.id);
-      });
+      return await worker!.evaluate(
+        async ([method, args]) => {
+          const { chrome, __e2e } = globalThis as any;
+          const [tab] = await chrome.tabs.query({
+            active: true,
+            currentWindow: true,
+          });
+          return await __e2e[method](tab.id, ...args);
+        },
+        [method, args] as const,
+      );
+    };
+    await use({
+      toggleTab: async (page) => {
+        await callOnTab(page, "toggleTab", new URL(page.url()).origin);
+      },
+      getBadgeText: async (page) =>
+        (await callOnTab(page, "getBadgeText")) as string,
     });
   },
 });
 
 const PACKAGE_PATH = "packages/webmcp-bridge";
 const CLI_PATH = `${PACKAGE_PATH}/bin/cli.js`;
+
+interface ExtensionFixture {
+  toggleTab: (page: Page) => Promise<void>;
+  getBadgeText: (page: Page) => Promise<string>;
+}
 
 interface BridgeFixture {
   port: number;

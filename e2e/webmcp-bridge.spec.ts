@@ -4,17 +4,17 @@ import { extensionTest, test } from "./webmcp-bridge-helpers";
 
 extensionTest(
   "drives the open project from the webmcp-bridge command",
-  async ({ page, bridge, toggleTab, getBadgeText }) => {
+  async ({ page, bridge, extension }) => {
     // Open a project, and see that it does not connect before the tab opts in.
     await createRecorderProject(page);
     expect(JSON.parse((await bridge.run(["pages"])).stdout)).toEqual([]);
 
     // Opt the tab in from the extension, and see it connect and the badge say so.
-    await toggleTab(page);
+    await extension.toggleTab(page);
     await expect
       .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
       .toHaveLength(1);
-    await expect.poll(() => getBadgeText(page)).toBe("ON");
+    await expect.poll(() => extension.getBadgeText(page)).toBe("ON");
 
     // List the tools the project exposes.
     const tools = await bridge.run(["get-tools"]);
@@ -64,11 +64,11 @@ extensionTest(
       .toEqual([expect.not.objectContaining({ id: before.id })]);
 
     // Opt the tab out, and see it disconnect and the badge clear.
-    await toggleTab(page);
+    await extension.toggleTab(page);
     await expect
       .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
       .toEqual([]);
-    await expect.poll(() => getBadgeText(page)).toBe("");
+    await expect.poll(() => extension.getBadgeText(page)).toBe("");
   },
 );
 
@@ -125,18 +125,18 @@ extensionTest.describe(() => {
 
   extensionTest(
     "retries a refused tab once its site is allowed",
-    async ({ page, bridge, baseURL, toggleTab, getBadgeText }) => {
+    async ({ page, bridge, baseURL, extension }) => {
       // Open a project, turn the tab on, and see the bridge refuse it.
       await createRecorderProject(page);
-      await toggleTab(page);
-      await expect.poll(() => getBadgeText(page)).toBe("!");
+      await extension.toggleTab(page);
+      await expect.poll(() => extension.getBadgeText(page)).toBe("!");
 
       // Allow the site while the bridge runs, click again, and see the tab connect.
       const origin = new URL(baseURL!).origin;
       const allow = await bridge.run(["allow", origin]);
       expect(allow.code).toBe(0);
-      await toggleTab(page);
-      await expect.poll(() => getBadgeText(page)).toBe("ON");
+      await extension.toggleTab(page);
+      await expect.poll(() => extension.getBadgeText(page)).toBe("ON");
       await expect
         .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
         .toMatchObject([{ origin }]);
