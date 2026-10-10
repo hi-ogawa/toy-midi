@@ -118,9 +118,9 @@ Any failure prints a message to standard error and exits with code 1, so the age
 An app registers its tools with WebMCP's `document.modelContext`. In browsers without WebMCP, it can install the package's polyfill first:
 
 ```ts
-import { createModelContext } from "@hiogawa/webmcp-bridge/model-context";
+import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 
-const modelContext = (document.modelContext ??= createModelContext());
+const modelContext = (document.modelContext ??= createModelContextPolyfill());
 const controller = new AbortController();
 modelContext.registerTool(
   {

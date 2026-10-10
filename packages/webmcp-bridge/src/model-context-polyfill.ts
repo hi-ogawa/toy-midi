@@ -6,7 +6,7 @@ import type { ModelContext, WebMcpTool } from "./webmcp.ts";
  * duplicate name is rejected, `executeTool` resolves to the result's JSON,
  * and a tool that throws fails as an `OperationError` without its message.
  */
-export function createModelContext(): ModelContext {
+export function createModelContextPolyfill(): ModelContext {
   const tools = new Map<string, WebMcpTool>();
   return {
     registerTool: async (tool, options) => {
