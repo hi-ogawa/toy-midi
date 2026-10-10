@@ -1,19 +1,14 @@
+import { DeclickGain } from "../dsp/declick-gain.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
 } from "./transport.ts";
 
-/**
- * Envelope length at source edges. Long enough to remove the waveform step of
- * entering or leaving a buffer mid-signal, short enough not to sound like a fade.
- */
-export const DECLICK_SECONDS = 0.005;
-
 type ActiveSource = {
   node: AudioBufferSourceNode;
   /** Per-source declick envelope, kept separate from clip gain automation. */
-  envelope: GainNode;
+  envelope: DeclickGain;
 };
 
 export class AudioBufferPlayback implements TransportParticipant {
@@ -74,14 +69,13 @@ export class AudioBufferPlayback implements TransportParticipant {
     const node = context.createBufferSource();
     node.buffer = buffer;
     node.playbackRate.value = this.transport.playbackRate;
-    const envelope = context.createGain();
-    envelope.gain.setValueAtTime(0, startTime);
-    envelope.gain.linearRampToValueAtTime(1, startTime + DECLICK_SECONDS);
-    node.connect(envelope).connect(this.gain);
+    const envelope = new DeclickGain(context);
+    envelope.open(startTime);
+    node.connect(envelope.node).connect(this.gain);
     // Disconnect after the stop fade has rendered, not when stop() is called.
     node.onended = () => {
       node.disconnect();
-      envelope.disconnect();
+      envelope.node.disconnect();
       this.liveSources--;
       this.releaseIfDone();
     };
@@ -101,14 +95,7 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     this.source = undefined;
-    const now = this.transport.context.currentTime;
-    const gain = source.envelope.gain;
-    // Hold the current envelope value so the ramp starts from it, including
-    // during a fade-in or before a delayed start.
-    gain.cancelScheduledValues(now);
-    gain.setValueAtTime(gain.value, now);
-    gain.linearRampToValueAtTime(0, now + DECLICK_SECONDS);
-    source.node.stop(now + DECLICK_SECONDS);
+    source.node.stop(source.envelope.close());
   }
 
   dispose(): void {
