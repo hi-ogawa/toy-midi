@@ -2,11 +2,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { test as base } from "@playwright/test";
 
-/**
- * Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that
- * accepts the app's origin unless `allowAppOrigin` is false. Each test gets
- * its own config directory, so the user's saved origins never apply.
- */
+/** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
 export const test = base.extend<{
   allowAppOrigin: boolean;
   bridge: BridgeFixture;
@@ -15,6 +11,7 @@ export const test = base.extend<{
   bridge: async ({ baseURL, allowAppOrigin }, use, testInfo) => {
     const env = {
       ...process.env,
+      // Keep the user's saved origins out of the test.
       XDG_CONFIG_HOME: testInfo.outputPath("config"),
     };
     const origin = new URL(baseURL!).origin;

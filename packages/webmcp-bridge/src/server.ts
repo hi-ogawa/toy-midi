@@ -23,8 +23,7 @@ export class BridgeServer {
   private readonly pages = new Map<string, PageConnection>();
   private readonly pending = new Map<string, (result: RpcResult) => void>();
 
-  // Origins are read for each request, so a newly allowed site connects
-  // without a restart.
+  // Called for each request, so origins added while the bridge runs apply.
   constructor({ getOrigins }: { getOrigins: () => string[] }) {
     this.getOrigins = getOrigins;
   }
