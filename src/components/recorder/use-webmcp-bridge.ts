@@ -21,15 +21,17 @@ export function useWebMcpBridge(runtime: RecorderRuntime) {
       void modelContext.registerTool(tool, { signal: controller.signal });
     }
     const params = new URL(window.location.href).searchParams;
-    const unexpose = params.has("webmcp-bridge")
-      ? exposeModelContext({
-          bridgeUrl: `http://localhost:${params.get("webmcp-bridge") || DEFAULT_BRIDGE_PORT}`,
-          modelContext,
-        })
-      : undefined;
+    let dispose: (() => void) | undefined;
+    if (params.has("webmcp-bridge")) {
+      const port = params.get("webmcp-bridge") || DEFAULT_BRIDGE_PORT;
+      dispose = exposeModelContext({
+        bridgeUrl: `http://localhost:${port}`,
+        modelContext,
+      });
+    }
     return () => {
       controller.abort();
-      unexpose?.();
+      dispose?.();
     };
   }, [runtime]);
 }
