@@ -1,10 +1,11 @@
-import { exposeModelContext } from "@hiogawa/webmcp-bridge/client";
+import {
+  DEFAULT_BRIDGE_PORT,
+  exposeModelContext,
+} from "@hiogawa/webmcp-bridge/client";
 import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 import { useEffect } from "react";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import { createWebMcpTools } from "../../lib/webmcp-tools";
-
-const DEFAULT_BRIDGE_PORT = "4747";
 
 /**
  * Registers the open project's WebMCP tools with `document.modelContext`,
