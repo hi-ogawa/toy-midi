@@ -58,6 +58,11 @@ const projectUiStateSchema = z.object({
   playhead: z.number().nonnegative().optional(),
   referenceVideoOpen: z.boolean(),
   mixerOpen: z.boolean(),
+  notesOpen: z.boolean(),
+  notesSize: z.object({
+    width: z.number().positive(),
+    height: z.number().positive(),
+  }),
   /** Track ids. A deleted track's id stays harmlessly, since nothing matches it. */
   expandedClipTracks: z.array(z.string()),
   openEffects: z.array(z.string()),
@@ -73,6 +78,8 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   timelineStartBeat: 0,
   referenceVideoOpen: false,
   mixerOpen: false,
+  notesOpen: false,
+  notesSize: { width: 384, height: 320 },
   expandedClipTracks: [],
   openEffects: [],
 };

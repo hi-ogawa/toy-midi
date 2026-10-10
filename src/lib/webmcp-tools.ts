@@ -29,6 +29,7 @@ export function createWebMcpTools(runtime: RecorderRuntime): WebMcpTool[] {
       name: "toy_midi_eval",
       description: [
         "Run JavaScript against the open toy-midi project, with `runtime` in scope.",
+        "Start by reading `runtime.store.get().projectNotes`, which holds the brief, chord chart, decisions, and feedback the user and earlier sessions left. Record your own intent and decisions there with `runtime.setProjectNotes()`, because the next session sees only the notes and the project.",
         runtimeTypes,
       ]
         .filter(Boolean)

@@ -16,6 +16,7 @@ import {
   SaveIcon,
   VideoIcon,
   SlidersVerticalIcon,
+  NotebookPenIcon,
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -84,8 +85,10 @@ export function RecorderHeader({
   onExportAudio,
   onReferenceVideoOpenChange,
   onMixerToggle,
+  onNotesToggle,
   onHelpOpen,
   mixerOpen,
+  notesOpen,
   inputPanelOpen,
   inputAccessRequired,
   onInputPanelToggle,
@@ -124,8 +127,10 @@ export function RecorderHeader({
   onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
+  onNotesToggle: () => void;
   onHelpOpen: () => void;
   mixerOpen: boolean;
+  notesOpen: boolean;
   inputPanelOpen: boolean;
   inputAccessRequired: boolean;
   onInputPanelToggle: () => void;
@@ -392,6 +397,20 @@ export function RecorderHeader({
         )}
       >
         <SlidersVerticalIcon className="size-5" />
+      </Button>
+      <Button
+        data-testid="recorder-notes-button"
+        onClick={onNotesToggle}
+        aria-pressed={notesOpen}
+        title="Project notes"
+        className={cn(
+          "size-9",
+          notesOpen
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
+        )}
+      >
+        <NotebookPenIcon className="size-5" />
       </Button>
       <Button
         data-testid="recorder-input-panel-button"
