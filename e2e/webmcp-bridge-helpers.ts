@@ -51,9 +51,6 @@ export const test = base.extend<{
  * as the extension's button would, and reads the tab's badge.
  */
 export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
-  // Build the extension, allow the app's site as clicking the extension's
-  // button would, load it into a persistent context, the only kind that loads
-  // extensions, and point it at the bridge's port.
   context: async (
     {
       channel,
@@ -68,6 +65,7 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
     use,
     testInfo,
   ) => {
+    // Build the extension.
     const extensionPath = testInfo.outputPath("extension");
     await execFileAsync("pnpm", [
       "-C",
@@ -76,10 +74,12 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
       "--outDir",
       extensionPath,
     ]);
+    // Allow the app's site up front, as clicking the extension's button would.
     const manifestPath = path.join(extensionPath, "manifest.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
     manifest.host_permissions = [`http://${new URL(baseURL!).hostname}/*`];
     writeFileSync(manifestPath, JSON.stringify(manifest));
+    // Load it into a persistent context, the only kind that loads extensions.
     const context = await chromium.launchPersistentContext("", {
       ...launchOptions,
       ...contextOptions,
@@ -94,6 +94,7 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
         `--load-extension=${extensionPath}`,
       ],
     });
+    // Wait for the background worker to register the scripts for the site.
     const worker =
       context.serviceWorkers()[0] ??
       (await context.waitForEvent("serviceworker"));
@@ -104,6 +105,7 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
         ),
       )
       .toBe(2);
+    // Point the extension at the bridge's port.
     await worker.evaluate(
       (port) => (globalThis as any).__e2e.setBridgePort(port),
       bridge.port,
