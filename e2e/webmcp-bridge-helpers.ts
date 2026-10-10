@@ -31,16 +31,16 @@ export const test = base.extend<{ bridge: BridgeFixture }>({
 });
 
 /**
- * `test` whose browser has the webmcp-bridge extension, built for the bridge's
- * port, with `toggleTab` to opt a page's tab in or out as the extension's
- * button would.
+ * `test` whose browser has the webmcp-bridge extension, connecting to the
+ * bridge's port, with `toggleTab` to opt a page's tab in or out as the
+ * extension's button would.
  */
 export const extensionTest = test.extend<{
   toggleTab: (page: Page) => Promise<void>;
 }>({
-  // Build the extension for the bridge's port, allow the app's site as clicking
-  // the extension's button would, and load it into a persistent context, the
-  // only kind that loads extensions.
+  // Build the extension, allow the app's site as clicking the extension's
+  // button would, load it into a persistent context, the only kind that loads
+  // extensions, and point it at the bridge's port.
   context: async (
     {
       channel,
@@ -59,10 +59,7 @@ export const extensionTest = test.extend<{
     execFileSync(
       "pnpm",
       ["-C", PACKAGE_PATH, "build-extension", "--outDir", extensionPath],
-      {
-        env: { ...process.env, WEBMCP_BRIDGE_PORT: String(bridge.port) },
-        stdio: "pipe",
-      },
+      { stdio: "pipe" },
     );
     const manifestPath = path.join(extensionPath, "manifest.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -92,6 +89,10 @@ export const extensionTest = test.extend<{
         ),
       )
       .toBe(1);
+    await worker.evaluate(
+      (port) => (globalThis as any).__e2e.setBridgePort(port),
+      bridge.port,
+    );
     await use(context);
     await context.close();
   },

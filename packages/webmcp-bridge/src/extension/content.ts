@@ -7,9 +7,6 @@ import { exposeModelContext } from "../client.ts";
 import { createModelContextPolyfill } from "../model-context-polyfill.ts";
 import { EXPOSE_EVENT } from "./shared.ts";
 
-// Set by the build.
-declare const __WEBMCP_BRIDGE_PORT__: string;
-
 function main() {
   const modelContext = (document.modelContext ??= createModelContextPolyfill());
   let dispose: (() => void) | undefined;
@@ -17,11 +14,9 @@ function main() {
   window.addEventListener(EXPOSE_EVENT, (event) => {
     dispose?.();
     dispose = undefined;
-    if ((event as CustomEvent<boolean>).detail) {
-      dispose = exposeModelContext({
-        bridgeUrl: `http://localhost:${__WEBMCP_BRIDGE_PORT__}`,
-        modelContext,
-      });
+    const bridgeUrl = (event as CustomEvent<string | undefined>).detail;
+    if (bridgeUrl) {
+      dispose = exposeModelContext({ bridgeUrl, modelContext });
     }
   });
 }

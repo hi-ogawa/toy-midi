@@ -114,7 +114,7 @@ $ echo $?
 
 ### Options
 
-- `--port <number>` chooses the bridge's port for every command, 4747 by default. `serve --port 0` picks a free port and prints it. The extension connects to 4747 unless it is built with another port, as in `WEBMCP_BRIDGE_PORT=5000 pnpm -C packages/webmcp-bridge build-extension`.
+- `--port <number>` chooses the bridge's port for every command, 4747 by default. `serve --port 0` picks a free port and prints it. The extension connects to 4747.
 - `--origin <origin>` lists a site whose pages may connect. `serve` requires at least one, and it can be repeated.
 - `--page <id>` chooses the page for `get-tools` and `execute-tool`. Without it they use the only connected page, and fail with the list of ids when several pages are connected.
 

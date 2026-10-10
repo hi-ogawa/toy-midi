@@ -5,9 +5,12 @@
 // to the bridge. Clicking the extension's button allows the current site and
 // opts its tab in, or opts an allowed site's tab in or out.
 
+import { DEFAULT_BRIDGE_PORT } from "../protocol.ts";
 import { EXPOSE_EVENT } from "./shared.ts";
 
 const CONTENT_SCRIPT_ID = "content";
+// Set only by E2E for now, as an options page would.
+const BRIDGE_PORT_KEY = "bridgePort";
 
 function main() {
   chrome.action.onClicked.addListener(async (tab) => {
@@ -47,7 +50,7 @@ function main() {
   );
 
   // For E2E, which cannot click the extension's button.
-  Object.assign(globalThis, { __e2e: { toggleTab } });
+  Object.assign(globalThis, { __e2e: { toggleTab, setBridgePort } });
 }
 
 async function toggleTab(tabId: number, origin: string) {
@@ -81,14 +84,24 @@ function tabKey(tabId: number) {
 }
 
 async function dispatchExpose(tabId: number, exposed: boolean) {
+  const bridgeUrl = `http://localhost:${await getBridgePort()}`;
   await chrome.scripting.executeScript({
     target: { tabId },
     world: "MAIN",
-    func: (type: string, detail: boolean) => {
+    func: (type: string, detail?: string) => {
       window.dispatchEvent(new CustomEvent(type, { detail }));
     },
-    args: [EXPOSE_EVENT, exposed],
+    args: exposed ? [EXPOSE_EVENT, bridgeUrl] : [EXPOSE_EVENT],
   });
+}
+
+async function getBridgePort() {
+  const items = await chrome.storage.local.get(BRIDGE_PORT_KEY);
+  return (items[BRIDGE_PORT_KEY] as number | undefined) ?? DEFAULT_BRIDGE_PORT;
+}
+
+async function setBridgePort(port: number) {
+  await chrome.storage.local.set({ [BRIDGE_PORT_KEY]: port });
 }
 
 async function isContentScriptRegistered(origin: string) {
