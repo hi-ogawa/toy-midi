@@ -63,23 +63,22 @@ export function exposeModelContext({
 
 function createPageRpc(modelContext: ModelContext): PageRpc {
   return {
-    getTools: async () =>
-      (await modelContext.getTools()).map(
-        ({ name, description, inputSchema }) => ({
-          name,
-          description,
-          inputSchema,
-        }),
-      ),
+    getTools: async () => {
+      const tools = await modelContext.getTools();
+      return tools.map(({ name, description, inputSchema }) => ({
+        name,
+        description,
+        inputSchema,
+      }));
+    },
     executeTool: async ({ name }, input) => {
       const tools = await modelContext.getTools();
       const tool = tools.find((tool) => tool.name === name);
       if (!tool) {
         throw new Error(`unknown tool: ${name}`);
       }
-      return JSON.parse(
-        await modelContext.executeTool(tool, input as object),
-      ) as WebMcpToolResult;
+      const result = await modelContext.executeTool(tool, input as object);
+      return JSON.parse(result) as WebMcpToolResult;
     },
   };
 }
