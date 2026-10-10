@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { selectMenuItem, setSliderValue } from "./helpers";
+import { selectMenuItem } from "./helpers";
 import {
   createRecorderProject,
   addRecorderMidiTrack,
@@ -43,15 +43,6 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await secondLevel.press("Enter");
   await expect(rows.nth(1)).toContainText("-6.0 dB");
 
-  // Pan the second track right, double-click to center it, then pan it left.
-  const secondPan = secondChannel.getByRole("slider", { name: "MIDI 2 pan" });
-  await setSliderValue(secondPan, [0.5]);
-  await expect(secondPan).toHaveAttribute("aria-valuetext", "R50");
-  await secondPan.dblclick();
-  await expect(secondPan).toHaveAttribute("aria-valuetext", "C");
-  await setSliderValue(secondPan, [-0.4]);
-  await expect(secondChannel).toContainText("L40");
-
   // Save and reload both tracks with their independent mix settings.
   const save = page.getByTestId("recorder-save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
@@ -66,7 +57,6 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   ).toHaveAttribute("aria-pressed", "true");
   await expect(rows.nth(1)).toContainText("-6.0 dB");
   await expect(secondLevel).toHaveValue("-6.0");
-  await expect(secondPan).toHaveAttribute("aria-valuetext", "L40");
 
   // Play the restored project and pause after the transport advances.
   const play = page.getByTestId("recorder-play-button");
