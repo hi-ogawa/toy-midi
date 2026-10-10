@@ -89,13 +89,13 @@ export class AudioBufferPlayback implements TransportParticipant {
   }
 
   /** Fades the active source out and stops it once the fade completes. */
-  stop(): void {
+  stop(time: number): void {
     const source = this.source;
     if (!source) {
       return;
     }
     this.source = undefined;
-    source.node.stop(source.envelope.close());
+    source.node.stop(source.envelope.close(time));
   }
 
   dispose(): void {

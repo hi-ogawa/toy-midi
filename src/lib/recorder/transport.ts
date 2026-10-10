@@ -1,13 +1,17 @@
 import { createStore } from "../../utils/store.ts";
 import { startAnimationFrameLoop } from "../../utils/timing.ts";
 
-/** Gives every participant time to schedule against the same future audio frame. */
+/**
+ * Gives every participant time to schedule starts and stops against the same
+ * future audio frame.
+ */
 const PLAYBACK_LEAD_SECONDS = 0.03;
 
 /** A playback object whose lifecycle follows this transport. */
 export interface TransportParticipant {
   start(): void;
-  stop(): void;
+  /** Silences output from audio-clock `time`. */
+  stop(time: number): void;
 }
 
 type TransportState = {
@@ -52,7 +56,7 @@ export class AudioContextTransport {
   register(participant: TransportParticipant): () => void {
     this.participants.add(participant);
     return () => {
-      participant.stop();
+      participant.stop(this.getLeadTime());
       this.participants.delete(participant);
     };
   }
@@ -73,15 +77,19 @@ export class AudioContextTransport {
     this.startTicking();
   }
 
-  /** Stops participants and preserves the position reached by the audio clock. */
+  /** Stops participants and keeps the position where their sound stops. */
   pause(): void {
     if (!this.store.get().isPlaying) {
       return;
     }
+    const stopTime = this.getLeadTime();
     for (const participant of this.participants) {
-      participant.stop();
+      participant.stop(stopTime);
     }
-    const finalPosition = this.getPublishedPlaybackPosition();
+    const finalPosition = Math.max(
+      this.playbackAnchor!.position,
+      this.getPlaybackPositionByContextTime(stopTime),
+    );
     this.playbackAnchor = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
@@ -172,15 +180,16 @@ export class AudioContextTransport {
   }
 
   private restartParticipants(position: number): void {
+    const stopTime = this.getLeadTime();
     for (const participant of this.participants) {
-      participant.stop();
+      participant.stop(stopTime);
     }
     this.startParticipants(position);
   }
 
   private startParticipants(position: number): void {
     this.playbackAnchor = {
-      contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
+      contextTime: this.getLeadTime(),
       position,
     };
     this.store.update({ position, isPlaying: true });
@@ -193,5 +202,10 @@ export class AudioContextTransport {
   private stopTicking(): void {
     this.disposeTicking?.();
     this.disposeTicking = undefined;
+  }
+
+  /** The earliest audio-clock time every participant can still schedule against. */
+  private getLeadTime(): number {
+    return this.context.currentTime + PLAYBACK_LEAD_SECONDS;
   }
 }

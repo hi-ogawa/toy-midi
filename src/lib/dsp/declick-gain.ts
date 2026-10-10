@@ -4,12 +4,6 @@
  */
 const DECLICK_SECONDS = 0.005;
 
-/**
- * Delay before a close starts. The main thread's `currentTime` can trail the
- * audio thread, and a ramp scheduled in the past jumps to its midpoint or end.
- */
-const CLOSE_LEAD_SECONDS = 0.01;
-
 /** A gain stage that opens and closes with a short ramp instead of a step. */
 export class DeclickGain {
   readonly node: GainNode;
@@ -27,12 +21,15 @@ export class DeclickGain {
     gain.linearRampToValueAtTime(1, time + DECLICK_SECONDS);
   }
 
-  /** Ramps closed from the current level and returns when it reaches silence. */
-  close(): number {
+  /**
+   * Ramps closed from the current level, starting at audio-clock `time`, and
+   * returns when it reaches silence.
+   */
+  close(time: number): number {
     const gain = this.node.gain;
-    const time = this.node.context.currentTime + CLOSE_LEAD_SECONDS;
     // Hold the level reached so far, so closing during the opening ramp or
-    // before it begins starts from that level instead of jumping.
+    // before it begins starts from that level instead of jumping. The level is
+    // read now, which only differs from the level at `time` mid-ramp.
     gain.cancelScheduledValues(time);
     gain.setValueAtTime(gain.value, time);
     gain.linearRampToValueAtTime(0, time + DECLICK_SECONDS);
