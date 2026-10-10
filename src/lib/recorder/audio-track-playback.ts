@@ -86,17 +86,12 @@ export class AudioTrackPlayback {
   }
 }
 
-/**
- * Sums playback sources before pitch correction. The connection stays up across
- * pause and seek, so stopped sources fade out through it and the pitch shifter
- * is reused. Only a playback rate change replaces it.
- */
+/** Sums playback sources before pitch correction for one transport run. */
 class PitchShiftBus implements TransportParticipant {
   readonly input: GainNode;
   private readonly transport: AudioContextTransport;
   private readonly output: AudioNode;
   private readonly unregister: () => void;
-  private playbackRate?: number;
   private pitchShifter?: AudioWorkletNode;
 
   constructor({
@@ -114,11 +109,6 @@ class PitchShiftBus implements TransportParticipant {
 
   start(): void {
     const playbackRate = this.transport.playbackRate;
-    if (playbackRate === this.playbackRate) {
-      return;
-    }
-    this.disconnectRoute();
-    this.playbackRate = playbackRate;
     if (playbackRate === 1) {
       this.input.connect(this.output);
       return;
@@ -131,18 +121,15 @@ class PitchShiftBus implements TransportParticipant {
     this.input.connect(this.pitchShifter).connect(this.output);
   }
 
-  stop(): void {}
-
-  dispose(): void {
-    this.unregister();
-    this.disconnectRoute();
-  }
-
-  private disconnectRoute(): void {
+  stop(): void {
     this.input.disconnect();
     if (this.pitchShifter) {
       disposeWorklet(this.pitchShifter);
     }
     this.pitchShifter = undefined;
+  }
+
+  dispose(): void {
+    this.unregister();
   }
 }
