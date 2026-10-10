@@ -146,7 +146,7 @@ export const GM_PROGRAMS = [
   "Gunshot",
 ] as const;
 
-// General MIDI channel 10 selects its drum kit from this bank.
+// By SoundFont convention, the presets in this bank are drum kits.
 export const DRUM_KIT_BANK = 128;
 
 // The kits the bundled soundfont ships.
