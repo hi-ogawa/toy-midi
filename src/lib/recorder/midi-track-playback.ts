@@ -63,6 +63,7 @@ export class MidiTrackPlayback implements TransportParticipant {
       output,
       eq: track.eq,
       gain: 0,
+      pan: track.pan,
     });
     synth.output.connect(this.channel.input);
     this.tempo = tempo;
