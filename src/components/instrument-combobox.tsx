@@ -1,6 +1,7 @@
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { useState } from "react";
-import { GM_PROGRAMS } from "../lib/general-midi";
+import { DRUM_KIT_BANK, DRUM_KITS, GM_PROGRAMS } from "../lib/general-midi";
+import type { MidiPreset } from "../lib/recorder/runtime";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -40,13 +41,36 @@ export function InstrumentCombobox({
   className,
   "aria-label": ariaLabel,
 }: {
-  value: number;
+  value: MidiPreset;
   disabled?: boolean;
   className?: string;
   "aria-label"?: string;
-  onValueChange: (value: number) => void;
+  onValueChange: (value: MidiPreset) => void;
 }) {
   const [open, setOpen] = useState(false);
+
+  function renderItem(preset: MidiPreset) {
+    const label = formatPresetLabel(preset);
+    const selected =
+      (value.bank ?? 0) === (preset.bank ?? 0) &&
+      value.program === preset.program;
+    return (
+      <CommandItem
+        key={label}
+        value={label}
+        onSelect={() => {
+          onValueChange(preset);
+          setOpen(false);
+        }}
+        className="text-xs"
+      >
+        <CheckIcon
+          className={`mr-2 size-4 ${selected ? "opacity-100" : "opacity-0"}`}
+        />
+        {label}
+      </CommandItem>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -63,7 +87,7 @@ export function InstrumentCombobox({
           )}
         >
           <span className="min-w-0 flex-1 truncate text-left">
-            {value}: {GM_PROGRAMS[value]}
+            {formatPresetLabel(value)}
           </span>
           <ChevronsUpDownIcon className="ml-1 size-4 shrink-0 opacity-50" />
         </Button>
@@ -75,32 +99,27 @@ export function InstrumentCombobox({
             <CommandEmpty>No instrument found.</CommandEmpty>
             {INSTRUMENT_GROUPS.map((group) => (
               <CommandGroup key={group.label} heading={group.label}>
-                {GM_PROGRAMS.slice(group.start, group.end).map((name, i) => {
-                  const program = group.start + i;
-                  return (
-                    <CommandItem
-                      key={program}
-                      value={`${program}: ${name}`}
-                      onSelect={() => {
-                        onValueChange(program);
-                        setOpen(false);
-                      }}
-                      className="text-xs"
-                    >
-                      <CheckIcon
-                        className={`mr-2 size-4 ${
-                          value === program ? "opacity-100" : "opacity-0"
-                        }`}
-                      />
-                      {program}: {name}
-                    </CommandItem>
-                  );
-                })}
+                {GM_PROGRAMS.slice(group.start, group.end).map((_, i) =>
+                  renderItem({ program: group.start + i }),
+                )}
               </CommandGroup>
             ))}
+            <CommandGroup heading="Drum Kits">
+              {DRUM_KITS.map(({ program }) =>
+                renderItem({ bank: DRUM_KIT_BANK, program }),
+              )}
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
   );
+}
+
+function formatPresetLabel({ bank, program }: MidiPreset): string {
+  if (bank === DRUM_KIT_BANK) {
+    const kit = DRUM_KITS.find((kit) => kit.program === program);
+    return kit ? `Drums ${program}: ${kit.name}` : `Drums ${program}`;
+  }
+  return `${program}: ${GM_PROGRAMS[program]}`;
 }

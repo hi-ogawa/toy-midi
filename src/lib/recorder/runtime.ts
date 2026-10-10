@@ -76,8 +76,15 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
-  /** General MIDI program number (0-127) */
+  /** MIDI program number (0-127) within `bank` */
   program: number;
+  /**
+   * SoundFont bank of the preset, 0 when absent. Bank 0 holds the 128 General
+   * MIDI programs. Bank 128 holds the bundled soundfont's GS drum kits:
+   * 0 Standard, 8 Room, 16 Power, 24 Electronic, 25 TR-808, 32 Jazz, 40 Brush,
+   * 48 Orchestra, 56 SFX.
+   */
+  bank?: number;
   eq: MultibandEqParameters;
   height: number;
   viewMode: "editor" | "overview";
@@ -89,6 +96,8 @@ export interface MidiTrackState {
   tabOpenStringPitches: number[];
   keySignature: KeySignature;
 }
+
+export type MidiPreset = Pick<MidiTrackState, "bank" | "program">;
 
 export interface RecorderLoopRange {
   startBeat: number;
@@ -438,14 +447,14 @@ export class RecorderRuntime {
     this.history.pushClips({ snapshot });
   }
 
-  async addMidiTrack({ program }: { program: number }): Promise<void> {
+  async addMidiTrack(preset: MidiPreset): Promise<void> {
     const state = this.store.get();
     const track = createMidiTrackState({
       name: createNumberedName({
         names: state.midiTracks.map((track) => track.name),
         prefix: "MIDI",
       }),
-      program,
+      preset,
     });
     await this.insertMidiTrack({ track });
     const index = this.store.get().trackOrder.indexOf(track.id);
@@ -676,10 +685,14 @@ export class RecorderRuntime {
     }
   }
 
-  async setMidiTrackProgram(id: string, program: number): Promise<void> {
-    await this.midiTrackPlaybacks.get(id)?.setProgram(program);
+  async setMidiTrackPreset(id: string, preset: MidiPreset): Promise<void> {
+    await this.midiTrackPlaybacks.get(id)?.setPreset(preset);
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, program }));
+      this.updateMidiTrack(id, (track) => ({
+        ...track,
+        bank: preset.bank,
+        program: preset.program,
+      }));
     }
   }
 
@@ -1574,16 +1587,16 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
 
 function createMidiTrackState({
   name,
-  program,
+  preset,
 }: {
   name: string;
-  program: number;
+  preset: MidiPreset;
 }): MidiTrackState {
   return {
     id: crypto.randomUUID(),
     name,
     notes: [],
-    program,
+    ...preset,
     eq: createDefaultMultibandEq(),
     height: 300,
     viewMode: "editor",

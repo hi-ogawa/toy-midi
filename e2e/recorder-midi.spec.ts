@@ -142,3 +142,35 @@ test("creates and deletes a note and persists its instrument", async ({
   await expect(notes).toHaveCount(0);
   await expect(hint).toBeVisible();
 });
+
+test("plays a MIDI track as a drum kit and persists it", async ({ page }) => {
+  // Select the TR-808 drum kit through the track actions.
+  await createRecorderProject(page);
+  await addRecorderMidiTrack(page);
+  const instrument = await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await selectRecorderMidiInstrument(instrument, {
+    option: "Drums 25: TR-808",
+  });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+
+  // Save and reload, then verify the drum kit persists.
+  await saveRecorderProject(page);
+  await page.reload();
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "Drums 25: TR-808",
+  );
+
+  // Switch back to the melodic program with the same number, and verify it
+  // persists after reload.
+  await selectRecorderMidiInstrument(instrument, {
+    option: "25: Acoustic Guitar (steel)",
+  });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+  await saveRecorderProject(page);
+  await page.reload();
+  await openRecorderMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "25: Acoustic Guitar (steel)",
+  );
+});

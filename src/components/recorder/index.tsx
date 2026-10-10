@@ -644,7 +644,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                         transcriptions.openTranscription(track.id)
                       }
                       onScorePreview={() => scoreUi.open(track.id)}
-                      onProgramSelected={setDefaultMidiProgram}
+                      onPresetSelected={(preset) => {
+                        // New tracks start from the last General MIDI
+                        // program, not a drum kit.
+                        if (!preset.bank) {
+                          setDefaultMidiProgram(preset.program);
+                        }
+                      }}
                     />
                   );
                 }

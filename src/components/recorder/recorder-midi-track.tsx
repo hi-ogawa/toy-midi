@@ -25,6 +25,7 @@ import { isBlackKey, MAX_PITCH } from "../../lib/music";
 import { exportMusicXml } from "../../lib/musicxml/render";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
+  MidiPreset,
   MidiTrackState,
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
@@ -79,7 +80,7 @@ export function MidiTrackRow({
   midiInteraction,
   onTranscribe,
   onScorePreview,
-  onProgramSelected,
+  onPresetSelected,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -93,13 +94,13 @@ export function MidiTrackRow({
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
   onScorePreview: () => void;
-  onProgramSelected: (program: number) => void;
+  onPresetSelected: (preset: MidiPreset) => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
-  const programMutation = useMutation({
-    mutationFn: (program: number) =>
-      runtime.setMidiTrackProgram(track.id, program),
-    onSuccess: (_data, program) => onProgramSelected(program),
+  const presetMutation = useMutation({
+    mutationFn: (preset: MidiPreset) =>
+      runtime.setMidiTrackPreset(track.id, preset),
+    onSuccess: (_data, preset) => onPresetSelected(preset),
   });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -254,8 +255,8 @@ export function MidiTrackRow({
       >
         <MidiInstrument
           track={track}
-          programPending={programMutation.isPending}
-          onProgramChange={(program) => programMutation.mutate(program)}
+          presetPending={presetMutation.isPending}
+          onPresetChange={(preset) => presetMutation.mutate(preset)}
           onSettingsChange={(settings) =>
             runtime.setMidiTrackSettings(track.id, settings)
           }

@@ -1,5 +1,5 @@
 import { KEY_SIGNATURE_OPTION_GROUPS } from "../../lib/pitch-spelling";
-import type { MidiTrackState } from "../../lib/recorder/runtime";
+import type { MidiPreset, MidiTrackState } from "../../lib/recorder/runtime";
 import {
   resolveTabStringPreset,
   TAB_STRING_PRESETS,
@@ -8,13 +8,13 @@ import { InstrumentCombobox } from "../instrument-combobox";
 
 export function MidiInstrument({
   track,
-  programPending,
-  onProgramChange,
+  presetPending,
+  onPresetChange,
   onSettingsChange,
 }: {
   track: MidiTrackState;
-  programPending: boolean;
-  onProgramChange: (program: number) => void;
+  presetPending: boolean;
+  onPresetChange: (preset: MidiPreset) => void;
   onSettingsChange: (settings: Partial<MidiTrackState>) => void;
 }) {
   return (
@@ -24,9 +24,9 @@ export function MidiInstrument({
         <InstrumentCombobox
           className="w-full!"
           aria-label={`${track.name} program`}
-          value={track.program}
-          disabled={programPending}
-          onValueChange={onProgramChange}
+          value={{ bank: track.bank, program: track.program }}
+          disabled={presetPending}
+          onValueChange={onPresetChange}
         />
       </div>
       <label className="contents">
