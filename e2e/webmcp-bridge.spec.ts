@@ -119,3 +119,27 @@ test.describe(() => {
       .toMatchObject([{ origin }]);
   });
 });
+
+extensionTest.describe(() => {
+  extensionTest.use({ allowAppOrigin: false });
+
+  extensionTest(
+    "retries a refused tab once its site is allowed",
+    async ({ page, bridge, baseURL, toggleTab, getBadgeText }) => {
+      // Open a project, turn the tab on, and see the bridge refuse it.
+      await createRecorderProject(page);
+      await toggleTab(page);
+      await expect.poll(() => getBadgeText(page)).toBe("!");
+
+      // Allow the site while the bridge runs, click again, and see the tab connect.
+      const origin = new URL(baseURL!).origin;
+      const allow = await bridge.run(["allow", origin]);
+      expect(allow.code).toBe(0);
+      await toggleTab(page);
+      await expect.poll(() => getBadgeText(page)).toBe("ON");
+      await expect
+        .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
+        .toMatchObject([{ origin }]);
+    },
+  );
+});

@@ -36,15 +36,15 @@ function main() {
     if (status !== "loading") {
       return;
     }
-    const origin = await getExposedOrigin(tabId);
-    if (!origin) {
+    const state = await getTabState(tabId);
+    if (!state) {
       return;
     }
-    if (!tab.url || new URL(tab.url).origin !== origin) {
-      await setExposedOrigin(tabId, undefined);
+    if (!tab.url || new URL(tab.url).origin !== state.origin) {
+      await setTabState(tabId, undefined);
       return;
     }
-    await setExposedOrigin(tabId, origin);
+    await setTabState(tabId, { origin: state.origin, status: "connecting" });
     await dispatchExpose(tabId, true);
   });
   chrome.runtime.onMessage.addListener((message: StatusMessage, sender) => {
@@ -63,8 +63,14 @@ function main() {
 }
 
 async function toggleTab(tabId: number, origin: string) {
-  const exposed = !(await getExposedOrigin(tabId));
-  await setExposedOrigin(tabId, exposed ? origin : undefined);
+  const state = await getTabState(tabId);
+  // The bridge does not retry a refused page, so a click on a refused tab
+  // connects it again, for a site allowed since.
+  const exposed = !state || state.status === "closed";
+  await setTabState(
+    tabId,
+    exposed ? { origin, status: "connecting" } : undefined,
+  );
   // A site allowed by this click has no content script in the tab yet, so
   // reload it, and `onUpdated` exposes it.
   if (!(await isContentScriptRegistered(origin))) {
@@ -75,63 +81,63 @@ async function toggleTab(tabId: number, origin: string) {
   await dispatchExpose(tabId, exposed);
 }
 
-async function getExposedOrigin(tabId: number) {
-  const key = tabKey(tabId);
-  const items = await chrome.storage.session.get(key);
-  return items[key] as string | undefined;
+interface TabState {
+  origin: string;
+  status: BridgeStatus;
 }
 
-async function setExposedOrigin(tabId: number, origin: string | undefined) {
-  await (origin
-    ? chrome.storage.session.set({ [tabKey(tabId)]: origin })
+async function getTabState(tabId: number) {
+  const key = tabKey(tabId);
+  const items = await chrome.storage.session.get(key);
+  return items[key] as TabState | undefined;
+}
+
+async function setTabState(tabId: number, state: TabState | undefined) {
+  await (state
+    ? chrome.storage.session.set({ [tabKey(tabId)]: state })
     : chrome.storage.session.remove(tabKey(tabId)));
-  await showBadge(tabId, origin ? connectingBadge() : offBadge());
+  await showBadge(tabId, getBadge(state));
 }
 
 async function showStatus(tabId: number, status: BridgeStatus) {
-  const origin = await getExposedOrigin(tabId);
+  const state = await getTabState(tabId);
   // A status that arrives after the tab is turned off is stale.
-  if (!origin) {
-    return;
+  if (state) {
+    await setTabState(tabId, { ...state, status });
   }
-  switch (status) {
+}
+
+function getBadge(state: TabState | undefined): Badge {
+  switch (state?.status) {
+    case undefined: {
+      return {
+        text: "",
+        color: "#000000",
+        title: chrome.runtime.getManifest().action!.default_title!,
+      };
+    }
     case "connecting": {
-      await showBadge(tabId, connectingBadge());
-      break;
+      return {
+        text: "…",
+        color: "#d97706",
+        title: "Connecting to the bridge. Is webmcp-bridge serve running?",
+      };
     }
     case "connected": {
-      await showBadge(tabId, {
+      return {
         text: "ON",
         color: "#16a34a",
         title: "Connected to the bridge",
-      });
-      break;
+      };
     }
     case "closed": {
-      await showBadge(tabId, {
+      return {
         text: "!",
         color: "#dc2626",
-        title: `The bridge refused this site. Allow it with webmcp-bridge allow ${origin}`,
-      });
-      break;
+        title: `The bridge refused this site. Allow it with webmcp-bridge allow ${state.origin}, then click to retry`,
+      };
     }
   }
-}
-
-function connectingBadge(): Badge {
-  return {
-    text: "…",
-    color: "#d97706",
-    title: "Connecting to the bridge. Is webmcp-bridge serve running?",
-  };
-}
-
-function offBadge(): Badge {
-  return {
-    text: "",
-    color: "#000000",
-    title: chrome.runtime.getManifest().action!.default_title!,
-  };
 }
 
 interface Badge {
