@@ -11,8 +11,7 @@ import type { ModelContext, WebMcpToolResult } from "./webmcp.ts";
  * Exposes the tools of `modelContext` to the agent through the local bridge
  * in server.ts, until the returned function is called. Each request reads
  * the tools with `getTools()` and runs them with `executeTool()`, as an agent
- * built into the browser would, so tools registered later are served too,
- * whether `modelContext` is the browser's own or a polyfill.
+ * built into the browser would.
  *
  * The bridge streams requests over Server-Sent Events, and each result, or
  * the error a call throws, is posted back as JSON.
@@ -64,23 +63,22 @@ export function exposeModelContext({
 
 function createPageRpc(modelContext: ModelContext): PageRpc {
   return {
-    getTools: async () =>
-      (await modelContext.getTools()).map(
-        ({ name, description, inputSchema }) => ({
-          name,
-          description,
-          inputSchema,
-        }),
-      ),
+    getTools: async () => {
+      const tools = await modelContext.getTools();
+      return tools.map(({ name, description, inputSchema }) => ({
+        name,
+        description,
+        inputSchema,
+      }));
+    },
     executeTool: async ({ name }, input) => {
       const tools = await modelContext.getTools();
       const tool = tools.find((tool) => tool.name === name);
       if (!tool) {
         throw new Error(`unknown tool: ${name}`);
       }
-      return JSON.parse(
-        await modelContext.executeTool(tool, input as object),
-      ) as WebMcpToolResult;
+      const result = await modelContext.executeTool(tool, input as object);
+      return JSON.parse(result) as WebMcpToolResult;
     },
   };
 }

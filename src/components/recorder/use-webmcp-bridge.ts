@@ -1,5 +1,5 @@
 import { exposeModelContext } from "@hiogawa/webmcp-bridge/client";
-import { createModelContext } from "@hiogawa/webmcp-bridge/model-context";
+import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 import { useEffect } from "react";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import { createWebMcpTools } from "../../lib/webmcp-tools";
@@ -15,21 +15,24 @@ const DEFAULT_BRIDGE_PORT = "4747";
  */
 export function useWebMcpBridge(runtime: RecorderRuntime) {
   useEffect(() => {
-    const modelContext = (document.modelContext ??= createModelContext());
+    const modelContext = (document.modelContext ??=
+      createModelContextPolyfill());
     const controller = new AbortController();
     for (const tool of createWebMcpTools(runtime)) {
       void modelContext.registerTool(tool, { signal: controller.signal });
     }
     const params = new URL(window.location.href).searchParams;
-    const unexpose = params.has("webmcp-bridge")
-      ? exposeModelContext({
-          bridgeUrl: `http://localhost:${params.get("webmcp-bridge") || DEFAULT_BRIDGE_PORT}`,
-          modelContext,
-        })
-      : undefined;
+    let dispose: (() => void) | undefined;
+    if (params.has("webmcp-bridge")) {
+      const port = params.get("webmcp-bridge") || DEFAULT_BRIDGE_PORT;
+      dispose = exposeModelContext({
+        bridgeUrl: `http://localhost:${port}`,
+        modelContext,
+      });
+    }
     return () => {
       controller.abort();
-      unexpose?.();
+      dispose?.();
     };
   }, [runtime]);
 }

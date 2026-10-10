@@ -1,6 +1,24 @@
 // The part of the WebMCP API (https://webmachinelearning.github.io/webmcp/)
-// that pages, the polyfill, and the bridge relay use, as
-// `document.modelContext`.
+// this package uses, as `document.modelContext`.
+
+declare global {
+  interface Document {
+    /** Present in browsers with WebMCP, or once a polyfill is installed. */
+    modelContext?: ModelContext;
+  }
+}
+
+/** `document.modelContext`. */
+export interface ModelContext {
+  /** Aborting `signal` unregisters the tool. */
+  registerTool(
+    tool: WebMcpTool,
+    options?: { signal?: AbortSignal },
+  ): Promise<void>;
+  getTools(): Promise<RegisteredTool[]>;
+  /** Resolves to the tool's result as a JSON string. */
+  executeTool(tool: RegisteredTool, input: object): Promise<string>;
+}
 
 /**
  * A tool in the WebMCP shape, as passed to `document.modelContext.registerTool`.
@@ -29,23 +47,8 @@ export interface RegisteredTool {
   name: string;
   description: string;
   inputSchema?: object;
-}
-
-/** `document.modelContext`. */
-export interface ModelContext {
-  /** Aborting `signal` unregisters the tool. */
-  registerTool(
-    tool: WebMcpTool,
-    options?: { signal?: AbortSignal },
-  ): Promise<void>;
-  getTools(): Promise<RegisteredTool[]>;
-  /** Resolves to the tool's result as a JSON string. */
-  executeTool(tool: RegisteredTool, input: object): Promise<string>;
-}
-
-declare global {
-  interface Document {
-    /** Present in browsers with WebMCP, or once a polyfill is installed. */
-    modelContext?: ModelContext;
-  }
+  /** The origin of the page that registered the tool. */
+  origin: string;
+  /** The window that registered the tool. */
+  window: Window;
 }

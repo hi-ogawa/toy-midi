@@ -8,7 +8,7 @@
   "type": "module",
   "exports": {
     "./client": "./src/client.ts",
-    "./model-context": "./src/model-context.ts",
+    "./model-context-polyfill": "./src/model-context-polyfill.ts",
     "./webmcp": "./src/webmcp.ts"
   },
   "scripts": {

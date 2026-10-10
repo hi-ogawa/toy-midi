@@ -127,11 +127,12 @@ Any failure prints a message to standard error and exits with code 1, so the age
 An app registers its tools with WebMCP's `document.modelContext`. In browsers without WebMCP, the extension installs a polyfill, or the app can install the same polyfill itself:
 
 ```ts
-import { createModelContext } from "@hiogawa/webmcp-bridge/model-context";
+import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 
-const modelContext = (document.modelContext ??= createModelContext());
+document.modelContext ??= createModelContextPolyfill();
+
 const controller = new AbortController();
-modelContext.registerTool(
+document.modelContext.registerTool(
   {
     name: "set_tempo",
     description: "Set the project tempo in BPM.",
@@ -150,22 +151,22 @@ modelContext.registerTool(
 );
 ```
 
-Registering a tool does not expose it. The extension exposes the page's `modelContext`, or an app can expose it without the extension:
+The extension exposes `document.modelContext` to the bridge. Without the extension, the app can expose it itself:
 
 ```ts
 import { exposeModelContext } from "@hiogawa/webmcp-bridge/client";
 
 const unexpose = exposeModelContext({
   bridgeUrl: "http://localhost:4747",
-  modelContext,
+  modelContext: document.modelContext,
 });
 ```
 
-The bridge reads the tools with `getTools()` and runs them with `executeTool()`, as an agent built into the browser would, so it works the same with native WebMCP and the polyfill. A TypeScript app can import the tool types and the `document.modelContext` declaration from `@hiogawa/webmcp-bridge/webmcp`, depending on the package from GitHub pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`. The package ships TypeScript source, so the app's bundler compiles it.
+The bridge reads the tools with `getTools()` and runs them with `executeTool()`, as an agent built into the browser would.
 
 - `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
 - The result must be convertible to JSON. A value that is not, such as an object that refers to itself, comes back as an error.
-- If the tool throws anyway, it fails as an `OperationError` without its message, as in WebMCP. If the agent names a tool that does not exist, the bridge reports that.
+- If the tool throws anyway, the agent sees only an `OperationError`. If the agent names a tool that does not exist, it gets an unknown-tool error.
 - The bridge gives up after 30 seconds without a result. The tool keeps running in the page after that.
 
 ## How It Works

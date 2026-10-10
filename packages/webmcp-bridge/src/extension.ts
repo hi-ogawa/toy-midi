@@ -3,12 +3,12 @@
 // `document.modelContext`, and exposes the page's tools to the local bridge.
 
 import { exposeModelContext } from "./client.ts";
-import { createModelContext } from "./model-context.ts";
+import { createModelContextPolyfill } from "./model-context-polyfill.ts";
 
 // Set by the build.
 declare const __WEBMCP_BRIDGE_PORT__: string;
 
 exposeModelContext({
   bridgeUrl: `http://localhost:${__WEBMCP_BRIDGE_PORT__}`,
-  modelContext: (document.modelContext ??= createModelContext()),
+  modelContext: (document.modelContext ??= createModelContextPolyfill()),
 });

@@ -21,8 +21,14 @@ export interface PageRpc {
   ): Promise<WebMcpToolResult>;
 }
 
-/** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
-export type ToolInfo = RegisteredTool;
+/**
+ * The fields of a `RegisteredTool` that the agent reads, leaving out its
+ * `window`, which cannot be sent as JSON.
+ */
+export type ToolInfo = Pick<
+  RegisteredTool,
+  "name" | "description" | "inputSchema"
+>;
 
 /** The port the bridge listens on, and the extension connects to, by default. */
 export const DEFAULT_BRIDGE_PORT = 4747;
