@@ -57,11 +57,14 @@ extensionTest(
     expect(failure.stderr).toContain("Error: boom");
 
     // Reload the page, and see the opted-in tab connect again.
-    const [before] = JSON.parse((await bridge.run(["pages"])).stdout);
+    const reloadedAt = new Date().toISOString();
     await page.reload();
     await expect
-      .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
-      .toEqual([expect.not.objectContaining({ id: before.id })]);
+      .poll(async () => {
+        const pages = JSON.parse((await bridge.run(["pages"])).stdout);
+        return pages.length === 1 && pages[0].connectedAt > reloadedAt;
+      })
+      .toBe(true);
 
     // Opt the tab out, and see it disconnect and the badge clear.
     await extension.toggleTab(page);
