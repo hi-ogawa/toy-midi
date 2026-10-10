@@ -1,14 +1,12 @@
 import { DeclickGain } from "../dsp/declick-gain.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import {
+  type AudioContextTransport,
   type ContextTimeWindow,
   getPlaybackSegments,
   getSegmentContextTime,
   getSegmentPosition,
   type PlaybackSegment,
-} from "./playback-segments.ts";
-import {
-  type AudioContextTransport,
   startLookaheadScheduler,
   type TransportParticipant,
 } from "./transport.ts";

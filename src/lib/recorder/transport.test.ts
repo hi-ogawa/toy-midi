@@ -5,7 +5,7 @@ import {
   getSegmentContextTime,
   getSegmentRange,
   type PlaybackRun,
-} from "./playback-segments.ts";
+} from "./transport.ts";
 
 // Loop 3s-8s with the playhead at 4s, starting at audio-clock time 10s.
 const loopRun: PlaybackRun = {

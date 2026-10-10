@@ -3,15 +3,13 @@ import { disposeWorklet } from "../dsp/worklet-disposal.ts";
 import { midiAssetUrls, waitForMidiAssets } from "../runtime-assets";
 import { beatsToSeconds } from "../timeline.ts";
 import { AudioChannel } from "./audio-channel.ts";
+import type { MidiTrackState } from "./runtime.ts";
 import {
+  type AudioContextTransport,
   type ContextTimeWindow,
   getPlaybackSegments,
   getSegmentContextTime,
   getSegmentRange,
-} from "./playback-segments.ts";
-import type { MidiTrackState } from "./runtime.ts";
-import {
-  type AudioContextTransport,
   startLookaheadScheduler,
   type TransportParticipant,
 } from "./transport.ts";

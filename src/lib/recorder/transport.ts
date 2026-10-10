@@ -1,11 +1,5 @@
 import { createStore } from "../../utils/store.ts";
 import { startAnimationFrameLoop, startInterval } from "../../utils/timing.ts";
-import {
-  type ContextTimeWindow,
-  getPlaybackPosition,
-  type LoopRange,
-  type PlaybackRun,
-} from "./playback-segments.ts";
 
 /** Gives every participant time to schedule against the same future audio frame. */
 const PLAYBACK_LEAD_SECONDS = 0.03;
@@ -18,6 +12,50 @@ export interface TransportParticipant {
   start(): void;
   stop(): void;
 }
+
+/** Timeline seconds between loop-in and loop-out. */
+export type LoopRange = {
+  start: number;
+  end: number;
+};
+
+/**
+ * One transport run on the audio clock. Timeline `position` sounds at
+ * `contextTime`, then advances at `playbackRate` and wraps from loop-out to
+ * loop-in without ever re-anchoring.
+ */
+export type PlaybackRun = {
+  contextTime: number;
+  position: number;
+  playbackRate: number;
+  loopRange?: LoopRange;
+};
+
+/**
+ * One pass of a run through the timeline. Timeline `start` sounds at
+ * `contextTime`, and the pass ends where it would reach `end`. Segment 0 begins
+ * at the run's position and every later segment covers the loop range.
+ */
+export type PlaybackSegment = {
+  index: number;
+  contextTime: number;
+  start: number;
+  end: number;
+  playbackRate: number;
+};
+
+/** Half-open audio-clock window `[from, to)` handed to lookahead schedulers. */
+export type ContextTimeWindow = {
+  from: number;
+  to: number;
+};
+
+/**
+ * Event timelines and loop boundaries are converted from beats separately, so
+ * an event meant to sit exactly on a boundary can land a rounding error to
+ * either side of it.
+ */
+const BOUNDARY_EPSILON = 1e-9;
 
 type TransportState = {
   position: number;
@@ -221,4 +259,116 @@ export function startLookaheadScheduler({
   };
   tick();
   return startInterval(tick, SCHEDULER_INTERVAL_MS);
+}
+
+/** Projects an audio-clock time to timeline position, extrapolating before the run starts. */
+export function getPlaybackPosition(
+  run: PlaybackRun,
+  contextTime: number,
+): number {
+  return getSegmentPosition(
+    getPlaybackSegmentAt(run, contextTime),
+    contextTime,
+  );
+}
+
+/** Lists the segments that overlap an audio-clock window, in order. */
+export function getPlaybackSegments(
+  run: PlaybackRun,
+  window: ContextTimeWindow,
+): PlaybackSegment[] {
+  const segments: PlaybackSegment[] = [];
+  let segment = getPlaybackSegmentAt(run, window.from);
+  while (segment.contextTime < window.to) {
+    segments.push(segment);
+    if (!run.loopRange) {
+      break;
+    }
+    segment = getNextLoopSegment(segment, run.loopRange);
+  }
+  return segments;
+}
+
+/**
+ * Timeline range that a segment plays during an audio-clock window. Both ends
+ * are shifted back by a tiny epsilon, so a point event that lands a rounding
+ * error before a boundary still falls on its intended side. Consecutive windows
+ * share their boundary, so each point event falls in exactly one window.
+ */
+export function getSegmentRange(
+  segment: PlaybackSegment,
+  window: ContextTimeWindow,
+): { start: number; end: number } {
+  return {
+    start:
+      Math.max(segment.start, getSegmentPosition(segment, window.from)) -
+      BOUNDARY_EPSILON,
+    end:
+      Math.min(segment.end, getSegmentPosition(segment, window.to)) -
+      BOUNDARY_EPSILON,
+  };
+}
+
+export function getSegmentPosition(
+  segment: PlaybackSegment,
+  contextTime: number,
+): number {
+  return (
+    segment.start + (contextTime - segment.contextTime) * segment.playbackRate
+  );
+}
+
+export function getSegmentContextTime(
+  segment: PlaybackSegment,
+  position: number,
+): number {
+  return (
+    segment.contextTime + (position - segment.start) / segment.playbackRate
+  );
+}
+
+/** The segment sounding at an audio-clock time, or segment 0 before the run starts. */
+function getPlaybackSegmentAt(
+  run: PlaybackRun,
+  contextTime: number,
+): PlaybackSegment {
+  const { loopRange, playbackRate } = run;
+  const first: PlaybackSegment = {
+    index: 0,
+    contextTime: run.contextTime,
+    start: run.position,
+    end: loopRange?.end ?? Infinity,
+    playbackRate,
+  };
+  if (!loopRange) {
+    return first;
+  }
+  const firstWrapTime = getSegmentContextTime(first, loopRange.end);
+  if (contextTime < firstWrapTime) {
+    return first;
+  }
+  // Later segments sit at arithmetic offsets from the first wrap, so the audio
+  // clock never needs a new anchor.
+  const loopSeconds = (loopRange.end - loopRange.start) / playbackRate;
+  const index = 1 + Math.floor((contextTime - firstWrapTime) / loopSeconds);
+  return {
+    index,
+    contextTime: firstWrapTime + (index - 1) * loopSeconds,
+    start: loopRange.start,
+    end: loopRange.end,
+    playbackRate,
+  };
+}
+
+function getNextLoopSegment(
+  segment: PlaybackSegment,
+  loopRange: LoopRange,
+): PlaybackSegment {
+  return {
+    index: segment.index + 1,
+    contextTime: getSegmentContextTime(segment, segment.end),
+    start: loopRange.start,
+    end: loopRange.end,
+    playbackRate: segment.playbackRate,
+  };
 }

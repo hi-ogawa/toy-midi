@@ -1,13 +1,11 @@
 import type { TimeSignature } from "../../types.ts";
 import { midiToHz, parseMidiPitch } from "../music.ts";
 import {
+  type AudioContextTransport,
   type ContextTimeWindow,
   getPlaybackSegments,
   getSegmentContextTime,
   getSegmentRange,
-} from "./playback-segments.ts";
-import {
-  type AudioContextTransport,
   startLookaheadScheduler,
   type TransportParticipant,
 } from "./transport.ts";
