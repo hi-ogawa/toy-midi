@@ -9,20 +9,14 @@ import type { ModelContext, WebMcpTool } from "./webmcp.ts";
 
 /**
  * A `document.modelContext` that relays the tools registered with it to the
- * local bridge, connecting while at least one is registered. Given the
- * browser's own `modelContext`, it registers each tool there too, so agents
- * built into the browser see them as well.
- *
- * It keeps its own record of the tools and calls their `execute` directly,
- * rather than going through a native `getTools()` and `executeTool()`, so it
- * works the same with native WebMCP and without it.
+ * local bridge, connecting while at least one is registered. It keeps its
+ * own record of the tools and calls their `execute` directly, so it needs no
+ * native `getTools()` or `executeTool()`.
  */
 export function createBridgeModelContext({
   bridgeUrl,
-  nativeModelContext,
 }: {
   bridgeUrl: string;
-  nativeModelContext?: ModelContext;
 }): ModelContext {
   const tools = new Map<string, WebMcpTool>();
   let disconnect: (() => void) | undefined;
@@ -54,12 +48,6 @@ export function createBridgeModelContext({
         once: true,
       });
       disconnect ??= connectWebMcpBridge({ bridgeUrl, tools });
-      try {
-        await nativeModelContext?.registerTool(tool, options);
-      } catch (error) {
-        removeTool(tool);
-        throw error;
-      }
     },
   };
 }
