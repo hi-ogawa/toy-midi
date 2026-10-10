@@ -54,3 +54,28 @@ test("drives the open project from the webmcp-bridge command", async ({
   expect(failure.code).toBe(1);
   expect(failure.stderr).toContain("Error: boom");
 });
+
+test.describe(() => {
+  test.use({ allowAppOrigin: false });
+
+  test("connects the open project after its site is allowed", async ({
+    page,
+    bridge,
+    baseURL,
+  }) => {
+    // Open a project with the bridge enabled, and see the bridge refuse it.
+    await createRecorderProject(page);
+    await page.goto(`${page.url()}?webmcp-bridge=${bridge.port}`);
+    await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+    expect(JSON.parse((await bridge.run(["pages"])).stdout)).toEqual([]);
+
+    // Allow the site while the bridge runs, reload, and see the page connect.
+    const origin = new URL(baseURL!).origin;
+    const allow = await bridge.run(["allow", origin]);
+    expect(allow.code).toBe(0);
+    await page.reload();
+    await expect
+      .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
+      .toMatchObject([{ origin }]);
+  });
+});
