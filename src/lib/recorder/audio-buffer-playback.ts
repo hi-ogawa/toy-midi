@@ -9,7 +9,7 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
   private readonly unregister: () => void;
-  private readonly sources: DeclickedSources;
+  private readonly player: DeclickedBufferPlayer;
   private playbackSource?: AudioPlaybackSource;
 
   constructor({
@@ -22,7 +22,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.transport = transport;
     this.gain = transport.context.createGain();
     this.gain.connect(output);
-    this.sources = new DeclickedSources({
+    this.player = new DeclickedBufferPlayer({
       context: transport.context,
       output: this.gain,
     });
@@ -60,7 +60,7 @@ export class AudioBufferPlayback implements TransportParticipant {
       playbackAnchor.contextTime +
       Math.max(0, timelineStart - playbackAnchor.position) /
         this.transport.playbackRate;
-    this.sources.start({
+    this.player.start({
       buffer,
       playbackRate: this.transport.playbackRate,
       time: startTime,
@@ -70,13 +70,13 @@ export class AudioBufferPlayback implements TransportParticipant {
   }
 
   stop(): void {
-    this.sources.stop();
+    this.player.stop();
   }
 
   dispose(): void {
     this.unregister();
     // Keep the clip connected until its stopped sources finish fading.
-    this.sources.whenSilent(() => this.gain.disconnect());
+    this.player.whenSilent(() => this.gain.disconnect());
   }
 }
 
@@ -91,7 +91,7 @@ type DeclickedSource = {
  * Plays buffer slices into one output, fading each in and out instead of
  * starting or cutting it mid-waveform.
  */
-class DeclickedSources {
+class DeclickedBufferPlayer {
   private readonly context: BaseAudioContext;
   private readonly output: AudioNode;
   /** Sources still sounding, including stopped ones that are fading out. */
