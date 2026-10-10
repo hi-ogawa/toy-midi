@@ -12,6 +12,7 @@
     "./webmcp": "./src/webmcp.ts"
   },
   "scripts": {
+    "generate-extension-key": "node scripts/generate-extension-key.mjs",
     "build-extension": "vite build --config vite.ext.config.ts"
   },
   "dependencies": {

@@ -4,12 +4,18 @@ import path from "node:path";
 import { defineConfig } from "vite-plus";
 import { DEFAULT_BRIDGE_PORT } from "./src/protocol.ts";
 
+// Generated with `pnpm generate-extension-key`.
+// CI extension ID: idbpljgbehdedncfbagajcaogpccneeb.
+// Changing this key changes the ID, so CI builds lose the sites already allowed.
+const CI_EXTENSION_PUBLIC_KEY =
+  "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtTOvknLd9H0b/0oxIUsLNVuujq8EOjPkrTzx3Gm2BMfp2QcPT5L19+A79/gWb/Ew+NZonGPWk5hEYiD+0lwhbnXioiovyMAFKweWB5fkWyM9i1fUzmsp09KX4u9akXtyQSfyaLTlcAu0WnOgdbXX542aRiWhxIGW0T5V+SKvRTQQGRYv8ggx5HRO6fYs0HtQG5ZQKBgcHstuaDkazQaf0B7OA3M5+LrM5eoNLyljgBwbzIG3PwoDGMo5LdA4N4wyNGTBnEqtu7ZQWgvcNsbEpYY55lyhOWj2lU1fxUDiib38GvbfT2rOvhTqRFGtaQuSD7cvAhz3NRxHMrRM3mrGVQIDAQAB";
+
 // Builds the extension into dist/extension, which loads unpacked: the
 // manifest from public/, and each script as one classic script in its own
 // build, because extension scripts cannot be modules here and a classic
 // script cannot share chunks. `WEBMCP_BRIDGE_PORT` sets the bridge port the
-// content script connects to, and `PATCH_MANIFEST=true` names a CI build
-// after its pull request and commit.
+// content script connects to, and `PATCH_MANIFEST=true` gives a CI build a
+// fixed ID and names it after its pull request and commit.
 export default defineConfig({
   define: {
     __WEBMCP_BRIDGE_PORT__: JSON.stringify(
@@ -44,6 +50,7 @@ export default defineConfig({
           "manifest.json",
         );
         const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+        manifest.key = CI_EXTENSION_PUBLIC_KEY;
         manifest.name = prMatch
           ? `WebMCP Bridge [PR#${prMatch[1]} ${revision}]`
           : `WebMCP Bridge [${revision}]`;
