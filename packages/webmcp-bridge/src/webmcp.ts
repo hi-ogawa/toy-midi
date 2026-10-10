@@ -1,6 +1,25 @@
 // The part of the WebMCP API (https://webmachinelearning.github.io/webmcp/)
 // this package uses, as `document.modelContext`.
 
+declare global {
+  interface Document {
+    /** Present in browsers with WebMCP, or once a polyfill is installed. */
+    modelContext?: ModelContext;
+  }
+}
+
+/** `document.modelContext`. */
+export interface ModelContext {
+  /** Aborting `signal` unregisters the tool. */
+  registerTool(
+    tool: WebMcpTool,
+    options?: { signal?: AbortSignal },
+  ): Promise<void>;
+  getTools(): Promise<RegisteredTool[]>;
+  /** Resolves to the tool's result as a JSON string. */
+  executeTool(tool: RegisteredTool, input: object): Promise<string>;
+}
+
 /**
  * A tool in the WebMCP shape, as passed to `document.modelContext.registerTool`.
  * `execute` receives the input object and resolves to a JSON-serializable
@@ -32,23 +51,4 @@ export interface RegisteredTool {
   origin: string;
   /** The window that registered the tool. */
   window: Window;
-}
-
-/** `document.modelContext`. */
-export interface ModelContext {
-  /** Aborting `signal` unregisters the tool. */
-  registerTool(
-    tool: WebMcpTool,
-    options?: { signal?: AbortSignal },
-  ): Promise<void>;
-  getTools(): Promise<RegisteredTool[]>;
-  /** Resolves to the tool's result as a JSON string. */
-  executeTool(tool: RegisteredTool, input: object): Promise<string>;
-}
-
-declare global {
-  interface Document {
-    /** Present in browsers with WebMCP, or once a polyfill is installed. */
-    modelContext?: ModelContext;
-  }
 }
