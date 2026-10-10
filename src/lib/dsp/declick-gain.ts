@@ -20,9 +20,13 @@ export class DeclickGain {
     this.node.gain.value = 0;
   }
 
-  /** Ramps open from silence, starting at audio-clock `time`. */
-  open(time: number): void {
+  /** Opens at audio-clock `time`, ramping up from silence when `fadeIn` is set. */
+  open(time: number, { fadeIn }: { fadeIn: boolean }): void {
     const gain = this.node.gain;
+    if (!fadeIn) {
+      gain.setValueAtTime(1, time);
+      return;
+    }
     gain.setValueAtTime(0, time);
     gain.linearRampToValueAtTime(1, time + DECLICK_SECONDS);
   }

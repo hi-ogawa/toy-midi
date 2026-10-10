@@ -1,18 +1,18 @@
 import type { TimeSignature } from "../../types.ts";
-import { startInterval } from "../../utils/timing.ts";
 import { midiToHz, parseMidiPitch } from "../music.ts";
-import type {
-  AudioContextTransport,
-  TransportParticipant,
+import {
+  type AudioContextTransport,
+  type ContextTimeWindow,
+  getPlaybackPasses,
+  getPassContextTime,
+  getPassEventRange,
+  startLookaheadScheduler,
+  type TransportParticipant,
 } from "./transport.ts";
-
-const SCHEDULE_AHEAD_SECONDS = 0.1;
-const SCHEDULER_INTERVAL_SECONDS = 0.025;
 
 export class RecorderMetronome implements TransportParticipant {
   private readonly output: GainNode;
   private disposeScheduling?: () => void;
-  private nextClickIndex = 0;
   private tempo = 60;
   private timeSignature: TimeSignature = { numerator: 4, denominator: 4 };
   private secondsPerClick = 1;
@@ -51,15 +51,11 @@ export class RecorderMetronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    const anchor = this.transport.playbackAnchor!;
-    this.nextClickIndex = Math.ceil(
-      anchor.position / this.secondsPerClick - 1e-9,
-    );
-    this.schedule();
-    this.disposeScheduling = startInterval(
-      () => this.schedule(),
-      SCHEDULER_INTERVAL_SECONDS * 1000,
-    );
+    this.disposeScheduling = startLookaheadScheduler({
+      context: this.transport.context,
+      from: this.transport.playbackRun!.contextTime,
+      schedule: (window) => this.schedule(window),
+    });
   }
 
   stop(): void {
@@ -67,28 +63,20 @@ export class RecorderMetronome implements TransportParticipant {
     this.disposeScheduling = undefined;
   }
 
-  private schedule(): void {
-    while (true) {
-      // Convert this click's timeline position through the transport playback
-      // anchor: contextTime = anchor context + click position - anchor position.
-      const anchor = this.transport.playbackAnchor!;
-      const nextClickPosition = this.nextClickIndex * this.secondsPerClick;
-      const nextClickTime =
-        anchor.contextTime +
-        (nextClickPosition - anchor.position) / this.transport.playbackRate;
-      const currentTime = this.transport.context.currentTime;
-      // Schedule only the near future, then let the interval extend the window.
-      if (nextClickTime <= currentTime + SCHEDULE_AHEAD_SECONDS) {
-        // Tempo changes restart from the anchor, so skip clicks already elapsed.
-        if (currentTime <= nextClickTime) {
-          this.scheduleClick({
-            accent: this.nextClickIndex % this.timeSignature.numerator === 0,
-            contextTime: nextClickTime,
-          });
-        }
-        this.nextClickIndex += 1;
-      } else {
-        break;
+  /** Queues the clicks of every loop pass that sounds during the window. */
+  private schedule(window: ContextTimeWindow): void {
+    const playbackRun = this.transport.playbackRun!;
+    for (const pass of getPlaybackPasses(playbackRun, window)) {
+      const range = getPassEventRange(pass, window);
+      for (
+        let index = Math.ceil(range.start / this.secondsPerClick);
+        index * this.secondsPerClick < range.end;
+        index++
+      ) {
+        this.scheduleClick({
+          accent: index % this.timeSignature.numerator === 0,
+          contextTime: getPassContextTime(pass, index * this.secondsPerClick),
+        });
       }
     }
   }

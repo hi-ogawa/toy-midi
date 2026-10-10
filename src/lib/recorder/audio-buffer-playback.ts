@@ -1,16 +1,29 @@
 import { DeclickGain } from "../dsp/declick-gain.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
-import type {
-  AudioContextTransport,
-  TransportParticipant,
+import {
+  type AudioContextTransport,
+  type ContextTimeWindow,
+  getPlaybackPasses,
+  getPassContextTime,
+  getPassPosition,
+  type PlaybackPass,
+  startLookaheadScheduler,
+  type TransportParticipant,
 } from "./transport.ts";
 
+/**
+ * Plays one clip region as a series of buffer slices, one per loop pass the
+ * region intersects. Each slice ends exactly where the next pass begins, so a
+ * loop wrap needs no stop and restart.
+ */
 export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
   private readonly unregister: () => void;
   private readonly player: DeclickedBufferPlayer;
   private playbackSource?: AudioPlaybackSource;
+  private nextPassIndex = 0;
+  private disposeScheduling?: () => void;
 
   constructor({
     transport,
@@ -42,34 +55,22 @@ export class AudioBufferPlayback implements TransportParticipant {
     );
   }
 
-  /** Schedules the slice from the transport anchor, seeking or delaying as needed. */
   start(): void {
-    const playbackSource = this.playbackSource;
-    if (!playbackSource) {
+    if (!this.playbackSource) {
       return;
     }
-    const playbackAnchor = this.transport.playbackAnchor!;
-    const { buffer, timelineOffset, timelineStart, timelineEnd } =
-      playbackSource;
-    const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
-    const duration = timelineEnd - timelineStart;
-    if (elapsed >= duration) {
-      return;
-    }
-    const startTime =
-      playbackAnchor.contextTime +
-      Math.max(0, timelineStart - playbackAnchor.position) /
-        this.transport.playbackRate;
-    this.player.start({
-      buffer,
-      playbackRate: this.transport.playbackRate,
-      time: startTime,
-      offset: timelineStart - timelineOffset + elapsed,
-      duration: duration - elapsed,
+    this.nextPassIndex = 0;
+    this.disposeScheduling = startLookaheadScheduler({
+      context: this.transport.context,
+      from: this.transport.playbackRun!.contextTime,
+      schedule: (window) => this.schedule(window),
     });
   }
 
+  /** Fades out sounding slices and cancels slices queued for later passes. */
   stop(): void {
+    this.disposeScheduling?.();
+    this.disposeScheduling = undefined;
     this.player.stop();
   }
 
@@ -77,6 +78,50 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.unregister();
     // Keep the clip connected until its stopped sources finish fading.
     void this.player.waitForSilence().then(() => this.gain.disconnect());
+  }
+
+  /** Queues one slice for each loop pass, in the first window that reaches it. */
+  private schedule(window: ContextTimeWindow): void {
+    const playbackRun = this.transport.playbackRun!;
+    for (const pass of getPlaybackPasses(playbackRun, window)) {
+      if (pass.index < this.nextPassIndex) {
+        continue;
+      }
+      this.nextPassIndex = pass.index + 1;
+      this.startSlice(pass, window);
+    }
+  }
+
+  /** Plays the part of the region inside one pass. */
+  private startSlice(pass: PlaybackPass, window: ContextTimeWindow): void {
+    const { buffer, timelineOffset, timelineStart, timelineEnd } =
+      this.playbackSource!;
+    // Join mid-region at the playhead, or at the window start if a stalled
+    // timer let the pass begin before its slice was queued.
+    const start = Math.max(
+      timelineStart,
+      pass.start,
+      getPassPosition(pass, window.from),
+    );
+    const end = Math.min(timelineEnd, pass.end);
+    if (start >= end) {
+      return;
+    }
+    // A later pass that enters at loop-in while the region also covers
+    // loop-out continues the previous pass's slice, which ends at this same
+    // instant, so fading in would dip the splice.
+    const continuesPreviousPass =
+      pass.index > 0 && start === pass.start && timelineEnd >= pass.end;
+    // Offset and duration are buffer seconds, so the slice ends exactly at the
+    // audio-clock time where the next pass's slice starts.
+    this.player.start({
+      buffer,
+      playbackRate: pass.playbackRate,
+      time: getPassContextTime(pass, start),
+      offset: start - timelineOffset,
+      duration: end - start,
+      fadeIn: !continuesPreviousPass,
+    });
   }
 }
 
@@ -117,18 +162,20 @@ class DeclickedBufferPlayer {
     time,
     offset,
     duration,
+    fadeIn,
   }: {
     buffer: AudioBuffer;
     playbackRate: number;
     time: number;
     offset: number;
     duration: number;
+    fadeIn: boolean;
   }): void {
     const node = this.context.createBufferSource();
     node.buffer = buffer;
     node.playbackRate.value = playbackRate;
     const envelope = new DeclickGain(this.context);
-    envelope.open(time);
+    envelope.open(time, { fadeIn });
     node.connect(envelope.node).connect(this.output);
     // Disconnect after the fade has rendered, not when stop() is called.
     const ended = new Promise<void>((resolve) => {
