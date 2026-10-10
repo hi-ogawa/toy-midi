@@ -816,6 +816,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {isNotesOpen && (
           <RecorderNotesPanel
+            projectUiStore={projectUiStore}
             runtime={runtime}
             projectNotes={state.projectNotes}
             onClose={() => setIsNotesOpen(false)}
