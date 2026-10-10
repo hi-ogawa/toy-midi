@@ -2,10 +2,10 @@
 // client.ts, and the CLI commands: the methods a page serves, the endpoints
 // and events that carry them, and the data they return. The RPC messages that
 // carry calls are generic and live in rpc.ts. Internal to this package, so the
-// `./client` entry does not export them.
+// package entries do not export them, except `DEFAULT_BRIDGE_PORT` for apps.
 
-import type { WebMcpTool, WebMcpToolResult } from "./client.ts";
 import type { RpcRequest } from "./rpc.ts";
+import type { RegisteredTool, WebMcpToolResult } from "./webmcp.ts";
 
 /**
  * Methods a page serves to the bridge, named after WebMCP's `ModelContext`.
@@ -14,15 +14,24 @@ import type { RpcRequest } from "./rpc.ts";
  * rather than its JSON string.
  */
 export interface PageRpc {
-  getTools(): ToolInfo[];
+  getTools(): Promise<ToolInfo[]>;
   executeTool(
     tool: { name: string },
     input: unknown,
   ): Promise<WebMcpToolResult>;
 }
 
-/** The fields of a tool that the agent reads, as in a WebMCP `RegisteredTool`. */
-export type ToolInfo = Pick<WebMcpTool, "name" | "description" | "inputSchema">;
+/**
+ * The fields of a `RegisteredTool` that the agent reads, leaving out its
+ * `window`, which cannot be sent as JSON.
+ */
+export type ToolInfo = Pick<
+  RegisteredTool,
+  "name" | "description" | "inputSchema"
+>;
+
+/** The port the bridge listens on by default. */
+export const DEFAULT_BRIDGE_PORT = 4747;
 
 // Page side: the bridge calls `PageRpc` methods on a page over these
 // endpoints and events.

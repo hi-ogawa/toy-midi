@@ -115,43 +115,56 @@ Any failure prints a message to standard error and exits with code 1, so the age
 
 ## Exposing Tools from an App
 
-An app adds the client to its page and passes the tools it wants to offer. Apps depend on the package from GitHub, pinned to a commit with `github:hi-ogawa/toy-midi#<sha>&path:/packages/webmcp-bridge`. The package ships TypeScript source, so the app's bundler compiles it.
+An app registers its tools with WebMCP's `document.modelContext`. In browsers without WebMCP, it can install the package's polyfill first:
 
 ```ts
-import { connectWebMcpBridge } from "@hiogawa/webmcp-bridge/client";
+import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 
-const disconnect = connectWebMcpBridge({
-  bridgeUrl: "http://localhost:4747",
-  tools: [
-    {
-      name: "set_tempo",
-      description: "Set the project tempo in BPM.",
-      inputSchema: {
-        type: "object",
-        properties: { bpm: { type: "number" } },
-        required: ["bpm"],
-      },
-      execute: ({ bpm }) => {
-        runtime.setTempo(bpm);
-        return { isError: false };
-      },
+document.modelContext ??= createModelContextPolyfill();
+
+const controller = new AbortController();
+document.modelContext.registerTool(
+  {
+    name: "set_tempo",
+    description: "Set the project tempo in BPM.",
+    inputSchema: {
+      type: "object",
+      properties: { bpm: { type: "number" } },
+      required: ["bpm"],
     },
-  ],
+    execute: ({ bpm }) => {
+      runtime.setTempo(bpm);
+      return { isError: false };
+    },
+  },
+  // Aborting the signal unregisters the tool.
+  { signal: controller.signal },
+);
+```
+
+Then the app exposes `document.modelContext` to the bridge:
+
+```ts
+import { exposeModelContext } from "@hiogawa/webmcp-bridge/client";
+
+const unexpose = exposeModelContext({
+  bridgeUrl: "http://localhost:4747",
+  modelContext: document.modelContext,
 });
 ```
 
-A tool has the WebMCP shape, so the same definitions can later be registered with the browser directly.
+The bridge reads the tools with `getTools()` and runs them with `executeTool()`, as an agent built into the browser would.
 
 - `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
 - The result must be convertible to JSON. A value that is not, such as an object that refers to itself, comes back as an error.
-- If the tool throws anyway, or the agent names a tool that does not exist, the bridge reports the error with its stack trace.
+- If the tool throws anyway, the agent sees only an `OperationError`. If the agent names a tool that does not exist, it gets an unknown-tool error.
 - The bridge gives up after 30 seconds without a result. The tool keeps running in the page after that.
 
 ## How It Works
 
 ![The page opens a connection to the bridge once and keeps it open. When the command line sends a request, the bridge holds it open, passes the request down the page's connection, and waits for the page to send back the result, which becomes the answer to the command line.](images/rpc-flow.svg)
 
-A web app with no server of its own cannot be reached from a terminal, so the bridge runs on your machine where both sides can reach it. The bridge cannot open a connection to a browser page, though. So when the app connects, the page opens a connection to the bridge and keeps it open. The bridge uses that open connection to send requests to the page later, using [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
+A web app with no server of its own cannot be reached from a terminal, so the bridge runs on your machine where both sides can reach it. The bridge cannot open a connection to a browser page, though. So when the app exposes its tools, the page opens a connection to the bridge and keeps it open. The bridge uses that open connection to send requests to the page later, using [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
 
 When the agent runs `webmcp-bridge get-tools` or `execute-tool`, the command sends an ordinary HTTP request to the bridge, and the bridge does not answer right away. It passes the request down the page's open connection, tagged with a new id. The page runs the tool and sends the result back to the bridge in a separate HTTP request with the same id. The bridge matches the id, and the result becomes its answer to the waiting command.
 
