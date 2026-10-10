@@ -14,8 +14,11 @@ export const EQ_LIMITS = {
 };
 
 export type EqParameters = {
+  /** Center frequency in Hz */
   frequency: number;
+  /** Gain at the center frequency, so 1 is flat */
   gain: number;
+  /** Bandwidth, higher is narrower */
   q: number;
   bypass: boolean;
 };
