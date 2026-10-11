@@ -60,11 +60,9 @@ export class Metronome implements TransportParticipant {
   /** Queues the clicks of every loop pass that sounds during the window. */
   private schedule(passes: ScheduledPass[]): void {
     for (const { eventRange, getContextTime } of passes) {
-      for (
-        let index = Math.ceil(eventRange.start / this.secondsPerClick);
-        index * this.secondsPerClick < eventRange.end;
-        index++
-      ) {
+      const firstIndex = Math.ceil(eventRange.start / this.secondsPerClick);
+      const endIndex = Math.ceil(eventRange.end / this.secondsPerClick);
+      for (let index = firstIndex; index < endIndex; index++) {
         this.scheduleClick({
           accent: index % this.timeSignature.numerator === 0,
           contextTime: getContextTime(index * this.secondsPerClick),
