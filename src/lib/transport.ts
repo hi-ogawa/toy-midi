@@ -10,10 +10,11 @@ export interface TransportParticipant {
   stop(): void;
 }
 
-type TransportState = {
+export interface TransportState {
+  /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
   position: number;
   isPlaying: boolean;
-};
+}
 
 export type TransportStore = AudioContextTransport["store"];
 

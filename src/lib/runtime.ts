@@ -291,11 +291,7 @@ export class EditorRuntime {
 
   readonly context = new AudioContext();
   private readonly transport = new AudioContextTransport(this.context);
-  /**
-   * The playhead `position` in seconds, converted from beats with
-   * `beats * 60 / tempo`, and `isPlaying`. It is separate from `store` because
-   * the position changes on every animation frame during playback.
-   */
+  /** Separate from `store`, because the playhead moves on every animation frame. */
   readonly transportStore = this.transport.store;
   private readonly masterOutput: GainNode;
   /** @internal */
