@@ -292,24 +292,26 @@ function getScheduledPasses(
     }
     pass = getLoopPass(anchor, loopRange, pass.index + 1);
   }
-  return passes.map((pass) => {
-    const startPosition = Math.max(
-      pass.anchor.position,
-      pass.anchor.getPositionAt(window.start),
-    );
-    const endPosition = Math.min(
-      pass.end,
-      pass.anchor.getPositionAt(window.end),
-    );
-    return {
-      start: startPosition - BOUNDARY_EPSILON,
-      end: endPosition - BOUNDARY_EPSILON,
-      anchor: pass.anchor,
-      index: pass.index,
-      passEnd: pass.end,
-      startPosition,
-    };
-  });
+  return passes.map((pass) => createScheduledPass(pass, window));
+}
+
+function createScheduledPass(
+  pass: PlaybackPass,
+  window: ContextTimeWindow,
+): ScheduledPass {
+  const startPosition = Math.max(
+    pass.anchor.position,
+    pass.anchor.getPositionAt(window.start),
+  );
+  const endPosition = Math.min(pass.end, pass.anchor.getPositionAt(window.end));
+  return {
+    start: startPosition - BOUNDARY_EPSILON,
+    end: endPosition - BOUNDARY_EPSILON,
+    anchor: pass.anchor,
+    index: pass.index,
+    passEnd: pass.end,
+    startPosition,
+  };
 }
 
 /** The pass sounding at an audio-clock time, or pass 0 before the run starts. */
