@@ -2,12 +2,7 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { DeclickGain } from "./dsp/declick-gain.ts";
 import {
   type AudioContextTransport,
-  type ContextTimeWindow,
-  getPlaybackPasses,
-  getPassContextTime,
-  getPassPosition,
-  type PlaybackPass,
-  startLookaheadScheduler,
+  type ScheduledPass,
   type TransportParticipant,
 } from "./transport.ts";
 
@@ -60,11 +55,9 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     this.nextPassIndex = 0;
-    this.disposeScheduling = startLookaheadScheduler({
-      context: this.transport.context,
-      from: this.transport.playbackRun!.contextTime,
-      schedule: (window) => this.schedule(window),
-    });
+    this.disposeScheduling = this.transport.startScheduling((passes) =>
+      this.schedule(passes),
+    );
   }
 
   /** Fades out sounding slices and cancels slices queued for later passes. */
@@ -81,28 +74,27 @@ export class AudioBufferPlayback implements TransportParticipant {
   }
 
   /** Queues one slice for each loop pass, in the first window that reaches it. */
-  private schedule(window: ContextTimeWindow): void {
-    const playbackRun = this.transport.playbackRun!;
-    for (const pass of getPlaybackPasses(playbackRun, window)) {
-      if (pass.index < this.nextPassIndex) {
+  private schedule(passes: ScheduledPass[]): void {
+    for (const scheduled of passes) {
+      if (scheduled.pass.index < this.nextPassIndex) {
         continue;
       }
-      this.nextPassIndex = pass.index + 1;
-      this.startSlice(pass, window);
+      this.nextPassIndex = scheduled.pass.index + 1;
+      this.startSlice(scheduled);
     }
   }
 
   /** Plays the part of the region inside one pass. */
-  private startSlice(pass: PlaybackPass, window: ContextTimeWindow): void {
+  private startSlice({
+    pass,
+    startPosition,
+    getContextTime,
+  }: ScheduledPass): void {
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
       this.playbackSource!;
     // Join mid-region at the playhead, or at the window start if a stalled
     // timer let the pass begin before its slice was queued.
-    const start = Math.max(
-      timelineStart,
-      pass.start,
-      getPassPosition(pass, window.from),
-    );
+    const start = Math.max(timelineStart, startPosition);
     const end = Math.min(timelineEnd, pass.end);
     if (start >= end) {
       return;
@@ -117,7 +109,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.player.start({
       buffer,
       playbackRate: pass.playbackRate,
-      time: getPassContextTime(pass, start),
+      time: getContextTime(start),
       offset: start - timelineOffset,
       duration: end - start,
       fadeIn: !continuesPreviousPass,

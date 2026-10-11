@@ -2,11 +2,7 @@ import type { TimeSignature } from "../types.ts";
 import { midiToHz, parseMidiPitch } from "./music.ts";
 import {
   type AudioContextTransport,
-  type ContextTimeWindow,
-  getPlaybackPasses,
-  getPassContextTime,
-  getPassEventRange,
-  startLookaheadScheduler,
+  type ScheduledPass,
   type TransportParticipant,
 } from "./transport.ts";
 
@@ -51,11 +47,9 @@ export class Metronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.disposeScheduling = startLookaheadScheduler({
-      context: this.transport.context,
-      from: this.transport.playbackRun!.contextTime,
-      schedule: (window) => this.schedule(window),
-    });
+    this.disposeScheduling = this.transport.startScheduling((passes) =>
+      this.schedule(passes),
+    );
   }
 
   stop(): void {
@@ -64,18 +58,16 @@ export class Metronome implements TransportParticipant {
   }
 
   /** Queues the clicks of every loop pass that sounds during the window. */
-  private schedule(window: ContextTimeWindow): void {
-    const playbackRun = this.transport.playbackRun!;
-    for (const pass of getPlaybackPasses(playbackRun, window)) {
-      const range = getPassEventRange(pass, window);
+  private schedule(passes: ScheduledPass[]): void {
+    for (const { eventRange, getContextTime } of passes) {
       for (
-        let index = Math.ceil(range.start / this.secondsPerClick);
-        index * this.secondsPerClick < range.end;
+        let index = Math.ceil(eventRange.start / this.secondsPerClick);
+        index * this.secondsPerClick < eventRange.end;
         index++
       ) {
         this.scheduleClick({
           accent: index % this.timeSignature.numerator === 0,
-          contextTime: getPassContextTime(pass, index * this.secondsPerClick),
+          contextTime: getContextTime(index * this.secondsPerClick),
         });
       }
     }

@@ -51,8 +51,23 @@ export type PlaybackPass = {
   playbackRate: number;
 };
 
-/** Half-open audio-clock window `[from, to)` handed to lookahead schedulers. */
-export type ContextTimeWindow = {
+/** The part of one pass that sounds during a lookahead window. */
+export type ScheduledPass = {
+  pass: PlaybackPass;
+  /** Timeline position where this window enters the pass. */
+  startPosition: number;
+  /**
+   * Timeline range in which point events, such as clicks and note starts, fall
+   * in this window. Both ends are shifted back by a tiny epsilon, so an event
+   * that lands a rounding error before a boundary still falls on its intended
+   * side, and each event falls in exactly one window.
+   */
+  eventRange: { start: number; end: number };
+  getContextTime(position: number): number;
+};
+
+/** Half-open audio-clock window `[from, to)`. */
+type ContextTimeWindow = {
   from: number;
   to: number;
 };
@@ -195,6 +210,19 @@ export class AudioContextTransport {
     return getPlaybackPosition(this.playbackRun!, contextTime);
   }
 
+  /**
+   * Hands `schedule` the passes sounding in each upcoming lookahead window of
+   * the current run, until the returned disposer runs.
+   */
+  startScheduling(schedule: (passes: ScheduledPass[]) => void): () => void {
+    const run = this.playbackRun!;
+    return startLookaheadScheduler({
+      context: this.context,
+      from: run.contextTime,
+      schedule: (window) => schedule(getScheduledPasses(run, window)),
+    });
+  }
+
   /** Publishes audio-clock position on animation frames while playing. */
   private startTicking(): void {
     if (this.disposeTicking) {
@@ -240,7 +268,7 @@ export class AudioContextTransport {
  * The main-thread timer only decides when events are queued, while the times
  * they are queued at stay exact on the audio clock.
  */
-export function startLookaheadScheduler({
+function startLookaheadScheduler({
   context,
   from,
   schedule,
@@ -264,16 +292,35 @@ export function startLookaheadScheduler({
   return startInterval(tick, SCHEDULER_INTERVAL_MS);
 }
 
-/** Projects an audio-clock time to timeline position, extrapolating before the run starts. */
-export function getPlaybackPosition(
+function getScheduledPasses(
   run: PlaybackRun,
-  contextTime: number,
-): number {
+  window: ContextTimeWindow,
+): ScheduledPass[] {
+  return getPlaybackPasses(run, window).map((pass) => {
+    const startPosition = Math.max(
+      pass.start,
+      getPassPosition(pass, window.from),
+    );
+    const endPosition = Math.min(pass.end, getPassPosition(pass, window.to));
+    return {
+      pass,
+      startPosition,
+      eventRange: {
+        start: startPosition - BOUNDARY_EPSILON,
+        end: endPosition - BOUNDARY_EPSILON,
+      },
+      getContextTime: (position) => getPassContextTime(pass, position),
+    };
+  });
+}
+
+/** Projects an audio-clock time to timeline position, extrapolating before the run starts. */
+function getPlaybackPosition(run: PlaybackRun, contextTime: number): number {
   return getPassPosition(getPlaybackPassAt(run, contextTime), contextTime);
 }
 
 /** Lists the passes that overlap an audio-clock window, in order. */
-export function getPlaybackPasses(
+function getPlaybackPasses(
   run: PlaybackRun,
   window: ContextTimeWindow,
 ): PlaybackPass[] {
@@ -289,37 +336,11 @@ export function getPlaybackPasses(
   return passes;
 }
 
-/**
- * Timeline range in which a pass's point events, such as clicks and note
- * starts, fall during an audio-clock window. Both ends are shifted back by a
- * tiny epsilon, so an event that lands a rounding error before a boundary still
- * falls on its intended side. Consecutive windows share their boundary, so each
- * event falls in exactly one window.
- */
-export function getPassEventRange(
-  pass: PlaybackPass,
-  window: ContextTimeWindow,
-): { start: number; end: number } {
-  return {
-    start:
-      Math.max(pass.start, getPassPosition(pass, window.from)) -
-      BOUNDARY_EPSILON,
-    end:
-      Math.min(pass.end, getPassPosition(pass, window.to)) - BOUNDARY_EPSILON,
-  };
-}
-
-export function getPassPosition(
-  pass: PlaybackPass,
-  contextTime: number,
-): number {
+function getPassPosition(pass: PlaybackPass, contextTime: number): number {
   return pass.start + (contextTime - pass.contextTime) * pass.playbackRate;
 }
 
-export function getPassContextTime(
-  pass: PlaybackPass,
-  position: number,
-): number {
+function getPassContextTime(pass: PlaybackPass, position: number): number {
   return pass.contextTime + (position - pass.start) / pass.playbackRate;
 }
 

@@ -7,11 +7,7 @@ import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import {
   type AudioContextTransport,
-  type ContextTimeWindow,
-  getPlaybackPasses,
-  getPassContextTime,
-  getPassEventRange,
-  startLookaheadScheduler,
+  type ScheduledPass,
   type TransportParticipant,
 } from "./transport.ts";
 
@@ -97,11 +93,9 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.disposeScheduling = startLookaheadScheduler({
-      context: this.transport.context,
-      from: this.transport.playbackRun!.contextTime,
-      schedule: (window) => this.schedule(window),
-    });
+    this.disposeScheduling = this.transport.startScheduling((passes) =>
+      this.schedule(passes),
+    );
   }
 
   stop(): void {
@@ -127,16 +121,14 @@ export class MidiTrackPlayback implements TransportParticipant {
    * that started before the window, such as before the playhead or loop-in, are
    * not joined late.
    */
-  private schedule(window: ContextTimeWindow): void {
-    const playbackRun = this.transport.playbackRun!;
-    for (const pass of getPlaybackPasses(playbackRun, window)) {
-      const range = getPassEventRange(pass, window);
+  private schedule(passes: ScheduledPass[]): void {
+    for (const { pass, eventRange, getContextTime } of passes) {
       for (const note of this.notes) {
         const start = beatsToSeconds(note.start, this.tempo);
-        if (range.end <= start) {
+        if (eventRange.end <= start) {
           break;
         }
-        if (start < range.start) {
+        if (start < eventRange.start) {
           continue;
         }
         // A note held past loop-out ends at the wrap. The synth applies
@@ -149,8 +141,8 @@ export class MidiTrackPlayback implements TransportParticipant {
         this.synth.scheduleNoteOnOff({
           pitch: note.pitch,
           velocity: note.velocity,
-          startTime: getPassContextTime(pass, start),
-          endTime: getPassContextTime(pass, end),
+          startTime: getContextTime(start),
+          endTime: getContextTime(end),
         });
       }
     }
