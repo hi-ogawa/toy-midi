@@ -3,7 +3,6 @@
   "entry": [
     "packages/webmcp-bridge/src/extension/content.ts",
     "packages/webmcp-bridge/src/extension/background.ts",
-    "packages/webmcp-bridge/src/extension/relay.ts",
-    "src/lib/webmcp-tools-doc.ts"
+    "packages/webmcp-bridge/src/extension/relay.ts"
   ]
 }
