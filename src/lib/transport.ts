@@ -174,8 +174,9 @@ export class AudioContextTransport {
       if (to <= scheduledUntil) {
         return;
       }
-      // A stalled timer or a restart mid-run can leave part of the window in the
-      // past. Skip it rather than queue events to play late.
+      // A restart mid-run, such as a tempo change, or a stalled timer can leave
+      // part of the window in the past. Skip it rather than queue events to play
+      // late.
       const from = Math.max(scheduledUntil, this.context.currentTime);
       schedule({
         start: anchor.getPositionAt(from) - BOUNDARY_EPSILON,
