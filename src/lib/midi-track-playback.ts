@@ -116,17 +116,13 @@ export class MidiTrackPlayback implements TransportParticipant {
     }
   }
 
-  private schedule({
-    pass,
-    start: rangeStart,
-    end: rangeEnd,
-  }: ScheduledRange): void {
+  private schedule(range: ScheduledRange): void {
     for (const note of this.notes) {
       const start = beatsToSeconds(note.start, this.tempo);
-      if (rangeEnd <= start) {
+      if (range.end <= start) {
         break;
       }
-      if (start < rangeStart) {
+      if (start < range.start) {
         continue;
       }
       // A note held past loop-out ends at the wrap. The synth applies
@@ -134,13 +130,13 @@ export class MidiTrackPlayback implements TransportParticipant {
       // loop-in still retriggers.
       const end = Math.min(
         beatsToSeconds(note.start + note.duration, this.tempo),
-        pass.end,
+        range.pass.end,
       );
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,
-        startTime: pass.getContextTimeAt(start),
-        endTime: pass.getContextTimeAt(end),
+        startTime: range.pass.getContextTimeAt(start),
+        endTime: range.pass.getContextTimeAt(end),
       });
     }
   }

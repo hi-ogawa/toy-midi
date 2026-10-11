@@ -83,12 +83,13 @@ export class AudioBufferPlayback implements TransportParticipant {
   }
 
   /** Plays the part of the region inside one pass. */
-  private startSlice({ pass, start: rangeStart }: ScheduledRange): void {
+  private startSlice(range: ScheduledRange): void {
+    const pass = range.pass;
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
       this.playbackSource!;
     // Join mid-region at the playhead, or at the window start if a stalled
     // timer let the pass begin before its slice was queued.
-    const start = Math.max(timelineStart, rangeStart);
+    const start = Math.max(timelineStart, range.start);
     const end = Math.min(timelineEnd, pass.end);
     if (start >= end) {
       return;

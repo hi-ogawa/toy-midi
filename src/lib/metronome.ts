@@ -57,13 +57,13 @@ export class Metronome implements TransportParticipant {
     this.disposeScheduling = undefined;
   }
 
-  private schedule({ pass, start, end }: ScheduledRange): void {
-    const firstIndex = Math.ceil(start / this.secondsPerClick);
-    const endIndex = Math.ceil(end / this.secondsPerClick);
+  private schedule(range: ScheduledRange): void {
+    const firstIndex = Math.ceil(range.start / this.secondsPerClick);
+    const endIndex = Math.ceil(range.end / this.secondsPerClick);
     for (let index = firstIndex; index < endIndex; index++) {
       this.scheduleClick({
         accent: index % this.timeSignature.numerator === 0,
-        contextTime: pass.getContextTimeAt(index * this.secondsPerClick),
+        contextTime: range.pass.getContextTimeAt(index * this.secondsPerClick),
       });
     }
   }
