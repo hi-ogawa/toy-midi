@@ -55,7 +55,7 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     this.nextPassIndex = 0;
-    this.disposeScheduling = this.transport.startScheduling((passes) =>
+    this.disposeScheduling = this.transport.startScheduleLoop((passes) =>
       this.schedule(passes),
     );
   }
@@ -91,7 +91,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     // Join mid-region at the playhead, or at the window start if a stalled
     // timer let the pass begin before its slice was queued.
     const start = Math.max(timelineStart, pass.startPosition);
-    const end = Math.min(timelineEnd, pass.end);
+    const end = Math.min(timelineEnd, pass.passEnd);
     if (start >= end) {
       return;
     }
@@ -99,13 +99,15 @@ export class AudioBufferPlayback implements TransportParticipant {
     // loop-out continues the previous pass's slice, which ends at this same
     // instant, so fading in would dip the splice.
     const continuesPreviousPass =
-      pass.index > 0 && start === pass.start && timelineEnd >= pass.end;
+      pass.index > 0 &&
+      start === pass.anchor.position &&
+      timelineEnd >= pass.passEnd;
     // Offset and duration are buffer seconds, so the slice ends exactly at the
     // audio-clock time where the next pass's slice starts.
     this.player.start({
       buffer,
-      playbackRate: pass.playbackRate,
-      time: pass.getContextTime(start),
+      playbackRate: pass.anchor.playbackRate,
+      time: pass.anchor.getContextTimeAt(start),
       offset: start - timelineOffset,
       duration: end - start,
       fadeIn: !continuesPreviousPass,

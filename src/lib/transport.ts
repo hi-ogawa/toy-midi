@@ -3,16 +3,20 @@ import { startAnimationFrameLoop, startInterval } from "../utils/timing.ts";
 
 /** Gives every participant time to schedule against the same future audio frame. */
 const PLAYBACK_LEAD_SECONDS = 0.03;
-/** Must exceed main-thread timer jitter so the audio clock never outruns scheduling. */
+/**
+ * A timer loop ticking every `SCHEDULER_INTERVAL_MS` queues audio events against
+ * future audio frames up to this far ahead. Main-thread timers fire late and
+ * unevenly while the page is busy, so the lookahead leaves headroom over the
+ * interval. Both values are practical choices, not derived limits.
+ */
 const SCHEDULE_AHEAD_SECONDS = 0.1;
 const SCHEDULER_INTERVAL_MS = 25;
-
 /**
- * Event timelines and loop boundaries are converted from beats separately, so
- * an event meant to sit exactly on a boundary can land a rounding error to
- * either side of it. Event ranges shift both ends back by this much, so such an
- * event still falls on its intended side and consecutive windows still share
- * their boundary.
+ * Event times, the playhead, and loop boundaries are converted from beats
+ * separately, so an event meant to sit exactly on one of them can land a
+ * rounding error to either side of it. Scheduled passes shift both ends back by
+ * this much, so such an event still falls on its intended side and consecutive
+ * ones still share their boundary.
  */
 const BOUNDARY_EPSILON = 1e-9;
 
@@ -22,48 +26,28 @@ export interface TransportParticipant {
   stop(): void;
 }
 
-/** Timeline seconds between loop-in and loop-out. */
-type LoopSecondsRange = {
-  start: number;
-  end: number;
-};
-
-/**
- * One transport run on the audio clock. Timeline `position` sounds at
- * `contextTime`, then advances at `playbackRate` and wraps from loop-out to
- * loop-in without ever re-anchoring.
- */
-export type PlaybackRun = {
-  contextTime: number;
+type TransportState = {
+  /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
   position: number;
-  playbackRate: number;
-  loopRange?: LoopSecondsRange;
+  isPlaying: boolean;
 };
 
 /**
- * One pass of a run through the timeline. Timeline `start` sounds at
- * `contextTime`, and the pass ends where it would reach `end`. Pass 0 begins at
- * the run's position and every later pass covers the loop range.
+ * The part of the run's pass that one scheduling tick covers, as a half-open
+ * timeline range `[start, end)` of point events such as clicks and note starts.
+ * Each event belongs to exactly one scheduled pass.
  */
-export type PlaybackPass = {
-  index: number;
-  contextTime: number;
+export type ScheduledPass = {
   start: number;
   end: number;
-  playbackRate: number;
-};
-
-/** The part of one pass that sounds during a lookahead window. */
-export type ScheduledPass = PlaybackPass & {
-  /** Timeline position where this window enters the pass. */
+  /** Maps this pass to the audio clock. The pass begins at `anchor.position`. */
+  anchor: PlaybackAnchor;
+  /** 0 for the pass from the playhead, then one more for each loop wrap. */
+  index: number;
+  /** Timeline position where the pass ends, at loop-out or never without a loop. */
+  passEnd: number;
+  /** Timeline position where this tick enters the pass, without the boundary shift. */
   startPosition: number;
-  /**
-   * Half-open timeline range of the point events, such as clicks and note
-   * starts, that belong to this window. Each event belongs to exactly one window.
-   */
-  eventRange: { start: number; end: number };
-  /** Audio-clock time at which a timeline position in this pass sounds. */
-  getContextTime(position: number): number;
 };
 
 /** Half-open audio-clock window `[from, to)`. */
@@ -72,17 +56,14 @@ type ContextTimeWindow = {
   to: number;
 };
 
-type TransportState = {
-  /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
-  position: number;
-  isPlaying: boolean;
+type LoopRange = {
+  start: number;
+  end: number;
 };
 
 /**
  * Owns the playhead position and synchronizes registered playback objects to one
- * AudioContext timeline. The audio clock is the ground truth: a run fixes how
- * it maps to timeline position, including every loop wrap, and participants
- * schedule ahead in audio-clock order. Position is only published from it.
+ * AudioContext timeline.
  */
 export class AudioContextTransport {
   /** Published transport state consumed by the editor runtime and UI. */
@@ -92,14 +73,14 @@ export class AudioContextTransport {
   }));
 
   /**
-   * Maps the AudioContext clock to playhead position for the current run. It is
-   * available to participants during start.
+   * Maps an absolute AudioContext time to the playhead position at which the
+   * current playback run begins. It is available to participants during start.
    */
-  playbackRun?: PlaybackRun;
+  playbackAnchor?: PlaybackAnchor;
   playbackRate = 1;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
-  private loopRange?: LoopSecondsRange;
+  private loopRange?: LoopRange;
 
   constructor(readonly context: AudioContext) {}
 
@@ -137,7 +118,7 @@ export class AudioContextTransport {
       participant.stop();
     }
     const finalPosition = this.getPublishedPlaybackPosition();
-    this.playbackRun = undefined;
+    this.playbackAnchor = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
   }
@@ -156,19 +137,21 @@ export class AudioContextTransport {
   }
 
   /**
-   * Changes the loop range. The run has already scheduled ahead with the old
-   * wraps, so an actual change restarts it from the current position.
+   * Changes the loop range. Participants have already scheduled ahead with the
+   * old wraps, so an actual change restarts playback from the current position.
    */
-  setLoopRange(loopRange?: LoopSecondsRange): void {
+  setLoopRange(loopRange?: LoopRange): void {
     if (
       loopRange?.start === this.loopRange?.start &&
       loopRange?.end === this.loopRange?.end
     ) {
       return;
     }
+    const position = this.store.get().isPlaying
+      ? this.getPublishedPlaybackPosition()
+      : undefined;
     this.loopRange = loopRange;
-    if (this.store.get().isPlaying) {
-      const position = this.getPublishedPlaybackPosition();
+    if (position !== undefined) {
       this.restartParticipants(
         loopRange && position >= loopRange.end ? loopRange.start : position,
       );
@@ -191,36 +174,53 @@ export class AudioContextTransport {
   }
 
   /**
-   * Projects the current AudioContext time to published playback position,
-   * holding the run's start position during the scheduling lead.
+   * Converts an absolute AudioContext time to published playback position while
+   * excluding the scheduling lead before the playback anchor.
    */
   getPublishedPlaybackPosition(): number {
-    const playbackRun = this.playbackRun!;
+    const playbackAnchor = this.playbackAnchor!;
     const contextTime = this.context.currentTime;
-    return contextTime < playbackRun.contextTime
-      ? playbackRun.position
-      : getPlaybackPosition(playbackRun, contextTime);
+    return contextTime < playbackAnchor.contextTime
+      ? playbackAnchor.position
+      : this.getPlaybackPositionAt(contextTime);
   }
 
   /**
-   * Projects an absolute AudioContext time to its exact position in the active
-   * run. This intentionally includes playback warmup lead time.
+   * Projects an audio-clock time to timeline position, wrapping at loop-out and
+   * extrapolating before the run starts.
    */
-  getPlaybackPositionByContextTime(contextTime: number): number {
-    return getPlaybackPosition(this.playbackRun!, contextTime);
+  getPlaybackPositionAt(contextTime: number): number {
+    return getPlaybackPassAt(
+      this.playbackAnchor!,
+      this.loopRange,
+      contextTime,
+    ).anchor.getPositionAt(contextTime);
   }
 
   /**
-   * Hands `schedule` the passes sounding in each upcoming lookahead window of
-   * the current run, until the returned disposer runs.
+   * Hands `schedule` the passes sounding in consecutive windows of the current
+   * run, each reaching a little past the current audio time, until the disposer
+   * runs. The timer only decides when events are queued, while the times they
+   * are queued at stay exact on the audio clock.
    */
-  startScheduling(schedule: (passes: ScheduledPass[]) => void): () => void {
-    const run = this.playbackRun!;
-    return startLookaheadScheduler({
-      context: this.context,
-      from: run.contextTime,
-      schedule: (window) => schedule(getScheduledPasses(run, window)),
-    });
+  startScheduleLoop(schedule: (passes: ScheduledPass[]) => void): () => void {
+    const anchor = this.playbackAnchor!;
+    const loopRange = this.loopRange;
+    let scheduledUntil = anchor.contextTime;
+    const tick = () => {
+      const to = this.context.currentTime + SCHEDULE_AHEAD_SECONDS;
+      if (to <= scheduledUntil) {
+        return;
+      }
+      // A restart mid-run, such as a tempo change, or a stalled timer can leave
+      // part of the window in the past. Skip it rather than queue events to play
+      // late.
+      const from = Math.max(scheduledUntil, this.context.currentTime);
+      schedule(getScheduledPasses(anchor, loopRange, { from, to }));
+      scheduledUntil = to;
+    };
+    tick();
+    return startInterval(tick, SCHEDULER_INTERVAL_MS);
   }
 
   /** Publishes audio-clock position on animation frames while playing. */
@@ -243,12 +243,11 @@ export class AudioContextTransport {
   }
 
   private startParticipants(position: number): void {
-    this.playbackRun = {
+    this.playbackAnchor = new PlaybackAnchor({
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position,
       playbackRate: this.playbackRate,
-      loopRange: this.loopRange,
-    };
+    });
     this.store.update({ position, isPlaying: true });
     for (const participant of this.participants) {
       participant.start();
@@ -263,108 +262,73 @@ export class AudioContextTransport {
 }
 
 /**
- * Hands `schedule` consecutive audio-clock windows starting at `from`, each
- * reaching a little past the current time, until the returned disposer runs.
- * The main-thread timer only decides when events are queued, while the times
- * they are queued at stay exact on the audio clock.
+ * One pass through the timeline. Its anchor maps the pass from where it begins,
+ * the playhead for pass 0 and loop-in for later passes, until `end`.
  */
-function startLookaheadScheduler({
-  context,
-  from,
-  schedule,
-}: {
-  context: BaseAudioContext;
-  from: number;
-  schedule: (window: ContextTimeWindow) => void;
-}): () => void {
-  let scheduledUntil = from;
-  const tick = () => {
-    const to = context.currentTime + SCHEDULE_AHEAD_SECONDS;
-    if (to <= scheduledUntil) {
-      return;
-    }
-    // A stalled timer or a restart mid-run can leave part of the window in
-    // the past. Skip it rather than queue events to play late.
-    schedule({ from: Math.max(scheduledUntil, context.currentTime), to });
-    scheduledUntil = to;
-  };
-  tick();
-  return startInterval(tick, SCHEDULER_INTERVAL_MS);
-}
+type PlaybackPass = {
+  index: number;
+  anchor: PlaybackAnchor;
+  end: number;
+};
 
 function getScheduledPasses(
-  run: PlaybackRun,
+  anchor: PlaybackAnchor,
+  loopRange: LoopRange | undefined,
   window: ContextTimeWindow,
 ): ScheduledPass[] {
-  return getPlaybackPasses(run, window).map((pass) => {
+  return getPlaybackPasses(anchor, loopRange, window).map((pass) => {
     const startPosition = Math.max(
-      pass.start,
-      getPassPosition(pass, window.from),
+      pass.anchor.position,
+      pass.anchor.getPositionAt(window.from),
     );
-    const endPosition = Math.min(pass.end, getPassPosition(pass, window.to));
+    const endPosition = Math.min(
+      pass.end,
+      pass.anchor.getPositionAt(window.to),
+    );
     return {
-      ...pass,
+      start: startPosition - BOUNDARY_EPSILON,
+      end: endPosition - BOUNDARY_EPSILON,
+      anchor: pass.anchor,
+      index: pass.index,
+      passEnd: pass.end,
       startPosition,
-      eventRange: {
-        start: startPosition - BOUNDARY_EPSILON,
-        end: endPosition - BOUNDARY_EPSILON,
-      },
-      getContextTime: (position) => getPassContextTime(pass, position),
     };
   });
 }
 
-/** Projects an audio-clock time to timeline position, extrapolating before the run starts. */
-function getPlaybackPosition(run: PlaybackRun, contextTime: number): number {
-  return getPassPosition(getPlaybackPassAt(run, contextTime), contextTime);
-}
-
 /** Lists the passes that overlap an audio-clock window, in order. */
 function getPlaybackPasses(
-  run: PlaybackRun,
+  anchor: PlaybackAnchor,
+  loopRange: LoopRange | undefined,
   window: ContextTimeWindow,
 ): PlaybackPass[] {
   const passes: PlaybackPass[] = [];
-  let pass = getPlaybackPassAt(run, window.from);
-  while (pass.contextTime < window.to) {
+  let pass = getPlaybackPassAt(anchor, loopRange, window.from);
+  while (pass.anchor.contextTime < window.to) {
     passes.push(pass);
-    if (!run.loopRange) {
+    if (!loopRange) {
       break;
     }
-    pass = getLoopPass(run, run.loopRange, pass.index + 1);
+    pass = getLoopPass(anchor, loopRange, pass.index + 1);
   }
   return passes;
 }
 
-function getPassPosition(pass: PlaybackPass, contextTime: number): number {
-  return pass.start + (contextTime - pass.contextTime) * pass.playbackRate;
-}
-
-function getPassContextTime(pass: PlaybackPass, position: number): number {
-  return pass.contextTime + (position - pass.start) / pass.playbackRate;
-}
-
 /** The pass sounding at an audio-clock time, or pass 0 before the run starts. */
 function getPlaybackPassAt(
-  run: PlaybackRun,
+  anchor: PlaybackAnchor,
+  loopRange: LoopRange | undefined,
   contextTime: number,
 ): PlaybackPass {
-  const { loopRange } = run;
   const sinceFirstWrap = loopRange
-    ? contextTime - getFirstWrapTime(run, loopRange)
+    ? contextTime - anchor.getContextTimeAt(loopRange.end)
     : -1;
   if (!loopRange || sinceFirstWrap < 0) {
-    return {
-      index: 0,
-      contextTime: run.contextTime,
-      start: run.position,
-      end: loopRange?.end ?? Infinity,
-      playbackRate: run.playbackRate,
-    };
+    return { index: 0, anchor, end: loopRange?.end ?? Infinity };
   }
-  const loopSeconds = (loopRange.end - loopRange.start) / run.playbackRate;
+  const loopSeconds = (loopRange.end - loopRange.start) / anchor.playbackRate;
   return getLoopPass(
-    run,
+    anchor,
     loopRange,
     1 + Math.floor(sinceFirstWrap / loopSeconds),
   );
@@ -376,23 +340,54 @@ function getPlaybackPassAt(
  * needs a new anchor.
  */
 function getLoopPass(
-  run: PlaybackRun,
-  loopRange: LoopSecondsRange,
+  anchor: PlaybackAnchor,
+  loopRange: LoopRange,
   index: number,
 ): PlaybackPass {
-  const loopSeconds = (loopRange.end - loopRange.start) / run.playbackRate;
+  const loopSeconds = (loopRange.end - loopRange.start) / anchor.playbackRate;
   return {
     index,
-    contextTime: getFirstWrapTime(run, loopRange) + (index - 1) * loopSeconds,
-    start: loopRange.start,
+    anchor: new PlaybackAnchor({
+      contextTime:
+        anchor.getContextTimeAt(loopRange.end) + (index - 1) * loopSeconds,
+      position: loopRange.start,
+      playbackRate: anchor.playbackRate,
+    }),
     end: loopRange.end,
-    playbackRate: run.playbackRate,
   };
 }
 
-function getFirstWrapTime(
-  run: PlaybackRun,
-  loopRange: LoopSecondsRange,
-): number {
-  return run.contextTime + (loopRange.end - run.position) / run.playbackRate;
+/**
+ * Maps the audio clock to the timeline linearly, for a playback run or one of
+ * its loop passes. Timeline `position` sounds at `contextTime` and advances at
+ * `playbackRate`.
+ */
+class PlaybackAnchor {
+  readonly contextTime: number;
+  readonly position: number;
+  readonly playbackRate: number;
+
+  constructor({
+    contextTime,
+    position,
+    playbackRate,
+  }: {
+    contextTime: number;
+    position: number;
+    playbackRate: number;
+  }) {
+    this.contextTime = contextTime;
+    this.position = position;
+    this.playbackRate = playbackRate;
+  }
+
+  /** Audio-clock time at which a timeline position sounds. */
+  getContextTimeAt(position: number): number {
+    return this.contextTime + (position - this.position) / this.playbackRate;
+  }
+
+  /** Timeline position at an audio-clock time, extrapolating before the run starts. */
+  getPositionAt(contextTime: number): number {
+    return this.position + (contextTime - this.contextTime) * this.playbackRate;
+  }
 }
