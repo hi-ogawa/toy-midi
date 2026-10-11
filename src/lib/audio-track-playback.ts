@@ -25,11 +25,13 @@ export class AudioTrackPlayback {
     output,
     eq,
     gain,
+    pan,
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
     eq: MultibandEqParameters;
     gain: number;
+    pan: number;
   }) {
     this.transport = transport;
     this.channel = new AudioChannel({
@@ -37,6 +39,7 @@ export class AudioTrackPlayback {
       output,
       eq,
       gain,
+      pan,
     });
     this.playbackGain = transport.context.createGain();
     this.playbackGain.connect(this.channel.input);

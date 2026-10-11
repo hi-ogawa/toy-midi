@@ -9,6 +9,7 @@ interface Mix {
   tracks: {
     eq: MultibandEqParameters;
     gain: number;
+    pan: number;
     regions: AudioPlaybackSource[];
   }[];
   masterGain: number;
@@ -21,6 +22,7 @@ export function resolveMix(state: EditorRuntimeState): Mix {
   const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
     eq: track.eq,
     gain: gains.get(track.id)!,
+    pan: track.pan,
     regions: getClipSources(track.regions),
   }));
   // Mixer toggles change sound, not the committed arrangement's extent.
@@ -64,6 +66,7 @@ export async function renderMix({
       output: master,
       eq: track.eq,
       gain: track.gain,
+      pan: track.pan,
     });
     for (const region of track.regions) {
       const source = context.createBufferSource();

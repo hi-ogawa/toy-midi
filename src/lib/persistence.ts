@@ -36,11 +36,14 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
     | "tabOpenStringPitches"
     | "keySignature"
     | "viewMode"
+    | "pan"
   > & {
     tabAnnotationEnabled?: boolean;
     tabOpenStringPitches?: number[];
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
+    // 🟢 Optional for MIDI tracks saved before pan support.
+    pan?: number;
   })[];
   // 🟢 Optional for recorder projects saved before track reordering.
   trackOrder?: string[];
@@ -97,6 +100,8 @@ interface SerializedAudioTrackState<ChannelData> {
   name?: string;
   height: number;
   gain: number;
+  // 🟢 Optional for tracks saved before pan support.
+  pan?: number;
   muted: boolean;
   soloed: boolean;
   // 🟢 Optional for tracks saved before they could record takes.
@@ -146,6 +151,7 @@ export function serializeEditorRuntimeState(
       height: track.height,
       eq: track.eq,
       gain: track.gain,
+      pan: track.pan,
       muted: track.muted,
       soloed: track.soloed,
       nextTakeNumber: track.nextTakeNumber,
@@ -196,12 +202,14 @@ export function deserializeEditorRuntimeState({
       ),
       eq: deserializeEq(track.eq),
       gain: track.gain,
+      pan: track.pan ?? 0,
       muted: track.muted,
       soloed: track.soloed,
     })),
     midiTracks: (project.midiTracks ?? []).map((track) => ({
       ...track,
       viewMode: track.viewMode ?? "editor",
+      pan: track.pan ?? 0,
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,
