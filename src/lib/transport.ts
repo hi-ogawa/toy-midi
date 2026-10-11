@@ -279,21 +279,17 @@ class PlaybackRun {
 
   /** The ranges sounding in an audio-clock window, in pass order. */
   getScheduledRanges(window: ContextTimeWindow): ScheduledRange[] {
+    const first = this.getPassAt(window.start);
+    if (!this.loopRange) {
+      return [createScheduledRange(first, window)];
+    }
     const ranges: ScheduledRange[] = [];
     for (
-      let pass: PlaybackPass | undefined = this.getPassAt(window.start);
-      pass && pass.contextTime < window.end;
-      pass = this.getPass(pass.index + 1)
+      let pass = first;
+      pass.contextTime < window.end;
+      pass = this.getLoopPass(pass.index + 1)
     ) {
-      // The window may begin before the pass does, or end after it.
-      ranges.push({
-        pass,
-        start:
-          Math.max(pass.start, pass.getPositionAt(window.start)) -
-          BOUNDARY_EPSILON,
-        end:
-          Math.min(pass.end, pass.getPositionAt(window.end)) - BOUNDARY_EPSILON,
-      });
+      ranges.push(createScheduledRange(pass, window));
     }
     return ranges;
   }
@@ -305,23 +301,18 @@ class PlaybackRun {
     }
     // Pass 0 ends only at loop-out, so from here on the run is looping.
     const sinceFirstPassEnd = contextTime - this.firstPassEnd;
-    return this.getPass(
+    return this.getLoopPass(
       1 + Math.floor(sinceFirstPassEnd / this.getLoopSeconds()),
-    )!;
+    );
   }
 
-  /** Pass `index`, or undefined past the last one. */
-  private getPass(index: number): PlaybackPass | undefined {
-    if (index === 0) {
-      return this.firstPass;
-    }
-    if (!this.loopRange) {
-      return undefined;
-    }
+  /** Loop pass `index`, counting the first pass after pass 0 as 1. */
+  private getLoopPass(index: number): PlaybackPass {
+    const loopRange = this.loopRange!;
     return new PlaybackPass({
       index,
-      start: this.loopRange.start,
-      end: this.loopRange.end,
+      start: loopRange.start,
+      end: loopRange.end,
       contextTime: this.firstPassEnd + (index - 1) * this.getLoopSeconds(),
       playbackRate: this.firstPass.playbackRate,
     });
@@ -331,6 +322,20 @@ class PlaybackRun {
     const loopRange = this.loopRange!;
     return (loopRange.end - loopRange.start) / this.firstPass.playbackRate;
   }
+}
+
+/** The part of a pass inside the window, as the range handed to participants. */
+function createScheduledRange(
+  pass: PlaybackPass,
+  window: ContextTimeWindow,
+): ScheduledRange {
+  // The window may begin before the pass does, or end after it.
+  return {
+    pass,
+    start:
+      Math.max(pass.start, pass.getPositionAt(window.start)) - BOUNDARY_EPSILON,
+    end: Math.min(pass.end, pass.getPositionAt(window.end)) - BOUNDARY_EPSILON,
+  };
 }
 
 /**
