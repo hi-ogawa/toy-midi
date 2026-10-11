@@ -60,19 +60,6 @@ export class AudioBufferPlayback implements TransportParticipant {
     );
   }
 
-  /** Fades out sounding slices and cancels slices queued for later passes. */
-  stop(): void {
-    this.disposeScheduling?.();
-    this.disposeScheduling = undefined;
-    this.player.stop();
-  }
-
-  dispose(): void {
-    this.unregister();
-    // Keep the clip connected until its stopped sources finish fading.
-    void this.player.waitForSilence().then(() => this.gain.disconnect());
-  }
-
   /** Queues one slice for each loop pass, in the first window that reaches it. */
   private schedule(range: ScheduledRange): void {
     if (this.nextPassIndex <= range.pass.index) {
@@ -108,6 +95,19 @@ export class AudioBufferPlayback implements TransportParticipant {
       duration: end - start,
       fadeIn: !continuesPreviousPass,
     });
+  }
+
+  /** Fades out sounding slices and cancels slices queued for later passes. */
+  stop(): void {
+    this.disposeScheduling?.();
+    this.disposeScheduling = undefined;
+    this.player.stop();
+  }
+
+  dispose(): void {
+    this.unregister();
+    // Keep the clip connected until its stopped sources finish fading.
+    void this.player.waitForSilence().then(() => this.gain.disconnect());
   }
 }
 
