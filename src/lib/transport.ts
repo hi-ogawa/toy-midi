@@ -56,7 +56,7 @@ type ContextTimeWindow = {
   to: number;
 };
 
-type LoopRange = {
+type LoopSecondsRange = {
   start: number;
   end: number;
 };
@@ -79,10 +79,10 @@ export class AudioContextTransport {
   playbackAnchor?: PlaybackAnchor;
   playbackRate = 1;
   /** The current run's loop, fixed when it starts, while `loopRange` is for the next run. */
-  private playbackLoopRange?: LoopRange;
+  private playbackLoopRange?: LoopSecondsRange;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
-  private loopRange?: LoopRange;
+  private loopRange?: LoopSecondsRange;
 
   constructor(readonly context: AudioContext) {}
 
@@ -143,7 +143,7 @@ export class AudioContextTransport {
    * Changes the loop range. Participants have already scheduled ahead with the
    * old wraps, so an actual change restarts playback from the current position.
    */
-  setLoopRange(loopRange?: LoopRange): void {
+  setLoopRange(loopRange?: LoopSecondsRange): void {
     if (
       loopRange?.start === this.loopRange?.start &&
       loopRange?.end === this.loopRange?.end
@@ -277,7 +277,7 @@ type PlaybackPass = {
 
 function getScheduledPasses(
   anchor: PlaybackAnchor,
-  loopRange: LoopRange | undefined,
+  loopRange: LoopSecondsRange | undefined,
   window: ContextTimeWindow,
 ): ScheduledPass[] {
   return getPlaybackPasses(anchor, loopRange, window).map((pass) => {
@@ -303,7 +303,7 @@ function getScheduledPasses(
 /** Lists the passes that overlap an audio-clock window, in order. */
 function getPlaybackPasses(
   anchor: PlaybackAnchor,
-  loopRange: LoopRange | undefined,
+  loopRange: LoopSecondsRange | undefined,
   window: ContextTimeWindow,
 ): PlaybackPass[] {
   const passes: PlaybackPass[] = [];
@@ -321,7 +321,7 @@ function getPlaybackPasses(
 /** The pass sounding at an audio-clock time, or pass 0 before the run starts. */
 function getPlaybackPassAt(
   anchor: PlaybackAnchor,
-  loopRange: LoopRange | undefined,
+  loopRange: LoopSecondsRange | undefined,
   contextTime: number,
 ): PlaybackPass {
   const sinceFirstWrap = loopRange
@@ -345,7 +345,7 @@ function getPlaybackPassAt(
  */
 function getLoopPass(
   anchor: PlaybackAnchor,
-  loopRange: LoopRange,
+  loopRange: LoopSecondsRange,
   index: number,
 ): PlaybackPass {
   const loopSeconds = (loopRange.end - loopRange.start) / anchor.playbackRate;
