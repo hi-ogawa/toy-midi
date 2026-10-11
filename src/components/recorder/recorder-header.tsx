@@ -41,6 +41,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -427,14 +428,13 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {/* Grouped from the project outward: working in it, taking it
+              out, getting help, then leaving it. */}
           <DropdownMenuItem onSelect={onProjectCommentToggle}>
             <NotebookPenIcon />
             Project Notes
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onHelpOpen}>
-            <CircleHelpIcon />
-            Help & Shortcuts
-          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={flags.isRecording}
             onSelect={onExportAudio}
@@ -460,6 +460,12 @@ export function RecorderHeader({
               </span>
             </span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onHelpOpen}>
+            <CircleHelpIcon />
+            Help & Shortcuts
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />
