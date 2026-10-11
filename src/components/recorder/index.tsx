@@ -359,7 +359,6 @@ export function Recorder({ projectId }: { projectId: string }) {
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
-        projectCommentOpen={isProjectCommentOpen}
         onProjectCommentToggle={() => setIsProjectCommentOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
         inputPanelOpen={isInputPanelOpen}

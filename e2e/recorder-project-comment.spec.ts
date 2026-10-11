@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { selectMenuItem } from "./helpers";
 import { createRecorderProject, saveRecorderProject } from "./recorder-helpers";
 
 test("keeps the project comment with the project", async ({ page }) => {
   // Open the notes panel, and write a chord chart into it.
   await createRecorderProject(page);
-  await page.getByTestId("recorder-project-comment-button").click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Project Notes" });
   const comment = page.getByTestId("recorder-project-comment-input");
   await comment.fill("## Chords\n| Dm7 | G7 |");
 

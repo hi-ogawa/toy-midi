@@ -88,7 +88,6 @@ export function RecorderHeader({
   onProjectCommentToggle,
   onHelpOpen,
   mixerOpen,
-  projectCommentOpen,
   inputPanelOpen,
   inputAccessRequired,
   onInputPanelToggle,
@@ -130,7 +129,6 @@ export function RecorderHeader({
   onProjectCommentToggle: () => void;
   onHelpOpen: () => void;
   mixerOpen: boolean;
-  projectCommentOpen: boolean;
   inputPanelOpen: boolean;
   inputAccessRequired: boolean;
   onInputPanelToggle: () => void;
@@ -399,20 +397,6 @@ export function RecorderHeader({
         <SlidersVerticalIcon className="size-5" />
       </Button>
       <Button
-        data-testid="recorder-project-comment-button"
-        onClick={onProjectCommentToggle}
-        aria-pressed={projectCommentOpen}
-        title="Project notes"
-        className={cn(
-          "size-9",
-          projectCommentOpen
-            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
-        )}
-      >
-        <NotebookPenIcon className="size-5" />
-      </Button>
-      <Button
         data-testid="recorder-input-panel-button"
         onClick={onInputPanelToggle}
         aria-pressed={inputPanelOpen}
@@ -443,6 +427,10 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onProjectCommentToggle}>
+            <NotebookPenIcon />
+            Project Notes
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={onHelpOpen}>
             <CircleHelpIcon />
             Help & Shortcuts
