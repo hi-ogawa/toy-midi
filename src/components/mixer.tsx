@@ -1,13 +1,15 @@
 import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../lib/music";
+import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
 import { MetronomeIcon } from "./icons";
 import { MixToggle } from "./mix-toggle";
+import { Knob } from "./ui/knob";
 import { Slider } from "./ui/slider";
 import { useDraftInput } from "./use-draft-input";
+import { usePointerDrag } from "./use-pointer-drag";
 
 export function Mixer({
   runtime,
@@ -119,7 +121,7 @@ function TrackChannel({
     <MixerChannel
       icon={icon}
       label={label}
-      pan={<PanSlider label={label} pan={pan} onPanChange={onPanChange} />}
+      pan={<PanKnob label={label} pan={pan} onPanChange={onPanChange} />}
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
@@ -223,7 +225,7 @@ function MixerChannel({
   );
 }
 
-function PanSlider({
+function PanKnob({
   label,
   pan,
   onPanChange,
@@ -232,19 +234,47 @@ function PanSlider({
   pan: number;
   onPanChange: (pan: number) => void;
 }) {
+  const setPan = (value: number) =>
+    onPanChange(clamp(Math.round(value * 100) / 100, -1, 1));
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return pan;
+    },
+    onMove: (_event, drag) => setPan(drag.data - drag.deltaY / 100),
+  });
   return (
-    <div className="flex w-full items-center gap-2">
-      <Slider
-        value={[pan]}
-        onValueChange={([value]) => onPanChange(value)}
-        min={-1}
-        max={1}
-        step={0.01}
+    // Equal side columns center the knob over the fader.
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <Knob
+        ref={ref}
         aria-label={`${label} pan`}
         aria-valuetext={formatPan(pan)}
-        className="flex-1"
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const next = {
+            ArrowLeft: pan - step,
+            ArrowDown: pan - step,
+            ArrowRight: pan + step,
+            ArrowUp: pan + step,
+            Home: -1,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPan(next);
+          }
+        }}
+        value={pan}
+        min={-1}
+        max={1}
+        origin={0}
+        className="col-start-2 cursor-ns-resize"
       />
-      <span className="w-8 text-right font-mono text-xs text-muted-foreground tabular-nums">
+      {/* Zero width, so a wide readout such as R100 spills over instead of
+          widening its column and the channel. */}
+      <span className="w-0 font-mono text-xs whitespace-nowrap text-muted-foreground tabular-nums">
         {formatPan(pan)}
       </span>
     </div>
