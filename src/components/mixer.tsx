@@ -44,6 +44,8 @@ export function Mixer({
         return (
           <TrackChannel
             key={entry.id}
+            pan={track.pan}
+            onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
             effectsOpen={openEffects.has(track.id)}
             onEffectsToggle={() => onEffectsToggle(track.id)}
             label={track.name}
@@ -87,10 +89,12 @@ const TRACK_ICONS = {
 
 function TrackChannel({
   label,
+  pan,
   gain,
   muted,
   soloed,
   icon,
+  onPanChange,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -98,10 +102,12 @@ function TrackChannel({
   onEffectsToggle,
 }: {
   label: string;
+  pan: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
   icon: ReactNode;
+  onPanChange: (pan: number) => void;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -113,6 +119,7 @@ function TrackChannel({
     <MixerChannel
       icon={icon}
       label={label}
+      pan={<PanSlider label={label} pan={pan} onPanChange={onPanChange} />}
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
@@ -162,6 +169,7 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
 function MixerChannel({
   icon,
   label,
+  pan,
   gain,
   onGainChange,
   inputProps,
@@ -170,6 +178,7 @@ function MixerChannel({
 }: {
   icon: ReactNode;
   label: string;
+  pan?: ReactNode;
   gain: number;
   onGainChange: (gain: number) => void;
   inputProps: ComponentProps<"input">;
@@ -187,6 +196,8 @@ function MixerChannel({
           {label}
         </span>
       </div>
+      {/* Every channel reserves the pan row so faders stay aligned. */}
+      <div className="flex h-6 w-full items-center">{pan}</div>
       <GainSlider
         label={`${label === "Metro" ? "Metronome" : label} gain`}
         gain={gain}
@@ -207,6 +218,44 @@ function MixerChannel({
       {action ?? <div className="h-8" />}
     </div>
   );
+}
+
+function PanSlider({
+  label,
+  pan,
+  onPanChange,
+}: {
+  label: string;
+  pan: number;
+  onPanChange: (pan: number) => void;
+}) {
+  return (
+    <div className="flex w-full items-center gap-2">
+      <Slider
+        value={[pan]}
+        onValueChange={([value]) => onPanChange(value)}
+        // Snap back to center, as faders do on double-click in most DAWs.
+        onDoubleClick={() => onPanChange(0)}
+        min={-1}
+        max={1}
+        step={0.01}
+        aria-label={`${label} pan`}
+        aria-valuetext={formatPan(pan)}
+        className="flex-1"
+      />
+      <span className="w-8 text-right font-mono text-xs text-muted-foreground tabular-nums">
+        {formatPan(pan)}
+      </span>
+    </div>
+  );
+}
+
+function formatPan(pan: number): string {
+  const percent = Math.round(Math.abs(pan) * 100);
+  if (percent === 0) {
+    return "C";
+  }
+  return `${pan < 0 ? "L" : "R"}${percent}`;
 }
 
 export function GainSlider({

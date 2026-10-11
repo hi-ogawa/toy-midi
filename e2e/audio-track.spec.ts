@@ -7,7 +7,7 @@ import {
   getPosition,
   saveProject,
 } from "./editor-helpers";
-import { selectMenuItem } from "./helpers";
+import { selectMenuItem, setSliderValue } from "./helpers";
 
 test("uploads and plays a backing track", async ({ page }) => {
   await createProject(page);
@@ -146,6 +146,11 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await expect(
     audio.getByRole("button", { name: "Toggle Audio 2 solo" }),
   ).toHaveAttribute("aria-pressed", "true");
+
+  // Pan backing audio left.
+  const audioPan = audio.getByRole("slider", { name: "Audio 2 pan" });
+  await setSliderValue(audioPan, [-0.3]);
+  await expect(audioPan).toHaveAttribute("aria-valuetext", "L30");
 
   // Close the panel without dismissing the project.
   await panel.getByRole("button", { name: "Close Mixer" }).click();
