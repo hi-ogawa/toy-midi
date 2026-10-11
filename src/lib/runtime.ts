@@ -286,10 +286,6 @@ export function createDefaultEditorRuntimeState(): EditorRuntimeState {
  * clip edits. Other changes, such as tempo and mix, are not undoable.
  */
 export class EditorRuntime {
-  /**
-   * Read with `get()`. `update()` changes state without updating playback,
-   * so use the runtime methods to make changes.
-   */
   readonly store = createStore(createDefaultEditorRuntimeState);
 
   readonly context = new AudioContext();
