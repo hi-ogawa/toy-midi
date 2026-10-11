@@ -75,11 +75,10 @@ export class AudioBufferPlayback implements TransportParticipant {
 
   /** Queues one slice for each loop pass, in the first window that reaches it. */
   private schedule(range: ScheduledRange): void {
-    if (range.pass.index < this.nextPassIndex) {
-      return;
+    if (this.nextPassIndex < range.pass.index) {
+      this.nextPassIndex = range.pass.index + 1;
+      this.startSlice(range);
     }
-    this.nextPassIndex = range.pass.index + 1;
-    this.startSlice(range);
   }
 
   /** Plays the part of the region inside one pass. */
