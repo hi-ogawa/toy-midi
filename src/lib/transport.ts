@@ -32,6 +32,12 @@ type TransportState = {
   isPlaying: boolean;
 };
 
+/** Half-open audio-clock window `[start, end)`. */
+type ContextTimeWindow = {
+  start: number;
+  end: number;
+};
+
 /**
  * The part of the run's pass that one scheduling tick covers, as a half-open
  * timeline range `[start, end)` of point events such as clicks and note starts.
@@ -48,12 +54,6 @@ export type ScheduledPass = {
   passEnd: number;
   /** Timeline position where this tick enters the pass, without the boundary shift. */
   startPosition: number;
-};
-
-/** Half-open audio-clock window `[start, end)`. */
-type ContextTimeWindow = {
-  start: number;
-  end: number;
 };
 
 type LoopSecondsRange = {
