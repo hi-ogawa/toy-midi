@@ -180,18 +180,7 @@ export class AudioContextTransport {
     const contextTime = this.context.currentTime;
     return contextTime < playbackAnchor.contextTime
       ? playbackAnchor.position
-      : this.getPlaybackPositionAt(contextTime);
-  }
-
-  /**
-   * Projects an audio-clock time to timeline position, wrapping at loop-out and
-   * extrapolating before the run starts.
-   */
-  getPlaybackPositionAt(contextTime: number): number {
-    return getPlaybackPassAt(
-      this.playbackAnchor!,
-      contextTime,
-    ).anchor.getPositionAt(contextTime);
+      : playbackAnchor.getPositionAt(contextTime);
   }
 
   /**
@@ -319,8 +308,21 @@ function getPlaybackPassAt(
   const sinceFirstWrap = loopRange
     ? contextTime - anchor.getContextTimeAt(loopRange.end)
     : -1;
-  if (!loopRange || sinceFirstWrap < 0) {
-    return { index: 0, anchor, end: loopRange?.end ?? Infinity };
+  if (!loopRange) {
+    return { index: 0, anchor, end: Infinity };
+  }
+  if (sinceFirstWrap < 0) {
+    // Pass 0 maps the run's start linearly, without wrapping at loop-out.
+    const { contextTime: start, position, playbackRate } = anchor;
+    return {
+      index: 0,
+      anchor: new PlaybackAnchor({
+        contextTime: start,
+        position,
+        playbackRate,
+      }),
+      end: loopRange.end,
+    };
   }
   const loopSeconds = (loopRange.end - loopRange.start) / anchor.playbackRate;
   return getLoopPass(
@@ -382,13 +384,21 @@ class PlaybackAnchor {
     this.loopRange = loopRange;
   }
 
-  /** Audio-clock time at which a timeline position sounds. */
+  /** Audio-clock time at which a timeline position sounds, in the first pass. */
   getContextTimeAt(position: number): number {
     return this.contextTime + (position - this.position) / this.playbackRate;
   }
 
-  /** Timeline position at an audio-clock time, extrapolating before the run starts. */
+  /**
+   * Timeline position at an audio-clock time, wrapping at loop-out and
+   * extrapolating before the run starts.
+   */
   getPositionAt(contextTime: number): number {
+    if (this.loopRange) {
+      return getPlaybackPassAt(this, contextTime).anchor.getPositionAt(
+        contextTime,
+      );
+    }
     return this.position + (contextTime - this.contextTime) * this.playbackRate;
   }
 }

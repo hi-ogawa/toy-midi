@@ -854,7 +854,7 @@ export class EditorRuntime {
     const playbackStartFrame = playbackAnchor.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
     const timelineOffset =
-      this.transport.getPlaybackPositionAt(startFrame / context.sampleRate) -
+      playbackAnchor.getPositionAt(startFrame / context.sampleRate) -
       this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
     const state = this.store.get();
