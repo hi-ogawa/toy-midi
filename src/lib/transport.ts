@@ -1,8 +1,18 @@
 import { createStore } from "../utils/store.ts";
-import { startAnimationFrameLoop } from "../utils/timing.ts";
+import { startAnimationFrameLoop, startInterval } from "../utils/timing.ts";
 
 /** Gives every participant time to schedule against the same future audio frame. */
 const PLAYBACK_LEAD_SECONDS = 0.03;
+/** Must exceed main-thread timer jitter so the audio clock never outruns scheduling. */
+const SCHEDULE_AHEAD_SECONDS = 0.1;
+const SCHEDULER_INTERVAL_MS = 25;
+/**
+ * Event times and the playhead are converted from beats separately, so an event
+ * meant to sit exactly on the playhead can land a rounding error before it.
+ * Scheduled spans shift both ends back by this much, so such an event still
+ * plays and consecutive spans still share their boundary.
+ */
+const BOUNDARY_EPSILON = 1e-9;
 
 /** A playback object whose lifecycle follows this transport. */
 export interface TransportParticipant {
@@ -16,9 +26,49 @@ type TransportState = {
   isPlaying: boolean;
 };
 
-type PlaybackAnchor = {
-  contextTime: number;
-  position: number;
+/**
+ * One playback run on the audio clock. Timeline `position` sounds at
+ * `contextTime` and advances at `playbackRate`.
+ */
+class PlaybackRun {
+  readonly contextTime: number;
+  readonly position: number;
+  readonly playbackRate: number;
+
+  constructor({
+    contextTime,
+    position,
+    playbackRate,
+  }: {
+    contextTime: number;
+    position: number;
+    playbackRate: number;
+  }) {
+    this.contextTime = contextTime;
+    this.position = position;
+    this.playbackRate = playbackRate;
+  }
+
+  /** Audio-clock time at which a timeline position sounds. */
+  getContextTimeAt(position: number): number {
+    return this.contextTime + (position - this.position) / this.playbackRate;
+  }
+
+  /** Timeline position at an audio-clock time, extrapolating before the run starts. */
+  getPositionAt(contextTime: number): number {
+    return this.position + (contextTime - this.contextTime) * this.playbackRate;
+  }
+}
+
+/**
+ * Half-open timeline span `[start, end)` whose point events, such as clicks and
+ * note starts, one scheduling tick queues. Each event belongs to exactly one
+ * span.
+ */
+export type ScheduledSpan = {
+  start: number;
+  end: number;
+  run: PlaybackRun;
 };
 
 type LoopRange = {
@@ -37,11 +87,8 @@ export class AudioContextTransport {
     isPlaying: false,
   }));
 
-  /**
-   * Maps an absolute AudioContext time to the playhead position at which the
-   * current playback run begins. It is available to participants during start.
-   */
-  playbackAnchor?: PlaybackAnchor;
+  /** The current playback run. It is available to participants during start. */
+  playbackRun?: PlaybackRun;
   playbackRate = 1;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
@@ -58,7 +105,7 @@ export class AudioContextTransport {
     };
   }
 
-  /** Schedules every participant against one shared future playback anchor. */
+  /** Schedules every participant against one shared future playback run. */
   play(): void {
     if (this.store.get().isPlaying) {
       return;
@@ -83,7 +130,7 @@ export class AudioContextTransport {
       participant.stop();
     }
     const finalPosition = this.getPublishedPlaybackPosition();
-    this.playbackAnchor = undefined;
+    this.playbackRun = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
   }
@@ -128,27 +175,43 @@ export class AudioContextTransport {
   }
 
   /**
-   * Converts an absolute AudioContext time to published playback position while
-   * excluding the scheduling lead before the playback anchor.
+   * Converts the current AudioContext time to published playback position while
+   * excluding the scheduling lead before the run starts.
    */
   getPublishedPlaybackPosition(): number {
-    const playbackAnchor = this.playbackAnchor!;
+    const playbackRun = this.playbackRun!;
     return Math.max(
-      playbackAnchor.position,
-      this.getPlaybackPositionByContextTime(this.context.currentTime),
+      playbackRun.position,
+      playbackRun.getPositionAt(this.context.currentTime),
     );
   }
 
   /**
-   * Converts an absolute AudioContext time to its exact position relative to the
-   * active playback anchor. This intentionally includes playback warmup lead time.
+   * Hands `schedule` consecutive timeline spans of the current run, each
+   * reaching a little past the current audio time, until the returned disposer
+   * runs. The timer only decides when events are queued, while the times they
+   * are queued at stay exact on the audio clock.
    */
-  getPlaybackPositionByContextTime(contextTime: number): number {
-    const playbackAnchor = this.playbackAnchor!;
-    return (
-      playbackAnchor.position +
-      (contextTime - playbackAnchor.contextTime) * this.playbackRate
-    );
+  startScheduling(schedule: (span: ScheduledSpan) => void): () => void {
+    const run = this.playbackRun!;
+    let scheduledUntil = run.contextTime;
+    const tick = () => {
+      const to = this.context.currentTime + SCHEDULE_AHEAD_SECONDS;
+      if (to <= scheduledUntil) {
+        return;
+      }
+      // A stalled timer or a restart mid-run can leave part of the span in the
+      // past. Skip it rather than queue events to play late.
+      const from = Math.max(scheduledUntil, this.context.currentTime);
+      schedule({
+        start: run.getPositionAt(from) - BOUNDARY_EPSILON,
+        end: run.getPositionAt(to) - BOUNDARY_EPSILON,
+        run,
+      });
+      scheduledUntil = to;
+    };
+    tick();
+    return startInterval(tick, SCHEDULER_INTERVAL_MS);
   }
 
   /** Publishes audio-clock position on animation frames while playing. */
@@ -180,10 +243,11 @@ export class AudioContextTransport {
   }
 
   private startParticipants(position: number): void {
-    this.playbackAnchor = {
+    this.playbackRun = new PlaybackRun({
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position,
-    };
+      playbackRate: this.playbackRate,
+    });
     this.store.update({ position, isPlaying: true });
     for (const participant of this.participants) {
       participant.start();

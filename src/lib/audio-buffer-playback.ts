@@ -42,28 +42,26 @@ export class AudioBufferPlayback implements TransportParticipant {
     );
   }
 
-  /** Schedules the slice from the transport anchor, seeking or delaying as needed. */
+  /** Schedules the slice from the playback run, seeking or delaying as needed. */
   start(): void {
     const playbackSource = this.playbackSource;
     if (!playbackSource) {
       return;
     }
-    const playbackAnchor = this.transport.playbackAnchor!;
+    const playbackRun = this.transport.playbackRun!;
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
       playbackSource;
-    const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
+    const elapsed = Math.max(0, playbackRun.position - timelineStart);
     const duration = timelineEnd - timelineStart;
     if (elapsed >= duration) {
       return;
     }
-    const startTime =
-      playbackAnchor.contextTime +
-      Math.max(0, timelineStart - playbackAnchor.position) /
-        this.transport.playbackRate;
     this.player.start({
       buffer,
-      playbackRate: this.transport.playbackRate,
-      time: startTime,
+      playbackRate: playbackRun.playbackRate,
+      time: playbackRun.getContextTimeAt(
+        Math.max(timelineStart, playbackRun.position),
+      ),
       offset: timelineStart - timelineOffset + elapsed,
       duration: duration - elapsed,
     });
