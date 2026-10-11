@@ -10,7 +10,9 @@ const SCHEDULER_INTERVAL_MS = 25;
 /**
  * Event timelines and loop boundaries are converted from beats separately, so
  * an event meant to sit exactly on a boundary can land a rounding error to
- * either side of it.
+ * either side of it. Event ranges shift both ends back by this much, so such an
+ * event still falls on its intended side and consecutive windows still share
+ * their boundary.
  */
 const BOUNDARY_EPSILON = 1e-9;
 
@@ -303,9 +305,6 @@ function getScheduledPasses(
     return {
       ...pass,
       startPosition,
-      // Shift both ends back by the same epsilon, so an event a rounding error
-      // before a boundary still falls on its intended side while consecutive
-      // windows keep sharing their boundary.
       eventRange: {
         start: startPosition - BOUNDARY_EPSILON,
         end: endPosition - BOUNDARY_EPSILON,
