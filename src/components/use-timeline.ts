@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ProjectUiStore } from "../lib/preferences";
+import type { EditorRuntime } from "../lib/runtime";
 import {
   DEFAULT_GRID_DIVISION,
   getBeatsPerBar,
@@ -9,18 +10,17 @@ import {
   MIN_PIXELS_PER_BEAT,
   secondsToBeats,
 } from "../lib/timeline";
-import type { TransportStore } from "../lib/transport";
 import type { TimeSignature } from "../types";
 
 export function useTimeline({
   projectUiStore,
-  transportStore,
+  runtime,
   isPlaying,
   tempo,
   timeSignature,
 }: {
   projectUiStore: ProjectUiStore;
-  transportStore: TransportStore;
+  runtime: EditorRuntime;
   isPlaying: boolean;
   tempo: number;
   timeSignature: TimeSignature;
@@ -44,7 +44,10 @@ export function useTimeline({
       return;
     }
     function follow() {
-      const playheadBeat = secondsToBeats(transportStore.get().position, tempo);
+      const playheadBeat = secondsToBeats(
+        runtime.transport.store.get().position,
+        tempo,
+      );
       const visibleBeats = viewportWidth / pixelsPerBeat;
       if (
         playheadBeat < viewportStartBeat ||
@@ -54,13 +57,13 @@ export function useTimeline({
       }
     }
     follow();
-    return transportStore.subscribe(follow);
+    return runtime.transport.store.subscribe(follow);
   }, [
     autoScrollEnabled,
     isPlaying,
     pixelsPerBeat,
     tempo,
-    transportStore,
+    runtime,
     viewportStartBeat,
     viewportWidth,
   ]);

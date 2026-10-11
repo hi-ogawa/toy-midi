@@ -16,8 +16,6 @@ type TransportState = {
   isPlaying: boolean;
 };
 
-export type TransportStore = AudioContextTransport["store"];
-
 type PlaybackAnchor = {
   contextTime: number;
   position: number;

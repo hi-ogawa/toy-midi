@@ -23,7 +23,7 @@ import { useTapTempo } from "../hooks/use-tap-tempo";
 import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
 import { routes } from "../lib/routes";
-import type { LoopState, PunchState } from "../lib/runtime";
+import type { EditorRuntime, LoopState, PunchState } from "../lib/runtime";
 import { formatTimeWithMilliseconds } from "../lib/time-format";
 import {
   formatBarBeatAtTime,
@@ -31,7 +31,6 @@ import {
   type GridDivision,
   GRID_DIVISIONS,
 } from "../lib/timeline";
-import type { TransportStore } from "../lib/transport";
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../types";
 import type { EditorFlags } from "./flags";
 import { MetronomeIcon } from "./icons";
@@ -62,7 +61,7 @@ export function Header({
   masterGain,
   loop,
   punch,
-  transportStore,
+  runtime,
   playbackRate,
   tempo,
   timeSignature,
@@ -103,7 +102,7 @@ export function Header({
   masterGain: number;
   loop: LoopState;
   punch: PunchState;
-  transportStore: TransportStore;
+  runtime: EditorRuntime;
   playbackRate: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -191,7 +190,7 @@ export function Header({
       <RangeControl
         kind="loop"
         state={loop}
-        transportStore={transportStore}
+        runtime={runtime}
         tempo={tempo}
         timeSignature={timeSignature}
         onChange={onLoopChange}
@@ -199,7 +198,7 @@ export function Header({
       <RangeControl
         kind="punch"
         state={punch}
-        transportStore={transportStore}
+        runtime={runtime}
         tempo={tempo}
         timeSignature={timeSignature}
         onChange={onPunchChange}
@@ -231,7 +230,7 @@ export function Header({
         <LocateFixedIcon className="size-5" />
       </Button>
       <PlaybackPosition
-        transportStore={transportStore}
+        runtime={runtime}
         tempo={tempo}
         timeSignature={timeSignature}
       />
@@ -474,15 +473,15 @@ export function Header({
 }
 
 function PlaybackPosition({
-  transportStore,
+  runtime,
   tempo,
   timeSignature,
 }: {
-  transportStore: TransportStore;
+  runtime: EditorRuntime;
   tempo: number;
   timeSignature: TimeSignature;
 }) {
-  const position = usePlaybackPosition(transportStore);
+  const position = usePlaybackPosition(runtime);
   return (
     <output
       data-testid="recorder-position"

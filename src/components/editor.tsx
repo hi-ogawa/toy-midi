@@ -89,7 +89,7 @@ export function Editor({ projectId }: { projectId: string }) {
   });
   const timeline = useTimeline({
     projectUiStore,
-    transportStore: runtime.transport.store,
+    runtime,
     isPlaying: state.isPlaying,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
@@ -310,7 +310,7 @@ export function Editor({ projectId }: { projectId: string }) {
         masterGain={state.masterGain}
         loop={state.loop}
         punch={state.punch}
-        transportStore={runtime.transport.store}
+        runtime={runtime}
         playbackRate={state.playbackRate}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -367,7 +367,7 @@ export function Editor({ projectId }: { projectId: string }) {
           />
           <div className="relative">
             <TimelinePlayhead
-              transportStore={runtime.transport.store}
+              runtime={runtime}
               tempo={timeline.tempo}
               pixelsPerBeat={timeline.pixelsPerBeat}
               viewportStartBeat={timeline.viewportStartBeat}
@@ -401,7 +401,7 @@ export function Editor({ projectId }: { projectId: string }) {
             {state.referenceVideo && (
               <ReferenceTimelineRow
                 referenceVideo={clipInteraction.referenceVideo!}
-                transportStore={runtime.transport.store}
+                runtime={runtime}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}

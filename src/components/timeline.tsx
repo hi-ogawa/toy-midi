@@ -18,6 +18,7 @@ import type {
   PunchRange,
   PunchState,
   ReferenceVideoState,
+  EditorRuntime,
 } from "../lib/runtime";
 import { formatTimeMinutes } from "../lib/time-format";
 import {
@@ -26,7 +27,6 @@ import {
   secondsToBeats,
 } from "../lib/timeline";
 import { getTimelineGridBackground } from "../lib/timeline-grid";
-import type { TransportStore } from "../lib/transport";
 import { AudioWaveformView } from "./audio-waveform";
 import { openFilePicker } from "./file-drop-input";
 import { MixToggle } from "./mix-toggle";
@@ -42,19 +42,19 @@ import { cn } from "./ui/utils";
 import { usePlaybackPosition } from "./use-playback-position";
 
 export function TimelinePlayhead({
-  transportStore,
+  runtime,
   tempo,
   pixelsPerBeat,
   viewportStartBeat,
   viewportWidth,
 }: {
-  transportStore: TransportStore;
+  runtime: EditorRuntime;
   tempo: number;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   viewportWidth: number;
 }) {
-  const position = usePlaybackPosition(transportStore);
+  const position = usePlaybackPosition(runtime);
   const x =
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   if (x < 0 || viewportWidth < x) {
@@ -594,7 +594,7 @@ export function AudioTimelineLane({
 
 export function ReferenceTimelineRow({
   referenceVideo,
-  transportStore,
+  runtime,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
@@ -613,7 +613,7 @@ export function ReferenceTimelineRow({
   onRemove,
 }: {
   referenceVideo: ReferenceVideoState;
-  transportStore: TransportStore;
+  runtime: EditorRuntime;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
@@ -663,7 +663,7 @@ export function ReferenceTimelineRow({
         </div>
         <div className="col-span-2 flex items-center gap-1.5 font-mono text-[11px] leading-3.5 text-neutral-400">
           <ReferenceVideoTime
-            transportStore={transportStore}
+            runtime={runtime}
             timelineStart={referenceVideo.timelineStart}
           />
           <span className="text-neutral-600">/</span>
@@ -710,13 +710,13 @@ export function ReferenceTimelineRow({
 }
 
 function ReferenceVideoTime({
-  transportStore,
+  runtime,
   timelineStart,
 }: {
-  transportStore: TransportStore;
+  runtime: EditorRuntime;
   timelineStart: number;
 }) {
-  const position = usePlaybackPosition(transportStore);
+  const position = usePlaybackPosition(runtime);
   return (
     <span>{formatTimeMinutes(Math.max(0, position - timelineStart))}</span>
   );

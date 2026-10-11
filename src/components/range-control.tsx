@@ -1,7 +1,6 @@
 import { ChevronDownIcon, Repeat2Icon, ScanLineIcon } from "lucide-react";
-import type { LoopState } from "../lib/runtime";
+import type { EditorRuntime, LoopState } from "../lib/runtime";
 import { getBeatsPerBar, secondsToBeats } from "../lib/timeline";
-import type { TransportStore } from "../lib/transport";
 import type { TimeSignature } from "../types";
 import { Button } from "./ui/button";
 import {
@@ -15,14 +14,14 @@ import { cn } from "./ui/utils";
 export function RangeControl({
   kind,
   state,
-  transportStore,
+  runtime,
   tempo,
   timeSignature,
   onChange,
 }: {
   kind: "loop" | "punch";
   state: LoopState;
-  transportStore: TransportStore;
+  runtime: EditorRuntime;
   tempo: number;
   timeSignature: TimeSignature;
   onChange: (update: Partial<LoopState>) => void;
@@ -33,7 +32,10 @@ export function RangeControl({
 
   function setAtPlayhead() {
     const beatsPerBar = getBeatsPerBar(timeSignature);
-    const playheadBeat = secondsToBeats(transportStore.get().position, tempo);
+    const playheadBeat = secondsToBeats(
+      runtime.transport.store.get().position,
+      tempo,
+    );
     const startBeat = Math.floor(playheadBeat / beatsPerBar) * beatsPerBar;
     onChange({
       range: { startBeat, endBeat: startBeat + beatsPerBar },

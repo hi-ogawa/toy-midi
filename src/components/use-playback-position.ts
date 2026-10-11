@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from "react";
-import type { TransportStore } from "../lib/transport";
+import type { EditorRuntime } from "../lib/runtime";
 
 /** Re-renders the caller on every playhead move, so keep callers small. */
-export function usePlaybackPosition(transportStore: TransportStore): number {
+export function usePlaybackPosition(runtime: EditorRuntime): number {
   return useSyncExternalStore(
-    transportStore.subscribe,
-    () => transportStore.get().position,
+    runtime.transport.store.subscribe,
+    () => runtime.transport.store.get().position,
   );
 }
