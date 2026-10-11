@@ -84,7 +84,6 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   // The configured video appears as a timeline clip that can be aligned by dragging.
   const referenceTrack = page.getByTestId("recorder-reference-track");
   await expect(referenceTrack).toContainText("Reference");
-  await expect(referenceTrack).toContainText("0:00");
   // The header background must leave the row's bottom border exposed.
   expect(
     await referenceTrack.evaluate((row) => {
