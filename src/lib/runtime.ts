@@ -156,8 +156,6 @@ export interface EditorRuntimeState {
   title: string;
   comment: string;
   locators: Locator[];
-  /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
-  position: number;
   isPlaying: boolean;
   /** Playback speed, 1 being normal */
   playbackRate: number;
@@ -245,7 +243,6 @@ export function createDefaultEditorRuntimeState(): EditorRuntimeState {
     title: "Untitled",
     comment: "",
     locators: [],
-    position: 0,
     isPlaying: false,
     playbackRate: 1,
     tempo: 120,
@@ -283,8 +280,8 @@ export class EditorRuntime {
   readonly store = createStore(createDefaultEditorRuntimeState);
 
   readonly context = new AudioContext();
+  readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
-  private readonly transport: AudioContextTransport;
   /** @internal */
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
@@ -300,16 +297,17 @@ export class EditorRuntime {
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
-    this.transport = new AudioContextTransport(this.context);
     this.metronome = new Metronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
     this.metronome.setTempo(this.store.get().tempo);
     this.metronome.setTimeSignature(this.store.get().timeSignature);
     this.syncLoopRange();
-    this.transport.store.subscribe(() => {
-      const { position, isPlaying } = this.transport.store.get();
-      this.store.update({ isPlaying, position });
+    this.transport.store.subscribeWithSelector({
+      selector: (state) => state.isPlaying,
+      listener: () =>
+        this.store.update({ isPlaying: this.transport.store.get().isPlaying }),
+      equals: Object.is,
     });
   }
 
@@ -1166,7 +1164,6 @@ export class EditorRuntime {
       ...project,
       audioTracks,
       trackOrder: syncTrackOrder({ ...project, audioTracks }),
-      position: 0,
     });
     this.syncYouTubePlayer();
     this.transport.seek(0);

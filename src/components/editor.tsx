@@ -35,6 +35,7 @@ import { ScorePanel, useScorePanelUi } from "./score-panel";
 import {
   ReferenceTimelineRow,
   TimelineHeader,
+  TimelinePlayhead,
   AudioTimelineLane,
 } from "./timeline";
 import {
@@ -88,8 +89,8 @@ export function Editor({ projectId }: { projectId: string }) {
   });
   const timeline = useTimeline({
     projectUiStore,
+    runtime,
     isPlaying: state.isPlaying,
-    position: state.position,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
@@ -223,7 +224,7 @@ export function Editor({ projectId }: { projectId: string }) {
     }
     if (matchKeyboardEvent(event, "Ctrl+V")) {
       const beat = snapToGrid(
-        secondsToBeats(state.position, state.tempo),
+        secondsToBeats(runtime.transport.store.get().position, state.tempo),
         1 / timeline.subdivisionsPerBeat,
       );
       if (midiInteraction.paste(beat)) {
@@ -273,8 +274,8 @@ export function Editor({ projectId }: { projectId: string }) {
         : 0;
     if (seekDirection !== 0 && !flags.isRecording) {
       event.preventDefault();
-      const position = Math.max(0, state.position + seekDirection * 5);
-      runtime.seek(position);
+      const { position } = runtime.transport.store.get();
+      runtime.seek(Math.max(0, position + seekDirection * 5));
       return;
     }
     if (matchKeyboardEvent(event, "Space")) {
@@ -309,7 +310,7 @@ export function Editor({ projectId }: { projectId: string }) {
         masterGain={state.masterGain}
         loop={state.loop}
         punch={state.punch}
-        position={state.position}
+        runtime={runtime}
         playbackRate={state.playbackRate}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -365,15 +366,13 @@ export function Editor({ projectId }: { projectId: string }) {
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
           />
           <div className="relative">
-            {timeline.showPlayhead && (
-              <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
-                <div
-                  data-testid="recorder-playhead"
-                  className="absolute inset-y-0 w-px bg-sky-400"
-                  style={{ left: timeline.playheadX }}
-                />
-              </div>
-            )}
+            <TimelinePlayhead
+              runtime={runtime}
+              tempo={timeline.tempo}
+              pixelsPerBeat={timeline.pixelsPerBeat}
+              viewportStartBeat={timeline.viewportStartBeat}
+              viewportWidth={timeline.viewportWidth}
+            />
             <TimelineHeader
               pixelsPerBeat={timeline.pixelsPerBeat}
               beatsPerBar={timeline.beatsPerBar}

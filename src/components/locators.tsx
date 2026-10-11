@@ -30,7 +30,7 @@ export function useLocatorInteraction({
     const beat = Math.max(
       0,
       snapToGrid(
-        secondsToBeats(state.position, state.tempo),
+        secondsToBeats(runtime.transport.store.get().position, state.tempo),
         1 / subdivisionsPerBeat,
       ),
     );
