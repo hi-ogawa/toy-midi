@@ -154,11 +154,6 @@ export type RecorderLocatorUpdate = {
 
 export interface RecorderRuntimeState {
   title: string;
-  /**
-   * Free-form notes on the project that the user and the agent share, such as
-   * the brief, a chord chart, decisions with their reasons, and feedback.
-   * Markdown by convention.
-   */
   comment: string;
   locators: RecorderLocator[];
   /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
