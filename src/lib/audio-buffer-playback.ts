@@ -177,10 +177,7 @@ class DeclickedBufferPlayer {
     this.sources.add(source);
   }
 
-  /**
-   * Fades out every source still playing and stops each once silent. A source
-   * queued to start later stops before it starts, so it never sounds.
-   */
+  /** Fades out every source still playing and stops each once silent. */
   stop(): void {
     for (const source of this.sources) {
       if (!source.stopped) {
