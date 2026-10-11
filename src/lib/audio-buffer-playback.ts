@@ -98,7 +98,6 @@ export class AudioBufferPlayback implements TransportParticipant {
     });
   }
 
-  /** Fades out sounding slices and cancels slices queued for later passes. */
   stop(): void {
     this.disposeScheduling?.();
     this.disposeScheduling = undefined;
@@ -178,7 +177,10 @@ class DeclickedBufferPlayer {
     this.sources.add(source);
   }
 
-  /** Fades out every source still playing and stops each once silent. */
+  /**
+   * Fades out every source still playing and stops each once silent. A source
+   * queued to start later stops before it starts, so it never sounds.
+   */
   stop(): void {
     for (const source of this.sources) {
       if (!source.stopped) {
