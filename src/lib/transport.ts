@@ -218,10 +218,8 @@ export class AudioContextTransport {
       // part of the window in the past. Skip it rather than queue events to play
       // late.
       const from = Math.max(scheduledUntil, this.context.currentTime);
-      const passes = getScheduledPasses(anchor, loopRange, {
-        start: from,
-        end: to,
-      });
+      const window = { start: from, end: to };
+      const passes = getScheduledPasses(anchor, loopRange, window);
       for (const pass of passes) {
         schedule(pass);
       }
