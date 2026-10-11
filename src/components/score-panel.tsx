@@ -120,6 +120,7 @@ function ScorePreview({
   );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
+  // Attach the score runtime to its root, and dispose it on unmount.
   useEffect(() => {
     const root = rootRef.current;
     if (!root) {
@@ -130,6 +131,7 @@ function ScorePreview({
     return () => runtime.dispose();
   }, [runtime]);
 
+  // Fit the score's scale to the viewport once attached and whenever it resizes.
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root || !isRuntimeAttached) {

@@ -68,11 +68,12 @@ export function AudioToMidi({
   );
   const [progress, setProgress] = useState(0);
   const conversionController = useRef<AbortController>(undefined);
-  useEffect(() => {
-    bassPitchClient.warmUp();
-    return () =>
-      conversionController.current?.abort(CONVERSION_CANCELLED_ERROR);
-  }, []);
+  useEffect(() => bassPitchClient.warmUp(), []);
+  // Cancel a running conversion when the panel unmounts.
+  useEffect(
+    () => () => conversionController.current?.abort(CONVERSION_CANCELLED_ERROR),
+    [],
+  );
 
   const transcribeMutation = useMutation({
     mutationFn: async () => {

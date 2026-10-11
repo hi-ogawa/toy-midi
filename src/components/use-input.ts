@@ -70,7 +70,7 @@ export function useInput({
     },
   });
 
-  // refresh on mount and watch for device changes
+  // Refresh the inputs on mount and whenever a device is added or removed.
   useEffect(() => {
     const refreshInputs = () => refreshMutation.mutate();
     refreshInputs();

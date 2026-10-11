@@ -41,6 +41,8 @@ export function useTimeline({
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
+  // Page the viewport forward when the playhead nears its right edge or leaves
+  // it during playback with auto-scroll on.
   useEffect(() => {
     if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
       return;
