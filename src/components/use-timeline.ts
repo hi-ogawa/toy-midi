@@ -43,7 +43,7 @@ export function useTimeline({
     if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
       return;
     }
-    function follow() {
+    function keepPlayheadInView() {
       const position = runtime.transport.store.get().position;
       const playheadBeat = secondsToBeats(position, tempo);
       const visibleBeats = viewportWidth / pixelsPerBeat;
@@ -54,8 +54,8 @@ export function useTimeline({
         setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
       }
     }
-    follow();
-    return runtime.transport.store.subscribe(follow);
+    keepPlayheadInView();
+    return runtime.transport.store.subscribe(keepPlayheadInView);
   }, [
     autoScrollEnabled,
     isPlaying,
