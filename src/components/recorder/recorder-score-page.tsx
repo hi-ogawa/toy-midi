@@ -59,11 +59,7 @@ async function getRecorderProjectScoreSource({
       keySignature: track.keySignature ?? DEFAULT_KEY_SIGNATURE,
       openStringPitches:
         track.tabOpenStringPitches ?? DEFAULT_TAB_OPEN_STRING_PITCHES,
-      locators: (project.locators ?? []).map(({ id, beat, label }) => ({
-        id,
-        position: beat,
-        label,
-      })),
+      locators: project.locators ?? [],
     }),
   };
 }

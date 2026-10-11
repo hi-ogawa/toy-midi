@@ -1,4 +1,4 @@
-import type { LegacyLocator, Note, TimeSignature } from "../../types";
+import type { Note, TimeSignature } from "../../types";
 import { range } from "../../utils/array";
 import { parseLocatorLabel } from "../locators";
 import {
@@ -6,6 +6,7 @@ import {
   type SpelledPitch,
   spellMidiPitch,
 } from "../pitch-spelling";
+import type { RecorderLocator } from "../recorder/runtime";
 import { resolveTabPosition, type TabPosition } from "../tab-annotation";
 import { getBeatsPerBar } from "../timeline";
 import {
@@ -21,7 +22,7 @@ export type MusicXmlModelOptions = {
   timeSignature: TimeSignature;
   keySignature: KeySignature;
   openStringPitches: readonly number[];
-  locators: LegacyLocator[];
+  locators: RecorderLocator[];
   /** Rebase the score to its first occupied measure. Defaults to true. */
   trimLeadingEmptyMeasures?: boolean;
 };
@@ -53,7 +54,11 @@ export type QuantizedNote = PreparedNote & {
   pitch: SpelledPitch;
 };
 
-type PreparedLocator = LegacyLocator & {
+type PreparedLocator = {
+  id: string;
+  label: string;
+  /** In MusicXML grid units */
+  position: number;
   keySignature?: KeySignature;
 };
 
@@ -246,7 +251,7 @@ function prepareLocators({
   locators,
   measureDuration,
 }: {
-  locators: LegacyLocator[];
+  locators: RecorderLocator[];
   measureDuration: number;
 }): {
   preparedLocators: PreparedLocator[];
@@ -254,9 +259,9 @@ function prepareLocators({
 } {
   const preparedLocators: PreparedLocator[] = [];
   const keySignatureEvents: KeySignatureEvent[] = [];
-  for (const locator of locators.toSorted((a, b) => a.position - b.position)) {
+  for (const locator of locators.toSorted((a, b) => a.beat - b.beat)) {
     const position = toGridUnits(
-      locator.position,
+      locator.beat,
       `position of locator ${locator.id}`,
     );
     const parsed = parseLocatorLabel(locator);

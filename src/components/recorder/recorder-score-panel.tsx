@@ -156,11 +156,7 @@ function RecorderScorePreview({
             timeSignature,
             keySignature,
             openStringPitches: tabOpenStringPitches,
-            locators: locators.map(({ id, beat, label }) => ({
-              id,
-              position: beat,
-              label,
-            })),
+            locators,
             trimLeadingEmptyMeasures: false,
           }),
         },
