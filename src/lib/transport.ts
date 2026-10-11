@@ -168,8 +168,8 @@ export class AudioContextTransport {
   getPublishedPlaybackPosition(): number {
     const run = this.playbackRun!;
     const contextTime = this.context.currentTime;
-    return contextTime < run.first.contextTime
-      ? run.first.start
+    return contextTime < run.firstPass.contextTime
+      ? run.firstPass.start
       : run.getPositionAt(contextTime);
   }
 
@@ -181,7 +181,7 @@ export class AudioContextTransport {
    */
   startScheduleLoop(schedule: (range: ScheduledRange) => void): () => void {
     const run = this.playbackRun!;
-    let scheduledUntil = run.first.contextTime;
+    let scheduledUntil = run.firstPass.contextTime;
     const tick = () => {
       const to = this.context.currentTime + SCHEDULE_AHEAD_SECONDS;
       if (to <= scheduledUntil) {
@@ -246,8 +246,8 @@ export class AudioContextTransport {
  * loop-out and begins the instant the previous one ends.
  */
 class PlaybackRun {
-  readonly first: PlaybackPass;
-  private readonly firstEnd: number;
+  readonly firstPass: PlaybackPass;
+  private readonly firstPassEnd: number;
   private readonly loopRange?: LoopSecondsRange;
 
   constructor({
@@ -261,14 +261,14 @@ class PlaybackRun {
     playbackRate: number;
     loopRange?: LoopSecondsRange;
   }) {
-    this.first = new PlaybackPass({
+    this.firstPass = new PlaybackPass({
       index: 0,
       start: position,
       end: loopRange?.end ?? Infinity,
       contextTime,
       playbackRate,
     });
-    this.firstEnd = this.first.getContextTimeAt(this.first.end);
+    this.firstPassEnd = this.firstPass.getContextTimeAt(this.firstPass.end);
     this.loopRange = loopRange;
   }
 
@@ -300,18 +300,20 @@ class PlaybackRun {
 
   /** The pass sounding at an audio-clock time, or pass 0 before the run starts. */
   private getPassAt(contextTime: number): PlaybackPass {
-    if (contextTime < this.firstEnd) {
-      return this.first;
+    if (contextTime < this.firstPassEnd) {
+      return this.firstPass;
     }
     // Pass 0 ends only at loop-out, so from here on the run is looping.
-    const sinceFirstEnd = contextTime - this.firstEnd;
-    return this.getPass(1 + Math.floor(sinceFirstEnd / this.getLoopSeconds()))!;
+    const sinceFirstPassEnd = contextTime - this.firstPassEnd;
+    return this.getPass(
+      1 + Math.floor(sinceFirstPassEnd / this.getLoopSeconds()),
+    )!;
   }
 
   /** Pass `index`, or undefined past the last one. */
   private getPass(index: number): PlaybackPass | undefined {
     if (index === 0) {
-      return this.first;
+      return this.firstPass;
     }
     if (!this.loopRange) {
       return undefined;
@@ -320,14 +322,14 @@ class PlaybackRun {
       index,
       start: this.loopRange.start,
       end: this.loopRange.end,
-      contextTime: this.firstEnd + (index - 1) * this.getLoopSeconds(),
-      playbackRate: this.first.playbackRate,
+      contextTime: this.firstPassEnd + (index - 1) * this.getLoopSeconds(),
+      playbackRate: this.firstPass.playbackRate,
     });
   }
 
   private getLoopSeconds(): number {
     const loopRange = this.loopRange!;
-    return (loopRange.end - loopRange.start) / this.first.playbackRate;
+    return (loopRange.end - loopRange.start) / this.firstPass.playbackRate;
   }
 }
 

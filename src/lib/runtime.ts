@@ -851,7 +851,7 @@ export class EditorRuntime {
     this.getTrackPlayback(trackId).setPlaybackGain(0);
     // Trim samples captured during playback lead time.
     const run = this.transport.playbackRun!;
-    const playbackStartFrame = run.first.contextTime * context.sampleRate;
+    const playbackStartFrame = run.firstPass.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
     const timelineOffset =
       run.getPositionAt(startFrame / context.sampleRate) -
