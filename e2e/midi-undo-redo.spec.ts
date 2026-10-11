@@ -23,8 +23,8 @@ test("undoes and redoes MIDI groups while cancelling drafts and clearing stale h
     pitch: "C4",
   });
   const e4 = await createMidiNote(page, row, { beat: 1, pitch: "E4" });
-  const notes = row.getByTestId("recorder-midi-grid").locator("[data-note-id]");
-  const save = page.getByTestId("recorder-save-button");
+  const notes = row.getByTestId("midi-grid").locator("[data-note-id]");
+  const save = page.getByTestId("save-button");
   await saveProject(page);
   await c4.click();
   await e4.click({ modifiers: ["Control"] });
@@ -99,7 +99,7 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
 }) => {
   // Create a note on the first track, then add a second track after it.
   await createProject(page);
-  const rows = page.getByTestId("recorder-midi-track-row");
+  const rows = page.getByTestId("midi-track-row");
   const first = await addMidiTrack(page);
   const note = await createMidiNote(page, first, {
     beat: 0.5,
@@ -114,12 +114,12 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
     option: "33: Electric Bass (finger)",
   });
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByTestId("recorder-mixer-button").click();
+  await page.getByTestId("mixer-button").click();
   const level = page.getByRole("textbox", { name: "MIDI 1 level in dB" });
   await level.fill("-6");
   await level.press("Enter");
   await expect(first).toContainText("-6.0 dB");
-  await page.getByTestId("recorder-mixer-button").click();
+  await page.getByTestId("mixer-button").click();
 
   // Delete the first track and leave only the second track visible.
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Remove track" });
@@ -146,7 +146,7 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await expect(note).toBeVisible();
   await page.keyboard.press("Control+z");
   await expect(
-    first.getByTestId("recorder-midi-grid").locator("[data-note-id]"),
+    first.getByTestId("midi-grid").locator("[data-note-id]"),
   ).toHaveCount(0);
   await page.keyboard.press("Control+z");
   await expect(rows).toHaveCount(0);
@@ -156,7 +156,7 @@ test("undoes and redoes MIDI track creation, note edits, and deletion in order",
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("MIDI 1");
   await expect(
-    first.getByTestId("recorder-midi-grid").locator("[data-note-id]"),
+    first.getByTestId("midi-grid").locator("[data-note-id]"),
   ).toHaveCount(0);
   await page.keyboard.press("Control+Shift+z");
   await expect(note).toHaveAttribute("data-note-id", noteId!);

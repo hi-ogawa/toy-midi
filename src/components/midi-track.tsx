@@ -165,7 +165,7 @@ export function MidiTrackRow({
   return (
     <div onFocus={midiInteraction.activate}>
       <TrackRow
-        data-testid="recorder-midi-track-row"
+        data-testid="midi-track-row"
         // Anchor the keyboard’s top edge to the controls so pitch scrolling keeps it visible.
         controlsClassName={
           track.viewMode === "editor"
@@ -240,7 +240,7 @@ export function MidiTrackRow({
         )}
       </TrackRow>
       <Dialog
-        data-testid="recorder-midi-instrument"
+        data-testid="midi-instrument"
         isOpen={isInstrumentOpen}
         title={`${track.name} instrument`}
         onClose={() => setIsInstrumentOpen(false)}
@@ -359,7 +359,7 @@ function MidiTrackOverview({
 }) {
   return (
     <div
-      data-testid="recorder-midi-overview"
+      data-testid="midi-overview"
       role="img"
       aria-label={`${track.name} note overview, ${pluralCount(track.notes.length, "note")}`}
       className="relative col-start-2 row-start-1 overflow-hidden bg-neutral-900"
@@ -421,7 +421,7 @@ function MidiTrackOverviewNotes({
       {octavePitches.map((pitch) => (
         <div
           key={pitch}
-          data-testid="recorder-midi-octave-guide"
+          data-testid="midi-octave-guide"
           data-pitch={pitch}
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 border-t border-neutral-600/60"
@@ -663,7 +663,7 @@ function MidiTrackEditor({
 
   return (
     <div
-      data-testid="recorder-midi-pitch-scroll"
+      data-testid="midi-pitch-scroll"
       className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scrollbar-thin"
       ref={scrollRef}
       onBlur={handleBlur}
@@ -687,7 +687,7 @@ function MidiTrackEditor({
           />
         </div>
         <div
-          data-testid="recorder-midi-grid"
+          data-testid="midi-grid"
           className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-400"
           role="group"
           aria-label={`${track.name} notes`}
@@ -742,7 +742,7 @@ function MidiTrackEditor({
             })}
           {boxSelection && (
             <div
-              data-testid="recorder-midi-box-selection"
+              data-testid="midi-box-selection"
               className="pointer-events-none absolute border border-blue-300 bg-blue-400/20"
               style={getMidiBoxSelectionRect({
                 selection: boxSelection,

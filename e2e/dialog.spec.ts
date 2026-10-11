@@ -29,7 +29,7 @@ test("instrument dialog isolates shortcuts", async ({ page }) => {
     "aria-pressed",
     "false",
   );
-  await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
+  await expect(page.getByTestId("save-button")).toHaveAttribute(
     "data-status",
     "unsaved",
   );

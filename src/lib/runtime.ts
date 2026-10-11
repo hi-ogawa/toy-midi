@@ -268,7 +268,7 @@ export function createDefaultEditorRuntimeState(): EditorRuntimeState {
 }
 
 /**
- * The open recorder project: its state, audio graph, and playback.
+ * The open project: its state, audio graph, and playback.
  *
  * Read state with `store.get()`, and change it only through the methods,
  * because they also update playback, the metronome, and undo history.
@@ -1467,7 +1467,7 @@ export function deriveClipEditState(
       return referenceVideo;
     }
     if (!referenceVideo) {
-      throw new Error("Recorder clip state is missing.");
+      throw new Error("Clip state is missing.");
     }
     return { ...referenceVideo, timelineStart: move.timelineOffset };
   }

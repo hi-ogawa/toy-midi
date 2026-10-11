@@ -16,7 +16,7 @@ export function ScorePage({
 }) {
   // Keep a saved snapshot for this page, as with the legacy score route.
   const scoreQuery = useQuery({
-    queryKey: ["recorder-project-score", projectId, trackId],
+    queryKey: ["project-score", projectId, trackId],
     queryFn: () => getProjectScoreSource({ projectId, trackId }),
     staleTime: Infinity,
     retry: false,

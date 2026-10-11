@@ -62,7 +62,7 @@ export function TimelinePlayhead({
   return (
     <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
       <div
-        data-testid="recorder-playhead"
+        data-testid="playhead"
         className="absolute inset-y-0 w-px bg-sky-400"
         style={{ left: x }}
       />
@@ -118,7 +118,7 @@ export function TimelineHeader({
         <div className="flex-1" />
         <div className="flex gap-1">
           <Button
-            data-testid="recorder-add-midi-track"
+            data-testid="add-midi-track"
             onClick={onAddMidiTrack}
             disabled={isAddingMidi}
             className="size-6 hover:bg-neutral-700"
@@ -135,7 +135,7 @@ export function TimelineHeader({
             <PlusIcon className="size-3.5" />
           </Button>
           <Button
-            data-testid="recorder-add-audio-file"
+            data-testid="add-audio-file"
             disabled={isAddingAudio || isRecording}
             onClick={() =>
               openFilePicker({
@@ -218,7 +218,7 @@ function TimelineRuler({
     ) + 1;
   return (
     <div
-      data-testid="recorder-timeline-ruler"
+      data-testid="timeline-ruler"
       data-viewport-start-beat={viewportStartBeat}
       className="relative cursor-pointer bg-neutral-800 font-mono text-[10px] text-neutral-400"
       {...getTimelineSurfaceProps({
@@ -327,7 +327,7 @@ function TimelineRange({
   onChange: (range: LoopRange) => void;
   onClear: () => void;
 }) {
-  const testIdPrefix = `recorder-${label.toLowerCase()}`;
+  const testIdPrefix = `${label.toLowerCase()}`;
   const minimumLength = 1 / subdivisionsPerBeat;
   const dragRef = usePointerGesture({
     onStart: (event) => {
@@ -628,7 +628,7 @@ export function ReferenceTimelineRow({
 }) {
   return (
     <div
-      data-testid="recorder-reference-track"
+      data-testid="reference-track"
       className="grid h-15 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
@@ -648,7 +648,7 @@ export function ReferenceTimelineRow({
             </DropdownMenuContent>
           </DropdownMenu>
           <MixToggle
-            data-testid="recorder-reference-video-mute"
+            data-testid="reference-video-mute"
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
@@ -821,7 +821,7 @@ function TimelineClip({
   );
   return (
     <div
-      data-testid={`recorder-clip-${clip.testId}`}
+      data-testid={`clip-${clip.testId}`}
       data-selected={selected ? "true" : undefined}
       ref={onEditUpdate ? dragRef : undefined}
       className={cn(
@@ -869,14 +869,14 @@ function TimelineClip({
       )}
       {(selected || (hidePresentation && isDragging)) && (
         <div
-          data-testid="recorder-clip-selection"
+          data-testid="clip-selection"
           className="pointer-events-none absolute inset-0 rounded-[inherit] border border-sky-300 ring-1 ring-inset ring-sky-300"
         />
       )}
       {canTrim && (
         <div
           ref={trimStartRef}
-          data-testid="recorder-clip-trim-start"
+          data-testid="clip-trim-start"
           onClick={(event) => event.stopPropagation()}
           className="absolute inset-y-0 -left-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:left-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />
@@ -884,7 +884,7 @@ function TimelineClip({
       {canTrim && (
         <div
           ref={trimEndRef}
-          data-testid="recorder-clip-trim-end"
+          data-testid="clip-trim-end"
           onClick={(event) => event.stopPropagation()}
           className="absolute inset-y-0 -right-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:right-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />

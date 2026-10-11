@@ -9,8 +9,8 @@ test("previews a clip move, cancels through release, and persists a committed mo
   await createProject(page);
   await addAudio(page, "e2e/fixtures/test-audio.wav");
   await saveProject(page);
-  const clip = page.getByTestId("recorder-clip-audio-source");
-  const save = page.getByTestId("recorder-save-button");
+  const clip = page.getByTestId("clip-audio-source");
+  const save = page.getByTestId("save-button");
   const original = (await clip.boundingBox())!;
   const delta = DEFAULT_PIXELS_PER_BEAT;
 

@@ -7,9 +7,7 @@ import {
   seekByPixels,
 } from "./editor-helpers";
 
-test("keeps recorder clip and locator selection domains exclusive", async ({
-  page,
-}) => {
+test("keeps clip and locator selection domains exclusive", async ({ page }) => {
   await createProject(page);
   const add = page.getByRole("button", { name: "Add locator at playhead" });
   const marker = page.getByRole("button", { name: "Section 1", exact: true });
@@ -18,7 +16,7 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
 
   // Selecting a locator after a waveform makes Delete remove only the locator.
   await addAudio(page, "e2e/fixtures/test-audio.wav");
-  const audio = page.getByTestId("recorder-clip-audio-source");
+  const audio = page.getByTestId("clip-audio-source");
   await audio.click();
   await expect(audio).toHaveAttribute("data-selected", "true");
   await marker.click();
@@ -38,7 +36,7 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   await expect(audio).toHaveAttribute("data-selected", "true");
 
   // Clicking empty space in either timeline domain clears the active selection.
-  const locatorLane = page.getByTestId("recorder-locator-lane");
+  const locatorLane = page.getByTestId("locator-lane");
   const locatorLaneBox = await locatorLane.boundingBox();
   expect(locatorLaneBox).not.toBeNull();
   await locatorLane.click({
@@ -47,7 +45,7 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   await expect(audio).not.toHaveAttribute("data-selected", "true");
   await marker.click();
   // The imported clip is on a new track after the empty Audio 1.
-  const audioRow = page.getByTestId("recorder-audio-track-row").nth(1);
+  const audioRow = page.getByTestId("audio-track-row").nth(1);
   const audioRowBox = await audioRow.boundingBox();
   expect(audioRowBox).not.toBeNull();
   await audioRow.click({
@@ -57,7 +55,7 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
 
   // Starting a clip trim activates and selects the clip domain.
   await marker.click();
-  await dragBy(page, audio.getByTestId("recorder-clip-trim-end"), -10);
+  await dragBy(page, audio.getByTestId("clip-trim-end"), -10);
   await expect(marker).toHaveAttribute("aria-pressed", "false");
   await expect(audio).toHaveAttribute("data-selected", "true");
 

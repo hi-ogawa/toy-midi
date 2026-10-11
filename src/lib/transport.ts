@@ -79,20 +79,20 @@ type TransportState = {
 };
 
 /**
- * Owns recorder position and synchronizes registered playback objects to one
+ * Owns the playhead position and synchronizes registered playback objects to one
  * AudioContext timeline. The audio clock is the ground truth: a run fixes how
  * it maps to timeline position, including every loop wrap, and participants
  * schedule ahead in audio-clock order. Position is only published from it.
  */
 export class AudioContextTransport {
-  /** Published transport state consumed by recorder runtime and UI. */
+  /** Published transport state consumed by the editor runtime and UI. */
   readonly store = createStore<TransportState>(() => ({
     position: 0,
     isPlaying: false,
   }));
 
   /**
-   * Maps the AudioContext clock to recorder position for the current run. It is
+   * Maps the AudioContext clock to playhead position for the current run. It is
    * available to participants during start.
    */
   playbackRun?: PlaybackRun;

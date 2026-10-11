@@ -16,7 +16,7 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
   // Create two notes and select them as one clipboard group.
   await createProject(page);
   const row = await addMidiTrack(page);
-  const grid = row.getByTestId("recorder-midi-grid");
+  const grid = row.getByTestId("midi-grid");
   const notes = grid.locator("[data-note-id]");
   const originalC4 = await createMidiNote(page, row, {
     beat: 0,
@@ -34,7 +34,7 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
   // Copy the notes, then coarsen the grid so pasting must snap an off-grid playhead.
   await page.keyboard.press("Control+c");
   await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2.25);
-  await page.getByTestId("recorder-grid-snap-select").click();
+  await page.getByTestId("grid-snap-select").click();
   await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
   await expect.poll(() => getBeat(page)).toBe(2.25);
   await page.keyboard.press("Control+v");
@@ -61,7 +61,7 @@ test("copies selected MIDI notes and pastes them at the playhead", async ({
   await expect(pastedE4).toBeVisible();
 
   // Save and reload the project to preserve the pasted notes.
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
   await saveProject(page);
   await page.reload();
@@ -96,7 +96,7 @@ test("keeps note clipboard separate from selected text and focused inputs", asyn
 
   // Copy and paste inside the tempo input without editing notes or replacing their clipboard.
   await e4.click();
-  const tempo = page.getByTestId("recorder-tempo-input");
+  const tempo = page.getByTestId("tempo-input");
   await tempo.focus();
   await tempo.selectText();
   await page.keyboard.press("Control+c");

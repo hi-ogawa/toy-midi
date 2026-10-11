@@ -13,7 +13,7 @@ test("duplicates selected MIDI notes by modifier-dragging", async ({
   // Create two notes and save the project before duplicating them.
   await createProject(page);
   const row = await addMidiTrack(page);
-  const grid = row.getByTestId("recorder-midi-grid");
+  const grid = row.getByTestId("midi-grid");
   const notes = grid.locator("[data-note-id]");
   const originalC4 = await createMidiNote(page, row, {
     beat: 0,
@@ -24,7 +24,7 @@ test("duplicates selected MIDI notes by modifier-dragging", async ({
     pitch: "E4",
   });
   const cellWidth = (await originalC4.boundingBox())!.width;
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await saveProject(page);
 
   async function selectOriginals() {
