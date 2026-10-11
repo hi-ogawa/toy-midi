@@ -63,7 +63,7 @@ export class Metronome implements TransportParticipant {
     for (let index = firstIndex; index < endIndex; index++) {
       this.scheduleClick({
         accent: index % this.timeSignature.numerator === 0,
-        contextTime: pass.run.getContextTimeAt(index * this.secondsPerClick),
+        contextTime: pass.anchor.getContextTimeAt(index * this.secondsPerClick),
       });
     }
   }

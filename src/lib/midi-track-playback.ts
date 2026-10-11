@@ -129,8 +129,8 @@ export class MidiTrackPlayback implements TransportParticipant {
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,
-        startTime: pass.run.getContextTimeAt(start),
-        endTime: pass.run.getContextTimeAt(end),
+        startTime: pass.anchor.getContextTimeAt(start),
+        endTime: pass.anchor.getContextTimeAt(end),
       });
     }
   }
