@@ -66,7 +66,7 @@ export class AudioContextTransport {
   }));
 
   /** The current playback run. It is available to participants during start. */
-  run?: PlaybackRun;
+  playbackRun?: PlaybackRun;
   playbackRate = 1;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
@@ -108,7 +108,7 @@ export class AudioContextTransport {
       participant.stop();
     }
     const finalPosition = this.getPublishedPlaybackPosition();
-    this.run = undefined;
+    this.playbackRun = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
   }
@@ -166,7 +166,7 @@ export class AudioContextTransport {
    * the scheduling lead before it.
    */
   getPublishedPlaybackPosition(): number {
-    const run = this.run!;
+    const run = this.playbackRun!;
     const contextTime = this.context.currentTime;
     return contextTime < run.first.contextTime
       ? run.first.start
@@ -180,7 +180,7 @@ export class AudioContextTransport {
    * are queued at stay exact on the audio clock.
    */
   startScheduleLoop(schedule: (range: ScheduledRange) => void): () => void {
-    const run = this.run!;
+    const run = this.playbackRun!;
     let scheduledUntil = run.first.contextTime;
     const tick = () => {
       const to = this.context.currentTime + SCHEDULE_AHEAD_SECONDS;
@@ -220,7 +220,7 @@ export class AudioContextTransport {
   }
 
   private startParticipants(position: number): void {
-    this.run = new PlaybackRun({
+    this.playbackRun = new PlaybackRun({
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position,
       playbackRate: this.playbackRate,
