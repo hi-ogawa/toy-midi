@@ -182,15 +182,9 @@ export interface EditorRuntimeState {
   selectedChannel: number;
   /** In seconds, subtracted from each take's timeline position */
   latencyCompensation: number;
-  /**
-   * Monitoring plays through the armed track's channel, so it is only on
-   * while input is on and a track is armed.
-   */
+  /** Only on while input is on and a track is armed. */
   inputMonitoring: boolean;
-  /**
-   * The track the next take records into. Input monitoring also routes
-   * through it.
-   */
+  /** The track the next take records into. */
   armedTrackId?: string;
 }
 
@@ -809,7 +803,6 @@ export class EditorRuntime {
     this.transport.pause();
   }
 
-  /** Move the playhead, in seconds. */
   seek(position: number): void {
     this.transport.seek(position);
   }
@@ -1045,7 +1038,6 @@ export class EditorRuntime {
     };
   }
 
-  /** In seconds */
   setReferenceVideoTimelineStart(timelineStart: number): void {
     const referenceVideo = this.store.get().referenceVideo;
     if (!referenceVideo) {

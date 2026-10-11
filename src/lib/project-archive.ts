@@ -75,8 +75,6 @@ function writeProjectContent(
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
       // Convert every PCM field the project type allows, mirroring the reader.
-      // Saves no longer produce a single clip, but E2E tests export one to
-      // build archives in the older shape.
       clip: track.clip
         ? {
             ...track.clip,
@@ -96,8 +94,6 @@ function writeProjectContent(
         ),
       })),
     })),
-    // Saves keep the Capture track in audioTracks, but E2E tests export a
-    // separate recording track to build archives in the older shape.
     recordingTrack: content.recordingTrack && {
       ...content.recordingTrack,
       takes: content.recordingTrack.takes.map((take, takeIndex) => ({

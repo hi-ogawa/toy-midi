@@ -227,8 +227,7 @@ function foldRecordingTrack(
 ): SerializedAudioTrackState<Float32Array>[] {
   const { recordingTrack } = project;
   if (!recordingTrack) {
-    // Earlier saves already stored Capture in audioTracks, usually first, but
-    // the UI split it out and rendered it last. Preserve that displayed order.
+    // Earlier saves already stored Capture in audioTracks, usually first.
     return project.audioTracks.toSorted(
       (a, b) =>
         Number(a.id === RECORDING_TRACK_ID) -
