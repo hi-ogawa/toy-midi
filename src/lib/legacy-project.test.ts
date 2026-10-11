@@ -3,7 +3,7 @@ import { convertLegacyProject } from "./legacy-project";
 import {
   createDefaultLegacySavedProject,
   type LegacySavedProject,
-} from "./project-store";
+} from "./legacy-project-store";
 
 vi.hoisted(() => {
   vi.stubGlobal("AudioWorkletNode", class {});

@@ -1,15 +1,15 @@
-import { projectStorage } from "./lib/editor-project-storage";
 import {
   legacyProjectStorage,
-  seedProjectLegacyV2,
-  seedProjectLegacyV1,
+  seedLegacyProjectV2,
+  seedLegacyProjectV1,
   seedLegacyLayoutV1Project,
-} from "./lib/project-storage";
+} from "./lib/legacy-project-storage";
+import { projectStorage } from "./lib/project-storage";
 
 const utils = {
   legacyProjectStorage,
-  seedProjectLegacyV2,
-  seedProjectLegacyV1,
+  seedLegacyProjectV2,
+  seedLegacyProjectV1,
   seedLegacyLayoutV1Project,
   projectStorage,
 };

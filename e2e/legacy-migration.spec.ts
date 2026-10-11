@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import type {
   LegacySavedProject,
   LegacySavedProjectV1,
-} from "../src/lib/project-store";
+} from "../src/lib/legacy-project-store";
 import { getMidiNote } from "./editor-helpers";
 
 const LEGACY_PROJECT: LegacySavedProject = {
@@ -51,7 +51,7 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
     await page.evaluate(
       async ({ project, audio, format }) => {
         if (format === "v2") {
-          await window.__e2e.seedProjectLegacyV2({
+          await window.__e2e.seedLegacyProjectV2({
             name: "Legacy song",
             project,
             audioData: { backing: audio },
@@ -69,7 +69,7 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
             audioVolume: track.volume,
             audioMuted: track.muted,
           };
-          await window.__e2e.seedProjectLegacyV1("Legacy song", legacy, audio);
+          await window.__e2e.seedLegacyProjectV1("Legacy song", legacy, audio);
         } else {
           const assetKey = await window.__e2e.legacyProjectStorage.saveAsset(
             new File([audio], "legacy-audio.wav", { type: "audio/wav" }),

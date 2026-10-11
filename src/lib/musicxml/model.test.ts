@@ -47,9 +47,9 @@ describe("MusicXML model", () => {
   it("places rehearsal marks at measure boundaries and local offsets", () => {
     const model = buildModel([makeNote({ duration: 8 })], {
       locators: [
-        { id: "section-a", position: 0, label: "A" },
-        { id: "section-b", position: 6, label: "B" },
-        { id: "section-c", position: 4, label: "C" },
+        { id: "section-a", beat: 0, label: "A" },
+        { id: "section-b", beat: 6, label: "B" },
+        { id: "section-c", beat: 4, label: "C" },
       ],
     });
 
@@ -65,9 +65,9 @@ describe("MusicXML model", () => {
   it("orders rehearsal marks while preserving duplicate positions", () => {
     const model = buildModel([makeNote({ duration: 4 })], {
       locators: [
-        { id: "section-c", position: 3, label: "C" },
-        { id: "section-a", position: 1, label: "A" },
-        { id: "section-b", position: 1, label: "B" },
+        { id: "section-c", beat: 3, label: "C" },
+        { id: "section-a", beat: 1, label: "A" },
+        { id: "section-b", beat: 1, label: "B" },
       ],
     });
 
@@ -80,7 +80,7 @@ describe("MusicXML model", () => {
 
   it("ignores rehearsal marks after the final note", () => {
     const model = buildModel([makeNote()], {
-      locators: [{ id: "section-b", position: 4, label: "B" }],
+      locators: [{ id: "section-b", beat: 4, label: "B" }],
     });
 
     expect(model.measures.map((measure) => measure.locators)).toEqual([[]]);
@@ -88,7 +88,7 @@ describe("MusicXML model", () => {
 
   it("shifts rehearsal marks with trimmed empty measures", () => {
     const model = buildModel([makeNote({ start: 12 })], {
-      locators: [{ id: "section-a", position: 12, label: "A" }],
+      locators: [{ id: "section-a", beat: 12, label: "A" }],
     });
 
     expect(model.measures[0].locators).toEqual([{ label: "A", offset: 0 }]);
@@ -97,7 +97,7 @@ describe("MusicXML model", () => {
   it("rejects an off-grid rehearsal mark", () => {
     expect(() =>
       buildModel([makeNote()], {
-        locators: [{ id: "section-a", position: 0.1, label: "A" }],
+        locators: [{ id: "section-a", beat: 0.1, label: "A" }],
       }),
     ).toThrow("position of locator section-a is not aligned");
   });
@@ -114,7 +114,7 @@ describe("MusicXML model", () => {
       // bar 2 in G-flat
       {
         id: "last-chorus",
-        position: 4,
+        beat: 4,
         label: "Last chorus [!key: Gb major]",
       },
     ];
@@ -153,7 +153,7 @@ describe("MusicXML model", () => {
       {
         locators: [
           // bar 2
-          { id: "earlier-key", position: 8, label: "[!key: E♭ major]" },
+          { id: "earlier-key", beat: 8, label: "[!key: E♭ major]" },
         ],
       },
     );
@@ -175,33 +175,33 @@ describe("MusicXML model", () => {
   it.each([
     {
       label: "[!key: F# major]",
-      position: 0,
+      beat: 0,
       error: "must be after beat 0",
     },
     {
       label: "[!key: F# major]",
-      position: 2,
+      beat: 2,
       error: "must be at the start of a measure",
     },
     {
       label: "[!tempo: 120]",
-      position: 4,
+      beat: 4,
       error: "Unknown score directive tempo",
     },
     {
       label: "[!key F# major]",
-      position: 4,
+      beat: 4,
       error: "Malformed score directive",
     },
     {
       label: "[!key: D# major]",
-      position: 4,
+      beat: 4,
       error: 'Unsupported key signature "D# major"',
     },
-  ])("rejects invalid score directive $label", ({ label, position, error }) => {
+  ])("rejects invalid score directive $label", ({ label, beat, error }) => {
     expect(() =>
       buildModel([makeNote({ duration: 8 })], {
-        locators: [{ id: "invalid", position, label }],
+        locators: [{ id: "invalid", beat, label }],
       }),
     ).toThrow(error);
   });
@@ -210,8 +210,8 @@ describe("MusicXML model", () => {
     expect(() =>
       buildModel([makeNote({ duration: 8 })], {
         locators: [
-          { id: "first", position: 4, label: "[!key: F# major]" },
-          { id: "second", position: 4, label: "[!key: Eb minor]" },
+          { id: "first", beat: 4, label: "[!key: F# major]" },
+          { id: "second", beat: 4, label: "[!key: Eb minor]" },
         ],
       }),
     ).toThrow("Multiple key signature locators are at the same measure");
