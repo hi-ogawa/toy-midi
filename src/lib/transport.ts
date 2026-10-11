@@ -21,7 +21,7 @@ export interface TransportParticipant {
 }
 
 /** Timeline seconds between loop-in and loop-out. */
-export type LoopRange = {
+type LoopSecondsRange = {
   start: number;
   end: number;
 };
@@ -35,7 +35,7 @@ export type PlaybackRun = {
   contextTime: number;
   position: number;
   playbackRate: number;
-  loopRange?: LoopRange;
+  loopRange?: LoopSecondsRange;
 };
 
 /**
@@ -99,7 +99,7 @@ export class AudioContextTransport {
   playbackRate = 1;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
-  private loopRange?: LoopRange;
+  private loopRange?: LoopSecondsRange;
 
   constructor(readonly context: AudioContext) {}
 
@@ -159,7 +159,7 @@ export class AudioContextTransport {
    * Changes the loop range. The run has already scheduled ahead with the old
    * wraps, so an actual change restarts it from the current position.
    */
-  setLoopRange(loopRange?: LoopRange): void {
+  setLoopRange(loopRange?: LoopSecondsRange): void {
     if (
       loopRange?.start === this.loopRange?.start &&
       loopRange?.end === this.loopRange?.end
@@ -377,7 +377,7 @@ function getPlaybackPassAt(
  */
 function getLoopPass(
   run: PlaybackRun,
-  loopRange: LoopRange,
+  loopRange: LoopSecondsRange,
   index: number,
 ): PlaybackPass {
   const loopSeconds = (loopRange.end - loopRange.start) / run.playbackRate;
@@ -390,6 +390,9 @@ function getLoopPass(
   };
 }
 
-function getFirstWrapTime(run: PlaybackRun, loopRange: LoopRange): number {
+function getFirstWrapTime(
+  run: PlaybackRun,
+  loopRange: LoopSecondsRange,
+): number {
   return run.contextTime + (loopRange.end - run.position) / run.playbackRate;
 }
