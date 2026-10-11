@@ -34,12 +34,12 @@ type TransportState = {
 /**
  * The part of the run's pass that one scheduling tick covers, as a half-open
  * timeline range `[start, end)` of point events such as clicks and note starts.
- * Each event belongs to exactly one scheduled pass.
+ * Each event belongs to exactly one range.
  */
-export type ScheduledPass = {
+export type ScheduledRange = {
+  pass: PlaybackPass;
   start: number;
   end: number;
-  anchor: PlaybackAnchor;
 };
 
 type LoopSecondsRange = {
@@ -58,11 +58,8 @@ export class AudioContextTransport {
     isPlaying: false,
   }));
 
-  /**
-   * Maps an absolute AudioContext time to the playhead position at which the
-   * current playback run begins. It is available to participants during start.
-   */
-  playbackAnchor?: PlaybackAnchor;
+  /** The current run's pass through the timeline. It is available to participants during start. */
+  playbackPass?: PlaybackPass;
   playbackRate = 1;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
@@ -79,7 +76,7 @@ export class AudioContextTransport {
     };
   }
 
-  /** Schedules every participant against one shared future playback anchor. */
+  /** Schedules every participant against one shared future playback pass. */
   play(): void {
     if (this.store.get().isPlaying) {
       return;
@@ -104,7 +101,7 @@ export class AudioContextTransport {
       participant.stop();
     }
     const finalPosition = this.getPublishedPlaybackPosition();
-    this.playbackAnchor = undefined;
+    this.playbackPass = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
   }
@@ -150,14 +147,11 @@ export class AudioContextTransport {
 
   /**
    * Converts an absolute AudioContext time to published playback position while
-   * excluding the scheduling lead before the playback anchor.
+   * excluding the scheduling lead before the pass starts.
    */
   getPublishedPlaybackPosition(): number {
-    const playbackAnchor = this.playbackAnchor!;
-    return Math.max(
-      playbackAnchor.position,
-      playbackAnchor.getPositionAt(this.context.currentTime),
-    );
+    const pass = this.playbackPass!;
+    return Math.max(pass.start, pass.getPositionAt(this.context.currentTime));
   }
 
   /**
@@ -166,9 +160,9 @@ export class AudioContextTransport {
    * runs. The timer only decides when events are queued, while the times they
    * are queued at stay exact on the audio clock.
    */
-  startScheduleLoop(schedule: (pass: ScheduledPass) => void): () => void {
-    const anchor = this.playbackAnchor!;
-    let scheduledUntil = anchor.contextTime;
+  startScheduleLoop(schedule: (range: ScheduledRange) => void): () => void {
+    const pass = this.playbackPass!;
+    let scheduledUntil = pass.contextTime;
     const tick = () => {
       const to = this.context.currentTime + SCHEDULE_AHEAD_SECONDS;
       if (to <= scheduledUntil) {
@@ -179,9 +173,9 @@ export class AudioContextTransport {
       // late.
       const from = Math.max(scheduledUntil, this.context.currentTime);
       schedule({
-        start: anchor.getPositionAt(from) - BOUNDARY_EPSILON,
-        end: anchor.getPositionAt(to) - BOUNDARY_EPSILON,
-        anchor,
+        pass,
+        start: pass.getPositionAt(from) - BOUNDARY_EPSILON,
+        end: pass.getPositionAt(to) - BOUNDARY_EPSILON,
       });
       scheduledUntil = to;
     };
@@ -218,9 +212,9 @@ export class AudioContextTransport {
   }
 
   private startParticipants(position: number): void {
-    this.playbackAnchor = new PlaybackAnchor({
+    this.playbackPass = new PlaybackPass({
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
-      position,
+      start: position,
       playbackRate: this.playbackRate,
     });
     this.store.update({ position, isPlaying: true });
@@ -237,35 +231,35 @@ export class AudioContextTransport {
 }
 
 /**
- * Maps the audio clock to the timeline for one playback run. Timeline `position` sounds at
+ * A stretch of the timeline played straight through: `start` sounds at
  * `contextTime` and advances at `playbackRate`.
  */
-class PlaybackAnchor {
+class PlaybackPass {
+  readonly start: number;
   readonly contextTime: number;
-  readonly position: number;
   readonly playbackRate: number;
 
   constructor({
+    start,
     contextTime,
-    position,
     playbackRate,
   }: {
+    start: number;
     contextTime: number;
-    position: number;
     playbackRate: number;
   }) {
+    this.start = start;
     this.contextTime = contextTime;
-    this.position = position;
     this.playbackRate = playbackRate;
   }
 
   /** Audio-clock time at which a timeline position sounds. */
   getContextTimeAt(position: number): number {
-    return this.contextTime + (position - this.position) / this.playbackRate;
+    return this.contextTime + (position - this.start) / this.playbackRate;
   }
 
-  /** Timeline position at an audio-clock time, extrapolating before the run starts. */
+  /** Timeline position at an audio-clock time, extrapolating before the pass starts. */
   getPositionAt(contextTime: number): number {
-    return this.position + (contextTime - this.contextTime) * this.playbackRate;
+    return this.start + (contextTime - this.contextTime) * this.playbackRate;
   }
 }
