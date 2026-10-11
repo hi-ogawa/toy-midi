@@ -6,8 +6,8 @@ import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
 import { MetronomeIcon } from "./icons";
 import { MixToggle } from "./mix-toggle";
+import { Knob } from "./ui/knob";
 import { Slider } from "./ui/slider";
-import { cn } from "./ui/utils";
 import { useDraftInput } from "./use-draft-input";
 import { usePointerDrag } from "./use-pointer-drag";
 
@@ -284,76 +284,6 @@ function PanKnob({
       </span>
     </div>
   );
-}
-
-const KNOB_SWEEP_DEGREES = 270;
-
-/** Draws the knob only; the caller supplies the input behavior and ARIA through div props. */
-function Knob({
-  value,
-  min,
-  max,
-  origin = min,
-  className,
-  ...props
-}: ComponentProps<"div"> & {
-  value: number;
-  min: number;
-  max: number;
-  /** Where the value arc starts, such as the center of a pan knob */
-  origin?: number;
-}) {
-  const toDegrees = (v: number) =>
-    ((v - min) / (max - min) - 0.5) * KNOB_SWEEP_DEGREES;
-  const angle = toDegrees(value);
-  const originAngle = toDegrees(origin);
-  const start = getKnobRimPoint(originAngle);
-  const end = getKnobRimPoint(angle);
-  const largeArc = Math.abs(angle - originAngle) > 180 ? 1 : 0;
-  const clockwise = angle > originAngle ? 1 : 0;
-  return (
-    <div
-      className={cn(
-        "size-6 shrink-0 touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
-        className,
-      )}
-      {...props}
-    >
-      <svg viewBox="0 0 24 24" className="size-full">
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          className="fill-neutral-900 stroke-neutral-700"
-          strokeWidth="3"
-        />
-        {value !== origin && (
-          <path
-            d={`M ${start.x} ${start.y} A 10 10 0 ${largeArc} ${clockwise} ${end.x} ${end.y}`}
-            fill="none"
-            className="stroke-primary"
-            strokeWidth="3"
-          />
-        )}
-        <line
-          x1="12"
-          y1="12"
-          x2="12"
-          y2="4"
-          transform={`rotate(${angle} 12 12)`}
-          className="stroke-neutral-100"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
-}
-
-/** Point on the ring at an angle in degrees clockwise from 12 o'clock. */
-function getKnobRimPoint(degrees: number) {
-  const radians = ((degrees - 90) * Math.PI) / 180;
-  return { x: 12 + 10 * Math.cos(radians), y: 12 + 10 * Math.sin(radians) };
 }
 
 function formatPan(pan: number): string {
