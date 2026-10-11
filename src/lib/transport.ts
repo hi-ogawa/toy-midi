@@ -7,7 +7,9 @@ const PLAYBACK_LEAD_SECONDS = 0.03;
  * A timer loop ticking every `SCHEDULER_INTERVAL_MS` queues audio events against
  * future audio frames up to this far ahead. Main-thread timers fire late and
  * unevenly while the page is busy, so the lookahead leaves headroom over the
- * interval. Both values are practical choices, not derived limits.
+ * interval. It does not cover a hidden tab whose audio has gone quiet, where
+ * the browser throttles timers to about once a second. Both values are
+ * practical choices, not derived limits.
  */
 const SCHEDULE_AHEAD_SECONDS = 0.1;
 const SCHEDULER_INTERVAL_MS = 25;
