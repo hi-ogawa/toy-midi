@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { CheckIcon, MicIcon, TriangleAlertIcon } from "lucide-react";
-import { useDraftInput } from "../hooks/use-draft-input";
 import type { AudioAnalyser } from "../lib/audio-analyser";
 import { summarizeCalibration } from "../lib/latency-checker/calibration";
 import { measureLatency } from "../lib/latency-checker/runtime";
@@ -10,6 +9,7 @@ import { InputDiagnostics } from "./input-diagnostics";
 import { InputMeter } from "./input-meter";
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
+import { useDraftInput } from "./use-draft-input";
 
 export function InputSetup({
   runtime,

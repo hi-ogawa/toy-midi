@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useWindowEvent } from "../hooks/use-window-event";
 import type { ProjectUiStore } from "../lib/preferences";
 import { projectStorage } from "../lib/project-storage";
 import { EditorRuntime } from "../lib/runtime";
+import { useWindowEvent } from "./use-window-event";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
@@ -58,6 +58,7 @@ export function useProject({
     },
   });
 
+  // Mark the project unsaved when persistable state changes after it loads.
   useEffect(() => {
     if (!projectQuery.isSuccess) {
       return;
@@ -74,10 +75,12 @@ export function useProject({
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribeWithSelector({
+    return runtime.transport.store.subscribeWithSelector({
       selector: (state) => (state.isPlaying ? undefined : state.position),
       listener: () =>
-        projectUiStore.update({ playhead: runtime.store.get().position }),
+        projectUiStore.update({
+          playhead: runtime.transport.store.get().position,
+        }),
       equals: Object.is,
     });
   }, [projectQuery.isSuccess, runtime]);

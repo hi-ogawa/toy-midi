@@ -7,8 +7,6 @@ import {
   XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { usePointerDrag } from "../hooks/use-pointer-drag";
-import { usePointerGesture } from "../hooks/use-pointer-gesture";
 import type { AudioClip, ClipRegion } from "../lib/audio-clip";
 import { AudioView } from "../lib/audio-view";
 import { clamp, snapToGrid } from "../lib/music";
@@ -18,8 +16,8 @@ import type {
   PunchRange,
   PunchState,
   ReferenceVideoState,
+  EditorRuntime,
 } from "../lib/runtime";
-import { formatTimeMinutes } from "../lib/time-format";
 import {
   beatsToSeconds,
   getVisibleBarInterval,
@@ -38,6 +36,39 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
+import { usePlaybackPosition } from "./use-playback-position";
+import { usePointerDrag } from "./use-pointer-drag";
+import { usePointerGesture } from "./use-pointer-gesture";
+
+export function TimelinePlayhead({
+  runtime,
+  tempo,
+  pixelsPerBeat,
+  viewportStartBeat,
+  viewportWidth,
+}: {
+  runtime: EditorRuntime;
+  tempo: number;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  viewportWidth: number;
+}) {
+  const position = usePlaybackPosition(runtime);
+  const x =
+    (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
+  if (x < 0 || viewportWidth < x) {
+    return;
+  }
+  return (
+    <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
+      <div
+        data-testid="recorder-playhead"
+        className="absolute inset-y-0 w-px bg-sky-400"
+        style={{ left: x }}
+      />
+    </div>
+  );
+}
 
 export function TimelineHeader({
   beatsPerBar,
@@ -560,7 +591,6 @@ export function AudioTimelineLane({
 
 export function ReferenceTimelineRow({
   referenceVideo,
-  position,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
@@ -579,7 +609,6 @@ export function ReferenceTimelineRow({
   onRemove,
 }: {
   referenceVideo: ReferenceVideoState;
-  position: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
@@ -602,7 +631,7 @@ export function ReferenceTimelineRow({
       data-testid="recorder-reference-track"
       className="grid h-15 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           Reference
         </div>
@@ -626,15 +655,6 @@ export function ReferenceTimelineRow({
             className="size-6"
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
-        </div>
-        <div className="col-span-2 flex items-center gap-1.5 font-mono text-[11px] leading-3.5 text-neutral-400">
-          <span>
-            {formatTimeMinutes(
-              Math.max(0, position - referenceVideo.timelineStart),
-            )}
-          </span>
-          <span className="text-neutral-600">/</span>
-          <span>{formatTimeMinutes(referenceVideo.duration)}</span>
         </div>
       </div>
       <div

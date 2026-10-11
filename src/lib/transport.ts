@@ -58,6 +58,7 @@ export type ContextTimeWindow = {
 };
 
 type TransportState = {
+  /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
   position: number;
   isPlaying: boolean;
 };

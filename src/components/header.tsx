@@ -18,12 +18,10 @@ import {
   SlidersVerticalIcon,
   NotebookPenIcon,
 } from "lucide-react";
-import { useDraftInput } from "../hooks/use-draft-input";
-import { useTapTempo } from "../hooks/use-tap-tempo";
 import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
 import { routes } from "../lib/routes";
-import type { LoopState, PunchState } from "../lib/runtime";
+import type { EditorRuntime, LoopState, PunchState } from "../lib/runtime";
 import { formatTimeWithMilliseconds } from "../lib/time-format";
 import {
   formatBarBeatAtTime,
@@ -47,7 +45,10 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
+import { useDraftInput } from "./use-draft-input";
+import { usePlaybackPosition } from "./use-playback-position";
 import type { SaveStatus } from "./use-project";
+import { useTapTempo } from "./use-tap-tempo";
 
 export function Header({
   title,
@@ -60,7 +61,7 @@ export function Header({
   masterGain,
   loop,
   punch,
-  position,
+  runtime,
   playbackRate,
   tempo,
   timeSignature,
@@ -101,7 +102,7 @@ export function Header({
   masterGain: number;
   loop: LoopState;
   punch: PunchState;
-  position: number;
+  runtime: EditorRuntime;
   playbackRate: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -189,7 +190,7 @@ export function Header({
       <RangeControl
         kind="loop"
         state={loop}
-        position={position}
+        runtime={runtime}
         tempo={tempo}
         timeSignature={timeSignature}
         onChange={onLoopChange}
@@ -197,7 +198,7 @@ export function Header({
       <RangeControl
         kind="punch"
         state={punch}
-        position={position}
+        runtime={runtime}
         tempo={tempo}
         timeSignature={timeSignature}
         onChange={onPunchChange}
@@ -228,15 +229,11 @@ export function Header({
       >
         <LocateFixedIcon className="size-5" />
       </Button>
-      <output
-        data-testid="recorder-position"
-        data-position={position}
-        data-beat={secondsToBeats(position, tempo)}
-        className="font-mono text-sm tabular-nums text-neutral-300"
-      >
-        {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
-        {formatTimeWithMilliseconds(position)}
-      </output>
+      <PlaybackPosition
+        runtime={runtime}
+        tempo={tempo}
+        timeSignature={timeSignature}
+      />
       <div className="h-5 w-px bg-neutral-600" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -472,6 +469,29 @@ export function Header({
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
+  );
+}
+
+function PlaybackPosition({
+  runtime,
+  tempo,
+  timeSignature,
+}: {
+  runtime: EditorRuntime;
+  tempo: number;
+  timeSignature: TimeSignature;
+}) {
+  const position = usePlaybackPosition(runtime);
+  return (
+    <output
+      data-testid="recorder-position"
+      data-position={position}
+      data-beat={secondsToBeats(position, tempo)}
+      className="font-mono text-sm tabular-nums text-neutral-300"
+    >
+      {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
+      {formatTimeWithMilliseconds(position)}
+    </output>
   );
 }
 

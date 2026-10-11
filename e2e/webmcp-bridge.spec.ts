@@ -35,8 +35,7 @@ extensionTest(
       ["execute-tool", "toy_midi_eval", "--arg", "code=-"],
       `
       runtime.setTempo(98);
-      await runtime.addMidiTrack({ program: 33 });
-      const id = runtime.store.get().midiTracks.at(-1).id;
+      const id = await runtime.addMidiTrack({ program: 33 });
       runtime.setMidiTrackNotes(id, [
         { id: crypto.randomUUID(), pitch: 33, start: 0, duration: 1, velocity: 100 },
       ]);
