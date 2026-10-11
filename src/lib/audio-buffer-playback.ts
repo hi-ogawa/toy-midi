@@ -81,11 +81,10 @@ export class AudioBufferPlayback implements TransportParticipant {
     if (start >= end) {
       return;
     }
-    // A later pass that enters at loop-in while the region also covers
-    // loop-out continues the previous pass's slice, which ends at this same
-    // instant, so fading in would dip the splice.
-    const continuesPreviousPass =
-      pass.index > 0 && start <= pass.start && timelineEnd >= pass.end;
+    // A loop wrap is a hard splice, as in a DAW. Whatever was sounding ended at
+    // loop-out at full level, so a slice entered on time at loop-in opens at
+    // full level too rather than fading in and dipping the splice.
+    const continuesPreviousPass = pass.index > 0 && start <= pass.start;
     this.player.start({
       buffer,
       playbackRate: pass.playbackRate,
