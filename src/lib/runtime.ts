@@ -92,7 +92,10 @@ export interface MidiTrackState {
   muted: boolean;
   soloed: boolean;
   tabAnnotationEnabled: boolean;
-  /** MIDI note numbers of the open strings, highest string first */
+  /**
+   * MIDI note numbers of the open strings, highest string first. New tracks
+   * start with a 5-string bass, `[43, 38, 33, 28, 23]` (G2 D2 A1 E1 B0).
+   */
   tabOpenStringPitches: number[];
   keySignature: KeySignature;
 }

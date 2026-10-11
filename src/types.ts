@@ -1,6 +1,7 @@
 export type TabString = 1 | 2 | 3 | 4 | 5;
 
 export interface Note {
+  /** Any string unique within the track, such as `crypto.randomUUID()` */
   id: string;
   /** MIDI note number (0-127, e.g. C4=60) */
   pitch: number;
@@ -10,7 +11,11 @@ export interface Note {
   duration: number;
   /** 0-127, default 100 */
   velocity: number;
-  /** Tab string, 1-based into the track's `tabOpenStringPitches` */
+  /**
+   * Tab string, 1-based into the track's `tabOpenStringPitches`. Without one,
+   * or when that string cannot play the pitch, tab and score use the highest
+   * string that can.
+   */
   tabString?: TabString;
 }
 
