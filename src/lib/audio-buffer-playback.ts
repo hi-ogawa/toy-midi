@@ -73,6 +73,9 @@ export class AudioBufferPlayback implements TransportParticipant {
     const pass = range.pass;
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
       this.playbackSource!;
+    // Start where this range enters the pass rather than at the pass's start.
+    // They differ only after a stalled timer, when a slice queued from the
+    // pass's start would already be in the past and play out of sync.
     const start = Math.max(timelineStart, range.start);
     const end = Math.min(timelineEnd, pass.end);
     if (start >= end) {
