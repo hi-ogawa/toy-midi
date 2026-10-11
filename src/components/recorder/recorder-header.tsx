@@ -85,10 +85,10 @@ export function RecorderHeader({
   onExportAudio,
   onReferenceVideoOpenChange,
   onMixerToggle,
-  onNotesToggle,
+  onProjectCommentToggle,
   onHelpOpen,
   mixerOpen,
-  notesOpen,
+  projectCommentOpen,
   inputPanelOpen,
   inputAccessRequired,
   onInputPanelToggle,
@@ -127,10 +127,10 @@ export function RecorderHeader({
   onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
-  onNotesToggle: () => void;
+  onProjectCommentToggle: () => void;
   onHelpOpen: () => void;
   mixerOpen: boolean;
-  notesOpen: boolean;
+  projectCommentOpen: boolean;
   inputPanelOpen: boolean;
   inputAccessRequired: boolean;
   onInputPanelToggle: () => void;
@@ -399,13 +399,13 @@ export function RecorderHeader({
         <SlidersVerticalIcon className="size-5" />
       </Button>
       <Button
-        data-testid="recorder-notes-button"
-        onClick={onNotesToggle}
-        aria-pressed={notesOpen}
+        data-testid="recorder-project-comment-button"
+        onClick={onProjectCommentToggle}
+        aria-pressed={projectCommentOpen}
         title="Project notes"
         className={cn(
           "size-9",
-          notesOpen
+          projectCommentOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}

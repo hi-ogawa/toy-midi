@@ -158,7 +158,7 @@ export interface RecorderRuntimeState {
    * Free-form text the user and the agent share, such as the brief, a chord
    * chart, and decisions with their reasons. Markdown by convention.
    */
-  projectNotes: string;
+  comment: string;
   locators: RecorderLocator[];
   /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
   position: number;
@@ -201,7 +201,7 @@ export interface RecorderRuntimeState {
 export type PersistableRecorderRuntimeState = Pick<
   RecorderRuntimeState,
   | "title"
-  | "projectNotes"
+  | "comment"
   | "locators"
   | "tempo"
   | "timeSignature"
@@ -253,7 +253,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   const audioTrack = createAudioTrackState({ name: "Audio 1" });
   return {
     title: "Untitled",
-    projectNotes: "",
+    comment: "",
     locators: [],
     position: 0,
     isPlaying: false,
@@ -969,8 +969,8 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
-  setProjectNotes(projectNotes: string): void {
-    this.store.update({ projectNotes });
+  setComment(comment: string): void {
+    this.store.update({ comment });
   }
 
   /** Add a locator at a beat and return its id. */
@@ -1199,7 +1199,7 @@ export class RecorderRuntime {
       selector: (state) =>
         ({
           title: state.title,
-          projectNotes: state.projectNotes,
+          comment: state.comment,
           locators: state.locators,
           tempo: state.tempo,
           timeSignature: state.timeSignature,

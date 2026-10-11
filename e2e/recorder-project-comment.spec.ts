@@ -1,17 +1,17 @@
 import { expect, test } from "@playwright/test";
 import { createRecorderProject, saveRecorderProject } from "./recorder-helpers";
 
-test("keeps project notes with the project", async ({ page }) => {
+test("keeps the project comment with the project", async ({ page }) => {
   // Open the notes panel, and write a chord chart into it.
   await createRecorderProject(page);
-  await page.getByTestId("recorder-notes-button").click();
-  const notes = page.getByTestId("recorder-notes-input");
-  await notes.fill("## Chords\n| Dm7 | G7 |");
+  await page.getByTestId("recorder-project-comment-button").click();
+  const comment = page.getByTestId("recorder-project-comment-input");
+  await comment.fill("## Chords\n| Dm7 | G7 |");
 
   // Type a space in the notes, and see it stay text instead of starting playback.
-  await notes.press("End");
-  await notes.press("Space");
-  await expect(notes).toHaveValue("## Chords\n| Dm7 | G7 | ");
+  await comment.press("End");
+  await comment.press("Space");
+  await expect(comment).toHaveValue("## Chords\n| Dm7 | G7 | ");
   await expect(page.getByTestId("recorder-play-button")).toHaveAttribute(
     "aria-pressed",
     "false",
@@ -20,7 +20,7 @@ test("keeps project notes with the project", async ({ page }) => {
   // Save and reload, and see the panel reopen with the notes.
   await saveRecorderProject(page);
   await page.reload();
-  await expect(page.getByTestId("recorder-notes-input")).toHaveValue(
+  await expect(page.getByTestId("recorder-project-comment-input")).toHaveValue(
     "## Chords\n| Dm7 | G7 | ",
   );
 });

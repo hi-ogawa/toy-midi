@@ -41,8 +41,8 @@ import { RecorderInputPanel } from "./recorder-input-panel";
 import { RecorderLocatorRow } from "./recorder-locators";
 import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
-import { RecorderNotesPanel } from "./recorder-notes-panel";
 import { RecorderPanel } from "./recorder-panel";
+import { RecorderProjectCommentPanel } from "./recorder-project-comment-panel";
 import {
   RecorderScorePanel,
   useRecorderScorePanelUi,
@@ -81,7 +81,8 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [clipsNewestFirst, setClipsNewestFirst] =
     recorderPreferences.useValue("takesNewestFirst");
   const [isMixerOpen, setIsMixerOpen] = projectUiStore.useValue("mixerOpen");
-  const [isNotesOpen, setIsNotesOpen] = projectUiStore.useValue("notesOpen");
+  const [isProjectCommentOpen, setIsProjectCommentOpen] =
+    projectUiStore.useValue("projectCommentOpen");
   const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
   const [isInputPanelOpen, setIsInputPanelOpen] =
     projectUiStore.useValue("inputPanelOpen");
@@ -358,8 +359,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
-        notesOpen={isNotesOpen}
-        onNotesToggle={() => setIsNotesOpen((open) => !open)}
+        projectCommentOpen={isProjectCommentOpen}
+        onProjectCommentToggle={() => setIsProjectCommentOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
         inputPanelOpen={isInputPanelOpen}
         inputAccessRequired={input.initialized && !input.hasAccess}
@@ -814,12 +815,12 @@ export function Recorder({ projectId }: { projectId: string }) {
             />
           </RecorderPanel>
         )}
-        {isNotesOpen && (
-          <RecorderNotesPanel
+        {isProjectCommentOpen && (
+          <RecorderProjectCommentPanel
             projectUiStore={projectUiStore}
             runtime={runtime}
-            projectNotes={state.projectNotes}
-            onClose={() => setIsNotesOpen(false)}
+            comment={state.comment}
+            onClose={() => setIsProjectCommentOpen(false)}
           />
         )}
         {isReferenceVideoOpen && (

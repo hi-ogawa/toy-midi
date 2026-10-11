@@ -58,8 +58,8 @@ const projectUiStateSchema = z.object({
   playhead: z.number().nonnegative().optional(),
   referenceVideoOpen: z.boolean(),
   mixerOpen: z.boolean(),
-  notesOpen: z.boolean(),
-  notesSize: z.object({
+  projectCommentOpen: z.boolean(),
+  projectCommentSize: z.object({
     width: z.number().positive(),
     height: z.number().positive(),
   }),
@@ -78,8 +78,8 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   timelineStartBeat: 0,
   referenceVideoOpen: false,
   mixerOpen: false,
-  notesOpen: false,
-  notesSize: { width: 384, height: 320 },
+  projectCommentOpen: false,
+  projectCommentSize: { width: 384, height: 320 },
   expandedClipTracks: [],
   openEffects: [],
 };
