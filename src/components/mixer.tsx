@@ -1,13 +1,15 @@
 import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../lib/music";
+import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
 import { MetronomeIcon } from "./icons";
 import { MixToggle } from "./mix-toggle";
 import { Slider } from "./ui/slider";
+import { cn } from "./ui/utils";
 import { useDraftInput } from "./use-draft-input";
+import { usePointerDrag } from "./use-pointer-drag";
 
 export function Mixer({
   runtime,
@@ -119,7 +121,7 @@ function TrackChannel({
     <MixerChannel
       icon={icon}
       label={label}
-      pan={<PanSlider label={label} pan={pan} onPanChange={onPanChange} />}
+      pan={<PanKnob label={label} pan={pan} onPanChange={onPanChange} />}
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
@@ -223,7 +225,7 @@ function MixerChannel({
   );
 }
 
-function PanSlider({
+function PanKnob({
   label,
   pan,
   onPanChange,
@@ -232,23 +234,126 @@ function PanSlider({
   pan: number;
   onPanChange: (pan: number) => void;
 }) {
+  const setPan = (value: number) =>
+    onPanChange(clamp(Math.round(value * 100) / 100, -1, 1));
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return pan;
+    },
+    onMove: (_event, drag) => setPan(drag.data - drag.deltaY / 100),
+  });
   return (
-    <div className="flex w-full items-center gap-2">
-      <Slider
-        value={[pan]}
-        onValueChange={([value]) => onPanChange(value)}
+    // Equal side columns center the knob over the fader.
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <Knob
+        ref={ref}
+        role="slider"
+        tabIndex={0}
+        aria-label={`${label} pan`}
+        aria-valuemin={-1}
+        aria-valuemax={1}
+        aria-valuenow={pan}
+        aria-valuetext={formatPan(pan)}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const next = {
+            ArrowLeft: pan - step,
+            ArrowDown: pan - step,
+            ArrowRight: pan + step,
+            ArrowUp: pan + step,
+            Home: -1,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPan(next);
+          }
+        }}
+        value={pan}
         min={-1}
         max={1}
-        step={0.01}
-        aria-label={`${label} pan`}
-        aria-valuetext={formatPan(pan)}
-        className="flex-1"
+        origin={0}
+        className="col-start-2 cursor-ns-resize"
       />
-      <span className="w-8 text-right font-mono text-xs text-muted-foreground tabular-nums">
+      {/* Zero width, so a wide readout such as R100 spills over instead of
+          widening its column and the channel. */}
+      <span className="w-0 font-mono text-xs whitespace-nowrap text-muted-foreground tabular-nums">
         {formatPan(pan)}
       </span>
     </div>
   );
+}
+
+const KNOB_SWEEP_DEGREES = 270;
+
+/** Draws the knob only; the caller supplies the input behavior and ARIA through div props. */
+function Knob({
+  value,
+  min,
+  max,
+  origin = min,
+  className,
+  ...props
+}: ComponentProps<"div"> & {
+  value: number;
+  min: number;
+  max: number;
+  /** Where the value arc starts, such as the center of a pan knob */
+  origin?: number;
+}) {
+  const toDegrees = (v: number) =>
+    ((v - min) / (max - min) - 0.5) * KNOB_SWEEP_DEGREES;
+  const angle = toDegrees(value);
+  const originAngle = toDegrees(origin);
+  const start = getKnobRimPoint(originAngle);
+  const end = getKnobRimPoint(angle);
+  const largeArc = Math.abs(angle - originAngle) > 180 ? 1 : 0;
+  const clockwise = angle > originAngle ? 1 : 0;
+  return (
+    <div
+      className={cn(
+        "size-6 shrink-0 touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+        className,
+      )}
+      {...props}
+    >
+      <svg viewBox="0 0 24 24" className="size-full">
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          className="fill-neutral-900 stroke-neutral-700"
+          strokeWidth="3"
+        />
+        {value !== origin && (
+          <path
+            d={`M ${start.x} ${start.y} A 10 10 0 ${largeArc} ${clockwise} ${end.x} ${end.y}`}
+            fill="none"
+            className="stroke-primary"
+            strokeWidth="3"
+          />
+        )}
+        <line
+          x1="12"
+          y1="12"
+          x2="12"
+          y2="4"
+          transform={`rotate(${angle} 12 12)`}
+          className="stroke-neutral-100"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/** Point on the ring at an angle in degrees clockwise from 12 o'clock. */
+function getKnobRimPoint(degrees: number) {
+  const radians = ((degrees - 90) * Math.PI) / 180;
+  return { x: 12 + 10 * Math.cos(radians), y: 12 + 10 * Math.sin(radians) };
 }
 
 function formatPan(pan: number): string {

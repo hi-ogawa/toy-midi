@@ -7,7 +7,7 @@ import {
   getPosition,
   saveProject,
 } from "./editor-helpers";
-import { selectMenuItem, setSliderValue } from "./helpers";
+import { selectMenuItem } from "./helpers";
 
 test("uploads and plays a backing track", async ({ page }) => {
   await createProject(page);
@@ -149,7 +149,9 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
 
   // Pan backing audio left.
   const audioPan = audio.getByRole("slider", { name: "Audio 2 pan" });
-  await setSliderValue(audioPan, [-0.3]);
+  for (let i = 0; i < 3; i++) {
+    await audioPan.press("Shift+ArrowLeft");
+  }
   await expect(audioPan).toHaveAttribute("aria-valuetext", "L30");
 
   // Close the panel without dismissing the project.
