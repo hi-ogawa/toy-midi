@@ -13,14 +13,13 @@ export class AudioChannel {
     output,
     eq,
     gain,
-    pan = 0,
+    pan,
   }: {
     context: BaseAudioContext;
     output: AudioNode;
     eq: MultibandEqParameters;
     gain: number;
-    /** Stereo position from -1 (left) to 1 (right), passing stereo through unchanged at 0 */
-    pan?: number;
+    pan: number;
   }) {
     this.input = context.createGain();
     this.gain = context.createGain();
