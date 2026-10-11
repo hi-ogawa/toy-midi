@@ -78,8 +78,6 @@ export class AudioContextTransport {
    */
   playbackAnchor?: PlaybackAnchor;
   playbackRate = 1;
-  /** The current run's loop, fixed when it starts, while `loopRange` is for the next run. */
-  private playbackLoopRange?: LoopSecondsRange;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
   private loopRange?: LoopSecondsRange;
@@ -121,7 +119,6 @@ export class AudioContextTransport {
     }
     const finalPosition = this.getPublishedPlaybackPosition();
     this.playbackAnchor = undefined;
-    this.playbackLoopRange = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
   }
@@ -150,9 +147,13 @@ export class AudioContextTransport {
     ) {
       return;
     }
+    // The running passes use the current loop, so read the position before
+    // switching to the new one.
+    const position = this.store.get().isPlaying
+      ? this.getPublishedPlaybackPosition()
+      : undefined;
     this.loopRange = loopRange;
-    if (this.store.get().isPlaying) {
-      const position = this.getPublishedPlaybackPosition();
+    if (position !== undefined) {
       this.restartParticipants(
         loopRange && position >= loopRange.end ? loopRange.start : position,
       );
@@ -193,7 +194,7 @@ export class AudioContextTransport {
   getPlaybackPositionAt(contextTime: number): number {
     return getPlaybackPassAt(
       this.playbackAnchor!,
-      this.playbackLoopRange,
+      this.loopRange,
       contextTime,
     ).anchor.getPositionAt(contextTime);
   }
@@ -206,7 +207,7 @@ export class AudioContextTransport {
    */
   startScheduleLoop(schedule: (pass: ScheduledPass) => void): () => void {
     const anchor = this.playbackAnchor!;
-    const loopRange = this.playbackLoopRange;
+    const loopRange = this.loopRange;
     let scheduledUntil = anchor.contextTime;
     const tick = () => {
       const to = this.context.currentTime + SCHEDULE_AHEAD_SECONDS;
@@ -254,7 +255,6 @@ export class AudioContextTransport {
       position,
       playbackRate: this.playbackRate,
     });
-    this.playbackLoopRange = this.loopRange;
     this.store.update({ position, isPlaying: true });
     for (const participant of this.participants) {
       participant.start();
