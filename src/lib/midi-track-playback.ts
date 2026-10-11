@@ -116,25 +116,21 @@ export class MidiTrackPlayback implements TransportParticipant {
     }
   }
 
-  private schedule({
-    pass,
-    start: rangeStart,
-    end: rangeEnd,
-  }: ScheduledRange): void {
+  private schedule(range: ScheduledRange): void {
     for (const note of this.notes) {
       const start = beatsToSeconds(note.start, this.tempo);
-      if (rangeEnd <= start) {
+      if (range.end <= start) {
         break;
       }
-      if (start < rangeStart) {
+      if (start < range.start) {
         continue;
       }
       const end = beatsToSeconds(note.start + note.duration, this.tempo);
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,
-        startTime: pass.getContextTimeAt(start),
-        endTime: pass.getContextTimeAt(end),
+        startTime: range.pass.getContextTimeAt(start),
+        endTime: range.pass.getContextTimeAt(end),
       });
     }
   }
