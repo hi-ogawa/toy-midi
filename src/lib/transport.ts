@@ -147,11 +147,9 @@ export class AudioContextTransport {
     ) {
       return;
     }
-    const position = this.store.get().isPlaying
-      ? this.getPublishedPlaybackPosition()
-      : undefined;
     this.loopRange = loopRange;
-    if (position !== undefined) {
+    if (this.store.get().isPlaying) {
+      const position = this.getPublishedPlaybackPosition();
       this.restartParticipants(
         loopRange && position >= loopRange.end ? loopRange.start : position,
       );
@@ -192,7 +190,6 @@ export class AudioContextTransport {
   getPlaybackPositionAt(contextTime: number): number {
     return getPlaybackPassAt(
       this.playbackAnchor!,
-      this.loopRange,
       contextTime,
     ).anchor.getPositionAt(contextTime);
   }
@@ -205,7 +202,6 @@ export class AudioContextTransport {
    */
   startScheduleLoop(schedule: (passes: ScheduledPass[]) => void): () => void {
     const anchor = this.playbackAnchor!;
-    const loopRange = this.loopRange;
     let scheduledUntil = anchor.contextTime;
     const tick = () => {
       const to = this.context.currentTime + SCHEDULE_AHEAD_SECONDS;
@@ -216,7 +212,7 @@ export class AudioContextTransport {
       // part of the window in the past. Skip it rather than queue events to play
       // late.
       const from = Math.max(scheduledUntil, this.context.currentTime);
-      schedule(getScheduledPasses(anchor, loopRange, { from, to }));
+      schedule(getScheduledPasses(anchor, { from, to }));
       scheduledUntil = to;
     };
     tick();
@@ -247,6 +243,7 @@ export class AudioContextTransport {
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position,
       playbackRate: this.playbackRate,
+      loopRange: this.loopRange,
     });
     this.store.update({ position, isPlaying: true });
     for (const participant of this.participants) {
@@ -273,10 +270,9 @@ type PlaybackPass = {
 
 function getScheduledPasses(
   anchor: PlaybackAnchor,
-  loopRange: LoopRange | undefined,
   window: ContextTimeWindow,
 ): ScheduledPass[] {
-  return getPlaybackPasses(anchor, loopRange, window).map((pass) => {
+  return getPlaybackPasses(anchor, window).map((pass) => {
     const startPosition = Math.max(
       pass.anchor.position,
       pass.anchor.getPositionAt(window.from),
@@ -299,11 +295,11 @@ function getScheduledPasses(
 /** Lists the passes that overlap an audio-clock window, in order. */
 function getPlaybackPasses(
   anchor: PlaybackAnchor,
-  loopRange: LoopRange | undefined,
   window: ContextTimeWindow,
 ): PlaybackPass[] {
+  const { loopRange } = anchor;
   const passes: PlaybackPass[] = [];
-  let pass = getPlaybackPassAt(anchor, loopRange, window.from);
+  let pass = getPlaybackPassAt(anchor, window.from);
   while (pass.anchor.contextTime < window.to) {
     passes.push(pass);
     if (!loopRange) {
@@ -317,9 +313,9 @@ function getPlaybackPasses(
 /** The pass sounding at an audio-clock time, or pass 0 before the run starts. */
 function getPlaybackPassAt(
   anchor: PlaybackAnchor,
-  loopRange: LoopRange | undefined,
   contextTime: number,
 ): PlaybackPass {
+  const { loopRange } = anchor;
   const sinceFirstWrap = loopRange
     ? contextTime - anchor.getContextTimeAt(loopRange.end)
     : -1;
@@ -366,19 +362,24 @@ class PlaybackAnchor {
   readonly contextTime: number;
   readonly position: number;
   readonly playbackRate: number;
+  /** The run's loop, fixed when it starts. A loop pass's anchor has none. */
+  readonly loopRange?: LoopRange;
 
   constructor({
     contextTime,
     position,
     playbackRate,
+    loopRange,
   }: {
     contextTime: number;
     position: number;
     playbackRate: number;
+    loopRange?: LoopRange;
   }) {
     this.contextTime = contextTime;
     this.position = position;
     this.playbackRate = playbackRate;
+    this.loopRange = loopRange;
   }
 
   /** Audio-clock time at which a timeline position sounds. */
