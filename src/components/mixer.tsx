@@ -185,8 +185,11 @@ function MixerChannel({
   "data-testid": string;
   action?: ReactNode;
 }) {
+  const name = label === "Metro" ? "Metronome" : label;
   return (
     <div
+      role="group"
+      aria-label={name}
       data-testid={testId}
       className="flex min-w-24 flex-col items-center gap-3"
     >
@@ -199,7 +202,7 @@ function MixerChannel({
       {/* Every channel reserves the pan row so faders stay aligned. */}
       <div className="flex h-6 w-full items-center">{pan}</div>
       <GainSlider
-        label={`${label === "Metro" ? "Metronome" : label} gain`}
+        label={`${name} gain`}
         gain={gain}
         onGainChange={onGainChange}
         orientation="vertical"
@@ -209,7 +212,7 @@ function MixerChannel({
         <input
           type="text"
           inputMode="decimal"
-          aria-label={`${label === "Metro" ? "Metronome" : label} level in dB`}
+          aria-label={`${name} level in dB`}
           className="h-6 w-12 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
           {...inputProps}
         />

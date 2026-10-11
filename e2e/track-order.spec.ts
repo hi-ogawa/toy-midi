@@ -72,12 +72,10 @@ async function expectMixerChannels(
   await test.step(
     `Expect mixer channels: ${labels.join(", ")}`,
     async () => {
-      const sliders = page
+      const channels = page
         .getByTestId("recorder-mixer-panel")
-        .getByRole("slider", { name: / gain$/ });
-      await expect
-        .poll(() => getAriaLabels(sliders))
-        .toEqual(labels.map((label) => `${label} gain`));
+        .getByRole("group");
+      await expect.poll(() => getAriaLabels(channels)).toEqual(labels);
     },
     { box: true },
   );
