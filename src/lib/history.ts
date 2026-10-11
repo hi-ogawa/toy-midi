@@ -3,7 +3,7 @@ import type {
   MidiTrackState,
   ClipInsertRemove,
   ClipInsertRemoveSnapshot,
-  Runtime,
+  EditorRuntime,
 } from "./runtime.ts";
 
 // TODO: Reduce snapshot memory by recording only affected notes through a runtime API:
@@ -24,7 +24,7 @@ type Change =
 export class History {
   private history = new UndoRedoHistory<Change>();
 
-  constructor(private runtime: Runtime) {}
+  constructor(private runtime: EditorRuntime) {}
 
   pushMidiNotes(trackId: string, before: Note[], after: Note[]): void {
     this.history.push({

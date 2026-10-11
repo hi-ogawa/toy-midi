@@ -13,7 +13,7 @@ import { getNextPlaybackRate } from "../lib/playback-rate";
 import { createProjectUiStore, preferences } from "../lib/preferences";
 import { exportProjectArchive } from "../lib/project-archive";
 import { getScoreHref, routes } from "../lib/routes";
-import { Runtime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
+import { EditorRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
 import { beatsToSeconds, secondsToBeats } from "../lib/timeline";
 import { resolveTrackOrder } from "../lib/track-order";
 import { parseTimeSignature } from "../types";
@@ -53,7 +53,7 @@ import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
 
 export function Editor({ projectId }: { projectId: string }) {
-  const [runtime] = useState(() => new Runtime());
+  const [runtime] = useState(() => new EditorRuntime());
   useWebMcpBridge(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(projectId));
   const [defaultMidiProgram, setDefaultMidiProgram] =

@@ -17,7 +17,7 @@ import {
   type PreviewVariant,
 } from "../lib/latency-checker/runtime";
 import { routes } from "../lib/routes";
-import { Runtime } from "../lib/runtime";
+import { EditorRuntime } from "../lib/runtime";
 import { pluralCount } from "../utils/plural-count";
 import { InputDiagnostics } from "./input-diagnostics";
 import { InputMeter } from "./input-meter";
@@ -32,7 +32,7 @@ import { cn } from "./ui/utils";
 import { useInput } from "./use-input";
 
 export function LatencyChecker() {
-  const [runtime] = useState(() => new Runtime());
+  const [runtime] = useState(() => new EditorRuntime());
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -300,7 +300,7 @@ function ResultsView({
   runtime,
 }: {
   result: LatencyResult;
-  runtime: Runtime;
+  runtime: EditorRuntime;
 }) {
   const { measurements } = result.calibration.analysis;
   const { sampleRate } = result.calibration;

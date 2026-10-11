@@ -1,5 +1,5 @@
 import type { ProjectUiStore } from "../lib/preferences";
-import type { Runtime } from "../lib/runtime";
+import type { EditorRuntime } from "../lib/runtime";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 
@@ -10,7 +10,7 @@ export function ProjectCommentPanel({
   onClose,
 }: {
   projectUiStore: ProjectUiStore;
-  runtime: Runtime;
+  runtime: EditorRuntime;
   comment: string;
   onClose: () => void;
 }) {

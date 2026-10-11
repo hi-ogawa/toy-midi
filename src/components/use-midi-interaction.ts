@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { matchKeyboardEvent } from "../lib/keyboard";
 import { clamp, clampPitch, MAX_PITCH, snapToGrid } from "../lib/music";
-import type { Runtime, RuntimeState } from "../lib/runtime";
+import type { EditorRuntime, RuntimeState } from "../lib/runtime";
 import { getFret, moveTabString } from "../lib/tab-annotation";
 import type { Note } from "../types";
 
@@ -36,7 +36,7 @@ export function useMidiInteraction({
   subdivisionsPerBeat,
   onSelect,
 }: {
-  runtime: Runtime;
+  runtime: EditorRuntime;
   state: RuntimeState;
   subdivisionsPerBeat: number;
   /** Only coordinates selection domains by clearing selection in the other domains. */

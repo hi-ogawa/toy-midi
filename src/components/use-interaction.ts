@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { matchKeyboardEvent } from "../lib/keyboard";
-import type { Runtime, RuntimeState } from "../lib/runtime";
+import type { EditorRuntime, RuntimeState } from "../lib/runtime";
 import { useLocatorInteraction } from "./locators";
 import { useClipInteraction } from "./use-clip-interaction";
 import { useMidiInteraction } from "./use-midi-interaction";
@@ -11,7 +11,7 @@ export function useInteraction({
   isRecording,
   subdivisionsPerBeat,
 }: {
-  runtime: Runtime;
+  runtime: EditorRuntime;
   state: RuntimeState;
   isRecording: boolean;
   subdivisionsPerBeat: number;

@@ -282,7 +282,7 @@ export function createDefaultRuntimeState(): RuntimeState {
  * Undo history covers MIDI note edits, adding and removing MIDI tracks, and
  * clip edits. Other changes, such as tempo and mix, are not undoable.
  */
-export class Runtime {
+export class EditorRuntime {
   /**
    * Read with `get()`. `update()` changes state without updating playback,
    * so use the runtime methods to make changes.

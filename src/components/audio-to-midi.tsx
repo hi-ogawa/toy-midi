@@ -9,7 +9,11 @@ import {
   DEFAULT_GRID_ACTIVITY_DB,
   DEFAULT_GRID_SPLIT_THRESHOLD,
 } from "../lib/bass-pitch/transcription";
-import type { MidiTrackState, Runtime, RuntimeState } from "../lib/runtime";
+import type {
+  MidiTrackState,
+  EditorRuntime,
+  RuntimeState,
+} from "../lib/runtime";
 import { Panel } from "./panel";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
@@ -50,7 +54,7 @@ export function AudioToMidi({
   cellsPerBeat,
   onClose,
 }: {
-  runtime: Runtime;
+  runtime: EditorRuntime;
   state: RuntimeState;
   track: MidiTrackState;
   cellsPerBeat: number;

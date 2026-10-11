@@ -4,7 +4,7 @@ import {
 } from "@hiogawa/webmcp-bridge/client";
 import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 import { useEffect } from "react";
-import type { Runtime } from "../lib/runtime";
+import type { EditorRuntime } from "../lib/runtime";
 import { createWebMcpTools } from "../lib/webmcp-tools";
 
 /**
@@ -14,7 +14,7 @@ import { createWebMcpTools } from "../lib/webmcp-tools";
  * in the page URL, the page also exposes them to the local webmcp-bridge
  * itself.
  */
-export function useWebMcpBridge(runtime: Runtime) {
+export function useWebMcpBridge(runtime: EditorRuntime) {
   useEffect(() => {
     const modelContext = (document.modelContext ??=
       createModelContextPolyfill());

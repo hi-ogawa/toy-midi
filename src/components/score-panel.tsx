@@ -3,7 +3,11 @@ import { ExternalLinkIcon } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { exportMusicXml } from "../lib/musicxml/render";
-import type { MidiTrackState, Runtime, RuntimeState } from "../lib/runtime";
+import type {
+  MidiTrackState,
+  EditorRuntime,
+  RuntimeState,
+} from "../lib/runtime";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import {
@@ -34,7 +38,7 @@ export function ScorePanel({
   onClose,
   scoreViewerHref,
 }: {
-  runtime: Runtime;
+  runtime: EditorRuntime;
   state: RuntimeState;
   track: MidiTrackState;
   onClose: () => void;
@@ -100,7 +104,7 @@ function ScorePreview({
   state,
   track,
 }: {
-  runtime: Runtime;
+  runtime: EditorRuntime;
   state: RuntimeState;
   track: MidiTrackState;
 }) {
@@ -203,7 +207,7 @@ function ScorePreview({
   );
 }
 
-function createScoreClock(editorRuntime: Runtime): ScoreViewerClock {
+function createScoreClock(editorRuntime: EditorRuntime): ScoreViewerClock {
   return {
     getSnapshot: () => {
       const state = editorRuntime.store.get();

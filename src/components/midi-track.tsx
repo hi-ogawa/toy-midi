@@ -24,7 +24,7 @@ import { importMidiNotes, parseMidiFile } from "../lib/midi-import";
 import { isBlackKey, MAX_PITCH } from "../lib/music";
 import { exportMusicXml } from "../lib/musicxml/render";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
-import type { MidiPreset, MidiTrackState, Runtime } from "../lib/runtime";
+import type { MidiPreset, MidiTrackState, EditorRuntime } from "../lib/runtime";
 import {
   getTabAnnotationDisplay,
   type TabAnnotationDisplay,
@@ -79,7 +79,7 @@ export function MidiTrackRow({
   onPresetSelected,
 }: {
   track: MidiTrackState;
-  runtime: Runtime;
+  runtime: EditorRuntime;
   pixelsPerBeat: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
@@ -481,7 +481,7 @@ function MidiTrackEditor({
   viewportStartBeat,
 }: {
   track: MidiTrackState;
-  runtime: Runtime;
+  runtime: EditorRuntime;
   midiInteraction: ReturnType<typeof useMidiInteraction>;
   pixelsPerBeat: number;
   beatsPerBar: number;
@@ -762,7 +762,7 @@ function useMidiNotePreview({
   runtime,
   trackId,
 }: {
-  runtime: Runtime;
+  runtime: EditorRuntime;
   trackId: string;
 }) {
   const previewPitch = useRef<number>(undefined);

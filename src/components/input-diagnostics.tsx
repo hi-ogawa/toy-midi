@@ -1,8 +1,8 @@
 import { useEffect, useReducer, useState } from "react";
-import type { Runtime } from "../lib/runtime";
+import type { EditorRuntime } from "../lib/runtime";
 import { startInterval } from "../utils/timing";
 
-export function InputDiagnostics({ runtime }: { runtime: Runtime }) {
+export function InputDiagnostics({ runtime }: { runtime: EditorRuntime }) {
   const [open, setOpen] = useState(false);
   return (
     <details
@@ -17,7 +17,7 @@ export function InputDiagnostics({ runtime }: { runtime: Runtime }) {
   );
 }
 
-function Readings({ runtime }: { runtime: Runtime }) {
+function Readings({ runtime }: { runtime: EditorRuntime }) {
   const [, refresh] = useReducer((value: number) => value + 1, 0);
   useEffect(() => startInterval(refresh, 1000), []);
   const state = runtime.store.get();

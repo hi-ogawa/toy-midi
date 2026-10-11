@@ -2,7 +2,7 @@ import { CircleHelpIcon, LoaderCircleIcon } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import type { ProjectUiStore } from "../lib/preferences";
-import { Runtime, type ReferenceVideoState } from "../lib/runtime";
+import { EditorRuntime, type ReferenceVideoState } from "../lib/runtime";
 import {
   createYouTubePlayer,
   loadYouTubeApi,
@@ -22,7 +22,7 @@ export function ReferenceVideoPanel({
 }: {
   projectUiStore: ProjectUiStore;
   referenceVideo?: ReferenceVideoState;
-  runtime: Runtime;
+  runtime: EditorRuntime;
   onClose: () => void;
 }) {
   const { size, handleRef } = usePanelResize({
@@ -93,7 +93,7 @@ function YouTubeReferencePanel({
   runtime,
 }: {
   referenceVideo?: ReferenceVideoState;
-  runtime: Runtime;
+  runtime: EditorRuntime;
 }) {
   const [candidateVideoId, setCandidateVideoId] = useState<string>();
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
@@ -196,7 +196,7 @@ function YouTubeReference({
   runtime,
 }: {
   videoId: string;
-  runtime: Runtime;
+  runtime: EditorRuntime;
 }) {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
@@ -262,7 +262,7 @@ function mountYouTubeReference({
 }: {
   element: HTMLElement;
   videoId: string;
-  runtime: Runtime;
+  runtime: EditorRuntime;
   onReady: () => void;
   onPlaying: () => void;
   onError: (error: Error) => void;

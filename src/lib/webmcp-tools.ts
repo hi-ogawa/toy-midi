@@ -1,5 +1,5 @@
 import type { WebMcpTool } from "@hiogawa/webmcp-bridge/webmcp";
-import type { Runtime } from "./runtime";
+import type { EditorRuntime } from "./runtime";
 
 // The runtime API as one declaration file from `pnpm build-webmcp-tools-doc`,
 // which `pnpm build` runs for deploys.
@@ -23,7 +23,7 @@ const AsyncFunction = async function () {}.constructor as new (
  * Tools for an agent to act on the open project, in the WebMCP tool
  * shape.
  */
-export function createWebMcpTools(runtime: Runtime): WebMcpTool[] {
+export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
   return [
     {
       name: "toy_midi_eval",

@@ -1,1 +1,1 @@
-export { Runtime } from "./runtime.ts";
+export { EditorRuntime } from "./runtime.ts";

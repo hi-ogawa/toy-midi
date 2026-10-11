@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import type { ProjectUiStore } from "../lib/preferences";
 import { projectStorage } from "../lib/project-storage";
-import { Runtime } from "../lib/runtime";
+import { EditorRuntime } from "../lib/runtime";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
@@ -15,7 +15,7 @@ export function useProject({
   projectUiStore,
 }: {
   projectId: string;
-  runtime: Runtime;
+  runtime: EditorRuntime;
   projectUiStore: ProjectUiStore;
 }) {
   const [dirty, setDirty] = useState(false);

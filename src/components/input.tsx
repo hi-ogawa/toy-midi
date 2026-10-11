@@ -5,7 +5,7 @@ import type { AudioAnalyser } from "../lib/audio-analyser";
 import { summarizeCalibration } from "../lib/latency-checker/calibration";
 import { measureLatency } from "../lib/latency-checker/runtime";
 import { routes } from "../lib/routes";
-import type { Runtime } from "../lib/runtime";
+import type { EditorRuntime } from "../lib/runtime";
 import { InputDiagnostics } from "./input-diagnostics";
 import { InputMeter } from "./input-meter";
 import { Button } from "./ui/button";
@@ -32,7 +32,7 @@ export function InputSetup({
   onChannelChange,
   onLatencyCompensationChange,
 }: {
-  runtime: Runtime;
+  runtime: EditorRuntime;
   devices: MediaDeviceInfo[];
   error?: Error | null;
   hasAccess: boolean;
@@ -293,7 +293,7 @@ type InputLatencyResult =
 async function measureInputLatency({
   runtime,
 }: {
-  runtime: Runtime;
+  runtime: EditorRuntime;
 }): Promise<InputLatencyResult> {
   const state = runtime.store.get();
   if (state.isPlaying || state.captureStatus !== "ready") {
