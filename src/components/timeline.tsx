@@ -63,10 +63,8 @@ export function TimelinePlayhead({
     <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
       <div
         data-testid="recorder-playhead"
-        className="absolute inset-y-0 left-0 w-px bg-sky-400 will-change-transform"
-        // A transform moves the line on its own compositor layer, where moving
-        // `left` would repaint the timeline under it on every frame.
-        style={{ transform: `translateX(${x}px)` }}
+        className="absolute inset-y-0 w-px bg-sky-400"
+        style={{ left: x }}
       />
     </div>
   );
