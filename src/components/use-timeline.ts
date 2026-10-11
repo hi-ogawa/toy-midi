@@ -44,10 +44,8 @@ export function useTimeline({
       return;
     }
     function follow() {
-      const playheadBeat = secondsToBeats(
-        runtime.transport.store.get().position,
-        tempo,
-      );
+      const position = runtime.transport.store.get().position;
+      const playheadBeat = secondsToBeats(position, tempo);
       const visibleBeats = viewportWidth / pixelsPerBeat;
       if (
         playheadBeat < viewportStartBeat ||

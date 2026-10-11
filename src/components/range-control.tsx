@@ -32,11 +32,9 @@ export function RangeControl({
 
   function setAtPlayhead() {
     const beatsPerBar = getBeatsPerBar(timeSignature);
-    const playheadBeat = secondsToBeats(
-      runtime.transport.store.get().position,
-      tempo,
-    );
-    const startBeat = Math.floor(playheadBeat / beatsPerBar) * beatsPerBar;
+    const position = runtime.transport.store.get().position;
+    const startBeat =
+      Math.floor(secondsToBeats(position, tempo) / beatsPerBar) * beatsPerBar;
     onChange({
       range: { startBeat, endBeat: startBeat + beatsPerBar },
       enabled: true,
