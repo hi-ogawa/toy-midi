@@ -44,15 +44,8 @@ export function Mixer({
         return (
           <TrackChannel
             key={entry.id}
-            pan={
-              entry.kind === "midi" && (
-                <PanSlider
-                  label={track.name}
-                  pan={entry.track.pan}
-                  onPanChange={(pan) => runtime.setMidiTrackPan(track.id, pan)}
-                />
-              )
-            }
+            pan={track.pan}
+            onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
             effectsOpen={openEffects.has(track.id)}
             onEffectsToggle={() => onEffectsToggle(track.id)}
             label={track.name}
@@ -101,6 +94,7 @@ function TrackChannel({
   muted,
   soloed,
   icon,
+  onPanChange,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -108,11 +102,12 @@ function TrackChannel({
   onEffectsToggle,
 }: {
   label: string;
-  pan: ReactNode;
+  pan: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
   icon: ReactNode;
+  onPanChange: (pan: number) => void;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -124,7 +119,7 @@ function TrackChannel({
     <MixerChannel
       icon={icon}
       label={label}
-      pan={pan}
+      pan={<PanSlider label={label} pan={pan} onPanChange={onPanChange} />}
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
