@@ -432,7 +432,7 @@ export function RecorderHeader({
               out, getting help, then leaving it. */}
           <DropdownMenuItem onSelect={onProjectCommentToggle}>
             <NotebookPenIcon />
-            Project Notes
+            Project Comment
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

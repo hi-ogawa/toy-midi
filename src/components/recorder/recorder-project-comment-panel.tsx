@@ -23,18 +23,18 @@ export function RecorderProjectCommentPanel({
 
   return (
     <RecorderPanel
-      closeLabel="Close Notes"
+      closeLabel="Close Comment"
       onClose={onClose}
-      title="Notes"
+      title="Comment"
       data-testid="recorder-project-comment-panel"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
     >
-      <PanelResizeHandle handleRef={handleRef} label="Resize Notes" />
+      <PanelResizeHandle handleRef={handleRef} label="Resize Comment" />
       <textarea
         data-testid="recorder-project-comment-input"
-        aria-label="Project notes"
+        aria-label="Project comment"
         value={comment}
         onChange={(event) => runtime.setComment(event.target.value)}
         spellCheck={false}
