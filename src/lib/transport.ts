@@ -304,8 +304,8 @@ class PlaybackRun {
       return this.firstPass;
     }
     // Pass 0 ends only at loop-out, so from here on the run is looping.
-    const index =
-      1 + Math.floor((contextTime - this.firstPassEnd) / this.getLoopSeconds());
+    const sinceFirstPassEnd = contextTime - this.firstPassEnd;
+    const index = 1 + Math.floor(sinceFirstPassEnd / this.getLoopSeconds());
     return this.getPass(index)!;
   }
 
