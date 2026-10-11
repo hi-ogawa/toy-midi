@@ -283,7 +283,7 @@ class PlaybackRun {
     for (
       let pass: PlaybackPass | undefined = this.getPassAt(window.start);
       pass && pass.contextTime < window.end;
-      pass = this.getPass(pass.index + 1)
+      pass = this.getPassByIndex(pass.index + 1)
     ) {
       // The window may begin before the pass does, or end after it.
       ranges.push({
@@ -306,11 +306,11 @@ class PlaybackRun {
     // Pass 0 ends only at loop-out, so from here on the run is looping.
     const sinceFirstPassEnd = contextTime - this.firstPassEnd;
     const index = 1 + Math.floor(sinceFirstPassEnd / this.getLoopSeconds());
-    return this.getPass(index)!;
+    return this.getPassByIndex(index)!;
   }
 
   /** Pass `index`, or undefined past the last one. */
-  private getPass(index: number): PlaybackPass | undefined {
+  private getPassByIndex(index: number): PlaybackPass | undefined {
     if (index === 0) {
       return this.firstPass;
     }
