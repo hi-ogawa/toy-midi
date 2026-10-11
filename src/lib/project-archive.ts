@@ -6,15 +6,17 @@ import type {
 
 // .toymidi.zip
 // ├── manifest.json  { formatVersion: 1, projectType: "recorder", ... }
-// ├── project.json   { audioTracks: [{ clip: { pcm: { channels:
-// │                    ["audio/tracks/0/channel-0.f32"] } } }], ... }
-// └── audio/
-//     ├── tracks/0/channel-0.f32
-//     └── takes/0/channel-0.f32
+// ├── project.json   { audioTracks: [{ clips: [{ pcm: { channels:
+// │                    ["audio/tracks/0/clips/0/channel-0.f32"] } }] }], ... }
+// └── audio/tracks/
+//     ├── 0/clips/0/channel-0.f32
+//     └── 1/clips/0/channel-0.f32
 //
 // project.json serializes SerializedRecorderRuntimeState<string>, replacing
 // each PCM channel's Float32Array with its ZIP entry path. The samples are
-// stored separately in the referenced .f32 files.
+// stored separately in the referenced .f32 files. Archives written before
+// per-track clip arrays store a single track clip at audio/tracks/0/ and
+// the separate recording track's takes at audio/takes/0/.
 
 const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
 const MANIFEST_PATH = "manifest.json";
@@ -26,6 +28,8 @@ interface RecorderProjectManifest {
   exportedAt: string;
 }
 
+// E2E tests also call this directly from Node to build archives to import,
+// including older project shapes.
 export async function exportRecorderProjectArchive(
   content: SerializedRecorderRuntimeState,
 ): Promise<Blob> {
@@ -73,6 +77,9 @@ function writeProjectContent(
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
+      // Convert every PCM field the project type allows, mirroring the reader.
+      // Saves no longer produce a single clip, but E2E tests export one to
+      // build archives in the older shape.
       clip: track.clip
         ? {
             ...track.clip,
@@ -83,8 +90,18 @@ function writeProjectContent(
             ),
           }
         : undefined,
+      clips: track.clips?.map((clip, clipIndex) => ({
+        ...clip,
+        pcm: writeProjectPcm(
+          zip,
+          clip.pcm,
+          `audio/tracks/${trackIndex}/clips/${clipIndex}`,
+        ),
+      })),
     })),
-    recordingTrack: {
+    // Saves keep the Capture track in audioTracks, but E2E tests export a
+    // separate recording track to build archives in the older shape.
+    recordingTrack: content.recordingTrack && {
       ...content.recordingTrack,
       takes: content.recordingTrack.takes.map((take, takeIndex) => ({
         ...take,
@@ -109,9 +126,17 @@ async function readProjectContent(
               pcm: await readProjectPcm(zip, track.clip.pcm),
             }
           : undefined,
+        clips:
+          track.clips &&
+          (await Promise.all(
+            track.clips.map(async (clip) => ({
+              ...clip,
+              pcm: await readProjectPcm(zip, clip.pcm),
+            })),
+          )),
       })),
     ),
-    recordingTrack: {
+    recordingTrack: content.recordingTrack && {
       ...content.recordingTrack,
       takes: await Promise.all(
         content.recordingTrack.takes.map(async (take) => ({

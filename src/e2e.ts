@@ -1,3 +1,4 @@
+import { recorderProjectStorage } from "./lib/editor-project-storage";
 import {
   projectStorage,
   seedProjectLegacyV2,
@@ -10,6 +11,7 @@ const utils = {
   seedProjectLegacyV2,
   seedProjectV1,
   seedLayoutV1Project,
+  recorderProjectStorage,
 };
 
 window.__e2e = utils;

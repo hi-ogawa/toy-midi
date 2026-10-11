@@ -13,3 +13,19 @@ export function createNumberedName({
   }
   return `${prefix} ${number}`;
 }
+
+/** Use the base name when available, otherwise find the first unused suffix from 2. */
+export function createAvailableName({
+  names,
+  baseName,
+}: {
+  names: readonly string[];
+  baseName: string;
+}): string {
+  const existingNames = new Set(names);
+  let name = baseName;
+  for (let suffix = 2; existingNames.has(name); suffix++) {
+    name = `${baseName} ${suffix}`;
+  }
+  return name;
+}

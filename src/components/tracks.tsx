@@ -1,27 +1,27 @@
 import {
+  ArrowDownIcon,
   ArrowDownWideNarrowIcon,
+  ArrowUpIcon,
   ArrowUpNarrowWideIcon,
-  AudioWaveformIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   HeadphonesIcon,
   MoreVerticalIcon,
-  Settings2Icon,
+  PencilIcon,
+  SlidersHorizontalIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
 import { usePointerDrag } from "../hooks/use-pointer-drag";
-import type { AudioAnalyser } from "../lib/audio-analyser";
 import { formatGainDb } from "../lib/music";
-import { RecorderEffectsToggle } from "./effects-toggle";
 import { openFilePicker } from "./file-drop-input";
-import { InputMeter } from "./input-meter";
 import { RecorderMixToggle } from "./mix-toggle";
 import { RecorderGainSlider } from "./mixer";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -30,39 +30,137 @@ import { cn } from "./ui/utils";
 
 export function AudioTrackActions({
   label,
-  onFileChange,
+  move,
+  importDisabled,
+  removeDisabled,
+  showClips,
+  onShowClipsChange,
+  onRename,
+  onEffectsOpen,
+  onImport,
   onRemove,
 }: {
   label: string;
-  onFileChange: (file: File) => void;
+  move: TrackMoveControls;
+  importDisabled: boolean;
+  removeDisabled: boolean;
+  showClips: boolean;
+  onShowClipsChange: (showClips: boolean) => void;
+  onRename: (name: string) => void;
+  onEffectsOpen: () => void;
+  onImport: (file: File) => void;
   onRemove: () => void;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-          title={`${label} actions`}
-        >
-          <MoreVerticalIcon className="size-3.5" />
-        </Button>
+        <TrackMenuButton label={label} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <RenameTrackMenuItem name={label} onRename={onRename} />
+        <DropdownMenuItem onSelect={onEffectsOpen}>
+          <SlidersHorizontalIcon />
+          Effects…
+        </DropdownMenuItem>
+        <DropdownMenuCheckboxItem
+          checked={showClips}
+          onCheckedChange={onShowClipsChange}
+        >
+          Show clips
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
+          disabled={importDisabled}
           onSelect={() =>
-            openFilePicker({ accept: "audio/*,.wav", onFile: onFileChange })
+            openFilePicker({ accept: "audio/*,.wav", onFile: onImport })
           }
         >
           <UploadIcon />
-          Replace audio
+          Import audio…
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+        <TrackMoveItems {...move} />
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          disabled={removeDisabled}
+          onSelect={onRemove}
+          className="text-red-400"
+        >
           <Trash2Icon />
           Remove track
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+export interface TrackMoveControls {
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMove: (direction: "up" | "down") => void;
+}
+
+/** Menu items that move a row one position within the track list. */
+export function TrackMoveItems({
+  canMoveUp,
+  canMoveDown,
+  onMove,
+}: TrackMoveControls) {
+  return (
+    <>
+      <DropdownMenuItem disabled={!canMoveUp} onSelect={() => onMove("up")}>
+        <ArrowUpIcon />
+        Move up
+      </DropdownMenuItem>
+      <DropdownMenuItem disabled={!canMoveDown} onSelect={() => onMove("down")}>
+        <ArrowDownIcon />
+        Move down
+      </DropdownMenuItem>
+    </>
+  );
+}
+
+/** Actions trigger that leads each track's control group. */
+export function TrackMenuButton({
+  label,
+  className,
+  ...props
+}: { label: string } & React.ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      title={`${label} actions`}
+      aria-label={`${label} actions`}
+      {...props}
+      className={cn(
+        "inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+        className,
+      )}
+    >
+      <MoreVerticalIcon className="size-3.5" />
+    </button>
+  );
+}
+
+export function RenameTrackMenuItem({
+  name,
+  onRename,
+}: {
+  name: string;
+  onRename: (name: string) => void;
+}) {
+  return (
+    <DropdownMenuItem
+      onSelect={() => {
+        const nextName = window.prompt("Track name", name)?.trim();
+        if (nextName && nextName !== name) {
+          onRename(nextName);
+        }
+      }}
+    >
+      <PencilIcon />
+      Rename…
+    </DropdownMenuItem>
   );
 }
 
@@ -74,10 +172,8 @@ export function TrackRow({
   gain,
   muted,
   soloed,
-  effectsOpen,
-  onEffectsToggle,
   action,
-  input,
+  recording,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -91,10 +187,8 @@ export function TrackRow({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  effectsOpen: boolean;
-  onEffectsToggle: () => void;
   action?: React.ReactNode;
-  input?: TrackInputControls;
+  recording?: TrackRecordingControls;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -120,9 +214,7 @@ export function TrackRow({
       <div
         className={cn(
           "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
-          input
-            ? "grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] gap-y-1"
-            : "grid-rows-[1.75rem_auto] gap-y-2",
+          "grid-rows-[1.75rem_auto] gap-y-2",
           controlsClassName,
         )}
       >
@@ -131,29 +223,22 @@ export function TrackRow({
         </div>
         <div className="flex self-center gap-1">
           {action}
-          {input && <TrackInputToggle {...input} />}
+          {recording && <TrackRecordingToggles title={title} {...recording} />}
           <RecorderMixToggle
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-7"
+            className="size-6"
             title={muted ? `Unmute ${title}` : `Mute ${title}`}
           />
           <RecorderMixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
-            className="size-7"
+            className="size-6"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
-          <RecorderEffectsToggle
-            label={title}
-            open={effectsOpen}
-            onClick={onEffectsToggle}
-            className="size-7"
-          />
         </div>
-        {input && <TrackInputRoute {...input} />}
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
             label={`${title} gain`}
@@ -173,137 +258,86 @@ export function TrackRow({
   );
 }
 
-interface TrackInputControls {
-  route: string;
-  routeNeedsSetup: boolean;
-  inputActive: boolean;
-  inputAnalyser?: AudioAnalyser;
-  inputMonitoring: boolean;
-  inputToggleDisabled: boolean;
-  tunerOpen: boolean;
-  onInputSetup: () => void;
-  onInputMonitoringChange: (monitoring: boolean) => void;
-  onInputToggle: () => void;
-  onTunerToggle: () => void;
+interface TrackRecordingControls {
+  armed: boolean;
+  armDisabled: boolean;
+  monitoring: boolean;
+  monitorDisabled: boolean;
+  onArmedChange: (armed: boolean) => void;
+  onMonitoringChange: (monitoring: boolean) => void;
 }
 
-function TrackInputToggle({
-  inputActive,
-  inputToggleDisabled,
-  onInputToggle,
-}: TrackInputControls) {
-  return (
-    <Button
-      data-testid="recorder-input-toggle"
-      disabled={inputToggleDisabled}
-      onClick={onInputToggle}
-      className={
-        inputActive
-          ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
-          : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
-      }
-      title={inputActive ? "Disarm capture" : "Arm capture"}
-      aria-label={inputActive ? "Disarm capture" : "Arm capture"}
-      aria-pressed={inputActive}
-    >
-      R
-    </Button>
-  );
-}
-
-function TrackInputRoute({
-  route,
-  routeNeedsSetup,
-  inputActive,
-  inputAnalyser,
-  inputMonitoring,
-  onInputSetup,
-  onInputMonitoringChange,
-  tunerOpen,
-  onTunerToggle,
-}: TrackInputControls) {
+/** Arm chooses where the next take goes; monitor routes input through this track. */
+function TrackRecordingToggles({
+  title,
+  armed,
+  armDisabled,
+  monitoring,
+  monitorDisabled,
+  onArmedChange,
+  onMonitoringChange,
+}: TrackRecordingControls & { title: string }) {
+  const armLabel = armed
+    ? `Disarm ${title} for recording`
+    : `Arm ${title} for recording`;
+  const monitorLabel = monitoring
+    ? `Disable ${title} input monitoring`
+    : `Enable ${title} input monitoring`;
   return (
     <>
-      <div className="col-span-2 flex min-w-0 items-center gap-1">
-        <span
-          className={cn(
-            "min-w-0 flex-1 truncate text-[11px]",
-            routeNeedsSetup
-              ? "font-medium text-orange-300"
-              : "text-neutral-400",
-          )}
-        >
-          {route}
-        </span>
-        <button
-          type="button"
-          aria-label="Configure audio input"
-          title="Configure audio input"
-          onClick={onInputSetup}
-          className={cn(
-            "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
-            routeNeedsSetup && "text-orange-300 hover:text-orange-200",
-          )}
-        >
-          <Settings2Icon className="size-3.5" />
-        </button>
-        <button
-          type="button"
+      <Button
+        data-testid="recorder-arm-toggle"
+        disabled={armDisabled}
+        onClick={() => onArmedChange(!armed)}
+        className={cn(
+          "size-6 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
+          armed &&
+            "border-red-500/60 bg-red-500/35 hover:!bg-red-500/40 hover:!text-red-300",
+        )}
+        title={armLabel}
+        aria-label={armLabel}
+        aria-pressed={armed}
+      >
+        R
+      </Button>
+      <span
+        className="inline-flex"
+        title={
+          monitorDisabled
+            ? "Turn input on and arm this track to monitor"
+            : monitoring
+              ? monitorLabel
+              : `${monitorLabel} (use headphones to avoid feedback)`
+        }
+      >
+        <Button
           data-testid="recorder-input-monitor"
-          disabled={!inputActive}
-          aria-label={
-            inputMonitoring
-              ? "Disable input monitoring"
-              : "Enable input monitoring"
-          }
-          aria-pressed={inputMonitoring}
-          title={
-            inputActive
-              ? inputMonitoring
-                ? "Disable input monitoring"
-                : "Enable input monitoring (use headphones to avoid feedback)"
-              : "Enable input first to monitor"
-          }
-          onClick={() => onInputMonitoringChange(!inputMonitoring)}
+          disabled={monitorDisabled}
+          onClick={() => onMonitoringChange(!monitoring)}
           className={cn(
-            "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
-            inputMonitoring && "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
+            "size-6 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+            monitoring &&
+              "border-sky-500/60 bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
           )}
+          aria-label={monitorLabel}
+          aria-pressed={monitoring}
         >
           <HeadphonesIcon className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          aria-label={tunerOpen ? "Close tuner" : "Open tuner"}
-          aria-pressed={tunerOpen}
-          title={tunerOpen ? "Close tuner" : "Open tuner"}
-          onClick={onTunerToggle}
-          className={cn(
-            "grid size-6 shrink-0 place-items-center rounded",
-            tunerOpen
-              ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-700"
-              : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
-          )}
-        >
-          <AudioWaveformIcon className="size-3.5" />
-        </button>
-      </div>
-      <div className="col-span-2">
-        <InputMeter active={inputActive} analyser={inputAnalyser} compact />
-      </div>
+        </Button>
+      </span>
     </>
   );
 }
 
-export function TakesDisclosureRow({
+export function ClipsDisclosureRow({
   expanded,
-  takeCount,
+  clipCount,
   onExpandedChange,
   newestFirst,
   onNewestFirstChange,
 }: {
   expanded: boolean;
-  takeCount: number;
+  clipCount: number;
   newestFirst: boolean;
   onNewestFirstChange: (newestFirst: boolean) => void;
   onExpandedChange: (expanded: boolean) => void;
@@ -313,7 +347,7 @@ export function TakesDisclosureRow({
       <div className="relative border-r border-neutral-700">
         <button
           type="button"
-          data-testid="recorder-takes-toggle"
+          data-testid="recorder-clips-toggle"
           aria-expanded={expanded}
           onClick={() => onExpandedChange(!expanded)}
           className="flex h-full w-full items-center gap-2 pl-3 pr-12 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
@@ -323,17 +357,17 @@ export function TakesDisclosureRow({
           ) : (
             <ChevronRightIcon className="size-3.5 text-neutral-400" />
           )}
-          Takes
+          Clips
           <span className="text-[10px] font-normal text-neutral-500">
-            {takeCount}
+            {clipCount}
           </span>
         </button>
         <Button
-          data-testid="recorder-takes-order"
+          data-testid="recorder-clips-order"
           aria-label={
             newestFirst
-              ? "Order takes oldest first"
-              : "Order takes newest first"
+              ? "Order clips oldest first"
+              : "Order clips newest first"
           }
           title={
             newestFirst
@@ -355,8 +389,10 @@ export function TakesDisclosureRow({
   );
 }
 
-export function TakeTrackRow({
+export function ClipTrackRow({
   label,
+  gain,
+  onGainChange,
   muted,
   soloed,
   onMutedChange,
@@ -365,6 +401,8 @@ export function TakeTrackRow({
   children,
 }: {
   label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
   muted: boolean;
   soloed: boolean;
   onMutedChange: (muted: boolean) => void;
@@ -374,42 +412,48 @@ export function TakeTrackRow({
 }) {
   return (
     <div
-      data-testid="recorder-take-row"
+      data-testid="recorder-clip-row"
       className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 flex items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
-        <span className="mr-auto px-4">{label}</span>
+      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
+        <span className="truncate">{label}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button aria-label={`${label} actions`} className="size-7">
-              <MoreVerticalIcon className="size-3.5" />
-            </Button>
+            <TrackMenuButton label={label} />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onSelect={onDelete}>
               <Trash2Icon />
-              Delete take
+              Delete clip
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <RecorderMixToggle
-          data-testid="recorder-take-mute"
+          data-testid="recorder-clip-mute"
           aria-label={`Mute ${label}`}
           active={muted}
           kind="mute"
           onClick={() => onMutedChange(!muted)}
-          className="size-7"
-          title="Mute take"
+          className="size-6"
+          title="Mute clip"
         />
         <RecorderMixToggle
-          data-testid="recorder-take-solo"
+          data-testid="recorder-clip-solo"
           aria-label={`Solo ${label}`}
           active={soloed}
           kind="solo"
           onClick={() => onSoloedChange(!soloed)}
-          className="size-7"
-          title="Solo take"
+          className="size-6"
+          title="Solo clip"
         />
+        <label className="col-span-4 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
+          <RecorderGainSlider
+            label={`${label} gain`}
+            gain={gain}
+            onGainChange={onGainChange}
+          />
+          <span className="text-right font-mono">{formatGainDb(gain)}</span>
+        </label>
       </div>
       {children}
     </div>

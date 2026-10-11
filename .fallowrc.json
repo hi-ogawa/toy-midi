@@ -1,3 +1,8 @@
 {
-  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json"
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "packages/webmcp-bridge/src/extension/content.ts",
+    "packages/webmcp-bridge/src/extension/background.ts",
+    "packages/webmcp-bridge/src/extension/relay.ts"
+  ]
 }

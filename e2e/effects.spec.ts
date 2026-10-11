@@ -4,27 +4,24 @@ import {
   createRecorderProject,
   dragBy,
 } from "./editor-helpers";
+import { selectMenuItem } from "./helpers";
 
-test("edits and persists independent Audio and Capture EQ settings", async ({
+test("edits and persists independent EQ settings per audio track", async ({
   page,
 }) => {
-  // Open independent effects panels for backing audio and Capture.
+  // Open independent effects panels for capture on Audio 1 and backing audio on Audio 2.
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  await page
-    .getByRole("button", { name: "Audio 1 effects", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
-  const audio = page.getByTestId("recorder-effects-panel").filter({
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
+  const capture = page.getByTestId("recorder-effects-panel").filter({
     has: page.getByRole("heading", { name: "Audio 1 Effects", exact: true }),
   });
-  const capture = page.getByTestId("recorder-effects-panel").filter({
-    has: page.getByRole("heading", { name: "Capture Effects", exact: true }),
+  const audio = page.getByTestId("recorder-effects-panel").filter({
+    has: page.getByRole("heading", { name: "Audio 2 Effects", exact: true }),
   });
 
-  // Verify the default EQ settings on Audio.
+  // Verify the default EQ settings on the backing track.
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
   );
@@ -38,7 +35,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("checkbox", { name: "Bypass" }).first(),
   ).not.toBeChecked();
 
-  // Set different EQ values for Audio and Capture.
+  // Set different EQ values for each track.
   await audio.getByRole("textbox", { name: "Frequency" }).fill("500");
   await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
   await audio.getByRole("textbox", { name: "Gain", exact: true }).fill("6");
@@ -62,14 +59,10 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Audio 1 effects", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
   await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
   await audio.getByRole("button", { name: "Select band 1" }).click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "500",
   );
@@ -91,7 +84,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "saved");
 
-  // Resetting Audio leaves Capture unchanged and dirties the project.
+  // Resetting the backing track leaves Audio 1 unchanged and dirties the project.
   await audio.getByRole("button", { name: "Reset EQ" }).click();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
@@ -153,19 +146,17 @@ test("keeps the mixer usable with many effects panels open", async ({
 });
 
 test("resizes an effects panel", async ({ page }) => {
-  // Open Capture effects with room to grow the panel.
+  // Open Audio 1 effects with room to grow the panel.
   await page.setViewportSize({ width: 1600, height: 1000 });
   await createRecorderProject(page);
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
   const panel = page.getByTestId("recorder-effects-panel");
   const initial = (await panel.boundingBox())!;
 
   // Drag the top-left corner to increase the panel's width and height.
   await dragBy(
     page,
-    panel.getByRole("button", { name: "Resize Capture Effects" }),
+    panel.getByRole("button", { name: "Resize Audio 1 Effects" }),
     -100,
     { deltaY: -100 },
   );
@@ -178,7 +169,7 @@ test("resizes an effects panel", async ({ page }) => {
   const before = (await graph.boundingBox())!;
   await dragBy(
     page,
-    panel.getByRole("button", { name: "Resize Capture Effects" }),
+    panel.getByRole("button", { name: "Resize Audio 1 Effects" }),
     0,
     { deltaY: 150 },
   );

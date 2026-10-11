@@ -1,7 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { resolveAudioFiles } from "../lib/audio-files";
 import { deriveClipRegions } from "../lib/clip-regions";
@@ -9,10 +10,12 @@ import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { snapToGrid } from "../lib/music";
 import { getNextPlaybackRate } from "../lib/playback-rate";
+import { createProjectUiStore, recorderPreferences } from "../lib/preferences";
 import { exportRecorderProjectArchive } from "../lib/project-archive";
 import { getRecorderScoreHref, routes } from "../lib/routes";
 import { RecorderRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
 import { beatsToSeconds, secondsToBeats } from "../lib/timeline";
+import { resolveTrackOrder } from "../lib/track-order";
 import { parseTimeSignature } from "../types";
 import { RecorderAudioToMidi, useRecorderAudioToMidiUi } from "./audio-to-midi";
 import { RecorderEffects, useRecorderEffectsUi } from "./effects";
@@ -21,10 +24,12 @@ import { deriveRecorderFlags } from "./flags";
 import { RecorderHeader } from "./header";
 import { RecorderHelp } from "./help";
 import { InputSetup } from "./input";
+import { RecorderInputPanel } from "./input-panel";
 import { RecorderLocatorRow } from "./locators";
 import { MidiTrackRow } from "./midi-track";
 import { RecorderMixer } from "./mixer";
 import { RecorderPanel } from "./panel";
+import { RecorderProjectCommentPanel } from "./project-comment-panel";
 import { ReferenceVideoPanel } from "./reference-video";
 import { RecorderScorePanel, useRecorderScorePanelUi } from "./score-panel";
 import {
@@ -33,50 +38,63 @@ import {
   AudioTimelineLane,
 } from "./timeline";
 import {
+  type TrackMoveControls,
   AudioTrackActions,
-  TakesDisclosureRow,
-  TakeTrackRow,
+  ClipsDisclosureRow,
+  ClipTrackRow,
   TrackRow,
 } from "./tracks";
 import { RecorderTuner } from "./tuner";
 import { Dialog } from "./ui/dialog";
 import { useRecorderInput } from "./use-input";
 import { useRecorderInteraction } from "./use-interaction";
-import { useRecorderPreference } from "./use-preference";
 import { useRecorderProject } from "./use-project";
 import { useRecorderTimeline } from "./use-timeline";
+import { useWebMcpBridge } from "./use-webmcp-bridge";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  useWebMcpBridge(runtime);
+  const [projectUiStore] = useState(() => createProjectUiStore(projectId));
+  const [defaultMidiProgram, setDefaultMidiProgram] =
+    recorderPreferences.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
-  const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
-  const [takesExpanded, setTakesExpanded] = useState(false);
-  const [takesNewestFirst, setTakesNewestFirst] =
-    useRecorderPreference("takesNewestFirst");
-  const [isMixerOpen, setIsMixerOpen] = useState(false);
-  const [isTunerOpen, setIsTunerOpen] = useState(false);
-  const effects = useRecorderEffectsUi();
+  const [isReferenceVideoOpen, setIsReferenceVideoOpen] =
+    projectUiStore.useValue("referenceVideoOpen");
+  const [expandedClipTracks, setExpandedClipTracks] =
+    projectUiStore.useValue("expandedClipTracks");
+  const [clipsNewestFirst, setClipsNewestFirst] =
+    recorderPreferences.useValue("takesNewestFirst");
+  const [isMixerOpen, setIsMixerOpen] = projectUiStore.useValue("mixerOpen");
+  const [isProjectCommentOpen, setIsProjectCommentOpen] =
+    projectUiStore.useValue("projectCommentOpen");
+  const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
+  const [isInputPanelOpen, setIsInputPanelOpen] =
+    projectUiStore.useValue("inputPanelOpen");
+  const effects = useRecorderEffectsUi(projectUiStore);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
   );
+  useEffect(() => {
+    document.title = `${state.title} - Toy MIDI`;
+  }, [state.title]);
+
   const input = useRecorderInput({
     runtime,
     state,
   });
   const timeline = useRecorderTimeline({
+    projectUiStore,
     isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
-  const project = useRecorderProject({ projectId, runtime });
-  const flags = deriveRecorderFlags({
-    captureStatus: state.captureStatus,
-    project,
-  });
+  const project = useRecorderProject({ projectId, runtime, projectUiStore });
+  const flags = deriveRecorderFlags({ state, project });
   const recorderInteraction = useRecorderInteraction({
     runtime,
     state,
@@ -104,22 +122,22 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
     },
   });
-  const audioTrackMutation = useMutation({
-    mutationFn: ({ file, id }: { file: File; id: string }) => {
-      return runtime.setAudioTrack(id, file);
+  const importClipMutation = useMutation({
+    mutationFn: (input: { trackId: string; file: File }) => {
+      return runtime.importAudioClip(input);
     },
   });
   const addAudioMutation = useMutation({
     mutationFn: async (input: File) => {
       const files = await resolveAudioFiles(input);
       for (const file of files) {
-        const id = runtime.addAudioTrack();
-        await runtime.setAudioTrack(id, file);
+        const trackId = runtime.addAudioTrack();
+        await runtime.importAudioClip({ trackId, file });
       }
     },
   });
   const addMidiMutation = useMutation({
-    mutationFn: () => runtime.addMidiTrack(),
+    mutationFn: () => runtime.addMidiTrack({ program: defaultMidiProgram }),
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
@@ -136,10 +154,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const takes = clipInteraction.recordingTrack.clips;
+  const trackEntries = resolveTrackOrder({
+    trackOrder: state.trackOrder,
+    audioTracks: clipInteraction.audioTracks,
+    midiTracks: state.midiTracks,
+  });
+  const orderedMidiTracks = trackEntries
+    .filter((entry) => entry.kind === "midi")
+    .map((entry) => entry.track);
 
   function togglePlay() {
-    if (flags.playDisabled) {
+    if (flags.transportDisabled) {
       return;
     }
     if (flags.isRecording) {
@@ -152,27 +177,27 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function toggleRecord() {
-    if (flags.recordDisabled) {
+    if (flags.transportDisabled) {
+      return;
+    }
+    if (flags.recordBlocker === "arm") {
+      toast.warning("Arm a track to record");
+      return;
+    }
+    if (flags.recordBlocker === "input") {
+      promptInputOn();
       return;
     }
     recordMutation.mutate(flags.isRecording ? "stop" : "start");
   }
 
+  function promptInputOn() {
+    toast.warning("Turn input on to record");
+    setIsInputPanelOpen(true);
+  }
+
   useWindowEvent("keydown", (event) => {
     if (project.initError) {
-      return;
-    }
-    if (isHelpOpen) {
-      if (!event.repeat && matchKeyboardEvent(event, "Escape")) {
-        event.preventDefault();
-        setIsHelpOpen(false);
-      }
-      if (matchKeyboardEvent(event, "Ctrl+S")) {
-        event.preventDefault();
-      }
-      return;
-    }
-    if (isAudioExportOpen) {
       return;
     }
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
@@ -319,7 +344,11 @@ export function Recorder({ projectId }: { projectId: string }) {
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
+        onProjectCommentToggle={() => setIsProjectCommentOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
+        inputPanelOpen={isInputPanelOpen}
+        inputAccessRequired={input.initialized && !input.hasAccess}
+        onInputPanelToggle={() => setIsInputPanelOpen((open) => !open)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -359,6 +388,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
               isAddingAudio={addAudioMutation.isPending}
+              isRecording={flags.isRecording}
               isAddingMidi={addMidiMutation.isPending}
               onAddMidiTrack={() => addMidiMutation.mutate()}
               onAddAudioTrack={() => runtime.addAudioTrack()}
@@ -407,204 +437,214 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onRemove={() => runtime.removeReferenceVideo()}
               />
             )}
-            {clipInteraction.audioTracks.map((track, index) => (
-              <TrackRow
-                key={track.id}
-                data-testid="recorder-audio-track-row"
-                title={`Audio ${index + 1}`}
-                height={track.height}
-                gain={track.gain}
-                muted={track.muted}
-                soloed={track.soloed}
-                effectsOpen={effects.openEffects.has(track.id)}
-                onEffectsToggle={() => effects.toggleEffects(track.id)}
-                onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-                onMutedChange={(muted) =>
-                  runtime.setTrackMix(track.id, { muted })
+            {trackEntries.map((entry, index) => {
+              const move: TrackMoveControls = {
+                canMoveUp: index > 0,
+                canMoveDown: index < trackEntries.length - 1,
+                onMove: (direction) =>
+                  runtime.moveTrack({ id: entry.id, direction }),
+              };
+              switch (entry.kind) {
+                case "audio": {
+                  const { track } = entry;
+                  const armed = state.armedTrackId === track.id;
+                  const pendingRecording =
+                    state.pendingRecording?.trackId === track.id
+                      ? state.pendingRecording
+                      : undefined;
+                  const clipsExpanded = expandedClipTracks.includes(track.id);
+                  return (
+                    <Fragment key={track.id}>
+                      <TrackRow
+                        data-testid="recorder-audio-track-row"
+                        title={track.name}
+                        height={track.height}
+                        gain={track.gain}
+                        muted={track.muted}
+                        soloed={track.soloed}
+                        onGainChange={(gain) =>
+                          runtime.setTrackMix(track.id, { gain })
+                        }
+                        onMutedChange={(muted) =>
+                          runtime.setTrackMix(track.id, { muted })
+                        }
+                        onSoloedChange={(soloed) =>
+                          runtime.setTrackMix(track.id, { soloed })
+                        }
+                        onHeightChange={(height) =>
+                          runtime.setTrackHeight(track.id, height)
+                        }
+                        action={
+                          <AudioTrackActions
+                            move={move}
+                            label={track.name}
+                            removeDisabled={flags.isRecording}
+                            showClips={track.showClips}
+                            onShowClipsChange={(showClips) =>
+                              runtime.setTrackShowClips({
+                                id: track.id,
+                                showClips,
+                              })
+                            }
+                            onRename={(name) =>
+                              runtime.setTrackName({ id: track.id, name })
+                            }
+                            onEffectsOpen={() => effects.showEffects(track.id)}
+                            importDisabled={flags.isRecording}
+                            onImport={(file) =>
+                              importClipMutation.mutate({
+                                trackId: track.id,
+                                file,
+                              })
+                            }
+                            onRemove={() => {
+                              runtime.removeAudioTrack(track.id);
+                              effects.closeEffects(track.id);
+                            }}
+                          />
+                        }
+                        recording={{
+                          armed,
+                          armDisabled: flags.isRecording,
+                          monitoring: state.inputMonitoring && armed,
+                          monitorDisabled: !input.active || !armed,
+                          onArmedChange: (armed) => {
+                            runtime.setArmedTrack(armed ? track.id : undefined);
+                            if (armed && !input.active) {
+                              promptInputOn();
+                            }
+                          },
+                          onMonitoringChange: (monitoring) =>
+                            runtime.setInputMonitoring(monitoring),
+                        }}
+                      >
+                        <AudioTimelineLane
+                          clips={track.clips}
+                          regions={pendingRecording?.regions ?? track.regions}
+                          testId="audio"
+                          emptyLabel="Record or import audio"
+                          recordingClipId={pendingRecording?.id}
+                          pixelsPerBeat={timeline.pixelsPerBeat}
+                          beatsPerBar={timeline.beatsPerBar}
+                          subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                          viewportStartBeat={timeline.viewportStartBeat}
+                          tempo={timeline.tempo}
+                          viewportWidth={timeline.viewportWidth}
+                          isClipSelected={clipInteraction.isSelected}
+                          isClipEditing={clipInteraction.isEditing}
+                          onClipClick={clipInteraction.select}
+                          onEditStart={clipInteraction.startEdit}
+                          onEditUpdate={clipInteraction.updateEdit}
+                          onEditFinish={clipInteraction.finishEdit}
+                          onEditCancel={clipInteraction.cancelEdit}
+                          onSeek={(position) => {
+                            recorderInteraction.clearSelection();
+                            runtime.seek(position);
+                          }}
+                        />
+                      </TrackRow>
+                      {track.showClips && track.clips.length > 0 && (
+                        <ClipsDisclosureRow
+                          expanded={clipsExpanded}
+                          clipCount={track.clips.length}
+                          onExpandedChange={(expanded) =>
+                            setExpandedClipTracks((ids) =>
+                              expanded
+                                ? [...ids, track.id]
+                                : ids.filter((id) => id !== track.id),
+                            )
+                          }
+                          newestFirst={clipsNewestFirst}
+                          onNewestFirstChange={setClipsNewestFirst}
+                        />
+                      )}
+                      {track.showClips &&
+                        track.clips.length > 0 &&
+                        clipsExpanded &&
+                        (clipsNewestFirst
+                          ? track.clips.toReversed()
+                          : track.clips
+                        ).map((clip) => (
+                          <ClipTrackRow
+                            key={clip.id}
+                            label={clip.name}
+                            gain={clip.gain}
+                            onGainChange={(gain) =>
+                              runtime.setClipGain({ id: clip.id, gain })
+                            }
+                            muted={clip.muted}
+                            soloed={clip.soloed}
+                            onMutedChange={(muted) =>
+                              runtime.setClipMuted({ id: clip.id, muted })
+                            }
+                            onSoloedChange={(soloed) =>
+                              runtime.setClipSoloed({ id: clip.id, soloed })
+                            }
+                            onDelete={() => runtime.removeClips([clip.id])}
+                          >
+                            <AudioTimelineLane
+                              clips={[clip]}
+                              regions={deriveClipRegions([clip])}
+                              testId="clip-lane"
+                              pixelsPerBeat={timeline.pixelsPerBeat}
+                              beatsPerBar={timeline.beatsPerBar}
+                              subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                              viewportStartBeat={timeline.viewportStartBeat}
+                              tempo={timeline.tempo}
+                              viewportWidth={timeline.viewportWidth}
+                              isClipSelected={clipInteraction.isSelected}
+                              isClipEditing={clipInteraction.isEditing}
+                              onClipClick={clipInteraction.select}
+                              onEditStart={clipInteraction.startEdit}
+                              onEditUpdate={clipInteraction.updateEdit}
+                              onEditFinish={clipInteraction.finishEdit}
+                              onEditCancel={clipInteraction.cancelEdit}
+                              onSeek={(position) => {
+                                recorderInteraction.clearSelection();
+                                runtime.seek(position);
+                              }}
+                            />
+                          </ClipTrackRow>
+                        ))}
+                    </Fragment>
+                  );
                 }
-                onSoloedChange={(soloed) =>
-                  runtime.setTrackMix(track.id, { soloed })
+                case "midi": {
+                  const { track } = entry;
+                  return (
+                    <MidiTrackRow
+                      move={move}
+                      key={track.id}
+                      track={track}
+                      runtime={runtime}
+                      pixelsPerBeat={timeline.pixelsPerBeat}
+                      beatsPerBar={timeline.beatsPerBar}
+                      subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                      viewportStartBeat={timeline.viewportStartBeat}
+                      onEffectsOpen={() => effects.showEffects(track.id)}
+                      onRemove={() => {
+                        runtime.removeMidiTrack(track.id);
+                        effects.closeEffects(track.id);
+                        transcriptions.closeTranscription(track.id);
+                        scoreUi.close(track.id);
+                      }}
+                      midiInteraction={midiInteraction}
+                      onTranscribe={() =>
+                        transcriptions.openTranscription(track.id)
+                      }
+                      onScorePreview={() => scoreUi.open(track.id)}
+                      onPresetSelected={(preset) => {
+                        // New tracks start from the last General MIDI
+                        // program, not a drum kit.
+                        if (!preset.bank) {
+                          setDefaultMidiProgram(preset.program);
+                        }
+                      }}
+                    />
+                  );
                 }
-                onHeightChange={(height) =>
-                  runtime.setTrackHeight(track.id, height)
-                }
-                action={
-                  <AudioTrackActions
-                    label={`Audio ${index + 1}`}
-                    onFileChange={(file) =>
-                      audioTrackMutation.mutate({ file, id: track.id })
-                    }
-                    onRemove={() => {
-                      runtime.removeAudioTrack(track.id);
-                      effects.closeEffects(track.id);
-                    }}
-                  />
-                }
-              >
-                <AudioTimelineLane
-                  clips={track.clips}
-                  regions={track.regions}
-                  testId="audio"
-                  pixelsPerBeat={timeline.pixelsPerBeat}
-                  beatsPerBar={timeline.beatsPerBar}
-                  subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                  viewportStartBeat={timeline.viewportStartBeat}
-                  tempo={timeline.tempo}
-                  viewportWidth={timeline.viewportWidth}
-                  emptyLabel="Load an audio file"
-                  isClipSelected={clipInteraction.isSelected}
-                  isClipEditing={clipInteraction.isEditing}
-                  onClipClick={clipInteraction.select}
-                  onEditStart={clipInteraction.startEdit}
-                  onEditUpdate={clipInteraction.updateEdit}
-                  onEditFinish={clipInteraction.finishEdit}
-                  onEditCancel={clipInteraction.cancelEdit}
-                  onSeek={(position) => {
-                    recorderInteraction.clearSelection();
-                    runtime.seek(position);
-                  }}
-                />
-              </TrackRow>
-            ))}
-            {state.midiTracks.map((track) => (
-              <MidiTrackRow
-                key={track.id}
-                track={track}
-                runtime={runtime}
-                pixelsPerBeat={timeline.pixelsPerBeat}
-                beatsPerBar={timeline.beatsPerBar}
-                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                viewportStartBeat={timeline.viewportStartBeat}
-                effectsOpen={effects.openEffects.has(track.id)}
-                onEffectsToggle={() => effects.toggleEffects(track.id)}
-                onRemove={() => {
-                  runtime.removeMidiTrack(track.id);
-                  effects.closeEffects(track.id);
-                  transcriptions.closeTranscription(track.id);
-                  scoreUi.close(track.id);
-                }}
-                midiInteraction={midiInteraction}
-                onTranscribe={() => transcriptions.openTranscription(track.id)}
-                onScorePreview={() => scoreUi.open(track.id)}
-              />
-            ))}
-
-            <TrackRow
-              title="Capture"
-              gain={state.recordingTrack.gain}
-              height={state.recordingTrack.height}
-              muted={state.recordingTrack.muted}
-              soloed={state.recordingTrack.soloed}
-              effectsOpen={effects.openEffects.has("capture")}
-              onEffectsToggle={() => effects.toggleEffects("capture")}
-              onGainChange={(gain) =>
-                runtime.setTrackMix(state.recordingTrack.id, { gain })
               }
-              onMutedChange={(muted) =>
-                runtime.setTrackMix(state.recordingTrack.id, { muted })
-              }
-              onSoloedChange={(soloed) =>
-                runtime.setTrackMix(state.recordingTrack.id, { soloed })
-              }
-              onHeightChange={(height) =>
-                runtime.setTrackHeight(state.recordingTrack.id, height)
-              }
-              input={{
-                route: input.route.label,
-                routeNeedsSetup: input.route.needsSetup,
-                inputActive: input.active,
-                inputAnalyser: runtime.captureInput?.analyser,
-                inputMonitoring: state.inputMonitoring,
-                inputToggleDisabled:
-                  input.mutationPending ||
-                  !input.initialized ||
-                  flags.isRecording ||
-                  (!input.active && input.route.needsSetup),
-                tunerOpen: isTunerOpen,
-                onInputSetup: () => setIsInputSetupOpen(true),
-                onInputMonitoringChange: (monitoring) =>
-                  runtime.setInputMonitoring(monitoring),
-                onInputToggle: input.toggle,
-                onTunerToggle: () => setIsTunerOpen((open) => !open),
-              }}
-            >
-              <AudioTimelineLane
-                clips={takes}
-                regions={
-                  state.previewClipRegions ??
-                  clipInteraction.recordingTrack.regions
-                }
-                testId="comp"
-                emptyLabel="Enable input, place the playhead, then record"
-                recordingClipId={state.pendingRecording?.id}
-                beatsPerBar={timeline.beatsPerBar}
-                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                pixelsPerBeat={timeline.pixelsPerBeat}
-                tempo={timeline.tempo}
-                viewportStartBeat={timeline.viewportStartBeat}
-                viewportWidth={timeline.viewportWidth}
-                isClipSelected={clipInteraction.isSelected}
-                isClipEditing={clipInteraction.isEditing}
-                onClipClick={clipInteraction.select}
-                onEditStart={clipInteraction.startEdit}
-                onEditUpdate={clipInteraction.updateEdit}
-                onEditFinish={clipInteraction.finishEdit}
-                onEditCancel={clipInteraction.cancelEdit}
-                onSeek={(position) => {
-                  recorderInteraction.clearSelection();
-                  runtime.seek(position);
-                }}
-              />
-            </TrackRow>
-            {takes.length > 0 && (
-              <TakesDisclosureRow
-                expanded={takesExpanded}
-                takeCount={takes.length}
-                onExpandedChange={setTakesExpanded}
-                newestFirst={takesNewestFirst}
-                onNewestFirstChange={setTakesNewestFirst}
-              />
-            )}
-            {takes.length > 0 &&
-              takesExpanded &&
-              (takesNewestFirst ? takes.toReversed() : takes).map((take) => (
-                <TakeTrackRow
-                  key={take.id}
-                  label={take.name}
-                  muted={take.muted}
-                  soloed={take.soloed}
-                  onMutedChange={(muted) =>
-                    runtime.setClipMuted({ id: take.id, muted })
-                  }
-                  onSoloedChange={(soloed) =>
-                    runtime.setClipSoloed({ id: take.id, soloed })
-                  }
-                  onDelete={() => runtime.removeClips([take.id])}
-                >
-                  <AudioTimelineLane
-                    clips={[take]}
-                    regions={deriveClipRegions([take])}
-                    testId="take-lane"
-                    pixelsPerBeat={timeline.pixelsPerBeat}
-                    beatsPerBar={timeline.beatsPerBar}
-                    subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                    viewportStartBeat={timeline.viewportStartBeat}
-                    tempo={timeline.tempo}
-                    viewportWidth={timeline.viewportWidth}
-                    isClipSelected={clipInteraction.isSelected}
-                    isClipEditing={clipInteraction.isEditing}
-                    onClipClick={clipInteraction.select}
-                    onEditStart={clipInteraction.startEdit}
-                    onEditUpdate={clipInteraction.updateEdit}
-                    onEditFinish={clipInteraction.finishEdit}
-                    onEditCancel={clipInteraction.cancelEdit}
-                    onSeek={(position) => {
-                      recorderInteraction.clearSelection();
-                      runtime.seek(position);
-                    }}
-                  />
-                </TakeTrackRow>
-              ))}
+            })}
           </div>
         </section>
 
@@ -626,6 +666,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           data-testid="recorder-input-setup"
         >
           <InputSetup
+            runtime={runtime}
             devices={input.devices}
             error={input.error}
             hasAccess={input.hasAccess}
@@ -633,6 +674,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
             isRecording={flags.isRecording}
+            isPlaying={state.isPlaying}
             selectedDevice={input.selectedDevice}
             selectedChannel={state.selectedChannel}
             inputChannelCount={state.inputChannelCount}
@@ -658,43 +700,24 @@ export function Recorder({ projectId }: { projectId: string }) {
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
         {effects.openEffects.size > 0 && (
           <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
-            {state.audioTracks.map(
-              (track, index) =>
-                effects.openEffects.has(track.id) && (
-                  <RecorderEffects
-                    key={track.id}
-                    label={`Audio ${index + 1}`}
-                    eq={track.eq}
-                    onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
-                    onClose={() => effects.closeEffects(track.id)}
-                  />
-                ),
-            )}
-            {state.midiTracks.map(
-              (track) =>
-                effects.openEffects.has(track.id) && (
-                  <RecorderEffects
-                    key={track.id}
-                    label={track.name}
-                    eq={track.eq}
-                    onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
-                    onClose={() => effects.closeEffects(track.id)}
-                  />
-                ),
-            )}
-            {effects.openEffects.has("capture") && (
-              <RecorderEffects
-                label="Capture"
-                eq={state.recordingTrack.eq}
-                onChange={(eq) =>
-                  runtime.setTrackEq({ id: state.recordingTrack.id, eq })
-                }
-                onClose={() => effects.closeEffects("capture")}
-              />
-            )}
+            {trackEntries.map((entry) => {
+              if (!effects.openEffects.has(entry.id)) {
+                return undefined;
+              }
+              const { track } = entry;
+              return (
+                <RecorderEffects
+                  key={entry.id}
+                  label={track.name}
+                  eq={track.eq}
+                  onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
+                  onClose={() => effects.closeEffects(track.id)}
+                />
+              );
+            })}
           </div>
         )}
-        {state.midiTracks.map(
+        {orderedMidiTracks.map(
           (track) =>
             scoreUi.openTracks.has(track.id) && (
               <RecorderScorePanel
@@ -716,7 +739,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             ),
         )}
-        {state.midiTracks.map(
+        {orderedMidiTracks.map(
           (track) =>
             transcriptions.openTranscriptions.has(track.id) && (
               <RecorderAudioToMidi
@@ -739,6 +762,27 @@ export function Recorder({ projectId }: { projectId: string }) {
             onClose={() => setIsTunerOpen(false)}
           />
         )}
+        {isInputPanelOpen && (
+          <RecorderInputPanel
+            route={input.route.label}
+            routeNeedsSetup={input.route.needsSetup}
+            accessRequired={input.initialized && !input.hasAccess}
+            inputActive={input.active}
+            inputAnalyser={runtime.captureInput?.analyser}
+            toggleDisabled={
+              input.mutationPending ||
+              !input.initialized ||
+              flags.isRecording ||
+              (input.hasAccess && !input.active && input.route.needsSetup)
+            }
+            togglePending={input.togglePending}
+            tunerOpen={isTunerOpen}
+            onInputSetup={() => setIsInputSetupOpen(true)}
+            onInputToggle={input.toggle}
+            onTunerToggle={() => setIsTunerOpen((open) => !open)}
+            onClose={() => setIsInputPanelOpen(false)}
+          />
+        )}
         {isMixerOpen && (
           <RecorderPanel
             closeLabel="Close Mixer"
@@ -755,8 +799,17 @@ export function Recorder({ projectId }: { projectId: string }) {
             />
           </RecorderPanel>
         )}
+        {isProjectCommentOpen && (
+          <RecorderProjectCommentPanel
+            projectUiStore={projectUiStore}
+            runtime={runtime}
+            comment={state.comment}
+            onClose={() => setIsProjectCommentOpen(false)}
+          />
+        )}
         {isReferenceVideoOpen && (
           <ReferenceVideoPanel
+            projectUiStore={projectUiStore}
             referenceVideo={state.referenceVideo}
             runtime={runtime}
             onClose={() => setIsReferenceVideoOpen(false)}

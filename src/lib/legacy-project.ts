@@ -70,19 +70,22 @@ export async function convertLegacyProject({
         gain: track.volume,
         muted: track.muted,
         soloed: track.soloed,
-        timelineOffset: track.offset,
-        trimStart: 0,
-        trimEnd: buffer.duration,
-        clip: {
-          name: track.fileName,
-          pcm: {
-            sampleRate: buffer.sampleRate,
-            channels: Array.from(
-              { length: buffer.numberOfChannels },
-              (_, channel) => buffer.getChannelData(channel).slice(),
-            ),
+        clips: [
+          {
+            id: crypto.randomUUID(),
+            name: track.fileName,
+            timelineOffset: track.offset,
+            trimStart: 0,
+            trimEnd: buffer.duration,
+            pcm: {
+              sampleRate: buffer.sampleRate,
+              channels: Array.from(
+                { length: buffer.numberOfChannels },
+                (_, channel) => buffer.getChannelData(channel).slice(),
+              ),
+            },
           },
-        },
+        ],
       });
     } catch (cause) {
       throw new Error(`Could not convert audio track "${track.fileName}"`, {

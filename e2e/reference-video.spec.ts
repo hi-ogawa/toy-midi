@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { createRecorderProject, dragBy } from "./editor-helpers";
+import { selectMenuItem } from "./helpers";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
   await createRecorderProject(page);
@@ -32,8 +33,8 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   expect(restoredPanelBox!.width).toBeCloseTo(resizedPanelBox!.width, -1);
   expect(restoredPanelBox!.height).toBeCloseTo(resizedPanelBox!.height, -1);
 
+  // Reload, and the panel stays open at its resized size.
   await page.reload();
-  await page.getByTestId("recorder-reference-video-button").click();
   const reloadedPanelBox = await setup.boundingBox();
   expect(reloadedPanelBox).not.toBeNull();
   expect(reloadedPanelBox!.width).toBeCloseTo(resizedPanelBox!.width, -1);
@@ -108,9 +109,16 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     -1,
   );
 
+  // Press Delete on the selected reference and keep the video intact.
+  await referenceClip.click();
+  await page.keyboard.press("Delete");
+  await expect(referenceClip).toBeVisible();
+
   // The reference can be removed from its track actions.
-  await page.getByRole("button", { name: "Reference actions" }).click();
-  await page.getByRole("menuitem", { name: "Remove reference video" }).click();
+  await selectMenuItem(page, {
+    menu: "Reference actions",
+    item: "Remove reference video",
+  });
   await expect(reference.locator("iframe")).toHaveCount(0);
   await expect(referenceTrack).toHaveCount(0);
 

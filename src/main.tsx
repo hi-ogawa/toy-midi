@@ -4,7 +4,6 @@ import { createRoot } from "react-dom/client";
 import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
-import { preloadMidiAssets } from "./lib/runtime-assets";
 import "./e2e";
 
 function main() {
@@ -32,11 +31,6 @@ function main() {
       </QueryClientProvider>
     </StrictMode>,
   );
-
-  // Preload large assets after initial render
-  requestIdleCallback(() => {
-    void preloadMidiAssets();
-  });
 }
 
 main();

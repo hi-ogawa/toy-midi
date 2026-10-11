@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="645" viewBox="0 0 1000 645" font-family="system-ui, sans-serif" font-size="13">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#999"/></marker>
+    <marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c60"/></marker>
+    <style>
+      .c { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; fill: #36a; font-weight: normal; }
+      .w { fill: #fbf1e0; stroke: #b80; }
+      .wt { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; fill: #860; }
+    </style>
+  </defs>
+  <rect width="1000" height="645" fill="#fff"/>
+
+  <!-- Capture input -->
+  <rect x="20" y="56" width="960" height="114" rx="8" fill="#f3f5fc" stroke="#99b"/>
+  <text x="34" y="74" font-weight="bold" fill="#557">Capture input <tspan class="c">CaptureInput</tspan></text>
+  <rect x="40" y="86" width="120" height="58" rx="6" fill="#fff" stroke="#557"/>
+  <text x="100" y="104" text-anchor="middle" font-weight="bold">Audio input</text>
+  <text x="100" y="119" text-anchor="middle" fill="#666" font-size="11">interface or mic</text>
+  <text x="100" y="134" text-anchor="middle" class="c">source</text>
+  <rect x="190" y="86" width="150" height="58" rx="6" fill="#fff" stroke="#557"/>
+  <text x="265" y="104" text-anchor="middle" font-weight="bold">Channel picker</text>
+  <text x="265" y="119" text-anchor="middle" fill="#666" font-size="11">keeps one input channel</text>
+  <text x="265" y="134" text-anchor="middle" class="c">worklet</text>
+  <rect x="206" y="140" width="118" height="18" rx="9" class="w"/>
+  <text x="265" y="153" text-anchor="middle" class="wt">recorder-capture</text>
+  <rect x="370" y="86" width="120" height="58" rx="6" fill="#fff" stroke="#557"/>
+  <text x="430" y="104" text-anchor="middle" font-weight="bold">Tuner</text>
+  <text x="430" y="119" text-anchor="middle" fill="#666" font-size="11">reads pitch</text>
+  <text x="430" y="134" text-anchor="middle" class="c">tunerAnalyser</text>
+  <rect x="520" y="86" width="120" height="58" rx="6" fill="#fff" stroke="#557"/>
+  <text x="580" y="104" text-anchor="middle" font-weight="bold">Level meter</text>
+  <text x="580" y="119" text-anchor="middle" fill="#666" font-size="11">reads level</text>
+  <text x="580" y="134" text-anchor="middle" class="c">analyser</text>
+  <rect x="670" y="86" width="140" height="58" rx="6" fill="#fff" stroke="#557"/>
+  <text x="740" y="104" text-anchor="middle" font-weight="bold">Monitor gain</text>
+  <text x="740" y="119" text-anchor="middle" fill="#666" font-size="11">zero unless monitoring</text>
+  <text x="740" y="134" text-anchor="middle" class="c">monitorGain</text>
+  <line x1="160" y1="115" x2="190" y2="115" stroke="#333" marker-end="url(#a)"/>
+  <line x1="340" y1="115" x2="370" y2="115" stroke="#333" marker-end="url(#a)"/>
+  <line x1="490" y1="115" x2="520" y2="115" stroke="#333" marker-end="url(#a)"/>
+  <line x1="640" y1="115" x2="670" y2="115" stroke="#333" marker-end="url(#a)"/>
+
+  <!-- Recorded take leaves the audio graph -->
+  <rect x="200" y="6" width="130" height="40" rx="6" fill="#fff8f0" stroke="#c60" stroke-dasharray="4 3"/>
+  <text x="265" y="23" text-anchor="middle" fill="#c60">recorded take</text>
+  <text x="265" y="38" text-anchor="middle" class="c">CapturedAudio</text>
+  <line x1="265" y1="86" x2="265" y2="47" stroke="#c60" stroke-dasharray="2 3" marker-end="url(#o)"/>
+
+  <!-- Armed audio track -->
+  <rect x="20" y="200" width="960" height="150" rx="8" fill="#f3faf3" stroke="#9b9"/>
+  <text x="34" y="218" font-weight="bold" fill="#575">Armed audio track <tspan class="c">AudioTrackPlayback</tspan></text>
+  <rect x="40" y="254" width="130" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="105" y="272" text-anchor="middle" font-weight="bold">Clips</text>
+  <text x="105" y="287" text-anchor="middle" fill="#666" font-size="11">each with its own gain</text>
+  <text x="105" y="302" text-anchor="middle" class="c">AudioBufferPlayback</text>
+  <rect x="195" y="254" width="140" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="265" y="272" text-anchor="middle" font-weight="bold">Pitch correction</text>
+  <text x="265" y="287" text-anchor="middle" fill="#666" font-size="11">only at changed speed</text>
+  <text x="265" y="302" text-anchor="middle" class="c">PitchCorrectionBus</text>
+  <rect x="216" y="308" width="99" height="18" rx="9" class="w"/>
+  <text x="265" y="321" text-anchor="middle" class="wt">pitch-shifter</text>
+  <rect x="360" y="254" width="140" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="430" y="272" text-anchor="middle" font-weight="bold">Playback gain</text>
+  <text x="430" y="287" text-anchor="middle" fill="#666" font-size="11">muted while recording</text>
+  <text x="430" y="302" text-anchor="middle" class="c">playbackGain</text>
+  <line x1="170" y1="283" x2="195" y2="283" stroke="#333" marker-end="url(#a)"/>
+  <line x1="335" y1="283" x2="360" y2="283" stroke="#333" marker-end="url(#a)"/>
+  <line x1="500" y1="283" x2="550" y2="283" stroke="#333" marker-end="url(#a)"/>
+
+  <rect x="530" y="228" width="430" height="112" rx="6" fill="none" stroke="#9b9" stroke-dasharray="4 3"/>
+  <text x="948" y="243" text-anchor="end" fill="#575" font-size="11">channel <tspan class="c">AudioChannel</tspan></text>
+  <rect x="550" y="254" width="110" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="605" y="272" text-anchor="middle" font-weight="bold">Input</text>
+  <text x="605" y="287" text-anchor="middle" fill="#666" font-size="11">sums its sources</text>
+  <text x="605" y="302" text-anchor="middle" class="c">input</text>
+  <rect x="685" y="254" width="110" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="740" y="272" text-anchor="middle" font-weight="bold">EQ</text>
+  <text x="740" y="287" text-anchor="middle" fill="#666" font-size="11">track EQ</text>
+  <text x="740" y="302" text-anchor="middle" class="c">equalizer</text>
+  <rect x="703" y="308" width="74" height="18" rx="9" class="w"/>
+  <text x="740" y="321" text-anchor="middle" class="wt">biquad-eq</text>
+  <rect x="820" y="254" width="120" height="58" rx="6" fill="#fff" stroke="#575"/>
+  <text x="880" y="272" text-anchor="middle" font-weight="bold">Gain</text>
+  <text x="880" y="287" text-anchor="middle" fill="#666" font-size="11">track volume</text>
+  <text x="880" y="302" text-anchor="middle" class="c">gain</text>
+  <line x1="660" y1="283" x2="685" y2="283" stroke="#333" marker-end="url(#a)"/>
+  <line x1="795" y1="283" x2="820" y2="283" stroke="#333" marker-end="url(#a)"/>
+
+  <!-- Monitoring goes through the armed track's channel -->
+  <path d="M740,144 V185 H605 V254" fill="none" stroke="#333" marker-end="url(#a)"/>
+  <text x="615" y="179" fill="#333" font-size="11">monitoring</text>
+
+  <!-- Silent fallback when nothing is armed -->
+  <path d="M810,115 H990 V434 H745 V454" fill="none" stroke="#999" stroke-dasharray="5 4" marker-end="url(#g)"/>
+  <text x="870" y="428" text-anchor="middle" fill="#888" font-size="11">silent path when no track is armed</text>
+
+  <!-- Other sources -->
+  <rect x="40" y="390" width="460" height="44" rx="6" fill="#fff" stroke="#557"/>
+  <text x="56" y="408" font-weight="bold">Other audio tracks <tspan class="c">AudioTrackPlayback</tspan></text>
+  <text x="56" y="424" fill="#666" font-size="11">same chain as the armed track, without monitoring</text>
+  <rect x="40" y="454" width="460" height="58" rx="6" fill="#fff" stroke="#557"/>
+  <text x="56" y="472" font-weight="bold">MIDI tracks <tspan class="c">MidiTrackPlayback</tspan></text>
+  <text x="56" y="487" fill="#666" font-size="11">synth → channel</text>
+  <text x="56" y="502" class="c">RecorderMidiSynth → AudioChannel</text>
+  <rect x="48" y="506" width="67" height="18" rx="9" class="w"/>
+  <text x="81.5" y="519" text-anchor="middle" class="wt">oxisynth</text>
+  <rect x="40" y="542" width="460" height="58" rx="6" fill="#fff" stroke="#557"/>
+  <text x="56" y="560" font-weight="bold">Metronome <tspan class="c">RecorderMetronome</tspan></text>
+  <text x="56" y="575" fill="#666" font-size="11">click oscillator → envelope → metronome volume</text>
+  <text x="56" y="590" class="c">oscillator → envelope → output</text>
+  <path d="M500,412 H570 V471 H640" fill="none" stroke="#333" marker-end="url(#a)"/>
+  <line x1="500" y1="483" x2="640" y2="483" stroke="#333" marker-end="url(#a)"/>
+  <path d="M500,571 H570 V495 H640" fill="none" stroke="#333" marker-end="url(#a)"/>
+
+  <!-- Master output -->
+  <path d="M880,312 V370 H705 V454" fill="none" stroke="#333" marker-end="url(#a)"/>
+  <rect x="640" y="454" width="130" height="58" rx="6" fill="#eef" stroke="#557"/>
+  <text x="705" y="472" text-anchor="middle" font-weight="bold">Master gain</text>
+  <text x="705" y="487" text-anchor="middle" fill="#666" font-size="11">master volume</text>
+  <text x="705" y="502" text-anchor="middle" class="c">masterOutput</text>
+  <line x1="770" y1="483" x2="830" y2="483" stroke="#333" marker-end="url(#a)"/>
+  <rect x="830" y="454" width="130" height="58" rx="6" fill="#eef" stroke="#557"/>
+  <text x="895" y="472" text-anchor="middle" font-weight="bold">Speakers</text>
+  <text x="895" y="487" text-anchor="middle" fill="#666" font-size="11">audio output</text>
+  <text x="895" y="502" text-anchor="middle" class="c">context.destination</text>
+
+  <!-- Legend -->
+  <line x1="40" y1="625" x2="80" y2="625" stroke="#333" marker-end="url(#a)"/>
+  <text x="88" y="629" font-size="11" fill="#444">audio</text>
+  <line x1="150" y1="625" x2="190" y2="625" stroke="#999" stroke-dasharray="5 4" marker-end="url(#g)"/>
+  <text x="198" y="629" font-size="11" fill="#444">connected but silent</text>
+  <line x1="330" y1="625" x2="370" y2="625" stroke="#c60" stroke-dasharray="2 3" marker-end="url(#o)"/>
+  <text x="378" y="629" font-size="11" fill="#444">samples copied out to the app</text>
+  <text x="560" y="629" class="c">name</text>
+  <text x="594" y="629" font-size="11" fill="#444">class or field in the code</text>
+  <rect x="740" y="616" width="46" height="18" rx="9" class="w"/>
+  <text x="763" y="629" text-anchor="middle" class="wt">name</text>
+  <text x="794" y="629" font-size="11" fill="#444">AudioWorklet processor</text>
+</svg>

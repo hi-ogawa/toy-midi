@@ -1,7 +1,6 @@
 import {
   LoaderCircleIcon,
   Music2Icon,
-  MoreVerticalIcon,
   PlusIcon,
   UploadIcon,
   Trash2Icon,
@@ -30,6 +29,7 @@ import { getTimelineGridBackground } from "../lib/timeline-grid";
 import { AudioWaveformView } from "./audio-waveform";
 import { openFilePicker } from "./file-drop-input";
 import { RecorderMixToggle } from "./mix-toggle";
+import { TrackMenuButton } from "./tracks";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -46,6 +46,7 @@ export function TimelineHeader({
   tempo,
   timelineWidth,
   isAddingAudio,
+  isRecording,
   isAddingMidi,
   subdivisionsPerBeat,
   onAddAudioTrack,
@@ -65,6 +66,7 @@ export function TimelineHeader({
   tempo: number;
   timelineWidth: number;
   isAddingAudio: boolean;
+  isRecording: boolean;
   isAddingMidi: boolean;
   subdivisionsPerBeat: number;
   onAddAudioTrack: () => void;
@@ -88,7 +90,7 @@ export function TimelineHeader({
             data-testid="recorder-add-midi-track"
             onClick={onAddMidiTrack}
             disabled={isAddingMidi}
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
             title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
           >
             <Music2Icon className="size-3.5" />
@@ -96,14 +98,14 @@ export function TimelineHeader({
           <Button
             onClick={onAddAudioTrack}
             disabled={isAddingAudio}
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
             title="Add empty audio track"
           >
             <PlusIcon className="size-3.5" />
           </Button>
           <Button
             data-testid="recorder-add-audio-file"
-            disabled={isAddingAudio}
+            disabled={isAddingAudio || isRecording}
             onClick={() =>
               openFilePicker({
                 accept: "audio/*,.zip,application/zip",
@@ -113,7 +115,7 @@ export function TimelineHeader({
             title={
               isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
             }
-            className="size-7 hover:bg-neutral-700"
+            className="size-6 hover:bg-neutral-700"
           >
             {isAddingAudio ? (
               <LoaderCircleIcon className="size-3.5 animate-spin" />
@@ -410,14 +412,15 @@ type RecorderTimelineClip = {
   testId:
     | "audio"
     | "comp"
-    | "take-lane"
+    | "clip-lane"
     | "audio-source"
     | "comp-source"
-    | "take-lane-source"
+    | "clip-lane-source"
     | "recording"
     | "reference";
   variant?: "audio" | "reference";
   audioView?: AudioView;
+  gain?: number;
 };
 
 const TIMELINE_EPSILON = 1e-6;
@@ -450,7 +453,7 @@ export function AudioTimelineLane({
   beatsPerBar: number;
   clips: readonly AudioClip[];
   regions: readonly ClipRegion[];
-  testId: "audio" | "comp" | "take-lane";
+  testId: "audio" | "comp" | "clip-lane";
   recordingClipId?: string;
   emptyLabel?: string;
   pixelsPerBeat: number;
@@ -505,6 +508,7 @@ export function AudioTimelineLane({
                 offset: region.timelineStart,
                 audioOffset: region.timelineStart - clip.timelineOffset,
                 audioView: clip.audioView,
+                gain: clip.gain,
                 testId: isRecording ? "recording" : testId,
               }}
               pixelsPerBeat={pixelsPerBeat}
@@ -605,12 +609,7 @@ export function ReferenceTimelineRow({
         <div className="flex self-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                title="Reference actions"
-                className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-              >
-                <MoreVerticalIcon className="size-3.5" />
-              </Button>
+              <TrackMenuButton label="Reference" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem onSelect={onRemove} className="text-red-400">
@@ -624,7 +623,7 @@ export function ReferenceTimelineRow({
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-7"
+            className="size-6"
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
         </div>
@@ -825,6 +824,7 @@ function TimelineClip({
             {clip.audioView && visibleEnd > visibleStart && (
               <AudioWaveformView
                 audioView={clip.audioView}
+                gain={clip.gain}
                 sourceStart={clip.audioOffset ?? 0}
                 visibleStart={visibleStart}
                 visibleEnd={visibleEnd}
@@ -856,7 +856,7 @@ function TimelineClip({
       {canTrim && (
         <div
           ref={trimStartRef}
-          data-testid="recorder-take-trim-start"
+          data-testid="recorder-clip-trim-start"
           onClick={(event) => event.stopPropagation()}
           className="absolute inset-y-0 -left-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:left-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />
@@ -864,7 +864,7 @@ function TimelineClip({
       {canTrim && (
         <div
           ref={trimEndRef}
-          data-testid="recorder-take-trim-end"
+          data-testid="recorder-clip-trim-end"
           onClick={(event) => event.stopPropagation()}
           className="absolute inset-y-0 -right-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:right-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />

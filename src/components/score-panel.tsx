@@ -2,8 +2,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { usePointerDrag } from "../hooks/use-pointer-drag";
-import { clamp } from "../lib/music";
 import { exportMusicXml } from "../lib/musicxml/render";
 import type {
   MidiTrackState,
@@ -11,6 +9,7 @@ import type {
   RecorderRuntimeState,
 } from "../lib/runtime";
 import { RecorderPanel } from "./panel";
+import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
   type ScoreViewerClock,
@@ -45,14 +44,9 @@ export function RecorderScorePanel({
   onClose: () => void;
   scoreViewerHref?: string;
 }) {
-  const [size, setSize] = useState({ width: 640, height: 448 });
-  const resizeRef = usePointerDrag({
-    onStart: () => size,
-    onMove: (_event, { data, deltaX, deltaY }) =>
-      setSize({
-        width: clamp(data.width - deltaX, 480, window.innerWidth - 32),
-        height: clamp(data.height - deltaY, 288, window.innerHeight - 32),
-      }),
+  const { size, handleRef } = usePanelResize({
+    initialSize: { width: 640, height: 448 },
+    minSize: { width: 480, height: 288 },
   });
 
   return (
@@ -66,14 +60,10 @@ export function RecorderScorePanel({
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
     >
-      <button
-        ref={resizeRef}
-        type="button"
-        aria-label={`Resize score preview for ${track.name}`}
-        className="absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none p-1"
-      >
-        <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500" />
-      </button>
+      <PanelResizeHandle
+        handleRef={handleRef}
+        label={`Resize score preview for ${track.name}`}
+      />
       <RecorderScorePreview runtime={runtime} state={state} track={track} />
     </RecorderPanel>
   );
@@ -125,7 +115,7 @@ function RecorderScorePreview({
     () =>
       new ScoreViewerRuntime({
         clock: createRecorderScoreClock(recorder),
-        presentation: { scale: 1, viewportPadding: 12 },
+        presentation: { scale: 1, scrollerClassName: "p-3" },
       }),
   );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);

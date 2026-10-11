@@ -3,9 +3,11 @@ import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
 import { Preview } from "./components/preview";
 import { RouteError } from "./components/route-error";
+import { ScoreCapture } from "./components/score-capture";
 import { RecorderScorePage } from "./components/score-page";
 import { ScoreViewer } from "./components/score-viewer";
 import { matchRoute, routes } from "./lib/routes";
+import { preloadMidiAssetsWhenIdle } from "./lib/runtime-assets";
 
 export function App() {
   const match = matchRoute(window.location.href);
@@ -15,6 +17,7 @@ export function App() {
       return <Preview />;
     }
     case "recorderProject": {
+      preloadMidiAssetsWhenIdle();
       return <Recorder projectId={match.params.projectId} />;
     }
     case "latencyChecker": {
@@ -22,6 +25,9 @@ export function App() {
     }
     case "scoreViewer": {
       return <ScoreViewerRoute />;
+    }
+    case "scoreCapture": {
+      return <ScoreCapture />;
     }
     case "projectScore": {
       return <LegacyProjectRoute />;
@@ -31,6 +37,7 @@ export function App() {
     }
     case "home":
     default: {
+      preloadMidiAssetsWhenIdle();
       return <Home />;
     }
   }

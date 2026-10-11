@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { selectMenuItem } from "./helpers";
 
 /** Create a recorder project from its index and wait for the recorder app. */
 export async function createRecorderProject(page: Page): Promise<void> {
@@ -26,6 +27,44 @@ export async function addRecorderMidiTrack(page: Page) {
       const track = tracks.nth(count);
       await expect(track.getByTestId("recorder-midi-grid")).toBeVisible();
       return track;
+    },
+    { box: true },
+  );
+}
+
+export async function openRecorderMidiInstrument(
+  page: Page,
+  { name }: { name: string },
+) {
+  return await test.step(
+    `Open ${name} instrument`,
+    async () => {
+      await selectMenuItem(page, {
+        menu: `${name} actions`,
+        item: "Instrument…",
+      });
+      return page.getByTestId("recorder-midi-instrument");
+    },
+    { box: true },
+  );
+}
+
+export async function selectRecorderMidiInstrument(
+  instrument: Locator,
+  { option }: { option: string },
+) {
+  await test.step(
+    `Select ${option}`,
+    async () => {
+      const page = instrument.page();
+      const program = instrument.getByTestId("instrument-select");
+      await program.click();
+      await page
+        .getByPlaceholder("Search instruments...")
+        .fill(option.split(": ")[1]);
+      await page.getByRole("option", { name: option, exact: true }).click();
+      await expect(program).toContainText(option);
+      await expect(program).toBeEnabled();
     },
     { box: true },
   );
@@ -143,6 +182,23 @@ export async function seekRecorderByPixels(page: Page, pixels: number) {
   );
 }
 
+export async function scrollRecorderTimelineByPixels(
+  page: Page,
+  pixels: number,
+) {
+  await test.step(
+    `Scroll recorder timeline by ${pixels}px`,
+    async () => {
+      const ruler = page.getByTestId("recorder-timeline-ruler");
+      const box = await ruler.boundingBox();
+      expect(box).not.toBeNull();
+      await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+      await page.mouse.wheel(0, pixels);
+    },
+    { box: true },
+  );
+}
+
 export async function getRecorderPosition(page: Page): Promise<number> {
   return page
     .getByTestId("recorder-position")
@@ -203,39 +259,75 @@ export async function waitForRecordingSamples(recording: Locator) {
   );
 }
 
+/** Open the Audio Input panel from the header unless it is already open. */
+export async function openInputPanel(page: Page): Promise<Locator> {
+  return await test.step(
+    "Open audio input panel",
+    async () => {
+      const button = page.getByTestId("recorder-input-panel-button");
+      if ((await button.getAttribute("aria-pressed")) !== "true") {
+        await button.click();
+      }
+      const panel = page.getByTestId("recorder-input-panel");
+      await expect(panel).toBeVisible();
+      return panel;
+    },
+    { box: true },
+  );
+}
+
+/** Open Audio Input Setup from the input panel's route field. */
+export async function openInputSetup(page: Page): Promise<Locator> {
+  return await test.step(
+    "Open audio input setup",
+    async () => {
+      const panel = await openInputPanel(page);
+      await panel.getByTitle("Audio input setup").click();
+      await expect(
+        page.getByRole("heading", { name: "Audio Input Setup" }),
+      ).toBeVisible();
+      return page.getByTestId("recorder-input-setup");
+    },
+    { box: true },
+  );
+}
+
 export async function enableInput(page: Page) {
   await test.step(
     "Enable audio input",
     async () => {
       // Fake audio still exercises permission, device discovery, and channel setup.
-      const inputSetupButton = page.getByRole("button", {
-        name: "Configure audio input",
+      const panel = await openInputPanel(page);
+      await expect(panel.getByTitle("Audio input setup")).toContainText(
+        "Fake Default Audio Input · Channel 1",
+      );
+      const inputPower = panel.getByRole("button", { name: "Input power" });
+      await expect(inputPower).toHaveAttribute("aria-pressed", "false");
+      await inputPower.click();
+      await expect(inputPower).toHaveAttribute("aria-pressed", "true");
+      await panel
+        .getByRole("button", { name: "Close Audio Input", exact: true })
+        .click();
+    },
+    { box: true },
+  );
+}
+
+export async function armTrack(page: Page, { track }: { track: string }) {
+  await test.step(
+    `Arm ${track}`,
+    async () => {
+      const arm = page.getByRole("button", {
+        name: `Arm ${track} for recording`,
+        exact: true,
       });
-      await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      );
-      await inputSetupButton.click();
+      await arm.click();
       await expect(
-        page.getByRole("heading", { name: "Audio Input Setup" }),
-      ).toBeVisible();
-      const setup = page.getByTestId("recorder-input-setup");
-      await setup.getByRole("button", { name: "Enable input" }).click();
-      await expect(
-        setup.getByRole("button", { name: "Disable input" }),
-      ).toBeVisible();
-      await expect(page.getByLabel("Device")).toContainText(
-        "Fake Default Audio Input",
-      );
-      await expect(page.getByLabel("Channel")).toContainText("Channel 1");
-      await setup.getByRole("button", { name: "Close", exact: true }).click();
-      await expect(
-        page.getByText("Fake Default Audio Input · Channel 1"),
-      ).toBeVisible();
-      await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
+        page.getByRole("button", {
+          name: `Disarm ${track} for recording`,
+          exact: true,
+        }),
+      ).toHaveAttribute("aria-pressed", "true");
     },
     { box: true },
   );

@@ -45,7 +45,7 @@ export function useRecorderClipInteraction({
 
   function getSelectedClips(editIds: ReadonlySet<string>) {
     return {
-      clips: [...state.audioTracks, state.recordingTrack].flatMap((track) =>
+      clips: state.audioTracks.flatMap((track) =>
         track.clips.filter((clip) => editIds.has(clip.id)),
       ),
       referenceVideo: editIds.has(REFERENCE_VIDEO_CLIP_ID)
@@ -57,7 +57,7 @@ export function useRecorderClipInteraction({
   // Remove stale selection IDs when clips or the reference video are removed outside this interaction.
   useEffect(() => {
     const available = new Set([
-      ...[...state.audioTracks, state.recordingTrack].flatMap((track) =>
+      ...state.audioTracks.flatMap((track) =>
         track.clips.map((clip) => clip.id),
       ),
       ...(state.referenceVideo ? [REFERENCE_VIDEO_CLIP_ID] : []),
@@ -66,7 +66,7 @@ export function useRecorderClipInteraction({
       const next = new Set([...current].filter((id) => available.has(id)));
       return next.size === current.size ? current : next;
     });
-  }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
+  }, [state.audioTracks, state.referenceVideo]);
 
   function isSelected(id: string): boolean {
     return selectedIds.has(id);
@@ -155,7 +155,6 @@ export function useRecorderClipInteraction({
 
   return {
     audioTracks: preview.audioTracks,
-    recordingTrack: preview.recordingTrack,
     referenceVideo: preview.referenceVideo,
     cancelEdit: () => setEdit(undefined),
     clear: () => {

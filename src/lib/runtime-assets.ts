@@ -26,8 +26,15 @@ export function waitForMidiAssets(): Promise<void> {
   })());
 }
 
+// Warm the cache after initial render on routes that lead to MIDI playback.
+export function preloadMidiAssetsWhenIdle() {
+  requestIdleCallback(() => {
+    void preloadMidiAssets();
+  });
+}
+
 // Warm the browser cache silently. Synth initialization still handles asset failures.
-export function preloadMidiAssets(): Promise<void> {
+function preloadMidiAssets(): Promise<void> {
   return (preloadPromise ??= Promise.allSettled(
     Object.values(midiAssetUrls).map(preloadAsset),
   ).then(() => {}));

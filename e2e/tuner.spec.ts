@@ -1,14 +1,20 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, enableInput } from "./editor-helpers";
+import {
+  createRecorderProject,
+  enableInput,
+  openInputPanel,
+} from "./editor-helpers";
 import { useFakeAudioInput } from "./helpers";
 
 // Loop the 3-second 440 Hz fixture throughout the test.
 useFakeAudioInput({ audioFilePath: "e2e/fixtures/test-audio.wav" });
 
 test("opens the tuner and detects the input pitch", async ({ page }) => {
-  // Open the tuner before enabling input and show the no-signal state.
+  // Open the tuner from the input panel before enabling input and show the
+  // no-signal state.
   await createRecorderProject(page);
-  await page.getByRole("button", { name: "Open tuner", exact: true }).click();
+  const inputPanel = await openInputPanel(page);
+  await inputPanel.getByRole("button", { name: "Tuner" }).click();
   const panel = page.getByTestId("recorder-tuner-panel");
   await expect(panel.getByText("No signal", { exact: true })).toBeVisible();
 
@@ -21,10 +27,14 @@ test("opens the tuner and detects the input pitch", async ({ page }) => {
     "false",
   );
 
-  // Close the tuner and restore its inactive toggle.
+  // Reload, and confirm the project keeps the tuner open.
+  await page.reload();
+  await expect(panel).toBeVisible();
+
+  // Close the tuner and restore its inactive toggle in the input panel.
   await panel.getByRole("button", { name: "Close Tuner", exact: true }).click();
   await expect(panel).toBeHidden();
   await expect(
-    page.getByRole("button", { name: "Open tuner", exact: true }),
+    (await openInputPanel(page)).getByRole("button", { name: "Tuner" }),
   ).toHaveAttribute("aria-pressed", "false");
 });

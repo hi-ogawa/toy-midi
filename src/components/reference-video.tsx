@@ -1,9 +1,7 @@
 import { CircleHelpIcon, LoaderCircleIcon } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { usePointerDrag } from "../hooks/use-pointer-drag";
 import { useResizeObserver } from "../hooks/use-resize-observer";
-import { clamp } from "../lib/music";
-import { recorderStorage } from "../lib/preferences";
+import type { ProjectUiStore } from "../lib/preferences";
 import { RecorderRuntime, type ReferenceVideoState } from "../lib/runtime";
 import {
   createYouTubePlayer,
@@ -12,54 +10,26 @@ import {
   type YouTubePlayerApi,
 } from "../lib/youtube";
 import { RecorderPanel } from "./panel";
+import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
-const DEFAULT_SIZE = { width: 640, height: 480 };
-const MIN_WIDTH = 360;
-const MIN_HEIGHT = 300;
-
-function clampSize({ width, height }: { width: number; height: number }) {
-  return {
-    width: clamp(width, MIN_WIDTH, window.innerWidth - 32),
-    height: clamp(height, MIN_HEIGHT, window.innerHeight - 32),
-  };
-}
-
 export function ReferenceVideoPanel({
+  projectUiStore,
   referenceVideo,
   runtime,
   onClose,
 }: {
+  projectUiStore: ProjectUiStore;
   referenceVideo?: ReferenceVideoState;
   runtime: RecorderRuntime;
   onClose: () => void;
 }) {
-  const [size, setSize] = useState(() =>
-    clampSize(recorderStorage.store.get().referenceVideoSize ?? DEFAULT_SIZE),
-  );
-  const resizeHandleRef = usePointerDrag({
-    onStart: (event) => {
-      const target = event.target;
-      const panel = target instanceof HTMLElement ? target.offsetParent : null;
-      if (!(panel instanceof HTMLElement)) {
-        throw new Error("Reference video panel is missing.");
-      }
-      return {
-        panelRect: panel.getBoundingClientRect(),
-        size,
-      };
-    },
-    onMove: (_event, { data, deltaX, deltaY }) => {
-      data.size = clampSize({
-        width: data.panelRect.width - deltaX,
-        height: data.panelRect.height - deltaY,
-      });
-      setSize(data.size);
-    },
-    onEnd: (_event, { data }) => {
-      recorderStorage.update({ referenceVideoSize: data.size });
-    },
+  const { size, handleRef } = usePanelResize({
+    initialSize: projectUiStore.store.get().referenceVideoSize,
+    minSize: { width: 360, height: 300 },
+    onResizeEnd: (referenceVideoSize) =>
+      projectUiStore.update({ referenceVideoSize }),
   });
 
   return (
@@ -105,15 +75,11 @@ export function ReferenceVideoPanel({
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
     >
-      <button
-        ref={resizeHandleRef}
-        type="button"
-        aria-label="Resize Reference Video"
+      <PanelResizeHandle
+        handleRef={handleRef}
+        label="Resize Reference Video"
         data-testid="recorder-reference-video-resize-handle"
-        className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
-      >
-        <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
-      </button>
+      />
       <YouTubeReferencePanel
         referenceVideo={referenceVideo}
         runtime={runtime}
