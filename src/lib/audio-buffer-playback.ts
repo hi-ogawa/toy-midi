@@ -2,7 +2,7 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { DeclickGain } from "./dsp/declick-gain.ts";
 import {
   type AudioContextTransport,
-  type ScheduledPass,
+  type ScheduledRange,
   type TransportParticipant,
 } from "./transport.ts";
 
@@ -55,8 +55,8 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     this.nextPassIndex = 0;
-    this.disposeScheduling = this.transport.startScheduleLoop((pass) =>
-      this.schedule(pass),
+    this.disposeScheduling = this.transport.startScheduleLoop((range) =>
+      this.schedule(range),
     );
   }
 
@@ -74,22 +74,22 @@ export class AudioBufferPlayback implements TransportParticipant {
   }
 
   /** Queues one slice for each loop pass, in the first window that reaches it. */
-  private schedule(pass: ScheduledPass): void {
-    if (pass.index < this.nextPassIndex) {
+  private schedule(range: ScheduledRange): void {
+    if (range.pass.index < this.nextPassIndex) {
       return;
     }
-    this.nextPassIndex = pass.index + 1;
-    this.startSlice(pass);
+    this.nextPassIndex = range.pass.index + 1;
+    this.startSlice(range);
   }
 
   /** Plays the part of the region inside one pass. */
-  private startSlice(pass: ScheduledPass): void {
+  private startSlice({ pass, start: rangeStart }: ScheduledRange): void {
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
       this.playbackSource!;
     // Join mid-region at the playhead, or at the window start if a stalled
     // timer let the pass begin before its slice was queued.
-    const start = Math.max(timelineStart, pass.startPosition);
-    const end = Math.min(timelineEnd, pass.passEnd);
+    const start = Math.max(timelineStart, rangeStart);
+    const end = Math.min(timelineEnd, pass.end);
     if (start >= end) {
       return;
     }
@@ -97,15 +97,13 @@ export class AudioBufferPlayback implements TransportParticipant {
     // loop-out continues the previous pass's slice, which ends at this same
     // instant, so fading in would dip the splice.
     const continuesPreviousPass =
-      pass.index > 0 &&
-      start === pass.anchor.position &&
-      timelineEnd >= pass.passEnd;
+      pass.index > 0 && start <= pass.start && timelineEnd >= pass.end;
     // Offset and duration are buffer seconds, so the slice ends exactly at the
     // audio-clock time where the next pass's slice starts.
     this.player.start({
       buffer,
-      playbackRate: pass.anchor.playbackRate,
-      time: pass.anchor.getContextTimeAt(start),
+      playbackRate: pass.playbackRate,
+      time: pass.getContextTimeAt(start),
       offset: start - timelineOffset,
       duration: end - start,
       fadeIn: !continuesPreviousPass,

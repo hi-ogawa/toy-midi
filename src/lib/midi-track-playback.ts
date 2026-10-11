@@ -7,7 +7,7 @@ import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import type {
   AudioContextTransport,
-  ScheduledPass,
+  ScheduledRange,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -93,8 +93,8 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.disposeScheduling = this.transport.startScheduleLoop((pass) =>
-      this.schedule(pass),
+    this.disposeScheduling = this.transport.startScheduleLoop((range) =>
+      this.schedule(range),
     );
   }
 
@@ -116,13 +116,17 @@ export class MidiTrackPlayback implements TransportParticipant {
     }
   }
 
-  private schedule(pass: ScheduledPass): void {
+  private schedule({
+    pass,
+    start: rangeStart,
+    end: rangeEnd,
+  }: ScheduledRange): void {
     for (const note of this.notes) {
       const start = beatsToSeconds(note.start, this.tempo);
-      if (pass.end <= start) {
+      if (rangeEnd <= start) {
         break;
       }
-      if (start < pass.start) {
+      if (start < rangeStart) {
         continue;
       }
       // A note held past loop-out ends at the wrap. The synth applies
@@ -130,13 +134,13 @@ export class MidiTrackPlayback implements TransportParticipant {
       // loop-in still retriggers.
       const end = Math.min(
         beatsToSeconds(note.start + note.duration, this.tempo),
-        pass.passEnd,
+        pass.end,
       );
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,
-        startTime: pass.anchor.getContextTimeAt(start),
-        endTime: pass.anchor.getContextTimeAt(end),
+        startTime: pass.getContextTimeAt(start),
+        endTime: pass.getContextTimeAt(end),
       });
     }
   }
