@@ -7,7 +7,7 @@ import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import type {
   AudioContextTransport,
-  ScheduledSpan,
+  ScheduledPass,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -93,8 +93,8 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.disposeScheduling = this.transport.startScheduling((span) =>
-      this.schedule(span),
+    this.disposeScheduling = this.transport.startScheduling((pass) =>
+      this.schedule(pass),
     );
   }
 
@@ -116,21 +116,21 @@ export class MidiTrackPlayback implements TransportParticipant {
     }
   }
 
-  private schedule(span: ScheduledSpan): void {
+  private schedule(pass: ScheduledPass): void {
     for (const note of this.notes) {
       const start = beatsToSeconds(note.start, this.tempo);
-      if (span.end <= start) {
+      if (pass.end <= start) {
         break;
       }
-      if (start < span.start) {
+      if (start < pass.start) {
         continue;
       }
       const end = beatsToSeconds(note.start + note.duration, this.tempo);
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,
-        startTime: span.run.getContextTimeAt(start),
-        endTime: span.run.getContextTimeAt(end),
+        startTime: pass.run.getContextTimeAt(start),
+        endTime: pass.run.getContextTimeAt(end),
       });
     }
   }

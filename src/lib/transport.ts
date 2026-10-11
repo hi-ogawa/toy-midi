@@ -9,8 +9,8 @@ const SCHEDULER_INTERVAL_MS = 25;
 /**
  * Event times and the playhead are converted from beats separately, so an event
  * meant to sit exactly on the playhead can land a rounding error before it.
- * Scheduled spans shift both ends back by this much, so such an event still
- * plays and consecutive spans still share their boundary.
+ * Scheduled passes shift both ends back by this much, so such an event still
+ * plays and consecutive ones still share their boundary.
  */
 const BOUNDARY_EPSILON = 1e-9;
 
@@ -61,11 +61,11 @@ class PlaybackRun {
 }
 
 /**
- * Half-open timeline span `[start, end)` whose point events, such as clicks and
- * note starts, one scheduling tick queues. Each event belongs to exactly one
- * span.
+ * The part of the run's pass that one scheduling tick covers, as a half-open
+ * timeline range `[start, end)` of point events such as clicks and note starts.
+ * Each event belongs to exactly one scheduled pass.
  */
-export type ScheduledSpan = {
+export type ScheduledPass = {
   start: number;
   end: number;
   run: PlaybackRun;
@@ -187,12 +187,12 @@ export class AudioContextTransport {
   }
 
   /**
-   * Hands `schedule` consecutive timeline spans of the current run, each
+   * Hands `schedule` consecutive scheduled passes of the current run, each
    * reaching a little past the current audio time, until the returned disposer
    * runs. The timer only decides when events are queued, while the times they
    * are queued at stay exact on the audio clock.
    */
-  startScheduling(schedule: (span: ScheduledSpan) => void): () => void {
+  startScheduling(schedule: (pass: ScheduledPass) => void): () => void {
     const run = this.playbackRun!;
     let scheduledUntil = run.contextTime;
     const tick = () => {
@@ -200,7 +200,7 @@ export class AudioContextTransport {
       if (to <= scheduledUntil) {
         return;
       }
-      // A stalled timer or a restart mid-run can leave part of the span in the
+      // A stalled timer or a restart mid-run can leave part of the window in the
       // past. Skip it rather than queue events to play late.
       const from = Math.max(scheduledUntil, this.context.currentTime);
       schedule({

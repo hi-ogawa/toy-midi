@@ -2,7 +2,7 @@ import type { TimeSignature } from "../types.ts";
 import { midiToHz, parseMidiPitch } from "./music.ts";
 import type {
   AudioContextTransport,
-  ScheduledSpan,
+  ScheduledPass,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -47,8 +47,8 @@ export class Metronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.disposeScheduling = this.transport.startScheduling((span) =>
-      this.schedule(span),
+    this.disposeScheduling = this.transport.startScheduling((pass) =>
+      this.schedule(pass),
     );
   }
 
@@ -57,13 +57,13 @@ export class Metronome implements TransportParticipant {
     this.disposeScheduling = undefined;
   }
 
-  private schedule(span: ScheduledSpan): void {
-    const firstIndex = Math.ceil(span.start / this.secondsPerClick);
-    const endIndex = Math.ceil(span.end / this.secondsPerClick);
+  private schedule(pass: ScheduledPass): void {
+    const firstIndex = Math.ceil(pass.start / this.secondsPerClick);
+    const endIndex = Math.ceil(pass.end / this.secondsPerClick);
     for (let index = firstIndex; index < endIndex; index++) {
       this.scheduleClick({
         accent: index % this.timeSignature.numerator === 0,
-        contextTime: span.run.getContextTimeAt(index * this.secondsPerClick),
+        contextTime: pass.run.getContextTimeAt(index * this.secondsPerClick),
       });
     }
   }
