@@ -154,6 +154,7 @@ export type RecorderLocatorUpdate = {
 
 export interface RecorderRuntimeState {
   title: string;
+  comment: string;
   locators: RecorderLocator[];
   /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
   position: number;
@@ -196,6 +197,7 @@ export interface RecorderRuntimeState {
 export type PersistableRecorderRuntimeState = Pick<
   RecorderRuntimeState,
   | "title"
+  | "comment"
   | "locators"
   | "tempo"
   | "timeSignature"
@@ -247,6 +249,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   const audioTrack = createAudioTrackState({ name: "Audio 1" });
   return {
     title: "Untitled",
+    comment: "",
     locators: [],
     position: 0,
     isPlaying: false,
@@ -962,6 +965,10 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
+  setComment(comment: string): void {
+    this.store.update({ comment });
+  }
+
   /** Add a locator at a beat and return its id. */
   addLocator(beat: number): string {
     const { locators } = this.store.get();
@@ -1188,6 +1195,7 @@ export class RecorderRuntime {
       selector: (state) =>
         ({
           title: state.title,
+          comment: state.comment,
           locators: state.locators,
           tempo: state.tempo,
           timeSignature: state.timeSignature,

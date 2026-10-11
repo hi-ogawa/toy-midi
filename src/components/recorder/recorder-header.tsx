@@ -16,6 +16,7 @@ import {
   SaveIcon,
   VideoIcon,
   SlidersVerticalIcon,
+  NotebookPenIcon,
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -85,6 +86,7 @@ export function RecorderHeader({
   onExportAudio,
   onReferenceVideoOpenChange,
   onMixerToggle,
+  onProjectCommentToggle,
   onHelpOpen,
   mixerOpen,
   inputPanelOpen,
@@ -125,6 +127,7 @@ export function RecorderHeader({
   onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
+  onProjectCommentToggle: () => void;
   onHelpOpen: () => void;
   mixerOpen: boolean;
   inputPanelOpen: boolean;
@@ -425,8 +428,13 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {/* Grouped from working in the project outward: taking it out,
-              getting help, then leaving it. */}
+          {/* Grouped from the project outward: working in it, taking it
+              out, getting help, then leaving it. */}
+          <DropdownMenuItem onSelect={onProjectCommentToggle}>
+            <NotebookPenIcon />
+            Project Comment
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={flags.isRecording}
             onSelect={onExportAudio}
