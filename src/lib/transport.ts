@@ -56,10 +56,8 @@ export type ScheduledPass = PlaybackPass & {
   /** Timeline position where this window enters the pass. */
   startPosition: number;
   /**
-   * Timeline range in which point events, such as clicks and note starts, fall
-   * in this window. Both ends are shifted back by a tiny epsilon, so an event
-   * that lands a rounding error before a boundary still falls on its intended
-   * side, and each event falls in exactly one window.
+   * Half-open timeline range of the point events, such as clicks and note
+   * starts, that belong to this window. Each event belongs to exactly one window.
    */
   eventRange: { start: number; end: number };
   /** Audio-clock time at which a timeline position in this pass sounds. */
@@ -305,6 +303,9 @@ function getScheduledPasses(
     return {
       ...pass,
       startPosition,
+      // Shift both ends back by the same epsilon, so an event a rounding error
+      // before a boundary still falls on its intended side while consecutive
+      // windows keep sharing their boundary.
       eventRange: {
         start: startPosition - BOUNDARY_EPSILON,
         end: endPosition - BOUNDARY_EPSILON,
