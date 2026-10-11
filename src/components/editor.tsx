@@ -402,7 +402,6 @@ export function Editor({ projectId }: { projectId: string }) {
             {state.referenceVideo && (
               <ReferenceTimelineRow
                 referenceVideo={clipInteraction.referenceVideo!}
-                position={state.position}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
