@@ -1,7 +1,5 @@
 import {
   DEFAULT_TIME_SIGNATURE,
-  type LegacyGridSnap,
-  type LegacyLocator,
   type Note,
   type TimeSignature,
 } from "../types";
@@ -41,6 +39,14 @@ export interface LegacySavedProject {
   pixelsPerBeat?: number;
   pixelsPerKey?: number;
   waveformHeight?: number;
+}
+
+type LegacyGridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
+
+interface LegacyLocator {
+  id: string;
+  position: number; // Position on timeline in beats
+  label: string; // User-defined label (e.g., "Verse", "Chorus")
 }
 
 interface LegacySavedAudioTrack {
