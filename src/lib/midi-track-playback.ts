@@ -116,11 +116,6 @@ export class MidiTrackPlayback implements TransportParticipant {
     }
   }
 
-  /**
-   * Queues notes starting during the window in every loop pass it covers. Notes
-   * that started before the window, such as before the playhead or loop-in, are
-   * not joined late.
-   */
   private schedule(passes: ScheduledPass[]): void {
     for (const pass of passes) {
       for (const note of this.notes) {
