@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import type { Pcm, SerializedRuntimeState } from "./persistence.ts";
+import type { Pcm, SerializedEditorRuntimeState } from "./persistence.ts";
 
 // .toymidi.zip
 // ├── manifest.json  { formatVersion: 1, projectType: "recorder", ... }
@@ -9,7 +9,7 @@ import type { Pcm, SerializedRuntimeState } from "./persistence.ts";
 //     ├── 0/clips/0/channel-0.f32
 //     └── 1/clips/0/channel-0.f32
 //
-// project.json serializes SerializedRuntimeState<string>, replacing
+// project.json serializes SerializedEditorRuntimeState<string>, replacing
 // each PCM channel's Float32Array with its ZIP entry path. The samples are
 // stored separately in the referenced .f32 files. Archives written before
 // per-track clip arrays store a single track clip at audio/tracks/0/ and
@@ -28,7 +28,7 @@ interface ProjectManifest {
 // E2E tests also call this directly from Node to build archives to import,
 // including older project shapes.
 export async function exportProjectArchive(
-  content: SerializedRuntimeState,
+  content: SerializedEditorRuntimeState,
 ): Promise<Blob> {
   const zip = new JSZip();
   const manifest: ProjectManifest = {
@@ -43,7 +43,7 @@ export async function exportProjectArchive(
 
 export async function readProjectArchive(
   zip: JSZip,
-): Promise<SerializedRuntimeState> {
+): Promise<SerializedEditorRuntimeState> {
   const manifest = await readJson<ProjectManifest>(zip, MANIFEST_PATH);
   if (manifest.projectType !== "recorder") {
     throw new Error("This is not a recorder project archive.");
@@ -59,7 +59,7 @@ export async function readProjectArchive(
       `Recorder project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
     );
   }
-  const project = await readJson<SerializedRuntimeState<string>>(
+  const project = await readJson<SerializedEditorRuntimeState<string>>(
     zip,
     PROJECT_PATH,
   );
@@ -68,8 +68,8 @@ export async function readProjectArchive(
 
 function writeProjectContent(
   zip: JSZip,
-  content: SerializedRuntimeState,
-): SerializedRuntimeState<string> {
+  content: SerializedEditorRuntimeState,
+): SerializedEditorRuntimeState<string> {
   return {
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
@@ -110,8 +110,8 @@ function writeProjectContent(
 
 async function readProjectContent(
   zip: JSZip,
-  content: SerializedRuntimeState<string>,
-): Promise<SerializedRuntimeState> {
+  content: SerializedEditorRuntimeState<string>,
+): Promise<SerializedEditorRuntimeState> {
   return {
     ...content,
     audioTracks: await Promise.all(

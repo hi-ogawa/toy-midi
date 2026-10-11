@@ -12,7 +12,7 @@ import {
 import type {
   MidiTrackState,
   EditorRuntime,
-  RuntimeState,
+  EditorRuntimeState,
 } from "../lib/runtime";
 import { Panel } from "./panel";
 import { Button } from "./ui/button";
@@ -55,7 +55,7 @@ export function AudioToMidi({
   onClose,
 }: {
   runtime: EditorRuntime;
-  state: RuntimeState;
+  state: EditorRuntimeState;
   track: MidiTrackState;
   cellsPerBeat: number;
   onClose: () => void;
@@ -246,7 +246,7 @@ export function AudioToMidi({
   );
 }
 
-function getTranscriptionSources(state: RuntimeState) {
+function getTranscriptionSources(state: EditorRuntimeState) {
   return state.audioTracks
     .map((track) => ({
       track,

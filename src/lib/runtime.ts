@@ -35,9 +35,9 @@ import {
 import { clamp } from "./music.ts";
 import { sliceSamples } from "./pcm.ts";
 import {
-  deserializeRuntimeState,
-  type SerializedRuntimeState,
-  serializeRuntimeState,
+  deserializeEditorRuntimeState,
+  type SerializedEditorRuntimeState,
+  serializeEditorRuntimeState,
 } from "./persistence.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "./pitch-spelling.ts";
 import { ActiveRecording } from "./recording.ts";
@@ -152,7 +152,7 @@ export type LocatorUpdate = {
   label?: string;
 };
 
-export interface RuntimeState {
+export interface EditorRuntimeState {
   title: string;
   comment: string;
   locators: Locator[];
@@ -194,8 +194,8 @@ export interface RuntimeState {
   armedTrackId?: string;
 }
 
-export type PersistableRuntimeState = Pick<
-  RuntimeState,
+export type PersistableEditorRuntimeState = Pick<
+  EditorRuntimeState,
   | "title"
   | "comment"
   | "locators"
@@ -240,9 +240,12 @@ export type ClipInsertRemove = {
   snapshot: ClipInsertRemoveSnapshot;
 };
 
-type RuntimeClipsState = Pick<RuntimeState, "audioTracks" | "referenceVideo">;
+type EditorRuntimeClipsState = Pick<
+  EditorRuntimeState,
+  "audioTracks" | "referenceVideo"
+>;
 
-export function createDefaultRuntimeState(): RuntimeState {
+export function createDefaultEditorRuntimeState(): EditorRuntimeState {
   const audioTrack = createAudioTrackState({ name: "Audio 1" });
   return {
     title: "Untitled",
@@ -287,7 +290,7 @@ export class EditorRuntime {
    * Read with `get()`. `update()` changes state without updating playback,
    * so use the runtime methods to make changes.
    */
-  readonly store = createStore(createDefaultRuntimeState);
+  readonly store = createStore(createDefaultEditorRuntimeState);
 
   readonly context = new AudioContext();
   private readonly masterOutput: GainNode;
@@ -578,7 +581,7 @@ export class EditorRuntime {
 
   /** Derive and commit clip state, synchronizing changed playback while preserving transport status. */
   private updateClips(
-    update: (state: RuntimeState) => RuntimeClipsState,
+    update: (state: EditorRuntimeState) => EditorRuntimeClipsState,
   ): void {
     const state = this.store.get();
     const next = update(state);
@@ -1108,14 +1111,16 @@ export class EditorRuntime {
   }
 
   /** @internal */
-  serializeProject(): SerializedRuntimeState {
-    return serializeRuntimeState(this.store.get());
+  serializeProject(): SerializedEditorRuntimeState {
+    return serializeEditorRuntimeState(this.store.get());
   }
 
   /** @internal */
-  async deserializeProject(project: SerializedRuntimeState): Promise<void> {
+  async deserializeProject(
+    project: SerializedEditorRuntimeState,
+  ): Promise<void> {
     await this.replacePersistableState(
-      deserializeRuntimeState({
+      deserializeEditorRuntimeState({
         context: this.context,
         project,
       }),
@@ -1123,7 +1128,7 @@ export class EditorRuntime {
   }
 
   private async replacePersistableState(
-    project: PersistableRuntimeState,
+    project: PersistableEditorRuntimeState,
   ): Promise<void> {
     if (
       this.store.get().captureStatus === "recording" ||
@@ -1202,7 +1207,7 @@ export class EditorRuntime {
           midiTracks: state.midiTracks,
           trackOrder: state.trackOrder,
           referenceVideo: state.referenceVideo,
-        }) satisfies PersistableRuntimeState,
+        }) satisfies PersistableEditorRuntimeState,
       listener,
       equals: shallowEqual,
     });
@@ -1363,7 +1368,7 @@ export class EditorRuntime {
 
 /** Derive a clip property update without committing state or touching playback. */
 function deriveClipStateById(
-  state: RuntimeState,
+  state: EditorRuntimeState,
   {
     id,
     update,
@@ -1371,7 +1376,7 @@ function deriveClipStateById(
     id: string;
     update: (clip: AudioClip) => AudioClip;
   },
-): RuntimeClipsState {
+): EditorRuntimeClipsState {
   function updateTrack(track: AudioTrackState): AudioTrackState {
     return updateTrackClips({
       track,
@@ -1387,9 +1392,9 @@ function deriveClipStateById(
 
 /** Derive clip insertion or removal without mutating the supplied state. */
 function deriveClipInsertRemoveState(
-  state: RuntimeState,
+  state: EditorRuntimeState,
   { operation, snapshot }: ClipInsertRemove,
-): RuntimeClipsState {
+): EditorRuntimeClipsState {
   function updateTrack(track: AudioTrackState): AudioTrackState {
     const trackEdits = snapshot.tracks.find(
       (entry) => entry.trackId === track.id,
@@ -1428,9 +1433,9 @@ function deriveClipInsertRemoveState(
 
 /** Calculate clip state from an explicit snapshot for both preview and commit. */
 export function deriveClipEditState(
-  state: RuntimeState,
+  state: EditorRuntimeState,
   edit: ClipEdit,
-): RuntimeClipsState {
+): EditorRuntimeClipsState {
   const moves = edit.type === "move" ? edit.changes : [];
   const trims = edit.type !== "move" ? edit.changes : [];
   function editTrack(track: AudioTrackState): AudioTrackState {

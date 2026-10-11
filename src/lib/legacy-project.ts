@@ -4,10 +4,10 @@ import {
   normalizeLegacySavedProject,
 } from "./legacy-project-store";
 import {
-  serializeRuntimeState,
-  type SerializedRuntimeState,
+  serializeEditorRuntimeState,
+  type SerializedEditorRuntimeState,
 } from "./persistence";
-import { clampTrackHeight, createDefaultRuntimeState } from "./runtime";
+import { clampTrackHeight, createDefaultEditorRuntimeState } from "./runtime";
 
 export async function convertLegacyProject({
   name,
@@ -17,14 +17,16 @@ export async function convertLegacyProject({
   name: string;
   project: AnyLegacySavedProject;
   loadAudio: (assetKey: string) => Promise<Blob | undefined>;
-}): Promise<SerializedRuntimeState> {
+}): Promise<SerializedEditorRuntimeState> {
   if (project.version !== 1 && project.version !== 2) {
     throw new Error("Unsupported legacy project version");
   }
 
   // Apply legacy defaults and copy project settings onto a fresh recorder project.
   const legacy = normalizeLegacySavedProject(project);
-  const content = serializeRuntimeState(createDefaultRuntimeState());
+  const content = serializeEditorRuntimeState(
+    createDefaultEditorRuntimeState(),
+  );
   content.title = name;
   content.tempo = legacy.tempo;
   content.timeSignature = legacy.timeSignature;

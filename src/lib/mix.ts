@@ -3,7 +3,7 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-node.ts";
-import type { RuntimeState } from "./runtime.ts";
+import type { EditorRuntimeState } from "./runtime.ts";
 
 interface Mix {
   tracks: {
@@ -16,7 +16,7 @@ interface Mix {
 }
 
 /** Snapshot committed audio at 1x, independent of transport and reference audio. */
-export function resolveMix(state: RuntimeState): Mix {
+export function resolveMix(state: EditorRuntimeState): Mix {
   const gains = deriveTrackMix(state);
   const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
     eq: track.eq,
@@ -119,7 +119,10 @@ export async function renderAudioSources(
 export function deriveTrackMix({
   audioTracks,
   midiTracks,
-}: Pick<RuntimeState, "audioTracks" | "midiTracks">): Map<string, number> {
+}: Pick<EditorRuntimeState, "audioTracks" | "midiTracks">): Map<
+  string,
+  number
+> {
   const tracks = [...audioTracks, ...midiTracks];
   const audibleTracks = new Set(getAudibleItems(tracks));
   return new Map(

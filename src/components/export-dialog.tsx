@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
-import type { EditorRuntime, RuntimeState } from "../lib/runtime";
+import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { encodeWav } from "../lib/wav";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
@@ -13,7 +13,7 @@ export function ExportDialog({
   disabled,
 }: {
   runtime: EditorRuntime;
-  state: RuntimeState;
+  state: EditorRuntimeState;
   isOpen: boolean;
   onClose: () => void;
   disabled: boolean;

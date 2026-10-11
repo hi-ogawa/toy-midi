@@ -6,7 +6,7 @@ import { exportMusicXml } from "../lib/musicxml/render";
 import type {
   MidiTrackState,
   EditorRuntime,
-  RuntimeState,
+  EditorRuntimeState,
 } from "../lib/runtime";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
@@ -39,7 +39,7 @@ export function ScorePanel({
   scoreViewerHref,
 }: {
   runtime: EditorRuntime;
-  state: RuntimeState;
+  state: EditorRuntimeState;
   track: MidiTrackState;
   onClose: () => void;
   scoreViewerHref?: string;
@@ -105,7 +105,7 @@ function ScorePreview({
   track,
 }: {
   runtime: EditorRuntime;
-  state: RuntimeState;
+  state: EditorRuntimeState;
   track: MidiTrackState;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);

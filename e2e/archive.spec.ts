@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import type { SerializedRuntimeState } from "../src/lib/persistence";
+import type { SerializedEditorRuntimeState } from "../src/lib/persistence";
 import { exportProjectArchive } from "../src/lib/project-archive";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
@@ -178,7 +178,7 @@ test("opens an imported archive saved with a single clip per audio track and a s
   // and whose takes live on a separate recording track.
   const bytes = await readFile("e2e/fixtures/test-tones.pcm");
   const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
-  const project: SerializedRuntimeState = {
+  const project: SerializedEditorRuntimeState = {
     title: "Single-clip archive",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },

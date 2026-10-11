@@ -9,7 +9,7 @@ import {
   type ClipTrim,
   type ReferenceVideoState,
   EditorRuntime,
-  RuntimeState,
+  EditorRuntimeState,
 } from "../lib/runtime";
 
 type ClipEditStart = {
@@ -36,7 +36,7 @@ export function useClipInteraction({
   onSelect,
 }: {
   runtime: EditorRuntime;
-  state: RuntimeState;
+  state: EditorRuntimeState;
   /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
 }) {

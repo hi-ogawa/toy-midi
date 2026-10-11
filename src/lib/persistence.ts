@@ -7,7 +7,7 @@ import {
 import type { EqParameters } from "./dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
-  type PersistableRuntimeState,
+  type PersistableEditorRuntimeState,
   type Locator,
   type MidiTrackState,
 } from "./runtime.ts";
@@ -22,7 +22,7 @@ const RECORDING_TRACK_ID = "__capture__";
  * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
  * path (`string`) in project archives.
  */
-export interface SerializedRuntimeState<ChannelData = Float32Array> {
+export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   title: string;
   // 🟢 Optional for recorder projects saved before the project comment.
   comment?: string;
@@ -133,9 +133,9 @@ export interface Pcm<ChannelData> {
   channels: ChannelData[];
 }
 
-export function serializeRuntimeState(
-  state: PersistableRuntimeState,
-): SerializedRuntimeState {
+export function serializeEditorRuntimeState(
+  state: PersistableEditorRuntimeState,
+): SerializedEditorRuntimeState {
   return {
     title: state.title,
     comment: state.comment,
@@ -164,13 +164,13 @@ export function serializeRuntimeState(
   };
 }
 
-export function deserializeRuntimeState({
+export function deserializeEditorRuntimeState({
   context,
   project,
 }: {
   context: AudioContext;
-  project: SerializedRuntimeState;
-}): PersistableRuntimeState {
+  project: SerializedEditorRuntimeState;
+}): PersistableEditorRuntimeState {
   const audioTracks = foldRecordingTrack(project);
   // Unnamed tracks keep the labels they were shown with: Capture, and ordinary
   // tracks numbered in order without it.
@@ -223,7 +223,7 @@ export function deserializeRuntimeState({
 
 /** Keep the former Capture track after ordinary audio tracks, as the old UI did. */
 function foldRecordingTrack(
-  project: SerializedRuntimeState,
+  project: SerializedEditorRuntimeState,
 ): SerializedAudioTrackState<Float32Array>[] {
   const { recordingTrack } = project;
   if (!recordingTrack) {

@@ -1,4 +1,4 @@
-import type { RuntimeState } from "../lib/runtime";
+import type { EditorRuntimeState } from "../lib/runtime";
 import type { UseProjectResult } from "./use-project";
 
 export interface EditorFlags {
@@ -13,7 +13,7 @@ export function deriveEditorFlags({
   state,
   project,
 }: {
-  state: RuntimeState;
+  state: EditorRuntimeState;
   project: UseProjectResult;
 }): EditorFlags {
   const { captureStatus, armedTrackId } = state;

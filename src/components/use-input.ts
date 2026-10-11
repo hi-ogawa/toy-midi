@@ -2,14 +2,14 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { getCaptureInputs, requestCaptureAccess } from "../lib/capture-input";
 import { preferences } from "../lib/preferences";
-import { EditorRuntime, RuntimeState } from "../lib/runtime";
+import { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 
 export function useInput({
   runtime,
   state,
 }: {
   runtime: EditorRuntime;
-  state: RuntimeState;
+  state: EditorRuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
   const [inputPreference, setInputPreference] = preferences.useValue("input");

@@ -1,11 +1,11 @@
 import type {
   AudioTrackState,
   MidiTrackState,
-  RuntimeState,
+  EditorRuntimeState,
 } from "./runtime.ts";
 
 export type TrackListsState = Pick<
-  RuntimeState,
+  EditorRuntimeState,
   "audioTracks" | "midiTracks" | "trackOrder"
 >;
 

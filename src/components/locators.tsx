@@ -4,7 +4,7 @@ import { usePointerGesture } from "../hooks/use-pointer-gesture";
 import { snapToGrid } from "../lib/music";
 import type {
   EditorRuntime,
-  RuntimeState,
+  EditorRuntimeState,
   Locator,
   LocatorUpdate,
 } from "../lib/runtime";
@@ -19,7 +19,7 @@ export function useLocatorInteraction({
   onSelect,
 }: {
   runtime: EditorRuntime;
-  state: RuntimeState;
+  state: EditorRuntimeState;
   subdivisionsPerBeat: number;
   /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
