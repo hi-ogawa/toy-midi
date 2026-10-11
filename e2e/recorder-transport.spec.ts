@@ -58,10 +58,11 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   const playButton = page.getByTestId("recorder-play-button");
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0);
   await page.keyboard.press("ArrowRight");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(5);
   await playButton.click();
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(5);
 
   // Recording owns transport timing, so arrows cannot seek an active capture.
   await enableInput(page);
