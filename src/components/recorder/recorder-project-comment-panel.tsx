@@ -1,19 +1,7 @@
-import { useState } from "react";
-import { usePointerDrag } from "../../hooks/use-pointer-drag";
-import { clamp } from "../../lib/music";
 import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import type { ProjectUiStore } from "../../lib/recorder/storage";
+import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { RecorderPanel } from "./recorder-panel";
-
-const MIN_WIDTH = 280;
-const MIN_HEIGHT = 160;
-
-function clampSize({ width, height }: { width: number; height: number }) {
-  return {
-    width: clamp(width, MIN_WIDTH, window.innerWidth - 32),
-    height: clamp(height, MIN_HEIGHT, window.innerHeight - 32),
-  };
-}
 
 export function RecorderProjectCommentPanel({
   projectUiStore,
@@ -26,24 +14,11 @@ export function RecorderProjectCommentPanel({
   comment: string;
   onClose: () => void;
 }) {
-  const [size, setSize] = useState(() =>
-    clampSize(projectUiStore.store.get().projectCommentSize),
-  );
-  const resizeHandleRef = usePointerDrag({
-    onStart: () => size,
-    onMove: (_event, { data, deltaX, deltaY }) => {
-      setSize(
-        clampSize({ width: data.width - deltaX, height: data.height - deltaY }),
-      );
-    },
-    onEnd: (_event, { data, deltaX, deltaY }) => {
-      projectUiStore.update({
-        projectCommentSize: clampSize({
-          width: data.width - deltaX,
-          height: data.height - deltaY,
-        }),
-      });
-    },
+  const { size, handleRef } = usePanelResize({
+    initialSize: projectUiStore.store.get().projectCommentSize,
+    minSize: { width: 280, height: 160 },
+    onResizeEnd: (projectCommentSize) =>
+      projectUiStore.update({ projectCommentSize }),
   });
 
   return (
@@ -56,14 +31,7 @@ export function RecorderProjectCommentPanel({
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
     >
-      <button
-        ref={resizeHandleRef}
-        type="button"
-        aria-label="Resize Notes"
-        className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
-      >
-        <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
-      </button>
+      <PanelResizeHandle handleRef={handleRef} label="Resize Notes" />
       <textarea
         data-testid="recorder-project-comment-input"
         aria-label="Project notes"
