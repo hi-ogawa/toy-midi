@@ -11,8 +11,6 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useDraftInput } from "../hooks/use-draft-input";
-import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
@@ -38,6 +36,8 @@ import {
 } from "./ui/dropdown-menu";
 import { FloatingPanel } from "./ui/floating-panel";
 import { cn } from "./ui/utils";
+import { useDraftInput } from "./use-draft-input";
+import { useWindowEvent } from "./use-window-event";
 
 export function ScoreViewer({
   initialSource,

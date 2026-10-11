@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
-import { useDraftInput } from "../hooks/use-draft-input";
 import type { ScoreLayout, ScoreViewerSettings } from "./score-viewer-runtime";
+import { useDraftInput } from "./use-draft-input";
 
 type ScoreSettingsProps = {
   settings: ScoreViewerSettings;

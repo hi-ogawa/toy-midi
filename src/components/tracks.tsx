@@ -12,7 +12,6 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { usePointerDrag } from "../hooks/use-pointer-drag";
 import { formatGainDb } from "../lib/music";
 import { openFilePicker } from "./file-drop-input";
 import { MixToggle } from "./mix-toggle";
@@ -27,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
+import { usePointerDrag } from "./use-pointer-drag";
 
 export function AudioTrackActions({
   label,

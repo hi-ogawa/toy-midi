@@ -16,8 +16,6 @@ import {
   type FocusEvent,
 } from "react";
 import { toast } from "sonner";
-import { usePointerGesture } from "../hooks/use-pointer-gesture";
-import { useWindowEvent } from "../hooks/use-window-event";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, parseMidiFile } from "../lib/midi-import";
@@ -56,6 +54,8 @@ import {
   getMidiGridPosition,
   getMidiBoxSelectionRect,
 } from "./use-midi-interaction";
+import { usePointerGesture } from "./use-pointer-gesture";
+import { useWindowEvent } from "./use-window-event";
 
 const KEY_HEIGHT = 18;
 const PITCHES = Array.from(

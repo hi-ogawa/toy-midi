@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useWindowEvent } from "../hooks/use-window-event";
 import type { ProjectUiStore } from "../lib/preferences";
 import { projectStorage } from "../lib/project-storage";
 import { EditorRuntime } from "../lib/runtime";
+import { useWindowEvent } from "./use-window-event";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
