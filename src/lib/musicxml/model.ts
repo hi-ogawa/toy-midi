@@ -1,4 +1,4 @@
-import type { Locator, Note, TimeSignature } from "../../types";
+import type { LegacyLocator, Note, TimeSignature } from "../../types";
 import { range } from "../../utils/array";
 import { parseLocatorLabel } from "../locators";
 import {
@@ -21,7 +21,7 @@ export type MusicXmlModelOptions = {
   timeSignature: TimeSignature;
   keySignature: KeySignature;
   openStringPitches: readonly number[];
-  locators: Locator[];
+  locators: LegacyLocator[];
   /** Rebase the score to its first occupied measure. Defaults to true. */
   trimLeadingEmptyMeasures?: boolean;
 };
@@ -53,7 +53,7 @@ export type QuantizedNote = PreparedNote & {
   pitch: SpelledPitch;
 };
 
-type PreparedLocator = Locator & {
+type PreparedLocator = LegacyLocator & {
   keySignature?: KeySignature;
 };
 
@@ -246,7 +246,7 @@ function prepareLocators({
   locators,
   measureDuration,
 }: {
-  locators: Locator[];
+  locators: LegacyLocator[];
   measureDuration: number;
 }): {
   preparedLocators: PreparedLocator[];

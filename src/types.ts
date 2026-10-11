@@ -14,7 +14,7 @@ export interface Note {
   tabString?: TabString;
 }
 
-export type GridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
+export type LegacyGridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
 
 export interface TimeSignature {
   /** Beats per bar (e.g., 3, 4, 5, 7) */
@@ -28,7 +28,7 @@ export function parseTimeSignature(value: string): TimeSignature {
   return { numerator, denominator };
 }
 
-export interface Locator {
+export interface LegacyLocator {
   id: string;
   position: number; // Position on timeline in beats
   label: string; // User-defined label (e.g., "Verse", "Chorus")

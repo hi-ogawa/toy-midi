@@ -1,7 +1,7 @@
 import {
   DEFAULT_TIME_SIGNATURE,
-  type GridSnap,
-  type Locator,
+  type LegacyGridSnap,
+  type LegacyLocator,
   type Note,
   type TimeSignature,
 } from "../types";
@@ -19,10 +19,10 @@ export interface LegacySavedProject {
   tempo: number;
   timeSignature?: TimeSignature; // Optional for backward compatibility
   keySignature?: KeySignature;
-  gridSnap: GridSnap;
+  gridSnap: LegacyGridSnap;
   tabAnnotationEnabled?: boolean;
   tabOpenStringPitches?: number[];
-  locators?: Locator[]; // Optional for backward compatibility
+  locators?: LegacyLocator[]; // Optional for backward compatibility
   audioTracks: (Omit<LegacySavedAudioTrack, "waveformHeight"> & {
     waveformHeight?: number; // Optional for backward compatibility
   })[];

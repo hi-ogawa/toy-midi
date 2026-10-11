@@ -1,10 +1,10 @@
-import type { Locator } from "../types";
+import type { LegacyLocator } from "../types";
 import {
   KEY_SIGNATURE_OPTION_GROUPS,
   type KeySignature,
 } from "./pitch-spelling";
 
-export function parseLocatorLabel(locator: Locator): {
+export function parseLocatorLabel(locator: LegacyLocator): {
   label: string;
   keySignature?: KeySignature;
 } {
