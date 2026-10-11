@@ -40,6 +40,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -424,10 +425,8 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onHelpOpen}>
-            <CircleHelpIcon />
-            Help & Shortcuts
-          </DropdownMenuItem>
+          {/* Grouped from working in the project outward: taking it out,
+              getting help, then leaving it. */}
           <DropdownMenuItem
             disabled={flags.isRecording}
             onSelect={onExportAudio}
@@ -453,6 +452,12 @@ export function RecorderHeader({
               </span>
             </span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onHelpOpen}>
+            <CircleHelpIcon />
+            Help & Shortcuts
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />
