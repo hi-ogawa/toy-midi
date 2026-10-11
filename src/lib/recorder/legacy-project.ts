@@ -1,5 +1,8 @@
 import { createDefaultMultibandEq } from "../dsp/biquad-eq-node";
-import { type AnySavedProject, fromSavedProject } from "../project-store";
+import {
+  type AnyLegacySavedProject,
+  normalizeLegacySavedProject,
+} from "../legacy-project-store";
 import {
   serializeRecorderRuntimeState,
   type SerializedRecorderRuntimeState,
@@ -12,7 +15,7 @@ export async function convertLegacyProject({
   loadAudio,
 }: {
   name: string;
-  project: AnySavedProject;
+  project: AnyLegacySavedProject;
   loadAudio: (assetKey: string) => Promise<Blob | undefined>;
 }): Promise<SerializedRecorderRuntimeState> {
   if (project.version !== 1 && project.version !== 2) {
@@ -20,7 +23,7 @@ export async function convertLegacyProject({
   }
 
   // Apply legacy defaults and copy project settings onto a fresh recorder project.
-  const legacy = fromSavedProject(project);
+  const legacy = normalizeLegacySavedProject(project);
   const content = serializeRecorderRuntimeState(
     createDefaultRecorderRuntimeState(),
   );
