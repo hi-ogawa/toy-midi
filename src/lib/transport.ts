@@ -42,7 +42,7 @@ export type ScheduledPass = {
   anchor: PlaybackAnchor;
 };
 
-type LoopRange = {
+type LoopSecondsRange = {
   start: number;
   end: number;
 };
@@ -66,7 +66,7 @@ export class AudioContextTransport {
   playbackRate = 1;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
-  private loopRange?: LoopRange;
+  private loopRange?: LoopSecondsRange;
 
   constructor(readonly context: AudioContext) {}
 
@@ -122,7 +122,7 @@ export class AudioContextTransport {
     }
   }
 
-  setLoopRange(loopRange?: LoopRange): void {
+  setLoopRange(loopRange?: LoopSecondsRange): void {
     this.loopRange = loopRange;
     if (
       loopRange &&
