@@ -6,14 +6,14 @@ test("keeps the project comment with the project", async ({ page }) => {
   // Open the comment panel, and write a chord chart into it.
   await createProject(page);
   await selectMenuItem(page, { menu: "Editor menu", item: "Project Comment" });
-  const comment = page.getByTestId("recorder-project-comment-input");
+  const comment = page.getByTestId("project-comment-input");
   await comment.fill("## Chords\n| Dm7 | G7 |");
 
   // Type a space in the comment, and see it stay text instead of starting playback.
   await comment.press("End");
   await comment.press("Space");
   await expect(comment).toHaveValue("## Chords\n| Dm7 | G7 | ");
-  await expect(page.getByTestId("recorder-play-button")).toHaveAttribute(
+  await expect(page.getByTestId("play-button")).toHaveAttribute(
     "aria-pressed",
     "false",
   );
@@ -21,7 +21,7 @@ test("keeps the project comment with the project", async ({ page }) => {
   // Save and reload, and see the panel reopen with the comment.
   await saveProject(page);
   await page.reload();
-  await expect(page.getByTestId("recorder-project-comment-input")).toHaveValue(
+  await expect(page.getByTestId("project-comment-input")).toHaveValue(
     "## Chords\n| Dm7 | G7 | ",
   );
 });

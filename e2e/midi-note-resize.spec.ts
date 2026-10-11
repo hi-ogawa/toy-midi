@@ -13,11 +13,11 @@ test("resizes both MIDI note edges with a cancellable preview and minimum durati
   // Create and save a one-cell note, leaving both edges available around its move target.
   await createProject(page);
   const row = await addMidiTrack(page);
-  const grid = row.getByTestId("recorder-midi-grid");
+  const grid = row.getByTestId("midi-grid");
   const note = grid.locator("[data-note-id]");
   await createMidiNote(page, row, { beat: 0, pitch: "C4" });
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await saveProject(page);
   const cellWidth = (await note.boundingBox())!.width;
   const startEdge = note.locator('[data-note-edge="start"]');

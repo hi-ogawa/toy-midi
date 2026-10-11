@@ -44,7 +44,7 @@ export function RangeControl({
   return (
     <div className="flex h-9 w-15 shrink-0 rounded-md border border-neutral-600">
       <Button
-        data-testid={`recorder-${kind}-toggle`}
+        data-testid={`${kind}-toggle`}
         aria-label={description}
         aria-pressed={state.range ? state.enabled : undefined}
         title={description}

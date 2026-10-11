@@ -39,7 +39,7 @@ export function Mixer({
         gain={state.masterGain}
         onGainChange={(gain) => runtime.setMasterGain(gain)}
         inputProps={masterInput.props}
-        data-testid="recorder-mixer-master"
+        data-testid="mixer-master"
       />
       {trackEntries.map((entry) => {
         const { track } = entry;
@@ -69,7 +69,7 @@ export function Mixer({
         gain={state.metronomeGain}
         onGainChange={(gain) => runtime.setMetronomeGain(gain)}
         inputProps={metronomeInput.props}
-        data-testid="recorder-mixer-metro"
+        data-testid="mixer-metro"
         action={
           <MixToggle
             active={!state.metronomeEnabled}
@@ -125,7 +125,7 @@ function TrackChannel({
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
-      data-testid={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
+      data-testid={`mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
         <div className="flex flex-col gap-1">
           <MixToggle

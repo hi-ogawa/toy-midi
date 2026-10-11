@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { selectMenuItem } from "./helpers";
 
-test("home creates and reopens recorder projects without project-type tabs", async ({
+test("home creates and reopens projects without project-type tabs", async ({
   page,
 }) => {
-  // Open the recorder list directly, even when an old MIDI-tab preference exists.
+  // Open the project list directly, even when an old MIDI-tab preference exists.
   await page.goto("/__e2e__/");
   await page.evaluate(() =>
     localStorage.setItem(
@@ -22,11 +22,10 @@ test("home creates and reopens recorder projects without project-type tabs", asy
   await expect(
     page.getByRole("tab", { name: "Projects", exact: true }),
   ).toHaveCount(0);
-  await expect(page.getByTestId("new-project-button")).toHaveCount(0);
   await expect(page.getByText("No projects yet")).toBeVisible();
 
-  // Create a recorder project and return home to its saved entry.
-  await page.getByTestId("new-recorder-project-button").click();
+  // Create a project and return home to its saved entry.
+  await page.getByTestId("new-project-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   const projectUrl = page.url();
   await selectMenuItem(page, { menu: "Editor menu", item: "Home" });
@@ -34,7 +33,7 @@ test("home creates and reopens recorder projects without project-type tabs", asy
   const project = page.locator(`a[href="${new URL(projectUrl).pathname}"]`);
   await expect(project).toBeVisible();
 
-  // Reload home and reopen the same recorder project.
+  // Reload home and reopen the same project.
   await page.reload();
   await expect(project).toBeVisible();
   await project.click();
@@ -53,14 +52,12 @@ test("Projects search follows the temporary legacy filter", async ({
     }
   });
   await page.goto("/");
-  await page.getByTestId("new-recorder-project-button").click();
+  await page.getByTestId("new-project-button").click();
   page.once("dialog", (dialog) => dialog.accept("Blue session"));
-  await page.getByTestId("recorder-project-name").click();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Blue session",
-  );
-  await page.getByTestId("recorder-save-button").click();
-  await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
+  await page.getByTestId("project-name").click();
+  await expect(page.getByTestId("project-name")).toHaveText("Blue session");
+  await page.getByTestId("save-button").click();
+  await expect(page.getByTestId("save-button")).toHaveAttribute(
     "data-status",
     "saved",
   );

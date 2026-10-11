@@ -21,7 +21,7 @@ It also needs:
 toy-midi-score-video score.musicxml score.mp4
 ```
 
-Export the MusicXML from a recorder MIDI track with the track menu's "Export MusicXML" action. By default, the CLI renders against the deployed app at https://toy-midi.hiro18181.workers.dev.
+Export the MusicXML from a MIDI track with the track menu's "Export MusicXML" action. By default, the CLI renders against the deployed app at https://toy-midi.hiro18181.workers.dev.
 
 | Option              | Default      | Description                                                    |
 | ------------------- | ------------ | -------------------------------------------------------------- |

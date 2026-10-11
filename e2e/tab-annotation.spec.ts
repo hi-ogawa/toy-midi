@@ -13,7 +13,7 @@ test("assigns MIDI note strings and persists annotation settings", async ({
   // Create a C4 note at the first grid cell with annotations initially hidden.
   await createProject(page);
   const row = await addMidiTrack(page);
-  const grid = row.getByTestId("recorder-midi-grid");
+  const grid = row.getByTestId("midi-grid");
   const note = grid.locator("[data-note-id]");
   const annotation = note.getByTestId("tab-annotation");
   await createMidiNote(page, row, { beat: 0, pitch: "C4" });

@@ -358,7 +358,7 @@ export function Editor({ projectId }: { projectId: string }) {
           }
         />
         <section
-          data-testid="recorder-track-scroll"
+          data-testid="track-scroll"
           className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
         >
           <div
@@ -448,7 +448,7 @@ export function Editor({ projectId }: { projectId: string }) {
                   return (
                     <Fragment key={track.id}>
                       <TrackRow
-                        data-testid="recorder-audio-track-row"
+                        data-testid="audio-track-row"
                         title={track.name}
                         height={track.height}
                         gain={track.gain}
@@ -652,7 +652,7 @@ export function Editor({ projectId }: { projectId: string }) {
           isOpen={isInputSetupOpen}
           onClose={() => setIsInputSetupOpen(false)}
           title="Audio Input Setup"
-          data-testid="recorder-input-setup"
+          data-testid="input-setup"
         >
           <InputSetup
             runtime={runtime}
@@ -777,7 +777,7 @@ export function Editor({ projectId }: { projectId: string }) {
             closeLabel="Close Mixer"
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
-            data-testid="recorder-mixer-panel"
+            data-testid="mixer-panel"
             className="pointer-events-auto min-w-80 flex-1"
           >
             <Mixer
@@ -821,13 +821,13 @@ function EditorInitError({ error }: { error: Error }) {
     <div
       role="alertdialog"
       aria-modal="true"
-      aria-labelledby="recorder-init-error-title"
+      aria-labelledby="init-error-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4 text-neutral-100"
     >
       <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-neutral-700 bg-neutral-800 p-6 text-center shadow-2xl">
         <Mic2Icon className="size-6 text-emerald-400" />
         <div className="flex flex-col gap-1">
-          <h1 id="recorder-init-error-title" className="text-lg font-medium">
+          <h1 id="init-error-title" className="text-lg font-medium">
             Could not open this project
           </h1>
           <p className="text-sm text-neutral-400">{error.message}</p>

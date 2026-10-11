@@ -6,12 +6,12 @@ import {
   saveProject,
 } from "./editor-helpers";
 
-test("saves and restores a recorder project", async ({ page }) => {
+test("saves and restores a project", async ({ page }) => {
   // Create a project and show its default name in the browser tab.
   await createProject(page);
   await expect(page).toHaveTitle("Untitled - Toy MIDI");
   const projectUrl = page.url();
-  const saveButton = page.getByTestId("recorder-save-button");
+  const saveButton = page.getByTestId("save-button");
   await expect(saveButton).toHaveAttribute("data-status", "saved");
   const saveTooltip = page.getByRole("tooltip");
   await expect(saveButton).not.toHaveAttribute("title");
@@ -24,39 +24,37 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(saveTooltip).toHaveCSS("opacity", "1");
 
   // Transport updates are session state and do not stale persisted state.
-  await page.getByTestId("recorder-play-button").click();
+  await page.getByTestId("play-button").click();
   await expect.poll(() => getPosition(page)).toBeGreaterThan(0);
-  await page.getByTestId("recorder-play-button").click();
+  await page.getByTestId("play-button").click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Rename the project and update the browser tab before saving.
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
-  await page.getByTestId("recorder-project-name").click();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Practice take",
-  );
+  await page.getByTestId("project-name").click();
+  await expect(page.getByTestId("project-name")).toHaveText("Practice take");
   await expect(page).toHaveTitle("Practice take - Toy MIDI");
 
   // Load a backing track, including its decoded waveform.
   await addAudio(page, "e2e/fixtures/test-audio.wav");
-  const clip = page.getByTestId("recorder-clip-audio");
+  const clip = page.getByTestId("clip-audio");
   await expect(clip).toContainText("test-audio.wav");
 
   // They change the session tempo.
-  await page.getByTestId("recorder-tempo-input").fill("140");
-  await page.getByTestId("recorder-tempo-input").press("Enter");
+  await page.getByTestId("tempo-input").fill("140");
+  await page.getByTestId("tempo-input").press("Enter");
 
   // They add a reference video and mute its audio.
-  await page.getByTestId("recorder-reference-video-button").click();
-  const referencePanel = page.getByTestId("recorder-youtube-reference");
+  await page.getByTestId("reference-video-button").click();
+  const referencePanel = page.getByTestId("youtube-reference");
   await referencePanel
-    .getByTestId("recorder-youtube-input")
+    .getByTestId("youtube-input")
     .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
   await referencePanel.getByRole("button", { name: "Add video" }).click();
-  await page.getByTestId("recorder-reference-video-mute").click();
+  await page.getByTestId("reference-video-mute").click();
 
-  // They set output levels from the recorder mixer.
-  await page.getByTestId("recorder-mixer-button").click();
+  // They set output levels from the mixer.
+  await page.getByTestId("mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
   const metronomeLevel = page.getByRole("textbox", {
     name: "Metronome level in dB",
@@ -74,19 +72,18 @@ test("saves and restores a recorder project", async ({ page }) => {
   // Reload restores the project name and browser title, tempo, and PCM-backed waveform data.
   await page.reload();
   await expect(page).toHaveURL(projectUrl);
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Practice take",
-  );
+  await expect(page.getByTestId("project-name")).toHaveText("Practice take");
   await expect(page).toHaveTitle("Practice take - Toy MIDI");
-  await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("140");
+  await expect(page.getByTestId("tempo-input")).toHaveValue("140");
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
   // Reference identity and mute state restore together.
-  await expect(page.getByTestId("recorder-reference-track")).toBeVisible();
-  await expect(
-    page.getByTestId("recorder-reference-video-mute"),
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("reference-track")).toBeVisible();
+  await expect(page.getByTestId("reference-video-mute")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 
   // The mixer stays open across the reload, with its levels restored.
   await expect(
@@ -102,9 +99,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(project).toBeVisible();
   await project.click();
   await expect(page).toHaveURL(projectUrl);
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Practice take",
-  );
+  await expect(page.getByTestId("project-name")).toHaveText("Practice take");
   await expect(page).toHaveTitle("Practice take - Toy MIDI");
 
   // Deleting from the index removes the project metadata and content.
@@ -115,7 +110,7 @@ test("saves and restores a recorder project", async ({ page }) => {
 
   // A stale deep link reports the missing project without retrying its read.
   await page.goto(projectUrl);
-  await expect(page.getByText(/Recorder project .* not found/)).toBeVisible();
+  await expect(page.getByText(/Project .* not found/)).toBeVisible();
 });
 
 test("opens and resaves a project saved with a single clip per audio track and a separate recording track", async ({
@@ -170,9 +165,9 @@ test("opens and resaves a project saved with a single clip per audio track and a
   // Open the stored project and show the take on the former Capture track
   // below the clip, both with decoded waveforms.
   await page.goto(`/recorder/${projectId}`);
-  const rows = page.getByTestId("recorder-audio-track-row");
-  const clip = rows.nth(0).getByTestId("recorder-clip-audio");
-  const take = rows.nth(1).getByTestId("recorder-clip-audio");
+  const rows = page.getByTestId("audio-track-row");
+  const clip = rows.nth(0).getByTestId("clip-audio");
+  const take = rows.nth(1).getByTestId("clip-audio");
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
   await expect(take).toContainText("Take 3");
@@ -188,14 +183,12 @@ test("opens and resaves a project saved with a single clip per audio track and a
 
   // Rename and save the project.
   page.once("dialog", (dialog) => dialog.accept("Resaved clip"));
-  await page.getByTestId("recorder-project-name").click();
+  await page.getByTestId("project-name").click();
   await saveProject(page);
 
   // Reload the resaved project and show the same clip and take.
   await page.reload();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Resaved clip",
-  );
+  await expect(page.getByTestId("project-name")).toHaveText("Resaved clip");
   await expect(clip).toContainText("single.wav");
   await expect(clip.locator("svg")).toBeVisible();
   await expect(take).toContainText("Take 3");

@@ -30,7 +30,7 @@ test("keeps auto-scroll and the Audio Input panel per project, and the input dev
     .getByLabel("Device")
     .selectOption({ label: "Fake Audio Input 1" });
   await setup.getByRole("button", { name: "Close", exact: true }).click();
-  const panel = page.getByTestId("recorder-input-panel");
+  const panel = page.getByTestId("input-panel");
   await expect(panel).toBeVisible();
 
   // Reload, and confirm the project keeps auto-scroll disabled and the panel

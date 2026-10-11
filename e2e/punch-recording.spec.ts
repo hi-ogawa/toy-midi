@@ -18,22 +18,22 @@ test("records only the punched interval into the comp", async ({ page }) => {
   await enableInput(page);
   await armTrack(page, { track: "Audio 1" });
 
-  const recordButton = page.getByTestId("recorder-record-button");
-  const take = page.getByTestId("recorder-clip-audio-source");
-  const comp = page.getByTestId("recorder-clip-audio");
+  const recordButton = page.getByTestId("record-button");
+  const take = page.getByTestId("clip-audio-source");
+  const comp = page.getByTestId("clip-audio");
 
   // Create a punch range strictly inside the recording span.
-  await page.getByTestId("recorder-punch-toggle").click();
-  const punchRange = page.getByTestId("recorder-punch-range");
+  await page.getByTestId("punch-toggle").click();
+  const punchRange = page.getByTestId("punch-range");
   await expect(punchRange).toBeVisible();
   await dragBy(
     page,
-    page.getByTestId("recorder-punch-start"),
+    page.getByTestId("punch-start"),
     DEFAULT_PIXELS_PER_BEAT * 0.5,
   );
   await dragBy(
     page,
-    page.getByTestId("recorder-punch-end"),
+    page.getByTestId("punch-end"),
     -DEFAULT_PIXELS_PER_BEAT * 0.5,
   );
   const punchBox = await punchRange.boundingBox();
@@ -42,13 +42,10 @@ test("records only the punched interval into the comp", async ({ page }) => {
   // Capture surrounding audio, while only its overlap with Punch joins the comp.
   await seekByPixels(page, 0);
   await recordButton.click();
-  const pendingComp = page.getByTestId("recorder-clip-recording");
+  const pendingComp = page.getByTestId("clip-recording");
   await waitForRecordingSamples(pendingComp);
   await expect
-    .poll(
-      async () =>
-        (await page.getByTestId("recorder-playhead").boundingBox())?.x,
-    )
+    .poll(async () => (await page.getByTestId("playhead").boundingBox())?.x)
     .toBeGreaterThanOrEqual(punchBox.x + punchBox.width);
   await expect
     .poll(async () => {

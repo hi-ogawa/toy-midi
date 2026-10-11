@@ -137,7 +137,7 @@ export function AudioToMidi({
       contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-4 py-3"
       onClose={onClose}
       title={`Audio to MIDI · ${track.name}`}
-      data-testid="recorder-audio-to-midi"
+      data-testid="audio-to-midi"
     >
       <div className="space-y-5">
         <p className="text-sm text-neutral-400">

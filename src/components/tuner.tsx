@@ -27,7 +27,7 @@ export function Tuner({
       title="Tuner"
       closeLabel="Close Tuner"
       onClose={onClose}
-      data-testid="recorder-tuner-panel"
+      data-testid="tuner-panel"
       className="pointer-events-auto w-80 shrink-0"
     >
       <TunerContent analysis={analysis} />

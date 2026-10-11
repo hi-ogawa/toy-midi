@@ -7,7 +7,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
   await createProject(page);
   await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
-  const modal = page.getByTestId("recorder-audio-export");
+  const modal = page.getByTestId("audio-export");
   const exportButton = modal.getByRole("button", { name: "Export file" });
   await expect(exportButton).toBeEnabled();
   await exportButton.click();
@@ -25,7 +25,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Add backing audio and name the project for the downloaded file.
   await addAudio(page, "e2e/fixtures/test-audio.wav");
   page.once("dialog", (dialog) => dialog.accept("Final mix"));
-  await page.getByTestId("recorder-project-name").click();
+  await page.getByTestId("project-name").click();
 
   // Reopen the dialog and export the mix.
   await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });

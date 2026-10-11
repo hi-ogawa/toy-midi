@@ -22,7 +22,7 @@ const preferencesSchema = z.object({
 });
 type Preferences = z.infer<typeof preferencesSchema>;
 
-const DEFAULT_RECORDER_PREFERENCES: Preferences = {
+const DEFAULT_PREFERENCES: Preferences = {
   defaultMidiProgram: 0,
   takesNewestFirst: true,
 };
@@ -32,7 +32,7 @@ export const preferences = new LocalStorageStore<Preferences>({
   parse: (stored) =>
     parseState({
       schema: preferencesSchema,
-      defaults: DEFAULT_RECORDER_PREFERENCES,
+      defaults: DEFAULT_PREFERENCES,
       stored,
     }),
 });

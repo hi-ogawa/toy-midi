@@ -12,14 +12,12 @@ import { selectMenuItem } from "./helpers";
 test("uploads and plays a backing track", async ({ page }) => {
   await createProject(page);
 
-  // Load a backing track through the recorder's file picker.
+  // Load a backing track through the editor's file picker.
   await addAudio(page, "e2e/fixtures/test-audio.wav");
 
   // The imported clip retains its source filename.
-  const clip = page.getByTestId("recorder-clip-audio-source");
-  await expect(page.getByTestId("recorder-clip-audio")).toContainText(
-    "test-audio.wav",
-  );
+  const clip = page.getByTestId("clip-audio-source");
+  await expect(page.getByTestId("clip-audio")).toContainText("test-audio.wav");
 
   // TODO: Consider consolidating edit assertions with clip-move.spec.ts and clip-trim.spec.ts.
   // Move and trim backing audio without changing its source.
@@ -31,7 +29,7 @@ test("uploads and plays a backing track", async ({ page }) => {
   expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + DEFAULT_PIXELS_PER_BEAT, -1);
 
   const trimPixels = afterMove!.width / 4;
-  await dragBy(page, clip.getByTestId("recorder-clip-trim-start"), trimPixels);
+  await dragBy(page, clip.getByTestId("clip-trim-start"), trimPixels);
   const afterStartTrim = await clip.boundingBox();
   expect(afterStartTrim).not.toBeNull();
   expect(afterStartTrim!.x).toBeCloseTo(afterMove!.x + trimPixels, -1);
@@ -40,7 +38,7 @@ test("uploads and plays a backing track", async ({ page }) => {
     -1,
   );
 
-  await dragBy(page, clip.getByTestId("recorder-clip-trim-end"), -trimPixels);
+  await dragBy(page, clip.getByTestId("clip-trim-end"), -trimPixels);
   const afterEndTrim = await clip.boundingBox();
   expect(afterEndTrim).not.toBeNull();
   expect(afterEndTrim!.x).toBeCloseTo(afterStartTrim!.x, -1);
@@ -50,7 +48,7 @@ test("uploads and plays a backing track", async ({ page }) => {
   );
 
   // Playback rolls the shared transport and can be paused from its new position.
-  const playButton = page.getByTestId("recorder-play-button");
+  const playButton = page.getByTestId("play-button");
   await expect.poll(() => getPosition(page)).toBe(0);
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
@@ -61,11 +59,11 @@ test("uploads and plays a backing track", async ({ page }) => {
   // Deleting the selected clip preserves both audio track rows.
   await clip.dispatchEvent("click");
   await expect(clip).toHaveAttribute("data-selected", "true");
-  await expect(clip.getByTestId("recorder-clip-selection")).toBeVisible();
+  await expect(clip.getByTestId("clip-selection")).toBeVisible();
   await page.keyboard.press("Delete");
   await expect(clip).toHaveCount(0);
   await expect(page.getByText("Record or import audio")).toHaveCount(2);
-  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(2);
+  await expect(page.getByTestId("audio-track-row")).toHaveCount(2);
 });
 
 test("scrolls overflowing tracks from the track list", async ({ page }) => {
@@ -92,7 +90,7 @@ test("scrolls overflowing tracks from the track list", async ({ page }) => {
   await expect(lastTrack).toBeInViewport();
 });
 
-test("mixes recorder outputs in a floating panel", async ({ page }) => {
+test("mixes editor outputs in a floating panel", async ({ page }) => {
   await createProject(page);
 
   // Load backing audio so its channel appears in the mixer.
@@ -107,7 +105,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   );
 
   // Track gain uses the same dB keyboard step without seeking the timeline.
-  const position = page.getByTestId("recorder-position");
+  const position = page.getByTestId("position");
   await position.click();
   await page.keyboard.press("ArrowRight");
   const initialPosition = await position.getAttribute("data-position");
@@ -118,14 +116,14 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   );
   await expect(position).toHaveAttribute("data-position", initialPosition!);
 
-  // Open the floating mixer and inspect every recorder output channel.
-  await page.getByTestId("recorder-mixer-button").click();
-  const panel = page.getByTestId("recorder-mixer-panel");
+  // Open the floating mixer and inspect every output channel.
+  await page.getByTestId("mixer-button").click();
+  const panel = page.getByTestId("mixer-panel");
   await expect(panel).toBeVisible();
-  await expect(panel.getByTestId("recorder-mixer-master")).toBeVisible();
-  await expect(panel.getByTestId("recorder-mixer-audio-2")).toBeVisible();
-  await expect(panel.getByTestId("recorder-mixer-audio-1")).toBeVisible();
-  await expect(panel.getByTestId("recorder-mixer-metro")).toBeVisible();
+  await expect(panel.getByTestId("mixer-master")).toBeVisible();
+  await expect(panel.getByTestId("mixer-audio-2")).toBeVisible();
+  await expect(panel.getByTestId("mixer-audio-1")).toBeVisible();
+  await expect(panel.getByTestId("mixer-metro")).toBeVisible();
 
   // Set the master output to an exact decibel level.
   const masterLevel = panel.getByRole("textbox", {
@@ -137,7 +135,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await expect(masterLevel).toHaveValue("-6.0");
 
   // Mute and solo backing audio independently.
-  const audio = panel.getByTestId("recorder-mixer-audio-2");
+  const audio = panel.getByTestId("mixer-audio-2");
   await audio.getByRole("button", { name: "Toggle Audio 2 mute" }).click();
   await expect(
     audio.getByRole("button", { name: "Toggle Audio 2 mute" }),
@@ -164,20 +162,16 @@ test("imports ordered stems and persists independent lane heights", async ({
   // track order.
   await createProject(page);
   const chooser = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
+  await page.getByTestId("add-audio-file").click();
   await (await chooser).setFiles("e2e/fixtures/test-stems.zip");
-  const rows = page.getByTestId("recorder-audio-track-row");
+  const rows = page.getByTestId("audio-track-row");
   await expect(rows).toHaveCount(3);
   const backing = rows.nth(1);
   const bass = rows.nth(2);
   await expect(backing).toContainText("backing.wav");
   await expect(bass).toContainText("bass.wav");
-  await expect(
-    backing.getByTestId("recorder-clip-audio").locator("svg"),
-  ).toBeVisible();
-  await expect(
-    bass.getByTestId("recorder-clip-audio").locator("svg"),
-  ).toBeVisible();
+  await expect(backing.getByTestId("clip-audio").locator("svg")).toBeVisible();
+  await expect(bass.getByTestId("clip-audio").locator("svg")).toBeVisible();
   const firstHeight = (await backing.boundingBox())!.height;
   const secondHeight = (await bass.boundingBox())!.height;
 
@@ -221,12 +215,8 @@ test("imports ordered stems and persists independent lane heights", async ({
   ).toBeVisible();
   await expect(backing).toContainText("backing.wav");
   await expect(bass).toContainText("bass.wav");
-  await expect(
-    backing.getByTestId("recorder-clip-audio").locator("svg"),
-  ).toBeVisible();
-  await expect(
-    bass.getByTestId("recorder-clip-audio").locator("svg"),
-  ).toBeVisible();
+  await expect(backing.getByTestId("clip-audio").locator("svg")).toBeVisible();
+  await expect(bass.getByTestId("clip-audio").locator("svg")).toBeVisible();
   expect((await backing.boundingBox())!.height).toBe(firstHeight + 30);
   expect((await bass.boundingBox())!.height).toBe(secondHeight + 50);
 });
@@ -235,8 +225,8 @@ test("shows and persists clip controls per audio track", async ({ page }) => {
   // Import backing audio and keep its clip section hidden by default.
   await createProject(page);
   await addAudio(page, "e2e/fixtures/test-audio.wav");
-  const clipsToggle = page.getByTestId("recorder-clips-toggle");
-  const clipRows = page.getByTestId("recorder-clip-row");
+  const clipsToggle = page.getByTestId("clips-toggle");
+  const clipRows = page.getByTestId("clip-row");
   const actions = page.getByRole("button", {
     name: "Audio 2 actions",
     exact: true,
@@ -285,18 +275,16 @@ test("shows and persists clip controls per audio track", async ({ page }) => {
   await showClips.click();
   await saveProject(page);
   await page.reload();
-  await expect(page.getByTestId("recorder-clip-audio")).toContainText(
-    "test-audio.wav",
-  );
+  await expect(page.getByTestId("clip-audio")).toContainText("test-audio.wav");
   await expect(clipsToggle).toHaveCount(0);
 });
 
 test("appends imported audio to an existing track", async ({ page }) => {
   // Create a project and import the first clip into its empty Audio 1.
   await createProject(page);
-  const row = page.getByTestId("recorder-audio-track-row");
-  const sources = row.getByTestId("recorder-clip-audio-source");
-  const regions = row.getByTestId("recorder-clip-audio");
+  const row = page.getByTestId("audio-track-row");
+  const sources = row.getByTestId("clip-audio-source");
+  const regions = row.getByTestId("clip-audio");
   const firstChooser = page.waitForEvent("filechooser");
   await selectMenuItem(page, {
     menu: "Audio 1 actions",
@@ -316,9 +304,7 @@ test("appends imported audio to an existing track", async ({ page }) => {
   await expect(sources).toHaveCount(2);
   await expect(regions.filter({ hasText: "test-audio.wav" })).toBeVisible();
   await expect(regions.filter({ hasText: "test-tones.wav" })).toBeVisible();
-  const ruler = (await page
-    .getByTestId("recorder-timeline-ruler")
-    .boundingBox())!;
+  const ruler = (await page.getByTestId("timeline-ruler").boundingBox())!;
   for (const source of await sources.all()) {
     expect((await source.boundingBox())!.x).toBeCloseTo(ruler.x, -1);
   }

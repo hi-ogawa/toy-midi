@@ -65,7 +65,7 @@ export const projectStorage = {
   async load(id: string): Promise<SerializedEditorRuntimeState> {
     const project = await projects.get(id);
     if (!project) {
-      throw new Error(`Recorder project ${id} not found.`);
+      throw new Error(`Project ${id} not found.`);
     }
     return project.content;
   },

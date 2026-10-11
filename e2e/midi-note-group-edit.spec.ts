@@ -19,7 +19,7 @@ test("moves and resizes selected MIDI notes together", async ({ page }) => {
   });
   const e4 = await createMidiNote(page, row, { beat: 1, pitch: "E4" });
   await expect(
-    row.getByTestId("recorder-midi-grid").locator("[data-note-id]"),
+    row.getByTestId("midi-grid").locator("[data-note-id]"),
   ).toHaveCount(2);
   const cellWidth = (await c4.boundingBox())!.width;
   await c4.click({ modifiers: ["Control"] });
@@ -46,7 +46,7 @@ test("moves and resizes selected MIDI notes together", async ({ page }) => {
   expect((await resizedE4.boundingBox())!.width).toBeCloseTo(cellWidth * 3, 1);
 
   // Save and reload the project to preserve the grouped edits.
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
   await saveProject(page);
   await page.reload();

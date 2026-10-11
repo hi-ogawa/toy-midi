@@ -11,14 +11,14 @@ test("opens the tuner and detects the input pitch", async ({ page }) => {
   await createProject(page);
   const inputPanel = await openInputPanel(page);
   await inputPanel.getByRole("button", { name: "Tuner" }).click();
-  const panel = page.getByTestId("recorder-tuner-panel");
+  const panel = page.getByTestId("tuner-panel");
   await expect(panel.getByText("No signal", { exact: true })).toBeVisible();
 
   // Enable the 440 Hz input and detect A4 without enabling monitoring.
   await enableInput(page);
   await expect(panel.getByText("A4", { exact: true })).toBeVisible();
   await expect(panel.getByText("In tune", { exact: true })).toBeVisible();
-  await expect(page.getByTestId("recorder-input-monitor")).toHaveAttribute(
+  await expect(page.getByTestId("input-monitor")).toHaveAttribute(
     "aria-pressed",
     "false",
   );

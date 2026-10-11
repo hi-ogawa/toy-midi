@@ -7,20 +7,17 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await createProject(page);
 
   // The musician opens the reference panel and resizes it around their workspace.
-  const toggle = page.getByTestId("recorder-reference-video-button");
+  const toggle = page.getByTestId("reference-video-button");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
 
-  const setup = page.getByTestId("recorder-youtube-reference");
+  const setup = page.getByTestId("youtube-reference");
   // Dragging the top-left handle up and left grows the bottom-right-anchored panel.
   const initialPanelBox = await setup.boundingBox();
   expect(initialPanelBox).not.toBeNull();
-  await dragBy(
-    page,
-    setup.getByTestId("recorder-reference-video-resize-handle"),
-    -80,
-    { deltaY: -60 },
-  );
+  await dragBy(page, setup.getByTestId("reference-video-resize-handle"), -80, {
+    deltaY: -60,
+  });
   const resizedPanelBox = await setup.boundingBox();
   expect(resizedPanelBox).not.toBeNull();
   expect(resizedPanelBox!.width).toBeCloseTo(initialPanelBox!.width + 80, -1);
@@ -41,7 +38,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   expect(reloadedPanelBox!.height).toBeCloseTo(resizedPanelBox!.height, -1);
 
   // The preview fits the resized space while preserving the player's 16:9 frame.
-  const preview = setup.getByTestId("recorder-reference-video-preview");
+  const preview = setup.getByTestId("reference-video-preview");
   const containedPlayer = preview.locator(":scope > div");
   const containedPlayerBox = await containedPlayer.boundingBox();
   expect(containedPlayerBox).not.toBeNull();
@@ -51,21 +48,19 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   );
 
   // Invalid input stays editable before a valid YouTube URL creates the player.
-  await setup.getByTestId("recorder-youtube-input").fill("not a video");
+  await setup.getByTestId("youtube-input").fill("not a video");
   await setup.getByRole("button", { name: "Add video" }).click();
   await expect(setup).toContainText("Enter a valid YouTube URL or video ID.");
 
   await setup
-    .getByTestId("recorder-youtube-input")
+    .getByTestId("youtube-input")
     .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
   await setup.getByRole("button", { name: "Add video" }).click();
 
   // The panel shows an immediate thumbnail while YouTube initializes underneath.
   const reference = setup;
   await expect(
-    reference
-      .getByTestId("recorder-reference-video-placeholder")
-      .locator("img"),
+    reference.getByTestId("reference-video-placeholder").locator("img"),
   ).toHaveAttribute(
     "src",
     /i\.ytimg\.com\/vi\/knp40WxQgOI\/maxresdefault\.jpg/,
@@ -75,14 +70,14 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     /youtube(?:-nocookie)?\.com\/embed\/knp40WxQgOI/,
   );
 
-  // Reference audio can be muted independently from the recorder transport.
-  const mute = page.getByTestId("recorder-reference-video-mute");
+  // Reference audio can be muted independently from the editor transport.
+  const mute = page.getByTestId("reference-video-mute");
   await expect(mute).toHaveAttribute("aria-pressed", "false");
   await mute.click();
   await expect(mute).toHaveAttribute("aria-pressed", "true");
 
   // The configured video appears as a timeline clip that can be aligned by dragging.
-  const referenceTrack = page.getByTestId("recorder-reference-track");
+  const referenceTrack = page.getByTestId("reference-track");
   await expect(referenceTrack).toContainText("Reference");
   // The header background must leave the row's bottom border exposed.
   expect(
@@ -95,7 +90,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
       );
     }),
   ).toBe(true);
-  const referenceClip = referenceTrack.getByTestId("recorder-clip-reference");
+  const referenceClip = referenceTrack.getByTestId("clip-reference");
   const initialReferenceClipBox = await referenceClip.boundingBox();
   expect(initialReferenceClipBox).not.toBeNull();
   await dragBy(page, referenceClip, DEFAULT_PIXELS_PER_BEAT, {

@@ -46,7 +46,7 @@ export async function readProjectArchive(
 ): Promise<SerializedEditorRuntimeState> {
   const manifest = await readJson<ProjectManifest>(zip, MANIFEST_PATH);
   if (manifest.projectType !== "recorder") {
-    throw new Error("This is not a recorder project archive.");
+    throw new Error("This is not a project archive.");
   }
   const formatVersion = manifest.formatVersion;
   if (
@@ -56,7 +56,7 @@ export async function readProjectArchive(
     formatVersion > CURRENT_FORMAT_VERSION
   ) {
     throw new Error(
-      `Recorder project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
+      `Project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
     );
   }
   const project = await readJson<SerializedEditorRuntimeState<string>>(
@@ -168,17 +168,17 @@ async function readProjectPcm(
     pcm.channels.map(async (path) => {
       const entry = zip.file(path);
       if (!entry) {
-        throw new Error(`Recorder project archive is missing ${path}.`);
+        throw new Error(`Project archive is missing ${path}.`);
       }
       const buffer = await entry.async("arraybuffer");
       if (buffer.byteLength % Float32Array.BYTES_PER_ELEMENT !== 0) {
-        throw new Error("Recorder project archive has invalid audio data.");
+        throw new Error("Project archive has invalid audio data.");
       }
       return new Float32Array(buffer);
     }),
   );
   if (channels.some((channel) => channel.length !== channels[0]?.length)) {
-    throw new Error("Recorder project archive has invalid audio data.");
+    throw new Error("Project archive has invalid audio data.");
   }
   return {
     sampleRate: pcm.sampleRate,
@@ -189,11 +189,11 @@ async function readProjectPcm(
 async function readJson<T>(zip: JSZip, path: string): Promise<T> {
   const entry = zip.file(path);
   if (!entry) {
-    throw new Error(`Recorder project archive is missing ${path}.`);
+    throw new Error(`Project archive is missing ${path}.`);
   }
   try {
     return JSON.parse(await entry.async("text")) as T;
   } catch {
-    throw new Error(`Recorder project archive contains invalid ${path}.`);
+    throw new Error(`Project archive contains invalid ${path}.`);
   }
 }

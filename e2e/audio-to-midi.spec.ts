@@ -21,7 +21,7 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
 
   // Choose the imported source and run the real transcription worker.
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Audio to MIDI" });
-  const panel = page.getByTestId("recorder-audio-to-midi");
+  const panel = page.getByTestId("audio-to-midi");
   await panel
     .getByRole("combobox", { name: "Source audio track" })
     .selectOption({ label: "Audio 2" });
@@ -63,9 +63,7 @@ test("transcribes an audio track into MIDI and restores the generated notes", as
       elements.map((element) => element.getAttribute("aria-label")),
     ),
   ).toEqual(labels);
-  await expect(page.getByTestId("recorder-clip-audio")).toContainText(
-    "test-tones.wav",
-  );
+  await expect(page.getByTestId("clip-audio")).toContainText("test-tones.wav");
 });
 
 test("cancels transcription, closes an active retry, and undoes a successful retry", async ({
@@ -89,7 +87,7 @@ test("cancels transcription, closes an active retry, and undoes a successful ret
   const originalId = await original.getAttribute("data-note-id");
   const notes = row.locator("[data-note-id]");
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Audio to MIDI" });
-  const panel = page.getByTestId("recorder-audio-to-midi");
+  const panel = page.getByTestId("audio-to-midi");
   const convert = panel.getByRole("button", {
     name: "Convert to MIDI",
     exact: true,

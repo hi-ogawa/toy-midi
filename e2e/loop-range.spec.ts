@@ -6,8 +6,8 @@ import { createProject, dragBy, getBeat, seekByPixels } from "./editor-helpers";
 test("creates and edits a persisted loop range", async ({ page }) => {
   await createProject(page);
 
-  const toggle = page.getByTestId("recorder-loop-toggle");
-  const range = page.getByTestId("recorder-loop-range");
+  const toggle = page.getByTestId("loop-toggle");
+  const range = page.getByTestId("loop-range");
   await expect(toggle).toHaveAccessibleName("Loop: no range");
   await expect(toggle).not.toHaveAttribute("aria-pressed");
   await expect(range).toHaveCount(0);
@@ -20,7 +20,7 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   assert(initialBox);
 
   // Enabled playback returns to loop-in after reaching the end of the range.
-  const playButton = page.getByTestId("recorder-play-button");
+  const playButton = page.getByTestId("play-button");
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await expect
@@ -51,7 +51,7 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   await expect(range).toBeVisible();
 
   // The disabled range and its timeline placement persist with the project.
-  const saveButton = page.getByTestId("recorder-save-button");
+  const saveButton = page.getByTestId("save-button");
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
@@ -63,6 +63,6 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   expect(restoredBox.x).toBeCloseTo(movedBox.x, -1);
 
   // Clearing removes the range and returns the loop feature to its empty state.
-  await page.getByTestId("recorder-loop-clear").click();
+  await page.getByTestId("loop-clear").click();
   await expect(range).toHaveCount(0);
 });

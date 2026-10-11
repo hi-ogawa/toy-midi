@@ -2,15 +2,15 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { selectMenuItem } from "./helpers";
 
-/** Create a recorder project from its index and wait for the recorder app. */
+/** Create a project from its index and wait for the editor. */
 export async function createProject(page: Page): Promise<void> {
   await test.step(
-    "Create recorder project",
+    "Create project",
     async () => {
       await page.goto("/");
-      await page.getByTestId("new-recorder-project-button").click();
+      await page.getByTestId("new-project-button").click();
       await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
-      await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+      await expect(page.getByTestId("project-name")).toBeVisible();
     },
     { box: true },
   );
@@ -18,14 +18,14 @@ export async function createProject(page: Page): Promise<void> {
 
 export async function addMidiTrack(page: Page) {
   return await test.step(
-    "Add recorder MIDI track",
+    "Add MIDI track",
     async () => {
-      const tracks = page.getByTestId("recorder-midi-track-row");
+      const tracks = page.getByTestId("midi-track-row");
       const count = await tracks.count();
-      await page.getByTestId("recorder-add-midi-track").click();
+      await page.getByTestId("add-midi-track").click();
       await expect(tracks).toHaveCount(count + 1);
       const track = tracks.nth(count);
-      await expect(track.getByTestId("recorder-midi-grid")).toBeVisible();
+      await expect(track.getByTestId("midi-grid")).toBeVisible();
       return track;
     },
     { box: true },
@@ -43,7 +43,7 @@ export async function openMidiInstrument(
         menu: `${name} actions`,
         item: "Instrument…",
       });
-      return page.getByTestId("recorder-midi-instrument");
+      return page.getByTestId("midi-instrument");
     },
     { box: true },
   );
@@ -108,7 +108,7 @@ export function getMidiNote(
   },
 ) {
   return track
-    .getByTestId("recorder-midi-grid")
+    .getByTestId("midi-grid")
     .locator(`[data-note-id][aria-label="${pitch}, beat ${beat + 1}"]`);
 }
 
@@ -128,9 +128,7 @@ export async function getMidiGridPoint(
     exact: true,
   });
   await expect(key).toBeVisible();
-  const gridBox = (await track
-    .getByTestId("recorder-midi-grid")
-    .boundingBox())!;
+  const gridBox = (await track.getByTestId("midi-grid").boundingBox())!;
   const keyBox = (await key.boundingBox())!;
   return {
     x: gridBox.x + beat * DEFAULT_PIXELS_PER_BEAT,
@@ -140,9 +138,9 @@ export async function getMidiGridPoint(
 
 export async function saveProject(page: Page) {
   await test.step(
-    "Save recorder project",
+    "Save project",
     async () => {
-      const save = page.getByTestId("recorder-save-button");
+      const save = page.getByTestId("save-button");
       await save.click();
       await expect(save).toHaveAttribute("data-status", "saved");
     },
@@ -152,12 +150,12 @@ export async function saveProject(page: Page) {
 
 export async function addAudio(page: Page, filePath: string): Promise<void> {
   await test.step(
-    "Add recorder audio",
+    "Add audio",
     async () => {
-      const clips = page.getByTestId("recorder-clip-audio");
+      const clips = page.getByTestId("clip-audio");
       const count = await clips.count();
       const fileChooser = page.waitForEvent("filechooser");
-      await page.getByTestId("recorder-add-audio-file").click();
+      await page.getByTestId("add-audio-file").click();
       await (await fileChooser).setFiles(filePath);
       await expect(clips).toHaveCount(count + 1);
       await expect(clips.nth(count).locator("svg")).toBeVisible();
@@ -168,9 +166,9 @@ export async function addAudio(page: Page, filePath: string): Promise<void> {
 
 export async function seekByPixels(page: Page, pixels: number) {
   await test.step(
-    `Seek recorder to ${pixels}px`,
+    `Seek to ${pixels}px`,
     async () => {
-      const ruler = page.getByTestId("recorder-timeline-ruler");
+      const ruler = page.getByTestId("timeline-ruler");
       const box = await ruler.boundingBox();
       expect(box).not.toBeNull();
       await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
@@ -181,9 +179,9 @@ export async function seekByPixels(page: Page, pixels: number) {
 
 export async function scrollTimelineByPixels(page: Page, pixels: number) {
   await test.step(
-    `Scroll recorder timeline by ${pixels}px`,
+    `Scroll timeline by ${pixels}px`,
     async () => {
-      const ruler = page.getByTestId("recorder-timeline-ruler");
+      const ruler = page.getByTestId("timeline-ruler");
       const box = await ruler.boundingBox();
       expect(box).not.toBeNull();
       await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -195,13 +193,13 @@ export async function scrollTimelineByPixels(page: Page, pixels: number) {
 
 export async function getPosition(page: Page): Promise<number> {
   return page
-    .getByTestId("recorder-position")
+    .getByTestId("position")
     .evaluate((element) => Number(element.dataset.position));
 }
 
 export async function getBeat(page: Page): Promise<number> {
   return page
-    .getByTestId("recorder-position")
+    .getByTestId("position")
     .evaluate((element) => Number(element.dataset.beat));
 }
 
@@ -258,11 +256,11 @@ export async function openInputPanel(page: Page): Promise<Locator> {
   return await test.step(
     "Open audio input panel",
     async () => {
-      const button = page.getByTestId("recorder-input-panel-button");
+      const button = page.getByTestId("input-panel-button");
       if ((await button.getAttribute("aria-pressed")) !== "true") {
         await button.click();
       }
-      const panel = page.getByTestId("recorder-input-panel");
+      const panel = page.getByTestId("input-panel");
       await expect(panel).toBeVisible();
       return panel;
     },
@@ -280,7 +278,7 @@ export async function openInputSetup(page: Page): Promise<Locator> {
       await expect(
         page.getByRole("heading", { name: "Audio Input Setup" }),
       ).toBeVisible();
-      return page.getByTestId("recorder-input-setup");
+      return page.getByTestId("input-setup");
     },
     { box: true },
   );

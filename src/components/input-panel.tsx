@@ -42,7 +42,7 @@ export function InputPanel({
       title="Audio Input"
       closeLabel="Close Audio Input"
       onClose={onClose}
-      data-testid="recorder-input-panel"
+      data-testid="input-panel"
       className="pointer-events-auto w-64 shrink-0"
       contentClassName="space-y-2.5 px-3 py-3 text-xs"
     >

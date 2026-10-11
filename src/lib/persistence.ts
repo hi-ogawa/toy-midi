@@ -24,12 +24,12 @@ const RECORDING_TRACK_ID = "__capture__";
  */
 export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   title: string;
-  // 🟢 Optional for recorder projects saved before the project comment.
+  // 🟢 Optional for projects saved before the project comment.
   comment?: string;
-  // 🟢 Optional for recorder projects saved before locator support.
+  // 🟢 Optional for projects saved before locator support.
   locators?: Locator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
-  // 🟢 Optional for recorder projects saved before MIDI track support.
+  // 🟢 Optional for projects saved before MIDI track support.
   midiTracks?: (Omit<
     MidiTrackState,
     | "tabAnnotationEnabled"
@@ -45,7 +45,7 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
     // 🟢 Optional for MIDI tracks saved before pan support.
     pan?: number;
   })[];
-  // 🟢 Optional for recorder projects saved before track reordering.
+  // 🟢 Optional for projects saved before track reordering.
   trackOrder?: string[];
   // 🔴 Retained for projects saved with the Capture track outside audioTracks.
   recordingTrack?: {
@@ -56,10 +56,10 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
     muted: boolean;
     soloed: boolean;
     takes: SerializedAudioClip<ChannelData>[];
-    // 🟢 Optional for recorder projects saved before multi-take support.
+    // 🟢 Optional for projects saved before multi-take support.
     nextTakeNumber?: number;
   };
-  // 🟢 Optional for recorder projects saved before mixer support.
+  // 🟢 Optional for projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
   loop?: {
@@ -120,7 +120,7 @@ interface SerializedAudioTrackState<ChannelData> {
 }
 
 interface SerializedAudioClip<ChannelData> {
-  // 🟢 Optional for recorder projects saved before multi-take support.
+  // 🟢 Optional for projects saved before multi-take support.
   id?: string;
   number?: number;
   name?: string;
@@ -347,14 +347,14 @@ function deserializeAudioBuffer(
   pcm: Pcm<Float32Array>,
 ): AudioBuffer {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {
-    throw new Error("Recorder audio has an invalid sample rate.");
+    throw new Error("Project audio has an invalid sample rate.");
   }
   const length = pcm.channels[0]?.length;
   if (
     length === undefined ||
     pcm.channels.some((channel) => channel.length !== length)
   ) {
-    throw new Error("Recorder audio channels have inconsistent lengths.");
+    throw new Error("Project audio channels have inconsistent lengths.");
   }
   const buffer = context.createBuffer(
     pcm.channels.length,

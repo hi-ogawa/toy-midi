@@ -10,10 +10,10 @@ test("edits and persists independent EQ settings per audio track", async ({
   await addAudio(page, "e2e/fixtures/test-audio.wav");
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
   await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
-  const capture = page.getByTestId("recorder-effects-panel").filter({
+  const capture = page.getByTestId("effects-panel").filter({
     has: page.getByRole("heading", { name: "Audio 1 Effects", exact: true }),
   });
-  const audio = page.getByTestId("recorder-effects-panel").filter({
+  const audio = page.getByTestId("effects-panel").filter({
     has: page.getByRole("heading", { name: "Audio 2 Effects", exact: true }),
   });
 
@@ -50,11 +50,11 @@ test("edits and persists independent EQ settings per audio track", async ({
     .press("Enter");
 
   // Save and reload the independent EQ settings.
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
-  await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
+  await expect(page.getByTestId("effects-panel")).toHaveCount(0);
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
   await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
   await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
@@ -109,16 +109,16 @@ test("keeps the mixer usable with many effects panels open", async ({
   for (let index = 0; index < 5; index++) {
     await page.getByTitle("Add empty audio track").click();
   }
-  await page.getByTestId("recorder-mixer-button").click();
+  await page.getByTestId("mixer-button").click();
   for (let index = 1; index <= 5; index++) {
     await page
-      .getByTestId("recorder-mixer-panel")
+      .getByTestId("mixer-panel")
       .getByRole("button", { name: `Audio ${index} effects`, exact: true })
       .click();
   }
-  const panels = page.getByTestId("recorder-effects-panel");
+  const panels = page.getByTestId("effects-panel");
   await expect(panels).toHaveCount(5);
-  const mixer = page.getByTestId("recorder-mixer-panel");
+  const mixer = page.getByTestId("mixer-panel");
 
   // Horizontal scrolling brings the clipped final panel into view.
   await expect(panels.first()).toBeInViewport();
@@ -136,7 +136,7 @@ test("keeps the mixer usable with many effects panels open", async ({
       })
       .click();
   }
-  await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
+  await expect(page.getByTestId("effects-panel")).toHaveCount(0);
   await mixer.getByRole("button", { name: "Close Mixer", exact: true }).click();
   await expect(mixer).toHaveCount(0);
 });
@@ -146,7 +146,7 @@ test("resizes an effects panel", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await createProject(page);
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
-  const panel = page.getByTestId("recorder-effects-panel");
+  const panel = page.getByTestId("effects-panel");
   const initial = (await panel.boundingBox())!;
 
   // Drag the top-left corner to increase the panel's width and height.

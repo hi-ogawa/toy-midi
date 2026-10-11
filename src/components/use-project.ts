@@ -22,7 +22,7 @@ export function useProject({
   const revisionRef = useRef(0);
 
   const projectQuery = useQuery({
-    queryKey: ["recorder-project", projectId],
+    queryKey: ["project", projectId],
     retry: false,
     staleTime: Infinity,
     queryFn: async () => {

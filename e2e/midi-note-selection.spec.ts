@@ -10,7 +10,7 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   // Create three notes and save the project before changing selection.
   await createProject(page);
   const row = await addMidiTrack(page);
-  const grid = row.getByTestId("recorder-midi-grid");
+  const grid = row.getByTestId("midi-grid");
   const notes = grid.locator("[data-note-id]");
   const c4 = await createMidiNote(page, row, { beat: 0, pitch: "C4" });
   const d4 = await createMidiNote(page, row, {
@@ -19,7 +19,7 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   });
   const e4 = await createMidiNote(page, row, { beat: 1, pitch: "E4" });
   await expect(notes).toHaveCount(3);
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await saveProject(page);
 
   // Ctrl/Cmd-click toggles notes without changing the project.
@@ -53,16 +53,16 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
       steps: 4,
     },
   );
-  await expect(grid.getByTestId("recorder-midi-box-selection")).toBeVisible();
+  await expect(grid.getByTestId("midi-box-selection")).toBeVisible();
   await page.keyboard.up("Shift");
   await page.keyboard.press("Escape");
-  await expect(grid.getByTestId("recorder-midi-box-selection")).toHaveCount(0);
+  await expect(grid.getByTestId("midi-box-selection")).toHaveCount(0);
   await page.mouse.move(
     cancelC4Box.x + 2,
     cancelC4Box.y + cancelC4Box.height / 2,
   );
   await page.mouse.up();
-  await expect(grid.getByTestId("recorder-midi-box-selection")).toHaveCount(0);
+  await expect(grid.getByTestId("midi-box-selection")).toHaveCount(0);
   await expect(grid.locator("[data-note-id][data-selected=true]")).toHaveCount(
     0,
   );
@@ -81,7 +81,7 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await page.mouse.move(c4Box.x + 1, c4Box.y + c4Box.height / 2, {
     steps: 4,
   });
-  const boxPreview = grid.getByTestId("recorder-midi-box-selection");
+  const boxPreview = grid.getByTestId("midi-box-selection");
   const startY = d4Box.y + d4Box.height / 2;
   const endY = c4Box.y + c4Box.height / 2;
   await expect(boxPreview).toBeVisible();

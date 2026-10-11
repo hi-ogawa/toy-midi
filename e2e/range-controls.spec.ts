@@ -8,8 +8,8 @@ for (const kind of ["loop", "punch"] as const) {
   }) => {
     await createProject(page);
     const label = kind === "loop" ? "Loop" : "Punch";
-    const toggle = page.getByTestId(`recorder-${kind}-toggle`);
-    const range = page.getByTestId(`recorder-${kind}-range`);
+    const toggle = page.getByTestId(`${kind}-toggle`);
+    const range = page.getByTestId(`${kind}-range`);
     const menuButton = page.getByRole("button", {
       name: `${label} range actions`,
     });
