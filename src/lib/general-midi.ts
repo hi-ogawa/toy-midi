@@ -145,3 +145,41 @@ export const GM_PROGRAMS = [
   "Applause",
   "Gunshot",
 ] as const;
+
+// SoundFont files keep their drum kits in this bank. In General MIDI, this is
+// the bank that synths play on channel 10, the drum channel.
+export const DRUM_KIT_BANK = 128;
+
+// The kits the bundled soundfont ships.
+export const DRUM_KITS = [
+  { program: 0, name: "Standard" },
+  { program: 8, name: "Room" },
+  { program: 16, name: "Power" },
+  { program: 24, name: "Electronic" },
+  { program: 25, name: "TR-808" },
+  { program: 32, name: "Jazz" },
+  { program: 40, name: "Brush" },
+  { program: 48, name: "Orchestra" },
+  { program: 56, name: "SFX" },
+] as const;
+
+// Follows how fluidsynth substitutes a missing preset on a program change.
+export function listPresetFallbacks({
+  bank = 0,
+  program,
+}: {
+  bank?: number;
+  program: number;
+}): Array<{ bank: number; program: number }> {
+  if (bank === DRUM_KIT_BANK) {
+    return [
+      { bank, program },
+      { bank, program: 0 },
+    ];
+  }
+  return [
+    { bank, program },
+    { bank: 0, program },
+    { bank: 0, program: 0 },
+  ];
+}

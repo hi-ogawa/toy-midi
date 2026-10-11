@@ -1,10 +1,3 @@
-// Local bridge between an open web app and an agent with a shell.
-//
-// A page connects with Server-Sent Events and exposes tools through the
-// client in client.ts. The agent posts `PageRpc` calls, the bridge forwards
-// each one to the page, and the result the page posts back becomes the
-// response.
-
 import { randomUUID } from "node:crypto";
 import * as srvx from "srvx";
 import {
@@ -26,12 +19,13 @@ const PING_INTERVAL_MS = 15_000;
  * each agent call to a page and the page's result back to the agent.
  */
 export class BridgeServer {
-  private readonly origins: string[];
+  private readonly getOrigins: () => string[];
   private readonly pages = new Map<string, PageConnection>();
   private readonly pending = new Map<string, (result: RpcResult) => void>();
 
-  constructor({ origins }: { origins: string[] }) {
-    this.origins = origins;
+  // Called for each request, so origins added while the bridge runs apply.
+  constructor({ getOrigins }: { getOrigins: () => string[] }) {
+    this.getOrigins = getOrigins;
   }
 
   async listen(port: number) {
@@ -43,16 +37,14 @@ export class BridgeServer {
     });
     await server.ready();
     console.log(`[webmcp-bridge] listening on ${server.url}`);
-    console.log(
-      `[webmcp-bridge] accepting pages from ${this.origins.join(", ")}`,
-    );
   }
 
   async handle(request: Request): Promise<Response> {
     // Only answer requests addressed to the loopback host, so a site that
     // rebinds its DNS to 127.0.0.1 cannot reach the bridge as same-origin.
-    if (!isLocalHost(request.headers.get("host"))) {
-      return new Response("host not allowed\n", { status: 403 });
+    const host = request.headers.get("host");
+    if (!isLocalHost(host)) {
+      return respondForbidden(`host ${host} is not allowed`);
     }
     const url = new URL(request.url);
     const origin = request.headers.get("origin");
@@ -61,8 +53,13 @@ export class BridgeServer {
     // Origin is rejected there, which keeps other sites from driving the
     // page.
     if (url.pathname.startsWith(PAGE_PREFIX)) {
-      if (!origin || !this.origins.includes(origin)) {
-        return new Response("origin not allowed\n", { status: 403 });
+      if (!origin) {
+        return respondForbidden("page requests need an Origin");
+      }
+      if (!this.getOrigins().includes(origin)) {
+        return respondForbidden(
+          `origin ${origin} is not allowed, allow it with: webmcp-bridge allow ${origin}`,
+        );
       }
       const response = await this.handlePage(request, url, origin);
       response.headers.set("access-control-allow-origin", origin);
@@ -70,9 +67,8 @@ export class BridgeServer {
     }
     if (url.pathname.startsWith(AGENT_PREFIX)) {
       if (origin) {
-        return new Response(
-          "agent endpoints do not accept browser requests\n",
-          { status: 403 },
+        return respondForbidden(
+          `agent endpoints do not accept browser requests, from ${origin}`,
         );
       }
       return this.handleAgent(request, url);
@@ -171,8 +167,6 @@ export class BridgeServer {
     }
   }
 
-  // Forwards a `PageRpc` call to the chosen page, and responds with the
-  // result it posts back.
   private async callPage(
     pageId: string | undefined,
     call: RpcCall,
@@ -188,8 +182,8 @@ export class BridgeServer {
     return Response.json(result, { status: result.ok ? 200 : 500 });
   }
 
-  // Picks the page with `pageId`, or the only connected page when no id is
-  // given, so a call never goes to one of several pages by guess.
+  // Without `pageId`, only a single connected page is chosen, so a call never
+  // goes to one of several pages by guess.
   private choosePage(
     pageId: string | undefined,
   ): { page: PageConnection } | { error: string; status: number } {
@@ -239,6 +233,11 @@ export class BridgeServer {
       this.pending.delete(requestId);
     }
   }
+}
+
+function respondForbidden(message: string) {
+  console.log(`[webmcp-bridge] refused: ${message}`);
+  return new Response(`${message}\n`, { status: 403 });
 }
 
 function isLocalHost(host: string | null) {

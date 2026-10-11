@@ -7,10 +7,19 @@
   },
   "type": "module",
   "exports": {
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./model-context-polyfill": "./src/model-context-polyfill.ts",
+    "./webmcp": "./src/webmcp.ts"
+  },
+  "scripts": {
+    "generate-extension-key": "node scripts/generate-extension-key.mjs",
+    "build-extension": "vite build --config vite.ext.config.ts"
   },
   "dependencies": {
     "srvx": "^1.0.5",
     "tsx": "^4.23.13"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.4"
   }
 }
