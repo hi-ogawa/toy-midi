@@ -43,12 +43,8 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await secondLevel.press("Enter");
   await expect(rows.nth(1)).toContainText("-6.0 dB");
 
-  // Pan the second track right, double-click to center it, then pan it left.
+  // Pan the second track left.
   const secondPan = secondChannel.getByRole("slider", { name: "MIDI 2 pan" });
-  await setSliderValue(secondPan, [0.5]);
-  await expect(secondPan).toHaveAttribute("aria-valuetext", "R50");
-  await secondPan.dblclick();
-  await expect(secondPan).toHaveAttribute("aria-valuetext", "C");
   await setSliderValue(secondPan, [-0.4]);
   await expect(secondChannel).toContainText("L40");
 

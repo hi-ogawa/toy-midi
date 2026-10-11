@@ -237,8 +237,6 @@ function PanSlider({
       <Slider
         value={[pan]}
         onValueChange={([value]) => onPanChange(value)}
-        // Snap back to center, as faders do on double-click in most DAWs.
-        onDoubleClick={() => onPanChange(0)}
         min={-1}
         max={1}
         step={0.01}
