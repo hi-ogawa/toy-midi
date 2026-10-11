@@ -22,7 +22,7 @@ export function ProjectList() {
     legacyProjectStorage.listMetadata(),
   );
   const projectsQuery = useSuspenseQuery({
-    queryKey: ["recorder-projects"],
+    queryKey: ["projects"],
     queryFn: () => toResult(projectStorage.list()),
   });
   const createProjectMutation = useMutation({
@@ -47,7 +47,7 @@ export function ProjectList() {
 
   const migrateMutation = useMutation({
     mutationFn: async (project: LegacyProjectMetadata) => {
-      // Convert stored data and audio before saving a separate recorder copy.
+      // Convert stored data and audio before saving a separate copy.
       const content = await convertLegacyProject({
         name: project.name,
         project: legacyProjectStorage.load(project.id),
@@ -80,7 +80,7 @@ export function ProjectList() {
             <div className="flex gap-2">
               <BrowserStorageDialog />
               <Button
-                data-testid="new-recorder-project-button"
+                data-testid="new-project-button"
                 onClick={() => createProjectMutation.mutate()}
                 disabled={
                   createProjectMutation.isPending ||
@@ -94,7 +94,7 @@ export function ProjectList() {
                 accept=".toymidi.zip,.toymidi"
                 title="Import a project archive"
                 onFile={(file) => importProjectMutation.mutate(file)}
-                data-testid="import-recorder-project"
+                data-testid="import-project"
                 disabled={
                   createProjectMutation.isPending ||
                   importProjectMutation.isPending

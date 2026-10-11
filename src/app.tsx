@@ -63,7 +63,7 @@ function ScoreViewerRoute() {
   if (params.has("projectId") || params.has("trackId")) {
     return (
       <RouteError
-        error="Both projectId and trackId are required to open a recorder score."
+        error="Both projectId and trackId are required to open a score."
         backHref={routes.scoreViewer.href()}
         backLabel="Back to score viewer"
       />

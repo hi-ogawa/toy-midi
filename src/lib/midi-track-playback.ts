@@ -273,7 +273,7 @@ class MidiSynth {
     transfer?: Transferable[],
   ): void {
     if (!this.node) {
-      throw new Error("Recorder MIDI synth is not initialized.");
+      throw new Error("MIDI synth is not initialized.");
     }
     this.node.port.postMessage(message, transfer ?? []);
   }

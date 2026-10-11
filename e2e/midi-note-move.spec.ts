@@ -13,11 +13,11 @@ test("moves a MIDI note with a cancellable preview and saves on release", async 
   // Create a C4 note and save it so the dirty indicator distinguishes preview from commit.
   await createProject(page);
   const row = await addMidiTrack(page);
-  const grid = row.getByTestId("recorder-midi-grid");
+  const grid = row.getByTestId("midi-grid");
   const note = grid.locator("[data-note-id]");
   await createMidiNote(page, row, { beat: 0, pitch: "C4" });
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await saveProject(page);
   const from = await getMidiGridPoint(row, { beat: 0, pitch: "C4" });
   const to = await getMidiGridPoint(row, { beat: 0.5, pitch: "D4" });

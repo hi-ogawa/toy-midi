@@ -14,7 +14,7 @@ import { selectMenuItem } from "./helpers";
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Add two MIDI tracks and verify each has its own timeline row.
   await createProject(page);
-  const rows = page.getByTestId("recorder-midi-track-row");
+  const rows = page.getByTestId("midi-track-row");
   await addMidiTrack(page);
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText("MIDI 1");
@@ -25,9 +25,9 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Mute the first track and solo the second, then verify the mixer reflects both edits.
   await rows.nth(0).getByTitle("Mute MIDI 1", { exact: true }).click();
   await rows.nth(1).getByTitle("Solo MIDI 2", { exact: true }).click();
-  await page.getByTestId("recorder-mixer-button").click();
-  const firstChannel = page.getByTestId("recorder-mixer-midi-1");
-  const secondChannel = page.getByTestId("recorder-mixer-midi-2");
+  await page.getByTestId("mixer-button").click();
+  const firstChannel = page.getByTestId("mixer-midi-1");
+  const secondChannel = page.getByTestId("mixer-midi-2");
   await expect(
     firstChannel.getByRole("button", { name: "Toggle MIDI 1 mute" }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -52,7 +52,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await expect(secondChannel).toContainText("L90");
 
   // Save and reload both tracks with their independent mix settings.
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
   await saveProject(page);
   await page.reload();
@@ -68,7 +68,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await expect(secondPan).toHaveAttribute("aria-valuetext", "L90");
 
   // Play the restored project and pause after the transport advances.
-  const play = page.getByTestId("recorder-play-button");
+  const play = page.getByTestId("play-button");
   await play.click();
   await expect.poll(() => getPosition(page)).toBeGreaterThan(0);
   await play.click();
@@ -106,7 +106,7 @@ test("creates and deletes a note and persists its instrument", async ({
   // Add an empty MIDI track, check its hint, and preview C4 on its piano keyboard.
   await createProject(page);
   const row = await addMidiTrack(page);
-  const grid = row.getByTestId("recorder-midi-grid");
+  const grid = row.getByTestId("midi-grid");
   const notes = grid.locator("[data-note-id]");
   const hint = row.getByText("Click the grid to add notes", { exact: true });
   await expect(hint).toBeVisible();

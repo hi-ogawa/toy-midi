@@ -31,7 +31,7 @@ function mockDecoder() {
   return { channels };
 }
 
-describe("legacy recorder conversion", () => {
+describe("legacy project conversion", () => {
   it("copies MIDI, annotations, timing, and mix", async () => {
     const project: LegacySavedProject = {
       ...createDefaultLegacySavedProject(),

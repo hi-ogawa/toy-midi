@@ -21,7 +21,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await enableInput(page);
 
   // Monitoring routes through the armed track, so it waits for the arm.
-  const monitorButton = page.getByTestId("recorder-input-monitor");
+  const monitorButton = page.getByTestId("input-monitor");
   await expect(monitorButton).toBeDisabled();
   await armTrack(page, { track: "Audio 1" });
 
@@ -35,15 +35,15 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
 
   // Recording starts capture and rolls the stopped transport.
-  const recordButton = page.getByTestId("recorder-record-button");
-  const playButton = page.getByTestId("recorder-play-button");
-  const takesToggle = page.getByTestId("recorder-clips-toggle");
+  const recordButton = page.getByTestId("record-button");
+  const playButton = page.getByTestId("play-button");
+  const takesToggle = page.getByTestId("clips-toggle");
   await expect(takesToggle).toHaveCount(0);
   await recordButton.click();
   await expect(monitorButton).toHaveAttribute("aria-pressed", "true");
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  const recording = page.getByTestId("recorder-clip-recording");
+  const recording = page.getByTestId("clip-recording");
   await expect(recording).toContainText("Recording...");
   await waitForRecordingSamples(recording);
   await expect(recording.locator("svg")).toBeVisible();
@@ -52,12 +52,12 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-audio-source");
+  const take = page.getByTestId("clip-audio-source");
   const takeLane = page
-    .getByTestId("recorder-clip-row")
-    .getByTestId("recorder-clip-clip-lane-source");
-  const takeRows = page.getByTestId("recorder-clip-row");
-  const compRegion = page.getByTestId("recorder-clip-audio");
+    .getByTestId("clip-row")
+    .getByTestId("clip-clip-lane-source");
+  const takeRows = page.getByTestId("clip-row");
+  const compRegion = page.getByTestId("clip-audio");
   // Show the track's clip section to access individual clip controls.
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Show clips" });
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
@@ -82,7 +82,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   expect(afterMove).not.toBeNull();
   expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + DEFAULT_PIXELS_PER_BEAT, -1);
 
-  const trimStart = take.getByTestId("recorder-clip-trim-start");
+  const trimStart = take.getByTestId("clip-trim-start");
   const trimPixels = Math.max(2, afterMove!.width / 4);
   await dragBy(page, trimStart, trimPixels);
   const afterStartTrim = await take.boundingBox();
@@ -93,7 +93,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     -1,
   );
 
-  const trimEnd = take.getByTestId("recorder-clip-trim-end");
+  const trimEnd = take.getByTestId("clip-trim-end");
   await dragBy(page, trimEnd, -trimPixels);
   const afterEndTrim = await take.boundingBox();
   expect(afterEndTrim).not.toBeNull();
@@ -111,7 +111,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Move later in the song and record another attempt.
   await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await recordButton.click();
-  const secondRecording = page.getByTestId("recorder-clip-recording");
+  const secondRecording = page.getByTestId("clip-recording");
   await expect(secondRecording).toContainText("Recording...");
   await waitForRecordingSamples(secondRecording);
   await recordButton.click();
@@ -136,7 +136,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Show the latest take first by default, then switch to oldest first.
   await expect(takeRows.nth(0)).toContainText("Take 2");
   await expect(takeRows.nth(1)).toContainText("Take 1");
-  const takeOrder = page.getByTestId("recorder-clips-order");
+  const takeOrder = page.getByTestId("clips-order");
   await expect(takeOrder).toHaveAccessibleName("Order clips oldest first");
   await takeOrder.click();
   await expect(takeOrder).toHaveAccessibleName("Order clips newest first");
@@ -153,7 +153,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows.nth(1)).toContainText("Take 2");
 
   // Muting removes a take from the comp without deleting its source lane.
-  const muteTake = page.getByTestId("recorder-clip-mute");
+  const muteTake = page.getByTestId("clip-mute");
   await muteTake.nth(1).click();
   await expect(muteTake.nth(1)).toHaveAttribute("aria-pressed", "true");
   await expect(takeLane).toHaveCount(2);
@@ -172,7 +172,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const sourceTrimPixels = Math.max(2, afterSourceMove.width / 4);
   await dragBy(
     page,
-    mutedLane.getByTestId("recorder-clip-trim-start"),
+    mutedLane.getByTestId("clip-trim-start"),
     sourceTrimPixels,
   );
   const afterSourceTrim = (await mutedLane.boundingBox())!;
@@ -185,12 +185,12 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     -1,
   );
   await expect(
-    takeRows.nth(1).getByTestId("recorder-clip-clip-lane").locator("svg"),
+    takeRows.nth(1).getByTestId("clip-clip-lane").locator("svg"),
   ).toBeVisible();
   await expect(compRegion).not.toContainText("Take 2");
 
   // Solo derives the comp from soloed, unmuted take lanes.
-  const soloTake = page.getByTestId("recorder-clip-solo");
+  const soloTake = page.getByTestId("clip-solo");
   await soloTake.nth(1).click();
   await expect(soloTake.nth(1)).toHaveAttribute("aria-pressed", "true");
   await expect(take).toHaveCount(0);
@@ -246,15 +246,15 @@ test("arms before input is on and records once input starts", async ({
 
   // Arm Audio 1 while input is off, which keeps the arm, asks for input, and
   // opens the input panel.
-  const arm = page.getByTestId("recorder-arm-toggle");
+  const arm = page.getByTestId("arm-toggle");
   await arm.click();
   await expect(arm).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Turn input on to record")).toBeVisible();
-  const panel = page.getByTestId("recorder-input-panel");
+  const panel = page.getByTestId("input-panel");
   await expect(panel).toBeVisible();
 
   // Press Record before input is on, which does not start recording.
-  const recordButton = page.getByTestId("recorder-record-button");
+  const recordButton = page.getByTestId("record-button");
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
 
@@ -266,17 +266,17 @@ test("arms before input is on and records once input starts", async ({
 
   // Record into the track armed before input started.
   await recordButton.click();
-  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await waitForRecordingSamples(page.getByTestId("clip-recording"));
   await recordButton.click();
-  await expect(page.getByTestId("recorder-clip-audio")).toContainText("Take 1");
+  await expect(page.getByTestId("clip-audio")).toContainText("Take 1");
 });
 
 test("records into whichever audio track is armed", async ({ page }) => {
   await createProject(page);
   await page.getByTitle("Add empty audio track").click();
-  const rows = page.getByTestId("recorder-audio-track-row");
+  const rows = page.getByTestId("audio-track-row");
   await expect(rows).toHaveCount(2);
-  const monitors = page.getByTestId("recorder-input-monitor");
+  const monitors = page.getByTestId("input-monitor");
 
   // Arm Audio 2, which leaves monitoring available only on that row.
   await enableInput(page);
@@ -285,17 +285,13 @@ test("records into whichever audio track is armed", async ({ page }) => {
   await expect(monitors.nth(1)).toBeEnabled();
 
   // Record into Audio 2 while Audio 1 stays empty.
-  const recordButton = page.getByTestId("recorder-record-button");
+  const recordButton = page.getByTestId("record-button");
   await recordButton.click();
-  await waitForRecordingSamples(
-    rows.nth(1).getByTestId("recorder-clip-recording"),
-  );
-  await expect(rows.nth(1).getByTestId("recorder-arm-toggle")).toBeDisabled();
+  await waitForRecordingSamples(rows.nth(1).getByTestId("clip-recording"));
+  await expect(rows.nth(1).getByTestId("arm-toggle")).toBeDisabled();
   await recordButton.click();
-  await expect(rows.nth(1).getByTestId("recorder-clip-audio")).toContainText(
-    "Take 1",
-  );
-  await expect(rows.nth(0).getByTestId("recorder-clip-audio")).toHaveCount(0);
+  await expect(rows.nth(1).getByTestId("clip-audio")).toContainText("Take 1");
+  await expect(rows.nth(0).getByTestId("clip-audio")).toHaveCount(0);
 
   // Move the arm to Audio 1, which starts its own take numbering.
   await armTrack(page, { track: "Audio 1" });
@@ -306,13 +302,9 @@ test("records into whichever audio track is armed", async ({ page }) => {
     }),
   ).toHaveAttribute("aria-pressed", "false");
   await recordButton.click();
-  await waitForRecordingSamples(
-    rows.nth(0).getByTestId("recorder-clip-recording"),
-  );
+  await waitForRecordingSamples(rows.nth(0).getByTestId("clip-recording"));
   await recordButton.click();
-  await expect(rows.nth(0).getByTestId("recorder-clip-audio")).toContainText(
-    "Take 1",
-  );
+  await expect(rows.nth(0).getByTestId("clip-audio")).toContainText("Take 1");
 
   // Remove the armed Audio 1, which leaves nothing armed.
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Remove track" });

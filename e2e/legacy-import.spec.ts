@@ -8,14 +8,14 @@ import type { LegacySavedProject } from "../src/lib/legacy-project-store";
 import { getMidiNote, getPosition } from "./editor-helpers";
 
 for (const version of [1, 2] as const) {
-  test(`imports a legacy v${version} archive into the recorder`, async ({
+  test(`imports a legacy v${version} archive into the editor`, async ({
     page,
   }) => {
     // Import a fixed legacy archive directly, without opening the old editor.
     const archive = await createLegacyArchive(version);
     await page.goto("/");
     const chooser = page.waitForEvent("filechooser");
-    await page.getByTestId("import-recorder-project").click();
+    await page.getByTestId("import-project").click();
     await (
       await chooser
     ).setFiles({
@@ -25,9 +25,9 @@ for (const version of [1, 2] as const) {
     });
     await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
     const projectUrl = page.url();
-    const row = page.getByTestId("recorder-midi-track-row");
+    const row = page.getByTestId("midi-track-row");
     const note = getMidiNote(row, { beat: 1, pitch: "C4" });
-    await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    await expect(page.getByTestId("project-name")).toHaveText(
       `Legacy v${version}`,
     );
     await expect(note).toBeVisible();
@@ -35,23 +35,19 @@ for (const version of [1, 2] as const) {
     await expect(
       page.getByRole("button", { name: "Verse", exact: true }),
     ).toBeVisible();
-    await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
-    await expect(
-      page.getByTestId("recorder-clip-audio").locator("svg"),
-    ).toBeVisible();
+    await expect(page.getByTestId("tempo-input")).toHaveValue("98");
+    await expect(page.getByTestId("clip-audio").locator("svg")).toBeVisible();
 
     // Play the imported project past the backing track's offset.
-    await page.getByTestId("recorder-play-button").click();
+    await page.getByTestId("play-button").click();
     await expect.poll(() => getPosition(page)).toBeGreaterThan(0.6);
-    await page.getByTestId("recorder-play-button").click();
+    await page.getByTestId("play-button").click();
 
-    // Reload the new recorder copy and retain its note annotations and waveform.
+    // Reload the new copy and retain its note annotations and waveform.
     await page.reload();
     await expect(page).toHaveURL(projectUrl);
     await expect(note.getByTestId("tab-annotation")).toHaveText("G17");
-    await expect(
-      page.getByTestId("recorder-clip-audio").locator("svg"),
-    ).toBeVisible();
+    await expect(page.getByTestId("clip-audio").locator("svg")).toBeVisible();
   });
 }
 

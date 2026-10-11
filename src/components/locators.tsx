@@ -94,7 +94,7 @@ export function LocatorRow({
         </Button>
       </div>
       <div
-        data-testid="recorder-locator-lane"
+        data-testid="locator-lane"
         className="relative overflow-hidden"
         onPointerDown={(event) => {
           if (event.button === 0) {
@@ -175,7 +175,7 @@ function LocatorMarker({
 
   return (
     <div
-      data-testid="recorder-locator"
+      data-testid="locator"
       className="group/locator absolute inset-y-0"
       style={{ left, zIndex: selected ? 10 : 1 }}
     >

@@ -14,16 +14,16 @@ test("adjusts take gain and updates its waveform", async ({ page }) => {
   await createProject(page);
   await enableInput(page);
   await armTrack(page, { track: "Audio 1" });
-  const record = page.getByTestId("recorder-record-button");
+  const record = page.getByTestId("record-button");
   await record.click();
-  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await waitForRecordingSamples(page.getByTestId("clip-recording"));
   await record.click();
   // Show the track's clip section to access individual clip controls.
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Show clips" });
-  await page.getByTestId("recorder-clips-toggle").click();
+  await page.getByTestId("clips-toggle").click();
   const gain = page.getByRole("slider", { name: "Take 1 gain", exact: true });
   await expect(gain).toHaveAttribute("aria-valuenow", "0");
-  const waveform = page.getByTestId("recorder-clip-audio").locator("svg path");
+  const waveform = page.getByTestId("clip-audio").locator("svg path");
   const originalPath = await waveform.getAttribute("d");
 
   // Lower the take by 6 dB and verify its waveform updates.

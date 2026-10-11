@@ -286,7 +286,7 @@ function TrackRecordingToggles({
   return (
     <>
       <Button
-        data-testid="recorder-arm-toggle"
+        data-testid="arm-toggle"
         disabled={armDisabled}
         onClick={() => onArmedChange(!armed)}
         className={cn(
@@ -311,7 +311,7 @@ function TrackRecordingToggles({
         }
       >
         <Button
-          data-testid="recorder-input-monitor"
+          data-testid="input-monitor"
           disabled={monitorDisabled}
           onClick={() => onMonitoringChange(!monitoring)}
           className={cn(
@@ -347,7 +347,7 @@ export function ClipsDisclosureRow({
       <div className="relative border-r border-neutral-700">
         <button
           type="button"
-          data-testid="recorder-clips-toggle"
+          data-testid="clips-toggle"
           aria-expanded={expanded}
           onClick={() => onExpandedChange(!expanded)}
           className="flex h-full w-full items-center gap-2 pl-3 pr-12 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
@@ -363,7 +363,7 @@ export function ClipsDisclosureRow({
           </span>
         </button>
         <Button
-          data-testid="recorder-clips-order"
+          data-testid="clips-order"
           aria-label={
             newestFirst
               ? "Order clips oldest first"
@@ -412,7 +412,7 @@ export function ClipTrackRow({
 }) {
   return (
     <div
-      data-testid="recorder-clip-row"
+      data-testid="clip-row"
       className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
@@ -429,7 +429,7 @@ export function ClipTrackRow({
           </DropdownMenuContent>
         </DropdownMenu>
         <MixToggle
-          data-testid="recorder-clip-mute"
+          data-testid="clip-mute"
           aria-label={`Mute ${label}`}
           active={muted}
           kind="mute"
@@ -438,7 +438,7 @@ export function ClipTrackRow({
           title="Mute clip"
         />
         <MixToggle
-          data-testid="recorder-clip-solo"
+          data-testid="clip-solo"
           aria-label={`Solo ${label}`}
           active={soloed}
           kind="solo"

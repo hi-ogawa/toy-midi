@@ -15,7 +15,7 @@ test("switches MIDI views and persists overview mode", async ({ page }) => {
     name: "Overview",
     exact: true,
   });
-  const grid = row.getByTestId("recorder-midi-grid");
+  const grid = row.getByTestId("midi-grid");
   const overview = row.getByRole("img", { name: /MIDI 1 note overview/ });
   await actions.click();
   await expect(toggle).not.toBeChecked();
@@ -26,9 +26,7 @@ test("switches MIDI views and persists overview mode", async ({ page }) => {
   await expect(toggle).toBeHidden();
   await expect(overview).toBeVisible();
   await expect(row.getByText("No notes", { exact: true })).toBeVisible();
-  await expect(overview.getByTestId("recorder-midi-octave-guide")).toHaveCount(
-    0,
-  );
+  await expect(overview.getByTestId("midi-octave-guide")).toHaveCount(0);
   await expect(grid).toHaveCount(0);
 
   // Return to the editor using Enter and create a note.
@@ -45,7 +43,7 @@ test("switches MIDI views and persists overview mode", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(overview).toHaveAccessibleName("MIDI 1 note overview, 1 note");
   await expect(row.getByText("No notes", { exact: true })).toBeHidden();
-  const octaveGuides = overview.getByTestId("recorder-midi-octave-guide");
+  const octaveGuides = overview.getByTestId("midi-octave-guide");
   await expect(octaveGuides).toHaveText(["C4", "C5"]);
   await expect(octaveGuides.nth(0)).toHaveAttribute("data-pitch", "60");
   await expect(octaveGuides.nth(1)).toHaveAttribute("data-pitch", "72");

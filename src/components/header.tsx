@@ -147,7 +147,7 @@ export function Header({
   return (
     <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
       <Button
-        data-testid="recorder-play-button"
+        data-testid="play-button"
         onClick={onPlayToggle}
         disabled={flags.transportDisabled}
         aria-pressed={isPlaying}
@@ -168,7 +168,7 @@ export function Header({
         )}
       </Button>
       <Button
-        data-testid="recorder-record-button"
+        data-testid="record-button"
         onClick={onRecordToggle}
         disabled={flags.transportDisabled}
         aria-pressed={flags.isRecording}
@@ -238,7 +238,7 @@ export function Header({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            data-testid="recorder-playback-rate"
+            data-testid="playback-rate"
             title="Playback speed (< slower / > faster)"
             disabled={flags.isRecording}
             className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
@@ -263,14 +263,14 @@ export function Header({
       <div className="flex items-center gap-1.5 text-xs text-neutral-400">
         <span>BPM</span>
         <input
-          data-testid="recorder-tempo-input"
+          data-testid="tempo-input"
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
           className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100"
         />
         <Button
-          data-testid="recorder-tap-tempo-button"
+          data-testid="tap-tempo-button"
           onClick={handleTapTempo}
           title="Tap tempo"
           className="h-8 px-1.5 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -304,7 +304,7 @@ export function Header({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            data-testid="recorder-grid-snap-select"
+            data-testid="grid-snap-select"
             className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
           >
             {gridDivision}
@@ -330,7 +330,7 @@ export function Header({
       <label className="flex items-center gap-2 text-[10px] text-neutral-400">
         <span className="font-medium uppercase tracking-wide">Master</span>
         <GainSlider
-          data-testid="recorder-master-gain"
+          data-testid="master-gain"
           label="Master gain"
           gain={masterGain}
           onGainChange={onMasterGainChange}
@@ -344,7 +344,7 @@ export function Header({
       <SaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"
-        data-testid="recorder-project-name"
+        data-testid="project-name"
         title="Rename project"
         disabled={title === undefined}
         onClick={() => {
@@ -364,7 +364,7 @@ export function Header({
       </button>
       <div className="h-5 w-px bg-neutral-600" />
       <Button
-        data-testid="recorder-reference-video-button"
+        data-testid="reference-video-button"
         onClick={() => onReferenceVideoOpenChange(!referenceVideoOpen)}
         aria-pressed={referenceVideoOpen}
         title="Reference video"
@@ -378,7 +378,7 @@ export function Header({
         <VideoIcon className="size-5" />
       </Button>
       <Button
-        data-testid="recorder-mixer-button"
+        data-testid="mixer-button"
         onClick={onMixerToggle}
         aria-pressed={mixerOpen}
         title="Mixer"
@@ -392,7 +392,7 @@ export function Header({
         <SlidersVerticalIcon className="size-5" />
       </Button>
       <Button
-        data-testid="recorder-input-panel-button"
+        data-testid="input-panel-button"
         onClick={onInputPanelToggle}
         aria-pressed={inputPanelOpen}
         title={
@@ -437,7 +437,7 @@ export function Header({
             Export Audio
           </DropdownMenuItem>
           <DropdownMenuItem
-            data-testid="recorder-export-project"
+            data-testid="export-project"
             disabled={flags.isRecording || isExporting}
             onSelect={(event) => {
               event.preventDefault();
@@ -484,7 +484,7 @@ function PlaybackPosition({
   const position = usePlaybackPosition(runtime);
   return (
     <output
-      data-testid="recorder-position"
+      data-testid="position"
       data-position={position}
       data-beat={secondsToBeats(position, tempo)}
       className="font-mono text-sm tabular-nums text-neutral-300"
@@ -518,10 +518,10 @@ function SaveButton({
   return (
     <div className="group/save relative">
       <Button
-        data-testid="recorder-save-button"
+        data-testid="save-button"
         data-status={status}
         aria-label={label}
-        aria-describedby="recorder-save-tooltip"
+        aria-describedby="save-tooltip"
         aria-disabled={!canSave}
         onClick={canSave ? onSave : undefined}
         className={cn(
@@ -535,7 +535,7 @@ function SaveButton({
         {icon}
       </Button>
       <span
-        id="recorder-save-tooltip"
+        id="save-tooltip"
         role="tooltip"
         className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
       >

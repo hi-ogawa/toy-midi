@@ -23,7 +23,7 @@ test("previews a MIDI note and opens its saved score in the viewer", async ({
 
   // Open the score preview and verify the note renders as notation.
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Score preview" });
-  const score = page.getByTestId("recorder-score-preview");
+  const score = page.getByTestId("score-preview");
   await expect(score).toHaveCount(1);
   await expect(
     score.getByTestId("score-viewer-renderer").locator("svg"),
@@ -62,7 +62,7 @@ test("previews a MIDI note and opens its saved score in the viewer", async ({
   await expect(score).toHaveCount(0);
 });
 
-test("syncs seeking between the score preview and recorder timeline", async ({
+test("syncs seeking between the score preview and editor timeline", async ({
   page,
 }) => {
   // Place notes in the first and third measures so both seek targets render.
@@ -71,12 +71,12 @@ test("syncs seeking between the score preview and recorder timeline", async ({
   await createMidiNote(page, row, { beat: 0, pitch: "C4" });
   await createMidiNote(page, row, { beat: 8, pitch: "E4" });
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Score preview" });
-  const score = page.getByTestId("recorder-score-preview");
+  const score = page.getByTestId("score-preview");
   const cursor = score.getByTestId("score-viewer-cursor");
   await expect(cursor).toBeVisible();
   const initial = await cursor.evaluate((element) => element.style.transform);
 
-  // Click the third measure and move the recorder transport to its starting beat.
+  // Click the third measure and move the editor transport to its starting beat.
   await score
     .locator('[data-measure-index="2"]')
     .click({ position: { x: 20, y: 20 } });

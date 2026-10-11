@@ -17,13 +17,13 @@ test("shows loading feedback while adding MIDI waits for the soundfont", async (
   const loading = page.getByText("Loading MIDI soundfont…", { exact: true });
 
   // Request MIDI while the download is pending and show one global indicator.
-  await page.getByTestId("recorder-add-midi-track").click();
+  await page.getByTestId("add-midi-track").click();
   await expect(loading).toBeVisible();
   await expect(loading).toHaveCount(1);
-  await expect(page.getByTestId("recorder-midi-track-row")).toHaveCount(0);
+  await expect(page.getByTestId("midi-track-row")).toHaveCount(0);
 
   // Finish the download and replace the loading feedback with the ready track.
   releaseSoundfont.resolve();
-  await expect(page.getByTestId("recorder-midi-track-row")).toHaveCount(1);
+  await expect(page.getByTestId("midi-track-row")).toHaveCount(1);
   await expect(loading).not.toBeVisible();
 });

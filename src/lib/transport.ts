@@ -27,18 +27,18 @@ type LoopRange = {
 };
 
 /**
- * Owns recorder position and synchronizes registered playback objects to one
+ * Owns the playhead position and synchronizes registered playback objects to one
  * AudioContext timeline.
  */
 export class AudioContextTransport {
-  /** Published transport state consumed by recorder runtime and UI. */
+  /** Published transport state consumed by the editor runtime and UI. */
   readonly store = createStore<TransportState>(() => ({
     position: 0,
     isPlaying: false,
   }));
 
   /**
-   * Maps an absolute AudioContext time to the recorder position at which the
+   * Maps an absolute AudioContext time to the playhead position at which the
    * current playback run begins. It is available to participants during start.
    */
   playbackAnchor?: PlaybackAnchor;

@@ -4,7 +4,7 @@ import { parseLegacyProjectFile } from "./legacy-project-file";
 import { readProjectArchive } from "./project-archive";
 
 export async function importProject(file: File) {
-  // Use the manifest to distinguish native recorder archives from legacy projects.
+  // Use the manifest to distinguish native archives from legacy projects.
   const zip = await JSZip.loadAsync(file);
   const manifestFile = zip.file("manifest.json");
   if (!manifestFile) {

@@ -9,10 +9,10 @@ test("reject weak latency measurements without changing compensation", async ({
 }) => {
   // Enable input and set compensation before measuring the fake microphone signal.
   await createProject(page);
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await expect(save).toHaveAttribute("data-status", "saved");
   await openInputSetup(page);
-  const setup = page.getByTestId("recorder-input-setup");
+  const setup = page.getByTestId("input-setup");
   await setup
     .getByRole("button", { name: "Enable input", exact: true })
     .click();

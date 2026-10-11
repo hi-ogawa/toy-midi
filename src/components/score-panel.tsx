@@ -55,7 +55,7 @@ export function ScorePanel({
       headerActions={<ScoreLink href={scoreViewerHref} />}
       closeLabel={`Close score preview for ${track.name}`}
       onClose={onClose}
-      data-testid="recorder-score-preview"
+      data-testid="score-preview"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
@@ -172,7 +172,7 @@ function ScorePreview({
 
   useQuery({
     queryKey: [
-      "recorder-score-preview",
+      "score-preview",
       track.id,
       notes,
       tempo,
@@ -201,7 +201,7 @@ function ScorePreview({
   return (
     <div
       ref={rootRef}
-      data-testid="recorder-score-renderer"
+      data-testid="score-renderer"
       className="score-preview-runtime h-full w-full overflow-hidden bg-neutral-300 text-neutral-950"
     />
   );

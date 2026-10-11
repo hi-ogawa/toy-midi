@@ -19,7 +19,7 @@ test("restores the timeline, playhead, and panels when reopening a project", asy
 
   // Open the capture track's effects panel.
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
-  const effects = page.getByTestId("recorder-effects-panel");
+  const effects = page.getByTestId("effects-panel");
   await expect(effects).toBeVisible();
 
   // Reload, and confirm the playhead and the effects panel come back without
@@ -27,7 +27,7 @@ test("restores the timeline, playhead, and panels when reopening a project", asy
   await page.reload();
   await expect.poll(() => getBeat(page)).toBeCloseTo(6, 1);
   await expect(effects).toBeVisible();
-  await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
+  await expect(page.getByTestId("save-button")).toHaveAttribute(
     "data-status",
     "saved",
   );
