@@ -11,8 +11,8 @@ export const routes = route({
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
   scoreCapture: "/score-capture",
-  project: "/project/:projectId",
-  projectScore: "/project/:projectId/score",
+  legacyProject: "/project/:projectId",
+  legacyProjectScore: "/project/:projectId/score",
 });
 
 type RouteName = keyof typeof routes;

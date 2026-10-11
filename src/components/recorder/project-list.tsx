@@ -2,9 +2,9 @@ import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import {
-  type ProjectMetadata,
-  projectStorage,
-} from "../../lib/project-storage";
+  type LegacyProjectMetadata,
+  legacyProjectStorage,
+} from "../../lib/legacy-project-storage";
 import { convertLegacyProject } from "../../lib/recorder/legacy-project";
 import { importRecorderProject } from "../../lib/recorder/project-import";
 import {
@@ -22,7 +22,7 @@ export function RecorderProjectList() {
   const [showLegacy, setShowLegacy] = useState(false);
   const [query, setQuery] = useState("");
   const [legacyProjects, setLegacyProjects] = useState(() =>
-    projectStorage.listMetadata(),
+    legacyProjectStorage.listMetadata(),
   );
   const projectsQuery = useSuspenseQuery({
     queryKey: ["recorder-projects"],
@@ -49,13 +49,13 @@ export function RecorderProjectList() {
   });
 
   const migrateMutation = useMutation({
-    mutationFn: async (project: ProjectMetadata) => {
+    mutationFn: async (project: LegacyProjectMetadata) => {
       // Convert stored data and audio before saving a separate recorder copy.
       const content = await convertLegacyProject({
         name: project.name,
-        project: projectStorage.load(project.id),
+        project: legacyProjectStorage.load(project.id),
         loadAudio: async (assetKey) =>
-          (await projectStorage.loadAsset(assetKey))?.blob,
+          (await legacyProjectStorage.loadAsset(assetKey))?.blob,
       });
       return recorderProjectStorage.createWithContent(content);
     },
@@ -177,8 +177,8 @@ export function RecorderProjectList() {
                 }
                 onMigrate={() => migrateMutation.mutate(project)}
                 onDelete={() => {
-                  projectStorage.delete(project.id);
-                  const remaining = projectStorage.listMetadata();
+                  legacyProjectStorage.delete(project.id);
+                  const remaining = legacyProjectStorage.listMetadata();
                   setLegacyProjects(remaining);
                   if (remaining.length === 0) {
                     setShowLegacy(false);
@@ -266,7 +266,7 @@ function LegacyProjectListItem({
   onMigrate,
   onDelete,
 }: {
-  project: ProjectMetadata;
+  project: LegacyProjectMetadata;
   migrationPending: boolean;
   migrating: boolean;
   onMigrate: () => void;

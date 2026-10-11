@@ -1,15 +1,15 @@
 import JSZip from "jszip";
-import { projectStorage } from "./project-storage";
+import { legacyProjectStorage } from "./legacy-project-storage";
 import {
-  type AnySavedProject,
-  migrateSavedProject,
-  type SavedProject,
-  type SavedProjectV1,
-} from "./project-store";
+  type AnyLegacySavedProject,
+  migrateLegacySavedProject,
+  type LegacySavedProject,
+  type LegacySavedProjectV1,
+} from "./legacy-project-store";
 
-type AnyProjectManifest = ProjectManifest | ProjectManifestV1;
+type AnyLegacyProjectManifest = LegacyProjectManifest | LegacyProjectManifestV1;
 
-interface ProjectManifest {
+interface LegacyProjectManifest {
   formatVersion: 2;
   exportedAt: string; // ISO timestamp
   name: string;
@@ -19,7 +19,10 @@ interface ProjectManifest {
   };
 }
 
-type ProjectManifestV1 = Omit<ProjectManifest, "formatVersion" | "files"> & {
+type LegacyProjectManifestV1 = Omit<
+  LegacyProjectManifest,
+  "formatVersion" | "files"
+> & {
   formatVersion: 1;
   files: {
     project: "project.json";
@@ -27,23 +30,23 @@ type ProjectManifestV1 = Omit<ProjectManifest, "formatVersion" | "files"> & {
   };
 };
 
-const CURRENT_FORMAT_VERSION: ProjectManifest["formatVersion"] = 2;
+const CURRENT_FORMAT_VERSION: LegacyProjectManifest["formatVersion"] = 2;
 
 // Result of parsing a .toymidi file
-interface ParsedProjectFile {
+interface ParsedLegacyProjectFile {
   name: string;
-  project: SavedProject;
+  project: LegacySavedProject;
 }
 
 /**
  * Export a project to a .toymidi ZIP file. Only E2E tests call this now,
  * directly from Node, to build legacy archives for import.
  */
-export async function exportProjectFile(
+export async function exportLegacyProjectFile(
   projectName: string,
-  projectData: SavedProject,
+  projectData: LegacySavedProject,
   {
-    loadAsset = (assetKey) => projectStorage.loadAsset(assetKey),
+    loadAsset = (assetKey) => legacyProjectStorage.loadAsset(assetKey),
   }: {
     // Node E2E fixtures use Uint8Array because JSZip reads Blob via browser FileReader.
     loadAsset?: (
@@ -53,7 +56,7 @@ export async function exportProjectFile(
 ): Promise<Blob> {
   const zip = new JSZip();
 
-  const audioEntries: ProjectManifest["files"]["audio"] = [];
+  const audioEntries: LegacyProjectManifest["files"]["audio"] = [];
 
   // Bundle each track's audio asset and record its path in the manifest
   const tracks = projectData.audioTracks;
@@ -72,7 +75,7 @@ export async function exportProjectFile(
   }
 
   // Prepare manifest
-  const manifest: ProjectManifest = {
+  const manifest: LegacyProjectManifest = {
     formatVersion: CURRENT_FORMAT_VERSION,
     exportedAt: new Date().toISOString(),
     name: projectName,
@@ -92,9 +95,9 @@ export async function exportProjectFile(
 }
 
 // Only E2E tests call this, directly from Node, to build v1 legacy archives.
-export async function exportProjectFileV1(
+export async function exportLegacyProjectFileV1(
   projectName: string,
-  projectData: SavedProjectV1,
+  projectData: LegacySavedProjectV1,
   audioData: Uint8Array,
 ): Promise<Blob> {
   const zip = new JSZip();
@@ -105,7 +108,7 @@ export async function exportProjectFileV1(
 
   const audioPath = `audio/${projectData.audioFileName}`;
 
-  const manifest: ProjectManifestV1 = {
+  const manifest: LegacyProjectManifestV1 = {
     formatVersion: 1,
     exportedAt: new Date().toISOString(),
     name: projectName,
@@ -129,14 +132,14 @@ export async function exportProjectFileV1(
 /**
  * Parse a .toymidi file and extract its contents
  */
-export async function parseProjectFile(
+export async function parseLegacyProjectFile(
   file: File,
   {
-    saveAsset = (file) => projectStorage.saveAsset(file),
+    saveAsset = (file) => legacyProjectStorage.saveAsset(file),
   }: {
     saveAsset?: (file: File) => Promise<string>;
   } = {},
-): Promise<ParsedProjectFile> {
+): Promise<ParsedLegacyProjectFile> {
   const zip = await JSZip.loadAsync(file);
 
   // Read manifest
@@ -145,7 +148,7 @@ export async function parseProjectFile(
     throw new Error("Invalid project file: missing manifest.json");
   }
   const manifestText = await manifestFile.async("text");
-  const manifest = JSON.parse(manifestText) as AnyProjectManifest;
+  const manifest = JSON.parse(manifestText) as AnyLegacyProjectManifest;
 
   // Validate manifest version
   if (manifest.formatVersion > CURRENT_FORMAT_VERSION) {
@@ -160,7 +163,7 @@ export async function parseProjectFile(
     throw new Error("Invalid project file: missing project.json");
   }
   const projectText = await projectFile.async("text");
-  const project = JSON.parse(projectText) as AnySavedProject;
+  const project = JSON.parse(projectText) as AnyLegacySavedProject;
 
   if (manifest.formatVersion === 1) {
     if (project.version !== 1) {
@@ -184,7 +187,7 @@ export async function parseProjectFile(
 
     return {
       name: manifest.name,
-      project: migrateSavedProject(project),
+      project: migrateLegacySavedProject(project),
     };
   }
 
@@ -198,7 +201,7 @@ export async function parseProjectFile(
     );
   }
 
-  const newAudioTracks: SavedProject["audioTracks"] = [];
+  const newAudioTracks: LegacySavedProject["audioTracks"] = [];
   for (const entry of manifest.files.audio) {
     const track = project.audioTracks.find((t) => t.id === entry.trackId);
     if (!track) {

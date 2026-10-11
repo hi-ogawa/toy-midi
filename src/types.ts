@@ -14,8 +14,6 @@ export interface Note {
   tabString?: TabString;
 }
 
-export type GridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
-
 export interface TimeSignature {
   /** Beats per bar (e.g., 3, 4, 5, 7) */
   numerator: number;
@@ -26,12 +24,6 @@ export interface TimeSignature {
 export function parseTimeSignature(value: string): TimeSignature {
   const [numerator, denominator] = value.split("/").map(Number);
   return { numerator, denominator };
-}
-
-export interface Locator {
-  id: string;
-  position: number; // Position on timeline in beats
-  label: string; // User-defined label (e.g., "Verse", "Chorus")
 }
 
 // Common time signatures
