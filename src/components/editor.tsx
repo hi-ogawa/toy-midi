@@ -89,7 +89,7 @@ export function Editor({ projectId }: { projectId: string }) {
   });
   const timeline = useTimeline({
     projectUiStore,
-    transportStore: runtime.transportStore,
+    transportStore: runtime.transport.store,
     isPlaying: state.isPlaying,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
@@ -224,7 +224,7 @@ export function Editor({ projectId }: { projectId: string }) {
     }
     if (matchKeyboardEvent(event, "Ctrl+V")) {
       const beat = snapToGrid(
-        secondsToBeats(runtime.transportStore.get().position, state.tempo),
+        secondsToBeats(runtime.transport.store.get().position, state.tempo),
         1 / timeline.subdivisionsPerBeat,
       );
       if (midiInteraction.paste(beat)) {
@@ -274,7 +274,7 @@ export function Editor({ projectId }: { projectId: string }) {
         : 0;
     if (seekDirection !== 0 && !flags.isRecording) {
       event.preventDefault();
-      const { position } = runtime.transportStore.get();
+      const { position } = runtime.transport.store.get();
       runtime.seek(Math.max(0, position + seekDirection * 5));
       return;
     }
@@ -310,7 +310,7 @@ export function Editor({ projectId }: { projectId: string }) {
         masterGain={state.masterGain}
         loop={state.loop}
         punch={state.punch}
-        transportStore={runtime.transportStore}
+        transportStore={runtime.transport.store}
         playbackRate={state.playbackRate}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -367,7 +367,7 @@ export function Editor({ projectId }: { projectId: string }) {
           />
           <div className="relative">
             <TimelinePlayhead
-              transportStore={runtime.transportStore}
+              transportStore={runtime.transport.store}
               tempo={timeline.tempo}
               pixelsPerBeat={timeline.pixelsPerBeat}
               viewportStartBeat={timeline.viewportStartBeat}
@@ -401,7 +401,7 @@ export function Editor({ projectId }: { projectId: string }) {
             {state.referenceVideo && (
               <ReferenceTimelineRow
                 referenceVideo={clipInteraction.referenceVideo!}
-                transportStore={runtime.transportStore}
+                transportStore={runtime.transport.store}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}

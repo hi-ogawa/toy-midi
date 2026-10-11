@@ -210,10 +210,10 @@ function ScorePreview({
 function createScoreClock(editorRuntime: EditorRuntime): ScoreViewerClock {
   return {
     getSnapshot: () => {
-      const { position, isPlaying } = editorRuntime.transportStore.get();
+      const { position, isPlaying } = editorRuntime.transport.store.get();
       return { currentTime: position, isPlaying };
     },
-    subscribe: editorRuntime.transportStore.subscribe,
+    subscribe: editorRuntime.transport.store.subscribe,
     seek: (position) => editorRuntime.seek(position),
     play: () => {
       editorRuntime.play().catch((error) => toast.error(String(error)));

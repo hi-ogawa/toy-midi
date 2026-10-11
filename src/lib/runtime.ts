@@ -290,8 +290,7 @@ export class EditorRuntime {
   readonly store = createStore(createDefaultEditorRuntimeState);
 
   readonly context = new AudioContext();
-  private readonly transport = new AudioContextTransport(this.context);
-  readonly transportStore = this.transport.store;
+  readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
   /** @internal */
   captureInput?: CaptureInput;
