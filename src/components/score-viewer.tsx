@@ -57,7 +57,6 @@ export function ScoreViewer({
       : "Score Viewer - Toy MIDI";
   }, [score]);
 
-  // initialize runtime
   const [clock] = useState(() => new PlayheadClock());
   const [runtime] = useState(
     () =>

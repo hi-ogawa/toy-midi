@@ -58,6 +58,7 @@ export function useProject({
     },
   });
 
+  // Mark the project unsaved when persistable state changes after it loads.
   useEffect(() => {
     if (!projectQuery.isSuccess) {
       return;

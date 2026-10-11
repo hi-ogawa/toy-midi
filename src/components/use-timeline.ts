@@ -39,6 +39,8 @@ export function useTimeline({
   const beatsPerBar = getBeatsPerBar(timeSignature);
   const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];
 
+  // Page the viewport forward when the playhead nears its right edge or leaves
+  // it during playback with auto-scroll on.
   useEffect(() => {
     if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
       return;
