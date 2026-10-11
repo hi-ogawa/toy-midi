@@ -1,18 +1,18 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import {
   MAX_EQ_BANDS,
   type MultibandEqBand,
   type MultibandEqParameters,
 } from "../../lib/dsp/biquad-eq-multiband";
 import { createDefaultEqBand } from "../../lib/dsp/biquad-eq-node";
-import { clamp, dbToGain, gainToDb } from "../../lib/music";
+import { dbToGain, gainToDb } from "../../lib/music";
 import type { ProjectUiStore } from "../../lib/recorder/storage";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
+import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { RecorderPanel } from "./recorder-panel";
 
 export function useRecorderEffectsUi(projectUiStore: ProjectUiStore) {
@@ -47,19 +47,9 @@ export function RecorderEffects({
   onChange: (eq: MultibandEqParameters) => void;
   onClose: () => void;
 }) {
-  const [size, setSize] = useState(() =>
-    clampEffectsSize({ width: 384, height: 512 }),
-  );
-  const resizeHandleRef = usePointerDrag({
-    onStart: () => size,
-    onMove: (_event, { data, deltaX, deltaY }) => {
-      setSize(
-        clampEffectsSize({
-          width: data.width - deltaX,
-          height: data.height - deltaY,
-        }),
-      );
-    },
+  const { size, handleRef } = usePanelResize({
+    initialSize: { width: 384, height: 512 },
+    minSize: { width: 384, height: 300 },
   });
 
   return (
@@ -72,30 +62,13 @@ export function RecorderEffects({
       contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
       style={size}
     >
-      <button
-        ref={resizeHandleRef}
-        type="button"
-        aria-label={`Resize ${label} Effects`}
-        className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
-      >
-        <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
-      </button>
+      <PanelResizeHandle
+        handleRef={handleRef}
+        label={`Resize ${label} Effects`}
+      />
       <RecorderEffectsContent eq={eq} onChange={onChange} />
     </RecorderPanel>
   );
-}
-
-function clampEffectsSize({
-  width,
-  height,
-}: {
-  width: number;
-  height: number;
-}) {
-  return {
-    width: clamp(width, 384, window.innerWidth - 32),
-    height: clamp(height, 300, window.innerHeight - 48),
-  };
 }
 
 export function RecorderEffectsContent({
