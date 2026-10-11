@@ -291,7 +291,6 @@ export class EditorRuntime {
 
   readonly context = new AudioContext();
   private readonly transport = new AudioContextTransport(this.context);
-  /** Separate from `store`, because the playhead moves on every animation frame. */
   readonly transportStore = this.transport.store;
   private readonly masterOutput: GainNode;
   /** @internal */
