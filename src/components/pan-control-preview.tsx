@@ -46,8 +46,8 @@ export function PanControlPreview() {
   return (
     <div className="space-y-6">
       <p className="text-sm text-neutral-400">
-        Every control recenters on double-click and steps with the arrow keys
-        (Shift for 10).
+        The candidates recenter on double-click. Every control steps with the
+        arrow keys (Shift for 10).
       </p>
       {VARIANTS.map((variant) => (
         <section key={variant.label} className="space-y-2">
