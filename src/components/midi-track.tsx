@@ -150,11 +150,7 @@ export function MidiTrackRow({
         timeSignature: state.timeSignature,
         keySignature: track.keySignature,
         openStringPitches: track.tabOpenStringPitches,
-        locators: state.locators.map(({ id, beat, label }) => ({
-          id,
-          position: beat,
-          label,
-        })),
+        locators: state.locators,
       });
       downloadBlob(
         new Blob([xml], { type: "application/vnd.recordare.musicxml+xml" }),

@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import {
-  exportProjectFile,
-  exportProjectFileV1,
+  exportLegacyProjectFile,
+  exportLegacyProjectFileV1,
 } from "../src/lib/legacy-project-file";
-import type { SavedProject } from "../src/lib/project-store";
+import type { LegacySavedProject } from "../src/lib/legacy-project-store";
 import { getRecorderMidiNote, getRecorderPosition } from "./editor-helpers";
 
 for (const version of [1, 2] as const) {
@@ -80,7 +80,7 @@ const LEGACY_MUSICAL_DATA = {
   masterVolume: 0.75,
   metronomeEnabled: false,
   metronomeVolume: 0.25,
-} satisfies Omit<SavedProject, "version" | "audioTracks">;
+} satisfies Omit<LegacySavedProject, "version" | "audioTracks">;
 
 async function createLegacyArchive(version: 1 | 2) {
   const audio = await readFile(
@@ -89,7 +89,7 @@ async function createLegacyArchive(version: 1 | 2) {
   const name = `Legacy v${version}`;
   const blob =
     version === 1
-      ? await exportProjectFileV1(
+      ? await exportLegacyProjectFileV1(
           name,
           {
             ...LEGACY_MUSICAL_DATA,
@@ -103,7 +103,7 @@ async function createLegacyArchive(version: 1 | 2) {
           },
           audio,
         )
-      : await exportProjectFile(
+      : await exportLegacyProjectFile(
           name,
           {
             ...LEGACY_MUSICAL_DATA,

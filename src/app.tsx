@@ -29,10 +29,10 @@ export function App() {
     case "scoreCapture": {
       return <ScoreCapture />;
     }
-    case "projectScore": {
+    case "legacyProjectScore": {
       return <LegacyProjectRoute />;
     }
-    case "project": {
+    case "legacyProject": {
       return <LegacyProjectRoute />;
     }
     case "home":

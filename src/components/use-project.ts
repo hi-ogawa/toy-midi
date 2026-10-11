@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
-import { recorderProjectStorage } from "../lib/editor-project-storage";
 import type { ProjectUiStore } from "../lib/preferences";
+import { recorderProjectStorage } from "../lib/project-storage";
 import { RecorderRuntime } from "../lib/runtime";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";

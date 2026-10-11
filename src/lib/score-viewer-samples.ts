@@ -1,12 +1,12 @@
 import {
   DEFAULT_TIME_SIGNATURE,
-  type Locator,
   type Note,
   type TimeSignature,
 } from "../types";
 import { range } from "../utils/array";
 import { exportMusicXml } from "./musicxml/render";
 import type { KeySignature } from "./pitch-spelling";
+import type { RecorderLocator } from "./runtime";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 export type ScoreViewerSample = {
@@ -18,7 +18,7 @@ export type ScoreViewerSample = {
 
 type ScoreViewerSampleDefinition = Omit<ScoreViewerSample, "xml"> & {
   notes: Note[];
-  locators?: Locator[];
+  locators?: RecorderLocator[];
   keySignature?: KeySignature;
   timeSignature?: TimeSignature;
 };
@@ -118,9 +118,9 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     tempo: 120,
     notes: createSequentialNotes({ count: 32, duration: 0.5 }),
     locators: [
-      createLocator({ position: 0, label: "A" }),
-      createLocator({ position: 6, label: "B" }),
-      createLocator({ position: 12, label: "C" }),
+      createLocator({ beat: 0, label: "A" }),
+      createLocator({ beat: 6, label: "B" }),
+      createLocator({ beat: 12, label: "C" }),
     ],
   }),
   createSample({
@@ -142,8 +142,8 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       createNote({ pitch: 49, start: 10, duration: 1 }),
     ],
     locators: [
-      createLocator({ position: 4, label: "G-flat major [!key: Gb major]" }),
-      createLocator({ position: 8, label: "F-sharp major [!key: F# major]" }),
+      createLocator({ beat: 4, label: "G-flat major [!key: Gb major]" }),
+      createLocator({ beat: 8, label: "F-sharp major [!key: F# major]" }),
     ],
   }),
   createSample({
@@ -269,7 +269,7 @@ function createSample({
   };
 }
 
-function createLocator(locator: Omit<Locator, "id">): Locator {
+function createLocator(locator: Omit<RecorderLocator, "id">): RecorderLocator {
   return { ...locator, id: crypto.randomUUID() };
 }
 
