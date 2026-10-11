@@ -438,7 +438,7 @@ export class EditorRuntime {
     this.history.pushClips({ snapshot });
   }
 
-  async addMidiTrack(preset: MidiPreset): Promise<void> {
+  async addMidiTrack(preset: MidiPreset): Promise<string> {
     const state = this.store.get();
     const track = createMidiTrackState({
       name: createNumberedName({
@@ -450,6 +450,7 @@ export class EditorRuntime {
     await this.insertMidiTrack({ track });
     const index = this.store.get().trackOrder.indexOf(track.id);
     this.history.pushMidiTrack({ track, index });
+    return track.id;
   }
 
   /** @internal for undo */
