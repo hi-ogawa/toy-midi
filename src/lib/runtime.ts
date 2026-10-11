@@ -54,6 +54,8 @@ const DEFAULT_TRACK_HEIGHT = 72;
 // Fits the compact track header, which is a single title row.
 const MIN_TRACK_HEIGHT = 44;
 const MAX_TRACK_HEIGHT = 300;
+// Tall enough for several octaves of piano roll.
+const MAX_MIDI_TRACK_HEIGHT = 800;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
@@ -597,11 +599,15 @@ export class EditorRuntime {
     }
   }
 
+  /**
+   * Set a track's row height in px, clamped to 44-800 for MIDI tracks and
+   * 44-300 for audio tracks. Below 72 the track header hides its gain slider.
+   */
   setTrackHeight(id: string, height: number): void {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
-        height: clamp(height, MIN_TRACK_HEIGHT, 800),
+        height: clamp(height, MIN_TRACK_HEIGHT, MAX_MIDI_TRACK_HEIGHT),
       }));
       return;
     }
