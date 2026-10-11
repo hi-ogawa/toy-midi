@@ -27,40 +27,6 @@ type TransportState = {
 };
 
 /**
- * Maps the audio clock to the timeline for one playback run. Timeline `position` sounds at
- * `contextTime` and advances at `playbackRate`.
- */
-class PlaybackAnchor {
-  readonly contextTime: number;
-  readonly position: number;
-  readonly playbackRate: number;
-
-  constructor({
-    contextTime,
-    position,
-    playbackRate,
-  }: {
-    contextTime: number;
-    position: number;
-    playbackRate: number;
-  }) {
-    this.contextTime = contextTime;
-    this.position = position;
-    this.playbackRate = playbackRate;
-  }
-
-  /** Audio-clock time at which a timeline position sounds. */
-  getContextTimeAt(position: number): number {
-    return this.contextTime + (position - this.position) / this.playbackRate;
-  }
-
-  /** Timeline position at an audio-clock time, extrapolating before the run starts. */
-  getPositionAt(contextTime: number): number {
-    return this.position + (contextTime - this.contextTime) * this.playbackRate;
-  }
-}
-
-/**
  * The part of the run's pass that one scheduling tick covers, as a half-open
  * timeline range `[start, end)` of point events such as clicks and note starts.
  * Each event belongs to exactly one scheduled pass.
@@ -261,5 +227,39 @@ export class AudioContextTransport {
   private stopTicking(): void {
     this.disposeTicking?.();
     this.disposeTicking = undefined;
+  }
+}
+
+/**
+ * Maps the audio clock to the timeline for one playback run. Timeline `position` sounds at
+ * `contextTime` and advances at `playbackRate`.
+ */
+class PlaybackAnchor {
+  readonly contextTime: number;
+  readonly position: number;
+  readonly playbackRate: number;
+
+  constructor({
+    contextTime,
+    position,
+    playbackRate,
+  }: {
+    contextTime: number;
+    position: number;
+    playbackRate: number;
+  }) {
+    this.contextTime = contextTime;
+    this.position = position;
+    this.playbackRate = playbackRate;
+  }
+
+  /** Audio-clock time at which a timeline position sounds. */
+  getContextTimeAt(position: number): number {
+    return this.contextTime + (position - this.position) / this.playbackRate;
+  }
+
+  /** Timeline position at an audio-clock time, extrapolating before the run starts. */
+  getPositionAt(contextTime: number): number {
+    return this.position + (contextTime - this.contextTime) * this.playbackRate;
   }
 }
