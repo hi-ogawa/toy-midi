@@ -93,8 +93,8 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.disposeScheduling = this.transport.startScheduleLoop((passes) =>
-      this.schedule(passes),
+    this.disposeScheduling = this.transport.startScheduleLoop((pass) =>
+      this.schedule(pass),
     );
   }
 
@@ -116,30 +116,28 @@ export class MidiTrackPlayback implements TransportParticipant {
     }
   }
 
-  private schedule(passes: ScheduledPass[]): void {
-    for (const pass of passes) {
-      for (const note of this.notes) {
-        const start = beatsToSeconds(note.start, this.tempo);
-        if (pass.end <= start) {
-          break;
-        }
-        if (start < pass.start) {
-          continue;
-        }
-        // A note held past loop-out ends at the wrap. The synth applies
-        // note-offs before note-ons on the same frame, so a repeated pitch at
-        // loop-in still retriggers.
-        const end = Math.min(
-          beatsToSeconds(note.start + note.duration, this.tempo),
-          pass.passEnd,
-        );
-        this.synth.scheduleNoteOnOff({
-          pitch: note.pitch,
-          velocity: note.velocity,
-          startTime: pass.anchor.getContextTimeAt(start),
-          endTime: pass.anchor.getContextTimeAt(end),
-        });
+  private schedule(pass: ScheduledPass): void {
+    for (const note of this.notes) {
+      const start = beatsToSeconds(note.start, this.tempo);
+      if (pass.end <= start) {
+        break;
       }
+      if (start < pass.start) {
+        continue;
+      }
+      // A note held past loop-out ends at the wrap. The synth applies
+      // note-offs before note-ons on the same frame, so a repeated pitch at
+      // loop-in still retriggers.
+      const end = Math.min(
+        beatsToSeconds(note.start + note.duration, this.tempo),
+        pass.passEnd,
+      );
+      this.synth.scheduleNoteOnOff({
+        pitch: note.pitch,
+        velocity: note.velocity,
+        startTime: pass.anchor.getContextTimeAt(start),
+        endTime: pass.anchor.getContextTimeAt(end),
+      });
     }
   }
 }

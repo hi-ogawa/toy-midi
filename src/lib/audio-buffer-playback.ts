@@ -55,8 +55,8 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     this.nextPassIndex = 0;
-    this.disposeScheduling = this.transport.startScheduleLoop((passes) =>
-      this.schedule(passes),
+    this.disposeScheduling = this.transport.startScheduleLoop((pass) =>
+      this.schedule(pass),
     );
   }
 
@@ -74,14 +74,12 @@ export class AudioBufferPlayback implements TransportParticipant {
   }
 
   /** Queues one slice for each loop pass, in the first window that reaches it. */
-  private schedule(passes: ScheduledPass[]): void {
-    for (const pass of passes) {
-      if (pass.index < this.nextPassIndex) {
-        continue;
-      }
-      this.nextPassIndex = pass.index + 1;
-      this.startSlice(pass);
+  private schedule(pass: ScheduledPass): void {
+    if (pass.index < this.nextPassIndex) {
+      return;
     }
+    this.nextPassIndex = pass.index + 1;
+    this.startSlice(pass);
   }
 
   /** Plays the part of the region inside one pass. */

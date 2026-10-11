@@ -204,7 +204,7 @@ export class AudioContextTransport {
    * runs. The timer only decides when events are queued, while the times they
    * are queued at stay exact on the audio clock.
    */
-  startScheduleLoop(schedule: (passes: ScheduledPass[]) => void): () => void {
+  startScheduleLoop(schedule: (pass: ScheduledPass) => void): () => void {
     const anchor = this.playbackAnchor!;
     const loopRange = this.playbackLoopRange;
     let scheduledUntil = anchor.contextTime;
@@ -217,7 +217,9 @@ export class AudioContextTransport {
       // part of the window in the past. Skip it rather than queue events to play
       // late.
       const from = Math.max(scheduledUntil, this.context.currentTime);
-      schedule(getScheduledPasses(anchor, loopRange, { from, to }));
+      for (const pass of getScheduledPasses(anchor, loopRange, { from, to })) {
+        schedule(pass);
+      }
       scheduledUntil = to;
     };
     tick();

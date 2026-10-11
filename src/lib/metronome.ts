@@ -47,8 +47,8 @@ export class Metronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.disposeScheduling = this.transport.startScheduleLoop((passes) =>
-      this.schedule(passes),
+    this.disposeScheduling = this.transport.startScheduleLoop((pass) =>
+      this.schedule(pass),
     );
   }
 
@@ -57,18 +57,14 @@ export class Metronome implements TransportParticipant {
     this.disposeScheduling = undefined;
   }
 
-  private schedule(passes: ScheduledPass[]): void {
-    for (const pass of passes) {
-      const firstIndex = Math.ceil(pass.start / this.secondsPerClick);
-      const endIndex = Math.ceil(pass.end / this.secondsPerClick);
-      for (let index = firstIndex; index < endIndex; index++) {
-        this.scheduleClick({
-          accent: index % this.timeSignature.numerator === 0,
-          contextTime: pass.anchor.getContextTimeAt(
-            index * this.secondsPerClick,
-          ),
-        });
-      }
+  private schedule(pass: ScheduledPass): void {
+    const firstIndex = Math.ceil(pass.start / this.secondsPerClick);
+    const endIndex = Math.ceil(pass.end / this.secondsPerClick);
+    for (let index = firstIndex; index < endIndex; index++) {
+      this.scheduleClick({
+        accent: index % this.timeSignature.numerator === 0,
+        contextTime: pass.anchor.getContextTimeAt(index * this.secondsPerClick),
+      });
     }
   }
 
