@@ -1,5 +1,5 @@
 import type { WebMcpTool } from "@hiogawa/webmcp-bridge/webmcp";
-import type { RecorderRuntime } from "./recorder/runtime";
+import type { EditorRuntime } from "./runtime";
 
 // The runtime API as one declaration file from `pnpm build-webmcp-tools-doc`,
 // which `pnpm build` runs for deploys.
@@ -23,12 +23,13 @@ const AsyncFunction = async function () {}.constructor as new (
  * Tools for an agent to act on the open project, in the WebMCP tool
  * shape.
  */
-export function createWebMcpTools(runtime: RecorderRuntime): WebMcpTool[] {
+export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
   return [
     {
       name: "toy_midi_eval",
       description: [
         "Run JavaScript against the open toy-midi project, with `runtime` in scope.",
+        "The project's `comment` is free-form text where you can record and communicate your intent and decisions.",
         runtimeTypes,
       ]
         .filter(Boolean)

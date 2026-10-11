@@ -131,7 +131,7 @@ Our player uses this fixed-duration pitch shifter to compensate for the pitch ch
 
 At half-speed playback, for example, the buffer source produces audio twice as long and an octave lower. The pitch shifter raises it by an octave without changing that longer duration. In this use case, the diagram's original signal is the already slowed input to the pitch shifter, and its final signal is the pitch-corrected slow playback.
 
-More generally, the [buffer source](../../src/lib/recorder/audio-buffer-playback.ts) plays at rate $r$, which changes duration by $1/r$ and pitch by $r$. The [pitch-shift bus](../../src/lib/recorder/audio-track-playback.ts) requests the inverse pitch multiplier $p=1/r$. Internally, [`StreamingPitchShifter`](../../src/lib/dsp/pitch-shifter.ts) performs the WSOLA-and-resampling combination above, preserving the already changed duration while restoring pitch because $r\cdot(1/r)=1$.
+More generally, the [buffer source](../../src/lib/audio-buffer-playback.ts) plays at rate $r$, which changes duration by $1/r$ and pitch by $r$. The [pitch-shift bus](../../src/lib/audio-track-playback.ts) requests the inverse pitch multiplier $p=1/r$. Internally, [`StreamingPitchShifter`](../../src/lib/dsp/pitch-shifter.ts) performs the WSOLA-and-resampling combination above, preserving the already changed duration while restoring pitch because $r\cdot(1/r)=1$.
 
 ## How Much Audio Must Be Available?
 
