@@ -1,13 +1,15 @@
 import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../lib/music";
+import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
 import { MetronomeIcon } from "./icons";
 import { MixToggle } from "./mix-toggle";
+import { Knob } from "./ui/knob";
 import { Slider } from "./ui/slider";
 import { useDraftInput } from "./use-draft-input";
+import { usePointerDrag } from "./use-pointer-drag";
 
 export function Mixer({
   runtime,
@@ -44,6 +46,8 @@ export function Mixer({
         return (
           <TrackChannel
             key={entry.id}
+            pan={track.pan}
+            onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
             effectsOpen={openEffects.has(track.id)}
             onEffectsToggle={() => onEffectsToggle(track.id)}
             label={track.name}
@@ -87,10 +91,12 @@ const TRACK_ICONS = {
 
 function TrackChannel({
   label,
+  pan,
   gain,
   muted,
   soloed,
   icon,
+  onPanChange,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -98,10 +104,12 @@ function TrackChannel({
   onEffectsToggle,
 }: {
   label: string;
+  pan: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
   icon: ReactNode;
+  onPanChange: (pan: number) => void;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -113,6 +121,7 @@ function TrackChannel({
     <MixerChannel
       icon={icon}
       label={label}
+      pan={<PanKnob label={label} pan={pan} onPanChange={onPanChange} />}
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
@@ -162,6 +171,7 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
 function MixerChannel({
   icon,
   label,
+  pan,
   gain,
   onGainChange,
   inputProps,
@@ -170,14 +180,18 @@ function MixerChannel({
 }: {
   icon: ReactNode;
   label: string;
+  pan?: ReactNode;
   gain: number;
   onGainChange: (gain: number) => void;
   inputProps: ComponentProps<"input">;
   "data-testid": string;
   action?: ReactNode;
 }) {
+  const name = label === "Metro" ? "Metronome" : label;
   return (
     <div
+      role="group"
+      aria-label={name}
       data-testid={testId}
       className="flex min-w-24 flex-col items-center gap-3"
     >
@@ -187,8 +201,10 @@ function MixerChannel({
           {label}
         </span>
       </div>
+      {/* Every channel reserves the pan row so faders stay aligned. */}
+      <div className="flex h-6 w-full items-center">{pan}</div>
       <GainSlider
-        label={`${label === "Metro" ? "Metronome" : label} gain`}
+        label={`${name} gain`}
         gain={gain}
         onGainChange={onGainChange}
         orientation="vertical"
@@ -198,7 +214,7 @@ function MixerChannel({
         <input
           type="text"
           inputMode="decimal"
-          aria-label={`${label === "Metro" ? "Metronome" : label} level in dB`}
+          aria-label={`${name} level in dB`}
           className="h-6 w-12 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
           {...inputProps}
         />
@@ -207,6 +223,70 @@ function MixerChannel({
       {action ?? <div className="h-8" />}
     </div>
   );
+}
+
+function PanKnob({
+  label,
+  pan,
+  onPanChange,
+}: {
+  label: string;
+  pan: number;
+  onPanChange: (pan: number) => void;
+}) {
+  const setPan = (value: number) =>
+    onPanChange(clamp(Math.round(value * 100) / 100, -1, 1));
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return pan;
+    },
+    onMove: (_event, drag) => setPan(drag.data - drag.deltaY / 100),
+  });
+  return (
+    // Equal side columns center the knob over the fader.
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <Knob
+        ref={ref}
+        aria-label={`${label} pan`}
+        aria-valuetext={formatPan(pan)}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const next = {
+            ArrowLeft: pan - step,
+            ArrowDown: pan - step,
+            ArrowRight: pan + step,
+            ArrowUp: pan + step,
+            Home: -1,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPan(next);
+          }
+        }}
+        value={pan}
+        min={-1}
+        max={1}
+        origin={0}
+        className="col-start-2 cursor-ns-resize"
+      />
+      {/* Zero width, so a wide readout such as R100 spills over instead of
+          widening its column and the channel. */}
+      <span className="w-0 font-mono text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+        {formatPan(pan)}
+      </span>
+    </div>
+  );
+}
+
+function formatPan(pan: number): string {
+  const percent = Math.round(Math.abs(pan) * 100);
+  if (percent === 0) {
+    return "C";
+  }
+  return `${pan < 0 ? "L" : "R"}${percent}`;
 }
 
 export function GainSlider({

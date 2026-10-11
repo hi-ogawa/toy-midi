@@ -147,6 +147,11 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
     audio.getByRole("button", { name: "Toggle Audio 2 solo" }),
   ).toHaveAttribute("aria-pressed", "true");
 
+  // Pan backing audio left.
+  const audioPan = audio.getByRole("slider", { name: "Audio 2 pan" });
+  await audioPan.press("Shift+ArrowLeft");
+  await expect(audioPan).toHaveAttribute("aria-valuetext", "L10");
+
   // Close the panel without dismissing the project.
   await panel.getByRole("button", { name: "Close Mixer" }).click();
   await expect(panel).toBeHidden();
