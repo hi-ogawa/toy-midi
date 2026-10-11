@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ProjectUiStore } from "../lib/preferences";
+import type { EditorRuntime } from "../lib/runtime";
 import {
   DEFAULT_GRID_DIVISION,
   getBeatsPerBar,
@@ -13,14 +14,14 @@ import type { TimeSignature } from "../types";
 
 export function useTimeline({
   projectUiStore,
+  runtime,
   isPlaying,
-  position,
   tempo,
   timeSignature,
 }: {
   projectUiStore: ProjectUiStore;
+  runtime: EditorRuntime;
   isPlaying: boolean;
-  position: number;
   tempo: number;
   timeSignature: TimeSignature;
 }) {
@@ -37,28 +38,30 @@ export function useTimeline({
   const [viewportWidth, setViewportWidth] = useState(0);
   const beatsPerBar = getBeatsPerBar(timeSignature);
   const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];
-  const playheadX =
-    (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
-  const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
   useEffect(() => {
     if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
       return;
     }
-    const playheadBeat = secondsToBeats(position, tempo);
-    const visibleBeats = viewportWidth / pixelsPerBeat;
-    if (
-      playheadBeat < viewportStartBeat ||
-      viewportStartBeat + visibleBeats * 0.9 < playheadBeat
-    ) {
-      setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
+    function keepPlayheadInView() {
+      const position = runtime.transport.store.get().position;
+      const playheadBeat = secondsToBeats(position, tempo);
+      const visibleBeats = viewportWidth / pixelsPerBeat;
+      if (
+        playheadBeat < viewportStartBeat ||
+        viewportStartBeat + visibleBeats * 0.9 < playheadBeat
+      ) {
+        setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
+      }
     }
+    keepPlayheadInView();
+    return runtime.transport.store.subscribe(keepPlayheadInView);
   }, [
     autoScrollEnabled,
     isPlaying,
     pixelsPerBeat,
-    position,
     tempo,
+    runtime,
     viewportStartBeat,
     viewportWidth,
   ]);
@@ -119,7 +122,6 @@ export function useTimeline({
     beatsPerBar,
     gridDivision,
     pixelsPerBeat,
-    playheadX,
     viewportStartBeat,
     setGridDivision,
     subdivisionsPerBeat,
@@ -127,7 +129,6 @@ export function useTimeline({
     timeSignature,
     viewportRef,
     viewportWidth,
-    showPlayhead,
     autoScrollEnabled,
     setAutoScrollEnabled,
   };

@@ -16,6 +16,7 @@ import type {
   PunchRange,
   PunchState,
   ReferenceVideoState,
+  EditorRuntime,
 } from "../lib/runtime";
 import {
   beatsToSeconds,
@@ -35,8 +36,39 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
+import { usePlaybackPosition } from "./use-playback-position";
 import { usePointerDrag } from "./use-pointer-drag";
 import { usePointerGesture } from "./use-pointer-gesture";
+
+export function TimelinePlayhead({
+  runtime,
+  tempo,
+  pixelsPerBeat,
+  viewportStartBeat,
+  viewportWidth,
+}: {
+  runtime: EditorRuntime;
+  tempo: number;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  viewportWidth: number;
+}) {
+  const position = usePlaybackPosition(runtime);
+  const x =
+    (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
+  if (x < 0 || viewportWidth < x) {
+    return;
+  }
+  return (
+    <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
+      <div
+        data-testid="recorder-playhead"
+        className="absolute inset-y-0 w-px bg-sky-400"
+        style={{ left: x }}
+      />
+    </div>
+  );
+}
 
 export function TimelineHeader({
   beatsPerBar,

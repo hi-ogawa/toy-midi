@@ -74,10 +74,12 @@ export function useProject({
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribeWithSelector({
+    return runtime.transport.store.subscribeWithSelector({
       selector: (state) => (state.isPlaying ? undefined : state.position),
       listener: () =>
-        projectUiStore.update({ playhead: runtime.store.get().position }),
+        projectUiStore.update({
+          playhead: runtime.transport.store.get().position,
+        }),
       equals: Object.is,
     });
   }, [projectQuery.isSuccess, runtime]);
