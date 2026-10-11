@@ -280,9 +280,8 @@ class PlaybackRun {
   /** The ranges sounding in an audio-clock window, in pass order. */
   getScheduledRanges(window: ContextTimeWindow): ScheduledRange[] {
     const ranges: ScheduledRange[] = [];
-    let pass: PlaybackPass | undefined;
     for (
-      pass = this.getPassAt(window.start);
+      let pass: PlaybackPass | undefined = this.getPassAt(window.start);
       pass && pass.contextTime < window.end;
       pass = this.getPass(pass.index + 1)
     ) {
@@ -306,9 +305,8 @@ class PlaybackRun {
     }
     // Pass 0 ends only at loop-out, so from here on the run is looping.
     const sinceFirstPassEnd = contextTime - this.firstPassEnd;
-    return this.getPass(
-      1 + Math.floor(sinceFirstPassEnd / this.getLoopSeconds()),
-    )!;
+    const index = 1 + Math.floor(sinceFirstPassEnd / this.getLoopSeconds());
+    return this.getPass(index)!;
   }
 
   /** Pass `index`, or undefined past the last one. */
