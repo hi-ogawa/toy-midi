@@ -166,7 +166,7 @@ export class AudioContextTransport {
    * runs. The timer only decides when events are queued, while the times they
    * are queued at stay exact on the audio clock.
    */
-  startScheduling(schedule: (pass: ScheduledPass) => void): () => void {
+  startScheduleLoop(schedule: (pass: ScheduledPass) => void): () => void {
     const anchor = this.playbackAnchor!;
     let scheduledUntil = anchor.contextTime;
     const tick = () => {

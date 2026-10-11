@@ -47,7 +47,7 @@ export class Metronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.disposeScheduling = this.transport.startScheduling((pass) =>
+    this.disposeScheduling = this.transport.startScheduleLoop((pass) =>
       this.schedule(pass),
     );
   }
