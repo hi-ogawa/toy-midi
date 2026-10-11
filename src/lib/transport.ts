@@ -83,7 +83,7 @@ export class AudioContextTransport {
     };
   }
 
-  /** Schedules every participant against one shared future playback anchor. */
+  /** Schedules every participant against one shared future playback run. */
   play(): void {
     if (this.store.get().isPlaying) {
       return;
