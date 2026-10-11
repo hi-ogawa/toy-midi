@@ -817,7 +817,6 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {isProjectCommentOpen && (
           <RecorderProjectCommentPanel
-            projectUiStore={projectUiStore}
             runtime={runtime}
             comment={state.comment}
             onClose={() => setIsProjectCommentOpen(false)}
