@@ -166,7 +166,7 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
   });
 }
 
-function MixerChannel({
+export function MixerChannel({
   icon,
   label,
   pan,
@@ -223,7 +223,7 @@ function MixerChannel({
   );
 }
 
-function PanSlider({
+export function PanSlider({
   label,
   pan,
   onPanChange,
@@ -253,7 +253,7 @@ function PanSlider({
   );
 }
 
-function formatPan(pan: number): string {
+export function formatPan(pan: number): string {
   const percent = Math.round(Math.abs(pan) * 100);
   if (percent === 0) {
     return "C";
