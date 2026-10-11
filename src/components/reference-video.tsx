@@ -1,6 +1,5 @@
 import { CircleHelpIcon, LoaderCircleIcon } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { useResizeObserver } from "../hooks/use-resize-observer";
 import type { ProjectUiStore } from "../lib/preferences";
 import { EditorRuntime, type ReferenceVideoState } from "../lib/runtime";
 import {
@@ -13,6 +12,7 @@ import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { useResizeObserver } from "./use-resize-observer";
 
 export function ReferenceVideoPanel({
   projectUiStore,

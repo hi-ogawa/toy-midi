@@ -18,8 +18,6 @@ import {
   SlidersVerticalIcon,
   NotebookPenIcon,
 } from "lucide-react";
-import { useDraftInput } from "../hooks/use-draft-input";
-import { useTapTempo } from "../hooks/use-tap-tempo";
 import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
 import { routes } from "../lib/routes";
@@ -47,8 +45,10 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
+import { useDraftInput } from "./use-draft-input";
 import { usePlaybackPosition } from "./use-playback-position";
 import type { SaveStatus } from "./use-project";
+import { useTapTempo } from "./use-tap-tempo";
 
 export function Header({
   title,

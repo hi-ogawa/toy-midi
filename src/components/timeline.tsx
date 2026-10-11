@@ -7,8 +7,6 @@ import {
   XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { usePointerDrag } from "../hooks/use-pointer-drag";
-import { usePointerGesture } from "../hooks/use-pointer-gesture";
 import type { AudioClip, ClipRegion } from "../lib/audio-clip";
 import { AudioView } from "../lib/audio-view";
 import { clamp, snapToGrid } from "../lib/music";
@@ -39,6 +37,8 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 import { usePlaybackPosition } from "./use-playback-position";
+import { usePointerDrag } from "./use-pointer-drag";
+import { usePointerGesture } from "./use-pointer-gesture";
 
 export function TimelinePlayhead({
   runtime,

@@ -1,6 +1,5 @@
 import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { useDraftInput } from "../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
@@ -8,6 +7,7 @@ import { EffectsToggle } from "./effects-toggle";
 import { MetronomeIcon } from "./icons";
 import { MixToggle } from "./mix-toggle";
 import { Slider } from "./ui/slider";
+import { useDraftInput } from "./use-draft-input";
 
 export function Mixer({
   runtime,

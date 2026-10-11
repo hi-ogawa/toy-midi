@@ -1,6 +1,5 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useDraftInput } from "../hooks/use-draft-input";
 import {
   MAX_EQ_BANDS,
   type MultibandEqBand,
@@ -14,6 +13,7 @@ import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Slider } from "./ui/slider";
+import { useDraftInput } from "./use-draft-input";
 
 export function useEffectsUi(projectUiStore: ProjectUiStore) {
   const [openIds, setOpenIds] = projectUiStore.useValue("openEffects");

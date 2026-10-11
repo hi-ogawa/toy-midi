@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { usePointerDrag } from "../hooks/use-pointer-drag";
 import { clamp } from "../lib/music";
+import { usePointerDrag } from "./use-pointer-drag";
 
 interface PanelSize {
   width: number;

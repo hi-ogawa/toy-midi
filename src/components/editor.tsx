@@ -3,7 +3,6 @@ import { Mic2Icon } from "lucide-react";
 import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { useWindowEvent } from "../hooks/use-window-event";
 import { resolveAudioFiles } from "../lib/audio-files";
 import { deriveClipRegions } from "../lib/clip-regions";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
@@ -52,6 +51,7 @@ import { useInteraction } from "./use-interaction";
 import { useProject } from "./use-project";
 import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
+import { useWindowEvent } from "./use-window-event";
 
 export function Editor({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new EditorRuntime());
