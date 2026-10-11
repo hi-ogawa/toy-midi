@@ -1,8 +1,8 @@
-import type { Locator } from "../types";
 import {
   KEY_SIGNATURE_OPTION_GROUPS,
   type KeySignature,
 } from "./pitch-spelling";
+import type { Locator } from "./runtime";
 
 export function parseLocatorLabel(locator: Locator): {
   label: string;

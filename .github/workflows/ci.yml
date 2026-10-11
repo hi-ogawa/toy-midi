@@ -23,6 +23,17 @@ jobs:
       - run: pnpm lint-check
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm -C packages/webmcp-bridge build-extension
+        env:
+          PATCH_MANIFEST: "true"
+      - run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+      - id: upload-extension
+        uses: actions/upload-artifact@v7
+        with:
+          name: webmcp-bridge-extension-${{ github.event.pull_request.number && format('pr{0}-{1}', github.event.pull_request.number, env.SHORT_SHA) || env.SHORT_SHA }}
+          path: packages/webmcp-bridge/dist/extension
+      - name: Extension artifact
+        run: echo "::notice title=Extension artifact::${{ steps.upload-extension.outputs.artifact-url }}"
 
   e2e:
     name: e2e (${{ matrix.shard }}/2)

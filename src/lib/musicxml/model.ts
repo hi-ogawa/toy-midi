@@ -1,4 +1,4 @@
-import type { Locator, Note, TimeSignature } from "../../types";
+import type { Note, TimeSignature } from "../../types";
 import { range } from "../../utils/array";
 import { parseLocatorLabel } from "../locators";
 import {
@@ -6,6 +6,7 @@ import {
   type SpelledPitch,
   spellMidiPitch,
 } from "../pitch-spelling";
+import type { Locator } from "../runtime";
 import { resolveTabPosition, type TabPosition } from "../tab-annotation";
 import { getBeatsPerBar } from "../timeline";
 import {
@@ -53,7 +54,11 @@ export type QuantizedNote = PreparedNote & {
   pitch: SpelledPitch;
 };
 
-type PreparedLocator = Locator & {
+type PreparedLocator = {
+  id: string;
+  label: string;
+  /** In MusicXML grid units */
+  position: number;
   keySignature?: KeySignature;
 };
 
@@ -254,9 +259,9 @@ function prepareLocators({
 } {
   const preparedLocators: PreparedLocator[] = [];
   const keySignatureEvents: KeySignatureEvent[] = [];
-  for (const locator of locators.toSorted((a, b) => a.position - b.position)) {
+  for (const locator of locators.toSorted((a, b) => a.beat - b.beat)) {
     const position = toGridUnits(
-      locator.position,
+      locator.beat,
       `position of locator ${locator.id}`,
     );
     const parsed = parseLocatorLabel(locator);
