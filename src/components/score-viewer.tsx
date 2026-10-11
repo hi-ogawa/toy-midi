@@ -71,8 +71,6 @@ export function ScoreViewer({
     runtime.subscribe,
     runtime.getSnapshot,
   );
-  // Attach the score runtime to its root, and stop the clock and dispose the
-  // runtime on unmount.
   useEffect(() => {
     const root = runtimeRootRef.current;
     if (!root) {

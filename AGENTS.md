@@ -22,7 +22,7 @@
 - Add short narrative comments before each logical phase of an E2E test, describing the user action and expected behavior so the comments alone convey the scenario. Use direct, verb-led wording for actions, such as “Load a backing track.”
 - Before adding or increasing an E2E timeout, measure the relevant wait with `createCheckpoint()` from `e2e/helpers.ts`. Prefer Playwright's default timeout when it comfortably covers the measured duration. If a custom timeout is needed, allow reasonable headroom and document the measured duration beside it.
 - Order functions by reading flow, with primary entry points and callers before their implementation helpers
-- Lead each `useEffect` with a short comment saying what it does and what triggers it, such as “Stop auditioning when the selected note is cleared or removed”, because the dependency array hides the trigger. Skip the comment when the body is one self-evident statement, such as setting `document.title`
+- Comment a `useEffect` only when it carries its own block of logic, and describe the mechanism it maintains across renders. Effects that only set up and clean up need no comment
 - Comment only what the code cannot say, such as a non-obvious reason or a constraint the types do not show. Do not restate a name or type, do not describe other files, and state a rationale once, where it is enforced
 - Prefer `undefined` over `null`
 - Prefer optional properties (`{ x?: T }`) over explicit undefined (`{ x: T | undefined }`)
