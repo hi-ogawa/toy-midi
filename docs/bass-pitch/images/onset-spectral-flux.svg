@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="330" viewBox="0 0 900 330" role="img" aria-labelledby="title desc">
+<title id="title">Keep spectral growth, discard decay</title><desc id="desc">Four bands change by minus three, zero, six, and three decibels between frames. Positive differences are zero, zero, six, and three, averaging 2.25 decibels.</desc>
+<rect width="900" height="330" fill="white"/>
+<g font-family="sans-serif" font-size="14" fill="#334155">
+<text x="32" y="30" font-size="18" font-weight="bold">Compare successive log-power spectra</text>
+<text x="585" y="30" font-size="18" font-weight="bold">Keep only increases</text>
+<rect x="40" y="49" width="13" height="13" fill="#94a3b8"/><text x="60" y="61">Previous frame</text>
+<rect x="200" y="49" width="13" height="13" fill="#2563eb"/><text x="220" y="61">Current frame</text>
+<text x="32" y="91">Log power (dB, common reference)</text>
+<text x="585" y="91">Positive change (dB)</text>
+
+<path d="M65 238H455" stroke="#e2e8f0"/><text x="28" y="243">-18</text>
+<path d="M65 196H455" stroke="#e2e8f0"/><text x="28" y="201">-12</text>
+<path d="M65 154H455" stroke="#e2e8f0"/><text x="28" y="159">-6</text>
+<path d="M65 112H455" stroke="#e2e8f0"/><text x="28" y="117">0</text>
+<rect x="80" y="133" width="23" height="105" fill="#94a3b8"/>
+<rect x="105" y="154" width="23" height="84" fill="#2563eb"/>
+<text x="103" y="260" text-anchor="middle">1</text>
+<rect x="175" y="175" width="23" height="63" fill="#94a3b8"/>
+<rect x="200" y="175" width="23" height="63" fill="#2563eb"/>
+<text x="198" y="260" text-anchor="middle">2</text>
+<rect x="270" y="217" width="23" height="21" fill="#94a3b8"/>
+<rect x="295" y="175" width="23" height="63" fill="#2563eb"/>
+<text x="293" y="260" text-anchor="middle">3</text>
+<rect x="365" y="238" width="23" height="1" fill="#94a3b8"/>
+<rect x="390" y="217" width="23" height="21" fill="#2563eb"/>
+<text x="388" y="260" text-anchor="middle">4</text>
+<path d="M610 238H866" stroke="#e2e8f0"/><text x="589" y="243">0</text>
+<path d="M610 181H866" stroke="#e2e8f0"/><text x="589" y="186">3</text>
+<path d="M610 124H866" stroke="#e2e8f0"/><text x="589" y="129">6</text>
+<rect x="625" y="238" width="28" height="2" fill="#0d9488"/><text x="639" y="260" text-anchor="middle">1</text>
+<rect x="687" y="238" width="28" height="2" fill="#0d9488"/><text x="701" y="260" text-anchor="middle">2</text>
+<rect x="749" y="124" width="28" height="114" fill="#0d9488"/><text x="763" y="260" text-anchor="middle">3</text>
+<rect x="811" y="181" width="28" height="57" fill="#0d9488"/><text x="825" y="260" text-anchor="middle">4</text>
+<path d="M485 178H548m-9-7 9 7-9 7" fill="none" stroke="#475569" stroke-width="2"/>
+<text x="515" y="155" text-anchor="middle">subtract,</text><text x="515" y="210" text-anchor="middle">rectify</text>
+<text x="260" y="287" text-anchor="middle">Band (low → high frequency)</text>
+<text x="735" y="287" text-anchor="middle">Average = 2.25 dB</text>
+<text x="32" y="316" fill="#64748b">Illustrative band values. Spectral growth survives even while another band fades.</text>
+</g></svg>

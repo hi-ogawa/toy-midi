@@ -2,18 +2,25 @@ export type TabString = 1 | 2 | 3 | 4 | 5;
 
 export interface Note {
   id: string;
-  pitch: number; // MIDI note number (0-127, e.g. C4=60)
-  start: number; // Start time in beats
-  duration: number; // Duration in beats
-  velocity: number; // 0-127, default 100
+  /** MIDI note number (0-127, e.g. C4=60) */
+  pitch: number;
+  /** Start time in beats from the start of the project */
+  start: number;
+  /** Duration in beats */
+  duration: number;
+  /** 0-127, default 100 */
+  velocity: number;
+  /** Tab string, 1-based into the track's `tabOpenStringPitches` */
   tabString?: TabString;
 }
 
 export type GridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
 
 export interface TimeSignature {
-  numerator: number; // beats per bar (e.g., 3, 4, 5, 7)
-  denominator: number; // beat unit (e.g., 4 for quarter note, 8 for eighth note)
+  /** Beats per bar (e.g., 3, 4, 5, 7) */
+  numerator: number;
+  /** Beat unit (e.g., 4 for quarter note, 8 for eighth note) */
+  denominator: number;
 }
 
 export function parseTimeSignature(value: string): TimeSignature {

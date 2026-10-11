@@ -1,4 +1,4 @@
-import { createAudioClip } from "./audio-clip.ts";
+import { type AudioClip, createAudioClip } from "./audio-clip.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import {
   createDefaultEqBand,
@@ -8,11 +8,15 @@ import type { EqParameters } from "./dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
   type PersistableRuntimeState,
-  type RuntimeState,
   type ProjectLocator,
   type MidiTrackState,
 } from "./runtime.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
+
+// Projects saved before every audio track could record kept their takes on a
+// separate Capture track. Loading folds it into audioTracks under this id, and
+// it is an ordinary track from then on.
+const RECORDING_TRACK_ID = "__capture__";
 
 /**
  * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
@@ -20,10 +24,12 @@ import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
  */
 export interface SerializedRuntimeState<ChannelData = Float32Array> {
   title: string;
-  // Optional for recorder projects saved before locator support.
+  // 🟢 Optional for recorder projects saved before the project comment.
+  comment?: string;
+  // 🟢 Optional for recorder projects saved before locator support.
   locators?: ProjectLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
-  // Optional for recorder projects saved before MIDI track support.
+  // 🟢 Optional for recorder projects saved before MIDI track support.
   midiTracks?: (Omit<
     MidiTrackState,
     | "tabAnnotationEnabled"
@@ -36,19 +42,21 @@ export interface SerializedRuntimeState<ChannelData = Float32Array> {
     keySignature?: MidiTrackState["keySignature"];
     viewMode?: MidiTrackState["viewMode"];
   })[];
-  recordingTrack: {
-    // Optional for projects saved before track EQ support.
+  // 🟢 Optional for recorder projects saved before track reordering.
+  trackOrder?: string[];
+  // 🔴 Retained for projects saved with the Capture track outside audioTracks.
+  recordingTrack?: {
+    // 🟢 Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
     soloed: boolean;
     takes: SerializedAudioClip<ChannelData>[];
-    // Optional for recorder projects saved before multi-take support.
+    // 🟢 Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
-  latencyCompensation: number;
-  // Optional for recorder projects saved before mixer support.
+  // 🟢 Optional for recorder projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
   loop?: {
@@ -80,28 +88,38 @@ export interface SerializedRuntimeState<ChannelData = Float32Array> {
 }
 
 interface SerializedAudioTrackState<ChannelData> {
-  // Optional for projects saved before track EQ support.
+  // 🟢 Optional for projects saved before per-track clip visibility.
+  showClips?: boolean;
+  // 🟢 Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
+  // 🟢 Optional for projects saved before audio track names.
+  name?: string;
   height: number;
-  clip?: {
-    name: string;
-    pcm: Pcm<ChannelData>;
-  };
   gain: number;
   muted: boolean;
   soloed: boolean;
-  timelineOffset: number;
-  // optional for back compat
+  // 🟢 Optional for tracks saved before they could record takes.
+  nextTakeNumber?: number;
+  // 🟢 Optional for projects saved with a single clip per track.
+  clips?: SerializedAudioClip<ChannelData>[];
+  // 🔴 Retained for tracks saved with a single clip and track-level timing.
+  clip?: {
+    name: string;
+    gain?: number;
+    pcm: Pcm<ChannelData>;
+  };
+  timelineOffset?: number;
   trimStart?: number;
   trimEnd?: number;
 }
 
 interface SerializedAudioClip<ChannelData> {
-  // Optional for recorder projects saved before multi-take support.
+  // 🟢 Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
   name?: string;
+  gain?: number;
   muted?: boolean;
   soloed?: boolean;
   timelineOffset: number;
@@ -116,56 +134,26 @@ export interface Pcm<ChannelData> {
 }
 
 export function serializeRuntimeState(
-  state: RuntimeState,
+  state: PersistableRuntimeState,
 ): SerializedRuntimeState {
   return {
     title: state.title,
+    comment: state.comment,
     locators: state.locators,
-    audioTracks: state.audioTracks.map((track) => {
-      const clip = track.clips[0];
-      return {
-        id: track.id,
-        height: track.height,
-        clip: clip?.buffer
-          ? {
-              name: clip.name,
-              pcm: serializeAudioBuffer(clip.buffer),
-            }
-          : undefined,
-        eq: track.eq,
-        gain: track.gain,
-        muted: track.muted,
-        soloed: track.soloed,
-        timelineOffset: clip?.timelineOffset ?? 0,
-        trimStart: clip?.trimStart ?? 0,
-        trimEnd: clip?.trimEnd ?? 0,
-      };
-    }),
+    audioTracks: state.audioTracks.map((track) => ({
+      id: track.id,
+      name: track.name,
+      height: track.height,
+      eq: track.eq,
+      gain: track.gain,
+      muted: track.muted,
+      soloed: track.soloed,
+      nextTakeNumber: track.nextTakeNumber,
+      showClips: track.showClips,
+      clips: track.clips.map(serializeAudioClip),
+    })),
     midiTracks: state.midiTracks,
-    recordingTrack: {
-      height: state.recordingTrack.height,
-      eq: state.recordingTrack.eq,
-      gain: state.recordingTrack.gain,
-      muted: state.recordingTrack.muted,
-      soloed: state.recordingTrack.soloed,
-      nextTakeNumber: state.recordingTrack.nextTakeNumber,
-      takes: state.recordingTrack.clips.map((take) => {
-        if (!take.buffer) {
-          throw new Error("Recording take has no loaded buffer.");
-        }
-        return {
-          id: take.id,
-          name: take.name,
-          muted: take.muted,
-          soloed: take.soloed,
-          timelineOffset: take.timelineOffset,
-          trimStart: take.trimStart,
-          trimEnd: take.trimEnd,
-          pcm: serializeAudioBuffer(take.buffer),
-        };
-      }),
-    },
-    latencyCompensation: state.latencyCompensation,
+    trackOrder: state.trackOrder,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
     loop: state.loop,
@@ -183,37 +171,34 @@ export function deserializeRuntimeState({
   context: AudioContext;
   project: SerializedRuntimeState;
 }): PersistableRuntimeState {
+  const audioTracks = foldRecordingTrack(project);
+  // Unnamed tracks keep the labels they were shown with: Capture, and ordinary
+  // tracks numbered in order without it.
+  const ordinaryTrackIds = audioTracks
+    .filter((track) => track.id !== RECORDING_TRACK_ID)
+    .map((track) => track.id);
   return {
     title: project.title,
+    comment: project.comment ?? "",
     locators: project.locators ?? [],
-    audioTracks: project.audioTracks.map((track) => {
-      const buffer = track.clip
-        ? deserializeAudioBuffer(context, track.clip.pcm)
-        : undefined;
-      return {
-        id: track.id,
-        nextTakeNumber: 1,
-        height: track.height,
-        clips:
-          track.clip && buffer
-            ? [
-                {
-                  ...createAudioClip({
-                    buffer,
-                    name: track.clip.name,
-                  }),
-                  timelineOffset: track.timelineOffset,
-                  trimStart: track.trimStart ?? 0,
-                  trimEnd: track.trimEnd ?? buffer.duration,
-                },
-              ]
-            : [],
-        eq: deserializeEq(track.eq),
-        gain: track.gain,
-        muted: track.muted,
-        soloed: track.soloed,
-      };
-    }),
+    audioTracks: audioTracks.map((track) => ({
+      id: track.id,
+      name:
+        track.name ??
+        (track.id === RECORDING_TRACK_ID
+          ? "Capture"
+          : `Audio ${ordinaryTrackIds.indexOf(track.id) + 1}`),
+      nextTakeNumber: track.nextTakeNumber ?? 1,
+      showClips: track.showClips ?? track.id === RECORDING_TRACK_ID,
+      height: track.height,
+      clips: getTrackClips(track).map((clip, index) =>
+        deserializeAudioClip({ context, clip, index }),
+      ),
+      eq: deserializeEq(track.eq),
+      gain: track.gain,
+      muted: track.muted,
+      soloed: track.soloed,
+    })),
     midiTracks: (project.midiTracks ?? []).map((track) => ({
       ...track,
       viewMode: track.viewMode ?? "editor",
@@ -224,33 +209,8 @@ export function deserializeRuntimeState({
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       eq: deserializeEq(track.eq),
     })),
-    recordingTrack: {
-      id: crypto.randomUUID(),
-      height: project.recordingTrack.height,
-      eq: deserializeEq(project.recordingTrack.eq),
-      gain: project.recordingTrack.gain,
-      muted: project.recordingTrack.muted,
-      soloed: project.recordingTrack.soloed,
-      nextTakeNumber:
-        project.recordingTrack.nextTakeNumber ??
-        project.recordingTrack.takes.length + 1,
-      clips: project.recordingTrack.takes.map((take, index) => {
-        const buffer = deserializeAudioBuffer(context, take.pcm);
-        return {
-          ...createAudioClip({
-            id: take.id,
-            buffer,
-            name: take.name ?? `Take ${take.number ?? index + 1}`,
-          }),
-          timelineOffset: take.timelineOffset,
-          muted: take.muted ?? false,
-          soloed: take.soloed ?? false,
-          trimStart: take.trimStart ?? 0,
-          trimEnd: take.trimEnd ?? buffer.duration,
-        };
-      }),
-    },
-    latencyCompensation: project.latencyCompensation,
+    // The runtime fills in tracks missing from older or partial orders.
+    trackOrder: project.trackOrder ?? [],
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
     loop: project.loop ?? { enabled: false },
@@ -258,6 +218,96 @@ export function deserializeRuntimeState({
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
+  };
+}
+
+/** Keep the former Capture track after ordinary audio tracks, as the old UI did. */
+function foldRecordingTrack(
+  project: SerializedRuntimeState,
+): SerializedAudioTrackState<Float32Array>[] {
+  const { recordingTrack } = project;
+  if (!recordingTrack) {
+    // Earlier saves already stored Capture in audioTracks, usually first, but
+    // the UI split it out and rendered it last. Preserve that displayed order.
+    return project.audioTracks.toSorted(
+      (a, b) =>
+        Number(a.id === RECORDING_TRACK_ID) -
+        Number(b.id === RECORDING_TRACK_ID),
+    );
+  }
+  const { takes, ...track } = recordingTrack;
+  return [
+    ...project.audioTracks,
+    {
+      ...track,
+      id: RECORDING_TRACK_ID,
+      nextTakeNumber: track.nextTakeNumber ?? takes.length + 1,
+      clips: takes,
+    },
+  ];
+}
+
+function serializeAudioClip(
+  clip: AudioClip,
+): SerializedAudioClip<Float32Array> {
+  if (!clip.buffer) {
+    throw new Error("Audio clip has no loaded buffer.");
+  }
+  return {
+    id: clip.id,
+    name: clip.name,
+    gain: clip.gain,
+    muted: clip.muted,
+    soloed: clip.soloed,
+    timelineOffset: clip.timelineOffset,
+    trimStart: clip.trimStart,
+    trimEnd: clip.trimEnd,
+    pcm: serializeAudioBuffer(clip.buffer),
+  };
+}
+
+// Older saves store at most one clip with its timing on the track.
+function getTrackClips(
+  track: SerializedAudioTrackState<Float32Array>,
+): SerializedAudioClip<Float32Array>[] {
+  if (track.clips) {
+    return track.clips;
+  }
+  if (!track.clip) {
+    return [];
+  }
+  return [
+    {
+      ...track.clip,
+      timelineOffset: track.timelineOffset ?? 0,
+      trimStart: track.trimStart,
+      trimEnd: track.trimEnd,
+    },
+  ];
+}
+
+function deserializeAudioClip({
+  context,
+  clip,
+  index,
+}: {
+  context: AudioContext;
+  clip: SerializedAudioClip<Float32Array>;
+  index: number;
+}): AudioClip {
+  const buffer = deserializeAudioBuffer(context, clip.pcm);
+  return {
+    ...createAudioClip({
+      id: clip.id,
+      buffer,
+      name: clip.name ?? `Take ${clip.number ?? index + 1}`,
+    }),
+    timelineOffset: clip.timelineOffset,
+    gain: clip.gain ?? 1,
+    muted: clip.muted ?? false,
+    soloed: clip.soloed ?? false,
+    trimStart: clip.trimStart ?? 0,
+    trimEnd: clip.trimEnd ?? buffer.duration,
   };
 }
 

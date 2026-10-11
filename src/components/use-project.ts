@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { projectStorage } from "../lib/editor-project-storage";
+import type { ProjectUiStore } from "../lib/preferences";
 import { Runtime } from "../lib/runtime";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
@@ -11,9 +12,11 @@ export type UseProjectResult = ReturnType<typeof useProject>;
 export function useProject({
   projectId,
   runtime,
+  projectUiStore,
 }: {
   projectId: string;
   runtime: Runtime;
+  projectUiStore: ProjectUiStore;
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
@@ -28,6 +31,11 @@ export function useProject({
         projectStorage.load(projectId),
       ]);
       await runtime.deserializeProject(project);
+      // Loading seeks to the start, so return to where the project was left.
+      const { playhead } = projectUiStore.store.get();
+      if (playhead !== undefined) {
+        runtime.seek(playhead);
+      }
       return true;
     },
   });
@@ -57,6 +65,20 @@ export function useProject({
     return runtime.subscribePersistableState(() => {
       revisionRef.current += 1;
       setDirty(true);
+    });
+  }, [projectQuery.isSuccess, runtime]);
+
+  // Store the playhead where it stops, skipping playback, which moves it every
+  // animation frame.
+  useEffect(() => {
+    if (!projectQuery.isSuccess) {
+      return;
+    }
+    return runtime.store.subscribeWithSelector({
+      selector: (state) => (state.isPlaying ? undefined : state.position),
+      listener: () =>
+        projectUiStore.update({ playhead: runtime.store.get().position }),
+      equals: Object.is,
     });
   }, [projectQuery.isSuccess, runtime]);
 

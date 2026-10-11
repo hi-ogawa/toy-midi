@@ -3,6 +3,7 @@
 ## Architecture
 
 - [Architecture overview](architecture.md): project state, persistence, monitoring, and latency.
+- [Audio signal flow](audio-signal-flow.md): how audio routes from the input and every track to the speakers.
 
 ## Concepts
 
@@ -13,12 +14,7 @@
 
 ## Bass Pitch
 
-- [Development history](bass-pitch/history.md): Python evaluation, Rust/WASM port, validation, and current workflow.
-- [Rust development](rust-development.md): source override and preview-package workflow for Rust changes.
-- [Algorithm](bass-pitch/algorithm.md): current signal path and transcription decisions.
-- [Algorithm visual](bass-pitch/algorithm.html): visual companion to the algorithm document ([preview](https://raw.githack.com/hi-ogawa/toy-midi/bass-pitch/docs/bass-pitch/algorithm.html)).
-- [pYIN algorithm](bass-pitch/pyin.md): detailed explanation of pitch detection and Viterbi decoding.
-- [pYIN visual](bass-pitch/pyin.html): visual companion to the pYIN document ([preview](https://raw.githack.com/hi-ogawa/toy-midi/bass-pitch/docs/bass-pitch/pyin.html)).
+- [Bass pitch transcription](bass-pitch/README.md): pipeline, pYIN explanation, visual companions, and development workflow.
 
 ## References
 

@@ -1,9 +1,14 @@
 import { routes } from "../lib/routes";
+import { BrowserStoragePreview } from "./browser-storage-preview";
 import { EffectsPreview } from "./effects-preview";
 import { HelpPreview } from "./help-preview";
 import { TunerPreview } from "./tuner-preview";
 
 const PREVIEWS = [
+  {
+    label: "Browser storage dialog",
+    component: BrowserStoragePreview,
+  },
   {
     label: "Recorder effects",
     component: EffectsPreview,

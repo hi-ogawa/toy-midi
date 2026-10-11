@@ -1,3 +1,4 @@
+import { createAvailableName } from "../utils/name.ts";
 import { IdbStore } from "./idb.ts";
 import {
   type SerializedRuntimeState,
@@ -39,9 +40,12 @@ export const projectStorage = {
   },
 
   async create(): Promise<string> {
-    return this.createWithContent(
-      serializeRuntimeState(createDefaultRuntimeState()),
-    );
+    const state = createDefaultRuntimeState();
+    state.title = createAvailableName({
+      names: (await this.list()).map((project) => project.title),
+      baseName: state.title,
+    });
+    return this.createWithContent(serializeRuntimeState(state));
   },
 
   async createWithContent(content: SerializedRuntimeState): Promise<string> {

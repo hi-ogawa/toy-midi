@@ -11,6 +11,7 @@ A browser-based tool for practicing with backing tracks, recording an instrument
 - Practice with variable playback speed, a metronome, locators, and synchronized YouTube reference video.
 - Mix tracks with gain, mute, solo, and parametric EQ, then export audio as WAV.
 - Save projects in your browser and import or export portable project archives.
+- Render scrolling score videos from MusicXML for video editing with the standalone [score video CLI](packages/score-video/README.md).
 
 ## Development
 

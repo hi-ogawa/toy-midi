@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { getCaptureInputs, requestCaptureAccess } from "../lib/capture-input";
+import { preferences } from "../lib/preferences";
 import { Runtime, RuntimeState } from "../lib/runtime";
-import { usePreference } from "./use-preference";
 
 export function useInput({
   runtime,
@@ -12,7 +12,7 @@ export function useInput({
   state: RuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
-  const [inputPreference, setInputPreference] = usePreference("input");
+  const [inputPreference, setInputPreference] = preferences.useValue("input");
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(inputPreference?.deviceId);
 
@@ -119,9 +119,15 @@ export function useInput({
     },
     setLatencyCompensation: (latencyCompensation: number) => {
       runtime.setLatencyCompensation(latencyCompensation);
-      setInputPreference((current) =>
-        current ? { ...current, latencyCompensation } : undefined,
-      );
+      if (!deviceId) {
+        return;
+      }
+      setInputPreference((current) => ({
+        ...current,
+        deviceId,
+        channel: state.selectedChannel,
+        latencyCompensation,
+      }));
     },
     toggle: () => {
       if (!hasAccess) {

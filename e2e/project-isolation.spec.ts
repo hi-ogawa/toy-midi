@@ -11,10 +11,15 @@ import {
 test("keeps notes, audio, and tempo isolated between saved projects", async ({
   page,
 }) => {
-  // Save the first project with C4, backing audio, and a distinct tempo.
+  // Create Untitled and save it with C4, backing audio, and a distinct tempo.
   await createProject(page);
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Untitled",
+  );
   const firstUrl = page.url();
   await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(2);
+  await expect(page.getByTestId("recorder-clip-audio")).toHaveCount(1);
   let row = await addMidiTrack(page);
   await createMidiNote(page, row, { beat: 0, pitch: "C4" });
   const tempo = page.getByTestId("recorder-tempo-input");
@@ -22,11 +27,15 @@ test("keeps notes, audio, and tempo isolated between saved projects", async ({
   await tempo.press("Enter");
   await saveProject(page);
 
-  // Save another project with E4 and its own tempo, without inheriting audio.
+  // Create Untitled 2 and save it with E4 and its own tempo, without inheriting audio.
   await createProject(page);
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Untitled 2",
+  );
   const secondUrl = page.url();
   expect(secondUrl).not.toBe(firstUrl);
-  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(0);
+  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(1);
+  await expect(page.getByTestId("recorder-clip-audio")).toHaveCount(0);
   await expect(page.getByTestId("recorder-midi-track-row")).toHaveCount(0);
   await expect(tempo).toHaveValue("120");
   row = await addMidiTrack(page);
@@ -47,6 +56,7 @@ test("keeps notes, audio, and tempo isolated between saved projects", async ({
   await page.goto(secondUrl);
   await expect(row.locator("[data-note-id]")).toHaveCount(1);
   await expect(getMidiNote(row, { beat: 1, pitch: "E4" })).toBeVisible();
-  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(0);
+  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(1);
+  await expect(page.getByTestId("recorder-clip-audio")).toHaveCount(0);
   await expect(tempo).toHaveValue("140");
 });

@@ -21,6 +21,7 @@ for (const suffix of ["", "/score"]) {
     // Follow the notice home and find the original available for manual migration.
     await page.getByRole("link", { name: "Back to projects" }).click();
     await expect(page.getByText("No projects yet")).toBeVisible();
+    await page.getByRole("button", { name: "View legacy projects" }).click();
     const legacy = page.getByRole("region", { name: "Legacy projects" });
     await expect(legacy).toContainText("Bookmarked song");
     await expect(

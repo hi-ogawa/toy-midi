@@ -1,3 +1,4 @@
+import { projectStorage } from "./lib/editor-project-storage";
 import {
   legacyProjectStorage,
   seedProjectLegacyV2,
@@ -10,6 +11,7 @@ const utils = {
   seedProjectLegacyV2,
   seedProjectLegacyV1,
   seedLegacyLayoutV1Project,
+  projectStorage,
 };
 
 window.__e2e = utils;

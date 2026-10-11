@@ -10,6 +10,7 @@ export const routes = route({
   project: "/recorder/:projectId",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
+  scoreCapture: "/score-capture",
   legacyProject: "/project/:projectId",
   legacyProjectScore: "/project/:projectId/score",
 });

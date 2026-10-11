@@ -4,7 +4,7 @@ The application normally consumes a prebuilt `@hiogawa/bass-pitch-wasm` package 
 
 Rust changes use a two-phase pull request workflow so the application first tests the workspace source and then verifies the exact published artifact. The workspace override is the only build-mode switch: local builds, CI, and Cloudflare automatically build Rust when it is enabled and otherwise use the prebuilt package.
 
-## Develop From Source
+## Develop from Source
 
 Run `pnpm override-wasm`, then install dependencies and commit the resulting workspace and lockfile changes. This adds the following override to `pnpm-workspace.yaml`:
 
@@ -15,7 +15,7 @@ overrides:
 
 No scripts or workflows need changing. `pnpm build-wasm` detects that pnpm resolved the dependency to the workspace and builds it. The existing application build, CI, and Cloudflare commands call this script, so they all consume the modified Rust implementation.
 
-## Verify The Preview Package
+## Verify the Preview Package
 
 After the pkg.pr.new workflow publishes the pull request commit:
 

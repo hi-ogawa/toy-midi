@@ -78,9 +78,7 @@ export function AudioToMidi({
       const destination = state.midiTracks.find(
         (candidate) => candidate.id === track.id,
       );
-      const source = [...state.audioTracks, state.recordingTrack].find(
-        (track) => track.id === sourceId,
-      );
+      const source = state.audioTracks.find((track) => track.id === sourceId);
       if (!destination || !source) {
         throw new Error("The source or destination track is missing.");
       }
@@ -245,18 +243,17 @@ export function AudioToMidi({
 }
 
 function getTranscriptionSources(state: RuntimeState) {
-  return [
-    ...state.audioTracks.map((source, index) => ({
-      track: source,
-      label: `Audio ${index + 1}${source.clips[0] ? ` · ${source.clips[0].name}` : ""}`,
-    })),
-    { track: state.recordingTrack, label: "Capture · committed takes" },
-  ].filter(({ track }) =>
-    track.regions.some(
-      ({ clip, timelineStart, timelineEnd }) =>
-        clip.buffer && timelineEnd > Math.max(0, timelineStart),
-    ),
-  );
+  return state.audioTracks
+    .map((track) => ({
+      track,
+      label: track.name,
+    }))
+    .filter(({ track }) =>
+      track.regions.some(
+        ({ clip, timelineStart, timelineEnd }) =>
+          clip.buffer && timelineEnd > Math.max(0, timelineStart),
+      ),
+    );
 }
 
 function ParamSlider({

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { ProjectUiStore } from "../lib/preferences";
 import {
   DEFAULT_GRID_DIVISION,
   getBeatsPerBar,
@@ -9,14 +10,15 @@ import {
   secondsToBeats,
 } from "../lib/timeline";
 import type { TimeSignature } from "../types";
-import { usePreference } from "./use-preference";
 
 export function useTimeline({
+  projectUiStore,
   isPlaying,
   position,
   tempo,
   timeSignature,
 }: {
+  projectUiStore: ProjectUiStore;
   isPlaying: boolean;
   position: number;
   tempo: number;
@@ -26,11 +28,12 @@ export function useTimeline({
     DEFAULT_GRID_DIVISION,
   );
   const [autoScrollEnabled, setAutoScrollEnabled] =
-    usePreference("autoScrollEnabled");
-  const [pixelsPerBeat, setPixelsPerBeat] = usePreference(
+    projectUiStore.useValue("autoScrollEnabled");
+  const [pixelsPerBeat, setPixelsPerBeat] = projectUiStore.useValue(
     "timelinePixelsPerBeat",
   );
-  const [viewportStartBeat, setViewportStartBeat] = useState(0);
+  const [viewportStartBeat, setViewportStartBeat] =
+    projectUiStore.useValue("timelineStartBeat");
   const [viewportWidth, setViewportWidth] = useState(0);
   const beatsPerBar = getBeatsPerBar(timeSignature);
   const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];

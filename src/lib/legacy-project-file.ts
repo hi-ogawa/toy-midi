@@ -39,7 +39,8 @@ interface ParsedLegacyProjectFile {
 }
 
 /**
- * Export a project to a .toymidi ZIP file
+ * Export a project to a .toymidi ZIP file. Only E2E tests call this now,
+ * directly from Node, to build legacy archives for import.
  */
 export async function exportLegacyProjectFile(
   projectName: string,
@@ -93,7 +94,7 @@ export async function exportLegacyProjectFile(
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
-// for test migration
+// Only E2E tests call this, directly from Node, to build v1 legacy archives.
 export async function exportLegacyProjectFileV1(
   projectName: string,
   projectData: LegacySavedProjectV1,

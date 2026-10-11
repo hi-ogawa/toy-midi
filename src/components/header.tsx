@@ -8,6 +8,7 @@ import {
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
+  MicIcon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -15,6 +16,7 @@ import {
   SaveIcon,
   VideoIcon,
   SlidersVerticalIcon,
+  NotebookPenIcon,
 } from "lucide-react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useTapTempo } from "../hooks/use-tap-tempo";
@@ -39,6 +41,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -80,8 +83,12 @@ export function Header({
   onExportAudio,
   onReferenceVideoOpenChange,
   onMixerToggle,
+  onProjectCommentToggle,
   onHelpOpen,
   mixerOpen,
+  inputPanelOpen,
+  inputAccessRequired,
+  onInputPanelToggle,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
@@ -117,8 +124,12 @@ export function Header({
   onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
+  onProjectCommentToggle: () => void;
   onHelpOpen: () => void;
   mixerOpen: boolean;
+  inputPanelOpen: boolean;
+  inputAccessRequired: boolean;
+  onInputPanelToggle: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -137,7 +148,7 @@ export function Header({
       <Button
         data-testid="recorder-play-button"
         onClick={onPlayToggle}
-        disabled={flags.playDisabled}
+        disabled={flags.transportDisabled}
         aria-pressed={isPlaying}
         className={cn(
           "size-9",
@@ -158,7 +169,7 @@ export function Header({
       <Button
         data-testid="recorder-record-button"
         onClick={onRecordToggle}
-        disabled={flags.recordDisabled}
+        disabled={flags.transportDisabled}
         aria-pressed={flags.isRecording}
         className={cn(
           "size-9",
@@ -383,21 +394,44 @@ export function Header({
       >
         <SlidersVerticalIcon className="size-5" />
       </Button>
+      <Button
+        data-testid="recorder-input-panel-button"
+        onClick={onInputPanelToggle}
+        aria-pressed={inputPanelOpen}
+        title={
+          inputAccessRequired
+            ? "Audio Input (microphone access required)"
+            : "Audio Input"
+        }
+        className={cn(
+          "size-9",
+          inputAccessRequired
+            ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
+            : inputPanelOpen
+              ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+              : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
+        )}
+      >
+        <MicIcon className="size-5" />
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            title="More"
-            aria-label="More"
+            title="Editor menu"
+            aria-label="Editor menu"
             className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
             <MoreVerticalIcon className="size-5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onHelpOpen}>
-            <CircleHelpIcon />
-            Help & Shortcuts
+          {/* Grouped from the project outward: working in it, taking it
+              out, getting help, then leaving it. */}
+          <DropdownMenuItem onSelect={onProjectCommentToggle}>
+            <NotebookPenIcon />
+            Project Comment
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={flags.isRecording}
             onSelect={onExportAudio}
@@ -423,6 +457,12 @@ export function Header({
               </span>
             </span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onHelpOpen}>
+            <CircleHelpIcon />
+            Help & Shortcuts
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />

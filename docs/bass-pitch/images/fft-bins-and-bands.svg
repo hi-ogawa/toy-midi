@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="365" viewBox="0 0 900 365" role="img" aria-labelledby="title desc">
+<title id="title">Frequency bins grouped into bands within one audio frame</title><desc id="desc">Ten equally spaced FFT bins have illustrative powers 2, 5, 1, 4, 2, 1, 3, 6, 2, 1. Grouping the first two, next three, and last five bins gives band powers 7, 7, and 13.</desc>
+<rect width="900" height="365" fill="white"/>
+<g font-family="sans-serif" font-size="14" fill="#334155">
+<text x="24" y="30" font-size="19" font-weight="bold">One audio frame → power at frequency bins → power in bands</text>
+<text x="24" y="59" fill="#64748b">Horizontal position is frequency, not time. Colors mark which bins belong to each band.</text>
+<text x="24" y="105" font-weight="bold">FFT bins</text><text x="24" y="128">Bar height = power</text>
+
+<rect x="170" y="78" width="124" height="133" fill="#dbeafe"/>
+<rect x="191" y="170" width="20" height="30" fill="#2563eb"/><text x="201" y="161" text-anchor="middle">2</text><text x="201" y="229" text-anchor="middle">0</text>
+<rect x="253" y="125" width="20" height="75" fill="#2563eb"/><text x="263" y="116" text-anchor="middle">5</text><text x="263" y="229" text-anchor="middle">1</text>
+<path d="M178 246V252H286V246 M232.0 252V273m-5-6 5 6 5-6" fill="none" stroke="#2563eb"/>
+<rect x="173" y="282" width="118" height="43" rx="4" fill="#dbeafe" stroke="#2563eb"/><text x="232.0" y="309" text-anchor="middle" font-weight="bold">A: 7</text>
+<rect x="294" y="78" width="186" height="133" fill="#ccfbf1"/>
+<rect x="315" y="185" width="20" height="15" fill="#0f766e"/><text x="325" y="176" text-anchor="middle">1</text><text x="325" y="229" text-anchor="middle">2</text>
+<rect x="377" y="140" width="20" height="60" fill="#0f766e"/><text x="387" y="131" text-anchor="middle">4</text><text x="387" y="229" text-anchor="middle">3</text>
+<rect x="439" y="170" width="20" height="30" fill="#0f766e"/><text x="449" y="161" text-anchor="middle">2</text><text x="449" y="229" text-anchor="middle">4</text>
+<path d="M302 246V252H472V246 M387.0 252V273m-5-6 5 6 5-6" fill="none" stroke="#0f766e"/>
+<rect x="297" y="282" width="180" height="43" rx="4" fill="#ccfbf1" stroke="#0f766e"/><text x="387.0" y="309" text-anchor="middle" font-weight="bold">B: 7</text>
+<rect x="480" y="78" width="310" height="133" fill="#ffedd5"/>
+<rect x="501" y="185" width="20" height="15" fill="#c2410c"/><text x="511" y="176" text-anchor="middle">1</text><text x="511" y="229" text-anchor="middle">5</text>
+<rect x="563" y="155" width="20" height="45" fill="#c2410c"/><text x="573" y="146" text-anchor="middle">3</text><text x="573" y="229" text-anchor="middle">6</text>
+<rect x="625" y="110" width="20" height="90" fill="#c2410c"/><text x="635" y="101" text-anchor="middle">6</text><text x="635" y="229" text-anchor="middle">7</text>
+<rect x="687" y="170" width="20" height="30" fill="#c2410c"/><text x="697" y="161" text-anchor="middle">2</text><text x="697" y="229" text-anchor="middle">8</text>
+<rect x="749" y="185" width="20" height="15" fill="#c2410c"/><text x="759" y="176" text-anchor="middle">1</text><text x="759" y="229" text-anchor="middle">9</text>
+<path d="M488 246V252H782V246 M635.0 252V273m-5-6 5 6 5-6" fill="none" stroke="#c2410c"/>
+<rect x="483" y="282" width="304" height="43" rx="4" fill="#ffedd5" stroke="#c2410c"/><text x="635.0" y="309" text-anchor="middle" font-weight="bold">C: 13</text>
+<text x="24" y="229">Bin index k</text><text x="803" y="229">→ frequency</text>
+<text x="24" y="300" font-weight="bold">Band power</text><text x="24" y="320">Sum of bin powers</text>
+<text x="24" y="353" fill="#64748b">Illustrative powers and band boundaries. FFT bins are equally spaced; bands can have different widths.</text>
+</g></svg>

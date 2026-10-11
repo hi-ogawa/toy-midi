@@ -18,10 +18,7 @@ interface Mix {
 /** Snapshot committed audio at 1x, independent of transport and reference audio. */
 export function resolveMix(state: RuntimeState): Mix {
   const gains = deriveTrackMix(state);
-  const tracks: Mix["tracks"] = [
-    ...state.audioTracks,
-    state.recordingTrack,
-  ].map((track) => ({
+  const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
     eq: track.eq,
     gain: gains.get(track.id)!,
     regions: getClipSources(track.regions),
@@ -71,7 +68,9 @@ export async function renderMix({
     for (const region of track.regions) {
       const source = context.createBufferSource();
       source.buffer = region.buffer;
-      source.connect(channel.input);
+      const gain = context.createGain();
+      gain.gain.value = region.gain;
+      source.connect(gain).connect(channel.input);
       source.start(
         region.timelineStart,
         region.timelineStart - region.timelineOffset,
@@ -82,7 +81,7 @@ export async function renderMix({
   return context.startRendering();
 }
 
-/** Render raw sources to mono, cropping pre-zero audio and returning the timeline offset in seconds. */
+/** Render raw sources to mono, ignoring clip playback gain, cropping pre-zero audio and returning the timeline offset in seconds. */
 export async function renderAudioSources(
   sources: readonly AudioPlaybackSource[],
 ): Promise<{ buffer: AudioBuffer; offset: number }> {
@@ -120,12 +119,8 @@ export async function renderAudioSources(
 export function deriveTrackMix({
   audioTracks,
   midiTracks,
-  recordingTrack,
-}: Pick<RuntimeState, "audioTracks" | "midiTracks" | "recordingTrack">): Map<
-  string,
-  number
-> {
-  const tracks = [...audioTracks, ...midiTracks, recordingTrack];
+}: Pick<RuntimeState, "audioTracks" | "midiTracks">): Map<string, number> {
+  const tracks = [...audioTracks, ...midiTracks];
   const audibleTracks = new Set(getAudibleItems(tracks));
   return new Map(
     tracks.map((track) => [

@@ -59,6 +59,11 @@
   }
 }
 
+/* Drop the workspace sheet shadow from captured frames. */
+.score-capture [data-testid="score-viewer-sheet"] {
+  box-shadow: none;
+}
+
 /* Present OSMD's page SVGs as separate sheets on the workspace. */
 .score-viewer-root-paged [data-testid="score-viewer-renderer"] {
   display: flex;
