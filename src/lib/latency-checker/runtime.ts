@@ -4,7 +4,7 @@ import {
   type AudioPlayback,
 } from "../audio-playback.ts";
 import { dbToGain } from "../music.ts";
-import type { RecorderRuntime } from "../recorder/runtime.ts";
+import type { EditorRuntime } from "../runtime.ts";
 import {
   analyzeCalibration,
   type CalibrationResult,
@@ -26,7 +26,7 @@ export type PreviewVariant = "raw" | "compensated";
 
 /** Run one calibration against an input already owned by an audio runtime. */
 export async function measureLatency(
-  runtime: RecorderRuntime,
+  runtime: EditorRuntime,
   { outputLevel }: { outputLevel: number },
 ): Promise<CalibrationResult> {
   const { context, captureInput } = runtime;

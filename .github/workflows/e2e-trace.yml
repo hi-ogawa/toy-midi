@@ -26,7 +26,7 @@ on:
         default: main
         type: string
       tests:
-        description: Space-separated Playwright file filters (for example e2e/recorder-midi.spec.ts e2e/recorder-mix.spec.ts)
+        description: Space-separated Playwright file filters (for example e2e/midi.spec.ts e2e/mix.spec.ts)
         required: true
         type: string
       server:

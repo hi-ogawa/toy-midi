@@ -16,12 +16,11 @@ import {
   measureLatency,
   type PreviewVariant,
 } from "../lib/latency-checker/runtime";
-import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
+import { EditorRuntime } from "../lib/runtime";
 import { pluralCount } from "../utils/plural-count";
+import { InputDiagnostics } from "./input-diagnostics";
 import { InputMeter } from "./input-meter";
-import { InputDiagnostics } from "./recorder/recorder-input-diagnostics";
-import { useRecorderInput } from "./recorder/use-recorder-input";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -30,14 +29,15 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
+import { useInput } from "./use-input";
 
 export function LatencyChecker() {
-  const [runtime] = useState(() => new RecorderRuntime());
+  const [runtime] = useState(() => new EditorRuntime());
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
   );
-  const input = useRecorderInput({ runtime, state });
+  const input = useInput({ runtime, state });
   const {
     devices,
     selectedDevice,
@@ -300,7 +300,7 @@ function ResultsView({
   runtime,
 }: {
   result: LatencyResult;
-  runtime: RecorderRuntime;
+  runtime: EditorRuntime;
 }) {
   const { measurements } = result.calibration.analysis;
   const { sampleRate } = result.calibration;

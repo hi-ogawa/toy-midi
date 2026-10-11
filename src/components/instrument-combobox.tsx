@@ -1,7 +1,7 @@
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { useState } from "react";
 import { DRUM_KIT_BANK, DRUM_KITS, GM_PROGRAMS } from "../lib/general-midi";
-import type { MidiPreset } from "../lib/recorder/runtime";
+import type { MidiPreset } from "../lib/runtime";
 import { Button } from "./ui/button";
 import {
   Command,

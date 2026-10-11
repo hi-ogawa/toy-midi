@@ -7,7 +7,7 @@ import { createMultiMatcher, type Match } from "@remix-run/route-pattern/match";
 export const routes = route({
   home: "/",
   preview: "/_preview",
-  recorderProject: "/recorder/:projectId",
+  project: "/recorder/:projectId",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
   scoreCapture: "/score-capture",
@@ -38,9 +38,6 @@ export function matchRoute(url: string | URL) {
   return matcher.match(url) as RouteMatch | null;
 }
 
-export function getRecorderScoreHref(params: {
-  projectId: string;
-  trackId: string;
-}) {
+export function getScoreHref(params: { projectId: string; trackId: string }) {
   return `${routes.scoreViewer.href()}?${new URLSearchParams(params)}`;
 }

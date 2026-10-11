@@ -2,9 +2,9 @@ import {
   KEY_SIGNATURE_OPTION_GROUPS,
   type KeySignature,
 } from "./pitch-spelling";
-import type { RecorderLocator } from "./recorder/runtime";
+import type { Locator } from "./runtime";
 
-export function parseLocatorLabel(locator: RecorderLocator): {
+export function parseLocatorLabel(locator: Locator): {
   label: string;
   keySignature?: KeySignature;
 } {

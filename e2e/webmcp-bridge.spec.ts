@@ -1,12 +1,12 @@
 import { expect } from "@playwright/test";
-import { createRecorderProject } from "./recorder-helpers";
+import { createProject } from "./editor-helpers";
 import { extensionTest, test } from "./webmcp-bridge-helpers";
 
 extensionTest(
   "drives the open project from the webmcp-bridge command",
   async ({ page, bridge, extension }) => {
     // Open a project, and see that it does not connect before the tab opts in.
-    await createRecorderProject(page);
+    await createProject(page);
     expect(JSON.parse((await bridge.run(["pages"])).stdout)).toEqual([]);
 
     // Opt the tab in from the extension, and see it connect and the badge say so.
@@ -81,7 +81,7 @@ test("connects the open project to the bridge from the URL parameter", async ({
 }) => {
   // Open a project with `?webmcp-bridge` in a browser without the extension,
   // so the page connects by itself.
-  await createRecorderProject(page);
+  await createProject(page);
   await page.goto(`${page.url()}?webmcp-bridge=${bridge.port}`);
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();
   await expect
@@ -107,7 +107,7 @@ test.describe(() => {
     baseURL,
   }) => {
     // Open a project with the bridge enabled, and see the bridge refuse it.
-    await createRecorderProject(page);
+    await createProject(page);
     await page.goto(`${page.url()}?webmcp-bridge=${bridge.port}`);
     await expect(page.getByTestId("recorder-project-name")).toBeVisible();
     expect(JSON.parse((await bridge.run(["pages"])).stdout)).toEqual([]);
@@ -130,7 +130,7 @@ extensionTest.describe(() => {
     "retries a refused tab once its site is allowed",
     async ({ page, bridge, baseURL, extension }) => {
       // Open a project, turn the tab on, and see the bridge refuse it.
-      await createRecorderProject(page);
+      await createProject(page);
       await extension.toggleTab(page);
       await expect.poll(() => extension.getBadgeText(page)).toBe("!");
 

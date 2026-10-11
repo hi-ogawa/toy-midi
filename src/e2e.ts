@@ -4,14 +4,14 @@ import {
   seedLegacyProjectV1,
   seedLegacyLayoutV1Project,
 } from "./lib/legacy-project-storage";
-import { recorderProjectStorage } from "./lib/recorder/project-storage";
+import { projectStorage } from "./lib/project-storage";
 
 const utils = {
   legacyProjectStorage,
   seedLegacyProjectV2,
   seedLegacyProjectV1,
   seedLegacyLayoutV1Project,
-  recorderProjectStorage,
+  projectStorage,
 };
 
 window.__e2e = utils;

@@ -6,7 +6,7 @@ import {
   type SpelledPitch,
   spellMidiPitch,
 } from "../pitch-spelling";
-import type { RecorderLocator } from "../recorder/runtime";
+import type { Locator } from "../runtime";
 import { resolveTabPosition, type TabPosition } from "../tab-annotation";
 import { getBeatsPerBar } from "../timeline";
 import {
@@ -22,7 +22,7 @@ export type MusicXmlModelOptions = {
   timeSignature: TimeSignature;
   keySignature: KeySignature;
   openStringPitches: readonly number[];
-  locators: RecorderLocator[];
+  locators: Locator[];
   /** Rebase the score to its first occupied measure. Defaults to true. */
   trimLeadingEmptyMeasures?: boolean;
 };
@@ -251,7 +251,7 @@ function prepareLocators({
   locators,
   measureDuration,
 }: {
-  locators: RecorderLocator[];
+  locators: Locator[];
   measureDuration: number;
 }): {
   preparedLocators: PreparedLocator[];

@@ -6,7 +6,7 @@ import {
 import { range } from "../utils/array";
 import { exportMusicXml } from "./musicxml/render";
 import type { KeySignature } from "./pitch-spelling";
-import type { RecorderLocator } from "./recorder/runtime";
+import type { Locator } from "./runtime";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 export type ScoreViewerSample = {
@@ -18,7 +18,7 @@ export type ScoreViewerSample = {
 
 type ScoreViewerSampleDefinition = Omit<ScoreViewerSample, "xml"> & {
   notes: Note[];
-  locators?: RecorderLocator[];
+  locators?: Locator[];
   keySignature?: KeySignature;
   timeSignature?: TimeSignature;
 };
@@ -269,7 +269,7 @@ function createSample({
   };
 }
 
-function createLocator(locator: Omit<RecorderLocator, "id">): RecorderLocator {
+function createLocator(locator: Omit<Locator, "id">): Locator {
   return { ...locator, id: crypto.randomUUID() };
 }
 

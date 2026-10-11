@@ -1,1 +1,1 @@
-export { RecorderRuntime } from "./recorder/runtime.ts";
+export { EditorRuntime } from "./runtime.ts";
