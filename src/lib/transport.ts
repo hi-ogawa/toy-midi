@@ -50,10 +50,10 @@ export type ScheduledPass = {
   startPosition: number;
 };
 
-/** Half-open audio-clock window `[from, to)`. */
+/** Half-open audio-clock window `[start, end)`. */
 type ContextTimeWindow = {
-  from: number;
-  to: number;
+  start: number;
+  end: number;
 };
 
 type LoopSecondsRange = {
@@ -217,7 +217,10 @@ export class AudioContextTransport {
       // part of the window in the past. Skip it rather than queue events to play
       // late.
       const from = Math.max(scheduledUntil, this.context.currentTime);
-      for (const pass of getScheduledPasses(anchor, loopRange, { from, to })) {
+      for (const pass of getScheduledPasses(anchor, loopRange, {
+        start: from,
+        end: to,
+      })) {
         schedule(pass);
       }
       scheduledUntil = to;
@@ -283,11 +286,11 @@ function getScheduledPasses(
   return getPlaybackPasses(anchor, loopRange, window).map((pass) => {
     const startPosition = Math.max(
       pass.anchor.position,
-      pass.anchor.getPositionAt(window.from),
+      pass.anchor.getPositionAt(window.start),
     );
     const endPosition = Math.min(
       pass.end,
-      pass.anchor.getPositionAt(window.to),
+      pass.anchor.getPositionAt(window.end),
     );
     return {
       start: startPosition - BOUNDARY_EPSILON,
@@ -307,8 +310,8 @@ function getPlaybackPasses(
   window: ContextTimeWindow,
 ): PlaybackPass[] {
   const passes: PlaybackPass[] = [];
-  let pass = getPlaybackPassAt(anchor, loopRange, window.from);
-  while (pass.anchor.contextTime < window.to) {
+  let pass = getPlaybackPassAt(anchor, loopRange, window.start);
+  while (pass.anchor.contextTime < window.end) {
     passes.push(pass);
     if (!loopRange) {
       break;
