@@ -86,8 +86,6 @@ export class AudioBufferPlayback implements TransportParticipant {
     // instant, so fading in would dip the splice.
     const continuesPreviousPass =
       pass.index > 0 && start <= pass.start && timelineEnd >= pass.end;
-    // Offset and duration are buffer seconds, so the slice ends exactly at the
-    // audio-clock time where the next pass's slice starts.
     this.player.start({
       buffer,
       playbackRate: pass.playbackRate,
