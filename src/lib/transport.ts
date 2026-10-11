@@ -277,12 +277,22 @@ type PlaybackPass = {
   end: number;
 };
 
+/** Lists the passes sounding in an audio-clock window, in order. */
 function getScheduledPasses(
   anchor: PlaybackAnchor,
   loopRange: LoopSecondsRange | undefined,
   window: ContextTimeWindow,
 ): ScheduledPass[] {
-  return getPlaybackPasses(anchor, loopRange, window).map((pass) => {
+  const passes: PlaybackPass[] = [];
+  let pass = getPlaybackPassAt(anchor, loopRange, window.start);
+  while (pass.anchor.contextTime < window.end) {
+    passes.push(pass);
+    if (!loopRange) {
+      break;
+    }
+    pass = getLoopPass(anchor, loopRange, pass.index + 1);
+  }
+  return passes.map((pass) => {
     const startPosition = Math.max(
       pass.anchor.position,
       pass.anchor.getPositionAt(window.start),
@@ -300,24 +310,6 @@ function getScheduledPasses(
       startPosition,
     };
   });
-}
-
-/** Lists the passes that overlap an audio-clock window, in order. */
-function getPlaybackPasses(
-  anchor: PlaybackAnchor,
-  loopRange: LoopSecondsRange | undefined,
-  window: ContextTimeWindow,
-): PlaybackPass[] {
-  const passes: PlaybackPass[] = [];
-  let pass = getPlaybackPassAt(anchor, loopRange, window.start);
-  while (pass.anchor.contextTime < window.end) {
-    passes.push(pass);
-    if (!loopRange) {
-      break;
-    }
-    pass = getLoopPass(anchor, loopRange, pass.index + 1);
-  }
-  return passes;
 }
 
 /** The pass sounding at an audio-clock time, or pass 0 before the run starts. */
