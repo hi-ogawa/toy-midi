@@ -105,6 +105,9 @@ function YouTubeReferencePanel({
     setPreviewSize({ width, height: (width * 9) / 16 });
   });
   useEffect(() => {
+    // Clear the candidate once runtime owns the same video so it cannot mask
+    // later runtime changes or resurface after removal. Waiting for matching
+    // props keeps the newly attached player mounted during that handoff.
     if (candidateVideoId === referenceVideo?.videoId) {
       setCandidateVideoId(undefined);
     }
