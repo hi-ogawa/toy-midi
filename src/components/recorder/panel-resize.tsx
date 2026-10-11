@@ -9,7 +9,7 @@ interface PanelSize {
 
 /**
  * Resizes a panel docked at the bottom right by dragging its top-left corner,
- * and reports the size when a drag ends so the caller can save it.
+ * and reports the size when a drag ends, for a caller that saves it.
  */
 export function usePanelResize({
   initialSize,
@@ -18,7 +18,7 @@ export function usePanelResize({
 }: {
   initialSize: PanelSize;
   minSize: PanelSize;
-  onResizeEnd: (size: PanelSize) => void;
+  onResizeEnd?: (size: PanelSize) => void;
 }) {
   function clampSize({ width, height }: PanelSize) {
     return {
@@ -45,7 +45,7 @@ export function usePanelResize({
       setSize(data.size);
     },
     onEnd: (_event, { data }) => {
-      onResizeEnd(data.size);
+      onResizeEnd?.(data.size);
     },
   });
   return { size, handleRef };
