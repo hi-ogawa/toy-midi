@@ -62,6 +62,7 @@ export type ScheduledPass = PlaybackPass & {
    * side, and each event falls in exactly one window.
    */
   eventRange: { start: number; end: number };
+  /** Audio-clock time at which a timeline position in this pass sounds. */
   getContextTime(position: number): number;
 };
 
