@@ -50,7 +50,7 @@ extensionTest(
       ["execute-tool", "toy_midi_eval", "--arg", "code=-"],
       `
       const id = runtime.store.get().midiTracks.at(-1).id;
-      runtime.setMidiTrackPan(id, -2);
+      runtime.setTrackPan(id, -2);
       return runtime.store.get().midiTracks.at(-1).pan;
     `,
     );
