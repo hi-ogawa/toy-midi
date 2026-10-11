@@ -194,7 +194,7 @@ function PanBar({ label, pan, onPanChange }: Parameters<PanControl>[0]) {
 function PanKnob({ label, pan, onPanChange }: Parameters<PanControl>[0]) {
   const input = usePanInput({ label, pan, onPanChange, axis: "y" });
   return (
-    // The side columns share the leftover width, so the knob lines up with the fader.
+    // Equal side columns center the knob over the fader.
     <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
       <Knob
         {...input}
@@ -204,7 +204,9 @@ function PanKnob({ label, pan, onPanChange }: Parameters<PanControl>[0]) {
         origin={0}
         className="col-start-2 cursor-ns-resize"
       />
-      <span className="font-mono text-xs text-muted-foreground tabular-nums">
+      {/* Zero width, so a wide readout such as R100 spills over instead of
+          widening its column and the channel. */}
+      <span className="w-0 font-mono text-xs whitespace-nowrap text-muted-foreground tabular-nums">
         {formatPan(pan)}
       </span>
     </div>
