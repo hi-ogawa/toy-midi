@@ -1,6 +1,5 @@
 import { PencilIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { usePointerGesture } from "../hooks/use-pointer-gesture";
 import { snapToGrid } from "../lib/music";
 import type {
   EditorRuntime,
@@ -11,6 +10,7 @@ import type {
 import { secondsToBeats } from "../lib/timeline";
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
+import { usePointerGesture } from "./use-pointer-gesture";
 
 export function useLocatorInteraction({
   runtime,
@@ -30,7 +30,7 @@ export function useLocatorInteraction({
     const beat = Math.max(
       0,
       snapToGrid(
-        secondsToBeats(state.position, state.tempo),
+        secondsToBeats(runtime.transport.store.get().position, state.tempo),
         1 / subdivisionsPerBeat,
       ),
     );
