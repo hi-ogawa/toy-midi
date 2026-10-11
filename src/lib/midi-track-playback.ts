@@ -122,13 +122,13 @@ export class MidiTrackPlayback implements TransportParticipant {
    * not joined late.
    */
   private schedule(passes: ScheduledPass[]): void {
-    for (const { pass, eventRange, getContextTime } of passes) {
+    for (const pass of passes) {
       for (const note of this.notes) {
         const start = beatsToSeconds(note.start, this.tempo);
-        if (eventRange.end <= start) {
+        if (pass.eventRange.end <= start) {
           break;
         }
-        if (start < eventRange.start) {
+        if (start < pass.eventRange.start) {
           continue;
         }
         // A note held past loop-out ends at the wrap. The synth applies
@@ -141,8 +141,8 @@ export class MidiTrackPlayback implements TransportParticipant {
         this.synth.scheduleNoteOnOff({
           pitch: note.pitch,
           velocity: note.velocity,
-          startTime: getContextTime(start),
-          endTime: getContextTime(end),
+          startTime: pass.getContextTime(start),
+          endTime: pass.getContextTime(end),
         });
       }
     }

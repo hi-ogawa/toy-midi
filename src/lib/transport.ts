@@ -52,8 +52,7 @@ export type PlaybackPass = {
 };
 
 /** The part of one pass that sounds during a lookahead window. */
-export type ScheduledPass = {
-  pass: PlaybackPass;
+export type ScheduledPass = PlaybackPass & {
   /** Timeline position where this window enters the pass. */
   startPosition: number;
   /**
@@ -303,7 +302,7 @@ function getScheduledPasses(
     );
     const endPosition = Math.min(pass.end, getPassPosition(pass, window.to));
     return {
-      pass,
+      ...pass,
       startPosition,
       eventRange: {
         start: startPosition - BOUNDARY_EPSILON,

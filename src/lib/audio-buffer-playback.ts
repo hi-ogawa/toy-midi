@@ -75,26 +75,22 @@ export class AudioBufferPlayback implements TransportParticipant {
 
   /** Queues one slice for each loop pass, in the first window that reaches it. */
   private schedule(passes: ScheduledPass[]): void {
-    for (const scheduled of passes) {
-      if (scheduled.pass.index < this.nextPassIndex) {
+    for (const pass of passes) {
+      if (pass.index < this.nextPassIndex) {
         continue;
       }
-      this.nextPassIndex = scheduled.pass.index + 1;
-      this.startSlice(scheduled);
+      this.nextPassIndex = pass.index + 1;
+      this.startSlice(pass);
     }
   }
 
   /** Plays the part of the region inside one pass. */
-  private startSlice({
-    pass,
-    startPosition,
-    getContextTime,
-  }: ScheduledPass): void {
+  private startSlice(pass: ScheduledPass): void {
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
       this.playbackSource!;
     // Join mid-region at the playhead, or at the window start if a stalled
     // timer let the pass begin before its slice was queued.
-    const start = Math.max(timelineStart, startPosition);
+    const start = Math.max(timelineStart, pass.startPosition);
     const end = Math.min(timelineEnd, pass.end);
     if (start >= end) {
       return;
@@ -109,7 +105,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.player.start({
       buffer,
       playbackRate: pass.playbackRate,
-      time: getContextTime(start),
+      time: pass.getContextTime(start),
       offset: start - timelineOffset,
       duration: end - start,
       fadeIn: !continuesPreviousPass,
