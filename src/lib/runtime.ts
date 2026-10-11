@@ -62,6 +62,8 @@ export interface AudioTrackState {
   eq: MultibandEqParameters;
   height: number;
   gain: number;
+  /** Stereo position from -1 (left) to 1 (right) */
+  pan: number;
   muted: boolean;
   soloed: boolean;
   /** Every take recorded or imported into the track */
@@ -679,6 +681,17 @@ export class EditorRuntime {
     }
   }
 
+  setTrackPan(id: string, pan: number): void {
+    pan = clamp(pan, -1, 1);
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, pan }));
+      this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, pan }));
+      this.trackPlaybacks.get(id)?.channel.setPan(pan);
+    }
+  }
+
   async setMidiTrackPreset(id: string, preset: MidiPreset): Promise<void> {
     await this.midiTrackPlaybacks.get(id)?.setPreset(preset);
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
@@ -688,12 +701,6 @@ export class EditorRuntime {
         program: preset.program,
       }));
     }
-  }
-
-  setMidiTrackPan(id: string, pan: number): void {
-    pan = clamp(pan, -1, 1);
-    this.updateMidiTrack(id, (track) => ({ ...track, pan }));
-    this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
   }
 
   setMidiTrackSettings(
@@ -775,6 +782,7 @@ export class EditorRuntime {
         output: this.masterOutput,
         eq: track.eq,
         gain: 0,
+        pan: track.pan,
       });
       this.trackPlaybacks.set(id, playback);
       this.syncTrackMix();
@@ -1153,6 +1161,7 @@ export class EditorRuntime {
         output: this.masterOutput,
         eq: track.eq,
         gain: 0,
+        pan: track.pan,
       });
       playback.setSources(getClipSources(track.regions));
       this.trackPlaybacks.set(track.id, playback);
@@ -1580,6 +1589,7 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
     showClips: false,
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
+    pan: 0,
     muted: false,
     soloed: false,
     clips: [],

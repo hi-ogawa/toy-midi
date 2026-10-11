@@ -100,6 +100,8 @@ interface SerializedAudioTrackState<ChannelData> {
   name?: string;
   height: number;
   gain: number;
+  // 🟢 Optional for tracks saved before pan support.
+  pan?: number;
   muted: boolean;
   soloed: boolean;
   // 🟢 Optional for tracks saved before they could record takes.
@@ -149,6 +151,7 @@ export function serializeEditorRuntimeState(
       height: track.height,
       eq: track.eq,
       gain: track.gain,
+      pan: track.pan,
       muted: track.muted,
       soloed: track.soloed,
       nextTakeNumber: track.nextTakeNumber,
@@ -199,6 +202,7 @@ export function deserializeEditorRuntimeState({
       ),
       eq: deserializeEq(track.eq),
       gain: track.gain,
+      pan: track.pan ?? 0,
       muted: track.muted,
       soloed: track.soloed,
     })),
