@@ -1,9 +1,15 @@
 import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useState,
+  type ComponentProps,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { clamp } from "../lib/music";
 import { MetronomeIcon } from "./icons";
 import { formatPan, MixerChannel, PanSlider } from "./mixer";
 import { Slider } from "./ui/slider";
+import { cn } from "./ui/utils";
 import { usePointerDrag } from "./use-pointer-drag";
 
 type PanControl = (props: {
@@ -187,51 +193,92 @@ function PanBar({ label, pan, onPanChange }: Parameters<PanControl>[0]) {
 
 function PanKnob({ label, pan, onPanChange }: Parameters<PanControl>[0]) {
   const input = usePanInput({ label, pan, onPanChange, axis: "y" });
-  const angle = pan * 135;
-  const radians = ((angle - 90) * Math.PI) / 180;
-  const end = {
-    x: 12 + 10 * Math.cos(radians),
-    y: 12 + 10 * Math.sin(radians),
-  };
   return (
-    <div className="flex w-full items-center justify-center gap-2">
-      <div
+    // The side columns share the leftover width, so the knob lines up with the fader.
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <Knob
         {...input}
-        className="size-6 shrink-0 cursor-ns-resize touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-      >
-        <svg viewBox="0 0 24 24" className="size-6">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            className="fill-neutral-900 stroke-neutral-700"
-            strokeWidth="3"
-          />
-          {formatPan(pan) !== "C" && (
-            <path
-              d={`M 12 2 A 10 10 0 0 ${pan > 0 ? 1 : 0} ${end.x} ${end.y}`}
-              fill="none"
-              className="stroke-primary"
-              strokeWidth="3"
-            />
-          )}
-          <line
-            x1="12"
-            y1="12"
-            x2="12"
-            y2="4"
-            transform={`rotate(${angle} 12 12)`}
-            className="stroke-neutral-100"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-      <span className="w-8 font-mono text-xs text-muted-foreground tabular-nums">
+        value={pan}
+        min={-1}
+        max={1}
+        origin={0}
+        className="col-start-2 cursor-ns-resize"
+      />
+      <span className="font-mono text-xs text-muted-foreground tabular-nums">
         {formatPan(pan)}
       </span>
     </div>
   );
+}
+
+const SWEEP_DEGREES = 270;
+
+/** Draws the knob only; the caller supplies the input behavior and ARIA through div props. */
+function Knob({
+  value,
+  min,
+  max,
+  origin = min,
+  className,
+  ...props
+}: ComponentProps<"div"> & {
+  value: number;
+  min: number;
+  max: number;
+  /** Where the value arc starts, such as the center of a pan knob */
+  origin?: number;
+}) {
+  const toDegrees = (v: number) =>
+    ((v - min) / (max - min) - 0.5) * SWEEP_DEGREES;
+  const angle = toDegrees(value);
+  const originAngle = toDegrees(origin);
+  const start = getRimPoint(originAngle);
+  const end = getRimPoint(angle);
+  const largeArc = Math.abs(angle - originAngle) > 180 ? 1 : 0;
+  const clockwise = angle > originAngle ? 1 : 0;
+  return (
+    <div
+      className={cn(
+        "size-6 shrink-0 touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+        className,
+      )}
+      {...props}
+    >
+      <svg viewBox="0 0 24 24" className="size-full">
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          className="fill-neutral-900 stroke-neutral-700"
+          strokeWidth="3"
+        />
+        {value !== origin && (
+          <path
+            d={`M ${start.x} ${start.y} A 10 10 0 ${largeArc} ${clockwise} ${end.x} ${end.y}`}
+            fill="none"
+            className="stroke-primary"
+            strokeWidth="3"
+          />
+        )}
+        <line
+          x1="12"
+          y1="12"
+          x2="12"
+          y2="4"
+          transform={`rotate(${angle} 12 12)`}
+          className="stroke-neutral-100"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/** Point on the ring at an angle in degrees clockwise from 12 o'clock. */
+function getRimPoint(degrees: number) {
+  const radians = ((degrees - 90) * Math.PI) / 180;
+  return { x: 12 + 10 * Math.cos(radians), y: 12 + 10 * Math.sin(radians) };
 }
 
 /** Relative drag across about 200px covers the full range, whatever the control's size. */
