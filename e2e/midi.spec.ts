@@ -44,14 +44,12 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await secondLevel.press("Enter");
   await expect(rows.nth(1)).toContainText("-6.0 dB");
 
-  // Turn the second track's pan knob down to hard left, then step it back to L40.
+  // Turn the second track's pan knob down to hard left, then step it back to L90.
   const secondPan = secondChannel.getByRole("slider", { name: "MIDI 2 pan" });
   await dragBy(page, secondPan, 0, { deltaY: 300 });
   await expect(secondPan).toHaveAttribute("aria-valuetext", "L100");
-  for (let i = 0; i < 6; i++) {
-    await secondPan.press("Shift+ArrowRight");
-  }
-  await expect(secondChannel).toContainText("L40");
+  await secondPan.press("Shift+ArrowRight");
+  await expect(secondChannel).toContainText("L90");
 
   // Save and reload both tracks with their independent mix settings.
   const save = page.getByTestId("recorder-save-button");
@@ -67,7 +65,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   ).toHaveAttribute("aria-pressed", "true");
   await expect(rows.nth(1)).toContainText("-6.0 dB");
   await expect(secondLevel).toHaveValue("-6.0");
-  await expect(secondPan).toHaveAttribute("aria-valuetext", "L40");
+  await expect(secondPan).toHaveAttribute("aria-valuetext", "L90");
 
   // Play the restored project and pause after the transport advances.
   const play = page.getByTestId("recorder-play-button");
