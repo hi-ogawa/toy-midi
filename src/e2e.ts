@@ -1,17 +1,17 @@
 import {
-  projectStorage,
-  seedProjectLegacyV2,
-  seedProjectV1,
-  seedLayoutV1Project,
-} from "./lib/project-storage";
-import { recorderProjectStorage } from "./lib/recorder/project-storage";
+  legacyProjectStorage,
+  seedLegacyProjectV2,
+  seedLegacyProjectV1,
+  seedLegacyLayoutV1Project,
+} from "./lib/legacy-project-storage";
+import { projectStorage } from "./lib/project-storage";
 
 const utils = {
+  legacyProjectStorage,
+  seedLegacyProjectV2,
+  seedLegacyProjectV1,
+  seedLegacyLayoutV1Project,
   projectStorage,
-  seedProjectLegacyV2,
-  seedProjectV1,
-  seedLayoutV1Project,
-  recorderProjectStorage,
 };
 
 window.__e2e = utils;

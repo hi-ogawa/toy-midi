@@ -1,0 +1,364 @@
+import { type AudioClip, createAudioClip } from "./audio-clip.ts";
+import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
+import {
+  createDefaultEqBand,
+  createDefaultMultibandEq,
+} from "./dsp/biquad-eq-node.ts";
+import type { EqParameters } from "./dsp/biquad-eq.ts";
+import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
+import {
+  type PersistableEditorRuntimeState,
+  type Locator,
+  type MidiTrackState,
+} from "./runtime.ts";
+import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
+
+// Projects saved before every audio track could record kept their takes on a
+// separate Capture track. Loading folds it into audioTracks under this id, and
+// it is an ordinary track from then on.
+const RECORDING_TRACK_ID = "__capture__";
+
+/**
+ * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
+ * path (`string`) in project archives.
+ */
+export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
+  title: string;
+  // 🟢 Optional for recorder projects saved before the project comment.
+  comment?: string;
+  // 🟢 Optional for recorder projects saved before locator support.
+  locators?: Locator[];
+  audioTracks: SerializedAudioTrackState<ChannelData>[];
+  // 🟢 Optional for recorder projects saved before MIDI track support.
+  midiTracks?: (Omit<
+    MidiTrackState,
+    | "tabAnnotationEnabled"
+    | "tabOpenStringPitches"
+    | "keySignature"
+    | "viewMode"
+    | "pan"
+  > & {
+    tabAnnotationEnabled?: boolean;
+    tabOpenStringPitches?: number[];
+    keySignature?: MidiTrackState["keySignature"];
+    viewMode?: MidiTrackState["viewMode"];
+    // 🟢 Optional for MIDI tracks saved before pan support.
+    pan?: number;
+  })[];
+  // 🟢 Optional for recorder projects saved before track reordering.
+  trackOrder?: string[];
+  // 🔴 Retained for projects saved with the Capture track outside audioTracks.
+  recordingTrack?: {
+    // 🟢 Optional for projects saved before track EQ support.
+    eq?: MultibandEqParameters | EqParameters;
+    height: number;
+    gain: number;
+    muted: boolean;
+    soloed: boolean;
+    takes: SerializedAudioClip<ChannelData>[];
+    // 🟢 Optional for recorder projects saved before multi-take support.
+    nextTakeNumber?: number;
+  };
+  // 🟢 Optional for recorder projects saved before mixer support.
+  masterGain?: number;
+  metronomeGain?: number;
+  loop?: {
+    range?: {
+      startBeat: number;
+      endBeat: number;
+    };
+    enabled: boolean;
+  };
+  punch?: {
+    range?: {
+      startBeat: number;
+      endBeat: number;
+    };
+    enabled: boolean;
+  };
+  tempo: number;
+  timeSignature: {
+    numerator: number;
+    denominator: number;
+  };
+  referenceVideo?: {
+    videoId: string;
+    timelineStart: number;
+    muted: boolean;
+    title?: string;
+    duration: number;
+  };
+}
+
+interface SerializedAudioTrackState<ChannelData> {
+  // 🟢 Optional for projects saved before per-track clip visibility.
+  showClips?: boolean;
+  // 🟢 Optional for projects saved before track EQ support.
+  eq?: MultibandEqParameters | EqParameters;
+  id: string;
+  // 🟢 Optional for projects saved before audio track names.
+  name?: string;
+  height: number;
+  gain: number;
+  muted: boolean;
+  soloed: boolean;
+  // 🟢 Optional for tracks saved before they could record takes.
+  nextTakeNumber?: number;
+  // 🟢 Optional for projects saved with a single clip per track.
+  clips?: SerializedAudioClip<ChannelData>[];
+  // 🔴 Retained for tracks saved with a single clip and track-level timing.
+  clip?: {
+    name: string;
+    gain?: number;
+    pcm: Pcm<ChannelData>;
+  };
+  timelineOffset?: number;
+  trimStart?: number;
+  trimEnd?: number;
+}
+
+interface SerializedAudioClip<ChannelData> {
+  // 🟢 Optional for recorder projects saved before multi-take support.
+  id?: string;
+  number?: number;
+  name?: string;
+  gain?: number;
+  muted?: boolean;
+  soloed?: boolean;
+  timelineOffset: number;
+  trimStart?: number;
+  trimEnd?: number;
+  pcm: Pcm<ChannelData>;
+}
+
+export interface Pcm<ChannelData> {
+  sampleRate: number;
+  channels: ChannelData[];
+}
+
+export function serializeEditorRuntimeState(
+  state: PersistableEditorRuntimeState,
+): SerializedEditorRuntimeState {
+  return {
+    title: state.title,
+    comment: state.comment,
+    locators: state.locators,
+    audioTracks: state.audioTracks.map((track) => ({
+      id: track.id,
+      name: track.name,
+      height: track.height,
+      eq: track.eq,
+      gain: track.gain,
+      muted: track.muted,
+      soloed: track.soloed,
+      nextTakeNumber: track.nextTakeNumber,
+      showClips: track.showClips,
+      clips: track.clips.map(serializeAudioClip),
+    })),
+    midiTracks: state.midiTracks,
+    trackOrder: state.trackOrder,
+    masterGain: state.masterGain,
+    metronomeGain: state.metronomeGain,
+    loop: state.loop,
+    punch: state.punch,
+    tempo: state.tempo,
+    timeSignature: state.timeSignature,
+    referenceVideo: state.referenceVideo,
+  };
+}
+
+export function deserializeEditorRuntimeState({
+  context,
+  project,
+}: {
+  context: AudioContext;
+  project: SerializedEditorRuntimeState;
+}): PersistableEditorRuntimeState {
+  const audioTracks = foldRecordingTrack(project);
+  // Unnamed tracks keep the labels they were shown with: Capture, and ordinary
+  // tracks numbered in order without it.
+  const ordinaryTrackIds = audioTracks
+    .filter((track) => track.id !== RECORDING_TRACK_ID)
+    .map((track) => track.id);
+  return {
+    title: project.title,
+    comment: project.comment ?? "",
+    locators: project.locators ?? [],
+    audioTracks: audioTracks.map((track) => ({
+      id: track.id,
+      name:
+        track.name ??
+        (track.id === RECORDING_TRACK_ID
+          ? "Capture"
+          : `Audio ${ordinaryTrackIds.indexOf(track.id) + 1}`),
+      nextTakeNumber: track.nextTakeNumber ?? 1,
+      showClips: track.showClips ?? track.id === RECORDING_TRACK_ID,
+      height: track.height,
+      clips: getTrackClips(track).map((clip, index) =>
+        deserializeAudioClip({ context, clip, index }),
+      ),
+      eq: deserializeEq(track.eq),
+      gain: track.gain,
+      muted: track.muted,
+      soloed: track.soloed,
+    })),
+    midiTracks: (project.midiTracks ?? []).map((track) => ({
+      ...track,
+      viewMode: track.viewMode ?? "editor",
+      pan: track.pan ?? 0,
+      tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
+      tabOpenStringPitches: track.tabOpenStringPitches ?? [
+        ...DEFAULT_TAB_OPEN_STRING_PITCHES,
+      ],
+      keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
+      eq: deserializeEq(track.eq),
+    })),
+    // The runtime fills in tracks missing from older or partial orders.
+    trackOrder: project.trackOrder ?? [],
+    masterGain: project.masterGain ?? 1,
+    metronomeGain: project.metronomeGain ?? 0.5,
+    loop: project.loop ?? { enabled: false },
+    punch: project.punch ?? { enabled: false },
+    tempo: project.tempo,
+    timeSignature: project.timeSignature,
+    referenceVideo: project.referenceVideo,
+  };
+}
+
+/** Keep the former Capture track after ordinary audio tracks, as the old UI did. */
+function foldRecordingTrack(
+  project: SerializedEditorRuntimeState,
+): SerializedAudioTrackState<Float32Array>[] {
+  const { recordingTrack } = project;
+  if (!recordingTrack) {
+    // Earlier saves already stored Capture in audioTracks, usually first.
+    return project.audioTracks.toSorted(
+      (a, b) =>
+        Number(a.id === RECORDING_TRACK_ID) -
+        Number(b.id === RECORDING_TRACK_ID),
+    );
+  }
+  const { takes, ...track } = recordingTrack;
+  return [
+    ...project.audioTracks,
+    {
+      ...track,
+      id: RECORDING_TRACK_ID,
+      nextTakeNumber: track.nextTakeNumber ?? takes.length + 1,
+      clips: takes,
+    },
+  ];
+}
+
+function serializeAudioClip(
+  clip: AudioClip,
+): SerializedAudioClip<Float32Array> {
+  if (!clip.buffer) {
+    throw new Error("Audio clip has no loaded buffer.");
+  }
+  return {
+    id: clip.id,
+    name: clip.name,
+    gain: clip.gain,
+    muted: clip.muted,
+    soloed: clip.soloed,
+    timelineOffset: clip.timelineOffset,
+    trimStart: clip.trimStart,
+    trimEnd: clip.trimEnd,
+    pcm: serializeAudioBuffer(clip.buffer),
+  };
+}
+
+// Older saves store at most one clip with its timing on the track.
+function getTrackClips(
+  track: SerializedAudioTrackState<Float32Array>,
+): SerializedAudioClip<Float32Array>[] {
+  if (track.clips) {
+    return track.clips;
+  }
+  if (!track.clip) {
+    return [];
+  }
+  return [
+    {
+      ...track.clip,
+      timelineOffset: track.timelineOffset ?? 0,
+      trimStart: track.trimStart,
+      trimEnd: track.trimEnd,
+    },
+  ];
+}
+
+function deserializeAudioClip({
+  context,
+  clip,
+  index,
+}: {
+  context: AudioContext;
+  clip: SerializedAudioClip<Float32Array>;
+  index: number;
+}): AudioClip {
+  const buffer = deserializeAudioBuffer(context, clip.pcm);
+  return {
+    ...createAudioClip({
+      id: clip.id,
+      buffer,
+      name: clip.name ?? `Take ${clip.number ?? index + 1}`,
+    }),
+    timelineOffset: clip.timelineOffset,
+    gain: clip.gain ?? 1,
+    muted: clip.muted ?? false,
+    soloed: clip.soloed ?? false,
+    trimStart: clip.trimStart ?? 0,
+    trimEnd: clip.trimEnd ?? buffer.duration,
+  };
+}
+
+function deserializeEq(
+  eq?: MultibandEqParameters | EqParameters,
+): MultibandEqParameters {
+  if (!eq) {
+    return createDefaultMultibandEq();
+  }
+  if ("bands" in eq) {
+    return eq;
+  }
+  return {
+    bypass: false,
+    bands: [{ ...createDefaultEqBand(), ...eq }],
+  };
+}
+
+function serializeAudioBuffer(buffer: AudioBuffer): Pcm<Float32Array> {
+  return {
+    sampleRate: buffer.sampleRate,
+    channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
+      buffer.getChannelData(channel).slice(),
+    ),
+  };
+}
+
+function deserializeAudioBuffer(
+  context: AudioContext,
+  pcm: Pcm<Float32Array>,
+): AudioBuffer {
+  if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {
+    throw new Error("Recorder audio has an invalid sample rate.");
+  }
+  const length = pcm.channels[0]?.length;
+  if (
+    length === undefined ||
+    pcm.channels.some((channel) => channel.length !== length)
+  ) {
+    throw new Error("Recorder audio channels have inconsistent lengths.");
+  }
+  const buffer = context.createBuffer(
+    pcm.channels.length,
+    length,
+    pcm.sampleRate,
+  );
+  for (const [channel, samples] of pcm.channels.entries()) {
+    buffer.getChannelData(channel).set(samples);
+  }
+  return buffer;
+}

@@ -1,10 +1,10 @@
+import { Editor } from "./components/editor";
 import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
 import { Preview } from "./components/preview";
-import { Recorder } from "./components/recorder";
-import { RecorderScorePage } from "./components/recorder/recorder-score-page";
 import { RouteError } from "./components/route-error";
 import { ScoreCapture } from "./components/score-capture";
+import { ScorePage } from "./components/score-page";
 import { ScoreViewer } from "./components/score-viewer";
 import { matchRoute, routes } from "./lib/routes";
 import { preloadMidiAssetsWhenIdle } from "./lib/runtime-assets";
@@ -16,9 +16,9 @@ export function App() {
     case "preview": {
       return <Preview />;
     }
-    case "recorderProject": {
+    case "project": {
       preloadMidiAssetsWhenIdle();
-      return <Recorder projectId={match.params.projectId} />;
+      return <Editor projectId={match.params.projectId} />;
     }
     case "latencyChecker": {
       return <LatencyChecker />;
@@ -29,10 +29,10 @@ export function App() {
     case "scoreCapture": {
       return <ScoreCapture />;
     }
-    case "projectScore": {
+    case "legacyProjectScore": {
       return <LegacyProjectRoute />;
     }
-    case "project": {
+    case "legacyProject": {
       return <LegacyProjectRoute />;
     }
     case "home":
@@ -58,7 +58,7 @@ function ScoreViewerRoute() {
   const projectId = params.get("projectId");
   const trackId = params.get("trackId");
   if (projectId && trackId) {
-    return <RecorderScorePage projectId={projectId} trackId={trackId} />;
+    return <ScorePage projectId={projectId} trackId={trackId} />;
   }
   if (params.has("projectId") || params.has("trackId")) {
     return (
