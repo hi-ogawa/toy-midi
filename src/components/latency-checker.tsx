@@ -31,6 +31,8 @@ import {
 import { cn } from "./ui/utils";
 import { useInput } from "./use-input";
 
+const DEFAULT_OUTPUT_LEVEL = -24;
+
 export function LatencyChecker() {
   const [runtime] = useState(() => new EditorRuntime());
   const state = useSyncExternalStore(
@@ -45,7 +47,7 @@ export function LatencyChecker() {
     initialized: inputsInitialized,
     active: isMonitoring,
   } = input;
-  const [outputLevel, setOutputLevel] = useState(-24);
+  const [outputLevel, setOutputLevel] = useState(DEFAULT_OUTPUT_LEVEL);
 
   useEffect(() => {
     document.title = "Latency Checker - Toy MIDI";
@@ -243,6 +245,7 @@ export function LatencyChecker() {
                     onChange={(event) =>
                       setOutputLevel(Number(event.currentTarget.value))
                     }
+                    onDoubleClick={() => setOutputLevel(DEFAULT_OUTPUT_LEVEL)}
                     className="accent-emerald-700 disabled:opacity-50"
                   />
                   <output className="text-right font-mono text-xs tabular-nums text-neutral-400">

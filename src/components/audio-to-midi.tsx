@@ -177,6 +177,7 @@ export function AudioToMidi({
               max={-10}
               step={1}
               onValueChange={([value]) => setActivityDb(value)}
+              resetValue={DEFAULT_GRID_ACTIVITY_DB}
             />
             <ParamSlider
               label="Split threshold"
@@ -187,6 +188,7 @@ export function AudioToMidi({
               max={0.95}
               step={0.05}
               onValueChange={([value]) => setSplitThreshold(value)}
+              resetValue={DEFAULT_GRID_SPLIT_THRESHOLD}
             />
             <div className="flex items-center justify-between text-xs text-neutral-400">
               <span>

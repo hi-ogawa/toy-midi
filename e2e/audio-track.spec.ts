@@ -152,6 +152,14 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await setSliderValue(audioPan, [-0.3]);
   await expect(audioPan).toHaveAttribute("aria-valuetext", "L30");
 
+  // Double-click the pan and gain sliders to reset them to center and 0 dB.
+  await audioPan.dblclick();
+  await expect(audioPan).toHaveAttribute("aria-valuetext", "C");
+  const audioFader = audio.getByRole("slider", { name: "Audio 2 gain" });
+  await expect(audioFader).toHaveAttribute("aria-valuenow", "0.5");
+  await audioFader.dblclick();
+  await expect(audioFader).toHaveAttribute("aria-valuenow", "0");
+
   // Close the panel without dismissing the project.
   await panel.getByRole("button", { name: "Close Mixer" }).click();
   await expect(panel).toBeHidden();

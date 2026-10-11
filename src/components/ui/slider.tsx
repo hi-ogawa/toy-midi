@@ -10,11 +10,15 @@ export function Slider({
   min = 0,
   max = 100,
   onValueChange,
+  resetValue,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
   "aria-valuetext": ariaValueText,
   ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+}: React.ComponentProps<typeof SliderPrimitive.Root> & {
+  /** Value a double-click restores */
+  resetValue: number;
+}) {
   const _values = React.useMemo(
     () =>
       Array.isArray(value)
@@ -51,6 +55,7 @@ export function Slider({
       min={min}
       max={max}
       onValueChange={onValueChange}
+      onDoubleClick={() => onValueChange?.([resetValue])}
       className={cn(
         "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
         className,

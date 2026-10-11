@@ -1,5 +1,6 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { DEFAULT_PARAMETERS } from "../lib/dsp/biquad-eq";
 import {
   MAX_EQ_BANDS,
   type MultibandEqBand,
@@ -260,6 +261,7 @@ export function EffectsContent({
                 limits={EQ_CONTROL_LIMITS.frequency}
                 scale="logarithmic"
                 value={selectedBand.frequency}
+                resetValue={DEFAULT_PARAMETERS.frequency}
                 onChange={(frequency) =>
                   updateBand(selectedBand.id, { frequency })
                 }
@@ -269,6 +271,7 @@ export function EffectsContent({
                 unit="dB"
                 limits={EQ_CONTROL_LIMITS.gainDb}
                 value={gainToDb(selectedBand.gain)}
+                resetValue={gainToDb(DEFAULT_PARAMETERS.gain)}
                 onChange={(gainDb) =>
                   updateBand(selectedBand.id, { gain: dbToGain(gainDb) })
                 }
@@ -278,6 +281,7 @@ export function EffectsContent({
                 unit=""
                 limits={EQ_CONTROL_LIMITS.q}
                 value={selectedBand.q}
+                resetValue={DEFAULT_PARAMETERS.q}
                 onChange={(q) => updateBand(selectedBand.id, { q })}
               />
             </div>
@@ -362,6 +366,7 @@ function EqSlider({
   limits,
   scale = "linear",
   value,
+  resetValue,
   onChange,
 }: {
   label: string;
@@ -369,6 +374,7 @@ function EqSlider({
   limits: { min: number; max: number; step: number };
   scale?: "linear" | "logarithmic";
   value: number;
+  resetValue: number;
   onChange: (value: number) => void;
 }) {
   let config = {
@@ -409,6 +415,7 @@ function EqSlider({
         max={config.max}
         step={config.step}
         value={[config.toSliderValue(value)]}
+        resetValue={config.toSliderValue(resetValue)}
         onValueChange={([next]) => onChange(config.toParameterValue(next))}
       />
     </div>

@@ -237,6 +237,7 @@ function PanSlider({
       <Slider
         value={[pan]}
         onValueChange={([value]) => onPanChange(value)}
+        resetValue={0}
         min={-1}
         max={1}
         step={0.01}
@@ -274,7 +275,10 @@ export function GainSlider({
   orientation?: "horizontal" | "vertical";
   className?: string;
   "data-testid"?: string;
-} & Omit<ComponentProps<typeof Slider>, "value" | "onValueChange">) {
+} & Omit<
+  ComponentProps<typeof Slider>,
+  "value" | "onValueChange" | "resetValue"
+>) {
   const markerPosition = `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%`;
   return (
     <div data-testid={testId} className={`relative ${className ?? ""}`}>
@@ -289,6 +293,7 @@ export function GainSlider({
       <Slider
         value={[gainToDb(gain)]}
         onValueChange={([value]) => onGainChange(dbToGain(value))}
+        resetValue={0}
         min={MIN_DB}
         max={MAX_DB}
         step={0.5}
