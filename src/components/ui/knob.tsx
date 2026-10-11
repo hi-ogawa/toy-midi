@@ -3,7 +3,7 @@ import { cn } from "./utils";
 
 const SWEEP_DEGREES = 270;
 
-/** Draws the knob only; the caller supplies the input behavior and ARIA through div props. */
+/** A focusable slider drawn as a knob. The caller supplies the label and the input behavior through div props. */
 export function Knob({
   value,
   min,
@@ -28,6 +28,11 @@ export function Knob({
   const clockwise = angle > originAngle ? 1 : 0;
   return (
     <div
+      role="slider"
+      tabIndex={0}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
       className={cn(
         "size-6 shrink-0 touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
         className,

@@ -249,12 +249,7 @@ function PanKnob({
     <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
       <Knob
         ref={ref}
-        role="slider"
-        tabIndex={0}
         aria-label={`${label} pan`}
-        aria-valuemin={-1}
-        aria-valuemax={1}
-        aria-valuenow={pan}
         aria-valuetext={formatPan(pan)}
         onKeyDown={(event) => {
           const step = event.shiftKey ? 0.1 : 0.01;
