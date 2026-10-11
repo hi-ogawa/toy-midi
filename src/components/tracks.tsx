@@ -164,6 +164,9 @@ export function RenameTrackMenuItem({
   );
 }
 
+/** Header height that fits the gain slider below the title row. */
+const FULL_HEADER_HEIGHT = 72;
+
 export function TrackRow({
   title,
   "data-testid": testId,
@@ -204,6 +207,7 @@ export function TrackRow({
       onHeightChange(startHeight + deltaY);
     },
   });
+  const showGain = height >= FULL_HEADER_HEIGHT;
   return (
     <div
       data-testid={testId}
@@ -214,7 +218,7 @@ export function TrackRow({
       <div
         className={cn(
           "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
-          "grid-rows-[1.75rem_auto] gap-y-2",
+          showGain ? "grid-rows-[1.75rem_auto] gap-y-2" : "grid-rows-[1.75rem]",
           controlsClassName,
         )}
       >
@@ -239,14 +243,16 @@ export function TrackRow({
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
         </div>
-        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
-          <GainSlider
-            label={`${title} gain`}
-            gain={gain}
-            onGainChange={onGainChange}
-          />
-          <span className="text-right font-mono">{formatGainDb(gain)}</span>
-        </label>
+        {showGain && (
+          <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
+            <GainSlider
+              label={`${title} gain`}
+              gain={gain}
+              onGainChange={onGainChange}
+            />
+            <span className="text-right font-mono">{formatGainDb(gain)}</span>
+          </label>
+        )}
       </div>
       {children}
       <div

@@ -231,6 +231,27 @@ test("imports ordered stems and persists independent lane heights", async ({
   expect((await bass.boundingBox())!.height).toBe(secondHeight + 50);
 });
 
+test("drops the gain slider from compact track headers", async ({ page }) => {
+  // Start with the default track, whose header shows the gain slider.
+  await createProject(page);
+  const row = page.getByTestId("recorder-audio-track-row");
+  const gain = row.getByRole("slider", { name: "Audio 1 gain" });
+  await expect(gain).toBeVisible();
+
+  // Shrink the track past its minimum to get the compact header.
+  const resize = page.getByTitle("Resize Audio 1", { exact: true });
+  await dragBy(page, resize, 0, { deltaY: -100 });
+  await expect.poll(async () => (await row.boundingBox())!.height).toBe(44);
+  await expect(gain).toBeHidden();
+  await expect(row.getByTitle("Mute Audio 1")).toBeVisible();
+  await expect(row.getByTitle("Solo Audio 1")).toBeVisible();
+
+  // Grow it back to the default height to restore the gain slider.
+  await dragBy(page, resize, 0, { deltaY: 28 });
+  await expect.poll(async () => (await row.boundingBox())!.height).toBe(72);
+  await expect(gain).toBeVisible();
+});
+
 test("shows and persists clip controls per audio track", async ({ page }) => {
   // Import backing audio and keep its clip section hidden by default.
   await createProject(page);

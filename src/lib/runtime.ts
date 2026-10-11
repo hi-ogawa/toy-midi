@@ -51,7 +51,8 @@ import type { YouTubePlayerApi } from "./youtube.ts";
 const MAX_RECORDING_SECONDS = 5 * 60;
 export const MIN_CLIP_DURATION = 0.01;
 const DEFAULT_TRACK_HEIGHT = 72;
-const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
+// Fits the compact track header, which is a single title row.
+const MIN_TRACK_HEIGHT = 44;
 const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
@@ -600,7 +601,7 @@ export class EditorRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
-        height: clamp(height, 68, 800),
+        height: clamp(height, MIN_TRACK_HEIGHT, 800),
       }));
       return;
     }
