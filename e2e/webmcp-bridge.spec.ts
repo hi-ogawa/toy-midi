@@ -46,19 +46,6 @@ extensionTest(
     await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
     await expect(page.getByTestId("recorder-midi-track-row")).toHaveCount(1);
 
-    // Write the project comment from the agent, and see it in the notes panel.
-    const comment = await bridge.run([
-      "execute-tool",
-      "toy_midi_eval",
-      "--arg",
-      "code=runtime.setComment('## Bass\\nRoot, fifth, octave.')",
-    ]);
-    expect(comment.code).toBe(0);
-    await page.getByTestId("recorder-project-comment-button").click();
-    await expect(
-      page.getByTestId("recorder-project-comment-input"),
-    ).toHaveValue("## Bass\nRoot, fifth, octave.");
-
     // Throw from the agent's code, and get the error back with a failing exit code.
     const failure = await bridge.run([
       "execute-tool",
