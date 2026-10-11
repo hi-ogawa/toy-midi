@@ -8,7 +8,7 @@ import type { EqParameters } from "./dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
   type PersistableRuntimeState,
-  type ProjectLocator,
+  type Locator,
   type MidiTrackState,
 } from "./runtime.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
@@ -27,7 +27,7 @@ export interface SerializedRuntimeState<ChannelData = Float32Array> {
   // 🟢 Optional for recorder projects saved before the project comment.
   comment?: string;
   // 🟢 Optional for recorder projects saved before locator support.
-  locators?: ProjectLocator[];
+  locators?: Locator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
   // 🟢 Optional for recorder projects saved before MIDI track support.
   midiTracks?: (Omit<

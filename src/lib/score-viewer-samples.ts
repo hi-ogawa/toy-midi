@@ -1,6 +1,6 @@
 import {
   DEFAULT_TIME_SIGNATURE,
-  type Locator,
+  type LegacyLocator,
   type Note,
   type TimeSignature,
 } from "../types";
@@ -18,7 +18,7 @@ export type ScoreViewerSample = {
 
 type ScoreViewerSampleDefinition = Omit<ScoreViewerSample, "xml"> & {
   notes: Note[];
-  locators?: Locator[];
+  locators?: LegacyLocator[];
   keySignature?: KeySignature;
   timeSignature?: TimeSignature;
 };
@@ -269,7 +269,7 @@ function createSample({
   };
 }
 
-function createLocator(locator: Omit<Locator, "id">): Locator {
+function createLocator(locator: Omit<LegacyLocator, "id">): LegacyLocator {
   return { ...locator, id: crypto.randomUUID() };
 }
 

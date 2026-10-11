@@ -28,7 +28,7 @@ export function parseTimeSignature(value: string): TimeSignature {
   return { numerator, denominator };
 }
 
-export interface Locator {
+export interface LegacyLocator {
   id: string;
   position: number; // Position on timeline in beats
   label: string; // User-defined label (e.g., "Verse", "Chorus")

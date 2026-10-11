@@ -140,13 +140,13 @@ export interface ReferenceVideoState {
   duration: number;
 }
 
-export interface ProjectLocator {
+export interface Locator {
   id: string;
   beat: number;
   label: string;
 }
 
-export type ProjectLocatorUpdate = {
+export type LocatorUpdate = {
   id: string;
   beat?: number;
   label?: string;
@@ -155,7 +155,7 @@ export type ProjectLocatorUpdate = {
 export interface RuntimeState {
   title: string;
   comment: string;
-  locators: ProjectLocator[];
+  locators: Locator[];
   /** Playhead in seconds. Convert from beats with `beats * 60 / tempo`. */
   position: number;
   isPlaying: boolean;
@@ -981,7 +981,7 @@ export class Runtime {
     return locator.id;
   }
 
-  updateLocator({ id, ...changes }: ProjectLocatorUpdate): void {
+  updateLocator({ id, ...changes }: LocatorUpdate): void {
     const { locators } = this.store.get();
     this.store.update({
       locators: locators.map((locator) =>

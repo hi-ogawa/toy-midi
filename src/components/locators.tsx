@@ -5,8 +5,8 @@ import { snapToGrid } from "../lib/music";
 import type {
   Runtime,
   RuntimeState,
-  ProjectLocator,
-  ProjectLocatorUpdate,
+  Locator,
+  LocatorUpdate,
 } from "../lib/runtime";
 import { secondsToBeats } from "../lib/timeline";
 import { Button } from "./ui/button";
@@ -44,7 +44,7 @@ export function useLocatorInteraction({
     setSelectedId(id);
   }
 
-  function update(update: ProjectLocatorUpdate) {
+  function update(update: LocatorUpdate) {
     runtime.updateLocator(update);
   }
 
@@ -132,14 +132,14 @@ function LocatorMarker({
   onSeek,
   onUpdate,
 }: {
-  locator: ProjectLocator;
+  locator: Locator;
   selected: boolean;
   left: number;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   onSelect: () => void;
   onSeek: () => void;
-  onUpdate: (changes: Omit<ProjectLocatorUpdate, "id">) => void;
+  onUpdate: (changes: Omit<LocatorUpdate, "id">) => void;
 }) {
   const [dragging, setDragging] = useState(false);
   const dragRef = usePointerGesture({
