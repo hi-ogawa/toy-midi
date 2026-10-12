@@ -30,6 +30,7 @@ export function useProject({
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
+  // The saved copy holds a demo's edits, so opening it loses nothing.
   const leavingForCopyRef = useRef(false);
 
   const projectQuery = useQuery({
@@ -99,7 +100,6 @@ export function useProject({
   }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
-    // The saved copy holds a demo's edits, so opening it loses nothing.
     if (dirty && !leavingForCopyRef.current) {
       event.preventDefault();
     }
