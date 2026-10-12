@@ -1,6 +1,5 @@
-import type { SetStateAction } from "react";
+import { useSyncExternalStore, type SetStateAction } from "react";
 import { createStore } from "./store";
-import { useStoreValue } from "./use-store-value";
 
 /** A store kept in one localStorage entry, read once and written on each update. */
 export class LocalStorageStore<State extends object> {
@@ -41,9 +40,18 @@ export class LocalStorageStore<State extends object> {
   useValue<Key extends keyof State>(
     key: Key,
   ): readonly [State[Key], (next: SetStateAction<State[Key]>) => void] {
-    return useStoreValue(
-      { store: this.store, update: (change) => this.update(change) },
-      key,
+    const value = useSyncExternalStore(
+      this.store.subscribe,
+      () => this.store.get()[key],
     );
+    const setValue = (next: SetStateAction<State[Key]>) => {
+      const update: Partial<State> = {};
+      update[key] =
+        typeof next === "function"
+          ? (next as (value: State[Key]) => State[Key])(this.store.get()[key])
+          : next;
+      this.update(update);
+    };
+    return [value, setValue];
   }
 }

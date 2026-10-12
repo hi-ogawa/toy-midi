@@ -1,7 +1,7 @@
 import { z } from "zod";
+import { useStoreValue } from "../components/use-store-value";
 import { LocalStorageStore } from "../utils/local-storage-store";
 import { createStore } from "../utils/store";
-import { useStoreValue } from "../utils/use-store-value";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
