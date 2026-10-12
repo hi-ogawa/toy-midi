@@ -22,9 +22,9 @@ export function useProject({
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
-  // Raised when a draft's saved copy is about to open. Its edits are in the
-  // copy, so the unload prompt for unsaved changes does not apply.
-  const leavingForCopyRef = useRef(false);
+  // Raised when a saved draft is about to open as a stored project. Its edits
+  // are stored, so the unload prompt for unsaved changes does not apply.
+  const openingSavedDraftRef = useRef(false);
 
   const projectQuery = useQuery({
     queryKey: ["project", source],
@@ -58,7 +58,7 @@ export function useProject({
       // A draft lives only in memory, so saving it stores a copy and opens that.
       if (source.type === "draft") {
         const projectId = await projectStorage.createWithContent(content);
-        leavingForCopyRef.current = true;
+        openingSavedDraftRef.current = true;
         window.location.href = routes.project.href({ projectId });
         return;
       }
@@ -94,7 +94,7 @@ export function useProject({
   }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
-    if (dirty && !leavingForCopyRef.current) {
+    if (dirty && !openingSavedDraftRef.current) {
       event.preventDefault();
     }
   });
