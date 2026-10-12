@@ -23,7 +23,7 @@ export function deriveEditorFlags({
     project.ready &&
     !project.saving &&
     !isRecording &&
-    // A draft is not stored yet, so it saves even without edits.
+    // A draft saves as a new copy, so it saves even without edits.
     (project.dirty || project.draft);
   return {
     isRecording,
