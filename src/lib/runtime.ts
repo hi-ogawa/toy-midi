@@ -60,7 +60,9 @@ export interface AudioTrackState {
   id: string;
   name: string;
   eq: MultibandEqParameters;
+  /** Row height in pixels, from 72 to 300 */
   height: number;
+  /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
@@ -88,8 +90,11 @@ export interface MidiTrackState {
    */
   bank?: number;
   eq: MultibandEqParameters;
+  /** Row height in pixels, from 72 to 300 */
   height: number;
+  /** Whether the row shows the note editor or a compact note overview */
   viewMode: "editor" | "overview";
+  /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
@@ -104,7 +109,9 @@ export interface MidiTrackState {
 export type MidiPreset = Pick<MidiTrackState, "bank" | "program">;
 
 export interface LoopRange {
+  /** In beats from the start of the project */
   startBeat: number;
+  /** In beats, where playback jumps back to `startBeat` */
   endBeat: number;
 }
 
@@ -114,7 +121,9 @@ export interface LoopState {
 }
 
 export interface PunchRange {
+  /** In beats from the start of the project */
   startBeat: number;
+  /** In beats from the start of the project */
   endBeat: number;
 }
 
@@ -146,6 +155,7 @@ export interface ReferenceVideoState {
 
 export interface Locator {
   id: string;
+  /** In beats from the start of the project */
   beat: number;
   label: string;
 }
@@ -170,7 +180,9 @@ export interface EditorRuntimeState {
   loop: LoopState;
   punch: PunchState;
   referenceVideo?: ReferenceVideoState;
+  /** Linear gain, 1 being unity */
   masterGain: number;
+  /** Linear gain, 1 being unity */
   metronomeGain: number;
   audioTracks: AudioTrackState[];
   midiTracks: MidiTrackState[];
