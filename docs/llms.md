@@ -61,6 +61,7 @@ A minimal project, one bass track playing two notes:
       "id": "bass",
       "name": "Bass",
       "program": 33,
+      "eq": { "bypass": false, "bands": [] },
       "height": 300,
       "gain": 1,
       "muted": false,
