@@ -38,9 +38,7 @@ export function Home() {
               Score Viewer
             </a>
             <a
-              href="https://github.com/hi-ogawa/toy-midi/blob/main/docs/llms.md"
-              target="_blank"
-              rel="noreferrer"
+              href="/llms.txt"
               title="A guide for AI agents working with Toy MIDI"
               className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
             >

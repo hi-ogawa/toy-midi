@@ -18,7 +18,7 @@ Write a share link when you cannot reach the user's browser, such as from a remo
 
 ## Drive the Open App
 
-The app registers its tools with [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents, through `document.modelContext`, and each tool's description documents itself.
+The app registers its tools with [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents, through `document.modelContext`. The runtime the tools act on is declared in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts), so you can read it before you reach the page.
 
 A browser or agent that supports WebMCP calls the tool directly. From a terminal, use [webmcp-bridge](https://github.com/hi-ogawa/toy-midi/tree/main/packages/webmcp-bridge), which connects you to a page open in the user's browser on the same machine. Install the command:
 
@@ -36,7 +36,7 @@ A share link is the site's `/draft` page with the project in the URL fragment:
 <site>/draft#p=<payload>
 ```
 
-The payload is the project's saved format as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SerializedEditorRuntimeState` in [`src/lib/persistence.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/persistence.ts). Its optional fields fill in defaults when the project loads.
+The payload is the project's saved format as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SerializedEditorRuntimeState` in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts). Its optional fields fill in defaults when the project loads.
 
 A link leaves out audio. Leave `audioTracks` empty, since audio samples need storage a link does not have. Ids need only be unique, tracks within the project and notes within their track, so short ones such as `"n1"` work and keep the link shorter.
 

@@ -18,7 +18,7 @@
 
 ## Agents
 
-- [Agent guide](llms.md): driving the open app through webmcp-bridge, and writing share links. The app's HTML and home page link to it.
+- [Agent guide](../public/llms.txt): driving the open app through WebMCP, and writing share links. The site serves it at `/llms.txt`, next to the declaration file it links to.
 
 ## References
 

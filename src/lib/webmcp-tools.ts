@@ -1,20 +1,6 @@
 import type { WebMcpTool } from "@hiogawa/webmcp-bridge/webmcp";
 import type { EditorRuntime } from "./runtime";
 
-// The runtime API as one declaration file from `pnpm build-webmcp-tools-doc`,
-// which `pnpm build` runs for deploys.
-// Until that has run, the description goes without it.
-const [runtimeTypes] = Object.values(
-  import.meta.glob<string>(
-    "../../.tmp/webmcp-tools-doc/webmcp-tools-doc.d.ts",
-    {
-      query: "?raw",
-      import: "default",
-      eager: true,
-    },
-  ),
-);
-
 const AsyncFunction = async function () {}.constructor as new (
   ...args: string[]
 ) => (...args: unknown[]) => Promise<unknown>;
@@ -30,10 +16,8 @@ export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
       description: [
         "Run JavaScript against the open toy-midi project, with `runtime` in scope.",
         "The project's `comment` is free-form text where you can record and communicate your intent and decisions.",
-        runtimeTypes,
-      ]
-        .filter(Boolean)
-        .join("\n\n"),
+        `The runtime's API is declared in ${new URL("/llms/toy-midi.d.ts", window.location.origin)}. Read it before writing code.`,
+      ].join("\n\n"),
       inputSchema: {
         type: "object",
         properties: {
