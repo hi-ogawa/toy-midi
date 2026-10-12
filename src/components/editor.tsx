@@ -9,11 +9,7 @@ import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { snapToGrid } from "../lib/music";
 import { getNextPlaybackRate } from "../lib/playback-rate";
-import {
-  createMemoryProjectUiStore,
-  createProjectUiStore,
-  preferences,
-} from "../lib/preferences";
+import { createProjectUiStore, preferences } from "../lib/preferences";
 import { exportProjectArchive } from "../lib/project-archive";
 import { createShareLink } from "../lib/project-share";
 import { getScoreHref, routes } from "../lib/routes";
@@ -61,11 +57,7 @@ import { useWindowEvent } from "./use-window-event";
 export function Editor({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
   useWebMcpBridge(runtime);
-  const [projectUiStore] = useState(() =>
-    source.type === "stored"
-      ? createProjectUiStore(source.projectId)
-      : createMemoryProjectUiStore(),
-  );
+  const [projectUiStore] = useState(() => createProjectUiStore(source));
   const [defaultMidiProgram, setDefaultMidiProgram] =
     preferences.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);

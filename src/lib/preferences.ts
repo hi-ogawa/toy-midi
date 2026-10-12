@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ProjectSource } from "../components/use-project";
 import { withUseValue } from "../components/use-store-value";
 import { createLocalStorageStore } from "../utils/local-storage-store";
 import { createStore } from "../utils/store";
@@ -90,10 +91,14 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
 
 export type ProjectUiStore = ReturnType<typeof withUseValue<ProjectUiState>>;
 
-export function createProjectUiStore(projectId: string): ProjectUiStore {
+/** A demo's view state stays in memory, since it is never a stored project. */
+export function createProjectUiStore(source: ProjectSource): ProjectUiStore {
+  if (source.type === "demo") {
+    return withUseValue(createStore(() => DEFAULT_PROJECT_UI_STATE));
+  }
   return withUseValue(
     createLocalStorageStore<ProjectUiState>({
-      key: `toy-midi:recorder-project-ui:${projectId}`,
+      key: `toy-midi:recorder-project-ui:${source.projectId}`,
       parse: (stored) =>
         parseState({
           schema: projectUiStateSchema,
@@ -102,11 +107,6 @@ export function createProjectUiStore(projectId: string): ProjectUiStore {
         }),
     }),
   );
-}
-
-/** For a demo, whose view state is never stored. */
-export function createMemoryProjectUiStore(): ProjectUiStore {
-  return withUseValue(createStore(() => DEFAULT_PROJECT_UI_STATE));
 }
 
 function parseState<State>({
