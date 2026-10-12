@@ -38,7 +38,7 @@ A share link is the site's `/draft` page with the project in the URL fragment:
 
 The payload is the project's saved format as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SerializedEditorRuntimeState` in [`src/lib/persistence.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/persistence.ts). Its optional fields fill in defaults when the project loads.
 
-A link carries MIDI tracks only. Leave `audioTracks` empty and leave out `recordingTrack` and `referenceVideo`, since audio and video need storage a link does not have. Ids need only be unique, tracks within the project and notes within their track, so short ones such as `"n1"` work and keep the link shorter.
+A link carries MIDI tracks only. Leave `audioTracks` empty and leave out `referenceVideo`, since audio and video need storage a link does not have. Ids need only be unique, tracks within the project and notes within their track, so short ones such as `"n1"` work and keep the link shorter.
 
 Encode a project written as JSON with Node, which has raw deflate and base64url built in:
 
