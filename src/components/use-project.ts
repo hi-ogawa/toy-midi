@@ -104,7 +104,6 @@ export function useProject({
         projectUiStore.update({
           playhead: runtime.transport.store.get().position,
         }),
-      equals: Object.is,
     });
   }, [projectQuery.isSuccess, runtime]);
 
