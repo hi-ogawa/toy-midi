@@ -53,7 +53,7 @@ import { useTapTempo } from "./use-tap-tempo";
 
 export function Header({
   title,
-  demo,
+  draft,
   saveStatus,
   referenceVideoOpen,
   isPlaying,
@@ -96,7 +96,7 @@ export function Header({
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
-  demo: boolean;
+  draft: boolean;
   saveStatus: SaveStatus;
   referenceVideoOpen: boolean;
   isPlaying: boolean;
@@ -346,8 +346,8 @@ export function Header({
         </span>
       </label>
       <div className="flex-1" />
-      {demo ? (
-        <DemoControls
+      {draft ? (
+        <DraftControls
           status={saveStatus}
           ready={title !== undefined}
           onCopyToSave={onSave}
@@ -517,8 +517,8 @@ function PlaybackPosition({
 }
 
 // TODO: This button is awful. Discuss.
-/** A demo from a share link has no project to save, only a copy to make. */
-function DemoControls({
+/** A draft from a share link has no project to save, only a copy to make. */
+function DraftControls({
   status,
   ready,
   onCopyToSave,
@@ -530,11 +530,11 @@ function DemoControls({
   return (
     <>
       <span
-        data-testid="demo-badge"
+        data-testid="draft-badge"
         title="Opened from a share link. Edits stay in this tab until copied."
         className="rounded border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-emerald-200 uppercase"
       >
-        Demo
+        Draft
       </span>
       <Button
         data-testid="copy-to-save-button"

@@ -23,8 +23,8 @@ export function deriveEditorFlags({
     project.ready &&
     !project.saving &&
     !isRecording &&
-    // A demo saves as a new copy, so it saves even without edits.
-    (project.dirty || project.demo);
+    // A draft saves as a new copy, so it saves even without edits.
+    (project.dirty || project.draft);
   return {
     isRecording,
     transportDisabled: !project.ready,

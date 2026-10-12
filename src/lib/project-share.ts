@@ -12,7 +12,7 @@ const PAYLOAD_PARAM = "p";
 export async function createShareLink(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
-  const url = new URL(routes.demo.href(), window.location.origin);
+  const url = new URL(routes.draft.href(), window.location.origin);
   url.hash = `${PAYLOAD_PARAM}=${await encodeSharedProject(project)}`;
   return url.href;
 }

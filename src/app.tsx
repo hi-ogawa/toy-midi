@@ -26,9 +26,9 @@ export function App() {
         />
       );
     }
-    case "demo": {
+    case "draft": {
       preloadMidiAssetsWhenIdle();
-      return <DemoRoute />;
+      return <DraftRoute />;
     }
     case "latencyChecker": {
       return <LatencyChecker />;
@@ -53,7 +53,7 @@ export function App() {
   }
 }
 
-function DemoRoute() {
+function DraftRoute() {
   // Another share link in this tab changes only the hash, which does not
   // reload the page, so reload it to open that project afresh.
   useWindowEvent("hashchange", () => window.location.reload());
@@ -67,7 +67,7 @@ function DemoRoute() {
       />
     );
   }
-  return <Editor source={{ type: "demo", payload }} />;
+  return <Editor source={{ type: "draft", payload }} />;
 }
 
 function LegacyProjectRoute() {

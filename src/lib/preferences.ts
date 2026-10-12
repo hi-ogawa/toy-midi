@@ -91,9 +91,9 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
 
 export type ProjectUiStore = ReturnType<typeof withUseValue<ProjectUiState>>;
 
-/** A demo's view state stays in memory, since it is never a stored project. */
+/** A draft's view state stays in memory, since it is never a stored project. */
 export function createProjectUiStore(source: ProjectSource): ProjectUiStore {
-  if (source.type === "demo") {
+  if (source.type === "draft") {
     return withUseValue(createStore(() => DEFAULT_PROJECT_UI_STATE));
   }
   return withUseValue(

@@ -22,7 +22,7 @@ export function useProject({
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
-  // Raised when a demo's saved copy is about to open. Its edits are in the
+  // Raised when a draft's saved copy is about to open. Its edits are in the
   // copy, so the unload prompt for unsaved changes does not apply.
   const leavingForCopyRef = useRef(false);
 
@@ -33,7 +33,7 @@ export function useProject({
     queryFn: async () => {
       const [, project] = await Promise.all([
         runtime.init(),
-        source.type === "demo"
+        source.type === "draft"
           ? decodeSharedProject(source.payload)
           : projectStorage.load(source.projectId),
       ]);
@@ -55,8 +55,8 @@ export function useProject({
       }
       const revision = revisionRef.current;
       const content = runtime.serializeProject();
-      // A demo lives only in memory, so saving it stores a copy and opens that.
-      if (source.type === "demo") {
+      // A draft lives only in memory, so saving it stores a copy and opens that.
+      if (source.type === "draft") {
         const projectId = await projectStorage.createWithContent(content);
         leavingForCopyRef.current = true;
         window.location.href = routes.project.href({ projectId });
@@ -107,7 +107,7 @@ export function useProject({
         ? "unsaved"
         : "saved";
   return {
-    demo: source.type === "demo",
+    draft: source.type === "draft",
     dirty,
     initError: projectQuery.error ?? undefined,
     ready: projectQuery.isSuccess,

@@ -11,7 +11,7 @@ import { selectMenuItem } from "./helpers";
 
 test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
-test("shares a MIDI project as a link that opens an unsaved demo", async ({
+test("shares a MIDI project as a link that opens an unsaved draft", async ({
   page,
 }) => {
   // Create a project with a backing track, a note, and its own tempo, and
@@ -28,34 +28,34 @@ test("shares a MIDI project as a link that opens an unsaved demo", async ({
   await tempo.press("Enter");
   await saveProject(page);
 
-  // Copy a share link from the editor menu, and get a link to the demo route.
+  // Copy a share link from the editor menu, and get a link to the draft route.
   const shareUrl = await copyShareLink(page);
-  expect(new URL(shareUrl).pathname).toBe("/demo");
+  expect(new URL(shareUrl).pathname).toBe("/draft");
 
-  // Open the link, and see the project's MIDI as a demo with no save button,
+  // Open the link, and see the project's MIDI as a draft with no save button,
   // and without the audio, which a link does not carry.
   await page.goto(shareUrl);
-  await expect(page.getByTestId("demo-badge")).toBeVisible();
+  await expect(page.getByTestId("draft-badge")).toBeVisible();
   await expect(page.getByTestId("project-name")).toHaveText("Untitled");
   await expect(getMidiNote(track, { beat: 0, pitch: "C4" })).toBeVisible();
   await expect(tempo).toHaveValue("90");
   await expect(page.getByTestId("save-button")).toHaveCount(0);
   await expect(page.getByTestId("audio-track-row")).toHaveCount(0);
 
-  // Go home, and see that opening the demo stored nothing.
+  // Go home, and see that opening the draft stored nothing.
   await page.goto("/");
   const projects = page
     .getByRole("region", { name: "Current projects" })
     .getByRole("link");
   await expect(projects).toHaveCount(1);
 
-  // Open the demo again, add a note, and copy it to a project of its own.
+  // Open the draft again, add a note, and copy it to a project of its own.
   await page.goto(shareUrl);
   await createMidiNote(page, track, { beat: 1, pitch: "E4" });
   await page.getByTestId("copy-to-save-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   expect(page.url()).not.toBe(projectUrl);
-  await expect(page.getByTestId("demo-badge")).toHaveCount(0);
+  await expect(page.getByTestId("draft-badge")).toHaveCount(0);
   await expect(page.getByTestId("save-button")).toHaveAttribute(
     "data-status",
     "saved",
@@ -66,7 +66,7 @@ test("shares a MIDI project as a link that opens an unsaved demo", async ({
   await expect(projects).toHaveCount(2);
 
   // Change the copy's tempo and share it, then open both links in turn in
-  // this tab, which only changes the hash, and see each demo's own tempo.
+  // this tab, which only changes the hash, and see each draft's own tempo.
   await projects.first().click();
   await expect(getMidiNote(track, { beat: 1, pitch: "E4" })).toBeVisible();
   await tempo.fill("140");
@@ -74,7 +74,7 @@ test("shares a MIDI project as a link that opens an unsaved demo", async ({
   await saveProject(page);
   const secondShareUrl = await copyShareLink(page);
   await page.goto(shareUrl);
-  await expect(page.getByTestId("demo-badge")).toBeVisible();
+  await expect(page.getByTestId("draft-badge")).toBeVisible();
   await expect(tempo).toHaveValue("90");
   await page.goto(secondShareUrl);
   await expect(tempo).toHaveValue("140");
@@ -87,8 +87,8 @@ test("shares a MIDI project as a link that opens an unsaved demo", async ({
     page.getByText("The share link does not hold a readable project."),
   ).toBeVisible();
 
-  // Open the demo route with no payload at all, and get sent home.
-  await page.goto("/demo");
+  // Open the draft route with no payload at all, and get sent home.
+  await page.goto("/draft");
   await expect(
     page.getByText("This share link has no project in it."),
   ).toBeVisible();
@@ -100,6 +100,6 @@ async function copyShareLink(page: Page) {
   await selectMenuItem(page, { menu: "Editor menu", item: "Copy Share Link" });
   await expect(page.getByText("Share link copied")).toBeVisible();
   const url = await page.evaluate(() => navigator.clipboard.readText());
-  expect(url).toContain("/demo#p=");
+  expect(url).toContain("/draft#p=");
   return url;
 }

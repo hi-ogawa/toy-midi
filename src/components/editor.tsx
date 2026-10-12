@@ -311,7 +311,7 @@ export function Editor({ source }: { source: ProjectSource }) {
     >
       <Header
         title={project.ready ? state.title : undefined}
-        demo={project.demo}
+        draft={project.draft}
         saveStatus={project.saveStatus}
         referenceVideoOpen={isReferenceVideoOpen}
         isPlaying={state.isPlaying}
