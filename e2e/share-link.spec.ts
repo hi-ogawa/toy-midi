@@ -98,5 +98,7 @@ test("shares a MIDI project as a link that opens an unsaved draft", async ({
 async function copyShareLink(page: Page) {
   await selectMenuItem(page, { menu: "Editor menu", item: "Copy Share Link" });
   await expect(page.getByText("Share link copied")).toBeVisible();
-  return page.evaluate(() => navigator.clipboard.readText());
+  const url = await page.evaluate(() => navigator.clipboard.readText());
+  expect(url).toContain("/draft#p=");
+  return url;
 }
