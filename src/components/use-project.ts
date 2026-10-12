@@ -3,19 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import type { ProjectUiStore } from "../lib/preferences";
 import { decodeSharedProject } from "../lib/project-share";
 import { projectStorage } from "../lib/project-storage";
-import { routes } from "../lib/routes";
+import { type ProjectSource, routes } from "../lib/routes";
 import { EditorRuntime } from "../lib/runtime";
 import { useWindowEvent } from "./use-window-event";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
-
-/**
- * A stored project saves in place. A demo, opened from a share link, lives
- * only in memory, and saving it stores a copy and opens that.
- */
-export type ProjectSource =
-  | { type: "stored"; projectId: string }
-  | { type: "demo"; payload: string };
 
 export type UseProjectResult = ReturnType<typeof useProject>;
 
@@ -63,6 +55,7 @@ export function useProject({
       }
       const revision = revisionRef.current;
       const content = runtime.serializeProject();
+      // A demo lives only in memory, so saving it stores a copy and opens that.
       if (source.type === "demo") {
         const projectId = await projectStorage.createWithContent(content);
         leavingForCopyRef.current = true;

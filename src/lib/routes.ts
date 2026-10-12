@@ -39,6 +39,11 @@ export function matchRoute(url: string | URL) {
   return matcher.match(url) as RouteMatch | null;
 }
 
+/** What the editor route opens: a project from storage, or a share link's payload as an in-memory demo. */
+export type ProjectSource =
+  | { type: "stored"; projectId: string }
+  | { type: "demo"; payload: string };
+
 export function getScoreHref(params: { projectId: string; trackId: string }) {
   return `${routes.scoreViewer.href()}?${new URLSearchParams(params)}`;
 }

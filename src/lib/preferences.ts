@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type { ProjectSource } from "../components/use-project";
 import { withUseValue } from "../components/use-store-value";
 import { createLocalStorageStore } from "../utils/local-storage-store";
 import { createStore } from "../utils/store";
+import type { ProjectSource } from "./routes";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
