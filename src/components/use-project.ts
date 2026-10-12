@@ -30,7 +30,8 @@ export function useProject({
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
-  // The saved copy holds a demo's edits, so opening it loses nothing.
+  // Raised when a demo's saved copy is about to open. Its edits are in the
+  // copy, so the unload prompt for unsaved changes does not apply.
   const leavingForCopyRef = useRef(false);
 
   const projectQuery = useQuery({
