@@ -517,9 +517,6 @@ function PlaybackPosition({
 }
 
 /** A demo from a share link has no project to save, only a copy to make. */
-// TODO: The copy button restates the save button's status handling with its
-// own styling and labels. Decide whether it should be a plain button that
-// leaves errors to the toast, or the save button with demo labels.
 function DemoControls({
   status,
   ready,
