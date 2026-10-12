@@ -347,11 +347,7 @@ export function Header({
       </label>
       <div className="flex-1" />
       {draft ? (
-        <DraftControls
-          status={saveStatus}
-          ready={title !== undefined}
-          onCopyToSave={onSave}
-        />
+        <DraftControls ready={title !== undefined} onSave={onSave} />
       ) : (
         <SaveButton status={saveStatus} onSave={onSave} />
       )}
@@ -516,42 +512,43 @@ function PlaybackPosition({
   );
 }
 
-// TODO: This button is awful. Discuss.
-/** A draft from a share link has no project to save, only a copy to make. */
+/** Saving a draft stores it as a new project, so it has no save status to show. */
 function DraftControls({
-  status,
   ready,
-  onCopyToSave,
+  onSave,
 }: {
-  status: SaveStatus;
   ready: boolean;
-  onCopyToSave: () => void;
+  onSave: () => void;
 }) {
+  const label = "Save to your projects (Ctrl/Cmd+S)";
   return (
     <>
       <span
         data-testid="draft-badge"
-        title="Opened from a share link. Edits stay in this tab until copied."
+        title="Not in your projects yet. Save to keep it."
         className="rounded border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-emerald-200 uppercase"
       >
         Draft
       </span>
-      <Button
-        data-testid="copy-to-save-button"
-        disabled={!ready || status === "saving"}
-        onClick={onCopyToSave}
-        className={cn(
-          "h-8 gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm hover:bg-neutral-800",
-          status === "error" && "border-red-500/60 text-red-300",
-        )}
-      >
-        {status === "saving" ? (
-          <LoaderCircleIcon className="size-3.5 animate-spin" />
-        ) : (
+      <div className="group/save relative">
+        <Button
+          data-testid="save-draft-button"
+          aria-label={label}
+          aria-describedby="save-tooltip"
+          disabled={!ready}
+          onClick={onSave}
+          className="size-8 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        >
           <SaveIcon className="size-4" />
-        )}
-        {status === "error" ? "Copy failed, retry" : "Copy to save"}
-      </Button>
+        </Button>
+        <span
+          id="save-tooltip"
+          role="tooltip"
+          className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
+        >
+          {label}
+        </span>
+      </div>
     </>
   );
 }

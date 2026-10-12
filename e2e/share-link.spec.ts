@@ -49,10 +49,10 @@ test("shares a MIDI project as a link that opens an unsaved draft", async ({
     .getByRole("link");
   await expect(projects).toHaveCount(1);
 
-  // Open the draft again, add a note, and copy it to a project of its own.
+  // Open the draft again, add a note, and save it as a project of its own.
   await page.goto(shareUrl);
   await createMidiNote(page, track, { beat: 1, pitch: "E4" });
-  await page.getByTestId("copy-to-save-button").click();
+  await page.getByTestId("save-draft-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   expect(page.url()).not.toBe(projectUrl);
   await expect(page.getByTestId("draft-badge")).toHaveCount(0);
