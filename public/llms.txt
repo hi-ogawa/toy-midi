@@ -47,3 +47,5 @@ const payload = deflateRawSync(JSON.stringify(project)).toString("base64url");
 ```
 
 Keep links short where they will be posted. A chat message can cap far below what a browser accepts, such as 2,000 characters on Discord, so a short phrase fits where a whole song may not.
+
+A payload that matches `SharedProject` opens in the app, so you don't need to open the link yourself to check it. The person you share it with opens it and listens, and that's the check that matters. If it doesn't load, they'll tell you.
