@@ -24,9 +24,7 @@ The app exposes its project to agents through [webmcp-bridge](https://github.com
 pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/webmcp-bridge"
 ```
 
-Then run `webmcp-bridge --help`. It says how to start the bridge and wait for the user's page to connect. The user installs the extension once, following the package's README.
-
-Once the page is connected, the project exposes one tool, `toy_midi_eval`. It runs the body of an async function with `runtime` in scope and returns a JSON value. The tool's description carries the runtime's API as TypeScript declarations, which `webmcp-bridge get-tools` prints. Before the page connects, read the same API in [`src/lib/runtime.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/runtime.ts), starting from the `EditorRuntime` class, so you can write code while you wait.
+Then run `webmcp-bridge --help`, which covers connecting to the user's page and reading the tools it exposes. The user installs the extension once, following the package's README. To write code before the page connects, read the runtime's API in [`src/lib/runtime.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/runtime.ts), starting from the `EditorRuntime` class.
 
 ## Write a Share Link
 
