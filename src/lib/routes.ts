@@ -8,6 +8,7 @@ export const routes = route({
   home: "/",
   preview: "/_preview",
   project: "/recorder/:projectId",
+  draft: "/draft",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
   scoreCapture: "/score-capture",
@@ -37,6 +38,11 @@ export function matchRoute(url: string | URL) {
   // are registered together above, so restore their correlation for callers.
   return matcher.match(url) as RouteMatch | null;
 }
+
+/** What the editor route opens: a project from storage, or a share link's payload as an in-memory draft. */
+export type ProjectSource =
+  | { type: "stored"; projectId: string }
+  | { type: "draft"; payload: string };
 
 export function getScoreHref(params: { projectId: string; trackId: string }) {
   return `${routes.scoreViewer.href()}?${new URLSearchParams(params)}`;

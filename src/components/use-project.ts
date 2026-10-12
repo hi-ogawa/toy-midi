@@ -1,7 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import type { ProjectUiStore } from "../lib/preferences";
+import { decodeSharedProject } from "../lib/project-share";
 import { projectStorage } from "../lib/project-storage";
+import { type ProjectSource, routes } from "../lib/routes";
 import { EditorRuntime } from "../lib/runtime";
 import { useWindowEvent } from "./use-window-event";
 
@@ -10,25 +12,30 @@ export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 export type UseProjectResult = ReturnType<typeof useProject>;
 
 export function useProject({
-  projectId,
+  source,
   runtime,
   projectUiStore,
 }: {
-  projectId: string;
+  source: ProjectSource;
   runtime: EditorRuntime;
   projectUiStore: ProjectUiStore;
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
+  // Raised when a saved draft is about to open as a stored project. Its edits
+  // are stored, so the unload prompt for unsaved changes does not apply.
+  const openingSavedDraftRef = useRef(false);
 
   const projectQuery = useQuery({
-    queryKey: ["project", projectId],
+    queryKey: ["project", source],
     retry: false,
     staleTime: Infinity,
     queryFn: async () => {
       const [, project] = await Promise.all([
         runtime.init(),
-        projectStorage.load(projectId),
+        source.type === "draft"
+          ? decodeSharedProject(source.payload)
+          : projectStorage.load(source.projectId),
       ]);
       await runtime.deserializeProject(project);
       // Loading seeks to the start, so return to where the project was left.
@@ -47,14 +54,16 @@ export function useProject({
         throw new Error("Cannot save before the project has initialized.");
       }
       const revision = revisionRef.current;
-      await projectStorage.save({
-        id: projectId,
-        content: runtime.serializeProject(),
-      });
-      return revision;
-    },
-    onSuccess: (savedRevision) => {
-      setDirty(revisionRef.current !== savedRevision);
+      const content = runtime.serializeProject();
+      // A draft lives only in memory, so saving it stores a copy and opens that.
+      if (source.type === "draft") {
+        const projectId = await projectStorage.createWithContent(content);
+        openingSavedDraftRef.current = true;
+        window.location.href = routes.project.href({ projectId });
+        return;
+      }
+      await projectStorage.save({ id: source.projectId, content });
+      setDirty(revisionRef.current !== revision);
     },
   });
 
@@ -85,7 +94,7 @@ export function useProject({
   }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
-    if (dirty) {
+    if (dirty && !openingSavedDraftRef.current) {
       event.preventDefault();
     }
   });
@@ -98,6 +107,7 @@ export function useProject({
         ? "unsaved"
         : "saved";
   return {
+    draft: source.type === "draft",
     dirty,
     initError: projectQuery.error ?? undefined,
     ready: projectQuery.isSuccess,

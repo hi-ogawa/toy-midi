@@ -8,6 +8,8 @@ Toy MIDI is a browser-based DAW built with React and TypeScript. It combines aud
 
 Editing updates the active project in memory. Saving writes the project to IndexedDB in the browser, while exporting creates a portable archive containing the project and its audio assets.
 
+A share link carries a MIDI-only copy of the project in the URL fragment, so it never reaches a server. Opening one shows an unsaved draft that is edited in memory, and copying the draft stores it as a project of its own.
+
 ## Monitoring and Latency
 
 Direct monitoring through an audio interface or external equipment lets the performer hear their instrument without waiting for browser audio processing. Browser monitoring depends on device and processing latency, so the recording workflow is designed around direct monitoring.

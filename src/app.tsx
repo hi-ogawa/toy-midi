@@ -6,6 +6,8 @@ import { RouteError } from "./components/route-error";
 import { ScoreCapture } from "./components/score-capture";
 import { ScorePage } from "./components/score-page";
 import { ScoreViewer } from "./components/score-viewer";
+import { useWindowEvent } from "./components/use-window-event";
+import { getSharePayload } from "./lib/project-share";
 import { matchRoute, routes } from "./lib/routes";
 import { preloadMidiAssetsWhenIdle } from "./lib/runtime-assets";
 
@@ -18,7 +20,15 @@ export function App() {
     }
     case "project": {
       preloadMidiAssetsWhenIdle();
-      return <Editor projectId={match.params.projectId} />;
+      return (
+        <Editor
+          source={{ type: "stored", projectId: match.params.projectId }}
+        />
+      );
+    }
+    case "draft": {
+      preloadMidiAssetsWhenIdle();
+      return <DraftRoute />;
     }
     case "latencyChecker": {
       return <LatencyChecker />;
@@ -41,6 +51,23 @@ export function App() {
       return <Home />;
     }
   }
+}
+
+function DraftRoute() {
+  // Another share link in this tab changes only the hash, which does not
+  // reload the page, so reload it to open that project afresh.
+  useWindowEvent("hashchange", () => window.location.reload());
+  const payload = getSharePayload(window.location.href);
+  if (payload === undefined) {
+    return (
+      <RouteError
+        error="This share link has no project in it."
+        backHref={routes.home.href()}
+        backLabel="Back to projects"
+      />
+    );
+  }
+  return <Editor source={{ type: "draft", payload }} />;
 }
 
 function LegacyProjectRoute() {

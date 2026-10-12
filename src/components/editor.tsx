@@ -11,7 +11,8 @@ import { snapToGrid } from "../lib/music";
 import { getNextPlaybackRate } from "../lib/playback-rate";
 import { createProjectUiStore, preferences } from "../lib/preferences";
 import { exportProjectArchive } from "../lib/project-archive";
-import { getScoreHref, routes } from "../lib/routes";
+import { createShareLink } from "../lib/project-share";
+import { getScoreHref, type ProjectSource, routes } from "../lib/routes";
 import { EditorRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
 import { beatsToSeconds, secondsToBeats } from "../lib/timeline";
 import { resolveTrackOrder } from "../lib/track-order";
@@ -53,10 +54,10 @@ import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
 import { useWindowEvent } from "./use-window-event";
 
-export function Editor({ projectId }: { projectId: string }) {
+export function Editor({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
   useWebMcpBridge(runtime);
-  const [projectUiStore] = useState(() => createProjectUiStore(projectId));
+  const [projectUiStore] = useState(() => createProjectUiStore(source));
   const [defaultMidiProgram, setDefaultMidiProgram] =
     preferences.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
@@ -94,7 +95,7 @@ export function Editor({ projectId }: { projectId: string }) {
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
-  const project = useProject({ projectId, runtime, projectUiStore });
+  const project = useProject({ source, runtime, projectUiStore });
   const flags = deriveEditorFlags({ state, project });
   const interaction = useInteraction({
     runtime,
@@ -149,6 +150,16 @@ export function Editor({ projectId }: { projectId: string }) {
           extension: ".toymidi.zip",
         }),
       );
+    },
+  });
+  const shareLinkMutation = useMutation({
+    mutationFn: async () => {
+      await navigator.clipboard.writeText(
+        await createShareLink(runtime.serializeProject()),
+      );
+    },
+    onSuccess: () => {
+      toast.success("Share link copied");
     },
   });
 
@@ -300,6 +311,7 @@ export function Editor({ projectId }: { projectId: string }) {
     >
       <Header
         title={project.ready ? state.title : undefined}
+        draft={project.draft}
         saveStatus={project.saveStatus}
         referenceVideoOpen={isReferenceVideoOpen}
         isPlaying={state.isPlaying}
@@ -336,6 +348,7 @@ export function Editor({ projectId }: { projectId: string }) {
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
         onExportAudio={() => setIsAudioExportOpen(true)}
+        onShareLink={() => shareLinkMutation.mutate()}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
@@ -716,11 +729,12 @@ export function Editor({ projectId }: { projectId: string }) {
                 track={track}
                 onClose={() => scoreUi.close(track.id)}
                 scoreViewerHref={
+                  source.type === "stored" &&
                   project.ready &&
                   project.saveStatus === "saved" &&
                   !flags.isRecording
                     ? getScoreHref({
-                        projectId,
+                        projectId: source.projectId,
                         trackId: track.id,
                       })
                     : undefined
