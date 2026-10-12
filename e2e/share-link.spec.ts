@@ -14,12 +14,19 @@ test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 test("shares a MIDI project as a link that opens an unsaved draft", async ({
   page,
 }) => {
-  // Create a project with a backing track, a note, and its own tempo, and
-  // save it.
+  // Create a project with a backing track, a reference video, a note, and its
+  // own tempo, and save it.
   await createProject(page);
   const projectUrl = page.url();
   await addAudio(page, "e2e/fixtures/test-audio.wav");
   await expect(page.getByTestId("clip-audio")).toHaveCount(1);
+  await page.getByTestId("reference-video-button").click();
+  const referencePanel = page.getByTestId("youtube-reference");
+  await referencePanel
+    .getByTestId("youtube-input")
+    .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
+  await referencePanel.getByRole("button", { name: "Add video" }).click();
+  await expect(page.getByTestId("reference-track")).toBeVisible();
   const track = page.getByTestId("midi-track-row");
   await addMidiTrack(page);
   await createMidiNote(page, track, { beat: 0, pitch: "C4" });
@@ -31,8 +38,8 @@ test("shares a MIDI project as a link that opens an unsaved draft", async ({
   // Copy a share link from the editor menu.
   const shareUrl = await copyShareLink(page);
 
-  // Open the link, and see the project's MIDI as a draft with no save button,
-  // and without the audio, which a link does not carry.
+  // Open the link, and see the project's MIDI and reference video as a draft
+  // with no save button, and without the audio, which a link does not carry.
   await page.goto(shareUrl);
   await expect(page.getByTestId("draft-badge")).toBeVisible();
   await expect(page.getByTestId("project-name")).toHaveText("Untitled");
@@ -40,6 +47,7 @@ test("shares a MIDI project as a link that opens an unsaved draft", async ({
   await expect(tempo).toHaveValue("90");
   await expect(page.getByTestId("save-button")).toHaveCount(0);
   await expect(page.getByTestId("audio-track-row")).toHaveCount(0);
+  await expect(page.getByTestId("reference-track")).toBeVisible();
 
   // Go home, and see that opening the draft stored nothing.
   await page.goto("/");
