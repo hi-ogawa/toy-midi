@@ -8,7 +8,7 @@ Projects live in the browser's own storage. The app has no server, no accounts, 
 - `/recorder/<projectId>`, a project saved in this browser.
 - `/draft#p=<payload>`, a project carried in a share link. It opens unsaved, so the person who opens it can edit it and then save their own copy.
 
-The app is deployed at `https://toy-midi.hiro18181.workers.dev`.
+Links and pages are on the site that served this guide.
 
 ## Choose How to Work
 
@@ -46,8 +46,12 @@ Encode a project written as JSON with Node, which has raw deflate and base64url 
 import { readFileSync } from "node:fs";
 import { deflateRawSync } from "node:zlib";
 
-const site = "https://toy-midi.hiro18181.workers.dev";
-const project = JSON.parse(readFileSync(process.argv[2], "utf8"));
+const [file, site] = process.argv.slice(2);
+if (!file || !site) {
+  console.error("usage: node encode.mjs <project.json> <site>");
+  process.exit(1);
+}
+const project = JSON.parse(readFileSync(file, "utf8"));
 const payload = deflateRawSync(JSON.stringify(project)).toString("base64url");
 console.log(`${site}/draft#p=${payload}`);
 ```
