@@ -6,6 +6,7 @@ import {
   CircleStopIcon,
   DownloadIcon,
   HouseIcon,
+  LinkIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
   MicIcon,
@@ -52,6 +53,7 @@ import { useTapTempo } from "./use-tap-tempo";
 
 export function Header({
   title,
+  demo,
   saveStatus,
   referenceVideoOpen,
   isPlaying,
@@ -82,6 +84,7 @@ export function Header({
   onGridDivisionChange,
   onExportProject,
   onExportAudio,
+  onShareLink,
   onReferenceVideoOpenChange,
   onMixerToggle,
   onProjectCommentToggle,
@@ -93,6 +96,7 @@ export function Header({
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
+  demo: boolean;
   saveStatus: SaveStatus;
   referenceVideoOpen: boolean;
   isPlaying: boolean;
@@ -123,6 +127,7 @@ export function Header({
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
   onExportAudio: () => void;
+  onShareLink: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
   onProjectCommentToggle: () => void;
@@ -341,7 +346,15 @@ export function Header({
         </span>
       </label>
       <div className="flex-1" />
-      <SaveButton status={saveStatus} onSave={onSave} />
+      {demo ? (
+        <DemoControls
+          status={saveStatus}
+          ready={title !== undefined}
+          onCopyToSave={onSave}
+        />
+      ) : (
+        <SaveButton status={saveStatus} onSave={onSave} />
+      )}
       <button
         type="button"
         data-testid="project-name"
@@ -454,6 +467,14 @@ export function Header({
               </span>
             </span>
           </DropdownMenuItem>
+          <DropdownMenuItem
+            data-testid="copy-share-link"
+            disabled={title === undefined}
+            onSelect={onShareLink}
+          >
+            <LinkIcon />
+            Copy Share Link
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={onHelpOpen}>
             <CircleHelpIcon />
@@ -492,6 +513,45 @@ function PlaybackPosition({
       {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
       {formatTimeWithMilliseconds(position)}
     </output>
+  );
+}
+
+/** A demo from a share link has no project to save, only a copy to make. */
+function DemoControls({
+  status,
+  ready,
+  onCopyToSave,
+}: {
+  status: SaveStatus;
+  ready: boolean;
+  onCopyToSave: () => void;
+}) {
+  return (
+    <>
+      <span
+        data-testid="demo-badge"
+        title="Opened from a share link. Edits stay in this tab until copied."
+        className="rounded border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-emerald-200 uppercase"
+      >
+        Demo
+      </span>
+      <Button
+        data-testid="copy-to-save-button"
+        disabled={!ready || status === "saving"}
+        onClick={onCopyToSave}
+        className={cn(
+          "h-8 gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm hover:bg-neutral-800",
+          status === "error" && "border-red-500/60 text-red-300",
+        )}
+      >
+        {status === "saving" ? (
+          <LoaderCircleIcon className="size-3.5 animate-spin" />
+        ) : (
+          <SaveIcon className="size-4" />
+        )}
+        {status === "error" ? "Copy failed, retry" : "Copy to save"}
+      </Button>
+    </>
   );
 }
 

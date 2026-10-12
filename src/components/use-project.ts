@@ -1,20 +1,30 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import type { ProjectUiStore } from "../lib/preferences";
+import { decodeSharedProject } from "../lib/project-share";
 import { projectStorage } from "../lib/project-storage";
+import { routes } from "../lib/routes";
 import { EditorRuntime } from "../lib/runtime";
 import { useWindowEvent } from "./use-window-event";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
+/**
+ * A stored project saves in place. A demo, opened from a share link, lives
+ * only in memory, and saving it stores a copy and opens that.
+ */
+export type ProjectSource =
+  | { type: "stored"; projectId: string }
+  | { type: "demo"; payload: string };
+
 export type UseProjectResult = ReturnType<typeof useProject>;
 
 export function useProject({
-  projectId,
+  source,
   runtime,
   projectUiStore,
 }: {
-  projectId: string;
+  source: ProjectSource;
   runtime: EditorRuntime;
   projectUiStore: ProjectUiStore;
 }) {
@@ -22,13 +32,15 @@ export function useProject({
   const revisionRef = useRef(0);
 
   const projectQuery = useQuery({
-    queryKey: ["project", projectId],
+    queryKey: ["project", source],
     retry: false,
     staleTime: Infinity,
     queryFn: async () => {
       const [, project] = await Promise.all([
         runtime.init(),
-        projectStorage.load(projectId),
+        source.type === "demo"
+          ? decodeSharedProject(source.payload)
+          : projectStorage.load(source.projectId),
       ]);
       await runtime.deserializeProject(project);
       // Loading seeks to the start, so return to where the project was left.
@@ -47,16 +59,27 @@ export function useProject({
         throw new Error("Cannot save before the project has initialized.");
       }
       const revision = revisionRef.current;
-      await projectStorage.save({
-        id: projectId,
-        content: runtime.serializeProject(),
-      });
-      return revision;
+      const content = runtime.serializeProject();
+      if (source.type === "demo") {
+        const projectId = await projectStorage.createWithContent(content);
+        return { revision, projectId };
+      }
+      await projectStorage.save({ id: source.projectId, content });
+      return { revision };
     },
-    onSuccess: (savedRevision) => {
-      setDirty(revisionRef.current !== savedRevision);
+    onSuccess: ({ revision }) => {
+      setDirty(revisionRef.current !== revision);
     },
   });
+
+  // Open a demo's saved copy only after the render that clears the unsaved
+  // mark, so leaving the page does not ask about losing changes.
+  useEffect(() => {
+    const projectId = saveMutation.data?.projectId;
+    if (projectId !== undefined) {
+      window.location.href = routes.project.href({ projectId });
+    }
+  }, [saveMutation.data]);
 
   // Mark the project unsaved when persistable state changes after it loads.
   useEffect(() => {
@@ -99,6 +122,7 @@ export function useProject({
         ? "unsaved"
         : "saved";
   return {
+    demo: source.type === "demo",
     dirty,
     initError: projectQuery.error ?? undefined,
     ready: projectQuery.isSuccess,

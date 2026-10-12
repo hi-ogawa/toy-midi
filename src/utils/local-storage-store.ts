@@ -1,17 +1,21 @@
 import { useSyncExternalStore, type SetStateAction } from "react";
 import { createStore } from "./store";
 
-/** A store kept in one localStorage entry, read once and written on each update. */
+/**
+ * A store kept in one localStorage entry, read once and written on each
+ * update. Without a key, it stays in memory and starts from the parsed
+ * defaults.
+ */
 export class LocalStorageStore<State extends object> {
   readonly store;
-  private readonly key: string;
+  private readonly key?: string;
 
   /** `parse` turns the stored value, or undefined when there is none, into the state. */
   constructor({
     key,
     parse,
   }: {
-    key: string;
+    key?: string;
     parse: (stored: unknown) => State;
   }) {
     this.key = key;
@@ -20,7 +24,7 @@ export class LocalStorageStore<State extends object> {
     this.store = createStore<State>(() => {
       let stored: unknown;
       try {
-        const json = localStorage.getItem(key);
+        const json = key === undefined ? null : localStorage.getItem(key);
         stored = json === null ? undefined : JSON.parse(json);
       } catch {}
       return parse(stored);
@@ -29,6 +33,9 @@ export class LocalStorageStore<State extends object> {
 
   update(update: Partial<State>): void {
     this.store.update(update);
+    if (this.key === undefined) {
+      return;
+    }
     try {
       localStorage.setItem(this.key, JSON.stringify(this.store.get()));
     } catch {

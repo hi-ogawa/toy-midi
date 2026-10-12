@@ -29,7 +29,11 @@ export function deriveEditorFlags({
         : captureStatus === "disabled"
           ? "input"
           : undefined,
+    // A demo saves as a new copy, so it saves even without edits.
     saveDisabled:
-      !project.ready || !project.dirty || project.saving || isRecording,
+      !project.ready ||
+      !(project.dirty || project.demo) ||
+      project.saving ||
+      isRecording,
   };
 }

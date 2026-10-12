@@ -8,6 +8,7 @@ export const routes = route({
   home: "/",
   preview: "/_preview",
   project: "/recorder/:projectId",
+  demo: "/demo",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
   scoreCapture: "/score-capture",

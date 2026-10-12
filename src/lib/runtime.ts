@@ -40,6 +40,7 @@ import {
   serializeEditorRuntimeState,
 } from "./persistence.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "./pitch-spelling.ts";
+import { createShareLink } from "./project-share.ts";
 import { ActiveRecording } from "./recording.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
 import { beatsToSeconds } from "./timeline.ts";
@@ -1113,6 +1114,14 @@ export class EditorRuntime {
     });
   }
 
+  /**
+   * A link that opens the project's MIDI tracks, tempo, and time signature as
+   * an unsaved demo, leaving out audio and the reference video.
+   */
+  createShareLink(): Promise<string> {
+    return createShareLink(this.store.get());
+  }
+
   /** @internal */
   serializeProject(): SerializedEditorRuntimeState {
     return serializeEditorRuntimeState(this.store.get());
@@ -1597,7 +1606,7 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
   };
 }
 
-function createMidiTrackState({
+export function createMidiTrackState({
   name,
   preset,
 }: {

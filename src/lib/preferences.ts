@@ -86,9 +86,13 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
 
 export type ProjectUiStore = LocalStorageStore<ProjectUiState>;
 
-export function createProjectUiStore(projectId: string): ProjectUiStore {
+/** Without a project id, as for a demo, the state stays in memory. */
+export function createProjectUiStore(projectId?: string): ProjectUiStore {
   return new LocalStorageStore<ProjectUiState>({
-    key: `toy-midi:recorder-project-ui:${projectId}`,
+    key:
+      projectId === undefined
+        ? undefined
+        : `toy-midi:recorder-project-ui:${projectId}`,
     parse: (stored) =>
       parseState({
         schema: projectUiStateSchema,
