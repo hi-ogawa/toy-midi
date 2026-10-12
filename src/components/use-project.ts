@@ -32,7 +32,7 @@ export function useProject({
       ]);
       await runtime.deserializeProject(project);
       // Loading seeks to the start, so return to where the project was left.
-      const { playhead } = projectUiStore.store.get();
+      const { playhead } = projectUiStore.get();
       if (playhead !== undefined) {
         runtime.seek(playhead);
       }
@@ -81,7 +81,6 @@ export function useProject({
         projectUiStore.update({
           playhead: runtime.transport.store.get().position,
         }),
-      equals: Object.is,
     });
   }, [projectQuery.isSuccess, runtime]);
 
