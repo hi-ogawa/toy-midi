@@ -24,7 +24,7 @@ export function getSharePayload(url: string): string | undefined {
   );
 }
 
-export async function encodeSharedProject(
+async function encodeSharedProject(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
   const shared: SerializedEditorRuntimeState = {

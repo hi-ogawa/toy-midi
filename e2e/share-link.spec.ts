@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
+  addAudio,
   addMidiTrack,
   createMidiNote,
   createProject,
@@ -13,9 +14,12 @@ test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 test("shares a MIDI project as a link that opens an unsaved demo", async ({
   page,
 }) => {
-  // Create a project with a note and its own tempo, and save it.
+  // Create a project with a backing track, a note, and its own tempo, and
+  // save it.
   await createProject(page);
   const projectUrl = page.url();
+  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  await expect(page.getByTestId("clip-audio")).toHaveCount(1);
   const track = page.getByTestId("midi-track-row");
   await addMidiTrack(page);
   await createMidiNote(page, track, { beat: 0, pitch: "C4" });
@@ -28,13 +32,15 @@ test("shares a MIDI project as a link that opens an unsaved demo", async ({
   const shareUrl = await copyShareLink(page);
   expect(new URL(shareUrl).pathname).toBe("/demo");
 
-  // Open the link, and see the project as a demo with no save button.
+  // Open the link, and see the project's MIDI as a demo with no save button,
+  // and without the audio, which a link does not carry.
   await page.goto(shareUrl);
   await expect(page.getByTestId("demo-badge")).toBeVisible();
   await expect(page.getByTestId("project-name")).toHaveText("Untitled");
   await expect(getMidiNote(track, { beat: 0, pitch: "C4" })).toBeVisible();
   await expect(tempo).toHaveValue("90");
   await expect(page.getByTestId("save-button")).toHaveCount(0);
+  await expect(page.getByTestId("audio-track-row")).toHaveCount(0);
 
   // Go home, and see that opening the demo stored nothing.
   await page.goto("/");
