@@ -125,7 +125,13 @@ export class MidiTrackPlayback implements TransportParticipant {
       if (start < range.start) {
         continue;
       }
-      const end = beatsToSeconds(note.start + note.duration, this.tempo);
+      // A note held past loop-out ends at the wrap. The synth applies
+      // note-offs before note-ons on the same frame, so a repeated pitch at
+      // loop-in still retriggers.
+      const end = Math.min(
+        beatsToSeconds(note.start + note.duration, this.tempo),
+        range.pass.end,
+      );
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,

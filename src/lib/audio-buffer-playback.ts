@@ -1,16 +1,24 @@
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { DeclickGain } from "./dsp/declick-gain.ts";
-import type {
-  AudioContextTransport,
-  TransportParticipant,
+import {
+  type AudioContextTransport,
+  type ScheduledRange,
+  type TransportParticipant,
 } from "./transport.ts";
 
+/**
+ * Plays one clip region as a series of buffer slices, one per loop pass the
+ * region intersects. Each slice ends exactly where the next pass begins, so a
+ * loop wrap needs no stop and restart.
+ */
 export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
   private readonly unregister: () => void;
   private readonly player: DeclickedBufferPlayer;
   private playbackSource?: AudioPlaybackSource;
+  private nextPassIndex = 0;
+  private disposeScheduling?: () => void;
 
   constructor({
     transport,
@@ -42,30 +50,54 @@ export class AudioBufferPlayback implements TransportParticipant {
     );
   }
 
-  /** Schedules the slice from the transport's pass, seeking or delaying as needed. */
   start(): void {
-    const playbackSource = this.playbackSource;
-    if (!playbackSource) {
+    if (!this.playbackSource) {
       return;
     }
-    const pass = this.transport.playbackPass!;
+    this.nextPassIndex = 0;
+    this.disposeScheduling = this.transport.startScheduleLoop((range) =>
+      this.schedule(range),
+    );
+  }
+
+  /** Queues one slice for each loop pass, in the first window that reaches it. */
+  private schedule(range: ScheduledRange): void {
+    if (this.nextPassIndex <= range.pass.index) {
+      this.nextPassIndex = range.pass.index + 1;
+      this.startSlice(range);
+    }
+  }
+
+  /** Plays the part of the region inside one pass. */
+  private startSlice(range: ScheduledRange): void {
+    const pass = range.pass;
     const { buffer, timelineOffset, timelineStart, timelineEnd } =
-      playbackSource;
-    const elapsed = Math.max(0, pass.start - timelineStart);
-    const duration = timelineEnd - timelineStart;
-    if (elapsed >= duration) {
+      this.playbackSource!;
+    // Start where this range enters the pass rather than at the pass's start.
+    // They differ only after a stalled timer, when a slice queued from the
+    // pass's start would already be in the past and play out of sync.
+    const start = Math.max(timelineStart, range.start);
+    const end = Math.min(timelineEnd, pass.end);
+    if (start >= end) {
       return;
     }
+    // A loop wrap is a hard splice, as in a DAW. Whatever was sounding ended at
+    // loop-out at full level, so a slice entered on time at loop-in opens at
+    // full level too rather than fading in and dipping the splice.
+    const continuesPreviousPass = pass.index > 0 && start <= pass.start;
     this.player.start({
       buffer,
       playbackRate: pass.playbackRate,
-      time: pass.getContextTimeAt(Math.max(timelineStart, pass.start)),
-      offset: timelineStart - timelineOffset + elapsed,
-      duration: duration - elapsed,
+      time: pass.getContextTimeAt(start),
+      offset: start - timelineOffset,
+      duration: end - start,
+      fadeIn: !continuesPreviousPass,
     });
   }
 
   stop(): void {
+    this.disposeScheduling?.();
+    this.disposeScheduling = undefined;
     this.player.stop();
   }
 
@@ -113,18 +145,20 @@ class DeclickedBufferPlayer {
     time,
     offset,
     duration,
+    fadeIn,
   }: {
     buffer: AudioBuffer;
     playbackRate: number;
     time: number;
     offset: number;
     duration: number;
+    fadeIn: boolean;
   }): void {
     const node = this.context.createBufferSource();
     node.buffer = buffer;
     node.playbackRate.value = playbackRate;
     const envelope = new DeclickGain(this.context);
-    envelope.open(time);
+    envelope.open(time, { fadeIn });
     node.connect(envelope.node).connect(this.output);
     // Disconnect after the fade has rendered, not when stop() is called.
     const ended = new Promise<void>((resolve) => {
