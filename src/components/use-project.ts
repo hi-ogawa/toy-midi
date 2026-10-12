@@ -30,6 +30,7 @@ export function useProject({
 }) {
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
+  const leavingForCopyRef = useRef(false);
 
   const projectQuery = useQuery({
     queryKey: ["project", source],
@@ -67,19 +68,14 @@ export function useProject({
       await projectStorage.save({ id: source.projectId, content });
       return { revision };
     },
-    onSuccess: ({ revision }) => {
+    onSuccess: ({ revision, projectId }) => {
       setDirty(revisionRef.current !== revision);
+      if (projectId !== undefined) {
+        leavingForCopyRef.current = true;
+        window.location.href = routes.project.href({ projectId });
+      }
     },
   });
-
-  // Open a demo's saved copy only after the render that clears the unsaved
-  // mark, so leaving the page does not ask about losing changes.
-  useEffect(() => {
-    const projectId = saveMutation.data?.projectId;
-    if (projectId !== undefined) {
-      window.location.href = routes.project.href({ projectId });
-    }
-  }, [saveMutation.data]);
 
   // Mark the project unsaved when persistable state changes after it loads.
   useEffect(() => {
@@ -108,7 +104,8 @@ export function useProject({
   }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
-    if (dirty) {
+    // The saved copy holds a demo's edits, so opening it loses nothing.
+    if (dirty && !leavingForCopyRef.current) {
       event.preventDefault();
     }
   });
