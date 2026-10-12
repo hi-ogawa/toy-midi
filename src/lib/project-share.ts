@@ -4,7 +4,7 @@ import { routes } from "./routes.ts";
 // A share link carries the project, deflated and base64url-encoded, in the
 // URL fragment. The browser never sends the fragment in a request, so the
 // host's URL-length limit does not apply, and a whole song fits. It leaves out
-// audio clips and the reference video, which need storage of their own.
+// audio clips, whose samples need storage of their own.
 
 // The fragment is keyed so a link can carry more than the project later.
 const PAYLOAD_PARAM = "p";
@@ -30,7 +30,6 @@ async function encodeSharedProject(
   const shared: SerializedEditorRuntimeState = {
     ...project,
     audioTracks: [],
-    referenceVideo: undefined,
   };
   const bytes = await transformBytes(
     new TextEncoder().encode(JSON.stringify(shared)),
