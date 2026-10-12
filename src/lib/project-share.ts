@@ -3,13 +3,12 @@ import type {
   MultibandEqBand,
   MultibandEqParameters,
 } from "./dsp/biquad-eq-multiband.ts";
-import { createDefaultMultibandEq } from "./dsp/biquad-eq-node.ts";
 import type {
   SerializedEditorRuntimeState,
   SerializedMidiTrackState,
 } from "./persistence.ts";
 import { routes } from "./routes.ts";
-import type { Locator } from "./runtime.ts";
+import { createMidiTrackState, type Locator } from "./runtime.ts";
 
 // A share link carries the project, deflated and base64url-encoded, in the
 // URL fragment. The browser never sends the fragment in a request, so the
@@ -40,13 +39,18 @@ export interface SharedProject extends Omit<
   "audioTracks" | "trackOrder" | "midiTracks" | "locators"
 > {
   locators?: Omit<Locator, "id">[];
-  midiTracks?: (Omit<SerializedMidiTrackState, "id" | "notes" | "eq"> & {
-    notes: Omit<Note, "id">[];
-    /** A flat EQ when absent */
-    eq?: Omit<MultibandEqParameters, "bands"> & {
-      bands: Omit<MultibandEqBand, "id">[];
-    };
-  })[];
+  midiTracks?: SharedMidiTrack[];
+}
+
+interface SharedMidiTrack extends Partial<
+  Omit<SerializedMidiTrackState, "id" | "notes" | "eq">
+> {
+  name: string;
+  program: number;
+  notes: Omit<Note, "id">[];
+  eq?: Omit<MultibandEqParameters, "bands"> & {
+    bands: Omit<MultibandEqBand, "id">[];
+  };
 }
 
 export function getSharePayload(url: string): string | undefined {
@@ -106,19 +110,16 @@ function assignIds(project: SharedProject): SerializedEditorRuntimeState {
       ...locator,
       id: crypto.randomUUID(),
     })),
-    midiTracks: project.midiTracks?.map((track) => ({
+    midiTracks: project.midiTracks?.map(({ notes, eq, ...track }) => ({
+      ...createMidiTrackState({ name: track.name, preset: track }),
       ...track,
-      id: crypto.randomUUID(),
-      notes: track.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
-      eq: track.eq
-        ? {
-            ...track.eq,
-            bands: track.eq.bands.map((band) => ({
-              ...band,
-              id: crypto.randomUUID(),
-            })),
-          }
-        : createDefaultMultibandEq(),
+      notes: notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
+      ...(eq && {
+        eq: {
+          ...eq,
+          bands: eq.bands.map((band) => ({ ...band, id: crypto.randomUUID() })),
+        },
+      }),
     })),
   };
 }

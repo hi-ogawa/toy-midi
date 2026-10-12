@@ -1608,7 +1608,7 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
   };
 }
 
-function createMidiTrackState({
+export function createMidiTrackState({
   name,
   preset,
 }: {
