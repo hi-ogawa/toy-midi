@@ -1,5 +1,4 @@
 import type { Note } from "../types.ts";
-import { startInterval } from "../utils/timing.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import { listPresetFallbacks } from "./general-midi.ts";
@@ -8,16 +7,13 @@ import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import type {
   AudioContextTransport,
+  ScheduledRange,
   TransportParticipant,
 } from "./transport.ts";
-
-const SCHEDULE_AHEAD_SECONDS = 0.1;
-const SCHEDULER_INTERVAL_MS = 25;
 
 export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
   private notes: Note[] = [];
-  private nextNoteIndex = 0;
   private tempo = 120;
   private disposeScheduling?: () => void;
   private readonly synth: MidiSynth;
@@ -97,10 +93,8 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   start(): void {
     this.stop();
-    this.schedule();
-    this.disposeScheduling = startInterval(
-      () => this.schedule(),
-      SCHEDULER_INTERVAL_MS,
+    this.disposeScheduling = this.transport.startScheduleLoop((range) =>
+      this.schedule(range),
     );
   }
 
@@ -108,7 +102,6 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.disposeScheduling?.();
     this.disposeScheduling = undefined;
     this.synth.reset();
-    this.nextNoteIndex = 0;
   }
 
   dispose(): void {
@@ -123,31 +116,21 @@ export class MidiTrackPlayback implements TransportParticipant {
     }
   }
 
-  private schedule(): void {
-    const anchor = this.transport.playbackAnchor!;
-    const position = this.transport.getPublishedPlaybackPosition();
-    const windowEnd =
-      position + SCHEDULE_AHEAD_SECONDS * this.transport.playbackRate;
-    while (this.nextNoteIndex < this.notes.length) {
-      const note = this.notes[this.nextNoteIndex]!;
+  private schedule(range: ScheduledRange): void {
+    for (const note of this.notes) {
       const start = beatsToSeconds(note.start, this.tempo);
-      if (windowEnd < start) {
+      if (range.end <= start) {
         break;
       }
-      this.nextNoteIndex++;
-      if (start < position) {
+      if (start < range.start) {
         continue;
       }
       const end = beatsToSeconds(note.start + note.duration, this.tempo);
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,
-        startTime:
-          anchor.contextTime +
-          (start - anchor.position) / this.transport.playbackRate,
-        endTime:
-          anchor.contextTime +
-          (end - anchor.position) / this.transport.playbackRate,
+        startTime: range.pass.getContextTimeAt(start),
+        endTime: range.pass.getContextTimeAt(end),
       });
     }
   }
