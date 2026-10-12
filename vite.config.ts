@@ -28,12 +28,5 @@ export default defineConfig({
       dts: { emitDtsOnly: true, compilerOptions: { stripInternal: true } },
       report: false,
     },
-    {
-      entry: { "project-format-doc": "src/lib/project-format-doc.ts" },
-      outDir: ".tmp/project-format-doc",
-      platform: "browser",
-      dts: { emitDtsOnly: true, compilerOptions: { stripInternal: true } },
-      report: false,
-    },
   ],
 });

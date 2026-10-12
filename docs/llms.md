@@ -8,7 +8,7 @@ Projects live in the browser's own storage. The app has no server, no accounts, 
 - `/recorder/<projectId>`, a project saved in this browser.
 - `/draft#p=<payload>`, a project carried in a share link. It opens unsaved, so the person who opens it can edit it and then save their own copy.
 
-Paths in this guide are relative to the site this guide was served from, such as `https://toy-midi.hiro18181.workers.dev`.
+The app is deployed at `https://toy-midi.hiro18181.workers.dev`.
 
 ## Choose How to Work
 
@@ -26,7 +26,7 @@ pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/webmcp-bridge"
 
 Then run `webmcp-bridge --help`. It says how to start the bridge and wait for the user's page to connect. The user installs the extension once, following the package's README.
 
-Once the page is connected, the project exposes one tool, `toy_midi_eval`. It runs the body of an async function with `runtime` in scope and returns a JSON value. The runtime's API is [`/llms/runtime.d.ts`](/llms/runtime.d.ts), the same declarations the tool's own description carries, so you can write code against it while you wait for the page. For example:
+Once the page is connected, the project exposes one tool, `toy_midi_eval`. It runs the body of an async function with `runtime` in scope and returns a JSON value. The tool's description carries the runtime's API as TypeScript declarations, which `webmcp-bridge get-tools` prints. Before the page connects, read the same API in [`src/lib/runtime.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/runtime.ts), starting from the `EditorRuntime` class, so you can write code while you wait. For example:
 
 ```js
 runtime.setTempo(98);
@@ -44,7 +44,7 @@ A share link is the site's `/draft` page with the project in the URL fragment:
 <site>/draft#p=<payload>
 ```
 
-The payload is the project's saved format as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SerializedEditorRuntimeState` in [`/llms/project.d.ts`](/llms/project.d.ts). Notes start and last in beats from the start of the project, and the track's `program` and `bank` pick its instrument, with bank 128 holding drum kits.
+The payload is the project's saved format as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SerializedEditorRuntimeState` in [`src/lib/persistence.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/persistence.ts). Its optional fields fill in defaults when the project loads, and the fields under `audioTracks` and `recordingTrack` do not apply to a link. Notes start and last in beats from the start of the project, and the track's `program` and `bank` pick its instrument, with bank 128 holding drum kits.
 
 A link carries MIDI tracks only. Leave `audioTracks` empty and leave out `referenceVideo`, since audio and video need storage a link does not have. Ids need only be unique, tracks within the project and notes within their track, so short ones such as `"n1"` work and keep the link shorter.
 
