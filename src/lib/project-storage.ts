@@ -1,10 +1,6 @@
 import { createAvailableName } from "../utils/name.ts";
 import { IdbStore } from "./idb.ts";
-import {
-  type SerializedEditorRuntimeState,
-  serializeEditorRuntimeState,
-} from "./persistence.ts";
-import { createDefaultEditorRuntimeState } from "./runtime.ts";
+import type { SerializedEditorRuntimeState } from "./persistence.ts";
 
 interface StoredProject {
   id: string;
@@ -39,13 +35,15 @@ export const projectStorage = {
     return (await metadata.getAll()).sort((a, b) => b.updatedAt - a.updatedAt);
   },
 
-  async create(): Promise<string> {
-    const state = createDefaultEditorRuntimeState();
-    state.title = createAvailableName({
+  /** Store a draft under a title no other project has, so new drafts do not all list as "Untitled". */
+  async createFromDraft(
+    content: SerializedEditorRuntimeState,
+  ): Promise<string> {
+    const title = createAvailableName({
       names: (await this.list()).map((project) => project.title),
-      baseName: state.title,
+      baseName: content.title,
     });
-    return this.createWithContent(serializeEditorRuntimeState(state));
+    return this.createWithContent({ ...content, title });
   },
 
   async createWithContent(

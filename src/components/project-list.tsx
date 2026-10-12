@@ -25,12 +25,6 @@ export function ProjectList() {
     queryKey: ["projects"],
     queryFn: () => toResult(projectStorage.list()),
   });
-  const createProjectMutation = useMutation({
-    mutationFn: () => projectStorage.create(),
-    onSuccess: (projectId) => {
-      window.location.href = routes.project.href({ projectId });
-    },
-  });
   const deleteProjectMutation = useMutation({
     mutationFn: (projectId: string) => projectStorage.delete(projectId),
     onSuccess: () => projectsQuery.refetch(),
@@ -79,26 +73,19 @@ export function ProjectList() {
             <h2 className="font-semibold">Projects</h2>
             <div className="flex gap-2">
               <BrowserStorageDialog />
-              <Button
+              <a
                 data-testid="new-project-button"
-                onClick={() => createProjectMutation.mutate()}
-                disabled={
-                  createProjectMutation.isPending ||
-                  importProjectMutation.isPending
-                }
-                className="bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+                href={routes.draft.href()}
+                className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 New project
-              </Button>
+              </a>
               <FileDropInput
                 accept=".toymidi.zip,.toymidi"
                 title="Import a project archive"
                 onFile={(file) => importProjectMutation.mutate(file)}
                 data-testid="import-project"
-                disabled={
-                  createProjectMutation.isPending ||
-                  importProjectMutation.isPending
-                }
+                disabled={importProjectMutation.isPending}
                 className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
               >
                 <span className="grid">
