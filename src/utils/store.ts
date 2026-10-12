@@ -1,6 +1,18 @@
-export type Store<State> = ReturnType<typeof createStore<State>>;
+export interface Store<State> {
+  get(): State;
+  subscribe(listener: () => void): () => void;
+  /** Notify only when `selector` picks a different value, by `equals` or `Object.is`. */
+  subscribeWithSelector<Selection>(options: {
+    selector: (state: State) => Selection;
+    listener: () => void;
+    equals?: (left: Selection, right: Selection) => boolean;
+  }): () => void;
+  update(update: Partial<State>): void;
+}
 
-export function createStore<State>(initialize: (get: () => State) => State) {
+export function createStore<State>(
+  initialize: (get: () => State) => State,
+): Store<State> {
   let state: State;
   const listeners = new Set<() => void>();
 
