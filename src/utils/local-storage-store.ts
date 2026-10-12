@@ -1,11 +1,7 @@
 import { useSyncExternalStore, type SetStateAction } from "react";
 import { createStore } from "./store";
 
-/**
- * A store kept in one localStorage entry, read once and written on each
- * update. Without a key, it stays in memory and starts from the parsed
- * defaults.
- */
+/** A store kept in one localStorage entry, read once and written on each update, or in memory without a key. */
 export class LocalStorageStore<State extends object> {
   readonly store;
   private readonly key?: string;

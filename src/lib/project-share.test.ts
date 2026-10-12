@@ -1,79 +1,59 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { SerializedEditorRuntimeState } from "./persistence";
 import { decodeSharedProject, encodeSharedProject } from "./project-share";
-import {
-  createDefaultEditorRuntimeState,
-  createMidiTrackState,
-} from "./runtime";
-
-vi.hoisted(() => {
-  vi.stubGlobal("AudioWorkletNode", class {});
-});
-
-afterEach(() => vi.unstubAllGlobals());
 
 describe("project share", () => {
-  it("round-trips MIDI tracks, tempo, and time signature", async () => {
-    const state = createDefaultEditorRuntimeState();
-    state.title = "Riff";
-    state.tempo = 98;
-    state.timeSignature = { numerator: 6, denominator: 8 };
-    state.midiTracks = [
-      {
-        ...createMidiTrackState({
-          name: "Bass",
-          preset: { program: 33 },
-        }),
-        gain: 0.5,
-        pan: -0.25,
-        notes: [
-          { id: "a", pitch: 33, start: 0, duration: 1, velocity: 100 },
-          { id: "b", pitch: 40, start: 1.5, duration: 0.5, velocity: 80 },
-        ],
-      },
-      {
-        ...createMidiTrackState({
-          name: "Drums",
-          preset: { bank: 128, program: 0 },
-        }),
-        notes: [
-          { id: "c", pitch: 36, start: 0, duration: 0.25, velocity: 127 },
-        ],
-      },
-    ];
-
-    const payload = await encodeSharedProject(state);
-    expect(payload).toMatch(/^[A-Za-z0-9_-]+$/);
-
-    const project = await decodeSharedProject(payload);
-    expect(project).toMatchObject({
+  it("round-trips a project without its audio and reference video", async () => {
+    const project: SerializedEditorRuntimeState = {
       title: "Riff",
       tempo: 98,
       timeSignature: { numerator: 6, denominator: 8 },
-      audioTracks: [],
-      midiTracks: [
+      audioTracks: [
         {
-          name: "Bass",
-          program: 33,
-          gain: 0.5,
-          pan: -0.25,
-          notes: [
-            { pitch: 33, start: 0, duration: 1, velocity: 100 },
-            { pitch: 40, start: 1.5, duration: 0.5, velocity: 80 },
+          id: "audio",
+          height: 72,
+          gain: 1,
+          muted: false,
+          soloed: false,
+          clips: [
+            {
+              timelineOffset: 0,
+              pcm: { sampleRate: 48000, channels: [new Float32Array(48000)] },
+            },
           ],
         },
+      ],
+      midiTracks: [
         {
-          name: "Drums",
-          bank: 128,
-          program: 0,
-          notes: [{ pitch: 36, start: 0, duration: 0.25, velocity: 127 }],
+          id: "bass",
+          name: "Bass",
+          program: 33,
+          eq: { bypass: false, bands: [] },
+          height: 300,
+          gain: 0.5,
+          pan: -0.25,
+          muted: false,
+          soloed: false,
+          notes: [{ id: "a", pitch: 33, start: 0, duration: 1, velocity: 100 }],
         },
       ],
+      referenceVideo: {
+        videoId: "knp40WxQgOI",
+        timelineStart: 0,
+        muted: true,
+        duration: 60,
+      },
+    };
+
+    const payload = await encodeSharedProject(project);
+    expect(payload).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(payload.length).toBeLessThan(400);
+
+    const { audioTracks, referenceVideo, ...rest } = project;
+    expect(await decodeSharedProject(payload)).toEqual({
+      ...rest,
+      audioTracks: [],
     });
-    const ids = project.midiTracks!.flatMap((track) => [
-      track.id,
-      ...track.notes.map((note) => note.id),
-    ]);
-    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("rejects a payload that is not a project", async () => {

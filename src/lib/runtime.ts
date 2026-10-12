@@ -1114,12 +1114,9 @@ export class EditorRuntime {
     });
   }
 
-  /**
-   * A link that opens the project's MIDI tracks, tempo, and time signature as
-   * an unsaved demo, leaving out audio and the reference video.
-   */
+  /** A link that opens the project as an unsaved demo, without audio or the reference video. */
   createShareLink(): Promise<string> {
-    return createShareLink(this.store.get());
+    return createShareLink(this.serializeProject());
   }
 
   /** @internal */
@@ -1606,7 +1603,7 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
   };
 }
 
-export function createMidiTrackState({
+function createMidiTrackState({
   name,
   preset,
 }: {
