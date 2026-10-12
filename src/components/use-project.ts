@@ -63,17 +63,12 @@ export function useProject({
       const content = runtime.serializeProject();
       if (source.type === "demo") {
         const projectId = await projectStorage.createWithContent(content);
-        return { revision, projectId };
-      }
-      await projectStorage.save({ id: source.projectId, content });
-      return { revision };
-    },
-    onSuccess: ({ revision, projectId }) => {
-      setDirty(revisionRef.current !== revision);
-      if (projectId !== undefined) {
         leavingForCopyRef.current = true;
         window.location.href = routes.project.href({ projectId });
+        return;
       }
+      await projectStorage.save({ id: source.projectId, content });
+      setDirty(revisionRef.current !== revision);
     },
   });
 
