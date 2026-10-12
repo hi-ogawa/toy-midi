@@ -36,6 +36,8 @@ export class LocalStorageStore<State extends object> {
     }
   }
 
+  // TODO: Leave this class alone. Move the hook to components/use-store-value.ts
+  // and add useValue to a plain store as an enhancer in preferences.ts.
   /** Like useState, for one value of the store, which stores each change. */
   useValue<Key extends keyof State>(
     key: Key,
