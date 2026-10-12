@@ -14,9 +14,10 @@ import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Slider } from "./ui/slider";
 import { useDraftInput } from "./use-draft-input";
+import { useStoreValue } from "./use-store-value";
 
 export function useEffectsUi(projectUiStore: ProjectUiStore) {
-  const [openIds, setOpenIds] = projectUiStore.useValue("openEffects");
+  const [openIds, setOpenIds] = useStoreValue(projectUiStore, "openEffects");
   const openEffects: ReadonlySet<string> = new Set(openIds);
 
   function toggleEffects(id: string) {

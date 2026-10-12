@@ -9,7 +9,11 @@ import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { snapToGrid } from "../lib/music";
 import { getNextPlaybackRate } from "../lib/playback-rate";
-import { createProjectUiStore, preferences } from "../lib/preferences";
+import {
+  createMemoryProjectUiStore,
+  createProjectUiStore,
+  preferences,
+} from "../lib/preferences";
 import { exportProjectArchive } from "../lib/project-archive";
 import { getScoreHref, routes } from "../lib/routes";
 import { EditorRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
@@ -49,6 +53,7 @@ import { Dialog } from "./ui/dialog";
 import { useInput } from "./use-input";
 import { useInteraction } from "./use-interaction";
 import { type ProjectSource, useProject } from "./use-project";
+import { useStoreValue } from "./use-store-value";
 import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
 import { useWindowEvent } from "./use-window-event";
@@ -57,25 +62,43 @@ export function Editor({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
   useWebMcpBridge(runtime);
   const [projectUiStore] = useState(() =>
-    createProjectUiStore(
-      source.type === "stored" ? source.projectId : undefined,
-    ),
+    source.type === "stored"
+      ? createProjectUiStore(source.projectId)
+      : createMemoryProjectUiStore(),
   );
-  const [defaultMidiProgram, setDefaultMidiProgram] =
-    preferences.useValue("defaultMidiProgram");
+  const [defaultMidiProgram, setDefaultMidiProgram] = useStoreValue(
+    preferences,
+    "defaultMidiProgram",
+  );
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
-  const [isReferenceVideoOpen, setIsReferenceVideoOpen] =
-    projectUiStore.useValue("referenceVideoOpen");
-  const [expandedClipTracks, setExpandedClipTracks] =
-    projectUiStore.useValue("expandedClipTracks");
-  const [clipsNewestFirst, setClipsNewestFirst] =
-    preferences.useValue("takesNewestFirst");
-  const [isMixerOpen, setIsMixerOpen] = projectUiStore.useValue("mixerOpen");
-  const [isProjectCommentOpen, setIsProjectCommentOpen] =
-    projectUiStore.useValue("projectCommentOpen");
-  const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
-  const [isInputPanelOpen, setIsInputPanelOpen] =
-    projectUiStore.useValue("inputPanelOpen");
+  const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useStoreValue(
+    projectUiStore,
+    "referenceVideoOpen",
+  );
+  const [expandedClipTracks, setExpandedClipTracks] = useStoreValue(
+    projectUiStore,
+    "expandedClipTracks",
+  );
+  const [clipsNewestFirst, setClipsNewestFirst] = useStoreValue(
+    preferences,
+    "takesNewestFirst",
+  );
+  const [isMixerOpen, setIsMixerOpen] = useStoreValue(
+    projectUiStore,
+    "mixerOpen",
+  );
+  const [isProjectCommentOpen, setIsProjectCommentOpen] = useStoreValue(
+    projectUiStore,
+    "projectCommentOpen",
+  );
+  const [isTunerOpen, setIsTunerOpen] = useStoreValue(
+    projectUiStore,
+    "tunerOpen",
+  );
+  const [isInputPanelOpen, setIsInputPanelOpen] = useStoreValue(
+    projectUiStore,
+    "inputPanelOpen",
+  );
   const effects = useEffectsUi(projectUiStore);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);

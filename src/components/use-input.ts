@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getCaptureInputs, requestCaptureAccess } from "../lib/capture-input";
 import { preferences } from "../lib/preferences";
 import { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
+import { useStoreValue } from "./use-store-value";
 
 export function useInput({
   runtime,
@@ -12,7 +13,10 @@ export function useInput({
   state: EditorRuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
-  const [inputPreference, setInputPreference] = preferences.useValue("input");
+  const [inputPreference, setInputPreference] = useStoreValue(
+    preferences,
+    "input",
+  );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(inputPreference?.deviceId);
 

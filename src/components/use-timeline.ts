@@ -11,6 +11,7 @@ import {
   secondsToBeats,
 } from "../lib/timeline";
 import type { TimeSignature } from "../types";
+import { useStoreValue } from "./use-store-value";
 
 export function useTimeline({
   projectUiStore,
@@ -28,13 +29,18 @@ export function useTimeline({
   const [gridDivision, setGridDivision] = useState<GridDivision>(
     DEFAULT_GRID_DIVISION,
   );
-  const [autoScrollEnabled, setAutoScrollEnabled] =
-    projectUiStore.useValue("autoScrollEnabled");
-  const [pixelsPerBeat, setPixelsPerBeat] = projectUiStore.useValue(
+  const [autoScrollEnabled, setAutoScrollEnabled] = useStoreValue(
+    projectUiStore,
+    "autoScrollEnabled",
+  );
+  const [pixelsPerBeat, setPixelsPerBeat] = useStoreValue(
+    projectUiStore,
     "timelinePixelsPerBeat",
   );
-  const [viewportStartBeat, setViewportStartBeat] =
-    projectUiStore.useValue("timelineStartBeat");
+  const [viewportStartBeat, setViewportStartBeat] = useStoreValue(
+    projectUiStore,
+    "timelineStartBeat",
+  );
   const [viewportWidth, setViewportWidth] = useState(0);
   const beatsPerBar = getBeatsPerBar(timeSignature);
   const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];
