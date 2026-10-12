@@ -1,8 +1,16 @@
 import { type SetStateAction, useSyncExternalStore } from "react";
 import type { Store } from "../utils/store";
 
+/** A store with a React hook for one value, so components read it like state. */
+export function withUseValue<State>(store: Store<State>) {
+  return {
+    ...store,
+    useValue: <Key extends keyof State>(key: Key) => useStoreValue(store, key),
+  };
+}
+
 /** Like useState, for one value of a store. */
-export function useStoreValue<State, Key extends keyof State>(
+function useStoreValue<State, Key extends keyof State>(
   store: Store<State>,
   key: Key,
 ): readonly [State[Key], (next: SetStateAction<State[Key]>) => void] {
