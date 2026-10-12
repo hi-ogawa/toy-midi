@@ -46,11 +46,12 @@ export interface SharedProject extends Omit<
   midiTracks?: SharedMidiTrack[];
 }
 
-interface SharedMidiTrack extends Partial<
-  Omit<SerializedMidiTrackState, "id" | "notes" | "eq">
-> {
-  name: string;
-  program: number;
+interface SharedMidiTrack
+  extends
+    Pick<SerializedMidiTrackState, "name" | "program">,
+    Partial<
+      Omit<SerializedMidiTrackState, "id" | "name" | "program" | "notes" | "eq">
+    > {
   notes: Omit<Note, "id">[];
   eq?: Omit<MultibandEqParameters, "bands"> & {
     bands: Omit<MultibandEqBand, "id">[];
