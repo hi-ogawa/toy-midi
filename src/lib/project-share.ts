@@ -8,7 +8,11 @@ import type {
   SerializedMidiTrackState,
 } from "./persistence.ts";
 import { routes } from "./routes.ts";
-import { createMidiTrackState, type Locator } from "./runtime.ts";
+import {
+  createMidiTrackState,
+  type Locator,
+  MIN_TRACK_HEIGHT,
+} from "./runtime.ts";
 
 // A share link carries the project, deflated and base64url-encoded, in the
 // URL fragment. The browser never sends the fragment in a request, so the
@@ -32,7 +36,7 @@ export async function createShareLink(
  * The project a share link carries: the saved format without audio tracks,
  * track order, or ids. Tracks appear in the order of `midiTracks`, the app
  * generates ids when the link opens, and optional fields fill in defaults when
- * the project loads.
+ * the project loads. Tracks without `viewMode` or `height` open collapsed.
  */
 export interface SharedProject extends Omit<
   SerializedEditorRuntimeState,
@@ -112,6 +116,9 @@ function assignIds(project: SharedProject): SerializedEditorRuntimeState {
     })),
     midiTracks: project.midiTracks?.map(({ notes, eq, ...track }) => ({
       ...createMidiTrackState({ name: track.name, preset: track }),
+      // Collapse tracks so a whole arrangement fits on screen when it opens.
+      viewMode: "overview",
+      height: MIN_TRACK_HEIGHT,
       ...track,
       notes: notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
       ...(eq && {
