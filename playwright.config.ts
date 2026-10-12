@@ -23,7 +23,7 @@ export default defineConfig({
     command:
       server === "dev"
         ? `pnpm dev --port ${port} --strictPort`
-        : `pnpm build-app && pnpm preview --port ${port} --strictPort`,
+        : `pnpm build-webmcp-tools-doc && pnpm build-app && pnpm preview --port ${port} --strictPort`,
     url: `http://localhost:${port}`,
     reuseExistingServer: false,
   },

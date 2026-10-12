@@ -1,4 +1,4 @@
-import { AudioLinesIcon, GitForkIcon, Music2Icon } from "lucide-react";
+import { AudioLinesIcon, BotIcon, GitForkIcon, Music2Icon } from "lucide-react";
 import { routes } from "../lib/routes";
 import { ProjectList } from "./project-list";
 
@@ -36,6 +36,14 @@ export function Home() {
             >
               <Music2Icon className="size-4" />
               Score Viewer
+            </a>
+            <a
+              href="/llms.txt"
+              title="A guide for AI agents working with Toy MIDI"
+              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+            >
+              <BotIcon className="size-4" />
+              For Agents
             </a>
             <a
               href="https://github.com/hi-ogawa/toy-midi/"

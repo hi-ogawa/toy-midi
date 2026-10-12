@@ -32,12 +32,15 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   // 🟢 Optional for projects saved before MIDI track support.
   midiTracks?: (Omit<
     MidiTrackState,
+    | "eq"
     | "tabAnnotationEnabled"
     | "tabOpenStringPitches"
     | "keySignature"
     | "viewMode"
     | "pan"
   > & {
+    // Loading fills in a flat EQ, so a hand-written share link can leave it out.
+    eq?: MultibandEqParameters;
     tabAnnotationEnabled?: boolean;
     tabOpenStringPitches?: number[];
     keySignature?: MidiTrackState["keySignature"];

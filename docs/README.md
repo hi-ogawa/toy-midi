@@ -16,6 +16,10 @@
 
 - [Bass pitch transcription](bass-pitch/README.md): pipeline, pYIN explanation, visual companions, and development workflow.
 
+## Agents
+
+- [Agent guide](llms.md): driving the open app through webmcp-bridge, and writing share links. The site serves it at `/llms.txt`.
+
 ## References
 
 - [References](references.md): related projects and libraries.
