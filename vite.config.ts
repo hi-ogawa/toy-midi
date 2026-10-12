@@ -22,7 +22,7 @@ export default defineConfig({
   },
   pack: [
     {
-      entry: { "toy-midi": "src/lib/llms-types.ts" },
+      entry: { "toy-midi": "src/lib/api-types.ts" },
       outDir: "public/llms",
       platform: "browser",
       dts: { emitDtsOnly: true, compilerOptions: { stripInternal: true } },
