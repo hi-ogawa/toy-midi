@@ -3,6 +3,7 @@ import type {
   MultibandEqBand,
   MultibandEqParameters,
 } from "./dsp/biquad-eq-multiband.ts";
+import { createDefaultMultibandEq } from "./dsp/biquad-eq-node.ts";
 import type {
   SerializedEditorRuntimeState,
   SerializedMidiTrackState,
@@ -41,7 +42,8 @@ export interface SharedProject extends Omit<
   locators?: Omit<Locator, "id">[];
   midiTracks?: (Omit<SerializedMidiTrackState, "id" | "notes" | "eq"> & {
     notes: Omit<Note, "id">[];
-    eq: Omit<MultibandEqParameters, "bands"> & {
+    /** A flat EQ when absent */
+    eq?: Omit<MultibandEqParameters, "bands"> & {
       bands: Omit<MultibandEqBand, "id">[];
     };
   })[];
@@ -108,13 +110,15 @@ function assignIds(project: SharedProject): SerializedEditorRuntimeState {
       ...track,
       id: crypto.randomUUID(),
       notes: track.notes.map((note) => ({ ...note, id: crypto.randomUUID() })),
-      eq: {
-        ...track.eq,
-        bands: track.eq.bands.map((band) => ({
-          ...band,
-          id: crypto.randomUUID(),
-        })),
-      },
+      eq: track.eq
+        ? {
+            ...track.eq,
+            bands: track.eq.bands.map((band) => ({
+              ...band,
+              id: crypto.randomUUID(),
+            })),
+          }
+        : createDefaultMultibandEq(),
     })),
   };
 }
