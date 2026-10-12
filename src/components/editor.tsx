@@ -15,6 +15,7 @@ import {
   preferences,
 } from "../lib/preferences";
 import { exportProjectArchive } from "../lib/project-archive";
+import { createShareLink } from "../lib/project-share";
 import { getScoreHref, routes } from "../lib/routes";
 import { EditorRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
 import { beatsToSeconds, secondsToBeats } from "../lib/timeline";
@@ -161,7 +162,9 @@ export function Editor({ source }: { source: ProjectSource }) {
   });
   const shareLinkMutation = useMutation({
     mutationFn: async () => {
-      await navigator.clipboard.writeText(await runtime.createShareLink());
+      await navigator.clipboard.writeText(
+        await createShareLink(runtime.serializeProject()),
+      );
     },
     onSuccess: () => {
       toast.success("Share link copied");

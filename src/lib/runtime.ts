@@ -40,7 +40,6 @@ import {
   serializeEditorRuntimeState,
 } from "./persistence.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "./pitch-spelling.ts";
-import { createShareLink } from "./project-share.ts";
 import { ActiveRecording } from "./recording.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
 import { beatsToSeconds } from "./timeline.ts";
@@ -1112,11 +1111,6 @@ export class EditorRuntime {
       mix: resolveMix(state),
       sampleRate: 48000,
     });
-  }
-
-  /** A link that opens the project as an unsaved demo, without audio or the reference video. */
-  createShareLink(): Promise<string> {
-    return createShareLink(this.serializeProject());
   }
 
   /** @internal */
