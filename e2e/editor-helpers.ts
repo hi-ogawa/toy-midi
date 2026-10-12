@@ -2,13 +2,14 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { selectMenuItem } from "./helpers";
 
-/** Create a project from its index and wait for the editor. */
+/** Create a project from its index, save the draft, and wait for the stored project's editor. */
 export async function createProject(page: Page): Promise<void> {
   await test.step(
     "Create project",
     async () => {
       await page.goto("/");
       await page.getByTestId("new-project-button").click();
+      await page.getByTestId("save-draft-button").click();
       await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
       await expect(page.getByTestId("project-name")).toBeVisible();
     },

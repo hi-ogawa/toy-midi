@@ -93,14 +93,6 @@ test("shares a MIDI project as a link that opens an unsaved draft", async ({
   await expect(
     page.getByText("The share link does not hold a readable project."),
   ).toBeVisible();
-
-  // Open the draft route with no payload at all, and get sent home.
-  await page.goto("/draft");
-  await expect(
-    page.getByText("This share link has no project in it."),
-  ).toBeVisible();
-  await page.getByRole("link", { name: "Back to projects" }).click();
-  await expect(projects).toHaveCount(2);
 });
 
 async function copyShareLink(page: Page) {

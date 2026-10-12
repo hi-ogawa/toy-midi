@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { serializeEditorRuntimeState } from "../lib/persistence";
 import type { ProjectUiStore } from "../lib/preferences";
 import { decodeSharedProject } from "../lib/project-share";
 import { projectStorage } from "../lib/project-storage";
 import { type ProjectSource, routes } from "../lib/routes";
-import { EditorRuntime } from "../lib/runtime";
+import { createDefaultEditorRuntimeState, EditorRuntime } from "../lib/runtime";
 import { useWindowEvent } from "./use-window-event";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
@@ -33,9 +34,7 @@ export function useProject({
     queryFn: async () => {
       const [, project] = await Promise.all([
         runtime.init(),
-        source.type === "draft"
-          ? decodeSharedProject(source.payload)
-          : projectStorage.load(source.projectId),
+        loadProject(source),
       ]);
       await runtime.deserializeProject(project);
       // Loading seeks to the start, so return to where the project was left.
@@ -55,9 +54,10 @@ export function useProject({
       }
       const revision = revisionRef.current;
       const content = runtime.serializeProject();
-      // A draft lives only in memory, so saving it stores a copy and opens that.
+      // A draft lives only in memory, so saving it stores a new project and
+      // opens that.
       if (source.type === "draft") {
-        const projectId = await projectStorage.createWithContent(content);
+        const projectId = await projectStorage.createFromDraft(content);
         openingSavedDraftRef.current = true;
         window.location.href = routes.project.href({ projectId });
         return;
@@ -115,4 +115,14 @@ export function useProject({
     saveStatus,
     saving: saveMutation.isPending,
   };
+}
+
+async function loadProject(source: ProjectSource) {
+  if (source.type === "stored") {
+    return projectStorage.load(source.projectId);
+  }
+  if (source.payload !== undefined) {
+    return decodeSharedProject(source.payload);
+  }
+  return serializeEditorRuntimeState(createDefaultEditorRuntimeState());
 }
