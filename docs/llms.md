@@ -48,34 +48,7 @@ The payload is the project's saved format as JSON, compressed with raw deflate, 
 
 A link carries MIDI tracks only. Leave `audioTracks` empty and leave out `referenceVideo`, since audio and video need storage a link does not have. Ids need only be unique, tracks within the project and notes within their track, so short ones such as `"n1"` work and keep the link shorter.
 
-A minimal project, one bass track playing two notes:
-
-```json
-{
-  "title": "Two notes",
-  "tempo": 98,
-  "timeSignature": { "numerator": 4, "denominator": 4 },
-  "audioTracks": [],
-  "midiTracks": [
-    {
-      "id": "bass",
-      "name": "Bass",
-      "program": 33,
-      "eq": { "bypass": false, "bands": [] },
-      "height": 300,
-      "gain": 1,
-      "muted": false,
-      "soloed": false,
-      "notes": [
-        { "id": "n1", "pitch": 33, "start": 0, "duration": 1, "velocity": 100 },
-        { "id": "n2", "pitch": 40, "start": 1, "duration": 1, "velocity": 90 }
-      ]
-    }
-  ]
-}
-```
-
-Encode it with Node, which has raw deflate and base64url built in:
+Encode a project written as JSON with Node, which has raw deflate and base64url built in:
 
 ```js
 import { readFileSync } from "node:fs";
