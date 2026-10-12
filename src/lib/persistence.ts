@@ -30,21 +30,7 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   locators?: Locator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
   // 🟢 Optional for projects saved before MIDI track support.
-  midiTracks?: (Omit<
-    MidiTrackState,
-    | "tabAnnotationEnabled"
-    | "tabOpenStringPitches"
-    | "keySignature"
-    | "viewMode"
-    | "pan"
-  > & {
-    tabAnnotationEnabled?: boolean;
-    tabOpenStringPitches?: number[];
-    keySignature?: MidiTrackState["keySignature"];
-    viewMode?: MidiTrackState["viewMode"];
-    // 🟢 Optional for MIDI tracks saved before pan support.
-    pan?: number;
-  })[];
+  midiTracks?: SerializedMidiTrackState[];
   // 🟢 Optional for projects saved before track reordering.
   trackOrder?: string[];
   // 🔴 Retained for projects saved with the Capture track outside audioTracks.
@@ -88,6 +74,22 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
     title?: string;
     duration: number;
   };
+}
+
+export interface SerializedMidiTrackState extends Omit<
+  MidiTrackState,
+  | "tabAnnotationEnabled"
+  | "tabOpenStringPitches"
+  | "keySignature"
+  | "viewMode"
+  | "pan"
+> {
+  tabAnnotationEnabled?: boolean;
+  tabOpenStringPitches?: number[];
+  keySignature?: MidiTrackState["keySignature"];
+  viewMode?: MidiTrackState["viewMode"];
+  // 🟢 Optional for MIDI tracks saved before pan support.
+  pan?: number;
 }
 
 interface SerializedAudioTrackState<ChannelData> {

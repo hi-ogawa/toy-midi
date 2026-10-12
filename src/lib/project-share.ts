@@ -3,7 +3,10 @@ import type {
   MultibandEqBand,
   MultibandEqParameters,
 } from "./dsp/biquad-eq-multiband.ts";
-import type { SerializedEditorRuntimeState } from "./persistence.ts";
+import type {
+  SerializedEditorRuntimeState,
+  SerializedMidiTrackState,
+} from "./persistence.ts";
 import { routes } from "./routes.ts";
 import type { Locator } from "./runtime.ts";
 
@@ -34,17 +37,13 @@ export interface SharedProject extends Omit<
   "audioTracks" | "trackOrder" | "midiTracks" | "locators"
 > {
   locators?: Omit<Locator, "id">[];
-  midiTracks?: (Omit<SerializedMidiTrack, "id" | "notes" | "eq"> & {
+  midiTracks?: (Omit<SerializedMidiTrackState, "id" | "notes" | "eq"> & {
     notes: Omit<Note, "id">[];
     eq: Omit<MultibandEqParameters, "bands"> & {
       bands: Omit<MultibandEqBand, "id">[];
     };
   })[];
 }
-
-type SerializedMidiTrack = NonNullable<
-  SerializedEditorRuntimeState["midiTracks"]
->[number];
 
 export function getSharePayload(url: string): string | undefined {
   return (
