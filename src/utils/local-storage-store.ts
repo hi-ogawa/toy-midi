@@ -1,6 +1,4 @@
-import type { SetStateAction } from "react";
 import { createStore } from "./store";
-import { useStoreValue } from "./use-store-value";
 
 /** A store kept in one localStorage entry, read once and written on each update. */
 export class LocalStorageStore<State extends object> {
@@ -35,17 +33,5 @@ export class LocalStorageStore<State extends object> {
     } catch {
       // Storage can be disabled without preventing recording.
     }
-  }
-
-  // TODO: Leave this class alone. Move use-store-value.ts to components and
-  // add useValue to a plain store as an enhancer in preferences.ts.
-  /** Like useState, for one value of the store, which stores each change. */
-  useValue<Key extends keyof State>(
-    key: Key,
-  ): readonly [State[Key], (next: SetStateAction<State[Key]>) => void] {
-    return useStoreValue(
-      { store: this.store, update: (change) => this.update(change) },
-      key,
-    );
   }
 }

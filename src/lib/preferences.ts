@@ -1,7 +1,7 @@
 import { z } from "zod";
+import { useStoreValue } from "../components/use-store-value";
 import { LocalStorageStore } from "../utils/local-storage-store";
-import { createStore } from "../utils/store";
-import { useStoreValue } from "../utils/use-store-value";
+import { createStore, type Store } from "../utils/store";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -29,15 +29,17 @@ const DEFAULT_PREFERENCES: Preferences = {
   takesNewestFirst: true,
 };
 
-export const preferences = new LocalStorageStore<Preferences>({
-  key: "toy-midi:recorder-preferences",
-  parse: (stored) =>
-    parseState({
-      schema: preferencesSchema,
-      defaults: DEFAULT_PREFERENCES,
-      stored,
-    }),
-});
+export const preferences = withUseValue(
+  new LocalStorageStore<Preferences>({
+    key: "toy-midi:recorder-preferences",
+    parse: (stored) =>
+      parseState({
+        schema: preferencesSchema,
+        defaults: DEFAULT_PREFERENCES,
+        stored,
+      }),
+  }),
+);
 
 // Per-project UI state, such as zoom and panel layout, which stays in this
 // browser outside the saved project, so changing it never marks the project
@@ -86,28 +88,41 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   openEffects: [],
 };
 
-export type ProjectUiStore = Pick<
-  LocalStorageStore<ProjectUiState>,
-  "store" | "update" | "useValue"
->;
+export type ProjectUiStore = ReturnType<typeof withUseValue<ProjectUiState>>;
 
 export function createProjectUiStore(projectId: string): ProjectUiStore {
-  return new LocalStorageStore<ProjectUiState>({
-    key: `toy-midi:recorder-project-ui:${projectId}`,
-    parse: (stored) =>
-      parseState({
-        schema: projectUiStateSchema,
-        defaults: DEFAULT_PROJECT_UI_STATE,
-        stored,
-      }),
-  });
+  return withUseValue(
+    new LocalStorageStore<ProjectUiState>({
+      key: `toy-midi:recorder-project-ui:${projectId}`,
+      parse: (stored) =>
+        parseState({
+          schema: projectUiStateSchema,
+          defaults: DEFAULT_PROJECT_UI_STATE,
+          stored,
+        }),
+    }),
+  );
 }
 
 /** For a demo, whose view state is never stored. */
 export function createMemoryProjectUiStore(): ProjectUiStore {
   const store = createStore(() => DEFAULT_PROJECT_UI_STATE);
-  const memory = { store, update: store.update };
-  return { ...memory, useValue: (key) => useStoreValue(memory, key) };
+  return withUseValue({ store, update: store.update });
+}
+
+/** Add a React hook for one value, so components read the store like state. */
+function withUseValue<State>(base: {
+  store: Store<State>;
+  update: (change: Partial<State>) => void;
+}) {
+  const { store } = base;
+  const update = (change: Partial<State>) => base.update(change);
+  return {
+    store,
+    update,
+    useValue: <Key extends keyof State>(key: Key) =>
+      useStoreValue({ store, update }, key),
+  };
 }
 
 function parseState<State>({

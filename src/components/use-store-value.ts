@@ -1,5 +1,5 @@
 import { type SetStateAction, useSyncExternalStore } from "react";
-import type { Store } from "./store";
+import type { Store } from "../utils/store";
 
 /** Like useState, for one value of a store, changed through its `update`. */
 export function useStoreValue<State, Key extends keyof State>(
@@ -8,7 +8,7 @@ export function useStoreValue<State, Key extends keyof State>(
     update,
   }: {
     store: Store<State>;
-    update: (update: Partial<State>) => void;
+    update: (change: Partial<State>) => void;
   },
   key: Key,
 ): readonly [State[Key], (next: SetStateAction<State[Key]>) => void] {
