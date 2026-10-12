@@ -95,7 +95,7 @@ Run JavaScript against the open toy-midi project. `runtime` owns the project sta
 
 ### `webmcp-bridge execute-tool <tool> [json]`
 
-Runs a tool with the JSON input, `{}` by default, and prints the result as JSON, or as is when it is a string:
+Runs a tool with the JSON input, `{}` by default, and prints the result as JSON, or as is when it is a string. When the result is `{ isError, value }` or `{ isError, error }`, as described in [Exposing Tools from an App](#exposing-tools-from-an-app), the command prints the value, or fails with the error:
 
 ```console
 $ webmcp-bridge execute-tool toy_midi_eval --arg code='return runtime.store.get().tempo'
@@ -185,7 +185,7 @@ const unexpose = exposeModelContext({
 
 The bridge reads the tools with `getTools()` and runs them with `executeTool()`, as an agent built into the browser would.
 
-- `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent.
+- `execute` receives the input and returns `{ isError: false, value }` on success or `{ isError: true, error }` on failure, as MCP tools do. A tool reports a failure the agent can act on in its result, because WebMCP hides the message of a thrown error from the agent. `execute-tool` prints `value` and fails with `error`. A tool on a page not written for this package can return any other result, which `execute-tool` prints as is.
 - The result must be convertible to JSON. A value that is not, such as an object that refers to itself, comes back as an error.
 - If the tool throws anyway, the agent sees only an `OperationError`. If the agent names a tool that does not exist, it gets an unknown-tool error.
 - The bridge gives up after 30 seconds without a result. The tool keeps running in the page after that.

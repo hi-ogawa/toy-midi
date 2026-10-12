@@ -1,5 +1,5 @@
 import type { RpcRequest } from "./rpc.ts";
-import type { RegisteredTool, WebMcpToolResult } from "./webmcp.ts";
+import type { RegisteredTool } from "./webmcp.ts";
 
 /**
  * WebMCP's `ModelContext` as the bridge calls it on a page. A
@@ -8,10 +8,7 @@ import type { RegisteredTool, WebMcpToolResult } from "./webmcp.ts";
  */
 export interface PageRpc {
   getTools(): Promise<ToolInfo[]>;
-  executeTool(
-    tool: { name: string },
-    input: unknown,
-  ): Promise<WebMcpToolResult>;
+  executeTool(tool: { name: string }, input: unknown): Promise<unknown>;
 }
 
 export type ToolInfo = Pick<
