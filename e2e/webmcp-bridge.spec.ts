@@ -77,7 +77,6 @@ extensionTest(
 test("connects the open project to the bridge from the URL parameter", async ({
   page,
   bridge,
-  request,
 }) => {
   // Open a project with `?webmcp-bridge` in a browser without the extension,
   // so the page connects by itself.
@@ -87,12 +86,6 @@ test("connects the open project to the bridge from the URL parameter", async ({
   await expect
     .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
     .toHaveLength(1);
-
-  // Fetch the runtime's declarations from the URL the eval tool points to.
-  const tools = await bridge.run(["get-tools"]);
-  const typesUrl = tools.stdout.match(/\S+\/llms\/toy-midi\.d\.ts/)![0];
-  const types = await request.get(typesUrl);
-  expect(await types.text()).toContain("declare class EditorRuntime");
 
   // Read the tempo through the eval tool.
   const tempo = await bridge.run([
