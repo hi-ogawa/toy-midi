@@ -1,3 +1,5 @@
+export type Store<State> = ReturnType<typeof createStore<State>>;
+
 export function createStore<State>(initialize: (get: () => State) => State) {
   let state: State;
   const listeners = new Set<() => void>();

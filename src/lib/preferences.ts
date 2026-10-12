@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { LocalStorageStore } from "../utils/local-storage-store";
+import { useStoreValue } from "../components/use-store-value";
+import { createLocalStorageStore } from "../utils/local-storage-store";
+import type { Store } from "../utils/store";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -27,15 +29,17 @@ const DEFAULT_PREFERENCES: Preferences = {
   takesNewestFirst: true,
 };
 
-export const preferences = new LocalStorageStore<Preferences>({
-  key: "toy-midi:recorder-preferences",
-  parse: (stored) =>
-    parseState({
-      schema: preferencesSchema,
-      defaults: DEFAULT_PREFERENCES,
-      stored,
-    }),
-});
+export const preferences = withUseValue(
+  createLocalStorageStore<Preferences>({
+    key: "toy-midi:recorder-preferences",
+    parse: (stored) =>
+      parseState({
+        schema: preferencesSchema,
+        defaults: DEFAULT_PREFERENCES,
+        stored,
+      }),
+  }),
+);
 
 // Per-project UI state, such as zoom and panel layout, which stays in this
 // browser outside the saved project, so changing it never marks the project
@@ -84,18 +88,28 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   openEffects: [],
 };
 
-export type ProjectUiStore = LocalStorageStore<ProjectUiState>;
+export type ProjectUiStore = ReturnType<typeof withUseValue<ProjectUiState>>;
 
 export function createProjectUiStore(projectId: string): ProjectUiStore {
-  return new LocalStorageStore<ProjectUiState>({
-    key: `toy-midi:recorder-project-ui:${projectId}`,
-    parse: (stored) =>
-      parseState({
-        schema: projectUiStateSchema,
-        defaults: DEFAULT_PROJECT_UI_STATE,
-        stored,
-      }),
-  });
+  return withUseValue(
+    createLocalStorageStore<ProjectUiState>({
+      key: `toy-midi:recorder-project-ui:${projectId}`,
+      parse: (stored) =>
+        parseState({
+          schema: projectUiStateSchema,
+          defaults: DEFAULT_PROJECT_UI_STATE,
+          stored,
+        }),
+    }),
+  );
+}
+
+/** Add a React hook for one value, so components read the store like state. */
+function withUseValue<State>(store: Store<State>) {
+  return {
+    ...store,
+    useValue: <Key extends keyof State>(key: Key) => useStoreValue(store, key),
+  };
 }
 
 function parseState<State>({
