@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { useStoreValue } from "../components/use-store-value";
+import { withUseValue } from "../components/use-store-value";
 import { createLocalStorageStore } from "../utils/local-storage-store";
-import type { Store } from "../utils/store";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -102,14 +101,6 @@ export function createProjectUiStore(projectId: string): ProjectUiStore {
         }),
     }),
   );
-}
-
-/** Add a React hook for one value, so components read the store like state. */
-function withUseValue<State>(store: Store<State>) {
-  return {
-    ...store,
-    useValue: <Key extends keyof State>(key: Key) => useStoreValue(store, key),
-  };
 }
 
 function parseState<State>({
