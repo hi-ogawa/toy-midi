@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { useStoreValue } from "../components/use-store-value";
-import { LocalStorageStore } from "../utils/local-storage-store";
+import { createLocalStorageStore } from "../utils/local-storage-store";
 import { createStore, type Store } from "../utils/store";
 import {
   DEFAULT_PIXELS_PER_BEAT,
@@ -30,7 +30,7 @@ const DEFAULT_PREFERENCES: Preferences = {
 };
 
 export const preferences = withUseValue(
-  new LocalStorageStore<Preferences>({
+  createLocalStorageStore<Preferences>({
     key: "toy-midi:recorder-preferences",
     parse: (stored) =>
       parseState({
@@ -92,7 +92,7 @@ export type ProjectUiStore = ReturnType<typeof withUseValue<ProjectUiState>>;
 
 export function createProjectUiStore(projectId: string): ProjectUiStore {
   return withUseValue(
-    new LocalStorageStore<ProjectUiState>({
+    createLocalStorageStore<ProjectUiState>({
       key: `toy-midi:recorder-project-ui:${projectId}`,
       parse: (stored) =>
         parseState({
@@ -106,22 +106,14 @@ export function createProjectUiStore(projectId: string): ProjectUiStore {
 
 /** For a demo, whose view state is never stored. */
 export function createMemoryProjectUiStore(): ProjectUiStore {
-  const store = createStore(() => DEFAULT_PROJECT_UI_STATE);
-  return withUseValue({ store, update: store.update });
+  return withUseValue(createStore(() => DEFAULT_PROJECT_UI_STATE));
 }
 
 /** Add a React hook for one value, so components read the store like state. */
-function withUseValue<State>(base: {
-  store: Store<State>;
-  update: (change: Partial<State>) => void;
-}) {
-  const { store } = base;
-  const update = (change: Partial<State>) => base.update(change);
+function withUseValue<State>(store: Store<State>) {
   return {
-    store,
-    update,
-    useValue: <Key extends keyof State>(key: Key) =>
-      useStoreValue({ store, update }, key),
+    ...store,
+    useValue: <Key extends keyof State>(key: Key) => useStoreValue(store, key),
   };
 }
 
