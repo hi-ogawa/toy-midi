@@ -18,7 +18,7 @@ Write a share link when you cannot reach the user's browser, such as from a remo
 
 ## Drive the Open App
 
-The app registers its tools with [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents, through `document.modelContext`. Its tool runs JavaScript with the project's `runtime` in scope. Read the runtime's API in [`src/lib/runtime.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/runtime.ts), starting from the `EditorRuntime` class, so you can write code before you reach the page.
+The app registers its tools with [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents, through `document.modelContext`, and each tool's description documents itself.
 
 A browser or agent that supports WebMCP calls the tool directly. From a terminal, use [webmcp-bridge](https://github.com/hi-ogawa/toy-midi/tree/main/packages/webmcp-bridge), which connects you to a page open in the user's browser on the same machine. Install the command:
 
