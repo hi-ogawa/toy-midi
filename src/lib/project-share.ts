@@ -5,21 +5,16 @@ import { routes } from "./routes.ts";
 // base64url-encoded, so it never reaches a server. It leaves out audio clips
 // and the reference video, which need storage of their own.
 
-const PAYLOAD_PARAM = "p";
-
 export async function createShareLink(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
   const url = new URL(routes.demo.href(), window.location.origin);
-  url.hash = `${PAYLOAD_PARAM}=${await encodeSharedProject(project)}`;
+  url.hash = await encodeSharedProject(project);
   return url.href;
 }
 
 export function getSharePayload(url: string): string | undefined {
-  return (
-    new URLSearchParams(new URL(url).hash.slice(1)).get(PAYLOAD_PARAM) ??
-    undefined
-  );
+  return new URL(url).hash.slice(1) || undefined;
 }
 
 export async function encodeSharedProject(
