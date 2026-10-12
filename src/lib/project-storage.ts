@@ -35,7 +35,6 @@ export const projectStorage = {
     return (await metadata.getAll()).sort((a, b) => b.updatedAt - a.updatedAt);
   },
 
-  /** Store a draft under a title no other project has, so new drafts do not all list as "Untitled". */
   async createFromDraft(
     content: SerializedEditorRuntimeState,
   ): Promise<string> {
