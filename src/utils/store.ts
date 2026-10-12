@@ -15,11 +15,11 @@ export function createStore<State>(initialize: (get: () => State) => State) {
   const subscribeWithSelector = <Selection>({
     selector,
     listener,
-    equals,
+    equals = Object.is,
   }: {
     selector: (state: State) => Selection;
     listener: () => void;
-    equals: (left: Selection, right: Selection) => boolean;
+    equals?: (left: Selection, right: Selection) => boolean;
   }): (() => void) => {
     let selection = selector(state);
     const storeListener = () => {

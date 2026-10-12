@@ -311,7 +311,6 @@ export class EditorRuntime {
       selector: (state) => state.isPlaying,
       listener: () =>
         this.store.update({ isPlaying: this.transport.store.get().isPlaying }),
-      equals: Object.is,
     });
   }
 
