@@ -1,19 +1,25 @@
 import { type SetStateAction, useSyncExternalStore } from "react";
-import type { Store } from "../utils/store";
+import type { Store } from "./store";
 
-/** Like useState, for one value of a store. */
+/** Like useState, for one value of a store, changed through its `update`. */
 export function useStoreValue<State, Key extends keyof State>(
-  store: Store<State>,
+  {
+    store,
+    update,
+  }: {
+    store: Store<State>;
+    update: (update: Partial<State>) => void;
+  },
   key: Key,
 ): readonly [State[Key], (next: SetStateAction<State[Key]>) => void] {
   const value = useSyncExternalStore(store.subscribe, () => store.get()[key]);
   const setValue = (next: SetStateAction<State[Key]>) => {
-    const update: Partial<State> = {};
-    update[key] =
+    const change: Partial<State> = {};
+    change[key] =
       typeof next === "function"
         ? (next as (value: State[Key]) => State[Key])(store.get()[key])
         : next;
-    store.update(update);
+    update(change);
   };
   return [value, setValue];
 }

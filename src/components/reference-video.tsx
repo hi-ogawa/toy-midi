@@ -26,7 +26,7 @@ export function ReferenceVideoPanel({
   onClose: () => void;
 }) {
   const { size, handleRef } = usePanelResize({
-    initialSize: projectUiStore.get().referenceVideoSize,
+    initialSize: projectUiStore.store.get().referenceVideoSize,
     minSize: { width: 360, height: 300 },
     onResizeEnd: (referenceVideoSize) =>
       projectUiStore.update({ referenceVideoSize }),

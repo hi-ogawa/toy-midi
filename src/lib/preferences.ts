@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { createLocalStorageStore } from "../utils/local-storage-store";
-import { createStore, type Store } from "../utils/store";
+import { LocalStorageStore } from "../utils/local-storage-store";
+import { createStore } from "../utils/store";
+import { useStoreValue } from "../utils/use-store-value";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -28,7 +29,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   takesNewestFirst: true,
 };
 
-export const preferences = createLocalStorageStore<Preferences>({
+export const preferences = new LocalStorageStore<Preferences>({
   key: "toy-midi:recorder-preferences",
   parse: (stored) =>
     parseState({
@@ -85,10 +86,13 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   openEffects: [],
 };
 
-export type ProjectUiStore = Store<ProjectUiState>;
+export type ProjectUiStore = Pick<
+  LocalStorageStore<ProjectUiState>,
+  "store" | "update" | "useValue"
+>;
 
 export function createProjectUiStore(projectId: string): ProjectUiStore {
-  return createLocalStorageStore<ProjectUiState>({
+  return new LocalStorageStore<ProjectUiState>({
     key: `toy-midi:recorder-project-ui:${projectId}`,
     parse: (stored) =>
       parseState({
@@ -101,7 +105,9 @@ export function createProjectUiStore(projectId: string): ProjectUiStore {
 
 /** For a demo, whose view state is never stored. */
 export function createMemoryProjectUiStore(): ProjectUiStore {
-  return createStore(() => DEFAULT_PROJECT_UI_STATE);
+  const store = createStore(() => DEFAULT_PROJECT_UI_STATE);
+  const memory = { store, update: store.update };
+  return { ...memory, useValue: (key) => useStoreValue(memory, key) };
 }
 
 function parseState<State>({

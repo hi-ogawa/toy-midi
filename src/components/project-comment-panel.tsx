@@ -15,7 +15,7 @@ export function ProjectCommentPanel({
   onClose: () => void;
 }) {
   const { size, handleRef } = usePanelResize({
-    initialSize: projectUiStore.get().projectCommentSize,
+    initialSize: projectUiStore.store.get().projectCommentSize,
     minSize: { width: 280, height: 160 },
     onResizeEnd: (projectCommentSize) =>
       projectUiStore.update({ projectCommentSize }),

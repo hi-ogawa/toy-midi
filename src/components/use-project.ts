@@ -44,7 +44,7 @@ export function useProject({
       ]);
       await runtime.deserializeProject(project);
       // Loading seeks to the start, so return to where the project was left.
-      const { playhead } = projectUiStore.get();
+      const { playhead } = projectUiStore.store.get();
       if (playhead !== undefined) {
         runtime.seek(playhead);
       }
