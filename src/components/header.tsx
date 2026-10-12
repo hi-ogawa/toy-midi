@@ -516,6 +516,7 @@ function PlaybackPosition({
   );
 }
 
+// TODO: This button is awful. Discuss.
 /** A demo from a share link has no project to save, only a copy to make. */
 function DemoControls({
   status,
