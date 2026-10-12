@@ -7,11 +7,14 @@ test("shows loading feedback while adding MIDI waits for the soundfont", async (
   // Hold the startup soundfont preload so adding MIDI must wait for it.
   const releaseSoundfont = Promise.withResolvers<void>();
   const soundfontRequested = Promise.withResolvers<void>();
-  await page.route(/\/[^/]*A320U[^/]*\.sf2(?:\?.*)?$/, async (route) => {
-    soundfontRequested.resolve();
-    await releaseSoundfont.promise;
-    await route.continue();
-  });
+  await page.route(
+    /\/[^/]*GeneralUserGS[^/]*\.sf3(?:\?.*)?$/,
+    async (route) => {
+      soundfontRequested.resolve();
+      await releaseSoundfont.promise;
+      await route.continue();
+    },
+  );
   await createProject(page);
   await soundfontRequested.promise;
   const loading = page.getByText("Loading MIDI soundfont…", { exact: true });

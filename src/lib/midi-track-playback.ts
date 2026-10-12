@@ -1,7 +1,7 @@
+import { WorkletSynthesizer } from "spessasynth_lib";
 import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
-import { disposeWorklet } from "./dsp/worklet-disposal.ts";
-import { listPresetFallbacks } from "./general-midi.ts";
+import { DRUM_KIT_BANK } from "./general-midi.ts";
 import { midiAssetUrls, waitForMidiAssets } from "./runtime-assets";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
@@ -142,18 +142,13 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 }
 
-interface OxiSynthState {
-  soundfonts: Array<{
-    id: string;
-    presets: Array<{ id: string; bank: number; preset_num: number }>;
-  }>;
-}
+// Every track plays on the first MIDI channel of its own synth.
+const CHANNEL = 0;
+const BANK_SELECT_CONTROLLER = 0;
 
 class MidiSynth {
   readonly output: GainNode;
-  private node?: AudioWorkletNode;
-  private soundfontId?: string;
-  private pendingCallbacks = new Map<string, (data: unknown) => void>();
+  private synth?: WorkletSynthesizer;
 
   constructor(private readonly context: AudioContext) {
     this.output = context.createGain();
@@ -162,66 +157,36 @@ class MidiSynth {
   async init(preset: MidiPreset): Promise<void> {
     await waitForMidiAssets();
     await ensureMidiWorklet(this.context);
-    const node = new AudioWorkletNode(this.context, "oxisynth", {
-      numberOfOutputs: 1,
-      outputChannelCount: [2],
-    });
-    this.node = node;
-    node.connect(this.output);
-    node.port.onmessage = (event) => this.handleMessage(event.data);
-
-    const wasm = await fetch(midiAssetUrls.wasmUrl).then((response) =>
-      response.arrayBuffer(),
-    );
-    await this.sendMessage("init", { wasmBytes: wasm }, "ready", [wasm]);
+    const synth = new WorkletSynthesizer(this.context);
+    this.synth = synth;
+    synth.connect(this.output);
+    await synth.isReady;
 
     const soundfont = await fetch(midiAssetUrls.soundfontUrl).then((response) =>
       response.arrayBuffer(),
     );
-    await this.sendMessage(
-      "addSoundfont",
-      { name: midiAssetUrls.soundfontUrl, data: soundfont },
-      "soundfontAdded",
-      [soundfont],
-    );
-    this.soundfontId = midiAssetUrls.soundfontUrl;
+    await synth.soundBankManager.addSoundBank(soundfont, "main");
     await this.setPreset(preset);
   }
 
-  // Select the preset directly rather than through MIDI bank select, so any
-  // bank plays on the player's single channel, including the drum kit bank that
-  // oxisynth otherwise reserves for channel 10.
+  // A drum kit bank only plays on a drum channel, so the player's single
+  // channel switches to drums for it. SpessaSynth substitutes a missing preset.
   async setPreset({ bank = 0, program }: MidiPreset): Promise<void> {
-    const soundfontId = this.soundfontId;
-    if (!soundfontId) {
-      throw new Error("MIDI soundfont is not loaded.");
+    const synth = this.getSynth();
+    const isDrum = bank === DRUM_KIT_BANK;
+    synth.midiChannels[CHANNEL].setDrums(isDrum);
+    if (!isDrum) {
+      synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
     }
-    const response = (await this.sendMessage("getState", {}, "state")) as {
-      state: OxiSynthState;
-    };
-    const presets =
-      response.state.soundfonts.find(
-        (soundfont) => soundfont.id === soundfontId,
-      )?.presets ?? [];
-    const preset = listPresetFallbacks({ bank, program })
-      .map(({ bank, program }) =>
-        presets.find(
-          (preset) => preset.bank === bank && preset.preset_num === program,
-        ),
-      )
-      .find(Boolean);
-    if (!preset) {
-      throw new Error(`MIDI preset ${bank}:${program} is unavailable.`);
-    }
-    this.postMessage({ type: "setPreset", soundfontId, presetId: preset.id });
+    synth.programChange(CHANNEL, program);
   }
 
   noteOn(pitch: number): void {
-    this.postMessage({ type: "noteOn", key: pitch, velocity: 100 });
+    this.getSynth().noteOn(CHANNEL, pitch, 100);
   }
 
   noteOff(pitch: number): void {
-    this.postMessage({ type: "noteOff", key: pitch });
+    this.getSynth().noteOff(CHANNEL, pitch);
   }
 
   scheduleNoteOnOff({
@@ -235,56 +200,28 @@ class MidiSynth {
     endTime: number;
     velocity: number;
   }): void {
-    this.postMessage({
-      type: "scheduleNoteOnOff",
-      key: pitch,
-      velocity,
-      startFrame: Math.round(startTime * this.context.sampleRate),
-      endFrame: Math.round(endTime * this.context.sampleRate),
-    });
+    const synth = this.getSynth();
+    synth.noteOn(CHANNEL, pitch, velocity, { time: startTime });
+    synth.noteOff(CHANNEL, pitch, { time: endTime });
   }
 
   reset(): void {
-    this.postMessage({ type: "reset" });
+    this.getSynth().stopAll(true);
   }
 
   dispose(): void {
-    this.pendingCallbacks.clear();
     this.output.disconnect();
-    if (this.node) {
-      disposeWorklet(this.node);
-      this.node = undefined;
+    if (this.synth) {
+      this.synth.destroy();
+      this.synth = undefined;
     }
   }
 
-  private postMessage(
-    message: Record<string, unknown>,
-    transfer?: Transferable[],
-  ): void {
-    if (!this.node) {
+  private getSynth(): WorkletSynthesizer {
+    if (!this.synth) {
       throw new Error("MIDI synth is not initialized.");
     }
-    this.node.port.postMessage(message, transfer ?? []);
-  }
-
-  private sendMessage(
-    type: string,
-    data: Record<string, unknown>,
-    responseType: string,
-    transfer?: Transferable[],
-  ): Promise<unknown> {
-    return new Promise((resolve) => {
-      this.pendingCallbacks.set(responseType, resolve);
-      this.postMessage({ type, ...data }, transfer);
-    });
-  }
-
-  private handleMessage(message: { type: string; [key: string]: unknown }) {
-    const callback = this.pendingCallbacks.get(message.type);
-    if (callback) {
-      this.pendingCallbacks.delete(message.type);
-      callback(message);
-    }
+    return this.synth;
   }
 }
 
