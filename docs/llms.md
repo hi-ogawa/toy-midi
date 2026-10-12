@@ -12,19 +12,21 @@ The app is deployed at `https://toy-midi.hiro18181.workers.dev`.
 
 ## Choose How to Work
 
-Drive the open app when you need to listen and revise. You can play, seek, and loop the project and hear what you changed, which is how arrangement and mixing work gets done. This needs webmcp-bridge and a browser on the same machine as you.
+Drive the open app when you need to listen and revise. You can play, seek, and loop the project and hear what you changed, which is how arrangement and mixing work gets done.
 
 Write a share link when you cannot reach the user's browser, such as from a remote or cloud session, or when you are composing and the user will tell you what they think in words. You write the project as JSON, encode it into a link, and post the link.
 
 ## Drive the Open App
 
-The app exposes its project to agents through [webmcp-bridge](https://github.com/hi-ogawa/toy-midi/tree/main/packages/webmcp-bridge), a small server on the user's machine that a browser extension connects the page to. Install the command:
+The app registers its tools with [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents, through `document.modelContext`. Its tool runs JavaScript with the project's `runtime` in scope. Read the runtime's API in [`src/lib/runtime.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/runtime.ts), starting from the `EditorRuntime` class, so you can write code before you reach the page.
+
+A browser or agent that supports WebMCP calls the tool directly. From a terminal, use [webmcp-bridge](https://github.com/hi-ogawa/toy-midi/tree/main/packages/webmcp-bridge), which connects you to a page open in the user's browser on the same machine. Install the command:
 
 ```sh
 pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/webmcp-bridge"
 ```
 
-Then run `webmcp-bridge --help`, which covers connecting to the user's page and reading the tools it exposes. The user installs the extension once, following the package's README. To write code before the page connects, read the runtime's API in [`src/lib/runtime.ts`](https://github.com/hi-ogawa/toy-midi/blob/main/src/lib/runtime.ts), starting from the `EditorRuntime` class.
+Then run `webmcp-bridge --help`, which covers connecting to the user's page and reading the tools it exposes. The user installs the extension once, following the package's README.
 
 ## Write a Share Link
 
