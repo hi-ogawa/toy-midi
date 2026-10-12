@@ -34,6 +34,14 @@ options:
                       JSON escaping.
   -h, --help          show this help
 
+Connecting a page takes both sides, in either order. Run \`webmcp-bridge
+serve\` in the background and keep it running. The user turns the
+webmcp-bridge extension on for the page's tab, or opens the page with
+\`?webmcp-bridge\` in its URL. A page that is turned on connects by itself
+once the bridge is up, so run \`webmcp-bridge pages\` until it lists the
+page. Meanwhile the bridge logs each page it accepts or refuses, with the
+\`allow\` command for a refused site.
+
 Before executing tools, read what the page exposes with
 \`webmcp-bridge get-tools\`.`;
 
