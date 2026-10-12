@@ -40,20 +40,12 @@ The payload is the project's saved format as JSON, compressed with raw deflate, 
 
 A link leaves out audio. Leave `audioTracks` empty, since audio samples need storage a link does not have. Ids need only be unique, tracks within the project and notes within their track, so short ones such as `"n1"` work and keep the link shorter.
 
-Encode a project written as JSON with Node, which has raw deflate and base64url built in:
+Encode the payload with Node, which has raw deflate and base64url built in:
 
 ```js
-import { readFileSync } from "node:fs";
 import { deflateRawSync } from "node:zlib";
 
-const [file, site] = process.argv.slice(2);
-if (!file || !site) {
-  console.error("usage: node encode.mjs <project.json> <site>");
-  process.exit(1);
-}
-const project = JSON.parse(readFileSync(file, "utf8"));
 const payload = deflateRawSync(JSON.stringify(project)).toString("base64url");
-console.log(`${site}/draft#p=${payload}`);
 ```
 
 Keep links short where they will be posted. A chat message can cap far below what a browser accepts, such as 2,000 characters on Discord, so a short phrase fits where a whole song may not.
