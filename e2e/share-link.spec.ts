@@ -94,6 +94,6 @@ async function copyShareLink(page: Page) {
   await selectMenuItem(page, { menu: "Editor menu", item: "Copy Share Link" });
   await expect(page.getByText("Share link copied")).toBeVisible();
   const url = await page.evaluate(() => navigator.clipboard.readText());
-  expect(url).toContain("/demo#");
+  expect(url).toContain("/demo#p=");
   return url;
 }

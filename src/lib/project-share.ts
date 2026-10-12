@@ -6,16 +6,22 @@ import { routes } from "./routes.ts";
 // host's URL-length limit does not apply, and a whole song fits. It leaves out
 // audio clips and the reference video, which need storage of their own.
 
+// The fragment is keyed so a link can carry more than the project later.
+const PAYLOAD_PARAM = "p";
+
 export async function createShareLink(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
   const url = new URL(routes.demo.href(), window.location.origin);
-  url.hash = await encodeSharedProject(project);
+  url.hash = `${PAYLOAD_PARAM}=${await encodeSharedProject(project)}`;
   return url.href;
 }
 
 export function getSharePayload(url: string): string | undefined {
-  return new URL(url).hash.slice(1) || undefined;
+  return (
+    new URLSearchParams(new URL(url).hash.slice(1)).get(PAYLOAD_PARAM) ??
+    undefined
+  );
 }
 
 export async function encodeSharedProject(
