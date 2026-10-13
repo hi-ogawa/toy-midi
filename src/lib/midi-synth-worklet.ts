@@ -54,38 +54,6 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     };
   }
 
-  process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
-    if (this.isDisposed()) {
-      return false;
-    }
-    const synth = this.synth;
-    const [left, right] = outputs[0] ?? [];
-    if (!synth || !left || !right) {
-      return true;
-    }
-    // Split the render block at each due event so it starts on its own frame.
-    // Events that arrived late apply at the start of the block.
-    const blockEnd = currentFrame + left.length;
-    let offset = 0;
-    while (this.events.length > 0 && this.events[0].frame < blockEnd) {
-      const event = this.events.shift()!;
-      const eventOffset = Math.max(event.frame - currentFrame, 0);
-      if (eventOffset > offset) {
-        synth.process(left, right, offset, eventOffset - offset);
-        offset = eventOffset;
-      }
-      if (event.type === "noteOff") {
-        synth.noteOff(CHANNEL, event.pitch);
-      } else {
-        synth.noteOn(CHANNEL, event.pitch, event.velocity);
-      }
-    }
-    if (offset < left.length) {
-      synth.process(left, right, offset, left.length - offset);
-    }
-    return true;
-  }
-
   private handleMessage(message: MidiSynthClientMessage): void {
     if (message.type === "init") {
       void this.init(message.soundfont);
@@ -173,6 +141,38 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
 
   private postMessage(message: MidiSynthWorkletMessage): void {
     this.port.postMessage(message);
+  }
+
+  process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    if (this.isDisposed()) {
+      return false;
+    }
+    const synth = this.synth;
+    const [left, right] = outputs[0] ?? [];
+    if (!synth || !left || !right) {
+      return true;
+    }
+    // Split the render block at each due event so it starts on its own frame.
+    // Events that arrived late apply at the start of the block.
+    const blockEnd = currentFrame + left.length;
+    let offset = 0;
+    while (this.events.length > 0 && this.events[0].frame < blockEnd) {
+      const event = this.events.shift()!;
+      const eventOffset = Math.max(event.frame - currentFrame, 0);
+      if (eventOffset > offset) {
+        synth.process(left, right, offset, eventOffset - offset);
+        offset = eventOffset;
+      }
+      if (event.type === "noteOff") {
+        synth.noteOff(CHANNEL, event.pitch);
+      } else {
+        synth.noteOn(CHANNEL, event.pitch, event.velocity);
+      }
+    }
+    if (offset < left.length) {
+      synth.process(left, right, offset, left.length - offset);
+    }
+    return true;
   }
 }
 
