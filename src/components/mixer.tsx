@@ -1,4 +1,4 @@
-import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
+import { GaugeIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
@@ -47,7 +47,6 @@ export function Mixer({
               gain={track.gain}
               muted={track.muted}
               soloed={track.soloed}
-              icon={TRACK_ICONS[entry.kind]}
               onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
               onMutedChange={(muted) =>
                 runtime.setTrackMix(track.id, { muted })
@@ -92,18 +91,12 @@ export function Mixer({
   );
 }
 
-const TRACK_ICONS = {
-  audio: <Volume2Icon className="size-3.5 shrink-0 text-muted-foreground" />,
-  midi: <Music2Icon className="size-3.5 shrink-0 text-muted-foreground" />,
-};
-
 function TrackChannel({
   label,
   pan,
   gain,
   muted,
   soloed,
-  icon,
   onPanChange,
   onGainChange,
   onMutedChange,
@@ -116,7 +109,6 @@ function TrackChannel({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  icon: ReactNode;
   onPanChange: (pan: number) => void;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
@@ -127,7 +119,6 @@ function TrackChannel({
   const input = useGainInput(gain, onGainChange);
   return (
     <MixerChannel
-      icon={icon}
       label={label}
       pan={<PanKnob label={label} pan={pan} onPanChange={onPanChange} />}
       gain={gain}
@@ -186,7 +177,7 @@ function MixerChannel({
   "data-testid": testId,
   action,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   pan?: ReactNode;
   gain: number;
