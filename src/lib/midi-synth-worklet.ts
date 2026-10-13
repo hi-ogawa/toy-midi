@@ -120,11 +120,12 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
 
   private insertEvent(event: ScheduledEvent): void {
     const rank = (e: ScheduledEvent) => (e.type === "noteOff" ? 0 : 1);
-    insertSorted(
-      this.events,
-      event,
-      (a, b) => a.frame - b.frame || rank(a) - rank(b),
+    // Insert after every event that sorts at or before this one, so equal
+    // events keep their arrival order.
+    const index = this.events.findLastIndex(
+      (other) => (other.frame - event.frame || rank(other) - rank(event)) <= 0,
     );
+    this.events.splice(index + 1, 0, event);
   }
 
   private postMessage(message: MidiSynthWorkletMessage): void {
@@ -165,23 +166,3 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor(PROCESSOR_NAME, MidiSynthProcessor);
-
-// Insert after every item that compares at or before this one, so equal items
-// keep their arrival order.
-function insertSorted<T>(
-  items: T[],
-  item: T,
-  compare: (a: T, b: T) => number,
-): void {
-  let low = 0;
-  let high = items.length;
-  while (low < high) {
-    const middle = (low + high) >> 1;
-    if (compare(items[middle], item) <= 0) {
-      low = middle + 1;
-    } else {
-      high = middle;
-    }
-  }
-  items.splice(low, 0, item);
-}
