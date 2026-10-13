@@ -28,11 +28,11 @@ test("reorders tracks from their row menus", async ({ page }) => {
   // Open the Mixer and verify its channels follow the track order.
   await page.getByTestId("mixer-button").click();
   await expectMixerChannels(page, [
-    "Master",
     "Audio 1",
     "Audio 2",
     "MIDI 1",
     "Metronome",
+    "Master",
   ]);
 
   // Save and reload to restore the order.

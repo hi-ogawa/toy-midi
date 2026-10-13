@@ -58,15 +58,6 @@ function DraftRoute() {
   // reload the page, so reload it to open that project afresh.
   useWindowEvent("hashchange", () => window.location.reload());
   const payload = getSharePayload(window.location.href);
-  if (payload === undefined) {
-    return (
-      <RouteError
-        error="This share link has no project in it."
-        backHref={routes.home.href()}
-        backLabel="Back to projects"
-      />
-    );
-  }
   return <Editor source={{ type: "draft", payload }} />;
 }
 

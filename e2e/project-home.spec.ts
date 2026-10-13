@@ -24,9 +24,18 @@ test("home creates and reopens projects without project-type tabs", async ({
   ).toHaveCount(0);
   await expect(page.getByText("No projects yet")).toBeVisible();
 
-  // Create a project and return home to its saved entry.
+  // Start a new project, and see it open as a draft that home does not list.
   await page.getByTestId("new-project-button").click();
+  await expect(page.getByTestId("draft-badge")).toBeVisible();
+  await expect(page.getByTestId("project-name")).toHaveText("Untitled");
+  await selectMenuItem(page, { menu: "Editor menu", item: "Home" });
+  await expect(page.getByText("No projects yet")).toBeVisible();
+
+  // Start another, save it, and return home to its saved entry.
+  await page.getByTestId("new-project-button").click();
+  await page.getByTestId("save-draft-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+  await expect(page.getByTestId("draft-badge")).toHaveCount(0);
   const projectUrl = page.url();
   await selectMenuItem(page, { menu: "Editor menu", item: "Home" });
   await expect(page).toHaveURL("/");
@@ -56,11 +65,8 @@ test("Projects search follows the temporary legacy filter", async ({
   page.once("dialog", (dialog) => dialog.accept("Blue session"));
   await page.getByTestId("project-name").click();
   await expect(page.getByTestId("project-name")).toHaveText("Blue session");
-  await page.getByTestId("save-button").click();
-  await expect(page.getByTestId("save-button")).toHaveAttribute(
-    "data-status",
-    "saved",
-  );
+  await page.getByTestId("save-draft-button").click();
+  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   await selectMenuItem(page, { menu: "Editor menu", item: "Home" });
   const search = page.getByRole("textbox", { name: "Search projects" });
   const status = page.getByRole("status");

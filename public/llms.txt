@@ -36,9 +36,7 @@ A share link is the site's `/draft` page with the project in the URL fragment:
 <site>/draft#p=<payload>
 ```
 
-The payload is the project's saved format as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SerializedEditorRuntimeState` in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts). Its optional fields fill in defaults when the project loads.
-
-A link leaves out audio. Leave `audioTracks` empty, since audio samples need storage a link does not have. Ids need only be unique, tracks within the project and notes within their track, so short ones such as `"n1"` work and keep the link shorter.
+The payload is the project as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SharedProject` in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts).
 
 Encode the payload with Node, which has raw deflate and base64url built in:
 
@@ -48,4 +46,6 @@ import { deflateRawSync } from "node:zlib";
 const payload = deflateRawSync(JSON.stringify(project)).toString("base64url");
 ```
 
-Keep links short where they will be posted. A chat message can cap far below what a browser accepts, such as 2,000 characters on Discord, so a short phrase fits where a whole song may not.
+A link grows with the project. A full arrangement can run to tens of thousands of characters, far past what a chat message holds, such as 2,000 characters on Discord. When the link won't fit where it's going, put it somewhere that holds it, such as a gist or a file, and share that.
+
+A payload that matches `SharedProject` opens in the app, so you don't need to open the link yourself to check it. The person you share it with opens it and listens, and that's the check that matters. If it doesn't load, they'll tell you.
