@@ -31,31 +31,33 @@ export function Mixer({
   const trackEntries = resolveTrackOrder(state);
   return (
     <div className="flex min-w-max gap-4">
-      <div className="flex gap-1.5">
-        {trackEntries.map((entry) => {
-          const { track } = entry;
-          return (
-            <TrackChannel
-              key={entry.id}
-              pan={track.pan}
-              onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
-              effectsOpen={openEffects.has(track.id)}
-              onEffectsToggle={() => onEffectsToggle(track.id)}
-              label={track.name}
-              gain={track.gain}
-              muted={track.muted}
-              soloed={track.soloed}
-              onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-              onMutedChange={(muted) =>
-                runtime.setTrackMix(track.id, { muted })
-              }
-              onSoloedChange={(soloed) =>
-                runtime.setTrackMix(track.id, { soloed })
-              }
-            />
-          );
-        })}
-      </div>
+      {trackEntries.length > 0 && (
+        <div className="flex gap-1.5">
+          {trackEntries.map((entry) => {
+            const { track } = entry;
+            return (
+              <TrackChannel
+                key={entry.id}
+                pan={track.pan}
+                onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
+                effectsOpen={openEffects.has(track.id)}
+                onEffectsToggle={() => onEffectsToggle(track.id)}
+                label={track.name}
+                gain={track.gain}
+                muted={track.muted}
+                soloed={track.soloed}
+                onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+                onMutedChange={(muted) =>
+                  runtime.setTrackMix(track.id, { muted })
+                }
+                onSoloedChange={(soloed) =>
+                  runtime.setTrackMix(track.id, { soloed })
+                }
+              />
+            );
+          })}
+        </div>
+      )}
       <div className="flex gap-1.5">
         <MixerChannel
           label="Metro"

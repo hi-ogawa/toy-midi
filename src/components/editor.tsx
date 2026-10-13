@@ -792,7 +792,7 @@ export function Editor({ source }: { source: ProjectSource }) {
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
             data-testid="mixer-panel"
-            className="pointer-events-auto min-w-80 flex-1"
+            className="pointer-events-auto flex-1"
           >
             <Mixer
               runtime={runtime}
