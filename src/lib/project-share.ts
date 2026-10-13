@@ -24,9 +24,6 @@ import {
 // The fragment is keyed so a link can carry more than the project later.
 const PAYLOAD_PARAM = "p";
 
-// A link can instead point at a project file by URL, which keeps the link
-// short however large the project grows. Any URL is accepted, since the file
-// only ever opens as an unsaved draft.
 const SOURCE_PARAM = "src";
 
 export async function createShareLink(
