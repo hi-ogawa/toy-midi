@@ -56,7 +56,7 @@ export function Mixer({
           );
         })}
       </div>
-      <div className="ml-auto flex divide-x divide-neutral-700/60 border-l-2 border-neutral-600 pl-2">
+      <div className="ml-auto flex divide-x divide-neutral-700/60 border-l-2 border-neutral-600 pl-6">
         <MixerChannel
           label="Metro"
           gain={state.metronomeGain}
