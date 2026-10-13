@@ -1,10 +1,8 @@
-import { GaugeIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
-import { MetronomeIcon } from "./icons";
 import { MixToggle } from "./mix-toggle";
 import { Knob } from "./ui/knob";
 import { Slider } from "./ui/slider";
@@ -60,7 +58,6 @@ export function Mixer({
       </div>
       <div className="ml-auto flex divide-x divide-neutral-700/60 border-l-2 border-neutral-600 pl-2">
         <MixerChannel
-          icon={<MetronomeIcon className="size-3.5 text-muted-foreground" />}
           label="Metro"
           gain={state.metronomeGain}
           onGainChange={(gain) => runtime.setMetronomeGain(gain)}
@@ -79,7 +76,6 @@ export function Mixer({
           }
         />
         <MixerChannel
-          icon={<GaugeIcon className="size-3.5 text-muted-foreground" />}
           label="Master"
           gain={state.masterGain}
           onGainChange={(gain) => runtime.setMasterGain(gain)}
@@ -168,7 +164,6 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
 }
 
 function MixerChannel({
-  icon,
   label,
   pan,
   gain,
@@ -177,7 +172,6 @@ function MixerChannel({
   "data-testid": testId,
   action,
 }: {
-  icon?: ReactNode;
   label: string;
   pan?: ReactNode;
   gain: number;
@@ -194,15 +188,12 @@ function MixerChannel({
       data-testid={testId}
       className="flex w-16 flex-col items-center gap-2 px-1"
     >
-      <div className="flex w-full items-center justify-center gap-1">
-        {icon}
-        <span
-          title={label}
-          className="min-w-0 truncate text-xs font-medium text-neutral-300"
-        >
-          {label}
-        </span>
-      </div>
+      <span
+        title={label}
+        className="w-full truncate text-center text-xs font-medium text-neutral-300"
+      >
+        {label}
+      </span>
       {/* Every channel reserves the pan row so faders stay aligned. */}
       <div className="flex h-6 w-full items-center">{pan}</div>
       {/* The right column reserves room for a level meter beside the fader. */}
