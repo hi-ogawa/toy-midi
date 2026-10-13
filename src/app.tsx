@@ -7,7 +7,7 @@ import { ScoreCapture } from "./components/score-capture";
 import { ScorePage } from "./components/score-page";
 import { ScoreViewer } from "./components/score-viewer";
 import { useWindowEvent } from "./components/use-window-event";
-import { getSharePayload } from "./lib/project-share";
+import { getSharePayload, getShareSource } from "./lib/project-share";
 import { matchRoute, routes } from "./lib/routes";
 import { preloadMidiAssetsWhenIdle } from "./lib/runtime-assets";
 
@@ -58,7 +58,8 @@ function DraftRoute() {
   // reload the page, so reload it to open that project afresh.
   useWindowEvent("hashchange", () => window.location.reload());
   const payload = getSharePayload(window.location.href);
-  return <Editor source={{ type: "draft", payload }} />;
+  const src = getShareSource(window.location.href);
+  return <Editor source={{ type: "draft", payload, src }} />;
 }
 
 function LegacyProjectRoute() {

@@ -1,6 +1,13 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  LibraryIcon,
+  SearchIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 import { useRef, useState } from "react";
+import { EXAMPLE_PROJECTS } from "../lib/example-projects";
 import { convertLegacyProject } from "../lib/legacy-project";
 import {
   type LegacyProjectMetadata,
@@ -14,6 +21,12 @@ import { toResult } from "../utils/result";
 import { BrowserStorageDialog } from "./browser-storage-dialog";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export function ProjectList() {
   const [showLegacy, setShowLegacy] = useState(false);
@@ -73,6 +86,7 @@ export function ProjectList() {
             <h2 className="font-semibold">Projects</h2>
             <div className="flex gap-2">
               <BrowserStorageDialog />
+              <ExamplesMenu />
               <a
                 data-testid="new-project-button"
                 href={routes.draft.href()}
@@ -199,6 +213,34 @@ export function ProjectList() {
         )}
       </section>
     </div>
+  );
+}
+
+function ExamplesMenu() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button className="gap-1.5 bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600">
+          <LibraryIcon className="size-4" />
+          Examples
+          <ChevronDownIcon className="size-3.5 opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-96">
+        {EXAMPLE_PROJECTS.map((example) => (
+          <DropdownMenuItem key={example.file} asChild>
+            <a href={example.href}>
+              <div>
+                <div>{example.title}</div>
+                <div className="text-xs text-muted-foreground">
+                  {example.description}
+                </div>
+              </div>
+            </a>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

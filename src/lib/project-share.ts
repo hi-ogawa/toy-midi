@@ -24,6 +24,8 @@ import {
 // The fragment is keyed so a link can carry more than the project later.
 const PAYLOAD_PARAM = "p";
 
+const SOURCE_PARAM = "src";
+
 export async function createShareLink(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
@@ -63,6 +65,31 @@ export function getSharePayload(url: string): string | undefined {
     new URLSearchParams(new URL(url).hash.slice(1)).get(PAYLOAD_PARAM) ??
     undefined
   );
+}
+
+export function getShareSource(url: string): string | undefined {
+  return new URL(url).searchParams.get(SOURCE_PARAM) ?? undefined;
+}
+
+export async function fetchSharedProject(
+  src: string,
+): Promise<SerializedEditorRuntimeState> {
+  let response: Response;
+  try {
+    response = await fetch(src);
+  } catch {
+    throw new Error(`Could not fetch the project from ${src}.`);
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Could not fetch the project from ${src} (HTTP ${response.status}).`,
+    );
+  }
+  try {
+    return assignIds(await response.json());
+  } catch {
+    throw new Error(`${src} does not hold a readable project.`);
+  }
 }
 
 async function encodeSharedProject(

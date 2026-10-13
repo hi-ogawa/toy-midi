@@ -132,3 +132,36 @@ test("Projects search follows the temporary legacy filter", async ({
     page.getByText("No projects yet", { exact: true }),
   ).toBeVisible();
 });
+
+test("opens an example project as a draft", async ({ page }) => {
+  // Serve the example's project file in place of the catalog gist.
+  await page.route(
+    "https://gist.githubusercontent.com/**/slow-tide.json",
+    (route) =>
+      route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: {
+          title: "Slow Tide",
+          tempo: 66,
+          timeSignature: { numerator: 3, denominator: 4 },
+          midiTracks: [
+            { name: "Pad", program: 89, notes: [] },
+            { name: "Bells", program: 14, notes: [] },
+          ],
+        },
+      }),
+  );
+
+  // Choose an example from the Examples menu on home.
+  await page.goto("/");
+  await selectMenuItem(page, { menu: "Examples", item: /Slow Tide/ });
+
+  // See it open as an unsaved draft with its tracks.
+  await expect(page.getByTestId("draft-badge")).toBeVisible();
+  await expect(page.getByTestId("project-name")).toHaveText("Slow Tide");
+  await expect(page.getByTestId("midi-track-row")).toHaveCount(2);
+
+  // Go home, and see that opening the example stored nothing.
+  await page.goto("/");
+  await expect(page.getByText("No projects yet")).toBeVisible();
+});

@@ -108,8 +108,8 @@
   <text x="56" y="472" font-weight="bold">MIDI tracks <tspan class="c">MidiTrackPlayback</tspan></text>
   <text x="56" y="487" fill="#666" font-size="11">synth → channel</text>
   <text x="56" y="502" class="c">MidiSynth → AudioChannel</text>
-  <rect x="48" y="506" width="67" height="18" rx="9" class="w"/>
-  <text x="81.5" y="519" text-anchor="middle" class="wt">oxisynth</text>
+  <rect x="48" y="506" width="85" height="18" rx="9" class="w"/>
+  <text x="90.5" y="519" text-anchor="middle" class="wt">spessasynth</text>
   <rect x="40" y="542" width="460" height="58" rx="6" fill="#fff" stroke="#557"/>
   <text x="56" y="560" font-weight="bold">Metronome <tspan class="c">Metronome</tspan></text>
   <text x="56" y="575" fill="#666" font-size="11">click oscillator → envelope → metronome volume</text>
