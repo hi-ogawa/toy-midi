@@ -126,7 +126,8 @@ function drawMeter(
   context.clearRect(0, 0, WIDTH, HEIGHT);
   channels.forEach((channel, index) => {
     const x = index * (BAR_WIDTH + 1);
-    context.fillStyle = "#262626"; // neutral-800
+    // A dark well, so a silent meter still stands out from the strip background.
+    context.fillStyle = "#0a0a0a"; // neutral-950
     context.fillRect(x, 0, BAR_WIDTH, HEIGHT);
 
     // A faint fill between the RMS body and the peak shows the crest factor.
