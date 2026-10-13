@@ -1,10 +1,8 @@
-import { GaugeIcon, Music2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
-import { MetronomeIcon } from "./icons";
 import { MixToggle } from "./mix-toggle";
 import { Knob } from "./ui/knob";
 import { Slider } from "./ui/slider";
@@ -32,15 +30,7 @@ export function Mixer({
   );
   const trackEntries = resolveTrackOrder(state);
   return (
-    <div className="flex min-w-max justify-center gap-8 py-1">
-      <MixerChannel
-        icon={<GaugeIcon className="size-4 text-muted-foreground" />}
-        label="Master"
-        gain={state.masterGain}
-        onGainChange={(gain) => runtime.setMasterGain(gain)}
-        inputProps={masterInput.props}
-        data-testid="mixer-master"
-      />
+    <div className="flex min-w-max gap-1.5">
       {trackEntries.map((entry) => {
         const { track } = entry;
         return (
@@ -54,7 +44,6 @@ export function Mixer({
             gain={track.gain}
             muted={track.muted}
             soloed={track.soloed}
-            icon={TRACK_ICONS[entry.kind]}
             onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
             onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
             onSoloedChange={(soloed) =>
@@ -64,7 +53,6 @@ export function Mixer({
         );
       })}
       <MixerChannel
-        icon={<MetronomeIcon className="size-4 text-muted-foreground" />}
         label="Metro"
         gain={state.metronomeGain}
         onGainChange={(gain) => runtime.setMetronomeGain(gain)}
@@ -76,18 +64,20 @@ export function Mixer({
             kind="mute"
             onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
             aria-label="Toggle metronome mute"
-            className="h-8 min-w-8 px-1.5 text-xs font-semibold"
+            className="h-6 min-w-6 px-1"
           />
         }
+      />
+      <MixerChannel
+        label="Master"
+        gain={state.masterGain}
+        onGainChange={(gain) => runtime.setMasterGain(gain)}
+        inputProps={masterInput.props}
+        data-testid="mixer-master"
       />
     </div>
   );
 }
-
-const TRACK_ICONS = {
-  audio: <Volume2Icon className="size-4 text-muted-foreground" />,
-  midi: <Music2Icon className="size-4 text-muted-foreground" />,
-};
 
 function TrackChannel({
   label,
@@ -95,7 +85,6 @@ function TrackChannel({
   gain,
   muted,
   soloed,
-  icon,
   onPanChange,
   onGainChange,
   onMutedChange,
@@ -108,7 +97,6 @@ function TrackChannel({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  icon: ReactNode;
   onPanChange: (pan: number) => void;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
@@ -119,7 +107,6 @@ function TrackChannel({
   const input = useGainInput(gain, onGainChange);
   return (
     <MixerChannel
-      icon={icon}
       label={label}
       pan={<PanKnob label={label} pan={pan} onPanChange={onPanChange} />}
       gain={gain}
@@ -127,26 +114,26 @@ function TrackChannel({
       inputProps={input.props}
       data-testid={`mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
-        <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-2 gap-1">
           <MixToggle
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
-            className="h-8 min-w-8 px-1.5 text-xs font-semibold"
+            className="h-6 min-w-6 px-1"
           />
           <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
-            className="h-8 min-w-8 px-1.5 text-xs font-semibold"
+            className="h-6 min-w-6 px-1"
           />
           <EffectsToggle
             label={label}
             open={effectsOpen}
             onClick={onEffectsToggle}
-            className="h-8 min-w-8 px-1.5"
+            className="col-span-2 h-6"
           />
         </div>
       }
@@ -169,7 +156,6 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
 }
 
 function MixerChannel({
-  icon,
   label,
   pan,
   gain,
@@ -178,7 +164,6 @@ function MixerChannel({
   "data-testid": testId,
   action,
 }: {
-  icon: ReactNode;
   label: string;
   pan?: ReactNode;
   gain: number;
@@ -193,14 +178,14 @@ function MixerChannel({
       role="group"
       aria-label={name}
       data-testid={testId}
-      className="flex min-w-24 flex-col items-center gap-3"
+      className="flex w-16 flex-col items-center gap-2 rounded bg-neutral-900/50 px-1 py-2"
     >
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className="max-w-24 truncate text-xs font-medium text-neutral-300">
-          {label}
-        </span>
-      </div>
+      <span
+        title={label}
+        className="w-full truncate text-center text-xs font-medium text-neutral-300"
+      >
+        {label}
+      </span>
       {/* Every channel reserves the pan row so faders stay aligned. */}
       <div className="flex h-6 w-full items-center">{pan}</div>
       <GainSlider
@@ -210,17 +195,15 @@ function MixerChannel({
         orientation="vertical"
         className="h-48"
       />
-      <label className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
-        <input
-          type="text"
-          inputMode="decimal"
-          aria-label={`${name} level in dB`}
-          className="h-6 w-12 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
-          {...inputProps}
-        />
-        <span>dB</span>
-      </label>
-      {action ?? <div className="h-8" />}
+      <input
+        type="text"
+        inputMode="decimal"
+        aria-label={`${name} level in dB`}
+        title={`${name} level in dB`}
+        className="h-6 w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 tabular-nums focus:border-neutral-500 focus:outline-none"
+        {...inputProps}
+      />
+      {action}
     </div>
   );
 }
@@ -246,7 +229,7 @@ function PanKnob({
   });
   return (
     // Equal side columns center the knob over the fader.
-    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-1">
       <Knob
         ref={ref}
         aria-label={`${label} pan`}
@@ -274,7 +257,7 @@ function PanKnob({
       />
       {/* Zero width, so a wide readout such as R100 spills over instead of
           widening its column and the channel. */}
-      <span className="w-0 font-mono text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+      <span className="w-0 font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
         {formatPan(pan)}
       </span>
     </div>
