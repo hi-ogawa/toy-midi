@@ -228,7 +228,7 @@ function ExamplesMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-96">
         {EXAMPLE_PROJECTS.map((example) => (
-          <DropdownMenuItem key={example.id} asChild>
+          <DropdownMenuItem key={example.file} asChild>
             <a href={example.href}>
               <div>
                 <div>{example.title}</div>
