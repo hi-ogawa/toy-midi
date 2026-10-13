@@ -89,14 +89,14 @@ export function LevelMeter({
   );
 }
 
-/** dB labels for the meter, on the same scale. */
+/** dB labels between the fader and the meter, on the meter's scale. */
 export function MeterScale() {
   return (
     <div aria-hidden="true" className="relative h-48 w-4 shrink-0">
       {SCALE_TICKS.map((db) => (
         <div
           key={db}
-          className="absolute inset-x-0 -translate-y-1/2 font-mono text-[9px] leading-none text-neutral-500"
+          className="absolute inset-x-0 -translate-y-1/2 text-center font-mono text-[9px] leading-none text-neutral-500"
           style={{ top: getMeterY(db) }}
         >
           {/* The sign is dropped to save width. Only +6 and 0 are not negative. */}

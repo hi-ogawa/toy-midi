@@ -212,8 +212,8 @@ function MixerChannel({
         />
         {meter && (
           <>
-            {meter}
             <MeterScale />
+            {meter}
           </>
         )}
       </div>
