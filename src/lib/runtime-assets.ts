@@ -1,6 +1,6 @@
 import { toast } from "sonner";
-import workletUrl from "spessasynth_lib/dist/spessasynth_processor.min.js?url";
 import soundfontUrl from "../assets/soundfonts/GeneralUserGS.sf3?url";
+import workletUrl from "./midi-synth-worklet.ts?worker&url";
 
 export const midiAssetUrls = { workletUrl, soundfontUrl };
 
