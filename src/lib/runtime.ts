@@ -6,6 +6,7 @@ import {
 import { insertAtIndices } from "../utils/array.ts";
 import { createNumberedName } from "../utils/name.ts";
 import { createStore, shallowEqual } from "../utils/store.ts";
+import { StereoAnalyser } from "./audio-analyser.ts";
 import {
   createAudioClip,
   WAVEFORM_POINTS_PER_SECOND,
@@ -24,6 +25,7 @@ import {
 } from "./dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-node.ts";
 import { History } from "./history.ts";
+import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -298,6 +300,10 @@ export class EditorRuntime {
   readonly context = new AudioContext();
   readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
+  private masterAnalyser?: StereoAnalyser;
+  readonly levelMeters = new LevelMeters((target) =>
+    this.getMeterAnalyser(target),
+  );
   /** @internal */
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
@@ -777,6 +783,20 @@ export class EditorRuntime {
     audioTracks[index] = apply(track);
     this.store.update({ audioTracks });
     return audioTracks[index]!;
+  }
+
+  private getMeterAnalyser(target: MeterTarget): StereoAnalyser | undefined {
+    if (target.kind === "master") {
+      if (!this.masterAnalyser) {
+        this.masterAnalyser = new StereoAnalyser(this.context);
+        this.masterOutput.connect(this.masterAnalyser.input);
+      }
+      return this.masterAnalyser;
+    }
+    const playback =
+      this.trackPlaybacks.get(target.id) ??
+      this.midiTrackPlaybacks.get(target.id);
+    return playback?.channel.getAnalyser();
   }
 
   private getTrackPlayback(id: string): AudioTrackPlayback {
