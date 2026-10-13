@@ -1,7 +1,10 @@
-import { WorkletSynthesizer } from "spessasynth_lib";
 import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
-import { DRUM_KIT_BANK } from "./general-midi.ts";
+import { disposeWorklet } from "./dsp/worklet-disposal.ts";
+import type {
+  MidiSynthClientMessage,
+  MidiSynthWorkletMessage,
+} from "./midi-synth-worklet.ts";
 import { midiAssetUrls, waitForMidiAssets } from "./runtime-assets";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
@@ -142,13 +145,11 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 }
 
-// Every track plays on the first MIDI channel of its own synth.
-const CHANNEL = 0;
-const BANK_SELECT_CONTROLLER = 0;
+const PROCESSOR_NAME = "midi-synth";
 
 class MidiSynth {
   readonly output: GainNode;
-  private synth?: WorkletSynthesizer;
+  private node?: AudioWorkletNode;
 
   constructor(private readonly context: AudioContext) {
     this.output = context.createGain();
@@ -157,36 +158,40 @@ class MidiSynth {
   async init(preset: MidiPreset): Promise<void> {
     await waitForMidiAssets();
     await ensureMidiWorklet(this.context);
-    const synth = new WorkletSynthesizer(this.context);
-    this.synth = synth;
-    synth.connect(this.output);
-    await synth.isReady;
+    const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [2],
+    });
+    this.node = node;
+    node.connect(this.output);
 
     const soundfont = await fetch(midiAssetUrls.soundfontUrl).then((response) =>
       response.arrayBuffer(),
     );
-    await synth.soundBankManager.addSoundBank(soundfont, "main");
+    await new Promise<void>((resolve, reject) => {
+      node.port.onmessage = (event: MessageEvent<MidiSynthWorkletMessage>) => {
+        if (event.data.type === "ready") {
+          resolve();
+        } else {
+          reject(new Error(`MIDI synth failed to load: ${event.data.message}`));
+        }
+      };
+      this.postMessage({ type: "init", soundfont }, [soundfont]);
+    });
     await this.setPreset(preset);
   }
 
-  // A drum kit bank only plays on a drum channel, so the player's single
-  // channel switches to drums for it. SpessaSynth substitutes a missing preset.
   async setPreset({ bank = 0, program }: MidiPreset): Promise<void> {
-    const synth = this.getSynth();
-    const isDrum = bank === DRUM_KIT_BANK;
-    synth.midiChannels[CHANNEL].setDrums(isDrum);
-    if (!isDrum) {
-      synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
-    }
-    synth.programChange(CHANNEL, program);
+    this.postMessage({ type: "setPreset", bank, program });
   }
 
   noteOn(pitch: number): void {
-    this.getSynth().noteOn(CHANNEL, pitch, 100);
+    this.postMessage({ type: "noteOn", pitch, velocity: 100 });
   }
 
   noteOff(pitch: number): void {
-    this.getSynth().noteOff(CHANNEL, pitch);
+    this.postMessage({ type: "noteOff", pitch });
   }
 
   scheduleNoteOnOff({
@@ -200,28 +205,35 @@ class MidiSynth {
     endTime: number;
     velocity: number;
   }): void {
-    const synth = this.getSynth();
-    synth.noteOn(CHANNEL, pitch, velocity, { time: startTime });
-    synth.noteOff(CHANNEL, pitch, { time: endTime });
+    this.postMessage({
+      type: "scheduleNoteOnOff",
+      pitch,
+      velocity,
+      startFrame: Math.round(startTime * this.context.sampleRate),
+      endFrame: Math.round(endTime * this.context.sampleRate),
+    });
   }
 
   reset(): void {
-    this.getSynth().stopAll(true);
+    this.postMessage({ type: "reset" });
   }
 
   dispose(): void {
     this.output.disconnect();
-    if (this.synth) {
-      this.synth.destroy();
-      this.synth = undefined;
+    if (this.node) {
+      disposeWorklet(this.node);
+      this.node = undefined;
     }
   }
 
-  private getSynth(): WorkletSynthesizer {
-    if (!this.synth) {
+  private postMessage(
+    message: MidiSynthClientMessage,
+    transfer?: Transferable[],
+  ): void {
+    if (!this.node) {
       throw new Error("MIDI synth is not initialized.");
     }
-    return this.synth;
+    this.node.port.postMessage(message, transfer ?? []);
   }
 }
 
