@@ -50,7 +50,6 @@ export class AudioAnalyser {
   }
 }
 
-/** Analyses the left and right channels of a stereo signal separately. */
 export class StereoAnalyser {
   readonly input: ChannelSplitterNode;
   private readonly channels: [AudioAnalyser, AudioAnalyser];

@@ -89,7 +89,7 @@ export function LevelMeter({
   );
 }
 
-/** dB labels between the fader and the meter, on the meter's scale. */
+/** dB labels on the meter's scale. */
 export function MeterScale() {
   return (
     <div aria-hidden="true" className="relative h-48 w-4 shrink-0">
@@ -99,7 +99,7 @@ export function MeterScale() {
           className="absolute inset-x-0 -translate-y-1/2 text-center font-mono text-[9px] leading-none text-neutral-500"
           style={{ top: getMeterY(db) }}
         >
-          {/* The sign is dropped to save width. Only +6 and 0 are not negative. */}
+          {/* Labels drop the minus sign to save width, so every label except 6 and 0 is negative. */}
           {Math.abs(db)}
         </div>
       ))}
