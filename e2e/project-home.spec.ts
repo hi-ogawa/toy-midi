@@ -132,3 +132,20 @@ test("Projects search follows the temporary legacy filter", async ({
     page.getByText("No projects yet", { exact: true }),
   ).toBeVisible();
 });
+
+test("opens an example project as a draft", async ({ page }) => {
+  // Choose an example from the Examples menu on home.
+  await page.goto("/");
+  await selectMenuItem(page, { menu: "Examples", item: /Slow Tide/ });
+
+  // See it open as an unsaved draft with its tracks.
+  await expect(page.getByTestId("draft-badge")).toBeVisible();
+  await expect(page.getByTestId("project-name")).toHaveText(
+    "Slow Tide (3/4 ambient loop)",
+  );
+  await expect(page.getByTestId("midi-track-row")).toHaveCount(14);
+
+  // Go home, and see that opening the example stored nothing.
+  await page.goto("/");
+  await expect(page.getByText("No projects yet")).toBeVisible();
+});
