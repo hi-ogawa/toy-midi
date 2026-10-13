@@ -186,7 +186,7 @@ function MixerChannel({
       role="group"
       aria-label={name}
       data-testid={testId}
-      className="flex w-16 flex-col items-center gap-2 px-1"
+      className="flex w-16 flex-col items-center gap-2 px-1.5"
     >
       <span
         title={label}
