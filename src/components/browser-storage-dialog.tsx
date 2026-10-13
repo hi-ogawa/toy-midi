@@ -20,7 +20,7 @@ export function BrowserStorageDialog() {
         title="Manage storage"
         aria-label="Manage storage"
         onClick={() => setIsOpen(true)}
-        className="size-9 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+        className="size-9 border-transparent text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
       >
         <DatabaseIcon className="size-4" />
       </Button>
