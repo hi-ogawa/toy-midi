@@ -32,61 +32,69 @@ export function Mixer({
   );
   const trackEntries = resolveTrackOrder(state);
   return (
-    <div className="flex min-w-max justify-center gap-8 py-1">
-      <MixerChannel
-        icon={<GaugeIcon className="size-4 text-muted-foreground" />}
-        label="Master"
-        gain={state.masterGain}
-        onGainChange={(gain) => runtime.setMasterGain(gain)}
-        inputProps={masterInput.props}
-        data-testid="mixer-master"
-      />
-      {trackEntries.map((entry) => {
-        const { track } = entry;
-        return (
-          <TrackChannel
-            key={entry.id}
-            pan={track.pan}
-            onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
-            effectsOpen={openEffects.has(track.id)}
-            onEffectsToggle={() => onEffectsToggle(track.id)}
-            label={track.name}
-            gain={track.gain}
-            muted={track.muted}
-            soloed={track.soloed}
-            icon={TRACK_ICONS[entry.kind]}
-            onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-            onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
-            onSoloedChange={(soloed) =>
-              runtime.setTrackMix(track.id, { soloed })
-            }
-          />
-        );
-      })}
-      <MixerChannel
-        icon={<MetronomeIcon className="size-4 text-muted-foreground" />}
-        label="Metro"
-        gain={state.metronomeGain}
-        onGainChange={(gain) => runtime.setMetronomeGain(gain)}
-        inputProps={metronomeInput.props}
-        data-testid="mixer-metro"
-        action={
-          <MixToggle
-            active={!state.metronomeEnabled}
-            kind="mute"
-            onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
-            aria-label="Toggle metronome mute"
-            className="h-8 min-w-8 px-1.5 text-xs font-semibold"
-          />
-        }
-      />
+    <div className="flex min-w-max gap-6 py-1">
+      <div className="flex divide-x divide-neutral-700/60">
+        {trackEntries.map((entry) => {
+          const { track } = entry;
+          return (
+            <TrackChannel
+              key={entry.id}
+              pan={track.pan}
+              onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
+              effectsOpen={openEffects.has(track.id)}
+              onEffectsToggle={() => onEffectsToggle(track.id)}
+              label={track.name}
+              gain={track.gain}
+              muted={track.muted}
+              soloed={track.soloed}
+              icon={TRACK_ICONS[entry.kind]}
+              onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+              onMutedChange={(muted) =>
+                runtime.setTrackMix(track.id, { muted })
+              }
+              onSoloedChange={(soloed) =>
+                runtime.setTrackMix(track.id, { soloed })
+              }
+            />
+          );
+        })}
+      </div>
+      <div className="ml-auto flex divide-x divide-neutral-700/60 border-l-2 border-neutral-600 pl-2">
+        <MixerChannel
+          icon={<MetronomeIcon className="size-3.5 text-muted-foreground" />}
+          label="Metro"
+          gain={state.metronomeGain}
+          onGainChange={(gain) => runtime.setMetronomeGain(gain)}
+          inputProps={metronomeInput.props}
+          data-testid="mixer-metro"
+          action={
+            <MixToggle
+              active={!state.metronomeEnabled}
+              kind="mute"
+              onClick={() =>
+                runtime.setMetronomeEnabled(!state.metronomeEnabled)
+              }
+              aria-label="Toggle metronome mute"
+              className="h-6 min-w-6 px-1"
+            />
+          }
+        />
+        <MixerChannel
+          icon={<GaugeIcon className="size-3.5 text-muted-foreground" />}
+          label="Master"
+          gain={state.masterGain}
+          onGainChange={(gain) => runtime.setMasterGain(gain)}
+          inputProps={masterInput.props}
+          data-testid="mixer-master"
+        />
+      </div>
     </div>
   );
 }
 
 const TRACK_ICONS = {
-  audio: <Volume2Icon className="size-4 text-muted-foreground" />,
-  midi: <Music2Icon className="size-4 text-muted-foreground" />,
+  audio: <Volume2Icon className="size-3.5 shrink-0 text-muted-foreground" />,
+  midi: <Music2Icon className="size-3.5 shrink-0 text-muted-foreground" />,
 };
 
 function TrackChannel({
@@ -127,26 +135,26 @@ function TrackChannel({
       inputProps={input.props}
       data-testid={`mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
-        <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-2 gap-1">
           <MixToggle
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
-            className="h-8 min-w-8 px-1.5 text-xs font-semibold"
+            className="h-6 min-w-6 px-1"
           />
           <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
-            className="h-8 min-w-8 px-1.5 text-xs font-semibold"
+            className="h-6 min-w-6 px-1"
           />
           <EffectsToggle
             label={label}
             open={effectsOpen}
             onClick={onEffectsToggle}
-            className="h-8 min-w-8 px-1.5"
+            className="col-span-2 h-6"
           />
         </div>
       }
@@ -193,34 +201,39 @@ function MixerChannel({
       role="group"
       aria-label={name}
       data-testid={testId}
-      className="flex min-w-24 flex-col items-center gap-3"
+      className="flex w-16 flex-col items-center gap-2 px-1"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex w-full items-center justify-center gap-1">
         {icon}
-        <span className="max-w-24 truncate text-xs font-medium text-neutral-300">
+        <span
+          title={label}
+          className="min-w-0 truncate text-xs font-medium text-neutral-300"
+        >
           {label}
         </span>
       </div>
       {/* Every channel reserves the pan row so faders stay aligned. */}
       <div className="flex h-6 w-full items-center">{pan}</div>
-      <GainSlider
-        label={`${name} gain`}
-        gain={gain}
-        onGainChange={onGainChange}
-        orientation="vertical"
-        className="h-48"
-      />
-      <label className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
-        <input
-          type="text"
-          inputMode="decimal"
-          aria-label={`${name} level in dB`}
-          className="h-6 w-12 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
-          {...inputProps}
+      {/* The right column reserves room for a level meter beside the fader. */}
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] gap-1">
+        <GainSlider
+          label={`${name} gain`}
+          gain={gain}
+          onGainChange={onGainChange}
+          orientation="vertical"
+          className="col-start-2 h-48"
         />
-        <span>dB</span>
-      </label>
-      {action ?? <div className="h-8" />}
+        <div className="w-2.5" />
+      </div>
+      <input
+        type="text"
+        inputMode="decimal"
+        aria-label={`${name} level in dB`}
+        title={`${name} level in dB`}
+        className="h-6 w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 tabular-nums focus:border-neutral-500 focus:outline-none"
+        {...inputProps}
+      />
+      {action}
     </div>
   );
 }
@@ -246,7 +259,7 @@ function PanKnob({
   });
   return (
     // Equal side columns center the knob over the fader.
-    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-1">
       <Knob
         ref={ref}
         aria-label={`${label} pan`}
@@ -274,7 +287,7 @@ function PanKnob({
       />
       {/* Zero width, so a wide readout such as R100 spills over instead of
           widening its column and the channel. */}
-      <span className="w-0 font-mono text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+      <span className="w-0 font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
         {formatPan(pan)}
       </span>
     </div>
