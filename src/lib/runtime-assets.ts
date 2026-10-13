@@ -1,9 +1,8 @@
 import { toast } from "sonner";
-import wasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
-import workletUrl from "../assets/oxisynth/worklet.js?url";
-import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
+import soundfontUrl from "../assets/soundfonts/GeneralUserGS.sf3?url";
+import workletUrl from "./midi-synth-worklet.ts?worker&url";
 
-export const midiAssetUrls = { wasmUrl, workletUrl, soundfontUrl };
+export const midiAssetUrls = { workletUrl, soundfontUrl };
 
 let preloadPromise: Promise<void> | undefined;
 let demandPromise: Promise<void> | undefined;
