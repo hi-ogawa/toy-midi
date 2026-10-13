@@ -30,8 +30,8 @@ export function Mixer({
   );
   const trackEntries = resolveTrackOrder(state);
   return (
-    <div className="flex min-w-max gap-6 py-1">
-      <div className="flex divide-x divide-neutral-700/60">
+    <div className="flex min-w-max gap-4">
+      <div className="flex gap-1.5">
         {trackEntries.map((entry) => {
           const { track } = entry;
           return (
@@ -56,7 +56,7 @@ export function Mixer({
           );
         })}
       </div>
-      <div className="ml-auto flex divide-x divide-neutral-700/60 border-l-2 border-neutral-600 pl-6">
+      <div className="flex gap-1.5">
         <MixerChannel
           label="Metro"
           gain={state.metronomeGain}
@@ -186,7 +186,7 @@ function MixerChannel({
       role="group"
       aria-label={name}
       data-testid={testId}
-      className="flex w-16 flex-col items-center gap-2 px-1.5"
+      className="flex w-16 flex-col items-center gap-2 rounded bg-neutral-900/50 px-1 py-2"
     >
       <span
         title={label}
