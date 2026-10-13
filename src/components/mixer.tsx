@@ -30,61 +30,51 @@ export function Mixer({
   );
   const trackEntries = resolveTrackOrder(state);
   return (
-    <div className="flex min-w-max gap-4">
-      {trackEntries.length > 0 && (
-        <div className="flex gap-1.5">
-          {trackEntries.map((entry) => {
-            const { track } = entry;
-            return (
-              <TrackChannel
-                key={entry.id}
-                pan={track.pan}
-                onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
-                effectsOpen={openEffects.has(track.id)}
-                onEffectsToggle={() => onEffectsToggle(track.id)}
-                label={track.name}
-                gain={track.gain}
-                muted={track.muted}
-                soloed={track.soloed}
-                onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-                onMutedChange={(muted) =>
-                  runtime.setTrackMix(track.id, { muted })
-                }
-                onSoloedChange={(soloed) =>
-                  runtime.setTrackMix(track.id, { soloed })
-                }
-              />
-            );
-          })}
-        </div>
-      )}
-      <div className="flex gap-1.5">
-        <MixerChannel
-          label="Metro"
-          gain={state.metronomeGain}
-          onGainChange={(gain) => runtime.setMetronomeGain(gain)}
-          inputProps={metronomeInput.props}
-          data-testid="mixer-metro"
-          action={
-            <MixToggle
-              active={!state.metronomeEnabled}
-              kind="mute"
-              onClick={() =>
-                runtime.setMetronomeEnabled(!state.metronomeEnabled)
-              }
-              aria-label="Toggle metronome mute"
-              className="h-6 min-w-6 px-1"
-            />
-          }
-        />
-        <MixerChannel
-          label="Master"
-          gain={state.masterGain}
-          onGainChange={(gain) => runtime.setMasterGain(gain)}
-          inputProps={masterInput.props}
-          data-testid="mixer-master"
-        />
-      </div>
+    <div className="flex min-w-max gap-1.5">
+      {trackEntries.map((entry) => {
+        const { track } = entry;
+        return (
+          <TrackChannel
+            key={entry.id}
+            pan={track.pan}
+            onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
+            effectsOpen={openEffects.has(track.id)}
+            onEffectsToggle={() => onEffectsToggle(track.id)}
+            label={track.name}
+            gain={track.gain}
+            muted={track.muted}
+            soloed={track.soloed}
+            onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+            onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
+            onSoloedChange={(soloed) =>
+              runtime.setTrackMix(track.id, { soloed })
+            }
+          />
+        );
+      })}
+      <MixerChannel
+        label="Metro"
+        gain={state.metronomeGain}
+        onGainChange={(gain) => runtime.setMetronomeGain(gain)}
+        inputProps={metronomeInput.props}
+        data-testid="mixer-metro"
+        action={
+          <MixToggle
+            active={!state.metronomeEnabled}
+            kind="mute"
+            onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
+            aria-label="Toggle metronome mute"
+            className="h-6 min-w-6 px-1"
+          />
+        }
+      />
+      <MixerChannel
+        label="Master"
+        gain={state.masterGain}
+        onGainChange={(gain) => runtime.setMasterGain(gain)}
+        inputProps={masterInput.props}
+        data-testid="mixer-master"
+      />
     </div>
   );
 }
