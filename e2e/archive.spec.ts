@@ -22,29 +22,27 @@ import { useFakeAudioInput, selectMenuItem } from "./helpers";
 
 useFakeAudioInput();
 
-test("exports and imports a recorder project archive", async ({ page }) => {
+test("exports and imports a project archive", async ({ page }) => {
   await createProject(page);
 
   // Build an editable project with backing audio on a new track and two
   // retained takes on Audio 1.
   await addAudio(page, "e2e/fixtures/test-audio.wav");
-  const rows = page.getByTestId("recorder-audio-track-row");
+  const rows = page.getByTestId("audio-track-row");
 
   await enableInput(page);
   await armTrack(page, { track: "Audio 1" });
-  const recordButton = page.getByTestId("recorder-record-button");
+  const recordButton = page.getByTestId("record-button");
   for (const beat of [2, 4]) {
     await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
     await recordButton.click();
-    await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+    await waitForRecordingSamples(page.getByTestId("clip-recording"));
     await recordButton.click();
   }
-  await expect(
-    rows.nth(0).getByTestId("recorder-clip-audio-source"),
-  ).toHaveCount(2);
+  await expect(rows.nth(0).getByTestId("clip-audio-source")).toHaveCount(2);
   // Show Audio 1's clips and balance one take before archiving the project.
   await selectMenuItem(page, { menu: "Audio 1 actions", item: "Show clips" });
-  const takesToggle = page.getByTestId("recorder-clips-toggle").first();
+  const takesToggle = page.getByTestId("clips-toggle").first();
   await takesToggle.click();
   const takeGain = page.getByRole("slider", {
     name: "Take 1 gain",
@@ -55,7 +53,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     .poll(async () => Number(await takeGain.getAttribute("aria-valuenow")))
     .toBeCloseTo(-0.5);
   const clipGeometry = await getClipGeometry(page);
-  await page.getByTestId("recorder-mixer-button").click();
+  await page.getByTestId("mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
   await masterLevel.fill("-6");
   await masterLevel.press("Enter");
@@ -88,37 +86,35 @@ test("exports and imports a recorder project archive", async ({ page }) => {
 
   // Export the open project and retain the downloaded archive for import.
   page.once("dialog", (dialog) => dialog.accept("Archived recording"));
-  await page.getByTestId("recorder-project-name").click();
+  await page.getByTestId("project-name").click();
   const downloadPromise = page.waitForEvent("download");
   await selectMenuItem(page, { menu: "Editor menu", item: "Export Project" });
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.toymidi\.zip$/);
-  const archivePath = test.info().outputPath("recorder.toymidi.zip");
+  const archivePath = test.info().outputPath("project.toymidi.zip");
   await download.saveAs(archivePath);
 
   // Import from the project list, which opens a newly created local project.
   await page.goto("/");
   const importChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("import-recorder-project").click();
+  await page.getByTestId("import-project").click();
   await (await importChooserPromise).setFiles(archivePath);
 
   // Reopen the imported copy to verify its persisted content rather than only import state.
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+  await expect(page.getByTestId("project-name")).toHaveText(
     "Archived recording",
   );
   await page.reload();
 
   // Verify the imported project preserves its editable audio and comp state.
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+  await expect(page.getByTestId("project-name")).toHaveText(
     "Archived recording",
   );
   await expect(
-    rows.nth(1).getByTestId("recorder-clip-audio").locator("svg"),
+    rows.nth(1).getByTestId("clip-audio").locator("svg"),
   ).toBeVisible();
-  await expect(
-    rows.nth(0).getByTestId("recorder-clip-audio-source"),
-  ).toHaveCount(2);
-  await expect(rows.nth(0).getByTestId("recorder-clip-audio")).toHaveCount(2);
+  await expect(rows.nth(0).getByTestId("clip-audio-source")).toHaveCount(2);
+  await expect(rows.nth(0).getByTestId("clip-audio")).toHaveCount(2);
   await expect.poll(() => getClipGeometry(page)).toEqual(clipGeometry);
   await takesToggle.click();
   await expect
@@ -127,14 +123,14 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(
     page.getByRole("slider", { name: "Take 2 gain", exact: true }),
   ).toHaveAttribute("aria-valuenow", "0");
-  await page.getByTestId("recorder-mixer-button").click();
+  await page.getByTestId("mixer-button").click();
   await expect(
     page.getByRole("textbox", { name: "Master level in dB" }),
   ).toHaveValue("-6.0");
   await page.getByRole("button", { name: "Close Mixer" }).click();
 
   // Restore the MIDI note's assigned string, instrument, tuning, and locator beat.
-  const importedRow = page.getByTestId("recorder-midi-track-row");
+  const importedRow = page.getByTestId("midi-track-row");
   await expect(
     getMidiNote(importedRow, { beat: 1, pitch: "C4" }).getByTestId(
       "tab-annotation",
@@ -158,14 +154,12 @@ async function getClipGeometry(page: Page) {
   const geometry = await Promise.all(
     (["audio-source", "audio"] as const).map(async (variant) => ({
       variant,
-      clips: await page
-        .getByTestId(`recorder-clip-${variant}`)
-        .evaluateAll((elements) =>
-          elements.map((element) => ({
-            left: (element as HTMLElement).style.left,
-            width: (element as HTMLElement).style.width,
-          })),
-        ),
+      clips: await page.getByTestId(`clip-${variant}`).evaluateAll((elements) =>
+        elements.map((element) => ({
+          left: (element as HTMLElement).style.left,
+          width: (element as HTMLElement).style.width,
+        })),
+      ),
     })),
   );
   return geometry;
@@ -218,10 +212,10 @@ test("opens an imported archive saved with a single clip per audio track and a s
   };
   const archive = await exportProjectArchive(project);
 
-  // Import it from the project list and open the recorder.
+  // Import it from the project list and open the editor.
   await page.goto("/");
   const chooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("import-recorder-project").click();
+  await page.getByTestId("import-project").click();
   await (
     await chooserPromise
   ).setFiles({
@@ -229,22 +223,22 @@ test("opens an imported archive saved with a single clip per audio track and a s
     mimeType: "application/zip",
     buffer: Buffer.from(await archive.arrayBuffer()),
   });
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+  await expect(page.getByTestId("project-name")).toHaveText(
     "Single-clip archive",
   );
 
   // Show the retained take on the former Capture track below the backing
   // clip, both with decoded waveforms.
-  const rows = page.getByTestId("recorder-audio-track-row");
-  const audio = rows.nth(0).getByTestId("recorder-clip-audio");
-  const take = rows.nth(1).getByTestId("recorder-clip-audio");
+  const rows = page.getByTestId("audio-track-row");
+  const audio = rows.nth(0).getByTestId("clip-audio");
+  const take = rows.nth(1).getByTestId("clip-audio");
   await expect(audio).toContainText("stereo.wav");
   await expect(take).toContainText("Take 8");
   await expect(audio.locator("svg")).toBeVisible();
   await expect(take.locator("svg")).toBeVisible();
 
   // Keep Capture's clip section visible by default and ordinary tracks hidden.
-  const clipsToggle = page.getByTestId("recorder-clips-toggle");
+  const clipsToggle = page.getByTestId("clips-toggle");
   await expect(clipsToggle).toHaveCount(1);
   await expect(clipsToggle).toHaveAccessibleName("Clips 1");
 
@@ -252,12 +246,10 @@ test("opens an imported archive saved with a single clip per audio track and a s
 
   // Rename, save, and reopen the project with the same clip placement.
   page.once("dialog", (dialog) => dialog.accept("Resaved archive"));
-  await page.getByTestId("recorder-project-name").click();
+  await page.getByTestId("project-name").click();
   await saveProject(page);
   await page.reload();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Resaved archive",
-  );
+  await expect(page.getByTestId("project-name")).toHaveText("Resaved archive");
   await expect(audio).toContainText("stereo.wav");
   await expect(take).toContainText("Take 8");
   await expect.poll(() => getClipGeometry(page)).toEqual(clipGeometry);
@@ -265,13 +257,11 @@ test("opens an imported archive saved with a single clip per audio track and a s
   // Record another take into Capture, which continues the saved take numbering.
   await enableInput(page);
   await armTrack(page, { track: "Capture" });
-  const record = page.getByTestId("recorder-record-button");
+  const record = page.getByTestId("record-button");
   await record.click();
-  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await waitForRecordingSamples(page.getByTestId("clip-recording"));
   await record.click();
-  await expect(
-    rows.nth(1).getByTestId("recorder-clip-audio-source"),
-  ).toHaveCount(2);
+  await expect(rows.nth(1).getByTestId("clip-audio-source")).toHaveCount(2);
   await expect(take.filter({ hasText: "Take 9" })).toHaveCount(1);
 
   // Override the migrated Capture default and retain the choice after reload.

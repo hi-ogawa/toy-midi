@@ -26,7 +26,7 @@ export function ReferenceVideoPanel({
   onClose: () => void;
 }) {
   const { size, handleRef } = usePanelResize({
-    initialSize: projectUiStore.store.get().referenceVideoSize,
+    initialSize: projectUiStore.get().referenceVideoSize,
     minSize: { width: 360, height: 300 },
     onResizeEnd: (referenceVideoSize) =>
       projectUiStore.update({ referenceVideoSize }),
@@ -70,7 +70,7 @@ export function ReferenceVideoPanel({
       }
       closeLabel="Close Reference Video"
       onClose={onClose}
-      data-testid="recorder-youtube-reference"
+      data-testid="youtube-reference"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
@@ -78,7 +78,7 @@ export function ReferenceVideoPanel({
       <PanelResizeHandle
         handleRef={handleRef}
         label="Resize Reference Video"
-        data-testid="recorder-reference-video-resize-handle"
+        data-testid="reference-video-resize-handle"
       />
       <YouTubeReferencePanel
         referenceVideo={referenceVideo}
@@ -117,7 +117,7 @@ function YouTubeReferencePanel({
     <div className="flex h-full min-h-0 flex-col">
       <div
         ref={previewRef}
-        data-testid="recorder-reference-video-preview"
+        data-testid="reference-video-preview"
         className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-neutral-950 p-3"
       >
         <div className="shrink-0 overflow-hidden bg-black" style={previewSize}>
@@ -165,7 +165,7 @@ function YouTubeReferenceSetup({
       <label className="min-w-0 flex-1 text-[11px] font-medium text-neutral-400">
         YouTube URL or video ID
         <input
-          data-testid="recorder-youtube-input"
+          data-testid="youtube-input"
           value={input}
           onChange={(event) => {
             setInput(event.currentTarget.value);
@@ -225,7 +225,7 @@ function YouTubeReference({
       <div ref={mountPlayer} className="h-full w-full" />
       {!hasRenderedVideo && (
         <div
-          data-testid="recorder-reference-video-placeholder"
+          data-testid="reference-video-placeholder"
           className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
         >
           <img

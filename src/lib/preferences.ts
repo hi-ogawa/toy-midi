@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { LocalStorageStore } from "../utils/local-storage-store";
+import { withUseValue } from "../components/use-store-value";
+import { createLocalStorageStore } from "../utils/local-storage-store";
+import { createStore } from "../utils/store";
+import type { ProjectSource } from "./routes";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -22,20 +25,22 @@ const preferencesSchema = z.object({
 });
 type Preferences = z.infer<typeof preferencesSchema>;
 
-const DEFAULT_RECORDER_PREFERENCES: Preferences = {
+const DEFAULT_PREFERENCES: Preferences = {
   defaultMidiProgram: 0,
   takesNewestFirst: true,
 };
 
-export const preferences = new LocalStorageStore<Preferences>({
-  key: "toy-midi:recorder-preferences",
-  parse: (stored) =>
-    parseState({
-      schema: preferencesSchema,
-      defaults: DEFAULT_RECORDER_PREFERENCES,
-      stored,
-    }),
-});
+export const preferences = withUseValue(
+  createLocalStorageStore<Preferences>({
+    key: "toy-midi:recorder-preferences",
+    parse: (stored) =>
+      parseState({
+        schema: preferencesSchema,
+        defaults: DEFAULT_PREFERENCES,
+        stored,
+      }),
+  }),
+);
 
 // Per-project UI state, such as zoom and panel layout, which stays in this
 // browser outside the saved project, so changing it never marks the project
@@ -84,18 +89,24 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   openEffects: [],
 };
 
-export type ProjectUiStore = LocalStorageStore<ProjectUiState>;
+export type ProjectUiStore = ReturnType<typeof withUseValue<ProjectUiState>>;
 
-export function createProjectUiStore(projectId: string): ProjectUiStore {
-  return new LocalStorageStore<ProjectUiState>({
-    key: `toy-midi:recorder-project-ui:${projectId}`,
-    parse: (stored) =>
-      parseState({
-        schema: projectUiStateSchema,
-        defaults: DEFAULT_PROJECT_UI_STATE,
-        stored,
-      }),
-  });
+/** A draft's view state stays in memory, since it is never a stored project. */
+export function createProjectUiStore(source: ProjectSource): ProjectUiStore {
+  if (source.type === "draft") {
+    return withUseValue(createStore(() => DEFAULT_PROJECT_UI_STATE));
+  }
+  return withUseValue(
+    createLocalStorageStore<ProjectUiState>({
+      key: `toy-midi:recorder-project-ui:${source.projectId}`,
+      parse: (stored) =>
+        parseState({
+          schema: projectUiStateSchema,
+          defaults: DEFAULT_PROJECT_UI_STATE,
+          stored,
+        }),
+    }),
+  );
 }
 
 function parseState<State>({

@@ -9,10 +9,10 @@ test("retain input compensation without marking the project unsaved", async ({
 }) => {
   // Open input setup and require active input before accepting compensation.
   await createProject(page);
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   await expect(save).toHaveAttribute("data-status", "saved");
   await openInputSetup(page);
-  const setup = page.getByTestId("recorder-input-setup");
+  const setup = page.getByTestId("input-setup");
   const compensation = setup.getByRole("textbox");
   await expect(compensation).toBeDisabled();
 

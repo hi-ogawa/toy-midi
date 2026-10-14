@@ -22,6 +22,6 @@ test("requests browser storage protection from home", async ({ page }) => {
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect(
-    page.getByRole("button", { name: "New project", exact: true }),
+    page.getByRole("link", { name: "New project", exact: true }),
   ).toBeVisible();
 });

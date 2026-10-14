@@ -86,7 +86,7 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
       { project: LEGACY_PROJECT, audio, format },
     );
 
-    // Migrate the stored project from the project home into a new recorder copy.
+    // Migrate the stored project from the project home into a new copy.
     await page.goto("/");
     await page.getByRole("button", { name: "View legacy projects" }).click();
     const legacyProjects = page.getByRole("region", {
@@ -98,27 +98,21 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
       .click();
     await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
     const copyUrl = page.url();
-    await expect(page.getByTestId("recorder-project-name")).toHaveText(
-      "Legacy song",
-    );
-    const note = getMidiNote(page.getByTestId("recorder-midi-track-row"), {
+    await expect(page.getByTestId("project-name")).toHaveText("Legacy song");
+    const note = getMidiNote(page.getByTestId("midi-track-row"), {
       beat: 1,
       pitch: "C4",
     });
     await expect(note.getByTestId("tab-annotation")).toHaveText("G17");
-    await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
-    await expect(
-      page.getByTestId("recorder-clip-audio").locator("svg"),
-    ).toBeVisible();
+    await expect(page.getByTestId("tempo-input")).toHaveValue("98");
+    await expect(page.getByTestId("clip-audio").locator("svg")).toBeVisible();
 
     // Reload the copy and retain the migrated notes and decoded waveform.
     await page.reload();
     await expect(note.getByTestId("tab-annotation")).toHaveText("G17");
-    await expect(
-      page.getByTestId("recorder-clip-audio").locator("svg"),
-    ).toBeVisible();
+    await expect(page.getByTestId("clip-audio").locator("svg")).toBeVisible();
 
-    // Return home and find both the recorder copy and the original legacy project.
+    // Return home and find both the migrated copy and the original legacy project.
     await page.goto("/");
     await expect(
       page.getByRole("link", { name: "Legacy song" }),
@@ -133,7 +127,7 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
       .click();
     await expect(legacyProjects).toContainText("Legacy song");
 
-    // Delete the original explicitly and retain the recorder copy after reload.
+    // Delete the original explicitly and retain the migrated copy after reload.
     page.once("dialog", (dialog) => dialog.accept());
     await legacyProjects
       .getByRole("button", { name: "Delete legacy project" })
@@ -144,8 +138,6 @@ for (const format of ["v2", "v1", "layout-v1"] as const) {
     await page.getByRole("link", { name: "Legacy song" }).click();
     await expect(page).toHaveURL(copyUrl);
     await expect(note.getByTestId("tab-annotation")).toHaveText("G17");
-    await expect(
-      page.getByTestId("recorder-clip-audio").locator("svg"),
-    ).toBeVisible();
+    await expect(page.getByTestId("clip-audio").locator("svg")).toBeVisible();
   });
 }

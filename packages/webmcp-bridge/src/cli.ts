@@ -9,6 +9,7 @@ import {
 } from "./protocol.ts";
 import type { RpcCall, RpcResult } from "./rpc.ts";
 import { BridgeServer } from "./server.ts";
+import type { WebMcpToolResult } from "./webmcp.ts";
 
 const USAGE = `\
 usage: webmcp-bridge <command> [options]
@@ -19,8 +20,10 @@ commands:
                               ${getConfigPath()}
   get-tools                   describe the connected page's tools
   execute-tool <tool> [json]  execute a tool with the JSON input, default {}.
-                              A string value is printed as is, and anything
-                              else as JSON.
+                              A string result is printed as is, and anything
+                              else as JSON. A result of { isError, value } or
+                              { isError, error } prints the value, or fails
+                              with the error.
   pages                       list connected pages
 
 options:
@@ -33,6 +36,14 @@ options:
                       A value of - reads stdin, so code or long text needs no
                       JSON escaping.
   -h, --help          show this help
+
+Connecting a page takes both sides, in either order. Run \`webmcp-bridge
+serve\` in the background and keep it running. The user turns the
+webmcp-bridge extension on for the page's tab, or opens the page with
+\`?webmcp-bridge\` in its URL. A page that is turned on connects by itself
+once the bridge is up, so run \`webmcp-bridge pages\` until it lists the
+page. Meanwhile the bridge logs each page it accepts or refuses, with the
+\`allow\` command for a refused site.
 
 Before executing tools, read what the page exposes with
 \`webmcp-bridge get-tools\`.`;
@@ -144,12 +155,30 @@ async function runExecuteToolCommand({
   };
   const rpc = createPageRpcClient({ port, page });
   const result = await rpc.executeTool({ name }, input);
-  if (result.isError) {
+  if (!isWebMcpToolResult(result)) {
+    printToolValue(result);
+  } else if (result.isError) {
     throw new Error(result.error);
-  } else if (typeof result.value === "string") {
-    console.log(result.value);
-  } else if (result.value !== undefined) {
-    console.log(JSON.stringify(result.value, null, 2));
+  } else {
+    printToolValue(result.value);
+  }
+}
+
+// Only pages written for this package follow its result convention. Other
+// WebMCP pages return their result in any shape.
+function isWebMcpToolResult(result: unknown): result is WebMcpToolResult {
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    typeof (result as { isError?: unknown }).isError === "boolean"
+  );
+}
+
+function printToolValue(value: unknown) {
+  if (typeof value === "string") {
+    console.log(value);
+  } else if (value !== undefined) {
+    console.log(JSON.stringify(value, null, 2));
   }
 }
 

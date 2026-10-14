@@ -9,25 +9,17 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   await createProject(page);
   await addAudio(page, "e2e/fixtures/test-audio.wav");
   await addAudio(page, "e2e/fixtures/test-audio.wav");
-  const clips = page.getByTestId("recorder-clip-audio-source");
+  const clips = page.getByTestId("clip-audio-source");
   const first = clips.nth(0);
   const second = clips.nth(1);
   const originalBox = (await first.boundingBox())!;
   const trimPixels = DEFAULT_PIXELS_PER_BEAT;
-  await dragBy(page, first.getByTestId("recorder-clip-trim-start"), trimPixels);
-  await dragBy(page, first.getByTestId("recorder-clip-trim-end"), -trimPixels);
-  await dragBy(
-    page,
-    second.getByTestId("recorder-clip-trim-start"),
-    trimPixels * 2,
-  );
-  await dragBy(
-    page,
-    second.getByTestId("recorder-clip-trim-end"),
-    -trimPixels * 2,
-  );
+  await dragBy(page, first.getByTestId("clip-trim-start"), trimPixels);
+  await dragBy(page, first.getByTestId("clip-trim-end"), -trimPixels);
+  await dragBy(page, second.getByTestId("clip-trim-start"), trimPixels * 2);
+  await dragBy(page, second.getByTestId("clip-trim-end"), -trimPixels * 2);
   await saveProject(page);
-  const save = page.getByTestId("recorder-save-button");
+  const save = page.getByTestId("save-button");
   const firstBeforeBox = (await first.boundingBox())!;
   const secondBeforeBox = (await second.boundingBox())!;
 
@@ -36,12 +28,9 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   await first.click();
   await expect(second).not.toHaveAttribute("data-selected", "true");
   await page.keyboard.down("Control");
-  await dragBy(
-    page,
-    second.getByTestId("recorder-clip-trim-start"),
-    -trimPixels * 3,
-    { release: false },
-  );
+  await dragBy(page, second.getByTestId("clip-trim-start"), -trimPixels * 3, {
+    release: false,
+  });
   await page.keyboard.up("Control");
   await expect(first).toHaveAttribute("data-selected", "true");
   await expect(second).toHaveAttribute("data-selected", "true");
@@ -67,14 +56,9 @@ test("adds a clip while trimming and previews shared limits on both edges", asyn
   await saveProject(page);
 
   // Extend both end edges without a modifier and clamp at the first clip's source end.
-  await dragBy(
-    page,
-    second.getByTestId("recorder-clip-trim-end"),
-    trimPixels * 3,
-    {
-      release: false,
-    },
-  );
+  await dragBy(page, second.getByTestId("clip-trim-end"), trimPixels * 3, {
+    release: false,
+  });
   const firstEndTrimBox = (await first.boundingBox())!;
   const secondEndTrimBox = (await second.boundingBox())!;
   expect(firstEndTrimBox.x).toBeCloseTo(firstStartTrimBox.x, 0);

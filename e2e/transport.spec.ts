@@ -12,12 +12,10 @@ import { createCheckpoint, useFakeAudioInput } from "./helpers";
 
 useFakeAudioInput();
 
-test("snaps recorder timeline seeking to the selected grid", async ({
-  page,
-}) => {
+test("snaps timeline seeking to the selected grid", async ({ page }) => {
   await createProject(page);
 
-  const position = page.getByTestId("recorder-position");
+  const position = page.getByTestId("position");
 
   // The default 1/16 grid has four subdivisions per beat, so 0.9 beats snaps
   // to beat 1 rather than the adjacent 0.75-beat grid point.
@@ -28,17 +26,17 @@ test("snaps recorder timeline seeking to the selected grid", async ({
 
   // On the 1/4 grid, 0.4 beats rounds back to beat 0 rather than seeking to
   // the raw pointer position.
-  await page.getByTestId("recorder-grid-snap-select").click();
+  await page.getByTestId("grid-snap-select").click();
   await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
   await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.4);
   await expect.poll(() => getBeat(page)).toBe(0);
 });
 
-test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
+test("seeks the playhead by five seconds with arrow keys", async ({ page }) => {
   await createProject(page);
 
   // Plain arrows move in five-second steps and clamp at the timeline start.
-  await page.getByTestId("recorder-position").focus();
+  await page.getByTestId("position").focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => getPosition(page)).toBe(5);
 
@@ -48,14 +46,14 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await expect.poll(() => getPosition(page)).toBe(0);
 
   // Focused text controls retain their native arrow-key behavior.
-  const tempoInput = page.getByTestId("recorder-tempo-input");
+  const tempoInput = page.getByTestId("tempo-input");
   await tempoInput.focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => getPosition(page)).toBe(0);
 
   // Seeking during playback restarts participants and keeps the transport rolling.
   await tempoInput.blur();
-  const playButton = page.getByTestId("recorder-play-button");
+  const playButton = page.getByTestId("play-button");
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => getPosition(page)).toBeGreaterThan(0);
@@ -67,7 +65,7 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   // Recording owns transport timing, so arrows cannot seek an active capture.
   await enableInput(page);
   await armTrack(page, { track: "Audio 1" });
-  const recordButton = page.getByTestId("recorder-record-button");
+  const recordButton = page.getByTestId("record-button");
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   const positionBeforeSeek = await getPosition(page);
@@ -79,20 +77,20 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
 });
 
 for (const playbackRate of [0.5, 1.5]) {
-  test(`advances recorder position at ${playbackRate}x`, async ({ page }) => {
+  test(`advances the playhead at ${playbackRate}x`, async ({ page }) => {
     const checkpoint = createCheckpoint();
     await createProject(page);
 
-    await page.getByTestId("recorder-playback-rate").click();
+    await page.getByTestId("playback-rate").click();
     await page.getByRole("menuitemradio", { name: `${playbackRate}x` }).click();
-    const position = page.getByTestId("recorder-position");
+    const position = page.getByTestId("position");
     const sample = () =>
       position.evaluate((element) => ({
         wallTime: performance.now() / 1_000,
         position: Number(element.dataset.position),
       }));
 
-    await page.getByTestId("recorder-play-button").click();
+    await page.getByTestId("play-button").click();
     // Exclude the transport's scheduling lead from the playback-rate measurement.
     await expect.poll(() => getPosition(page)).toBeGreaterThan(0.1);
     checkpoint("playback advancing");
@@ -110,9 +108,9 @@ for (const playbackRate of [0.5, 1.5]) {
 }
 
 test("steps playback speed with angle brackets", async ({ page }) => {
-  // Open a recorder and step through the same rates as the dropdown, stopping at each end.
+  // Open a project and step through the same rates as the dropdown, stopping at each end.
   await createProject(page);
-  const rate = page.getByTestId("recorder-playback-rate");
+  const rate = page.getByTestId("playback-rate");
   for (const expected of [1.25, 1.5, 1.5]) {
     await page.keyboard.press("Shift+>");
     await expect(rate).toHaveText(`${expected}x`);
@@ -126,9 +124,9 @@ test("steps playback speed with angle brackets", async ({ page }) => {
 test("clamps tempo edits and sets tempo from evenly spaced taps", async ({
   page,
 }) => {
-  // Clamp committed tempo edits at the recorder's supported bounds.
+  // Clamp committed tempo edits at the editor's supported bounds.
   await createProject(page);
-  const tempo = page.getByTestId("recorder-tempo-input");
+  const tempo = page.getByTestId("tempo-input");
   await tempo.fill("10");
   await tempo.press("Enter");
   await expect(tempo).toHaveValue("30");
@@ -140,7 +138,7 @@ test("clamps tempo edits and sets tempo from evenly spaced taps", async ({
   // Advance a controlled browser clock between taps to produce exactly 100 BPM.
   await page.clock.install();
   await page.clock.pauseAt(new Date());
-  const tap = page.getByTestId("recorder-tap-tempo-button");
+  const tap = page.getByTestId("tap-tempo-button");
   await tap.click();
   await page.clock.runFor(600);
   await tap.click();
@@ -163,7 +161,7 @@ test("toggles the metronome by button and shortcut without intercepting text inp
   await expect(metronome).toHaveAttribute("aria-pressed", "false");
 
   // Ignore the metronome shortcut while a text input is focused.
-  const tempo = page.getByTestId("recorder-tempo-input");
+  const tempo = page.getByTestId("tempo-input");
   await tempo.focus();
   await page.keyboard.press("m");
   await expect(metronome).toHaveAttribute("aria-pressed", "false");
@@ -176,16 +174,16 @@ test("auto-scroll follows playback only while enabled", async ({ page }) => {
   const autoScroll = page.getByRole("button", {
     name: "Toggle auto-scroll (F)",
   });
-  const playhead = page.getByTestId("recorder-playhead");
+  const playhead = page.getByTestId("playhead");
   await expect.poll(() => getBeat(page)).toBe(0);
   await expect(playhead).toBeInViewport();
 
   // Disable following and seek beyond the initial viewport while playback runs.
   await page.keyboard.press("f");
   await expect(autoScroll).toHaveAttribute("aria-pressed", "false");
-  const ruler = page.getByTestId("recorder-timeline-ruler");
+  const ruler = page.getByTestId("timeline-ruler");
   await expect(ruler).toHaveAttribute("data-viewport-start-beat", "0");
-  await page.getByTestId("recorder-play-button").click();
+  await page.getByTestId("play-button").click();
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
   await expect(playhead).not.toBeInViewport();
@@ -200,5 +198,5 @@ test("auto-scroll follows playback only while enabled", async ({ page }) => {
     )
     .toBeGreaterThan(0);
   await expect(playhead).toBeInViewport();
-  await page.getByTestId("recorder-play-button").click();
+  await page.getByTestId("play-button").click();
 });

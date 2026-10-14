@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { selectMenuItem } from "./helpers";
 
-test("home creates and reopens recorder projects without project-type tabs", async ({
+test("home creates and reopens projects without project-type tabs", async ({
   page,
 }) => {
-  // Open the recorder list directly, even when an old MIDI-tab preference exists.
+  // Open the project list directly, even when an old MIDI-tab preference exists.
   await page.goto("/__e2e__/");
   await page.evaluate(() =>
     localStorage.setItem(
@@ -22,19 +22,27 @@ test("home creates and reopens recorder projects without project-type tabs", asy
   await expect(
     page.getByRole("tab", { name: "Projects", exact: true }),
   ).toHaveCount(0);
-  await expect(page.getByTestId("new-project-button")).toHaveCount(0);
   await expect(page.getByText("No projects yet")).toBeVisible();
 
-  // Create a recorder project and return home to its saved entry.
-  await page.getByTestId("new-recorder-project-button").click();
+  // Start a new project, and see it open as a draft that home does not list.
+  await page.getByTestId("new-project-button").click();
+  await expect(page.getByTestId("draft-badge")).toBeVisible();
+  await expect(page.getByTestId("project-name")).toHaveText("Untitled");
+  await selectMenuItem(page, { menu: "Editor menu", item: "Home" });
+  await expect(page.getByText("No projects yet")).toBeVisible();
+
+  // Start another, save it, and return home to its saved entry.
+  await page.getByTestId("new-project-button").click();
+  await page.getByTestId("save-draft-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+  await expect(page.getByTestId("draft-badge")).toHaveCount(0);
   const projectUrl = page.url();
   await selectMenuItem(page, { menu: "Editor menu", item: "Home" });
   await expect(page).toHaveURL("/");
   const project = page.locator(`a[href="${new URL(projectUrl).pathname}"]`);
   await expect(project).toBeVisible();
 
-  // Reload home and reopen the same recorder project.
+  // Reload home and reopen the same project.
   await page.reload();
   await expect(project).toBeVisible();
   await project.click();
@@ -53,17 +61,12 @@ test("Projects search follows the temporary legacy filter", async ({
     }
   });
   await page.goto("/");
-  await page.getByTestId("new-recorder-project-button").click();
+  await page.getByTestId("new-project-button").click();
   page.once("dialog", (dialog) => dialog.accept("Blue session"));
-  await page.getByTestId("recorder-project-name").click();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Blue session",
-  );
-  await page.getByTestId("recorder-save-button").click();
-  await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
-    "data-status",
-    "saved",
-  );
+  await page.getByTestId("project-name").click();
+  await expect(page.getByTestId("project-name")).toHaveText("Blue session");
+  await page.getByTestId("save-draft-button").click();
+  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   await selectMenuItem(page, { menu: "Editor menu", item: "Home" });
   const search = page.getByRole("textbox", { name: "Search projects" });
   const status = page.getByRole("status");
@@ -128,4 +131,37 @@ test("Projects search follows the temporary legacy filter", async ({
   await expect(
     page.getByText("No projects yet", { exact: true }),
   ).toBeVisible();
+});
+
+test("opens an example project as a draft", async ({ page }) => {
+  // Serve the example's project file in place of the catalog gist.
+  await page.route(
+    "https://gist.githubusercontent.com/**/slow-tide.json",
+    (route) =>
+      route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: {
+          title: "Slow Tide",
+          tempo: 66,
+          timeSignature: { numerator: 3, denominator: 4 },
+          midiTracks: [
+            { name: "Pad", program: 89, notes: [] },
+            { name: "Bells", program: 14, notes: [] },
+          ],
+        },
+      }),
+  );
+
+  // Choose an example from the Examples menu on home.
+  await page.goto("/");
+  await selectMenuItem(page, { menu: "Examples", item: /Slow Tide/ });
+
+  // See it open as an unsaved draft with its tracks.
+  await expect(page.getByTestId("draft-badge")).toBeVisible();
+  await expect(page.getByTestId("project-name")).toHaveText("Slow Tide");
+  await expect(page.getByTestId("midi-track-row")).toHaveCount(2);
+
+  // Go home, and see that opening the example stored nothing.
+  await page.goto("/");
+  await expect(page.getByText("No projects yet")).toBeVisible();
 });

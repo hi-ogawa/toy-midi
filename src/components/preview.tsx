@@ -10,15 +10,15 @@ const PREVIEWS = [
     component: BrowserStoragePreview,
   },
   {
-    label: "Recorder effects",
+    label: "Effects",
     component: EffectsPreview,
   },
   {
-    label: "Recorder help dialog",
+    label: "Help dialog",
     component: HelpPreview,
   },
   {
-    label: "Recorder tuner",
+    label: "Tuner",
     component: TunerPreview,
   },
 ].map((entry) => ({

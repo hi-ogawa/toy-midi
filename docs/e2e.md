@@ -17,7 +17,7 @@ To trace existing specs that the PR does not change, or test a branch manually:
 
 ```sh
 gh workflow run e2e-trace.yml --ref main \
-  -f ref=recorder-midi-e2e \
+  -f ref=midi-e2e \
   -f tests='e2e/midi.spec.ts e2e/mix.spec.ts'
 ```
 

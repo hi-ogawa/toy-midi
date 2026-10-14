@@ -1,6 +1,13 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { SearchIcon, Trash2Icon, XIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  LibraryIcon,
+  SearchIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 import { useRef, useState } from "react";
+import { EXAMPLE_PROJECTS } from "../lib/example-projects";
 import { convertLegacyProject } from "../lib/legacy-project";
 import {
   type LegacyProjectMetadata,
@@ -14,6 +21,12 @@ import { toResult } from "../utils/result";
 import { BrowserStorageDialog } from "./browser-storage-dialog";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export function ProjectList() {
   const [showLegacy, setShowLegacy] = useState(false);
@@ -22,14 +35,8 @@ export function ProjectList() {
     legacyProjectStorage.listMetadata(),
   );
   const projectsQuery = useSuspenseQuery({
-    queryKey: ["recorder-projects"],
+    queryKey: ["projects"],
     queryFn: () => toResult(projectStorage.list()),
-  });
-  const createProjectMutation = useMutation({
-    mutationFn: () => projectStorage.create(),
-    onSuccess: (projectId) => {
-      window.location.href = routes.project.href({ projectId });
-    },
   });
   const deleteProjectMutation = useMutation({
     mutationFn: (projectId: string) => projectStorage.delete(projectId),
@@ -47,7 +54,7 @@ export function ProjectList() {
 
   const migrateMutation = useMutation({
     mutationFn: async (project: LegacyProjectMetadata) => {
-      // Convert stored data and audio before saving a separate recorder copy.
+      // Convert stored data and audio before saving a separate copy.
       const content = await convertLegacyProject({
         name: project.name,
         project: legacyProjectStorage.load(project.id),
@@ -79,26 +86,20 @@ export function ProjectList() {
             <h2 className="font-semibold">Projects</h2>
             <div className="flex gap-2">
               <BrowserStorageDialog />
-              <Button
-                data-testid="new-recorder-project-button"
-                onClick={() => createProjectMutation.mutate()}
-                disabled={
-                  createProjectMutation.isPending ||
-                  importProjectMutation.isPending
-                }
-                className="bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+              <ExamplesMenu />
+              <a
+                data-testid="new-project-button"
+                href={routes.draft.href()}
+                className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 New project
-              </Button>
+              </a>
               <FileDropInput
                 accept=".toymidi.zip,.toymidi"
                 title="Import a project archive"
                 onFile={(file) => importProjectMutation.mutate(file)}
-                data-testid="import-recorder-project"
-                disabled={
-                  createProjectMutation.isPending ||
-                  importProjectMutation.isPending
-                }
+                data-testid="import-project"
+                disabled={importProjectMutation.isPending}
                 className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
               >
                 <span className="grid">
@@ -212,6 +213,34 @@ export function ProjectList() {
         )}
       </section>
     </div>
+  );
+}
+
+function ExamplesMenu() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button className="gap-1.5 bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600">
+          <LibraryIcon className="size-4" />
+          Examples
+          <ChevronDownIcon className="size-3.5 opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-96">
+        {EXAMPLE_PROJECTS.map((example) => (
+          <DropdownMenuItem key={example.file} asChild>
+            <a href={example.href}>
+              <div>
+                <div>{example.title}</div>
+                <div className="text-xs text-muted-foreground">
+                  {example.description}
+                </div>
+              </div>
+            </a>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

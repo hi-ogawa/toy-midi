@@ -6,6 +6,7 @@ import {
 import { insertAtIndices } from "../utils/array.ts";
 import { createNumberedName } from "../utils/name.ts";
 import { createStore, shallowEqual } from "../utils/store.ts";
+import { StereoAnalyser } from "./audio-analyser.ts";
 import {
   createAudioClip,
   WAVEFORM_POINTS_PER_SECOND,
@@ -24,6 +25,7 @@ import {
 } from "./dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-node.ts";
 import { History } from "./history.ts";
+import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -52,7 +54,7 @@ const MAX_RECORDING_SECONDS = 5 * 60;
 export const MIN_CLIP_DURATION = 0.01;
 const DEFAULT_TRACK_HEIGHT = 72;
 // Fits the compact track header, which is a single title row.
-const MIN_TRACK_HEIGHT = 44;
+export const MIN_TRACK_HEIGHT = 44;
 const MAX_TRACK_HEIGHT = 300;
 // Tall enough for several octaves of piano roll.
 const MAX_MIDI_TRACK_HEIGHT = 800;
@@ -63,7 +65,9 @@ export interface AudioTrackState {
   id: string;
   name: string;
   eq: MultibandEqParameters;
+  /** Row height in pixels, from 72 to 300 */
   height: number;
+  /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
@@ -91,8 +95,11 @@ export interface MidiTrackState {
    */
   bank?: number;
   eq: MultibandEqParameters;
+  /** Row height in pixels, from 72 to 300 */
   height: number;
+  /** Whether the row shows the note editor or a compact note overview */
   viewMode: "editor" | "overview";
+  /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
@@ -107,7 +114,9 @@ export interface MidiTrackState {
 export type MidiPreset = Pick<MidiTrackState, "bank" | "program">;
 
 export interface LoopRange {
+  /** In beats from the start of the project */
   startBeat: number;
+  /** In beats, where playback jumps back to `startBeat` */
   endBeat: number;
 }
 
@@ -117,7 +126,9 @@ export interface LoopState {
 }
 
 export interface PunchRange {
+  /** In beats from the start of the project */
   startBeat: number;
+  /** In beats from the start of the project */
   endBeat: number;
 }
 
@@ -149,6 +160,7 @@ export interface ReferenceVideoState {
 
 export interface Locator {
   id: string;
+  /** In beats from the start of the project */
   beat: number;
   label: string;
 }
@@ -173,7 +185,9 @@ export interface EditorRuntimeState {
   loop: LoopState;
   punch: PunchState;
   referenceVideo?: ReferenceVideoState;
+  /** Linear gain, 1 being unity */
   masterGain: number;
+  /** Linear gain, 1 being unity */
   metronomeGain: number;
   audioTracks: AudioTrackState[];
   midiTracks: MidiTrackState[];
@@ -271,7 +285,7 @@ export function createDefaultEditorRuntimeState(): EditorRuntimeState {
 }
 
 /**
- * The open recorder project: its state, audio graph, and playback.
+ * The open project: its state, audio graph, and playback.
  *
  * Read state with `store.get()`, and change it only through the methods,
  * because they also update playback, the metronome, and undo history.
@@ -289,6 +303,10 @@ export class EditorRuntime {
   readonly context = new AudioContext();
   readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
+  private masterAnalyser?: StereoAnalyser;
+  readonly levelMeters = new LevelMeters({
+    getAnalyser: (target) => this.getMeterAnalyser(target),
+  });
   /** @internal */
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
@@ -314,7 +332,6 @@ export class EditorRuntime {
       selector: (state) => state.isPlaying,
       listener: () =>
         this.store.update({ isPlaying: this.transport.store.get().isPlaying }),
-      equals: Object.is,
     });
   }
 
@@ -775,6 +792,20 @@ export class EditorRuntime {
     return audioTracks[index]!;
   }
 
+  private getMeterAnalyser(target: MeterTarget): StereoAnalyser | undefined {
+    if (target.kind === "master") {
+      if (!this.masterAnalyser) {
+        this.masterAnalyser = new StereoAnalyser(this.context);
+        this.masterOutput.connect(this.masterAnalyser.input);
+      }
+      return this.masterAnalyser;
+    }
+    const playback =
+      this.trackPlaybacks.get(target.id) ??
+      this.midiTrackPlaybacks.get(target.id);
+    return playback?.channel.getAnalyser();
+  }
+
   private getTrackPlayback(id: string): AudioTrackPlayback {
     let playback = this.trackPlaybacks.get(id);
     if (!playback) {
@@ -857,13 +888,13 @@ export class EditorRuntime {
     }
     this.getTrackPlayback(trackId).setPlaybackGain(0);
     // Trim samples captured during playback lead time.
+    const playbackRun = this.transport.playbackRun!;
     const playbackStartFrame =
-      this.transport.playbackAnchor!.contextTime * context.sampleRate;
+      playbackRun.firstPass.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
     const timelineOffset =
-      this.transport.getPlaybackPositionByContextTime(
-        startFrame / context.sampleRate,
-      ) - this.store.get().latencyCompensation;
+      playbackRun.getPositionAt(startFrame / context.sampleRate) -
+      this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
     const state = this.store.get();
     const track = findAudioTrackById(state.audioTracks, trackId);
@@ -1474,7 +1505,7 @@ export function deriveClipEditState(
       return referenceVideo;
     }
     if (!referenceVideo) {
-      throw new Error("Recorder clip state is missing.");
+      throw new Error("Clip state is missing.");
     }
     return { ...referenceVideo, timelineStart: move.timelineOffset };
   }
@@ -1604,7 +1635,7 @@ function createAudioTrackState({ name }: { name: string }): AudioTrackState {
   };
 }
 
-function createMidiTrackState({
+export function createMidiTrackState({
   name,
   preset,
 }: {

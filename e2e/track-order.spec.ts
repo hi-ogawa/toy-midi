@@ -26,13 +26,13 @@ test("reorders tracks from their row menus", async ({ page }) => {
   await expectTrackRows(page, ["Audio 1", "Audio 2", "MIDI 1"]);
 
   // Open the Mixer and verify its channels follow the track order.
-  await page.getByTestId("recorder-mixer-button").click();
+  await page.getByTestId("mixer-button").click();
   await expectMixerChannels(page, [
-    "Master",
     "Audio 1",
     "Audio 2",
     "MIDI 1",
     "Metronome",
+    "Master",
   ]);
 
   // Save and reload to restore the order.
@@ -55,7 +55,7 @@ async function expectTrackRows(page: Page, labels: string[]): Promise<void> {
     `Expect track rows: ${labels.join(", ")}`,
     async () => {
       const menus = page
-        .getByTestId("recorder-track-scroll")
+        .getByTestId("track-scroll")
         .getByRole("button", { name: / actions$/ });
       await expect
         .poll(() => getAriaLabels(menus))
@@ -72,9 +72,7 @@ async function expectMixerChannels(
   await test.step(
     `Expect mixer channels: ${labels.join(", ")}`,
     async () => {
-      const channels = page
-        .getByTestId("recorder-mixer-panel")
-        .getByRole("group");
+      const channels = page.getByTestId("mixer-panel").getByRole("group");
       await expect.poll(() => getAriaLabels(channels)).toEqual(labels);
     },
     { box: true },

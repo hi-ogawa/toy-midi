@@ -11,7 +11,8 @@ import { snapToGrid } from "../lib/music";
 import { getNextPlaybackRate } from "../lib/playback-rate";
 import { createProjectUiStore, preferences } from "../lib/preferences";
 import { exportProjectArchive } from "../lib/project-archive";
-import { getScoreHref, routes } from "../lib/routes";
+import { createShareLink } from "../lib/project-share";
+import { getScoreHref, type ProjectSource, routes } from "../lib/routes";
 import { EditorRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
 import { beatsToSeconds, secondsToBeats } from "../lib/timeline";
 import { resolveTrackOrder } from "../lib/track-order";
@@ -53,10 +54,10 @@ import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
 import { useWindowEvent } from "./use-window-event";
 
-export function Editor({ projectId }: { projectId: string }) {
+export function Editor({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
   useWebMcpBridge(runtime);
-  const [projectUiStore] = useState(() => createProjectUiStore(projectId));
+  const [projectUiStore] = useState(() => createProjectUiStore(source));
   const [defaultMidiProgram, setDefaultMidiProgram] =
     preferences.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
@@ -94,7 +95,7 @@ export function Editor({ projectId }: { projectId: string }) {
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
-  const project = useProject({ projectId, runtime, projectUiStore });
+  const project = useProject({ source, runtime, projectUiStore });
   const flags = deriveEditorFlags({ state, project });
   const interaction = useInteraction({
     runtime,
@@ -149,6 +150,16 @@ export function Editor({ projectId }: { projectId: string }) {
           extension: ".toymidi.zip",
         }),
       );
+    },
+  });
+  const shareLinkMutation = useMutation({
+    mutationFn: async () => {
+      await navigator.clipboard.writeText(
+        await createShareLink(runtime.serializeProject()),
+      );
+    },
+    onSuccess: () => {
+      toast.success("Share link copied");
     },
   });
 
@@ -300,6 +311,7 @@ export function Editor({ projectId }: { projectId: string }) {
     >
       <Header
         title={project.ready ? state.title : undefined}
+        draft={project.draft}
         saveStatus={project.saveStatus}
         referenceVideoOpen={isReferenceVideoOpen}
         isPlaying={state.isPlaying}
@@ -336,6 +348,7 @@ export function Editor({ projectId }: { projectId: string }) {
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
         onExportAudio={() => setIsAudioExportOpen(true)}
+        onShareLink={() => shareLinkMutation.mutate()}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
@@ -358,7 +371,7 @@ export function Editor({ projectId }: { projectId: string }) {
           }
         />
         <section
-          data-testid="recorder-track-scroll"
+          data-testid="track-scroll"
           className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
         >
           <div
@@ -448,7 +461,7 @@ export function Editor({ projectId }: { projectId: string }) {
                   return (
                     <Fragment key={track.id}>
                       <TrackRow
-                        data-testid="recorder-audio-track-row"
+                        data-testid="audio-track-row"
                         title={track.name}
                         height={track.height}
                         gain={track.gain}
@@ -652,7 +665,7 @@ export function Editor({ projectId }: { projectId: string }) {
           isOpen={isInputSetupOpen}
           onClose={() => setIsInputSetupOpen(false)}
           title="Audio Input Setup"
-          data-testid="recorder-input-setup"
+          data-testid="input-setup"
         >
           <InputSetup
             runtime={runtime}
@@ -716,11 +729,12 @@ export function Editor({ projectId }: { projectId: string }) {
                 track={track}
                 onClose={() => scoreUi.close(track.id)}
                 scoreViewerHref={
+                  source.type === "stored" &&
                   project.ready &&
                   project.saveStatus === "saved" &&
                   !flags.isRecording
                     ? getScoreHref({
-                        projectId,
+                        projectId: source.projectId,
                         trackId: track.id,
                       })
                     : undefined
@@ -777,8 +791,8 @@ export function Editor({ projectId }: { projectId: string }) {
             closeLabel="Close Mixer"
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
-            data-testid="recorder-mixer-panel"
-            className="pointer-events-auto min-w-80 flex-1"
+            data-testid="mixer-panel"
+            className="pointer-events-auto flex-1"
           >
             <Mixer
               runtime={runtime}
@@ -821,13 +835,13 @@ function EditorInitError({ error }: { error: Error }) {
     <div
       role="alertdialog"
       aria-modal="true"
-      aria-labelledby="recorder-init-error-title"
+      aria-labelledby="init-error-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4 text-neutral-100"
     >
       <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-neutral-700 bg-neutral-800 p-6 text-center shadow-2xl">
         <Mic2Icon className="size-6 text-emerald-400" />
         <div className="flex flex-col gap-1">
-          <h1 id="recorder-init-error-title" className="text-lg font-medium">
+          <h1 id="init-error-title" className="text-lg font-medium">
             Could not open this project
           </h1>
           <p className="text-sm text-neutral-400">{error.message}</p>

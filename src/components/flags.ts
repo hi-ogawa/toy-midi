@@ -19,6 +19,12 @@ export function deriveEditorFlags({
   const { captureStatus, armedTrackId } = state;
   const isRecording =
     captureStatus === "recording" || captureStatus === "processing";
+  const canSave =
+    project.ready &&
+    !project.saving &&
+    !isRecording &&
+    // A draft saves as a new copy, so it saves even without edits.
+    (project.dirty || project.draft);
   return {
     isRecording,
     transportDisabled: !project.ready,
@@ -29,7 +35,6 @@ export function deriveEditorFlags({
         : captureStatus === "disabled"
           ? "input"
           : undefined,
-    saveDisabled:
-      !project.ready || !project.dirty || project.saving || isRecording,
+    saveDisabled: !canSave,
   };
 }

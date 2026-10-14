@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { createProject, dragBy, getBeat, seekByPixels } from "./editor-helpers";
 
-test("edits, seeks, and selects recorder locators", async ({ page }) => {
+test("edits, seeks, and selects locators", async ({ page }) => {
   await createProject(page);
   const add = page.getByRole("button", { name: "Add locator at playhead" });
   const first = page.getByRole("button", { name: "Section 1", exact: true });
@@ -45,7 +45,7 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
 
   // Empty locator space deselects without seeking.
   await verse.click();
-  const lane = page.getByTestId("recorder-locator-lane");
+  const lane = page.getByTestId("locator-lane");
   const laneBox = await lane.boundingBox();
   expect(laneBox).not.toBeNull();
   await lane.click({
@@ -68,15 +68,15 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await expect.poll(() => getBeat(page)).toBe(2.5);
 
   // Locator beats remain stable when tempo changes.
-  await page.getByTestId("recorder-tempo-input").fill("90");
-  await page.getByTestId("recorder-tempo-input").press("Enter");
+  await page.getByTestId("tempo-input").fill("90");
+  await page.getByTestId("tempo-input").press("Enter");
   await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await expect.poll(() => getBeat(page)).toBe(4);
   await verse.click();
   await expect.poll(() => getBeat(page)).toBe(2.5);
 });
 
-test("persists recorder locator edits and deletion", async ({ page }) => {
+test("persists locator edits and deletion", async ({ page }) => {
   await createProject(page);
   const first = page.getByRole("button", { name: "Section 1", exact: true });
   const firstRenamed = page.getByRole("button", {
@@ -85,8 +85,8 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   });
   const renameFirst = page.getByRole("button", { name: "Rename Section 1" });
   const second = page.getByRole("button", { name: "Section 2", exact: true });
-  const lane = page.getByTestId("recorder-locator-lane");
-  const saveButton = page.getByTestId("recorder-save-button");
+  const lane = page.getByTestId("locator-lane");
+  const saveButton = page.getByTestId("save-button");
 
   // Create locators at beats 2.5 and 5.
   await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2.5);
@@ -132,5 +132,5 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await page.reload();
   await expect(firstRenamed).toHaveCount(0);
   await expect(second).toBeVisible();
-  await expect(lane.getByTestId("recorder-locator")).toHaveCount(1);
+  await expect(lane.getByTestId("locator")).toHaveCount(1);
 });

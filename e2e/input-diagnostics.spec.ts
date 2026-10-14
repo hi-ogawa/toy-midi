@@ -8,7 +8,7 @@ test("inspect live editor input diagnostics", async ({ page }) => {
   // Open diagnostic readings without activating capture or assuming missing latency is zero.
   await createProject(page);
   await openInputSetup(page);
-  const setup = page.getByTestId("recorder-input-setup");
+  const setup = page.getByTestId("input-setup");
   const readings = setup.getByRole("region", {
     name: "Audio diagnostic readings",
   });

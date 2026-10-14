@@ -22,8 +22,8 @@ export default defineConfig({
   },
   pack: [
     {
-      entry: { "webmcp-tools-doc": "src/lib/webmcp-tools-doc.ts" },
-      outDir: ".tmp/webmcp-tools-doc",
+      entry: { "toy-midi": "src/lib/api-types.ts" },
+      outDir: "public/llms",
       platform: "browser",
       dts: { emitDtsOnly: true, compilerOptions: { stripInternal: true } },
       report: false,

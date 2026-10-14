@@ -9,7 +9,12 @@ export const MAX_EQ_BANDS = 8;
 export type MultibandEqBand = EqParameters & { id: string };
 
 export interface MultibandEqParameters {
+  /** Bypasses every band */
   bypass: boolean;
+  /**
+   * Up to `MAX_EQ_BANDS` (8) filters applied in order, so none leaves the
+   * sound flat
+   */
   bands: MultibandEqBand[];
 }
 

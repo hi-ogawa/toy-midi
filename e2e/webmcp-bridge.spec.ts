@@ -42,8 +42,8 @@ extensionTest(
     `,
     );
     expect(edit).toEqual({ code: 0, stdout: "", stderr: "" });
-    await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("98");
-    await expect(page.getByTestId("recorder-midi-track-row")).toHaveCount(1);
+    await expect(page.getByTestId("tempo-input")).toHaveValue("98");
+    await expect(page.getByTestId("midi-track-row")).toHaveCount(1);
 
     // Throw from the agent's code, and get the error back with a failing exit code.
     const failure = await bridge.run([
@@ -82,7 +82,7 @@ test("connects the open project to the bridge from the URL parameter", async ({
   // so the page connects by itself.
   await createProject(page);
   await page.goto(`${page.url()}?webmcp-bridge=${bridge.port}`);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+  await expect(page.getByTestId("project-name")).toBeVisible();
   await expect
     .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
     .toHaveLength(1);
@@ -95,6 +95,19 @@ test("connects the open project to the bridge from the URL parameter", async ({
     "code=return runtime.store.get().tempo",
   ]);
   expect(tempo).toEqual({ code: 0, stdout: "120\n", stderr: "" });
+
+  // Register a tool that returns a plain string, as a WebMCP page not written
+  // for the bridge does, and see the string printed as is.
+  await page.evaluate(() =>
+    document.modelContext!.registerTool({
+      name: "plain_tool",
+      description: "Return a plain string.",
+      inputSchema: { type: "object", properties: {} },
+      execute: () => "plain result" as any,
+    }),
+  );
+  const plain = await bridge.run(["execute-tool", "plain_tool"]);
+  expect(plain).toEqual({ code: 0, stdout: "plain result\n", stderr: "" });
 });
 
 test.describe(() => {
@@ -108,7 +121,7 @@ test.describe(() => {
     // Open a project with the bridge enabled, and see the bridge refuse it.
     await createProject(page);
     await page.goto(`${page.url()}?webmcp-bridge=${bridge.port}`);
-    await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+    await expect(page.getByTestId("project-name")).toBeVisible();
     expect(JSON.parse((await bridge.run(["pages"])).stdout)).toEqual([]);
 
     // Allow the site while the bridge runs, reload, and see the page connect.

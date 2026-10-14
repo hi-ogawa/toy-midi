@@ -5,7 +5,7 @@ import {
   type PageRpc,
 } from "./protocol.ts";
 import type { RpcResponse } from "./rpc.ts";
-import type { ModelContext, WebMcpToolResult } from "./webmcp.ts";
+import type { ModelContext } from "./webmcp.ts";
 
 export { DEFAULT_BRIDGE_PORT } from "./protocol.ts";
 
@@ -93,7 +93,7 @@ function createPageRpc(modelContext: ModelContext): PageRpc {
         throw new Error(`unknown tool: ${name}`);
       }
       const result = await modelContext.executeTool(tool, input as object);
-      return JSON.parse(result) as WebMcpToolResult;
+      return JSON.parse(result) as unknown;
     },
   };
 }

@@ -1,18 +1,14 @@
 import type { TimeSignature } from "../types.ts";
-import { startInterval } from "../utils/timing.ts";
 import { midiToHz, parseMidiPitch } from "./music.ts";
 import type {
   AudioContextTransport,
+  ScheduledRange,
   TransportParticipant,
 } from "./transport.ts";
-
-const SCHEDULE_AHEAD_SECONDS = 0.1;
-const SCHEDULER_INTERVAL_SECONDS = 0.025;
 
 export class Metronome implements TransportParticipant {
   private readonly output: GainNode;
   private disposeScheduling?: () => void;
-  private nextClickIndex = 0;
   private tempo = 60;
   private timeSignature: TimeSignature = { numerator: 4, denominator: 4 };
   private secondsPerClick = 1;
@@ -51,14 +47,8 @@ export class Metronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    const anchor = this.transport.playbackAnchor!;
-    this.nextClickIndex = Math.ceil(
-      anchor.position / this.secondsPerClick - 1e-9,
-    );
-    this.schedule();
-    this.disposeScheduling = startInterval(
-      () => this.schedule(),
-      SCHEDULER_INTERVAL_SECONDS * 1000,
+    this.disposeScheduling = this.transport.startScheduleLoop((range) =>
+      this.schedule(range),
     );
   }
 
@@ -67,29 +57,14 @@ export class Metronome implements TransportParticipant {
     this.disposeScheduling = undefined;
   }
 
-  private schedule(): void {
-    while (true) {
-      // Convert this click's timeline position through the transport playback
-      // anchor: contextTime = anchor context + click position - anchor position.
-      const anchor = this.transport.playbackAnchor!;
-      const nextClickPosition = this.nextClickIndex * this.secondsPerClick;
-      const nextClickTime =
-        anchor.contextTime +
-        (nextClickPosition - anchor.position) / this.transport.playbackRate;
-      const currentTime = this.transport.context.currentTime;
-      // Schedule only the near future, then let the interval extend the window.
-      if (nextClickTime <= currentTime + SCHEDULE_AHEAD_SECONDS) {
-        // Tempo changes restart from the anchor, so skip clicks already elapsed.
-        if (currentTime <= nextClickTime) {
-          this.scheduleClick({
-            accent: this.nextClickIndex % this.timeSignature.numerator === 0,
-            contextTime: nextClickTime,
-          });
-        }
-        this.nextClickIndex += 1;
-      } else {
-        break;
-      }
+  private schedule(range: ScheduledRange): void {
+    const firstIndex = Math.ceil(range.start / this.secondsPerClick);
+    const endIndex = Math.ceil(range.end / this.secondsPerClick);
+    for (let index = firstIndex; index < endIndex; index++) {
+      this.scheduleClick({
+        accent: index % this.timeSignature.numerator === 0,
+        contextTime: range.pass.getContextTimeAt(index * this.secondsPerClick),
+      });
     }
   }
 

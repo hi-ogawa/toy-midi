@@ -20,7 +20,7 @@
 //   (samplesPerPoint * alignmentStep) / sampleRate seconds
 //
 // In practice, samplesPerPoint is the mostly fixed base resolution of an
-// AudioView. The recorder targets 800 base points per second, so 44.1 kHz audio
+// AudioView. The editor targets 800 base points per second, so 44.1 kHz audio
 // uses floor(44100 / 800) = 55 samples per point, or about 1.25 ms. This target
 // is chosen to cover the finest useful timeline scale based on viewport width,
 // maximum zoom, tempo, and the visible bar range.

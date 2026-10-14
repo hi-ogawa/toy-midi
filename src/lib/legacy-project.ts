@@ -22,7 +22,7 @@ export async function convertLegacyProject({
     throw new Error("Unsupported legacy project version");
   }
 
-  // Apply legacy defaults and copy project settings onto a fresh recorder project.
+  // Apply legacy defaults and copy project settings onto a fresh project.
   const legacy = normalizeLegacySavedProject(project);
   const content = serializeEditorRuntimeState(
     createDefaultEditorRuntimeState(),
@@ -56,7 +56,7 @@ export async function convertLegacyProject({
     },
   ];
 
-  // Decode encoded audio into the PCM clips used by recorder tracks.
+  // Decode encoded audio into the PCM clips used by audio tracks.
   const context = legacy.audioTracks.length
     ? new OfflineAudioContext(1, 1, 48000)
     : undefined;
