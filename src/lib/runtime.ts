@@ -619,10 +619,6 @@ export class EditorRuntime {
     }
   }
 
-  /**
-   * Set a track's row height in px, clamped to 44-800 for MIDI tracks and
-   * 44-300 for audio tracks. Below 72 the track header hides its gain slider.
-   */
   setTrackHeight(id: string, height: number): void {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
