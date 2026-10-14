@@ -96,7 +96,11 @@ const PEAK_FALL_DB_PER_SECOND = 30;
 const HOLD_SECONDS = 1.5;
 const HOLD_FALL_DB_PER_SECOND = 60;
 
-/** Displayed state of one meter channel, in dB on the fader scale. */
+/**
+ * Displayed state of one meter channel, in dB on the fader scale. The
+ * ballistics are worked through with figures in
+ * https://gist.github.com/hi-ogawa/704bb5fbd6def43d9e7280b949682c49
+ */
 export class MeterChannel {
   rms = MIN_DB;
   peak = MIN_DB;
