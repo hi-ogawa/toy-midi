@@ -4,6 +4,7 @@ import type {
   CaptureWorkletNotification,
 } from "./capture-worklet.ts";
 import captureWorkletUrl from "./capture-worklet.ts?worker&url";
+import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 
 const PROCESSOR_NAME = "recorder-capture";
 const registrations = new WeakMap<AudioContext, Promise<void>>();
@@ -68,8 +69,7 @@ export class CaptureWorkletClient {
       pending.reject(error);
     }
     this.pendingActiveChanges.clear();
-    this.node.port.close();
-    this.node.disconnect();
+    disposeWorklet(this.node);
   }
 
   private setActive(value: boolean) {

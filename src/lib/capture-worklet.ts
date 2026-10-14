@@ -1,3 +1,5 @@
+import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
+
 const PROCESSOR_NAME = "recorder-capture";
 
 export type CaptureClientMessage =
@@ -35,6 +37,7 @@ declare function registerProcessor(
 ): void;
 
 class CaptureProcessor extends AudioWorkletProcessor {
+  private readonly isDisposed = watchWorkletDisposal(this.port);
   private recording = false;
   private selectedChannel = 0;
   private observedChannelCount = -1;
@@ -76,6 +79,9 @@ class CaptureProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    if (this.isDisposed()) {
+      return false;
+    }
     for (const action of this.pendingRenderActions) {
       action();
     }
