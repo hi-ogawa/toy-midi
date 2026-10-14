@@ -1,5 +1,5 @@
 import { AudioAnalyser } from "./audio-analyser.ts";
-import { CaptureWorkletClient, ensureCaptureWorklet } from "./capture-node.ts";
+import { CaptureNode, ensureCaptureWorklet } from "./capture-node.ts";
 import type {
   CaptureChunk,
   CaptureWorkletNotification,
@@ -21,7 +21,7 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 export class CaptureInput {
   readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
-  private readonly worklet: CaptureWorkletClient;
+  private readonly captureNode: CaptureNode;
   readonly analyser: AudioAnalyser;
   readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;
@@ -86,7 +86,7 @@ export class CaptureInput {
   }) {
     this.stream = stream;
     this.source = context.createMediaStreamSource(stream);
-    this.worklet = new CaptureWorkletClient({
+    this.captureNode = new CaptureNode({
       context,
       onNotification: (message) => {
         if (message.type === "samples") {
@@ -102,7 +102,7 @@ export class CaptureInput {
     // Keep the worklet connected so browsers continue rendering it. Zero gain
     // prevents input monitoring and feedback until it is explicitly enabled.
     this.source
-      .connect(this.worklet.node)
+      .connect(this.captureNode.node)
       .connect(this.tunerAnalyser.node)
       .connect(this.analyser.node)
       .connect(this.monitorGain)
@@ -110,7 +110,7 @@ export class CaptureInput {
   }
 
   setChannel(channel: number): void {
-    this.worklet.setChannel(channel);
+    this.captureNode.setChannel(channel);
   }
 
   /** Re-points monitoring at another channel without reopening the device. */
@@ -134,7 +134,7 @@ export class CaptureInput {
     this.capture = { chunks: [], startFrame: 0 };
     const capture = this.capture;
     try {
-      capture.startFrame = await this.worklet.start();
+      capture.startFrame = await this.captureNode.start();
       return capture.startFrame;
     } catch (error) {
       this.capture = undefined;
@@ -149,7 +149,7 @@ export class CaptureInput {
     }
     try {
       // The acknowledgement follows the final partial sample batch.
-      const stopFrame = await this.worklet.stop();
+      const stopFrame = await this.captureNode.stop();
       return new CapturedAudio({ ...capture, stopFrame });
     } finally {
       this.capture = undefined;
@@ -159,7 +159,7 @@ export class CaptureInput {
   dispose(): void {
     this.capture = undefined;
     this.source.disconnect();
-    this.worklet.dispose();
+    this.captureNode.dispose();
     this.analyser.dispose();
     this.tunerAnalyser.dispose();
     this.monitorGain.disconnect();

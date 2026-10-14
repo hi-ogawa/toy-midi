@@ -9,7 +9,7 @@ import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 const PROCESSOR_NAME = "recorder-capture";
 const registrations = new WeakMap<AudioContext, Promise<void>>();
 
-export class CaptureWorkletClient {
+export class CaptureNode {
   readonly node: AudioWorkletNode;
   private nextRequestId = 0;
   private pendingActiveChanges = new Map<
