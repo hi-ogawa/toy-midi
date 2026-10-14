@@ -6,7 +6,6 @@ import type {
 } from "../lib/level-meters";
 import { MAX_DB, MIN_DB, clamp } from "../lib/music";
 
-const HEIGHT = 192;
 const BAR_WIDTH = 3;
 const WIDTH = BAR_WIDTH * 2 + 1;
 const SCALE_TICKS = [6, 0, -6, -12, -18, -24, -36, -48, -60];
@@ -36,24 +35,43 @@ export function LevelMeter({
     const canvas = canvasRef.current!;
     const meter = meterRef.current!;
     const dots = [...clipRef.current!.children] as HTMLElement[];
-    const pixelRatio = window.devicePixelRatio;
-    canvas.width = WIDTH * pixelRatio;
-    canvas.height = HEIGHT * pixelRatio;
     const context = canvas.getContext("2d")!;
-    context.scale(pixelRatio, pixelRatio);
+    const pixelRatio = window.devicePixelRatio;
+    let height = 0;
+    // Resizing the canvas clears it and resets its transform, and the next
+    // frame redraws at the new height.
+    const resize = () => {
+      height = canvas.clientHeight;
+      canvas.width = WIDTH * pixelRatio;
+      canvas.height = height * pixelRatio;
+      context.scale(pixelRatio, pixelRatio);
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
     let valueNow: number | undefined;
-    return meters.subscribe(getMeterTarget(trackId), (channels) => {
-      drawMeter(context, channels);
-      channels.forEach((channel, index) => {
-        dots[index]!.dataset.clipped = String(channel.clipped);
-      });
-      // Rounded so the attribute changes only when the reading does.
-      const rms = Math.round(Math.max(...channels.map((c) => c.rms)));
-      if (rms !== valueNow) {
-        valueNow = rms;
-        meter.setAttribute("aria-valuenow", String(clamp(rms, MIN_DB, MAX_DB)));
-      }
-    });
+    const unsubscribe = meters.subscribe(
+      getMeterTarget(trackId),
+      (channels) => {
+        drawMeter(context, channels, height);
+        channels.forEach((channel, index) => {
+          dots[index]!.dataset.clipped = String(channel.clipped);
+        });
+        // Rounded so the attribute changes only when the reading does.
+        const rms = Math.round(Math.max(...channels.map((c) => c.rms)));
+        if (rms !== valueNow) {
+          valueNow = rms;
+          meter.setAttribute(
+            "aria-valuenow",
+            String(clamp(rms, MIN_DB, MAX_DB)),
+          );
+        }
+      },
+    );
+    return () => {
+      observer.disconnect();
+      unsubscribe();
+    };
   }, [meters, trackId]);
 
   return (
@@ -64,7 +82,7 @@ export function LevelMeter({
       aria-valuemin={MIN_DB}
       aria-valuemax={MAX_DB}
       aria-valuenow={MIN_DB}
-      className="relative h-48 shrink-0"
+      className="relative shrink-0"
       style={{ width: WIDTH }}
     >
       <button
@@ -92,12 +110,12 @@ export function LevelMeter({
 /** dB labels on the meter's scale. */
 export function MeterScale() {
   return (
-    <div aria-hidden="true" className="relative h-48 w-4 shrink-0">
+    <div aria-hidden="true" className="relative w-4 shrink-0">
       {SCALE_TICKS.map((db) => (
         <div
           key={db}
           className="absolute inset-x-0 -translate-y-1/2 text-center font-mono text-[9px] leading-none text-neutral-500"
-          style={{ top: getMeterY(db) }}
+          style={{ top: `${getMeterPosition(db) * 100}%` }}
         >
           {/* Labels drop the minus sign to save width, so every label except 6 and 0 is negative. */}
           {Math.abs(db)}
@@ -113,22 +131,23 @@ function getMeterTarget(trackId: string | undefined): MeterTarget {
     : { kind: "track", id: trackId };
 }
 
-function getMeterY(db: number): number {
-  return (
-    (1 - (clamp(db, MIN_DB, MAX_DB) - MIN_DB) / (MAX_DB - MIN_DB)) * HEIGHT
-  );
+/** Position from the top of the scale, from 0 at MAX_DB to 1 at MIN_DB. */
+function getMeterPosition(db: number): number {
+  return 1 - (clamp(db, MIN_DB, MAX_DB) - MIN_DB) / (MAX_DB - MIN_DB);
 }
 
 function drawMeter(
   context: CanvasRenderingContext2D,
   channels: readonly [MeterChannel, MeterChannel],
+  height: number,
 ) {
-  context.clearRect(0, 0, WIDTH, HEIGHT);
+  const getMeterY = (db: number) => getMeterPosition(db) * height;
+  context.clearRect(0, 0, WIDTH, height);
   channels.forEach((channel, index) => {
     const x = index * (BAR_WIDTH + 1);
     // A dark well, so a silent meter still stands out from the strip background.
     context.fillStyle = "#0a0a0a"; // neutral-950
-    context.fillRect(x, 0, BAR_WIDTH, HEIGHT);
+    context.fillRect(x, 0, BAR_WIDTH, height);
 
     // A faint fill between the RMS body and the peak shows the crest factor.
     if (channel.peak > channel.rms && channel.peak > MIN_DB) {
@@ -139,7 +158,7 @@ function drawMeter(
       context.globalAlpha = 1;
     }
 
-    let zoneBottom = HEIGHT;
+    let zoneBottom = height;
     for (const zone of ZONES) {
       const top = getMeterY(Math.min(channel.rms, zone.below));
       if (top < zoneBottom) {
@@ -156,7 +175,7 @@ function drawMeter(
       context.fillStyle = getZone(channel.peak).line;
       context.fillRect(
         x,
-        Math.min(HEIGHT - 1, Math.round(getMeterY(channel.peak))),
+        Math.min(height - 1, Math.round(getMeterY(channel.peak))),
         BAR_WIDTH,
         1,
       );
@@ -166,7 +185,7 @@ function drawMeter(
       context.fillStyle = "#e5e5e5"; // neutral-200
       context.fillRect(
         x,
-        clamp(Math.round(getMeterY(channel.hold)) - 1, 0, HEIGHT - 2),
+        clamp(Math.round(getMeterY(channel.hold)) - 1, 0, height - 2),
         BAR_WIDTH,
         2,
       );

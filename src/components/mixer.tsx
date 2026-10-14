@@ -202,13 +202,12 @@ function MixerChannel({
       </span>
       {/* Every channel reserves the pan row so faders stay aligned. */}
       <div className="flex h-6 w-full items-center">{pan}</div>
-      <div className="flex gap-[3px]">
+      <div className="flex h-48 gap-[3px]">
         <GainSlider
           label={`${name} gain`}
           gain={gain}
           onGainChange={onGainChange}
           orientation="vertical"
-          className="h-48"
         />
         {meter && (
           <>
