@@ -31,7 +31,7 @@ export class LevelMeters {
       channels: [MeterChannel, MeterChannel];
       listeners: Set<MeterListener>;
     }
-  >(getMeterKey);
+  >((target) => (target.kind === "master" ? "master" : `track:${target.id}`));
   private stopLoop?: () => void;
   private lastTime?: number;
   private readonly getAnalyser: AnalyserLookup;
@@ -96,10 +96,6 @@ export class LevelMeters {
       }
     }
   }
-}
-
-function getMeterKey(target: MeterTarget): string {
-  return target.kind === "master" ? "master" : `track:${target.id}`;
 }
 
 /** Displayed state of one meter channel, in dB on the fader scale. */
