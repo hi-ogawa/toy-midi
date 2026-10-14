@@ -52,9 +52,15 @@ import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 export const MIN_CLIP_DURATION = 0.01;
-const DEFAULT_TRACK_HEIGHT = 72;
-export const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
+// Fits the track header with its gain slider row below the title row.
+export const MIN_GAIN_SLIDER_HEIGHT = 72;
+// New tracks open with the gain slider showing.
+const DEFAULT_TRACK_HEIGHT = MIN_GAIN_SLIDER_HEIGHT;
+// Fits the compact track header, which is a single title row.
+export const MIN_TRACK_HEIGHT = 44;
 const MAX_TRACK_HEIGHT = 300;
+// Tall enough for several octaves of piano roll.
+const MAX_MIDI_TRACK_HEIGHT = 800;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
@@ -62,7 +68,7 @@ export interface AudioTrackState {
   id: string;
   name: string;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 72 to 300 */
+  /** Row height in pixels, from 44 to 300 */
   height: number;
   /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
@@ -92,7 +98,7 @@ export interface MidiTrackState {
    */
   bank?: number;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 72 to 300 */
+  /** Row height in pixels, from 44 to 800 */
   height: number;
   /** Whether the row shows the note editor or a compact note overview */
   viewMode: "editor" | "overview";
@@ -617,7 +623,7 @@ export class EditorRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
-        height: clamp(height, 68, 800),
+        height: clamp(height, MIN_TRACK_HEIGHT, MAX_MIDI_TRACK_HEIGHT),
       }));
       return;
     }
