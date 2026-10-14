@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="300" viewBox="0 0 720 300" font-family="sans-serif" font-size="13">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <text x="20" y="24" font-weight="bold" font-size="14">Track, channel, and program are three different things</text>
+  <text x="40" y="52" fill="#666">Track: file organization</text>
+  <text x="290" y="52" fill="#666">Channel: address on the wire</text>
+  <text x="530" y="52" fill="#666">Sound (from General MIDI)</text>
+
+  <g fill="#f2fbef" stroke="#4f9a3c">
+    <rect x="30" y="66" width="170" height="36" rx="4"/>
+    <rect x="30" y="122" width="170" height="36" rx="4"/>
+    <rect x="30" y="178" width="170" height="36" rx="4"/>
+    <rect x="30" y="234" width="170" height="36" rx="4"/>
+  </g>
+  <text x="42" y="89">track "keys"</text>
+  <text x="42" y="145">track "bass"</text>
+  <text x="42" y="201">track "kick"</text>
+  <text x="42" y="257">track "snare"</text>
+
+  <g fill="#fff6e8" stroke="#c4882c">
+    <rect x="280" y="66" width="170" height="36" rx="4"/>
+    <rect x="280" y="122" width="170" height="36" rx="4"/>
+    <rect x="280" y="206" width="170" height="36" rx="4"/>
+  </g>
+  <text x="292" y="89">channel 1</text>
+  <text x="292" y="145">channel 2</text>
+  <text x="292" y="229">channel 10 (drums)</text>
+
+  <g fill="#eef4ff" stroke="#4a6fb5">
+    <rect x="520" y="66" width="180" height="36" rx="4"/>
+    <rect x="520" y="122" width="180" height="36" rx="4"/>
+    <rect x="520" y="206" width="180" height="36" rx="4"/>
+  </g>
+  <text x="530" y="83">program 0</text><text x="530" y="97" font-size="11" fill="#555">Acoustic Grand Piano</text>
+  <text x="530" y="139">program 32</text><text x="530" y="153" font-size="11" fill="#555">Acoustic Bass</text>
+  <text x="530" y="223">drum kit</text><text x="530" y="237" font-size="11" fill="#555">key 36 = kick, key 38 = snare</text>
+
+  <g stroke="#888" fill="none" stroke-width="1.5">
+    <line x1="200" y1="84" x2="280" y2="84"/>
+    <line x1="200" y1="140" x2="280" y2="140"/>
+    <line x1="200" y1="196" x2="280" y2="220"/>
+    <line x1="200" y1="252" x2="280" y2="228"/>
+    <line x1="450" y1="84" x2="520" y2="84"/>
+    <line x1="450" y1="140" x2="520" y2="140"/>
+    <line x1="450" y1="224" x2="520" y2="224"/>
+  </g>
+  <text x="20" y="292" font-size="12" fill="#a33">Two tracks share channel 10, so they share its volume and pan: they cannot be mixed separately.</text>
+</svg>
+
