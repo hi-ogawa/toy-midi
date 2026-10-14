@@ -41,12 +41,17 @@ export class LevelMeters {
   >();
   private stopLoop?: () => void;
   private lastTime?: number;
+  private readonly getAnalyser: (
+    target: MeterTarget,
+  ) => StereoAnalyser | undefined;
 
-  constructor(
-    private readonly getAnalyser: (
-      target: MeterTarget,
-    ) => StereoAnalyser | undefined,
-  ) {}
+  constructor({
+    getAnalyser,
+  }: {
+    getAnalyser: (target: MeterTarget) => StereoAnalyser | undefined;
+  }) {
+    this.getAnalyser = getAnalyser;
+  }
 
   subscribe(target: MeterTarget, listener: MeterListener): () => void {
     const key = getMeterKey(target);

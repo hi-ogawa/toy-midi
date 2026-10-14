@@ -301,9 +301,9 @@ export class EditorRuntime {
   readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
   private masterAnalyser?: StereoAnalyser;
-  readonly levelMeters = new LevelMeters((target) =>
-    this.getMeterAnalyser(target),
-  );
+  readonly levelMeters = new LevelMeters({
+    getAnalyser: (target) => this.getMeterAnalyser(target),
+  });
   /** @internal */
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
