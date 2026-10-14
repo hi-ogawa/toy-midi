@@ -164,8 +164,8 @@ export function RenameTrackMenuItem({
   );
 }
 
-/** Header height that fits the gain slider below the title row. */
-const FULL_HEADER_HEIGHT = 72;
+/** Height below which the header drops its gain slider row. */
+const MIN_GAIN_SLIDER_HEIGHT = 72;
 
 export function TrackRow({
   title,
@@ -207,7 +207,7 @@ export function TrackRow({
       onHeightChange(startHeight + deltaY);
     },
   });
-  const showGain = height >= FULL_HEADER_HEIGHT;
+  const showGain = height >= MIN_GAIN_SLIDER_HEIGHT;
   return (
     <div
       data-testid={testId}
