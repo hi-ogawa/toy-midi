@@ -68,7 +68,7 @@ export interface AudioTrackState {
   id: string;
   name: string;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 72 to 300 */
+  /** Row height in pixels, from 44 to 300 */
   height: number;
   /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
@@ -98,7 +98,7 @@ export interface MidiTrackState {
    */
   bank?: number;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 72 to 300 */
+  /** Row height in pixels, from 44 to 800 */
   height: number;
   /** Whether the row shows the note editor or a compact note overview */
   viewMode: "editor" | "overview";
