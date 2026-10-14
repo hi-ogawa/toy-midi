@@ -1,13 +1,10 @@
 import { AudioAnalyser } from "./audio-analyser.ts";
-import {
-  type CaptureChunk,
-  CaptureWorkletClient,
-  type CaptureWorkletNotification,
-  createCaptureWorkletSource,
+import { CaptureWorkletClient, ensureCaptureWorklet } from "./capture-node.ts";
+import type {
+  CaptureChunk,
+  CaptureWorkletNotification,
 } from "./capture-worklet.ts";
 import { TunerAnalyser } from "./tuner-analyser.ts";
-
-const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
 
 export async function requestCaptureAccess(): Promise<void> {
   const stream =
@@ -169,34 +166,6 @@ export class CaptureInput {
     for (const track of this.stream.getTracks()) {
       track.stop();
     }
-  }
-}
-
-async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
-  // Worklet registration belongs to an AudioContext. Share concurrent attempts,
-  // but discard failures so a later input-open attempt can retry.
-  let registration = workletRegistrations.get(context);
-  if (!registration) {
-    registration = registerCaptureWorklet(context);
-    workletRegistrations.set(context, registration);
-  }
-  try {
-    await registration;
-  } catch (error) {
-    workletRegistrations.delete(context);
-    throw error;
-  }
-}
-
-async function registerCaptureWorklet(context: AudioContext): Promise<void> {
-  const blob = new Blob([createCaptureWorkletSource()], {
-    type: "text/javascript",
-  });
-  const url = URL.createObjectURL(blob);
-  try {
-    await context.audioWorklet.addModule(url);
-  } finally {
-    URL.revokeObjectURL(url);
   }
 }
 
