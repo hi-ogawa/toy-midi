@@ -9,11 +9,6 @@ type MeterListener = (channels: readonly [MeterChannel, MeterChannel]) => void;
 
 type AnalyserLookup = (target: MeterTarget) => StereoAnalyser | undefined;
 
-const RMS_ATTACK_SECONDS = 0.05;
-const RMS_RELEASE_SECONDS = 0.3;
-const PEAK_FALL_DB_PER_SECOND = 30;
-const HOLD_SECONDS = 1.5;
-const HOLD_FALL_DB_PER_SECOND = 60;
 // Long frames, such as a background tab resuming, settle in one step instead
 // of animating a stale fall.
 const MAX_ELAPSED_SECONDS = 0.1;
@@ -94,6 +89,12 @@ export class LevelMeters {
     }
   }
 }
+
+const RMS_ATTACK_SECONDS = 0.05;
+const RMS_RELEASE_SECONDS = 0.3;
+const PEAK_FALL_DB_PER_SECOND = 30;
+const HOLD_SECONDS = 1.5;
+const HOLD_FALL_DB_PER_SECOND = 60;
 
 /** Displayed state of one meter channel, in dB on the fader scale. */
 export class MeterChannel {
