@@ -13,6 +13,7 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { formatGainDb } from "../lib/music";
+import { MIN_GAIN_SLIDER_HEIGHT } from "../lib/runtime";
 import { openFilePicker } from "./file-drop-input";
 import { MixToggle } from "./mix-toggle";
 import { GainSlider } from "./mixer";
@@ -163,9 +164,6 @@ export function RenameTrackMenuItem({
     </DropdownMenuItem>
   );
 }
-
-/** Height below which the header drops its gain slider row. */
-const MIN_GAIN_SLIDER_HEIGHT = 72;
 
 export function TrackRow({
   title,

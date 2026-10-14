@@ -52,7 +52,10 @@ import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 export const MIN_CLIP_DURATION = 0.01;
-const DEFAULT_TRACK_HEIGHT = 72;
+// Fits the track header with its gain slider row below the title row.
+export const MIN_GAIN_SLIDER_HEIGHT = 72;
+// New tracks open with the gain slider showing.
+const DEFAULT_TRACK_HEIGHT = MIN_GAIN_SLIDER_HEIGHT;
 // Fits the compact track header, which is a single title row.
 export const MIN_TRACK_HEIGHT = 44;
 const MAX_TRACK_HEIGHT = 300;
