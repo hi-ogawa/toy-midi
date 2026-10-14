@@ -70,6 +70,9 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
           synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, message.bank);
         }
         synth.programChange(CHANNEL, message.program);
+        // SF3 samples decode on first use, which would underrun the render
+        // quantum of the first note that needs them, so decode them up front.
+        synth.midiChannels[CHANNEL].preset?.preload(0, 127);
         break;
       }
       case "noteOn": {
