@@ -107,8 +107,8 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     try {
       const synth = new SpessaSynthProcessor(sampleRate, {
         eventsEnabled: false,
-        // Presets send to SpessaSynth's built-in reverb and chorus, which
-        // would otherwise run in every track's synth. Keep the output dry.
+        // Soundfont presets send to SpessaSynth's built-in reverb and chorus
+        // on their own, so MIDI tracks are only dry with effects disabled.
         effectsEnabled: false,
       });
       // SF3 samples need the Vorbis decoder, which loads asynchronously.
