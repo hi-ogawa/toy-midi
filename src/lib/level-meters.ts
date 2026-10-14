@@ -3,16 +3,6 @@ import { startAnimationFrameLoop } from "../utils/timing.ts";
 import type { AudioLevels, StereoAnalyser } from "./audio-analyser.ts";
 import { MIN_DB, gainToDb } from "./music.ts";
 
-/** Displayed state of one meter channel, in dB on the fader scale. */
-export type MeterChannel = {
-  rms: number;
-  peak: number;
-  hold: number;
-  /** Seconds on the animation clock when the hold tick starts falling */
-  holdUntil: number;
-  clipped: boolean;
-};
-
 export type MeterTarget = { kind: "master" } | { kind: "track"; id: string };
 
 type MeterListener = (channels: readonly [MeterChannel, MeterChannel]) => void;
@@ -55,7 +45,7 @@ export class LevelMeters {
     if (!meter) {
       meter = {
         target,
-        channels: [createMeterChannel(), createMeterChannel()],
+        channels: [new MeterChannel(), new MeterChannel()],
         listeners: new Set(),
       };
       this.meters.set(target, meter);
@@ -96,7 +86,7 @@ export class LevelMeters {
         SILENCE,
       ];
       meter.channels.forEach((channel, index) =>
-        updateMeterChannel(channel, levels[index], {
+        channel.update(levels[index], {
           time: timeMs / 1000,
           elapsed,
         }),
@@ -112,44 +102,40 @@ function getMeterKey(target: MeterTarget): string {
   return target.kind === "master" ? "master" : `track:${target.id}`;
 }
 
-export function createMeterChannel(): MeterChannel {
-  return {
-    rms: MIN_DB,
-    peak: MIN_DB,
-    hold: MIN_DB,
-    holdUntil: 0,
-    clipped: false,
-  };
-}
+/** Displayed state of one meter channel, in dB on the fader scale. */
+export class MeterChannel {
+  rms = MIN_DB;
+  peak = MIN_DB;
+  hold = MIN_DB;
+  clipped = false;
+  /** Seconds on the animation clock when the hold tick starts falling */
+  private holdUntil = 0;
 
-/** Applies one measurement with meter ballistics. Times are in seconds. */
-export function updateMeterChannel(
-  channel: MeterChannel,
-  levels: AudioLevels,
-  { time, elapsed }: { time: number; elapsed: number },
-): void {
-  const rms = gainToDb(levels.rms);
-  const peak = gainToDb(levels.peak);
+  /** Applies one measurement with meter ballistics. Times are in seconds. */
+  update(
+    levels: AudioLevels,
+    { time, elapsed }: { time: number; elapsed: number },
+  ): void {
+    const rms = gainToDb(levels.rms);
+    const peak = gainToDb(levels.peak);
 
-  const tau = rms > channel.rms ? RMS_ATTACK_SECONDS : RMS_RELEASE_SECONDS;
-  channel.rms += (rms - channel.rms) * (1 - Math.exp(-elapsed / tau));
+    const tau = rms > this.rms ? RMS_ATTACK_SECONDS : RMS_RELEASE_SECONDS;
+    this.rms += (rms - this.rms) * (1 - Math.exp(-elapsed / tau));
 
-  channel.peak = Math.max(
-    peak,
-    channel.peak - PEAK_FALL_DB_PER_SECOND * elapsed,
-  );
+    this.peak = Math.max(peak, this.peak - PEAK_FALL_DB_PER_SECOND * elapsed);
 
-  if (peak >= channel.hold) {
-    channel.hold = peak;
-    channel.holdUntil = time + HOLD_SECONDS;
-  } else if (time > channel.holdUntil) {
-    channel.hold = Math.max(
-      channel.peak,
-      channel.hold - HOLD_FALL_DB_PER_SECOND * elapsed,
-    );
-  }
+    if (peak >= this.hold) {
+      this.hold = peak;
+      this.holdUntil = time + HOLD_SECONDS;
+    } else if (time > this.holdUntil) {
+      this.hold = Math.max(
+        this.peak,
+        this.hold - HOLD_FALL_DB_PER_SECOND * elapsed,
+      );
+    }
 
-  if (levels.peak > 1) {
-    channel.clipped = true;
+    if (levels.peak > 1) {
+      this.clipped = true;
+    }
   }
 }
