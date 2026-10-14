@@ -1,3 +1,4 @@
+import { KeyedMap } from "../utils/keyed-map.ts";
 import { startAnimationFrameLoop } from "../utils/timing.ts";
 import type { AudioLevels, StereoAnalyser } from "./audio-analyser.ts";
 import { MIN_DB, gainToDb } from "./music.ts";
@@ -33,14 +34,14 @@ const SILENCE: AudioLevels = { peak: 0, rms: 0 };
  * runtime state, so meters redraw without rerendering the editor.
  */
 export class LevelMeters {
-  private readonly meters = new Map<
-    string,
+  private readonly meters = new KeyedMap<
+    MeterTarget,
     {
       target: MeterTarget;
       channels: MeterChannel[];
       listeners: Set<MeterListener>;
     }
-  >();
+  >(getMeterKey);
   private stopLoop?: () => void;
   private lastTime?: number;
   private readonly getAnalyser: AnalyserLookup;
@@ -50,22 +51,21 @@ export class LevelMeters {
   }
 
   subscribe(target: MeterTarget, listener: MeterListener): () => void {
-    const key = getMeterKey(target);
-    let meter = this.meters.get(key);
+    let meter = this.meters.get(target);
     if (!meter) {
       meter = {
         target,
         channels: [createMeterChannel(), createMeterChannel()],
         listeners: new Set(),
       };
-      this.meters.set(key, meter);
+      this.meters.set(target, meter);
     }
     meter.listeners.add(listener);
     this.stopLoop ??= startAnimationFrameLoop((time) => this.update(time));
     return () => {
       meter.listeners.delete(listener);
       if (meter.listeners.size === 0) {
-        this.meters.delete(key);
+        this.meters.delete(target);
       }
       if (this.meters.size === 0) {
         this.stopLoop?.();
@@ -76,7 +76,7 @@ export class LevelMeters {
   }
 
   clearClip(target: MeterTarget): void {
-    const meter = this.meters.get(getMeterKey(target));
+    const meter = this.meters.get(target);
     for (const channel of meter?.channels ?? []) {
       channel.clipped = false;
     }
