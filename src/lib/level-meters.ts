@@ -85,9 +85,9 @@ export class LevelMeters {
         SILENCE,
         SILENCE,
       ];
-      meter.channels.forEach((channel, index) =>
-        channel.update({ levels: levels[index], time: timeMs / 1000, elapsed }),
-      );
+      for (const [index, channel] of meter.channels.entries()) {
+        channel.update({ levels: levels[index], time: timeMs / 1000, elapsed });
+      }
       for (const listener of meter.listeners) {
         listener(meter.channels);
       }
