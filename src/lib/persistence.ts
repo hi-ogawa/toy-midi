@@ -3,7 +3,7 @@ import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
-} from "./dsp/biquad-eq-node.ts";
+} from "./dsp/biquad-eq-worklet-node.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {

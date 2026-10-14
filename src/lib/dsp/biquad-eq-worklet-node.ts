@@ -20,7 +20,7 @@ export function createDefaultMultibandEq(): MultibandEqParameters {
   return { bypass: false, bands: [createDefaultEqBand()] };
 }
 
-export class BiquadEqNode extends AudioWorkletNode {
+export class BiquadEqWorkletNode extends AudioWorkletNode {
   constructor({
     context,
     channelCount,
