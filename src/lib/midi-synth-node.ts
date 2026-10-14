@@ -98,13 +98,18 @@ export class MidiSynth {
   }
 }
 
-const workletPromises = new WeakMap<AudioContext, Promise<void>>();
+const registrations = new WeakMap<AudioContext, Promise<void>>();
 
-function ensureMidiWorklet(context: AudioContext): Promise<void> {
-  let promise = workletPromises.get(context);
-  if (!promise) {
-    promise = context.audioWorklet.addModule(midiAssetUrls.workletUrl);
-    workletPromises.set(context, promise);
+async function ensureMidiWorklet(context: AudioContext): Promise<void> {
+  let registration = registrations.get(context);
+  if (!registration) {
+    registration = context.audioWorklet.addModule(midiAssetUrls.workletUrl);
+    registrations.set(context, registration);
   }
-  return promise;
+  try {
+    await registration;
+  } catch (error) {
+    registrations.delete(context);
+    throw error;
+  }
 }
