@@ -8,7 +8,7 @@ import type { MidiPreset } from "./runtime.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
-export class MidiSynthNode {
+export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
 

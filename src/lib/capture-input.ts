@@ -1,5 +1,8 @@
 import { AudioAnalyser } from "./audio-analyser.ts";
-import { CaptureNode, ensureCaptureWorklet } from "./capture-node.ts";
+import {
+  CaptureWorkletNode,
+  ensureCaptureWorklet,
+} from "./capture-worklet-node.ts";
 import type {
   CaptureChunk,
   CaptureWorkletNotification,
@@ -21,7 +24,7 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 export class CaptureInput {
   readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
-  private readonly captureNode: CaptureNode;
+  private readonly captureNode: CaptureWorkletNode;
   readonly analyser: AudioAnalyser;
   readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;
@@ -86,7 +89,7 @@ export class CaptureInput {
   }) {
     this.stream = stream;
     this.source = context.createMediaStreamSource(stream);
-    this.captureNode = new CaptureNode({
+    this.captureNode = new CaptureWorkletNode({
       context,
       onNotification: (message) => {
         if (message.type === "samples") {

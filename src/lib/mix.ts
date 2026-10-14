@@ -2,7 +2,7 @@ import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
-import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-node.ts";
+import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import type { EditorRuntimeState } from "./runtime.ts";
 
 interface Mix {

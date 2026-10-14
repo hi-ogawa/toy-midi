@@ -1,6 +1,6 @@
 import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
-import { MidiSynthNode } from "./midi-synth-node.ts";
+import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import type {
@@ -14,7 +14,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   private notes: Note[] = [];
   private tempo = 120;
   private disposeScheduling?: () => void;
-  private readonly synth: MidiSynthNode;
+  private readonly synth: MidiSynthWorkletNode;
   private readonly unregister: () => void;
   private readonly transport: AudioContextTransport;
 
@@ -29,7 +29,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     track: MidiTrackState;
     tempo: number;
   }): Promise<MidiTrackPlayback> {
-    const synth = new MidiSynthNode(transport.context);
+    const synth = new MidiSynthWorkletNode(transport.context);
     try {
       await synth.init(track);
       return new MidiTrackPlayback({ transport, output, track, tempo, synth });
@@ -50,7 +50,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     output: AudioNode;
     track: MidiTrackState;
     tempo: number;
-    synth: MidiSynthNode;
+    synth: MidiSynthWorkletNode;
   }) {
     this.synth = synth;
     this.channel = new AudioChannel({

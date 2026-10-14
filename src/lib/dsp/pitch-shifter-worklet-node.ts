@@ -3,7 +3,7 @@ import pitchShifterWorkletUrl from "./pitch-shifter-worklet.ts?worker&url";
 const PROCESSOR_NAME = "pitch-shifter";
 const registrations = new WeakMap<AudioContext, Promise<void>>();
 
-export function createPitchShifterNode({
+export function createPitchShifterWorkletNode({
   context,
   channelCount,
   pitchRatio,

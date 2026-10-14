@@ -22,8 +22,8 @@ import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import {
   createDefaultMultibandEq,
   ensureBiquadEqWorklet,
-} from "./dsp/biquad-eq-node.ts";
-import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-node.ts";
+} from "./dsp/biquad-eq-worklet-node.ts";
+import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";

@@ -1,13 +1,13 @@
 import { StereoAnalyser } from "./audio-analyser.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
-import { BiquadEqNode } from "./dsp/biquad-eq-node.ts";
+import { BiquadEqWorkletNode } from "./dsp/biquad-eq-worklet-node.ts";
 
 /** Persistent stereo processing shared by all sources in a mixer channel. */
 export class AudioChannel {
   readonly input: GainNode;
   private readonly gain: GainNode;
   private readonly panner: StereoPannerNode;
-  private readonly equalizer: BiquadEqNode;
+  private readonly equalizer: BiquadEqWorkletNode;
   private analyser?: StereoAnalyser;
 
   constructor({
@@ -26,7 +26,7 @@ export class AudioChannel {
     this.input = context.createGain();
     this.gain = context.createGain();
     this.gain.gain.value = gain;
-    this.equalizer = new BiquadEqNode({
+    this.equalizer = new BiquadEqWorkletNode({
       context,
       channelCount: 2,
       parameters: eq,
