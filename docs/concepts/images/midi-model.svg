@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="780" height="490" viewBox="0 0 780 490" font-family="sans-serif" font-size="12">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <text x="20" y="24" font-weight="bold" font-size="15">A MIDI file is a timed script of commands to a 16-channel synth</text>
+
+  <!-- FILE -->
+  <rect x="20" y="40" width="370" height="400" rx="8" fill="#fbfbfb" stroke="#444"/>
+  <text x="34" y="62" font-weight="bold" font-size="13">song.mid</text>
+
+  <rect x="34" y="72" width="342" height="30" rx="4" fill="#eee" stroke="#999"/>
+  <text x="44" y="92">Header: 4 tracks, 480 ticks per quarter note</text>
+
+  <!-- conductor track -->
+  <rect x="34" y="112" width="342" height="70" rx="4" fill="#f3eefb" stroke="#7b5cb5"/>
+  <text x="44" y="130" font-weight="bold">Track 0 "conductor"</text>
+  <g font-family="monospace" font-size="11" fill="#5a3f8f">
+    <text x="54" y="148">0     tempo = 625000 µs per quarter (96 bpm)</text>
+    <text x="54" y="162">0     time signature 4/4</text>
+    <text x="54" y="176">...   (no channel: read by the player)</text>
+  </g>
+
+  <!-- keys track -->
+  <rect x="34" y="192" width="342" height="84" rx="4" fill="#f2fbef" stroke="#4f9a3c"/>
+  <text x="44" y="210" font-weight="bold">Track 1 "keys"</text>
+  <g font-family="monospace" font-size="11" fill="#2f6b22">
+    <text x="54" y="228">0     ch1 program = piano</text>
+    <text x="54" y="242">0     ch1 volume = 100</text>
+    <text x="54" y="256">0     ch1 key C4 down, velocity 90</text>
+    <text x="54" y="270">960   ch1 key C4 up</text>
+  </g>
+
+  <!-- bass track -->
+  <rect x="34" y="286" width="342" height="70" rx="4" fill="#f2fbef" stroke="#4f9a3c"/>
+  <text x="44" y="304" font-weight="bold">Track 2 "bass"</text>
+  <g font-family="monospace" font-size="11" fill="#2f6b22">
+    <text x="54" y="322">0     ch2 program = acoustic bass</text>
+    <text x="54" y="336">0     ch2 key C2 down, velocity 90</text>
+    <text x="54" y="350">480   ch2 key C2 up</text>
+  </g>
+
+  <!-- kick track -->
+  <rect x="34" y="366" width="342" height="62" rx="4" fill="#f2fbef" stroke="#4f9a3c"/>
+  <text x="44" y="384" font-weight="bold">Track 3 "kick"</text>
+  <g font-family="monospace" font-size="11" fill="#2f6b22">
+    <text x="54" y="402">0     ch10 key 36 down, velocity 90</text>
+    <text x="54" y="416">120   ch10 key 36 up</text>
+  </g>
+
+  <!-- SYNTH -->
+  <rect x="440" y="40" width="320" height="400" rx="8" fill="#fbfbfb" stroke="#444"/>
+  <text x="454" y="62" font-weight="bold" font-size="13">The synth that plays it</text>
+
+  <rect x="454" y="72" width="292" height="40" rx="4" fill="#f3eefb" stroke="#7b5cb5"/>
+  <text x="464" y="90">Clock: turns ticks into seconds</text>
+  <text x="464" y="105" fill="#555" font-size="11">625000 µs per quarter, 480 ticks per quarter</text>
+
+  <text x="454" y="134" fill="#555">16 channels, each a strip with its own state</text>
+  <g fill="#fff6e8" stroke="#c4882c">
+    <rect x="454" y="142" width="292" height="58" rx="4"/>
+    <rect x="454" y="208" width="292" height="58" rx="4"/>
+    <rect x="454" y="274" width="292" height="30" rx="4" fill="#f6f6f6" stroke="#bbb"/>
+    <rect x="454" y="312" width="292" height="58" rx="4"/>
+    <rect x="454" y="378" width="292" height="30" rx="4" fill="#f6f6f6" stroke="#bbb"/>
+  </g>
+  <text x="464" y="160" font-weight="bold">ch1</text>
+  <text x="500" y="160">sound: piano</text>
+  <text x="464" y="176" fill="#555" font-size="11">volume 100, pan center, expression, bend, pedal</text>
+  <text x="464" y="192" fill="#555" font-size="11">keys held at tick 0: C4</text>
+
+  <text x="464" y="226" font-weight="bold">ch2</text>
+  <text x="500" y="226">sound: acoustic bass</text>
+  <text x="464" y="242" fill="#555" font-size="11">volume, pan, expression, bend, pedal</text>
+  <text x="464" y="258" fill="#555" font-size="11">keys held at tick 0: C2</text>
+
+  <text x="464" y="294" fill="#888">ch3 to ch9: unused</text>
+
+  <text x="464" y="330" font-weight="bold">ch10</text>
+  <text x="500" y="330">sound: drum kit (fixed by General MIDI)</text>
+  <text x="464" y="346" fill="#555" font-size="11">one volume and pan for every drum</text>
+  <text x="464" y="362" fill="#555" font-size="11">key number picks the drum: 36 kick, 38 snare</text>
+
+  <text x="464" y="398" fill="#888">ch11 to ch16: unused</text>
+
+  <!-- arrows -->
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#888"/></marker></defs>
+  <g stroke="#888" stroke-width="1.5" fill="none" marker-end="url(#a)">
+    <path d="M376,147 C410,147 420,92 452,92"/>
+    <path d="M376,234 C410,234 420,171 452,171"/>
+    <path d="M376,321 C410,321 420,237 452,237"/>
+    <path d="M376,397 C410,397 420,341 452,341"/>
+  </g>
+
+  <text x="20" y="462" fill="#333">The number before each event is its time in ticks. Notes, chords, parts, and instruments are not objects in the file.</text>
+  <text x="20" y="480" fill="#333">They are what the synth's state looks like while the commands run.</text>
+</svg>
+
