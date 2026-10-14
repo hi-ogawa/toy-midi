@@ -3,31 +3,42 @@ import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
 import { DRUM_KIT_BANK } from "./general-midi.ts";
 
 const PROCESSOR_NAME = "midi-synth";
-// Every track plays on the first MIDI channel of its own synth.
-const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
+const RESET_ALL_CONTROLLERS = 121;
+
+export type MidiSynthProcessorOptions = {
+  channelCount: number;
+};
 
 export type MidiSynthClientMessage =
   | { type: "init"; soundfont: ArrayBuffer }
-  | { type: "setPreset"; bank: number; program: number }
-  | { type: "noteOn"; pitch: number; velocity: number }
-  | { type: "noteOff"; pitch: number }
+  | { type: "setPreset"; channel: number; bank: number; program: number }
+  | { type: "noteOn"; channel: number; pitch: number; velocity: number }
+  | { type: "noteOff"; channel: number; pitch: number }
   | {
       type: "scheduleNoteOnOff";
+      channel: number;
       pitch: number;
       velocity: number;
       startFrame: number;
       endFrame: number;
     }
-  | { type: "reset" };
+  | { type: "reset"; channel: number }
+  | { type: "release"; channel: number };
 
 export type MidiSynthWorkletMessage =
   | { type: "ready" }
   | { type: "error"; message: string };
 
 type ScheduledEvent =
-  | { type: "noteOff"; frame: number; pitch: number }
-  | { type: "noteOn"; frame: number; pitch: number; velocity: number };
+  | { type: "noteOff"; frame: number; channel: number; pitch: number }
+  | {
+      type: "noteOn";
+      frame: number;
+      channel: number;
+      pitch: number;
+      velocity: number;
+    };
 
 declare const AudioWorkletProcessor: new (
   options?: AudioWorkletNodeOptions,
@@ -41,14 +52,23 @@ declare function registerProcessor(
   processorCtor: typeof AudioWorkletProcessor,
 ): void;
 
+// One synth plays every MIDI track, each on its own MIDI channel, and renders
+// each channel into the node output with the same index.
 class MidiSynthProcessor extends AudioWorkletProcessor {
   private readonly isDisposed = watchWorkletDisposal(this.port);
+  private readonly channelCount: number;
   private synth?: SpessaSynthProcessor;
   // Sorted by frame, with note-offs before note-ons on the same frame.
   private events: ScheduledEvent[] = [];
+  // processSplit always takes effect buffers, but effects are disabled, so
+  // nothing is written to them.
+  private effectsLeft = new Float32Array(0);
+  private effectsRight = new Float32Array(0);
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
+    ({ channelCount: this.channelCount } = options!
+      .processorOptions as MidiSynthProcessorOptions);
     this.port.onmessage = (event: MessageEvent<MidiSynthClientMessage>) => {
       this.handleMessage(event.data);
     };
@@ -60,27 +80,28 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
       return;
     }
     const synth = this.synth!;
+    const { channel } = message;
     switch (message.type) {
       case "setPreset": {
-        // A drum kit bank only plays on a drum channel, so the single channel
+        // A drum kit bank only plays on a drum channel, so the channel
         // switches to drums for it. SpessaSynth substitutes a missing preset.
         const isDrum = message.bank === DRUM_KIT_BANK;
-        synth.midiChannels[CHANNEL].setDrums(isDrum);
+        synth.midiChannels[channel].setDrums(isDrum);
         if (!isDrum) {
-          synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, message.bank);
+          synth.controllerChange(channel, BANK_SELECT_CONTROLLER, message.bank);
         }
-        synth.programChange(CHANNEL, message.program);
+        synth.programChange(channel, message.program);
         // SF3 samples decode on first use, which would underrun the render
         // quantum of the first note that needs them, so decode them up front.
-        synth.midiChannels[CHANNEL].preset?.preload(0, 127);
+        synth.midiChannels[channel].preset?.preload(0, 127);
         break;
       }
       case "noteOn": {
-        synth.noteOn(CHANNEL, message.pitch, message.velocity);
+        synth.noteOn(channel, message.pitch, message.velocity);
         break;
       }
       case "noteOff": {
-        synth.noteOff(CHANNEL, message.pitch);
+        synth.noteOff(channel, message.pitch);
         break;
       }
       case "scheduleNoteOnOff": {
@@ -88,16 +109,25 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
         this.insertEvent({
           type: "noteOn",
           frame: startFrame,
+          channel,
           pitch,
           velocity,
         });
-        this.insertEvent({ type: "noteOff", frame: endFrame, pitch });
+        this.insertEvent({ type: "noteOff", frame: endFrame, channel, pitch });
         break;
       }
       case "reset": {
         // Drop the queue first so no pending note-on restarts a released note.
-        this.events = [];
-        synth.stopAllChannels();
+        this.dropEvents(channel);
+        synth.midiChannels[channel].stopAllNotes();
+        break;
+      }
+      case "release": {
+        // Silence the channel and clear its controller state, so the track
+        // that takes it next starts clean.
+        this.dropEvents(channel);
+        synth.midiChannels[channel].stopAllNotes(true);
+        synth.controllerChange(channel, RESET_ALL_CONTROLLERS, 0);
         break;
       }
     }
@@ -117,6 +147,9 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
         SoundBankLoader.fromArrayBuffer(soundfont),
         "main",
       );
+      while (synth.midiChannels.length < this.channelCount) {
+        synth.createMIDIChannel();
+      }
       this.synth = synth;
       this.postMessage({ type: "ready" });
     } catch (error) {
@@ -134,6 +167,10 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     this.events.splice(index + 1, 0, event);
   }
 
+  private dropEvents(channel: number): void {
+    this.events = this.events.filter((event) => event.channel !== channel);
+  }
+
   private postMessage(message: MidiSynthWorkletMessage): void {
     this.port.postMessage(message);
   }
@@ -143,31 +180,52 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
       return false;
     }
     const synth = this.synth;
-    const [left, right] = outputs[0] ?? [];
-    if (!synth || !left || !right) {
+    const blockLength = outputs[0]?.[0]?.length;
+    if (!synth || !blockLength) {
       return true;
+    }
+    if (this.effectsLeft.length !== blockLength) {
+      this.effectsLeft = new Float32Array(blockLength);
+      this.effectsRight = new Float32Array(blockLength);
     }
     // Split the render block at each due event so it starts on its own frame.
     // Events that arrived late apply at the start of the block.
-    const blockEnd = currentFrame + left.length;
+    const blockEnd = currentFrame + blockLength;
     let offset = 0;
     while (this.events.length > 0 && this.events[0].frame < blockEnd) {
       const event = this.events.shift()!;
       const eventOffset = Math.max(event.frame - currentFrame, 0);
       if (eventOffset > offset) {
-        synth.process(left, right, offset, eventOffset - offset);
+        this.render(synth, outputs, offset, eventOffset - offset);
         offset = eventOffset;
       }
       if (event.type === "noteOff") {
-        synth.noteOff(CHANNEL, event.pitch);
+        synth.noteOff(event.channel, event.pitch);
       } else {
-        synth.noteOn(CHANNEL, event.pitch, event.velocity);
+        synth.noteOn(event.channel, event.pitch, event.velocity);
       }
     }
-    if (offset < left.length) {
-      synth.process(left, right, offset, left.length - offset);
+    if (offset < blockLength) {
+      this.render(synth, outputs, offset, blockLength - offset);
     }
     return true;
+  }
+
+  private render(
+    synth: SpessaSynthProcessor,
+    outputs: Float32Array[][],
+    offset: number,
+    count: number,
+  ): void {
+    // Each voice renders into outputs[channel % outputs.length], and there is
+    // one output per channel.
+    synth.processSplit(
+      outputs,
+      this.effectsLeft,
+      this.effectsRight,
+      offset,
+      count,
+    );
   }
 }
 

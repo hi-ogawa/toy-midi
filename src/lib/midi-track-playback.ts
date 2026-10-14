@@ -1,6 +1,9 @@
 import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
-import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
+import type {
+  MidiSynthChannel,
+  MidiSynthWorkletNode,
+} from "./midi-synth-worklet-node.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import type {
@@ -14,32 +17,11 @@ export class MidiTrackPlayback implements TransportParticipant {
   private notes: Note[] = [];
   private tempo = 120;
   private disposeScheduling?: () => void;
-  private readonly synth: MidiSynthWorkletNode;
+  private readonly synth: MidiSynthChannel;
   private readonly unregister: () => void;
   private readonly transport: AudioContextTransport;
 
-  static async create({
-    transport,
-    output,
-    track,
-    tempo,
-  }: {
-    transport: AudioContextTransport;
-    output: AudioNode;
-    track: MidiTrackState;
-    tempo: number;
-  }): Promise<MidiTrackPlayback> {
-    const synth = new MidiSynthWorkletNode(transport.context);
-    try {
-      await synth.init(track);
-      return new MidiTrackPlayback({ transport, output, track, tempo, synth });
-    } catch (error) {
-      synth.dispose();
-      throw error;
-    }
-  }
-
-  private constructor({
+  constructor({
     transport,
     output,
     track,
@@ -52,7 +34,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     tempo: number;
     synth: MidiSynthWorkletNode;
   }) {
-    this.synth = synth;
+    this.synth = synth.allocateChannel(track);
     this.channel = new AudioChannel({
       context: transport.context,
       output,
@@ -60,7 +42,7 @@ export class MidiTrackPlayback implements TransportParticipant {
       gain: 0,
       pan: track.pan,
     });
-    synth.output.connect(this.channel.input);
+    this.synth.output.connect(this.channel.input);
     this.tempo = tempo;
     this.transport = transport;
     this.unregister = transport.register(this);
@@ -77,8 +59,8 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.refreshSchedule();
   }
 
-  async setPreset(preset: MidiPreset): Promise<void> {
-    await this.synth.setPreset(preset);
+  setPreset(preset: MidiPreset): void {
+    this.synth.setPreset(preset);
   }
 
   noteOn(pitch: number): void {
