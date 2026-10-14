@@ -86,10 +86,7 @@ export class LevelMeters {
         SILENCE,
       ];
       meter.channels.forEach((channel, index) =>
-        channel.update(levels[index], {
-          time: timeMs / 1000,
-          elapsed,
-        }),
+        channel.update({ levels: levels[index], time: timeMs / 1000, elapsed }),
       );
       for (const listener of meter.listeners) {
         listener(meter.channels);
@@ -108,10 +105,15 @@ export class MeterChannel {
   private holdUntil = 0;
 
   /** Applies one measurement with meter ballistics. Times are in seconds. */
-  update(
-    levels: AudioLevels,
-    { time, elapsed }: { time: number; elapsed: number },
-  ): void {
+  update({
+    levels,
+    time,
+    elapsed,
+  }: {
+    levels: AudioLevels;
+    time: number;
+    elapsed: number;
+  }): void {
     const rms = gainToDb(levels.rms);
     const peak = gainToDb(levels.peak);
 
