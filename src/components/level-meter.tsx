@@ -121,7 +121,7 @@ function getMeterY(db: number): number {
 
 function drawMeter(
   context: CanvasRenderingContext2D,
-  channels: readonly MeterChannel[],
+  channels: readonly [MeterChannel, MeterChannel],
 ) {
   context.clearRect(0, 0, WIDTH, HEIGHT);
   channels.forEach((channel, index) => {

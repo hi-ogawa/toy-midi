@@ -15,7 +15,7 @@ export type MeterChannel = {
 
 export type MeterTarget = { kind: "master" } | { kind: "track"; id: string };
 
-type MeterListener = (channels: readonly MeterChannel[]) => void;
+type MeterListener = (channels: readonly [MeterChannel, MeterChannel]) => void;
 
 type AnalyserLookup = (target: MeterTarget) => StereoAnalyser | undefined;
 
@@ -38,7 +38,7 @@ export class LevelMeters {
     MeterTarget,
     {
       target: MeterTarget;
-      channels: MeterChannel[];
+      channels: [MeterChannel, MeterChannel];
       listeners: Set<MeterListener>;
     }
   >(getMeterKey);
