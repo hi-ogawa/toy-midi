@@ -16,6 +16,8 @@ export type MeterTarget = { kind: "master" } | { kind: "track"; id: string };
 
 type MeterListener = (channels: readonly MeterChannel[]) => void;
 
+type AnalyserLookup = (target: MeterTarget) => StereoAnalyser | undefined;
+
 const RMS_ATTACK_SECONDS = 0.05;
 const RMS_RELEASE_SECONDS = 0.3;
 const PEAK_FALL_DB_PER_SECOND = 30;
@@ -41,15 +43,9 @@ export class LevelMeters {
   >();
   private stopLoop?: () => void;
   private lastTime?: number;
-  private readonly getAnalyser: (
-    target: MeterTarget,
-  ) => StereoAnalyser | undefined;
+  private readonly getAnalyser: AnalyserLookup;
 
-  constructor({
-    getAnalyser,
-  }: {
-    getAnalyser: (target: MeterTarget) => StereoAnalyser | undefined;
-  }) {
+  constructor({ getAnalyser }: { getAnalyser: AnalyserLookup }) {
     this.getAnalyser = getAnalyser;
   }
 
