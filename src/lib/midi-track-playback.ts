@@ -1,11 +1,11 @@
 import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
+import type { ScheduledRange } from "./playback-run.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import type {
   AudioContextTransport,
-  ScheduledRange,
   TransportParticipant,
 } from "./transport.ts";
 
