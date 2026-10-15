@@ -13,14 +13,6 @@ import path from "node:path";
 const RELEASE_URL =
   "https://github.com/hi-ogawa/toy-midi/releases/download/soundfonts-1";
 const OUT_DIR = path.join(import.meta.dirname, "../public/soundfonts");
-const MAIN_WORKTREE_DIR = path.dirname(
-  execFileSync(
-    "git",
-    ["rev-parse", "--path-format=absolute", "--git-common-dir"],
-    { encoding: "utf8" },
-  ).trim(),
-);
-const MAIN_WORKTREE_OUT_DIR = path.join(MAIN_WORKTREE_DIR, "public/soundfonts");
 
 // File names carry a version because public/_headers caches them as immutable.
 const FILES = [
@@ -34,17 +26,32 @@ const FILES = [
   },
 ];
 
-await mkdir(OUT_DIR, { recursive: true });
-for (const file of FILES) {
-  await fetchFile(file);
+async function main() {
+  const mainWorktreeOutDir = path.join(findMainWorktree(), "public/soundfonts");
+  await mkdir(OUT_DIR, { recursive: true });
+  for (const file of FILES) {
+    await fetchFile(file, mainWorktreeOutDir);
+  }
 }
 
-async function fetchFile(file: { name: string; sha256: string }) {
+function findMainWorktree(): string {
+  const gitCommonDir = execFileSync(
+    "git",
+    ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+    { encoding: "utf8" },
+  ).trim();
+  return path.dirname(gitCommonDir);
+}
+
+async function fetchFile(
+  file: { name: string; sha256: string },
+  mainWorktreeOutDir: string,
+) {
   const outPath = path.join(OUT_DIR, file.name);
   if (await readVerifiedFile(outPath, file.sha256)) {
     return;
   }
-  const mainWorktreePath = path.join(MAIN_WORKTREE_OUT_DIR, file.name);
+  const mainWorktreePath = path.join(mainWorktreeOutDir, file.name);
   const copied =
     mainWorktreePath !== outPath &&
     (await readVerifiedFile(mainWorktreePath, file.sha256));
@@ -80,3 +87,8 @@ async function readVerifiedFile(
 function hashSha256(data: Buffer): string {
   return createHash("sha256").update(data).digest("hex");
 }
+
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});
