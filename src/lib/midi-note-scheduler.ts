@@ -1,3 +1,4 @@
+import { findSortedIndex } from "../utils/array.ts";
 import {
   type ContextTimeWindow,
   PlaybackRun,
@@ -50,7 +51,10 @@ export class MidiNoteScheduler {
     const scheduled: ScheduledNote[] = [];
     for (const range of playbackRun.getScheduledRanges(window)) {
       for (
-        let index = findFirstNoteIndex(this.notes, range.start);
+        let index = findSortedIndex(
+          this.notes,
+          (note) => note.start >= range.start,
+        );
         index < this.notes.length && this.notes[index].start < range.end;
         index++
       ) {
@@ -67,19 +71,4 @@ export class MidiNoteScheduler {
     }
     return scheduled;
   }
-}
-
-/** Index of the first note starting at or after `start`. */
-function findFirstNoteIndex(notes: TimelineNote[], start: number): number {
-  let low = 0;
-  let high = notes.length;
-  while (low < high) {
-    const middle = (low + high) >>> 1;
-    if (notes[middle].start < start) {
-      low = middle + 1;
-    } else {
-      high = middle;
-    }
-  }
-  return low;
 }
