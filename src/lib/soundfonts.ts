@@ -14,8 +14,6 @@ export const SOUNDFONTS = [
 
 export type SoundfontId = (typeof SOUNDFONTS)[number]["id"];
 
-export type Soundfont = (typeof SOUNDFONTS)[number];
-
-export function findSoundfont(id: SoundfontId): Soundfont {
+export function findSoundfont(id: SoundfontId): (typeof SOUNDFONTS)[number] {
   return SOUNDFONTS.find((soundfont) => soundfont.id === id)!;
 }

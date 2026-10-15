@@ -1,4 +1,3 @@
-import { toast } from "sonner";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { TimelineNote } from "./midi-note-scheduler.ts";
 import type {
@@ -6,28 +5,31 @@ import type {
   MidiSynthWorkletMessage,
 } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
-import { midiAssetUrls, waitForMidiAssets } from "./runtime-assets";
-import type { MidiPreset } from "./runtime.ts";
 import {
-  findSoundfont,
+  GENERAL_USER_SOUNDFONT,
+  loadSoundfont,
+  midiWorkletUrl,
   type Soundfont,
-  type SoundfontId,
-} from "./soundfonts.ts";
+} from "./runtime-assets";
+import type { MidiPreset } from "./runtime.ts";
+import { findSoundfont } from "./soundfonts.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
 export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
-  private preset?: MidiPreset;
-  private readonly soundfontLoads = new Map<SoundfontId, Promise<void>>();
+  private readonly soundfonts = new Set<string>();
 
   constructor(private readonly context: AudioContext) {
     this.output = context.createGain();
   }
 
+  /**
+   * Resolves once the synth runs, before its SoundFont has loaded. Until then
+   * the track is silent.
+   */
   async init(preset: MidiPreset): Promise<void> {
-    await waitForMidiAssets();
     await ensureMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
       numberOfInputs: 0,
@@ -37,9 +39,6 @@ export class MidiSynthWorkletNode {
     this.node = node;
     node.connect(this.output);
 
-    const soundfont = await fetch(midiAssetUrls.soundfontUrl).then((response) =>
-      response.arrayBuffer(),
-    );
     await new Promise<void>((resolve, reject) => {
       node.port.onmessage = (event: MessageEvent<MidiSynthWorkletMessage>) => {
         if (event.data.type === "ready") {
@@ -48,36 +47,40 @@ export class MidiSynthWorkletNode {
           reject(new Error(`MIDI synth failed to load: ${event.data.message}`));
         }
       };
-      this.postMessage({ type: "init", soundfont }, [soundfont]);
+      this.postMessage({ type: "init" });
     });
     await this.setPreset(preset);
+    this.addSoundfont(GENERAL_USER_SOUNDFONT);
   }
 
-  async setPreset(preset: MidiPreset): Promise<void> {
-    this.preset = preset;
-    const { soundfont: id, bank = 0, program } = preset;
+  async setPreset({
+    soundfont: id,
+    bank = 0,
+    program,
+  }: MidiPreset): Promise<void> {
     if (!id) {
-      this.postMessage({ type: "setPreset", bank, program });
+      this.postMessage({
+        type: "setPreset",
+        preset: { soundfont: GENERAL_USER_SOUNDFONT.id, bank, program },
+      });
       return;
     }
-    // Play a GeneralUser stand-in until the font is loaded, so playback never
+    // A GeneralUser stand-in plays until the font has loaded, so playback never
     // waits for its download.
     const soundfont = findSoundfont(id);
     const { standIn } =
       soundfont.presets.find((other) => other.program === program) ??
       soundfont.presets[0];
-    this.postMessage({ type: "setPreset", bank: 0, program: standIn.program });
-    this.loadSoundfont(soundfont).then(
-      () => {
-        if (this.preset === preset) {
-          this.postMessage({ type: "setPreset", soundfont: id, bank, program });
-        }
+    this.postMessage({
+      type: "setPreset",
+      preset: { soundfont: id, bank, program },
+      standIn: {
+        soundfont: GENERAL_USER_SOUNDFONT.id,
+        bank: 0,
+        program: standIn.program,
       },
-      (error: unknown) => {
-        console.error(error);
-        toast.error(`Failed to load the ${soundfont.name} SoundFont`);
-      },
-    );
+    });
+    this.addSoundfont(soundfont);
   }
 
   noteOn(pitch: number): void {
@@ -101,7 +104,6 @@ export class MidiSynthWorkletNode {
   }
 
   dispose(): void {
-    this.preset = undefined;
     this.output.disconnect();
     if (this.node) {
       disposeWorklet(this.node);
@@ -109,23 +111,23 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  private loadSoundfont(soundfont: Soundfont): Promise<void> {
-    let load = this.soundfontLoads.get(soundfont.id);
-    if (!load) {
-      load = (async () => {
-        // Posting transfers the bytes, so each track sends its own copy.
-        const data = (await downloadSoundfont(soundfont.url)).slice(0);
+  private addSoundfont(soundfont: Soundfont): void {
+    if (this.soundfonts.has(soundfont.id)) {
+      return;
+    }
+    this.soundfonts.add(soundfont.id);
+    loadSoundfont(soundfont).then(
+      (data) => {
         if (this.node) {
           this.postMessage(
             { type: "addSoundfont", id: soundfont.id, soundfont: data },
             [data],
           );
         }
-      })();
-      load.catch(() => this.soundfontLoads.delete(soundfont.id));
-      this.soundfontLoads.set(soundfont.id, load);
-    }
-    return load;
+      },
+      // The loader reports the failure, and a later preset change retries.
+      () => this.soundfonts.delete(soundfont.id),
+    );
   }
 
   private postMessage(
@@ -144,7 +146,7 @@ const registrations = new WeakMap<AudioContext, Promise<void>>();
 async function ensureMidiWorklet(context: AudioContext): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
-    registration = context.audioWorklet.addModule(midiAssetUrls.workletUrl);
+    registration = context.audioWorklet.addModule(midiWorkletUrl);
     registrations.set(context, registration);
   }
   try {
@@ -153,24 +155,4 @@ async function ensureMidiWorklet(context: AudioContext): Promise<void> {
     registrations.delete(context);
     throw error;
   }
-}
-
-const downloads = new Map<string, Promise<ArrayBuffer>>();
-
-// Tracks share one download, because Chromium fails some of several concurrent
-// requests for the same large file with ERR_CACHE_WRITE_FAILURE.
-function downloadSoundfont(url: string): Promise<ArrayBuffer> {
-  let download = downloads.get(url);
-  if (!download) {
-    download = (async () => {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${url}: ${response.status}`);
-      }
-      return await response.arrayBuffer();
-    })();
-    download.catch(() => downloads.delete(url));
-    downloads.set(url, download);
-  }
-  return download;
 }
