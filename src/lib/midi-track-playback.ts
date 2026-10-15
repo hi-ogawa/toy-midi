@@ -106,8 +106,8 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 
   /**
-   * The synth keeps scheduling the running playback against the new notes, so
-   * sounding notes carry on through an edit.
+   * Playback picks up the new notes in place, so notes sounding during an edit
+   * keep playing.
    */
   private sendNotes(): void {
     this.synth.setNotes(

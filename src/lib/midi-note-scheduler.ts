@@ -17,8 +17,8 @@ export type ScheduledNote = {
 };
 
 /**
- * Turns a track's notes into audio-clock note events for consecutive windows of
- * one playback run, each note start exactly once.
+ * Places a track's notes on the audio clock for consecutive windows of a
+ * playback run, so each note starts exactly once.
  */
 export class MidiNoteScheduler {
   /** Sorted by start. */
@@ -40,9 +40,9 @@ export class MidiNoteScheduler {
   }
 
   /**
-   * Notes starting from where the previous call left off up to `end`. A start
-   * that arrives after its run should have begun skips the part already in the
-   * past rather than playing it late.
+   * Notes starting between the previous call's `end` and this one. When a run
+   * starts later than it was meant to, notes already in the past are skipped
+   * rather than played late.
    */
   takeNotes({ now, end }: { now: number; end: number }): ScheduledNote[] {
     const playbackRun = this.playbackRun;
