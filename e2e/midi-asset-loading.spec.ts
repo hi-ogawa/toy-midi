@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { createMidiNote, createProject } from "./editor-helpers";
+import {
+  createMidiNote,
+  createProject,
+  expectTrackAudible,
+} from "./editor-helpers";
 
 test("adds MIDI tracks while the soundfont loads and plays them once it arrives", async ({
   page,
@@ -22,7 +26,7 @@ test("adds MIDI tracks while the soundfont loads and plays them once it arrives"
   });
 
   // Add two MIDI tracks while the download is pending. They appear right away,
-  // under one indicator, and accept notes, whose previews stay silent.
+  // under one indicator, and accept notes.
   await page.getByTestId("add-midi-track").click();
   await page.getByTestId("add-midi-track").click();
   const rows = page.getByTestId("midi-track-row");
@@ -37,13 +41,8 @@ test("adds MIDI tracks while the soundfont loads and plays them once it arrives"
   releaseSoundfont.resolve();
   await expect(loading).not.toBeVisible();
 
-  // Play, and the track meter rises.
+  // Play, and hear the track that was written before the soundfont arrived.
   await page.getByTestId("mixer-button").click();
-  const trackMeter = page
-    .getByTestId("mixer-panel")
-    .getByRole("meter", { name: "MIDI 1 level" });
   await page.getByTestId("play-button").click();
-  await expect
-    .poll(async () => Number(await trackMeter.getAttribute("aria-valuenow")))
-    .toBeGreaterThan(-60);
+  await expectTrackAudible(page, { name: "MIDI 1" });
 });
