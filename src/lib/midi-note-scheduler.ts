@@ -23,7 +23,7 @@ export type ScheduledNote = {
 export class MidiNoteScheduler {
   /** Sorted by start. */
   private notes: TimelineNote[] = [];
-  private run?: PlaybackRun;
+  private playbackRun?: PlaybackRun;
   private scheduledUntil = 0;
 
   setNotes(notes: TimelineNote[]): void {
@@ -31,12 +31,12 @@ export class MidiNoteScheduler {
   }
 
   start(run: PlaybackRunOptions): void {
-    this.run = new PlaybackRun(run);
-    this.scheduledUntil = this.run.firstPass.contextTime;
+    this.playbackRun = new PlaybackRun(run);
+    this.scheduledUntil = this.playbackRun.firstPass.contextTime;
   }
 
   stop(): void {
-    this.run = undefined;
+    this.playbackRun = undefined;
   }
 
   /**
@@ -45,14 +45,14 @@ export class MidiNoteScheduler {
    * past rather than playing it late.
    */
   takeNotes({ now, end }: { now: number; end: number }): ScheduledNote[] {
-    const run = this.run;
-    if (!run || end <= this.scheduledUntil) {
+    const playbackRun = this.playbackRun;
+    if (!playbackRun || end <= this.scheduledUntil) {
       return [];
     }
     const window = { start: Math.max(this.scheduledUntil, now), end };
     this.scheduledUntil = end;
     const scheduled: ScheduledNote[] = [];
-    for (const range of run.getScheduledRanges(window)) {
+    for (const range of playbackRun.getScheduledRanges(window)) {
       for (
         let index = findFirstNoteIndex(this.notes, range.start);
         index < this.notes.length && this.notes[index].start < range.end;
