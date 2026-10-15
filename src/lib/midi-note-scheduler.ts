@@ -10,10 +10,10 @@ export type TimelineNote = {
 
 /** A note placed on the audio clock. */
 export type ScheduledNote = {
-  pitch: number;
-  velocity: number;
   startTime: number;
   endTime: number;
+  pitch: number;
+  velocity: number;
 };
 
 /**
@@ -62,10 +62,10 @@ export class MidiNoteScheduler {
         // A note held past loop-out ends at the wrap.
         const noteEnd = Math.min(note.end, range.pass.end);
         scheduled.push({
-          pitch: note.pitch,
-          velocity: note.velocity,
           startTime: range.pass.getContextTimeAt(note.start),
           endTime: range.pass.getContextTimeAt(noteEnd),
+          pitch: note.pitch,
+          velocity: note.velocity,
         });
       }
     }

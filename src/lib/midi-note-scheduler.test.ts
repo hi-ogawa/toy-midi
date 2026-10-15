@@ -85,7 +85,7 @@ function note(start: number, end: number): TimelineNote {
 }
 
 function scheduled(startTime: number, endTime: number): ScheduledNote {
-  return { pitch: 60, velocity: 100, startTime, endTime };
+  return { startTime, endTime, pitch: 60, velocity: 100 };
 }
 
 function round(time: number): number {

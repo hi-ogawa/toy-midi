@@ -128,7 +128,7 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
       now: currentFrame / sampleRate,
       end: endFrame / sampleRate,
     });
-    for (const { pitch, velocity, startTime, endTime } of notes) {
+    for (const { startTime, endTime, pitch, velocity } of notes) {
       this.insertEvent({
         type: "noteOn",
         frame: Math.round(startTime * sampleRate),
