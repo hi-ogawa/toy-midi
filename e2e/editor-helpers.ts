@@ -17,6 +17,31 @@ export async function createProject(page: Page): Promise<void> {
   );
 }
 
+/**
+ * Open the mixer, play, and wait until the track is heard, judged by its level
+ * meter rising above the floor. The meter reads the track's channel, which is
+ * as close to the speakers as a test can observe.
+ */
+export async function playAndExpectTrackAudible(
+  page: Page,
+  { name }: { name: string },
+): Promise<void> {
+  await test.step(
+    `Play and hear ${name}`,
+    async () => {
+      await page.getByTestId("mixer-button").click();
+      await page.getByTestId("play-button").click();
+      const meter = page
+        .getByTestId("mixer-panel")
+        .getByRole("meter", { name: `${name} level` });
+      await expect
+        .poll(async () => Number(await meter.getAttribute("aria-valuenow")))
+        .toBeGreaterThan(-60);
+    },
+    { box: true },
+  );
+}
+
 export async function addMidiTrack(page: Page) {
   return await test.step(
     "Add MIDI track",
