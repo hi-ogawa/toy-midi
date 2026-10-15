@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { createProject } from "./editor-helpers";
 
-test("shows loading feedback while adding MIDI waits for the soundfont", async ({
+test("adds MIDI tracks while the soundfont loads and shows loading feedback", async ({
   page,
 }) => {
-  // Hold the startup soundfont preload so adding MIDI must wait for it.
+  // Hold the startup soundfont download.
   const releaseSoundfont = Promise.withResolvers<void>();
   const soundfontRequested = Promise.withResolvers<void>();
   await page.route(
@@ -17,16 +17,19 @@ test("shows loading feedback while adding MIDI waits for the soundfont", async (
   );
   await createProject(page);
   await soundfontRequested.promise;
-  const loading = page.getByText("Loading MIDI soundfont…", { exact: true });
+  const loading = page.getByText("Loading GeneralUser GS SoundFont…", {
+    exact: true,
+  });
 
-  // Request MIDI while the download is pending and show one global indicator.
+  // Add two MIDI tracks while the download is pending. They appear right away,
+  // under one indicator.
   await page.getByTestId("add-midi-track").click();
+  await page.getByTestId("add-midi-track").click();
+  await expect(page.getByTestId("midi-track-row")).toHaveCount(2);
   await expect(loading).toBeVisible();
   await expect(loading).toHaveCount(1);
-  await expect(page.getByTestId("midi-track-row")).toHaveCount(0);
 
-  // Finish the download and replace the loading feedback with the ready track.
+  // Finish the download and dismiss the loading feedback.
   releaseSoundfont.resolve();
-  await expect(page.getByTestId("midi-track-row")).toHaveCount(1);
   await expect(loading).not.toBeVisible();
 });

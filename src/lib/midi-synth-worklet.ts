@@ -10,7 +10,8 @@ const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
 
 export type MidiSynthClientMessage =
-  | { type: "init"; soundfont: ArrayBuffer }
+  | { type: "init" }
+  | { type: "addSoundfont"; id: string; soundfont: ArrayBuffer }
   | { type: "setPreset"; bank: number; program: number }
   | { type: "noteOn"; pitch: number; velocity: number }
   | { type: "noteOff"; pitch: number }
@@ -41,6 +42,7 @@ declare function registerProcessor(
 class MidiSynthProcessor extends AudioWorkletProcessor {
   private readonly isDisposed = watchWorkletDisposal(this.port);
   private synth?: SpessaSynthProcessor;
+  private preset?: { bank: number; program: number };
   // Scheduling here rather than on a main-thread timer keeps a busy page from
   // dropping notes.
   private readonly scheduler = new MidiNoteScheduler();
@@ -56,23 +58,22 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
 
   private handleMessage(message: MidiSynthClientMessage): void {
     if (message.type === "init") {
-      void this.init(message.soundfont);
+      void this.init();
       return;
     }
     const synth = this.synth!;
     switch (message.type) {
+      case "addSoundfont": {
+        synth.soundBankManager.addSoundBank(
+          SoundBankLoader.fromArrayBuffer(message.soundfont),
+          message.id,
+        );
+        this.applyPreset();
+        break;
+      }
       case "setPreset": {
-        // A drum kit bank only plays on a drum channel, so the single channel
-        // switches to drums for it. SpessaSynth substitutes a missing preset.
-        const isDrum = message.bank === DRUM_KIT_BANK;
-        synth.midiChannels[CHANNEL].setDrums(isDrum);
-        if (!isDrum) {
-          synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, message.bank);
-        }
-        synth.programChange(CHANNEL, message.program);
-        // SF3 samples decode on first use, which would underrun the render
-        // quantum of the first note that needs them, so decode them up front.
-        synth.midiChannels[CHANNEL].preset?.preload(0, 127);
+        this.preset = { bank: message.bank, program: message.program };
+        this.applyPreset();
         break;
       }
       case "noteOn": {
@@ -101,7 +102,27 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     }
   }
 
-  private async init(soundfont: ArrayBuffer): Promise<void> {
+  /** Selects the track's preset once a SoundFont has loaded. */
+  private applyPreset(): void {
+    const synth = this.synth!;
+    if (!this.preset || synth.soundBankManager.soundBankList.length === 0) {
+      return;
+    }
+    const { bank, program } = this.preset;
+    // A drum kit bank only plays on a drum channel, so the single channel
+    // switches to drums for it. SpessaSynth substitutes a missing preset.
+    const isDrum = bank === DRUM_KIT_BANK;
+    synth.midiChannels[CHANNEL].setDrums(isDrum);
+    if (!isDrum) {
+      synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
+    }
+    synth.programChange(CHANNEL, program);
+    // SF3 samples decode on first use, which would underrun the render
+    // quantum of the first note that needs them, so decode them up front.
+    synth.midiChannels[CHANNEL].preset?.preload(0, 127);
+  }
+
+  private async init(): Promise<void> {
     try {
       const synth = new SpessaSynthProcessor(sampleRate, {
         eventsEnabled: false,
@@ -111,10 +132,6 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
       });
       // SF3 samples need the Vorbis decoder, which loads asynchronously.
       await synth.processorInitialized;
-      synth.soundBankManager.addSoundBank(
-        SoundBankLoader.fromArrayBuffer(soundfont),
-        "main",
-      );
       this.synth = synth;
       this.postMessage({ type: "ready" });
     } catch (error) {

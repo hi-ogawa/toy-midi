@@ -1,55 +1,89 @@
 import { toast } from "sonner";
 import workletUrl from "./midi-synth-worklet.ts?worker&url";
 
-export const midiAssetUrls = {
-  workletUrl,
-  soundfontUrl: "/soundfonts/GeneralUserGS-2.0.3.sf3",
+export interface Soundfont {
+  /** Identifies the SoundFont among those a synth has loaded */
+  id: string;
+  name: string;
+  url: string;
+}
+
+export const GENERAL_USER_SOUNDFONT: Soundfont = {
+  id: "general-user",
+  name: "GeneralUser GS",
+  url: "/soundfonts/GeneralUserGS-2.0.3.sf3",
 };
 
-let preloadPromise: Promise<void> | undefined;
-let demandPromise: Promise<void> | undefined;
+export const midiWorkletUrl = workletUrl;
 
-// Share one indicator across MIDI consumers, starting the delay at first demand.
-export function waitForMidiAssets(): Promise<void> {
-  return (demandPromise ??= (async () => {
-    let toastId: string | number | undefined;
-    const timer = setTimeout(() => {
-      toastId = toast.loading("Loading MIDI soundfont…");
-    }, 300);
-    try {
-      await preloadMidiAssets();
-    } finally {
-      clearTimeout(timer);
-      if (toastId !== undefined) {
-        toast.dismiss(toastId);
+const downloads = new Map<string, Promise<ArrayBuffer>>();
+const demands = new Map<string, Promise<ArrayBuffer>>();
+
+/**
+ * Resolves to the SoundFont's bytes, showing one loading indicator per
+ * SoundFont across tracks while it downloads. Each call resolves to its own
+ * copy, because posting the bytes to a synth transfers them.
+ */
+export async function loadSoundfont({
+  name,
+  url,
+}: Soundfont): Promise<ArrayBuffer> {
+  let demand = demands.get(url);
+  if (!demand) {
+    demand = (async () => {
+      let toastId: string | number | undefined;
+      const timer = setTimeout(() => {
+        toastId = toast.loading(`Loading ${name} SoundFont…`);
+      }, 300);
+      try {
+        return await downloadSoundfont(url);
+      } catch (error) {
+        demands.delete(url);
+        toast.error(`Failed to load the ${name} SoundFont`);
+        throw error;
+      } finally {
+        clearTimeout(timer);
+        if (toastId !== undefined) {
+          toast.dismiss(toastId);
+        }
       }
-    }
-  })());
+    })();
+    demands.set(url, demand);
+  }
+  return (await demand).slice(0);
 }
 
-// Warm the cache after initial render on routes that lead to MIDI playback.
+// Start the downloads after initial render on routes that lead to MIDI playback.
 export function preloadMidiAssetsWhenIdle() {
   requestIdleCallback(() => {
-    void preloadMidiAssets();
+    preloadAsset(midiWorkletUrl);
+    downloadSoundfont(GENERAL_USER_SOUNDFONT.url).catch(() => {});
   });
 }
 
-// Warm the browser cache silently. Synth initialization still handles asset failures.
-function preloadMidiAssets(): Promise<void> {
-  return (preloadPromise ??= Promise.allSettled(
-    Object.values(midiAssetUrls).map(preloadAsset),
-  ).then(() => {}));
+// Tracks share one download, because Chromium fails some of several concurrent
+// requests for the same large file with ERR_CACHE_WRITE_FAILURE.
+function downloadSoundfont(url: string): Promise<ArrayBuffer> {
+  let download = downloads.get(url);
+  if (!download) {
+    download = (async () => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.status}`);
+      }
+      return await response.arrayBuffer();
+    })();
+    download.catch(() => downloads.delete(url));
+    downloads.set(url, download);
+  }
+  return download;
 }
 
-function preloadAsset(href: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "fetch";
-    link.crossOrigin = "anonymous";
-    link.href = href;
-    link.onload = () => resolve();
-    link.onerror = () => reject(new Error(`Failed to preload ${href}`));
-    document.head.appendChild(link);
-  });
+function preloadAsset(href: string): void {
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "fetch";
+  link.crossOrigin = "anonymous";
+  link.href = href;
+  document.head.appendChild(link);
 }
