@@ -251,6 +251,10 @@ function formatReport({
   mixLoudness: number;
   outDir: string;
 }): string {
+  // Track loudness is measured before the master gain, so compare it with the
+  // mix before the master gain too.
+  const mixLoudnessBeforeMaster =
+    mixLoudness - 20 * Math.log10(project.masterGain ?? 1);
   const rows = reports.map((report) => [
     report.name,
     report.preset,
@@ -260,7 +264,9 @@ function formatReport({
     formatNumber(report.rawLoudness),
     report.wavPath ? formatNumber(report.loudness) : "silent",
     formatNumber(
-      report.loudness === undefined ? undefined : report.loudness - mixLoudness,
+      report.loudness === undefined
+        ? undefined
+        : report.loudness - mixLoudnessBeforeMaster,
     ),
   ]);
   return [
