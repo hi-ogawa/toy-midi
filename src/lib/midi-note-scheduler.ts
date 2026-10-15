@@ -1,4 +1,8 @@
-import { PlaybackRun, type PlaybackRunOptions } from "./playback-run.ts";
+import {
+  type ContextTimeWindow,
+  PlaybackRun,
+  type PlaybackRunOptions,
+} from "./playback-run.ts";
 
 /** A note on the timeline, in seconds. */
 export type TimelineNote = {
@@ -17,14 +21,13 @@ export type ScheduledNote = {
 };
 
 /**
- * Places a track's notes on the audio clock for consecutive windows of a
- * playback run, so each note starts exactly once.
+ * Places a track's notes on the audio clock for windows of a playback run.
+ * Consecutive windows take each note exactly once.
  */
 export class MidiNoteScheduler {
   /** Sorted by start. */
   private notes: TimelineNote[] = [];
   private playbackRun?: PlaybackRun;
-  private scheduledUntil = 0;
 
   setNotes(notes: TimelineNote[]): void {
     this.notes = notes;
@@ -32,25 +35,18 @@ export class MidiNoteScheduler {
 
   start(playbackRunOptions: PlaybackRunOptions): void {
     this.playbackRun = new PlaybackRun(playbackRunOptions);
-    this.scheduledUntil = this.playbackRun.firstPass.contextTime;
   }
 
   stop(): void {
     this.playbackRun = undefined;
   }
 
-  /**
-   * Notes starting between the previous call's `end` and this one. When a run
-   * starts later than it was meant to, notes already in the past are skipped
-   * rather than played late.
-   */
-  takeNotes({ now, end }: { now: number; end: number }): ScheduledNote[] {
+  /** Notes starting in the window, none before the run begins. */
+  getScheduledNotes(window: ContextTimeWindow): ScheduledNote[] {
     const playbackRun = this.playbackRun;
-    if (!playbackRun || end <= this.scheduledUntil) {
+    if (!playbackRun) {
       return [];
     }
-    const window = { start: Math.max(this.scheduledUntil, now), end };
-    this.scheduledUntil = end;
     const scheduled: ScheduledNote[] = [];
     for (const range of playbackRun.getScheduledRanges(window)) {
       for (

@@ -124,8 +124,8 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
 
   /** Queues the notes that start before `endFrame`. */
   private scheduleNotes(endFrame: number): void {
-    const notes = this.scheduler.takeNotes({
-      now: currentFrame / sampleRate,
+    const notes = this.scheduler.getScheduledNotes({
+      start: currentFrame / sampleRate,
       end: endFrame / sampleRate,
     });
     for (const { startTime, endTime, pitch, velocity } of notes) {

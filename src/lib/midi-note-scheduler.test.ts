@@ -51,7 +51,7 @@ describe(MidiNoteScheduler, () => {
     const scheduler = new MidiNoteScheduler();
     scheduler.setNotes([note(0, 1), note(0.5, 1)]);
     scheduler.start({ contextTime: 0, position: 0, playbackRate: 1 });
-    expect(scheduler.takeNotes({ now: 0.2, end: 1 })).toEqual([
+    expect(scheduler.getScheduledNotes({ start: 0.2, end: 1 })).toEqual([
       scheduled(0.5, 1),
     ]);
   });
@@ -61,7 +61,7 @@ describe(MidiNoteScheduler, () => {
     scheduler.setNotes([note(0, 1)]);
     scheduler.start({ contextTime: 0, position: 0, playbackRate: 1 });
     scheduler.stop();
-    expect(scheduler.takeNotes({ now: 0, end: 1 })).toEqual([]);
+    expect(scheduler.getScheduledNotes({ start: 0, end: 1 })).toEqual([]);
   });
 });
 
@@ -70,8 +70,10 @@ function takeBlocks(
   { from, to }: { from: number; to: number },
 ): ScheduledNote[] {
   const notes: ScheduledNote[] = [];
-  for (let now = from; now < to; now += BLOCK_SECONDS) {
-    notes.push(...scheduler.takeNotes({ now, end: now + BLOCK_SECONDS }));
+  for (let start = from; start < to; start += BLOCK_SECONDS) {
+    notes.push(
+      ...scheduler.getScheduledNotes({ start, end: start + BLOCK_SECONDS }),
+    );
   }
   return notes.map((note) => ({
     ...note,
