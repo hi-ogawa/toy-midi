@@ -27,7 +27,7 @@ function main() {
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <App />
-        <Toaster position="top-right" richColors />
+        <Toaster position="bottom-center" richColors />
       </QueryClientProvider>
     </StrictMode>,
   );
