@@ -10,7 +10,7 @@ import {
   openMidiInstrument,
   selectMidiInstrument,
 } from "./editor-helpers";
-import { createCheckpoint, selectMenuItem } from "./helpers";
+import { selectMenuItem } from "./helpers";
 
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Add two MIDI tracks and verify each has its own timeline row.
@@ -114,10 +114,8 @@ test("plays MIDI notes audibly", async ({ page }) => {
 
   // Play the restored notes with the mixer open and hear them on the track meter.
   await page.getByTestId("mixer-button").click();
-  const checkpoint = createCheckpoint();
   await page.getByTestId("play-button").click();
   await expectTrackAudible(page, { name: "MIDI 1" });
-  checkpoint("track audible");
 });
 
 test("creates and deletes a note and persists its instrument", async ({
