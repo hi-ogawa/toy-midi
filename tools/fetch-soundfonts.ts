@@ -1,9 +1,11 @@
 // Download the bundled SoundFonts and their licenses from the `soundfonts-*`
-// GitHub release into public/soundfonts/.
+// GitHub release into public/soundfonts/, reusing copies from the main git
+// worktree when it has them.
 //
 // Usage:
 //   tsx tools/fetch-soundfonts.ts
 
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -11,6 +13,14 @@ import path from "node:path";
 const RELEASE_URL =
   "https://github.com/hi-ogawa/toy-midi/releases/download/soundfonts-1";
 const OUT_DIR = path.join(import.meta.dirname, "../public/soundfonts");
+const MAIN_WORKTREE_DIR = path.dirname(
+  execFileSync(
+    "git",
+    ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+    { encoding: "utf8" },
+  ).trim(),
+);
+const MAIN_WORKTREE_OUT_DIR = path.join(MAIN_WORKTREE_DIR, "public/soundfonts");
 
 // File names carry a version because public/_headers caches them as immutable.
 const FILES = [
@@ -31,8 +41,16 @@ for (const file of FILES) {
 
 async function fetchFile(file: { name: string; sha256: string }) {
   const outPath = path.join(OUT_DIR, file.name);
-  const existing = await readFile(outPath).catch(() => undefined);
-  if (existing && hashSha256(existing) === file.sha256) {
+  if (await readVerifiedFile(outPath, file.sha256)) {
+    return;
+  }
+  const mainWorktreePath = path.join(MAIN_WORKTREE_OUT_DIR, file.name);
+  const copied =
+    mainWorktreePath !== outPath &&
+    (await readVerifiedFile(mainWorktreePath, file.sha256));
+  if (copied) {
+    console.log(`Copying ${mainWorktreePath}`);
+    await writeFile(outPath, copied);
     return;
   }
   const url = `${RELEASE_URL}/${file.name}`;
@@ -49,6 +67,14 @@ async function fetchFile(file: { name: string; sha256: string }) {
     );
   }
   await writeFile(outPath, data);
+}
+
+async function readVerifiedFile(
+  filePath: string,
+  sha256: string,
+): Promise<Buffer | undefined> {
+  const data = await readFile(filePath).catch(() => undefined);
+  return data && hashSha256(data) === sha256 ? data : undefined;
 }
 
 function hashSha256(data: Buffer): string {
