@@ -3,15 +3,23 @@ import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
 import { DRUM_KIT_BANK } from "./general-midi.ts";
 import { MidiNoteScheduler, type TimelineNote } from "./midi-note-scheduler.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
+import type { SoundfontId } from "./soundfonts.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 // Every track plays on the first MIDI channel of its own synth.
 const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
+const GENERAL_USER_ID = "main";
 
 export type MidiSynthClientMessage =
   | { type: "init"; soundfont: ArrayBuffer }
-  | { type: "setPreset"; bank: number; program: number }
+  | { type: "addSoundfont"; id: SoundfontId; soundfont: ArrayBuffer }
+  | {
+      type: "setPreset";
+      soundfont?: SoundfontId;
+      bank: number;
+      program: number;
+    }
   | { type: "noteOn"; pitch: number; velocity: number }
   | { type: "noteOff"; pitch: number }
   | { type: "setNotes"; notes: TimelineNote[] }
@@ -61,7 +69,21 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     }
     const synth = this.synth!;
     switch (message.type) {
+      case "addSoundfont": {
+        synth.soundBankManager.addSoundBank(
+          SoundBankLoader.fromArrayBuffer(message.soundfont),
+          message.id,
+        );
+        break;
+      }
       case "setPreset": {
+        // The first sound bank in priority order that has the preset plays it.
+        const id = message.soundfont ?? GENERAL_USER_ID;
+        const banks = synth.soundBankManager;
+        banks.priorityOrder = [
+          id,
+          ...banks.priorityOrder.filter((other) => other !== id),
+        ];
         // A drum kit bank only plays on a drum channel, so the single channel
         // switches to drums for it. SpessaSynth substitutes a missing preset.
         const isDrum = message.bank === DRUM_KIT_BANK;
@@ -113,7 +135,7 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
       await synth.processorInitialized;
       synth.soundBankManager.addSoundBank(
         SoundBankLoader.fromArrayBuffer(soundfont),
-        "main",
+        GENERAL_USER_ID,
       );
       this.synth = synth;
       this.postMessage({ type: "ready" });

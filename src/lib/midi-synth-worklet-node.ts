@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { TimelineNote } from "./midi-note-scheduler.ts";
 import type {
@@ -7,12 +8,19 @@ import type {
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import { midiAssetUrls, waitForMidiAssets } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
+import {
+  findSoundfont,
+  type Soundfont,
+  type SoundfontId,
+} from "./soundfonts.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
 export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
+  private preset?: MidiPreset;
+  private readonly soundfontLoads = new Map<SoundfontId, Promise<void>>();
 
   constructor(private readonly context: AudioContext) {
     this.output = context.createGain();
@@ -45,8 +53,31 @@ export class MidiSynthWorkletNode {
     await this.setPreset(preset);
   }
 
-  async setPreset({ bank = 0, program }: MidiPreset): Promise<void> {
-    this.postMessage({ type: "setPreset", bank, program });
+  async setPreset(preset: MidiPreset): Promise<void> {
+    this.preset = preset;
+    const { soundfont: id, bank = 0, program } = preset;
+    if (!id) {
+      this.postMessage({ type: "setPreset", bank, program });
+      return;
+    }
+    // Play a GeneralUser stand-in until the font is loaded, so playback never
+    // waits for its download.
+    const soundfont = findSoundfont(id);
+    const { standIn } =
+      soundfont.presets.find((other) => other.program === program) ??
+      soundfont.presets[0];
+    this.postMessage({ type: "setPreset", bank: 0, program: standIn.program });
+    this.loadSoundfont(soundfont).then(
+      () => {
+        if (this.preset === preset) {
+          this.postMessage({ type: "setPreset", soundfont: id, bank, program });
+        }
+      },
+      (error: unknown) => {
+        console.error(error);
+        toast.error(`Failed to load the ${soundfont.name} SoundFont`);
+      },
+    );
   }
 
   noteOn(pitch: number): void {
@@ -70,11 +101,36 @@ export class MidiSynthWorkletNode {
   }
 
   dispose(): void {
+    this.preset = undefined;
     this.output.disconnect();
     if (this.node) {
       disposeWorklet(this.node);
       this.node = undefined;
     }
+  }
+
+  private loadSoundfont(soundfont: Soundfont): Promise<void> {
+    let load = this.soundfontLoads.get(soundfont.id);
+    if (!load) {
+      load = (async () => {
+        const response = await fetch(soundfont.url);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch ${soundfont.url}: ${response.status}`,
+          );
+        }
+        const data = await response.arrayBuffer();
+        if (this.node) {
+          this.postMessage(
+            { type: "addSoundfont", id: soundfont.id, soundfont: data },
+            [data],
+          );
+        }
+      })();
+      load.catch(() => this.soundfontLoads.delete(soundfont.id));
+      this.soundfontLoads.set(soundfont.id, load);
+    }
+    return load;
   }
 
   private postMessage(

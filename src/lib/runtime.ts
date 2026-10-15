@@ -43,6 +43,7 @@ import {
 } from "./persistence.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "./pitch-spelling.ts";
 import { ActiveRecording } from "./recording.ts";
+import type { SoundfontId } from "./soundfonts.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import { syncTrackOrder, type TrackListsState } from "./track-order.ts";
@@ -88,6 +89,8 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
+  /** SoundFont the preset comes from, the bundled GeneralUser GS when absent */
+  soundfont?: SoundfontId;
   /** MIDI program number (0-127) within `bank` */
   program: number;
   /**
@@ -114,7 +117,7 @@ export interface MidiTrackState {
   keySignature: KeySignature;
 }
 
-export type MidiPreset = Pick<MidiTrackState, "bank" | "program">;
+export type MidiPreset = Pick<MidiTrackState, "soundfont" | "bank" | "program">;
 
 export interface LoopRange {
   /** In beats from the start of the project */
@@ -720,6 +723,7 @@ export class EditorRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
+        soundfont: preset.soundfont,
         bank: preset.bank,
         program: preset.program,
       }));

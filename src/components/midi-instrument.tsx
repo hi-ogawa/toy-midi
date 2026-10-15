@@ -24,7 +24,11 @@ export function MidiInstrument({
         <InstrumentCombobox
           className="w-full!"
           aria-label={`${track.name} program`}
-          value={{ bank: track.bank, program: track.program }}
+          value={{
+            soundfont: track.soundfont,
+            bank: track.bank,
+            program: track.program,
+          }}
           disabled={presetPending}
           onValueChange={onPresetChange}
         />

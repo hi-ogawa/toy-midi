@@ -640,8 +640,8 @@ export function Editor({ source }: { source: ProjectSource }) {
                       onScorePreview={() => scoreUi.open(track.id)}
                       onPresetSelected={(preset) => {
                         // New tracks start from the last General MIDI
-                        // program, not a drum kit.
-                        if (!preset.bank) {
+                        // program, not a drum kit or another SoundFont.
+                        if (!preset.soundfont && !preset.bank) {
                           setDefaultMidiProgram(preset.program);
                         }
                       }}
