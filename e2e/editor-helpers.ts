@@ -18,17 +18,19 @@ export async function createProject(page: Page): Promise<void> {
 }
 
 /**
- * Wait until a track is heard during playback, judged by its level meter in
- * the open mixer rising above the floor. The meter reads the track's channel,
- * which is as close to the speakers as a test can observe.
+ * Open the mixer, play, and wait until the track is heard, judged by its level
+ * meter rising above the floor. The meter reads the track's channel, which is
+ * as close to the speakers as a test can observe.
  */
-export async function expectTrackAudible(
+export async function playAndExpectTrackAudible(
   page: Page,
   { name }: { name: string },
 ): Promise<void> {
   await test.step(
-    `Hear ${name}`,
+    `Play and hear ${name}`,
     async () => {
+      await page.getByTestId("mixer-button").click();
+      await page.getByTestId("play-button").click();
       const meter = page
         .getByTestId("mixer-panel")
         .getByRole("meter", { name: `${name} level` });
