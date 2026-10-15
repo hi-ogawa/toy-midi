@@ -30,8 +30,8 @@ export class MidiNoteScheduler {
     this.notes = notes;
   }
 
-  start(playbackRun: PlaybackRunOptions): void {
-    this.playbackRun = new PlaybackRun(playbackRun);
+  start(playbackRunOptions: PlaybackRunOptions): void {
+    this.playbackRun = new PlaybackRun(playbackRunOptions);
     this.scheduledUntil = this.playbackRun.firstPass.contextTime;
   }
 

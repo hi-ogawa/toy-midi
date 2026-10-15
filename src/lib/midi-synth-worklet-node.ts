@@ -61,8 +61,8 @@ export class MidiSynthWorkletNode {
     this.postMessage({ type: "setNotes", notes });
   }
 
-  start(playbackRun: PlaybackRunOptions): void {
-    this.postMessage({ type: "start", playbackRun });
+  start(playbackRunOptions: PlaybackRunOptions): void {
+    this.postMessage({ type: "start", playbackRunOptions });
   }
 
   stop(): void {

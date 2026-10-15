@@ -15,7 +15,7 @@ export type MidiSynthClientMessage =
   | { type: "noteOn"; pitch: number; velocity: number }
   | { type: "noteOff"; pitch: number }
   | { type: "setNotes"; notes: TimelineNote[] }
-  | { type: "start"; playbackRun: PlaybackRunOptions }
+  | { type: "start"; playbackRunOptions: PlaybackRunOptions }
   | { type: "stop" };
 
 export type MidiSynthWorkletMessage =
@@ -88,7 +88,7 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
         break;
       }
       case "start": {
-        this.scheduler.start(message.playbackRun);
+        this.scheduler.start(message.playbackRunOptions);
         break;
       }
       case "stop": {
