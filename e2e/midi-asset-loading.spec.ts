@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   createMidiNote,
   createProject,
-  expectTrackAudible,
+  playAndExpectTrackAudible,
 } from "./editor-helpers";
 
 test("adds MIDI tracks while the soundfont loads and plays them once it arrives", async ({
@@ -42,7 +42,5 @@ test("adds MIDI tracks while the soundfont loads and plays them once it arrives"
   await expect(loading).not.toBeVisible();
 
   // Play, and hear the track that was written before the soundfont arrived.
-  await page.getByTestId("mixer-button").click();
-  await page.getByTestId("play-button").click();
-  await expectTrackAudible(page, { name: "MIDI 1" });
+  await playAndExpectTrackAudible(page, { name: "MIDI 1" });
 });
