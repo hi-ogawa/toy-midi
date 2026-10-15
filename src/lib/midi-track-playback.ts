@@ -1,7 +1,6 @@
 import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
-import type { ScheduledRange } from "./playback-run.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import type {
@@ -13,7 +12,6 @@ export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
   private notes: Note[] = [];
   private tempo = 120;
-  private disposeScheduling?: () => void;
   private readonly synth: MidiSynthWorkletNode;
   private readonly unregister: () => void;
   private readonly transport: AudioContextTransport;
@@ -65,16 +63,20 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.transport = transport;
     this.unregister = transport.register(this);
     this.setNotes(track.notes);
+    // A track added during playback joins the running playback.
+    if (transport.store.get().isPlaying) {
+      this.start();
+    }
   }
 
   setNotes(notes: Note[]): void {
-    this.notes = notes.toSorted((a, b) => a.start - b.start);
-    this.refreshSchedule();
+    this.notes = notes;
+    this.sendNotes();
   }
 
   setTempo(tempo: number): void {
     this.tempo = tempo;
-    this.refreshSchedule();
+    this.sendNotes();
   }
 
   async setPreset(preset: MidiPreset): Promise<void> {
@@ -90,16 +92,11 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 
   start(): void {
-    this.stop();
-    this.disposeScheduling = this.transport.startScheduleLoop((range) =>
-      this.schedule(range),
-    );
+    this.synth.start(this.transport.playbackRun!.options);
   }
 
   stop(): void {
-    this.disposeScheduling?.();
-    this.disposeScheduling = undefined;
-    this.synth.reset();
+    this.synth.stop();
   }
 
   dispose(): void {
@@ -108,34 +105,20 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.channel.dispose();
   }
 
-  private refreshSchedule(): void {
-    if (this.transport.store.get().isPlaying) {
-      this.start();
-    }
-  }
-
-  private schedule(range: ScheduledRange): void {
-    for (const note of this.notes) {
-      const start = beatsToSeconds(note.start, this.tempo);
-      if (range.end <= start) {
-        break;
-      }
-      if (start < range.start) {
-        continue;
-      }
-      // A note held past loop-out ends at the wrap. The synth applies
-      // note-offs before note-ons on the same frame, so a repeated pitch at
-      // loop-in still retriggers.
-      const end = Math.min(
-        beatsToSeconds(note.start + note.duration, this.tempo),
-        range.pass.end,
-      );
-      this.synth.scheduleNoteOnOff({
-        pitch: note.pitch,
-        velocity: note.velocity,
-        startTime: range.pass.getContextTimeAt(start),
-        endTime: range.pass.getContextTimeAt(end),
-      });
-    }
+  /**
+   * Playback picks up the new notes in place, so notes sounding during an edit
+   * keep playing.
+   */
+  private sendNotes(): void {
+    this.synth.setNotes(
+      this.notes
+        .map((note) => ({
+          start: beatsToSeconds(note.start, this.tempo),
+          end: beatsToSeconds(note.start + note.duration, this.tempo),
+          pitch: note.pitch,
+          velocity: note.velocity,
+        }))
+        .sort((a, b) => a.start - b.start),
+    );
   }
 }

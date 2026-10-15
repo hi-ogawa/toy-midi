@@ -8,7 +8,7 @@
 const BOUNDARY_EPSILON = 1e-9;
 
 /** Half-open audio-clock window `[start, end)`. */
-type ContextTimeWindow = {
+export type ContextTimeWindow = {
   start: number;
   end: number;
 };
@@ -29,27 +29,29 @@ export type LoopSecondsRange = {
   end: number;
 };
 
+/** Plain data that defines a run, so it can cross to an audio worklet. */
+export type PlaybackRunOptions = {
+  /** Audio-clock time at which `position` sounds. */
+  contextTime: number;
+  position: number;
+  playbackRate: number;
+  loopRange?: LoopSecondsRange;
+};
+
 /**
  * One playback run as a sequence of passes. Pass 0 runs from the playhead to
  * loop-out, or forever without a loop. Each later pass runs from loop-in to
  * loop-out and begins the instant the previous one ends.
  */
 export class PlaybackRun {
+  readonly options: PlaybackRunOptions;
   readonly firstPass: PlaybackPass;
   private readonly firstPassEnd: number;
   private readonly loopRange?: LoopSecondsRange;
 
-  constructor({
-    contextTime,
-    position,
-    playbackRate,
-    loopRange,
-  }: {
-    contextTime: number;
-    position: number;
-    playbackRate: number;
-    loopRange?: LoopSecondsRange;
-  }) {
+  constructor(options: PlaybackRunOptions) {
+    const { contextTime, position, playbackRate, loopRange } = options;
+    this.options = options;
     this.firstPass = new PlaybackPass({
       index: 0,
       start: position,

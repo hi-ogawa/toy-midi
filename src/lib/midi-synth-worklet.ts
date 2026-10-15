@@ -1,6 +1,8 @@
 import { SoundBankLoader, SpessaSynthProcessor } from "spessasynth_core";
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
 import { DRUM_KIT_BANK } from "./general-midi.ts";
+import { MidiNoteScheduler, type TimelineNote } from "./midi-note-scheduler.ts";
+import type { PlaybackRunOptions } from "./playback-run.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 // Every track plays on the first MIDI channel of its own synth.
@@ -12,14 +14,9 @@ export type MidiSynthClientMessage =
   | { type: "setPreset"; bank: number; program: number }
   | { type: "noteOn"; pitch: number; velocity: number }
   | { type: "noteOff"; pitch: number }
-  | {
-      type: "scheduleNoteOnOff";
-      pitch: number;
-      velocity: number;
-      startFrame: number;
-      endFrame: number;
-    }
-  | { type: "reset" };
+  | { type: "setNotes"; notes: TimelineNote[] }
+  | { type: "start"; playbackRunOptions: PlaybackRunOptions }
+  | { type: "stop" };
 
 export type MidiSynthWorkletMessage =
   | { type: "ready" }
@@ -44,6 +41,9 @@ declare function registerProcessor(
 class MidiSynthProcessor extends AudioWorkletProcessor {
   private readonly isDisposed = watchWorkletDisposal(this.port);
   private synth?: SpessaSynthProcessor;
+  // Scheduling here rather than on a main-thread timer keeps a busy page from
+  // dropping notes.
+  private readonly scheduler = new MidiNoteScheduler();
   // Sorted by frame, with note-offs before note-ons on the same frame.
   private events: ScheduledEvent[] = [];
 
@@ -83,19 +83,17 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
         synth.noteOff(CHANNEL, message.pitch);
         break;
       }
-      case "scheduleNoteOnOff": {
-        const { pitch, velocity, startFrame, endFrame } = message;
-        this.insertEvent({
-          type: "noteOn",
-          frame: startFrame,
-          pitch,
-          velocity,
-        });
-        this.insertEvent({ type: "noteOff", frame: endFrame, pitch });
+      case "setNotes": {
+        this.scheduler.setNotes(message.notes);
         break;
       }
-      case "reset": {
+      case "start": {
+        this.scheduler.start(message.playbackRunOptions);
+        break;
+      }
+      case "stop": {
         // Drop the queue first so no pending note-on restarts a released note.
+        this.scheduler.stop();
         this.events = [];
         synth.stopAllChannels();
         break;
@@ -124,6 +122,27 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     }
   }
 
+  /** Queues the notes that start before `endFrame`. */
+  private scheduleNotes(endFrame: number): void {
+    const notes = this.scheduler.getScheduledNotes({
+      start: currentFrame / sampleRate,
+      end: endFrame / sampleRate,
+    });
+    for (const { startTime, endTime, pitch, velocity } of notes) {
+      this.insertEvent({
+        type: "noteOn",
+        frame: Math.round(startTime * sampleRate),
+        pitch,
+        velocity,
+      });
+      this.insertEvent({
+        type: "noteOff",
+        frame: Math.round(endTime * sampleRate),
+        pitch,
+      });
+    }
+  }
+
   private insertEvent(event: ScheduledEvent): void {
     const rank = (e: ScheduledEvent) => (e.type === "noteOff" ? 0 : 1);
     // Insert after every event that sorts at or before this one, so equal
@@ -147,9 +166,10 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     if (!synth || !left || !right) {
       return true;
     }
+    const blockEnd = currentFrame + left.length;
+    this.scheduleNotes(blockEnd);
     // Split the render block at each due event so it starts on its own frame.
     // Events that arrived late apply at the start of the block.
-    const blockEnd = currentFrame + left.length;
     let offset = 0;
     while (this.events.length > 0 && this.events[0].frame < blockEnd) {
       const event = this.events.shift()!;
