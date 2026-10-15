@@ -1,8 +1,8 @@
 import type { TimeSignature } from "../types.ts";
 import { midiToHz, parseMidiPitch } from "./music.ts";
+import type { ScheduledRange } from "./playback-run.ts";
 import type {
   AudioContextTransport,
-  ScheduledRange,
   TransportParticipant,
 } from "./transport.ts";
 

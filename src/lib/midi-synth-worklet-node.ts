@@ -1,9 +1,11 @@
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
+import type { TimelineNote } from "./midi-note-scheduler.ts";
 import type {
   MidiSynthClientMessage,
   MidiSynthProcessorOptions,
   MidiSynthWorkletMessage,
 } from "./midi-synth-worklet.ts";
+import type { PlaybackRunOptions } from "./playback-run.ts";
 import { midiAssetUrls, waitForMidiAssets } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
 
@@ -121,30 +123,20 @@ export class MidiSynthChannel {
     this.postMessage({ type: "noteOff", channel: this.channel, pitch });
   }
 
-  scheduleNoteOnOff({
-    pitch,
-    startTime,
-    endTime,
-    velocity,
-  }: {
-    pitch: number;
-    startTime: number;
-    endTime: number;
-    velocity: number;
-  }): void {
-    const { sampleRate } = this.node.context;
+  setNotes(notes: TimelineNote[]): void {
+    this.postMessage({ type: "setNotes", channel: this.channel, notes });
+  }
+
+  start(playbackRunOptions: PlaybackRunOptions): void {
     this.postMessage({
-      type: "scheduleNoteOnOff",
+      type: "start",
       channel: this.channel,
-      pitch,
-      velocity,
-      startFrame: Math.round(startTime * sampleRate),
-      endFrame: Math.round(endTime * sampleRate),
+      playbackRunOptions,
     });
   }
 
-  reset(): void {
-    this.postMessage({ type: "reset", channel: this.channel });
+  stop(): void {
+    this.postMessage({ type: "stop", channel: this.channel });
   }
 
   dispose(): void {

@@ -1,8 +1,8 @@
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { DeclickGain } from "./dsp/declick-gain.ts";
+import type { ScheduledRange } from "./playback-run.ts";
 import {
   type AudioContextTransport,
-  type ScheduledRange,
   type TransportParticipant,
 } from "./transport.ts";
 
