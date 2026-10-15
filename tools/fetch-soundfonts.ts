@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+// https://github.com/hi-ogawa/toy-midi/releases/tag/soundfonts-1
 const RELEASE_URL =
   "https://github.com/hi-ogawa/toy-midi/releases/download/soundfonts-1";
 const OUT_DIR = path.join(import.meta.dirname, "../public/soundfonts");
