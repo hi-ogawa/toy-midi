@@ -15,33 +15,123 @@ import os from "node:os";
 import path from "node:path";
 import { inflateRawSync } from "node:zlib";
 
-const args = process.argv.slice(2);
-const input = args.find((a) => !a.startsWith("--") && !isFlagValue(a));
-const flag = (name) => {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-function isFlagValue(a) {
-  const i = args.indexOf(a);
-  return i > 0 && ["--out", "--sf2"].includes(args[i - 1]);
-}
-if (!input) {
-  console.error(
-    "usage: node tools/render/render.mjs <share-link | payload | project.json> [--out dir] [--sf2 file] [--mp3]",
-  );
-  process.exit(1);
-}
+function main() {
+  const args = process.argv.slice(2);
+  const input = args.find((a) => !a.startsWith("--") && !isFlagValue(a));
+  const flag = (name) => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args[i + 1] : undefined;
+  };
+  function isFlagValue(a) {
+    const i = args.indexOf(a);
+    return i > 0 && ["--out", "--sf2"].includes(args[i - 1]);
+  }
+  if (!input) {
+    console.error(
+      "usage: node tools/render/render.mjs <share-link | payload | project.json> [--out dir] [--sf2 file] [--mp3]",
+    );
+    process.exit(1);
+  }
 
-const sf2 = path.resolve(
-  flag("--sf2") ??
-    path.join(os.homedir(), ".local/share/soundfonts/GeneralUser-GS.sf2"),
-);
-const project = loadProject(input);
-const slug = (project.title || "project")
-  .replace(/[^\w-]+/g, "-")
-  .toLowerCase();
-const outDir = path.resolve(flag("--out") ?? path.join("out", slug));
-fs.mkdirSync(outDir, { recursive: true });
+  const sf2 = path.resolve(
+    flag("--sf2") ??
+      path.join(os.homedir(), ".local/share/soundfonts/GeneralUser-GS.sf2"),
+  );
+  const project = loadProject(input);
+  const slug = (project.title || "project")
+    .replace(/[^\w-]+/g, "-")
+    .toLowerCase();
+  const outDir = path.resolve(flag("--out") ?? path.join("out", slug));
+  fs.mkdirSync(outDir, { recursive: true });
+
+  const rows = [];
+  const gained = [];
+  project.midiTracks.forEach((track, i) => {
+    const id = String(i + 1).padStart(2, "0");
+    const base = path.join(
+      outDir,
+      `${id}-${track.name.replace(/[^\w-]+/g, "-").toLowerCase()}`,
+    );
+    const gain = track.gain ?? 1;
+    const notes = track.notes ?? [];
+    const row = {
+      name: track.name,
+      preset: `${track.bank ?? 0}/${track.program}`,
+      notes: notes.length,
+      velocity: notes.length
+        ? notes.reduce((s, n) => s + (n.velocity ?? 100), 0) / notes.length
+        : NaN,
+      gainDb: db(gain),
+      muted: !!track.muted,
+    };
+    rows.push(row);
+    if (track.muted || notes.length === 0) {
+      return;
+    }
+    writeMidi(`${base}.mid`, {
+      tempo: project.tempo,
+      timeSignature: project.timeSignature,
+      track,
+    });
+    render(`${base}.mid`, `${base}-raw.wav`, track.sf2 ?? sf2);
+    applyGain(`${base}-raw.wav`, `${base}.wav`, gain, track.pan ?? 0);
+    row.rawLufs = measure(`${base}-raw.wav`);
+    row.lufs = measure(`${base}.wav`);
+    gained.push(`${base}.wav`);
+    if (args.includes("--mp3")) {
+      run("ffmpeg", [
+        "-y",
+        "-v",
+        "error",
+        "-i",
+        `${base}.wav`,
+        "-b:a",
+        "192k",
+        `${base}.mp3`,
+      ]);
+    }
+  });
+
+  const mixWav = path.join(outDir, "00-mix.wav");
+  run("ffmpeg", [
+    "-y",
+    "-v",
+    "error",
+    ...gained.flatMap((f) => ["-i", f]),
+    "-filter_complex",
+    `amix=inputs=${gained.length}:normalize=0:duration=longest`,
+    mixWav,
+  ]);
+  const mixLufs = measure(mixWav);
+  if (args.includes("--mp3")) {
+    run("ffmpeg", [
+      "-y",
+      "-v",
+      "error",
+      "-i",
+      mixWav,
+      "-b:a",
+      "192k",
+      mixWav.replace(/\.wav$/, ".mp3"),
+    ]);
+  }
+
+  console.log(`# ${project.title} (${project.tempo} BPM)\n`);
+  console.log(
+    `SoundFont: ${path.basename(sf2)}, fluidsynth with reverb and chorus off. Mix: ${fmt(mixLufs)} LUFS.\n`,
+  );
+  console.log(
+    "| Track | Preset (bank/program) | Notes | Mean velocity | Gain (dB) | LUFS before gain | LUFS | Δ vs mix (LU) |",
+  );
+  console.log("|---|---|---|---|---|---|---|---|");
+  for (const r of rows) {
+    const lufsCell = r.muted ? "muted" : fmt(r.lufs);
+    console.log(
+      `| ${r.name} | ${r.preset} | ${r.notes} | ${fmt(r.velocity, 0)} | ${fmt(r.gainDb)} | ${fmt(r.rawLufs)} | ${lufsCell} | ${fmt(r.lufs - mixLufs)} |`,
+    );
+  }
+  console.log(`\nFiles: ${outDir}`);
+}
 
 // --- load ---
 
@@ -275,7 +365,7 @@ function writeMidi(file, { tempo, timeSignature, track }) {
 const run = (cmd, argv) =>
   execFileSync(cmd, argv, { stdio: ["ignore", "pipe", "pipe"] });
 
-function render(mid, wav, font = sf2) {
+function render(mid, wav, font) {
   run("fluidsynth", [
     "-ni",
     "-q",
@@ -329,90 +419,4 @@ function measure(wav) {
 const db = (g) => (g > 0 ? 20 * Math.log10(g) : -Infinity);
 const fmt = (x, d = 1) => (Number.isFinite(x) ? x.toFixed(d) : "–");
 
-const rows = [];
-const gained = [];
-project.midiTracks.forEach((track, i) => {
-  const id = String(i + 1).padStart(2, "0");
-  const base = path.join(
-    outDir,
-    `${id}-${track.name.replace(/[^\w-]+/g, "-").toLowerCase()}`,
-  );
-  const gain = track.gain ?? 1;
-  const notes = track.notes ?? [];
-  const row = {
-    name: track.name,
-    preset: `${track.bank ?? 0}/${track.program}`,
-    notes: notes.length,
-    velocity: notes.length
-      ? notes.reduce((s, n) => s + (n.velocity ?? 100), 0) / notes.length
-      : NaN,
-    gainDb: db(gain),
-    muted: !!track.muted,
-  };
-  rows.push(row);
-  if (track.muted || notes.length === 0) {
-    return;
-  }
-  writeMidi(`${base}.mid`, {
-    tempo: project.tempo,
-    timeSignature: project.timeSignature,
-    track,
-  });
-  render(`${base}.mid`, `${base}-raw.wav`, track.sf2 ?? sf2);
-  applyGain(`${base}-raw.wav`, `${base}.wav`, gain, track.pan ?? 0);
-  row.rawLufs = measure(`${base}-raw.wav`);
-  row.lufs = measure(`${base}.wav`);
-  gained.push(`${base}.wav`);
-  if (args.includes("--mp3")) {
-    run("ffmpeg", [
-      "-y",
-      "-v",
-      "error",
-      "-i",
-      `${base}.wav`,
-      "-b:a",
-      "192k",
-      `${base}.mp3`,
-    ]);
-  }
-});
-
-const mixWav = path.join(outDir, "00-mix.wav");
-run("ffmpeg", [
-  "-y",
-  "-v",
-  "error",
-  ...gained.flatMap((f) => ["-i", f]),
-  "-filter_complex",
-  `amix=inputs=${gained.length}:normalize=0:duration=longest`,
-  mixWav,
-]);
-const mixLufs = measure(mixWav);
-if (args.includes("--mp3")) {
-  run("ffmpeg", [
-    "-y",
-    "-v",
-    "error",
-    "-i",
-    mixWav,
-    "-b:a",
-    "192k",
-    mixWav.replace(/\.wav$/, ".mp3"),
-  ]);
-}
-
-console.log(`# ${project.title} (${project.tempo} BPM)\n`);
-console.log(
-  `SoundFont: ${path.basename(sf2)}, fluidsynth with reverb and chorus off. Mix: ${fmt(mixLufs)} LUFS.\n`,
-);
-console.log(
-  "| Track | Preset (bank/program) | Notes | Mean velocity | Gain (dB) | LUFS before gain | LUFS | Δ vs mix (LU) |",
-);
-console.log("|---|---|---|---|---|---|---|---|");
-for (const r of rows) {
-  const lufsCell = r.muted ? "muted" : fmt(r.lufs);
-  console.log(
-    `| ${r.name} | ${r.preset} | ${r.notes} | ${fmt(r.velocity, 0)} | ${fmt(r.gainDb)} | ${fmt(r.rawLufs)} | ${lufsCell} | ${fmt(r.lufs - mixLufs)} |`,
-  );
-}
-console.log(`\nFiles: ${outDir}`);
+main();
