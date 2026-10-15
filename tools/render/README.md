@@ -1,27 +1,37 @@
-# Offline Render Scripts
+# Offline Render
 
-One-off scripts for rendering toy-midi projects outside the app with fluidsynth. They are a stopgap until a SpessaSynth-based renderer lives in the repo, so they do not match the app's synth exactly.
+Render a Toy MIDI project to audio outside the app, to hear it or measure its loudness from a terminal. The renderer plays each MIDI track with fluidsynth, applies the track's gain and pan, mixes the tracks with mute, solo, and master gain, and prints integrated loudness per track and for the mix. Audio tracks and track EQ are not rendered.
+
+The app plays MIDI with SpessaSynth, so a render with the same SoundFont is close to in-app playback but not identical.
 
 ## Requirements
 
-- Node.js
 - `fluidsynth` and `ffmpeg` on `PATH`
-- `python3` for `sfinfo.py`
-- A SoundFont. `render.mjs` defaults to `~/.local/share/soundfonts/GeneralUser-GS.sf2`, and `--sf2` overrides it.
+- Repository dependencies installed with `pnpm i`, for `tsx`
 
-## Usage
-
-Render each track, mix them with track gain and pan applied, and print integrated LUFS per track and for the mix:
+## Render a Project
 
 ```sh
-node tools/render/render.mjs project.json
-node tools/render/render.mjs '<share link with #p=...>' --out out/demo --sf2 path/to/font.sf2 --mp3
+pnpm exec tsx tools/render/render.ts project.json
+pnpm exec tsx tools/render/render.ts 'https://toy-midi.hiro18181.workers.dev/draft#p=...' --mp3
 ```
 
-Output goes to `./out/<title>` by default. Beyond the app's project format, tracks can set `sf2` to use a different font and `nrpn` to offset SoundFont generators, and notes can set `art` (`h`, `p`, `b`, `r`) and `vib`, which are rendered as pitch bend.
+The input is a project JSON file, a share link, or a share link's `p` payload. The default SoundFont is the app's bundled GeneralUser GS, and `--sf2` replaces it. Output goes to `.tmp/render/<title>` unless `--out` sets a directory, with a MIDI file, a dry WAV, and a WAV after gain and pan for each track, plus `00-mix.wav`. `--mp3` adds MP3 copies.
 
-List the presets in a SoundFont with their velocity layers and key ranges:
+The renderer also reads track and note fields that the app doesn't play yet, for experiments such as guitar parts:
+
+| Field        | Meaning                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------- |
+| track `sf2`  | SoundFont path for this track instead of `--sf2`                                                        |
+| track `nrpn` | SoundFont generator number to an offset in -8192..8191, such as `{ "38": -2000 }` for a shorter release |
+| note `art`   | `h` hammer-on, `p` pull-off, `b` bend, or `r` release, played as pitch bend on a monophonic track       |
+| note `bend`  | Semitones a `b` note bends up from, 2 by default                                                        |
+| note `vib`   | Vibrato depth in cents                                                                                  |
+
+## Inspect a SoundFont
+
+List the presets of SF2 or SF3 files with their velocity layers, key ranges, and samples:
 
 ```sh
-python3 tools/render/sfinfo.py path/to/font.sf2
+pnpm exec tsx tools/render/soundfont-info.ts font.sf2
 ```
