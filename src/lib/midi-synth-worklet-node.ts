@@ -113,13 +113,8 @@ export class MidiSynthWorkletNode {
     let load = this.soundfontLoads.get(soundfont.id);
     if (!load) {
       load = (async () => {
-        const response = await fetch(soundfont.url);
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch ${soundfont.url}: ${response.status}`,
-          );
-        }
-        const data = await response.arrayBuffer();
+        // Posting transfers the bytes, so each track sends its own copy.
+        const data = (await downloadSoundfont(soundfont.url)).slice(0);
         if (this.node) {
           this.postMessage(
             { type: "addSoundfont", id: soundfont.id, soundfont: data },
@@ -158,4 +153,24 @@ async function ensureMidiWorklet(context: AudioContext): Promise<void> {
     registrations.delete(context);
     throw error;
   }
+}
+
+const downloads = new Map<string, Promise<ArrayBuffer>>();
+
+// Tracks share one download, because Chromium fails some of several concurrent
+// requests for the same large file with ERR_CACHE_WRITE_FAILURE.
+function downloadSoundfont(url: string): Promise<ArrayBuffer> {
+  let download = downloads.get(url);
+  if (!download) {
+    download = (async () => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.status}`);
+      }
+      return await response.arrayBuffer();
+    })();
+    download.catch(() => downloads.delete(url));
+    downloads.set(url, download);
+  }
+  return download;
 }
