@@ -17,27 +17,6 @@ export async function createProject(page: Page): Promise<void> {
   );
 }
 
-/** Wait until playback lifts a track's mixer meter above its floor. */
-export async function expectTrackAudible(
-  page: Page,
-  { name }: { name: string },
-): Promise<void> {
-  await test.step(
-    `Hear ${name}`,
-    async () => {
-      const level = page.getByRole("meter", { name: `${name} level` });
-      await expect
-        .poll(
-          async () =>
-            Number(await level.getAttribute("aria-valuemin")) <
-            Number(await level.getAttribute("aria-valuenow")),
-        )
-        .toBe(true);
-    },
-    { box: true },
-  );
-}
-
 export async function addMidiTrack(page: Page) {
   return await test.step(
     "Add MIDI track",

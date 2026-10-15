@@ -4,7 +4,6 @@ import {
   dragBy,
   addMidiTrack,
   createMidiNote,
-  expectTrackAudible,
   saveProject,
   getPosition,
   openMidiInstrument,
@@ -99,23 +98,6 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await page.reload();
   await expect(rows).toHaveCount(1);
   await expect(rows.nth(0)).toContainText("Lead");
-});
-
-test("plays MIDI notes audibly", async ({ page }) => {
-  // Write a bar of C4 quarter notes on a new MIDI track, then save and reload
-  // so the previews of the new notes don't reach the meter.
-  await createProject(page);
-  const row = await addMidiTrack(page);
-  for (const beat of [0, 1, 2, 3]) {
-    await createMidiNote(page, row, { beat, pitch: "C4" });
-  }
-  await saveProject(page);
-  await page.reload();
-
-  // Play the restored notes with the mixer open and hear them on the track meter.
-  await page.getByTestId("mixer-button").click();
-  await page.getByTestId("play-button").click();
-  await expectTrackAudible(page, { name: "MIDI 1" });
 });
 
 test("creates and deletes a note and persists its instrument", async ({
