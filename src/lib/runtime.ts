@@ -6,6 +6,7 @@ import {
 import { insertAtIndices } from "../utils/array.ts";
 import { createNumberedName } from "../utils/name.ts";
 import { createStore, shallowEqual } from "../utils/store.ts";
+import { StereoAnalyser } from "./audio-analyser.ts";
 import {
   createAudioClip,
   WAVEFORM_POINTS_PER_SECOND,
@@ -21,9 +22,10 @@ import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import {
   createDefaultMultibandEq,
   ensureBiquadEqWorklet,
-} from "./dsp/biquad-eq-node.ts";
-import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-node.ts";
+} from "./dsp/biquad-eq-worklet-node.ts";
+import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { History } from "./history.ts";
+import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -50,9 +52,15 @@ import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 export const MIN_CLIP_DURATION = 0.01;
-const DEFAULT_TRACK_HEIGHT = 72;
-export const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
+// Fits the track header with its gain slider row below the title row.
+export const MIN_GAIN_SLIDER_HEIGHT = 72;
+// New tracks open with the gain slider showing.
+const DEFAULT_TRACK_HEIGHT = MIN_GAIN_SLIDER_HEIGHT;
+// Fits the compact track header, which is a single title row.
+export const MIN_TRACK_HEIGHT = 44;
 const MAX_TRACK_HEIGHT = 300;
+// Tall enough for several octaves of piano roll.
+const MAX_MIDI_TRACK_HEIGHT = 800;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
@@ -60,7 +68,7 @@ export interface AudioTrackState {
   id: string;
   name: string;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 72 to 300 */
+  /** Row height in pixels, from 44 to 300 */
   height: number;
   /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
@@ -90,7 +98,7 @@ export interface MidiTrackState {
    */
   bank?: number;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 72 to 300 */
+  /** Row height in pixels, from 44 to 800 */
   height: number;
   /** Whether the row shows the note editor or a compact note overview */
   viewMode: "editor" | "overview";
@@ -298,6 +306,10 @@ export class EditorRuntime {
   readonly context = new AudioContext();
   readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
+  private masterAnalyser?: StereoAnalyser;
+  readonly levelMeters = new LevelMeters({
+    getAnalyser: (target) => this.getMeterAnalyser(target),
+  });
   /** @internal */
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
@@ -611,7 +623,7 @@ export class EditorRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
-        height: clamp(height, 68, 800),
+        height: clamp(height, MIN_TRACK_HEIGHT, MAX_MIDI_TRACK_HEIGHT),
       }));
       return;
     }
@@ -777,6 +789,20 @@ export class EditorRuntime {
     audioTracks[index] = apply(track);
     this.store.update({ audioTracks });
     return audioTracks[index]!;
+  }
+
+  private getMeterAnalyser(target: MeterTarget): StereoAnalyser | undefined {
+    if (target.kind === "master") {
+      if (!this.masterAnalyser) {
+        this.masterAnalyser = new StereoAnalyser(this.context);
+        this.masterOutput.connect(this.masterAnalyser.input);
+      }
+      return this.masterAnalyser;
+    }
+    const playback =
+      this.trackPlaybacks.get(target.id) ??
+      this.midiTrackPlaybacks.get(target.id);
+    return playback?.channel.getAnalyser();
   }
 
   private getTrackPlayback(id: string): AudioTrackPlayback {

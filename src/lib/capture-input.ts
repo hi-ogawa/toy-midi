@@ -1,13 +1,13 @@
 import { AudioAnalyser } from "./audio-analyser.ts";
 import {
-  type CaptureChunk,
-  CaptureWorkletClient,
-  type CaptureWorkletNotification,
-  createCaptureWorkletSource,
+  CaptureWorkletNode,
+  ensureCaptureWorklet,
+} from "./capture-worklet-node.ts";
+import type {
+  CaptureChunk,
+  CaptureWorkletNotification,
 } from "./capture-worklet.ts";
 import { TunerAnalyser } from "./tuner-analyser.ts";
-
-const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
 
 export async function requestCaptureAccess(): Promise<void> {
   const stream =
@@ -24,7 +24,7 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 export class CaptureInput {
   readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
-  private readonly worklet: CaptureWorkletClient;
+  private readonly captureNode: CaptureWorkletNode;
   readonly analyser: AudioAnalyser;
   readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;
@@ -89,7 +89,7 @@ export class CaptureInput {
   }) {
     this.stream = stream;
     this.source = context.createMediaStreamSource(stream);
-    this.worklet = new CaptureWorkletClient({
+    this.captureNode = new CaptureWorkletNode({
       context,
       onNotification: (message) => {
         if (message.type === "samples") {
@@ -105,7 +105,7 @@ export class CaptureInput {
     // Keep the worklet connected so browsers continue rendering it. Zero gain
     // prevents input monitoring and feedback until it is explicitly enabled.
     this.source
-      .connect(this.worklet.node)
+      .connect(this.captureNode.node)
       .connect(this.tunerAnalyser.node)
       .connect(this.analyser.node)
       .connect(this.monitorGain)
@@ -113,7 +113,7 @@ export class CaptureInput {
   }
 
   setChannel(channel: number): void {
-    this.worklet.setChannel(channel);
+    this.captureNode.setChannel(channel);
   }
 
   /** Re-points monitoring at another channel without reopening the device. */
@@ -137,7 +137,7 @@ export class CaptureInput {
     this.capture = { chunks: [], startFrame: 0 };
     const capture = this.capture;
     try {
-      capture.startFrame = await this.worklet.start();
+      capture.startFrame = await this.captureNode.start();
       return capture.startFrame;
     } catch (error) {
       this.capture = undefined;
@@ -152,7 +152,7 @@ export class CaptureInput {
     }
     try {
       // The acknowledgement follows the final partial sample batch.
-      const stopFrame = await this.worklet.stop();
+      const stopFrame = await this.captureNode.stop();
       return new CapturedAudio({ ...capture, stopFrame });
     } finally {
       this.capture = undefined;
@@ -162,41 +162,13 @@ export class CaptureInput {
   dispose(): void {
     this.capture = undefined;
     this.source.disconnect();
-    this.worklet.dispose();
+    this.captureNode.dispose();
     this.analyser.dispose();
     this.tunerAnalyser.dispose();
     this.monitorGain.disconnect();
     for (const track of this.stream.getTracks()) {
       track.stop();
     }
-  }
-}
-
-async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
-  // Worklet registration belongs to an AudioContext. Share concurrent attempts,
-  // but discard failures so a later input-open attempt can retry.
-  let registration = workletRegistrations.get(context);
-  if (!registration) {
-    registration = registerCaptureWorklet(context);
-    workletRegistrations.set(context, registration);
-  }
-  try {
-    await registration;
-  } catch (error) {
-    workletRegistrations.delete(context);
-    throw error;
-  }
-}
-
-async function registerCaptureWorklet(context: AudioContext): Promise<void> {
-  const blob = new Blob([createCaptureWorkletSource()], {
-    type: "text/javascript",
-  });
-  const url = URL.createObjectURL(blob);
-  try {
-    await context.audioWorklet.addModule(url);
-  } finally {
-    URL.revokeObjectURL(url);
   }
 }
 

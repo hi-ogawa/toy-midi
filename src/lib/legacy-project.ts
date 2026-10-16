@@ -1,4 +1,4 @@
-import { createDefaultMultibandEq } from "./dsp/biquad-eq-node";
+import { createDefaultMultibandEq } from "./dsp/biquad-eq-worklet-node";
 import {
   type AnyLegacySavedProject,
   normalizeLegacySavedProject,

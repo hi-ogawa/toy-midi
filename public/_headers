@@ -1,5 +1,8 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+/soundfonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
 /llms/*
   Content-Type: text/plain; charset=utf-8

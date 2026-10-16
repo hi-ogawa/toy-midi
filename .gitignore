@@ -8,3 +8,4 @@ public/llms/
 test-results/
 target/
 crates/bass-pitch-wasm/pkg/
+public/soundfonts/

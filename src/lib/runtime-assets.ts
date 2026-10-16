@@ -1,8 +1,10 @@
 import { toast } from "sonner";
-import soundfontUrl from "../assets/soundfonts/GeneralUserGS.sf3?url";
 import workletUrl from "./midi-synth-worklet.ts?worker&url";
 
-export const midiAssetUrls = { workletUrl, soundfontUrl };
+export const midiAssetUrls = {
+  workletUrl,
+  soundfontUrl: "/soundfonts/GeneralUserGS-2.0.3.sf3",
+};
 
 let preloadPromise: Promise<void> | undefined;
 let demandPromise: Promise<void> | undefined;

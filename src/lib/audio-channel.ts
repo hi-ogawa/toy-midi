@@ -1,12 +1,14 @@
+import { StereoAnalyser } from "./audio-analyser.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
-import { BiquadEqNode } from "./dsp/biquad-eq-node.ts";
+import { BiquadEqWorkletNode } from "./dsp/biquad-eq-worklet-node.ts";
 
 /** Persistent stereo processing shared by all sources in a mixer channel. */
 export class AudioChannel {
   readonly input: GainNode;
   private readonly gain: GainNode;
   private readonly panner: StereoPannerNode;
-  private readonly equalizer: BiquadEqNode;
+  private readonly equalizer: BiquadEqWorkletNode;
+  private analyser?: StereoAnalyser;
 
   constructor({
     context,
@@ -24,7 +26,7 @@ export class AudioChannel {
     this.input = context.createGain();
     this.gain = context.createGain();
     this.gain.gain.value = gain;
-    this.equalizer = new BiquadEqNode({
+    this.equalizer = new BiquadEqWorkletNode({
       context,
       channelCount: 2,
       parameters: eq,
@@ -50,7 +52,20 @@ export class AudioChannel {
     this.panner.pan.setTargetAtTime(pan, this.panner.context.currentTime, 0.01);
   }
 
+  /**
+   * Analyses the signal after gain and pan, so levels follow the fader, mute,
+   * and solo. Created on first use, so offline mixes never analyse.
+   */
+  getAnalyser(): StereoAnalyser {
+    if (!this.analyser) {
+      this.analyser = new StereoAnalyser(this.panner.context);
+      this.panner.connect(this.analyser.input);
+    }
+    return this.analyser;
+  }
+
   dispose(): void {
+    this.analyser?.dispose();
     this.input.disconnect();
     this.equalizer.dispose();
     this.gain.disconnect();
