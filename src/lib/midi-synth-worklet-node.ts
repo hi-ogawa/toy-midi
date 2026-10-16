@@ -6,7 +6,7 @@ import type {
   MidiSynthWorkletMessage,
 } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
-import { loadSoundfont } from "./runtime-assets";
+import { type LoadedSoundfont, loadSoundfont } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
 import {
   findSoundfont,
@@ -50,7 +50,7 @@ export class MidiSynthWorkletNode {
       this.postMessage({ type: "init" });
     });
     await this.setPreset(preset);
-    this.addSoundfont(GENERAL_USER_SOUNDFONT);
+    void this.addSoundfont(GENERAL_USER_SOUNDFONT);
   }
 
   async setPreset({
@@ -80,7 +80,7 @@ export class MidiSynthWorkletNode {
         program: standIn.program,
       },
     });
-    this.addSoundfont(soundfont);
+    void this.addSoundfont(soundfont);
   }
 
   noteOn(pitch: number): void {
@@ -111,26 +111,25 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  private addSoundfont(soundfont: Soundfont): void {
+  private async addSoundfont(soundfont: Soundfont): Promise<void> {
     if (this.soundfonts.has(soundfont.id)) {
       return;
     }
     this.soundfonts.add(soundfont.id);
-    loadSoundfont(soundfont).then(
-      (loaded) => {
-        if (this.node) {
-          this.postMessage(
-            { type: "addSoundfont", id: soundfont.id, ...loaded },
-            [
-              loaded.soundfont,
-              ...(loaded.samples ?? []).map(({ buffer }) => buffer),
-            ],
-          );
-        }
-      },
+    let loaded: LoadedSoundfont;
+    try {
+      loaded = await loadSoundfont(soundfont);
+    } catch {
       // The loader reports the failure, and a later preset change retries.
-      () => this.soundfonts.delete(soundfont.id),
-    );
+      this.soundfonts.delete(soundfont.id);
+      return;
+    }
+    if (this.node) {
+      this.postMessage({ type: "addSoundfont", id: soundfont.id, ...loaded }, [
+        loaded.soundfont,
+        ...(loaded.samples ?? []).map(({ buffer }) => buffer),
+      ]);
+    }
   }
 
   private postMessage(
