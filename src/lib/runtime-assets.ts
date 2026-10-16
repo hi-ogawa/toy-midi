@@ -40,7 +40,7 @@ export function preloadMidiAssetsWhenIdle() {
   });
 }
 
-// Tracks share one download, because Chromium fails some of several concurrent
+// The idle preload and the loader share one download, because Chromium fails some of several concurrent
 // requests for the same large file with ERR_CACHE_WRITE_FAILURE.
 const downloadSoundfont = memo(async (url: string): Promise<ArrayBuffer> => {
   const response = await fetch(url);

@@ -29,7 +29,7 @@ test("adds MIDI tracks while the soundfont loads and shows loading feedback", as
   await expect(loading).toBeVisible();
   await expect(loading).toHaveCount(1);
 
-  // Finish the download and dismiss the loading feedback.
+  // Finish the download, which dismisses the loading feedback.
   releaseSoundfont.resolve();
   await expect(loading).not.toBeVisible();
 });
