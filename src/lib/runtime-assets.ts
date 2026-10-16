@@ -2,32 +2,13 @@ import { toast } from "sonner";
 import { memoAsync } from "../utils/memo.ts";
 import { createWorkerRpc } from "./rpc/worker.ts";
 import type { SoundfontDecoderWorkerHandlers } from "./soundfont-decoder-worker.ts";
-
-export interface Soundfont {
-  /** Identifies the SoundFont among those a synth has loaded */
-  id: string;
-  name: string;
-  url: string;
-  /**
-   * Decode every sample in a worker while the font loads, for a font whose
-   * presets each use most of the file. Otherwise a synth decodes a preset's
-   * samples on the audio thread when the preset is selected, which stalls
-   * every track for as long as that takes.
-   */
-  decodeInWorker?: boolean;
-}
+import { GENERAL_USER_SOUNDFONT, type Soundfont } from "./soundfonts.ts";
 
 export interface LoadedSoundfont {
   soundfont: ArrayBuffer;
   /** Every sample decoded, in the file's order, when decoded in a worker */
   samples?: Float32Array[];
 }
-
-export const GENERAL_USER_SOUNDFONT: Soundfont = {
-  id: "general-user",
-  name: "GeneralUser GS",
-  url: "/soundfonts/GeneralUserGS-2.0.3.sf3",
-};
 
 /**
  * Resolves to the SoundFont, showing one loading indicator per SoundFont

@@ -1,3 +1,23 @@
+export interface Soundfont {
+  /** Identifies the SoundFont among those a synth has loaded */
+  id: string;
+  name: string;
+  url: string;
+  /**
+   * Decode every sample in a worker while the font loads, for a font whose
+   * presets each use most of the file. Otherwise a synth decodes a preset's
+   * samples on the audio thread when the preset is selected, which stalls
+   * every track for as long as that takes.
+   */
+  decodeInWorker?: boolean;
+}
+
+export const GENERAL_USER_SOUNDFONT: Soundfont = {
+  id: "general-user",
+  name: "GeneralUser GS",
+  url: "/soundfonts/GeneralUserGS-2.0.3.sf3",
+};
+
 // SoundFonts bundled beside GeneralUser GS. Tracks name one by id, and each
 // preset has a GeneralUser stand-in that plays while the font downloads.
 export const SOUNDFONTS = [

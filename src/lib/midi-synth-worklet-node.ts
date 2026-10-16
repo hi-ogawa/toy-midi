@@ -6,13 +6,13 @@ import type {
   MidiSynthWorkletMessage,
 } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
-import {
-  GENERAL_USER_SOUNDFONT,
-  loadSoundfont,
-  type Soundfont,
-} from "./runtime-assets";
+import { loadSoundfont } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
-import { findSoundfont } from "./soundfonts.ts";
+import {
+  findSoundfont,
+  GENERAL_USER_SOUNDFONT,
+  type Soundfont,
+} from "./soundfonts.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
