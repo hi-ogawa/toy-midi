@@ -89,7 +89,10 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
-  /** SoundFont the preset comes from, the bundled GeneralUser GS when absent */
+  /**
+   * SoundFont the preset comes from, one of {@link SOUNDFONTS}, or the bundled
+   * GeneralUser GS when absent
+   */
   soundfont?: SoundfontId;
   /** MIDI program number (0-127) within `bank` */
   program: number;

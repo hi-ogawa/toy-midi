@@ -18,8 +18,13 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
   url: "/soundfonts/GeneralUserGS-2.0.3.sf3",
 };
 
-// SoundFonts bundled beside GeneralUser GS. Tracks name one by id, and each
-// preset has a GeneralUser stand-in that plays while the font downloads.
+/**
+ * SoundFonts bundled beside GeneralUser GS, which a MIDI track names by id.
+ * Each preset has a GeneralUser stand-in that plays while the font downloads.
+ *
+ * - `"flamestudios-telecaster-neck"`: a clean electric guitar recorded direct
+ *   in. Its Muted preset plays muted strokes and ghost notes.
+ */
 export const SOUNDFONTS = [
   {
     id: "flamestudios-telecaster-neck",
