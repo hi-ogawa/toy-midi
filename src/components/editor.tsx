@@ -58,8 +58,6 @@ export function Editor({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
   useWebMcpBridge(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(source));
-  const [defaultMidiProgram, setDefaultMidiProgram] =
-    preferences.useValue("defaultMidiProgram");
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] =
     projectUiStore.useValue("referenceVideoOpen");
@@ -138,7 +136,7 @@ export function Editor({ source }: { source: ProjectSource }) {
     },
   });
   const addMidiMutation = useMutation({
-    mutationFn: () => runtime.addMidiTrack({ program: defaultMidiProgram }),
+    mutationFn: () => runtime.addMidiTrack({ program: 0 }),
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
@@ -638,13 +636,6 @@ export function Editor({ source }: { source: ProjectSource }) {
                         transcriptions.openTranscription(track.id)
                       }
                       onScorePreview={() => scoreUi.open(track.id)}
-                      onPresetSelected={(preset) => {
-                        // New tracks start from the last General MIDI
-                        // program, not a drum kit.
-                        if (!preset.bank) {
-                          setDefaultMidiProgram(preset.program);
-                        }
-                      }}
                     />
                   );
                 }
