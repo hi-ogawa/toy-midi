@@ -23,13 +23,29 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
  * setting `soundfont` to its id and `program` to one of its presets. Each
  * preset plays a GeneralUser stand-in until the font has loaded.
  *
- * - `"flamestudios-telecaster-neck"`: a clean electric guitar recorded direct
- *   in. Its Muted preset plays muted strokes and ghost notes.
+ * - `"flamestudios-telecaster-bridge"`: a clean electric guitar from a
+ *   Telecaster's bridge pickup, recorded direct in. It's bright with a sharp
+ *   attack, so it cuts through a full arrangement, which makes it the default
+ *   for clean electric parts. A track EQ that trims the highs warms it up.
+ * - `"flamestudios-telecaster-neck"`: the same guitar's neck pickup, warmer
+ *   and rounder, for jazz, neo-soul, ballads, or a guitar that plays alone.
+ *
+ * Both have a Muted preset that plays muted strokes and ghost notes.
  */
 export const SOUNDFONTS = [
   {
+    id: "flamestudios-telecaster-bridge",
+    name: "Telecaster Bridge",
+    url: "/soundfonts/FlameStudios-Telecaster-Bridge-SM-b50f761.sf3",
+    decodeInWorker: true,
+    presets: [
+      { program: 0, name: "Standard", standIn: { program: 27 } },
+      { program: 1, name: "Muted", standIn: { program: 28 } },
+    ],
+  },
+  {
     id: "flamestudios-telecaster-neck",
-    name: "Telecaster",
+    name: "Telecaster Neck",
     url: "/soundfonts/FlameStudios-Telecaster-Neck-SM-b50f761.sf3",
     decodeInWorker: true,
     presets: [
