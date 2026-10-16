@@ -23,6 +23,13 @@ test("iterates the multiband EQ preview", async ({ page }) => {
     x: point!.x + point!.width / 2,
     y: point!.y + point!.height / 2,
   };
+
+  // Click the handle off its center, and the band keeps its values.
+  const initialGain = await gainInput.inputValue();
+  await page.mouse.click(pointCenter.x + 6, pointCenter.y + 6);
+  await expect(frequencyInput).toHaveValue("850");
+  await expect(gainInput).toHaveValue(initialGain);
+
   await page.mouse.move(pointCenter.x, pointCenter.y);
   await page.mouse.down();
   await page.mouse.move(pointCenter.x + 30, pointCenter.y - 20);
