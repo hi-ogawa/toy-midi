@@ -117,11 +117,11 @@ export class MidiSynthWorkletNode {
     }
     this.soundfonts.add(soundfont.id);
     loadSoundfont(soundfont).then(
-      (decoded) => {
+      (data) => {
         if (this.node) {
           this.postMessage(
-            { type: "addSoundfont", id: soundfont.id, ...decoded },
-            [decoded.soundfont, ...decoded.samples.map(({ buffer }) => buffer)],
+            { type: "addSoundfont", id: soundfont.id, soundfont: data },
+            [data],
           );
         }
       },
