@@ -120,8 +120,7 @@ export class MidiSynthWorkletNode {
     try {
       loaded = await loadSoundfont(soundfont);
     } catch {
-      // The loader reports the failure, and a later preset change retries.
-      this.soundfonts.delete(soundfont.id);
+      // The loader reports the failure.
       return;
     }
     if (this.node) {
