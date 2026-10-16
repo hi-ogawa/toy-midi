@@ -76,7 +76,6 @@ export function MidiTrackRow({
   midiInteraction,
   onTranscribe,
   onScorePreview,
-  onPresetSelected,
 }: {
   track: MidiTrackState;
   runtime: EditorRuntime;
@@ -90,13 +89,11 @@ export function MidiTrackRow({
   midiInteraction: ReturnType<typeof useMidiInteraction>;
   onTranscribe: () => void;
   onScorePreview: () => void;
-  onPresetSelected: (preset: MidiPreset) => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
   const presetMutation = useMutation({
     mutationFn: (preset: MidiPreset) =>
       runtime.setMidiTrackPreset(track.id, preset),
-    onSuccess: (_data, preset) => onPresetSelected(preset),
   });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
