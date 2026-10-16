@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { memoAsync } from "../utils/memo.ts";
+import { memo } from "../utils/memo.ts";
 import { GENERAL_USER_SOUNDFONT, type Soundfont } from "./soundfonts.ts";
 
 /**
@@ -13,7 +13,7 @@ export async function loadSoundfont(
   return (await loadSharedSoundfont(soundfont)).slice(0);
 }
 
-const loadSharedSoundfont = memoAsync(
+const loadSharedSoundfont = memo(
   async ({ name, url }: Soundfont): Promise<ArrayBuffer> => {
     let toastId: string | number | undefined;
     const timer = setTimeout(() => {
@@ -42,12 +42,10 @@ export function preloadMidiAssetsWhenIdle() {
 
 // Tracks share one download, because Chromium fails some of several concurrent
 // requests for the same large file with ERR_CACHE_WRITE_FAILURE.
-const downloadSoundfont = memoAsync(
-  async (url: string): Promise<ArrayBuffer> => {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${url}: ${response.status}`);
-    }
-    return await response.arrayBuffer();
-  },
-);
+const downloadSoundfont = memo(async (url: string): Promise<ArrayBuffer> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}: ${response.status}`);
+  }
+  return await response.arrayBuffer();
+});
