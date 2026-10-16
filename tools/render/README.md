@@ -2,7 +2,7 @@
 
 Render a Toy MIDI project to audio with features the app doesn't play yet, such as per-track SoundFonts and guitar articulations, for composing experiments. The renderer plays each MIDI track with fluidsynth, applies the track's gain and pan, mixes the tracks with mute, solo, and master gain, and prints integrated loudness per track and for the mix. Audio tracks and track EQ are not rendered.
 
-The app plays MIDI with SpessaSynth, so a render with the same SoundFont is close to in-app playback but not identical. Rendering through the app's own engine is tracked in https://github.com/hi-ogawa/toy-midi/issues/889.
+The app plays MIDI with SpessaSynth, so a render with the same SoundFont is close to in-app playback but not identical. This tool is a stopgap until the app plays these features itself and https://github.com/hi-ogawa/toy-midi/issues/889 renders projects through the app's own engine.
 
 ## Requirements
 
