@@ -1,5 +1,6 @@
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { TimelineNote } from "./midi-note-scheduler.ts";
+import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
 import type {
   MidiSynthClientMessage,
   MidiSynthWorkletMessage,
@@ -8,7 +9,6 @@ import type { PlaybackRunOptions } from "./playback-run.ts";
 import {
   GENERAL_USER_SOUNDFONT,
   loadSoundfont,
-  midiWorkletUrl,
   type Soundfont,
 } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
@@ -149,7 +149,7 @@ const registrations = new WeakMap<AudioContext, Promise<void>>();
 async function ensureMidiWorklet(context: AudioContext): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
-    registration = context.audioWorklet.addModule(midiWorkletUrl);
+    registration = context.audioWorklet.addModule(midiSynthWorkletUrl);
     registrations.set(context, registration);
   }
   try {

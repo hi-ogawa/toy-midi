@@ -1,6 +1,5 @@
 import { toast } from "sonner";
 import { memoAsync } from "../utils/memo.ts";
-import workletUrl from "./midi-synth-worklet.ts?worker&url";
 import { createWorkerRpc } from "./rpc/worker.ts";
 import type { SoundfontDecoderWorkerHandlers } from "./soundfont-decoder-worker.ts";
 
@@ -29,8 +28,6 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
   name: "GeneralUser GS",
   url: "/soundfonts/GeneralUserGS-2.0.3.sf3",
 };
-
-export const midiWorkletUrl = workletUrl;
 
 /**
  * Resolves to the SoundFont, showing one loading indicator per SoundFont
@@ -76,10 +73,9 @@ const loadSharedSoundfont = memoAsync(
   },
 );
 
-// Start the downloads after initial render on routes that lead to MIDI playback.
+// Start the download after initial render on routes that lead to MIDI playback.
 export function preloadMidiAssetsWhenIdle() {
   requestIdleCallback(() => {
-    preloadAsset(midiWorkletUrl);
     downloadSoundfont(GENERAL_USER_SOUNDFONT.url).catch(() => {});
   });
 }
@@ -108,13 +104,4 @@ async function decodeSamples(soundfont: ArrayBuffer): Promise<Float32Array[]> {
   } finally {
     worker.terminate();
   }
-}
-
-function preloadAsset(href: string): void {
-  const link = document.createElement("link");
-  link.rel = "preload";
-  link.as = "fetch";
-  link.crossOrigin = "anonymous";
-  link.href = href;
-  document.head.appendChild(link);
 }
