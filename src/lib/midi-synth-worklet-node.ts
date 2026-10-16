@@ -85,11 +85,11 @@ export class MidiSynthWorkletNode {
 
   private addSoundfont(soundfont: Soundfont): void {
     loadSoundfont(soundfont).then(
-      (decoded) => {
+      (data) => {
         if (this.node) {
           this.postMessage(
-            { type: "addSoundfont", id: soundfont.id, ...decoded },
-            [decoded.soundfont, ...decoded.samples.map(({ buffer }) => buffer)],
+            { type: "addSoundfont", id: soundfont.id, soundfont: data },
+            [data],
           );
         }
       },
