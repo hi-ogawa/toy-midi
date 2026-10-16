@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { memoAsync } from "../utils/memo.ts";
 import workletUrl from "./midi-synth-worklet.ts?worker&url";
 import { createWorkerRpc } from "./rpc/worker.ts";
 import type { SoundfontDecoderWorkerHandlers } from "./soundfont-decoder-worker.ts";
@@ -31,52 +32,49 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
 
 export const midiWorkletUrl = workletUrl;
 
-const downloads = new Map<string, Promise<ArrayBuffer>>();
-const demands = new Map<string, Promise<LoadedSoundfont>>();
-
 /**
  * Resolves to the SoundFont, showing one loading indicator per SoundFont
  * across tracks while it loads. Each call resolves to its own copy, because
  * posting it to a synth transfers it.
  */
-export async function loadSoundfont({
-  name,
-  url,
-  decodeInWorker,
-}: Soundfont): Promise<LoadedSoundfont> {
-  let demand = demands.get(url);
-  if (!demand) {
-    demand = (async () => {
-      let toastId: string | number | undefined;
-      const timer = setTimeout(() => {
-        toastId = toast.loading(`Loading ${name} SoundFont…`);
-      }, 300);
-      try {
-        const soundfont = await downloadSoundfont(url);
-        // The worker takes the bytes it is sent, so it gets a copy.
-        const samples = decodeInWorker
-          ? await decodeSamples(soundfont.slice(0))
-          : undefined;
-        return { soundfont, samples };
-      } catch (error) {
-        demands.delete(url);
-        toast.error(`Failed to load the ${name} SoundFont`);
-        throw error;
-      } finally {
-        clearTimeout(timer);
-        if (toastId !== undefined) {
-          toast.dismiss(toastId);
-        }
-      }
-    })();
-    demands.set(url, demand);
-  }
-  const { soundfont, samples } = await demand;
+export async function loadSoundfont(
+  soundfont: Soundfont,
+): Promise<LoadedSoundfont> {
+  const { soundfont: bytes, samples } = await loadSharedSoundfont(soundfont);
   return {
-    soundfont: soundfont.slice(0),
+    soundfont: bytes.slice(0),
     samples: samples?.map((sample) => sample.slice()),
   };
 }
+
+const loadSharedSoundfont = memoAsync(
+  async ({
+    name,
+    url,
+    decodeInWorker,
+  }: Soundfont): Promise<LoadedSoundfont> => {
+    let toastId: string | number | undefined;
+    const timer = setTimeout(() => {
+      toastId = toast.loading(`Loading ${name} SoundFont…`);
+    }, 300);
+    try {
+      const soundfont = await downloadSoundfont(url);
+      // The worker takes the bytes it is sent, so it gets a copy.
+      const samples = decodeInWorker
+        ? await decodeSamples(soundfont.slice(0))
+        : undefined;
+      return { soundfont, samples };
+    } catch (error) {
+      toast.error(`Failed to load the ${name} SoundFont`);
+      throw error;
+    } finally {
+      clearTimeout(timer);
+      if (toastId !== undefined) {
+        toast.dismiss(toastId);
+      }
+    }
+  },
+);
 
 // Start the downloads after initial render on routes that lead to MIDI playback.
 export function preloadMidiAssetsWhenIdle() {
@@ -88,21 +86,15 @@ export function preloadMidiAssetsWhenIdle() {
 
 // Tracks share one download, because Chromium fails some of several concurrent
 // requests for the same large file with ERR_CACHE_WRITE_FAILURE.
-function downloadSoundfont(url: string): Promise<ArrayBuffer> {
-  let download = downloads.get(url);
-  if (!download) {
-    download = (async () => {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${url}: ${response.status}`);
-      }
-      return await response.arrayBuffer();
-    })();
-    download.catch(() => downloads.delete(url));
-    downloads.set(url, download);
-  }
-  return download;
-}
+const downloadSoundfont = memoAsync(
+  async (url: string): Promise<ArrayBuffer> => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.status}`);
+    }
+    return await response.arrayBuffer();
+  },
+);
 
 async function decodeSamples(soundfont: ArrayBuffer): Promise<Float32Array[]> {
   const worker = new Worker(
