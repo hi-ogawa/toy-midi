@@ -207,3 +207,22 @@ test("plays a MIDI track on the Telecaster SoundFont and persists it", async ({
     option: "1: Bright Acoustic Piano",
   });
 });
+
+test("scrolls the instrument picker list with the mouse wheel", async ({
+  page,
+}) => {
+  // Open the instrument picker from the MIDI track's instrument dialog.
+  await createProject(page);
+  await addMidiTrack(page);
+  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
+  await instrument.getByTestId("instrument-select").click();
+  const list = page.getByRole("listbox");
+  await expect(list).toBeVisible();
+
+  // Scroll the wheel over the list, and verify the list scrolls.
+  await list.hover();
+  await page.mouse.wheel(0, 400);
+  await expect
+    .poll(() => list.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+});
