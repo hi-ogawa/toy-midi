@@ -171,3 +171,26 @@ test("resizes an effects panel", async ({ page }) => {
   );
   expect((await graph.boundingBox())!.height).toBeLessThan(before.height);
 });
+
+test("shows in the mixer whether a track's EQ is on", async ({ page }) => {
+  // Open the mixer, where Audio 1 starts with a flat EQ.
+  await createProject(page);
+  await page.getByTestId("mixer-button").click();
+  const toggle = page.getByRole("button", {
+    name: "Audio 1 effects",
+    exact: true,
+  });
+  await expect(toggle).not.toHaveAttribute("title", /EQ on/);
+
+  // Boost the band, and the mixer marks the EQ as on.
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  const panel = page.getByTestId("effects-panel");
+  const gain = panel.getByRole("textbox", { name: "Gain", exact: true });
+  await gain.fill("3");
+  await gain.press("Enter");
+  await expect(toggle).toHaveAttribute("title", /EQ on/);
+
+  // Bypass the EQ, and the mark goes away.
+  await panel.getByRole("checkbox", { name: "Bypass" }).first().check();
+  await expect(toggle).not.toHaveAttribute("title", /EQ on/);
+});

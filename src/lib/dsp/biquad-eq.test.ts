@@ -6,7 +6,7 @@ import {
   DEFAULT_PARAMETERS,
   BiquadEq,
 } from "./biquad-eq";
-import { MultibandEq } from "./biquad-eq-multiband";
+import { isEqActive, MultibandEq } from "./biquad-eq-multiband";
 
 const SAMPLE_RATE = 48000;
 
@@ -305,3 +305,26 @@ function measureEnergy(signal: Float32Array): number {
   }
   return energy;
 }
+
+describe(isEqActive, () => {
+  const band = { id: "a", frequency: 1000, gain: 1, q: 1, bypass: false };
+
+  it("ignores flat and bypassed bands", () => {
+    expect(isEqActive({ bypass: false, bands: [band] })).toBe(false);
+    expect(
+      isEqActive({
+        bypass: false,
+        bands: [{ ...band, gain: 2, bypass: true }],
+      }),
+    ).toBe(false);
+    expect(isEqActive({ bypass: false, bands: [{ ...band, gain: 2 }] })).toBe(
+      true,
+    );
+  });
+
+  it("ignores every band while the EQ is bypassed", () => {
+    expect(isEqActive({ bypass: true, bands: [{ ...band, gain: 2 }] })).toBe(
+      false,
+    );
+  });
+});
