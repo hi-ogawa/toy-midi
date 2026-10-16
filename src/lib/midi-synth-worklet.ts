@@ -15,7 +15,6 @@ export type MidiSynthClientMessage =
       type: "addSoundfont";
       id: string;
       soundfont: ArrayBuffer;
-      /** Every sample decoded, in the file's order, when decoded in a worker */
       samples?: Float32Array[];
     }
   | { type: "setPreset"; preset: SynthPreset; standIn?: SynthPreset }
@@ -122,8 +121,8 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
   }
 
   /**
-   * Selects the track's preset once its SoundFont has loaded, playing the
-   * stand-in until then and staying silent without either.
+   * Selects the track's preset once its SoundFont has loaded, and the stand-in
+   * before then. The track is silent while neither has loaded.
    */
   private applyPreset(): void {
     const synth = this.synth!;

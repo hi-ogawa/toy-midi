@@ -66,7 +66,7 @@ export class MidiSynthWorkletNode {
       return;
     }
     // A GeneralUser stand-in plays until the font has loaded, so playback never
-    // waits for its download.
+    // waits for it.
     const soundfont = findSoundfont(id);
     const { standIn } =
       soundfont.presets.find((other) => other.program === program) ??

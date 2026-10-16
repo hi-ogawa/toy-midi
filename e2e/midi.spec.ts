@@ -202,7 +202,7 @@ test("plays a MIDI track on the Telecaster SoundFont and persists it", async ({
     "Telecaster: Muted",
   );
 
-  // Switch back to the General MIDI program with the same number.
+  // Switch to the General MIDI program with the same number.
   await selectMidiInstrument(instrument, {
     option: "1: Bright Acoustic Piano",
   });

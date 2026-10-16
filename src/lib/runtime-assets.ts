@@ -13,7 +13,7 @@ export interface LoadedSoundfont {
 /**
  * Resolves to the SoundFont, showing one loading indicator per SoundFont
  * across tracks while it loads. Each call resolves to its own copy, because
- * posting it to a synth transfers it.
+ * posting to a synth transfers the buffers.
  */
 export async function loadSoundfont(
   soundfont: Soundfont,
@@ -37,7 +37,7 @@ const loadSharedSoundfont = memo(
     }, 300);
     try {
       const soundfont = await downloadSoundfont(url);
-      // The worker takes the bytes it is sent, so it gets a copy.
+      // The RPC call transfers the bytes to the worker, so send a copy.
       const samples = decodeInWorker
         ? await decodeSamples(soundfont.slice(0))
         : undefined;

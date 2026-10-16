@@ -4,10 +4,10 @@ export interface Soundfont {
   name: string;
   url: string;
   /**
-   * Decode every sample in a worker while the font loads, for a font whose
-   * presets each use most of the file. Otherwise a synth decodes a preset's
-   * samples on the audio thread when the preset is selected, which stalls
-   * every track for as long as that takes.
+   * Decodes every sample in a worker while the font loads. Set it for a font
+   * whose presets each use most of the file, because otherwise a synth decodes
+   * a preset's samples on the audio thread when the preset is selected, which
+   * stalls every track until it finishes.
    */
   decodeInWorker?: boolean;
 }
@@ -19,8 +19,9 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
 };
 
 /**
- * SoundFonts bundled beside GeneralUser GS, which a MIDI track names by id.
- * Each preset has a GeneralUser stand-in that plays while the font downloads.
+ * SoundFonts bundled beside GeneralUser GS. A MIDI track selects one by
+ * setting `soundfont` to its id and `program` to one of its presets. Each
+ * preset plays a GeneralUser stand-in until the font has loaded.
  *
  * - `"flamestudios-telecaster-neck"`: a clean electric guitar recorded direct
  *   in. Its Muted preset plays muted strokes and ghost notes.

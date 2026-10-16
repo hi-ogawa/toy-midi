@@ -98,7 +98,7 @@ export interface MidiTrackState {
   program: number;
   /**
    * SoundFont bank of the preset, 0 when absent. Bank 0 holds the 128 General
-   * MIDI programs. Bank 128 holds the bundled soundfont's GS drum kits:
+   * MIDI programs. Bank 128 holds GeneralUser GS's drum kits:
    * 0 Standard, 8 Room, 16 Power, 24 Electronic, 25 TR-808, 32 Jazz, 40 Brush,
    * 48 Orchestra, 56 SFX.
    */
