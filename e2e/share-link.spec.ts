@@ -8,12 +8,14 @@ import {
   saveProject,
 } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
+import { stubYouTube } from "./youtube-stub";
 
 test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
 test("shares a MIDI project as a link that opens an unsaved draft", async ({
   page,
 }) => {
+  await stubYouTube(page);
   // Create a project with a backing track, a reference video, a note, and its
   // own tempo, and save it.
   await createProject(page);

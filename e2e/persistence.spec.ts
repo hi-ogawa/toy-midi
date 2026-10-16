@@ -5,8 +5,10 @@ import {
   getPosition,
   saveProject,
 } from "./editor-helpers";
+import { stubYouTube } from "./youtube-stub";
 
 test("saves and restores a project", async ({ page }) => {
+  await stubYouTube(page);
   // Create a project and show its default name in the browser tab.
   await createProject(page);
   await expect(page).toHaveTitle("Untitled - Toy MIDI");

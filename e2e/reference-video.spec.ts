@@ -2,8 +2,10 @@ import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { createProject, dragBy } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
+import { stubYouTube } from "./youtube-stub";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
+  await stubYouTube(page);
   await createProject(page);
 
   // The musician opens the reference panel and resizes it around their workspace.
