@@ -26,8 +26,8 @@ export class MidiSynthWorkletNode {
   }
 
   /**
-   * Resolves once the synth runs, before its SoundFont has loaded. Until then
-   * the track is silent.
+   * Resolves once the synth is running, without waiting for its SoundFont, so
+   * the track is silent until the font arrives.
    */
   async init(preset: MidiPreset): Promise<void> {
     await ensureMidiWorklet(this.context);
