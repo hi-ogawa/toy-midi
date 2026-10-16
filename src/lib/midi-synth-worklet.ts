@@ -11,7 +11,13 @@ const BANK_SELECT_CONTROLLER = 0;
 
 export type MidiSynthClientMessage =
   | { type: "init" }
-  | { type: "addSoundfont"; id: string; soundfont: ArrayBuffer }
+  | {
+      type: "addSoundfont";
+      id: string;
+      soundfont: ArrayBuffer;
+      /** Every sample decoded, in the file's order, when decoded in a worker */
+      samples?: Float32Array[];
+    }
   | { type: "setPreset"; preset: SynthPreset; standIn?: SynthPreset }
   | { type: "noteOn"; pitch: number; velocity: number }
   | { type: "noteOff"; pitch: number }
@@ -72,10 +78,14 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     const synth = this.synth!;
     switch (message.type) {
       case "addSoundfont": {
-        synth.soundBankManager.addSoundBank(
-          SoundBankLoader.fromArrayBuffer(message.soundfont),
-          message.id,
-        );
+        const bank = SoundBankLoader.fromArrayBuffer(message.soundfont);
+        const { samples } = message;
+        if (samples) {
+          bank.samples.forEach((sample, index) => {
+            sample.setAudioData(samples[index]!, sample.sampleRate);
+          });
+        }
+        synth.soundBankManager.addSoundBank(bank, message.id);
         this.applyPreset();
         break;
       }

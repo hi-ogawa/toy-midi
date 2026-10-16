@@ -5,6 +5,7 @@ export const SOUNDFONTS = [
     id: "flamestudios-telecaster-neck",
     name: "Telecaster",
     url: "/soundfonts/FlameStudios-Telecaster-Neck-SM-b50f761.sf3",
+    decodeInWorker: true,
     presets: [
       { program: 0, name: "Standard", standIn: { program: 27 } },
       { program: 1, name: "Muted", standIn: { program: 28 } },

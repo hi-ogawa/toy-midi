@@ -1,11 +1,26 @@
 import { toast } from "sonner";
 import workletUrl from "./midi-synth-worklet.ts?worker&url";
+import { createWorkerRpc } from "./rpc/worker.ts";
+import type { SoundfontDecoderWorkerHandlers } from "./soundfont-decoder-worker.ts";
 
 export interface Soundfont {
   /** Identifies the SoundFont among those a synth has loaded */
   id: string;
   name: string;
   url: string;
+  /**
+   * Decode every sample in a worker while the font loads, for a font whose
+   * presets each use most of the file. Otherwise a synth decodes a preset's
+   * samples on the audio thread when the preset is selected, which stalls
+   * every track for as long as that takes.
+   */
+  decodeInWorker?: boolean;
+}
+
+export interface LoadedSoundfont {
+  soundfont: ArrayBuffer;
+  /** Every sample decoded, in the file's order, when decoded in a worker */
+  samples?: Float32Array[];
 }
 
 export const GENERAL_USER_SOUNDFONT: Soundfont = {
@@ -17,17 +32,18 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
 export const midiWorkletUrl = workletUrl;
 
 const downloads = new Map<string, Promise<ArrayBuffer>>();
-const demands = new Map<string, Promise<ArrayBuffer>>();
+const demands = new Map<string, Promise<LoadedSoundfont>>();
 
 /**
- * Resolves to the SoundFont's bytes, showing one loading indicator per
- * SoundFont across tracks while it downloads. Each call resolves to its own
- * copy, because posting the bytes to a synth transfers them.
+ * Resolves to the SoundFont, showing one loading indicator per SoundFont
+ * across tracks while it loads. Each call resolves to its own copy, because
+ * posting it to a synth transfers it.
  */
 export async function loadSoundfont({
   name,
   url,
-}: Soundfont): Promise<ArrayBuffer> {
+  decodeInWorker,
+}: Soundfont): Promise<LoadedSoundfont> {
   let demand = demands.get(url);
   if (!demand) {
     demand = (async () => {
@@ -36,7 +52,12 @@ export async function loadSoundfont({
         toastId = toast.loading(`Loading ${name} SoundFont…`);
       }, 300);
       try {
-        return await downloadSoundfont(url);
+        const soundfont = await downloadSoundfont(url);
+        // The worker takes the bytes it is sent, so it gets a copy.
+        const samples = decodeInWorker
+          ? await decodeSamples(soundfont.slice(0))
+          : undefined;
+        return { soundfont, samples };
       } catch (error) {
         demands.delete(url);
         toast.error(`Failed to load the ${name} SoundFont`);
@@ -50,7 +71,11 @@ export async function loadSoundfont({
     })();
     demands.set(url, demand);
   }
-  return (await demand).slice(0);
+  const { soundfont, samples } = await demand;
+  return {
+    soundfont: soundfont.slice(0),
+    samples: samples?.map((sample) => sample.slice()),
+  };
 }
 
 // Start the downloads after initial render on routes that lead to MIDI playback.
@@ -77,6 +102,20 @@ function downloadSoundfont(url: string): Promise<ArrayBuffer> {
     downloads.set(url, download);
   }
   return download;
+}
+
+async function decodeSamples(soundfont: ArrayBuffer): Promise<Float32Array[]> {
+  const worker = new Worker(
+    new URL("./soundfont-decoder-worker.ts", import.meta.url),
+    { type: "module" },
+  );
+  try {
+    return await createWorkerRpc<SoundfontDecoderWorkerHandlers>(
+      worker,
+    ).decodeSamples({ soundfont });
+  } finally {
+    worker.terminate();
+  }
 }
 
 function preloadAsset(href: string): void {
