@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { isEqActive } from "../lib/dsp/biquad-eq-multiband";
 import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
@@ -40,6 +41,7 @@ export function Mixer({
             pan={track.pan}
             onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
             effectsOpen={openEffects.has(track.id)}
+            effectsActive={isEqActive(track.eq)}
             onEffectsToggle={() => onEffectsToggle(track.id)}
             label={track.name}
             meter={
@@ -100,6 +102,7 @@ function TrackChannel({
   onMutedChange,
   onSoloedChange,
   effectsOpen,
+  effectsActive,
   onEffectsToggle,
 }: {
   label: string;
@@ -113,6 +116,7 @@ function TrackChannel({
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
   effectsOpen: boolean;
+  effectsActive: boolean;
   onEffectsToggle: () => void;
 }) {
   const input = useGainInput(gain, onGainChange);
@@ -144,6 +148,7 @@ function TrackChannel({
           <EffectsToggle
             label={label}
             open={effectsOpen}
+            active={effectsActive}
             onClick={onEffectsToggle}
             className="col-span-2 h-6"
           />
