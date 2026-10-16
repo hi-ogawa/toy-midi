@@ -46,11 +46,14 @@ test("meters MIDI track playback", async ({ page }) => {
   await saveProject(page);
   await page.reload();
 
-  // Play the restored notes, and the track meter rises.
+  // Loop the bar and play it, and the track meter rises. The loop keeps the
+  // notes coming until the reloaded page has decoded its SoundFont, because
+  // the delayed loading toast can't tell the test when that happens.
   await page.getByTestId("mixer-button").click();
   const trackMeter = page
     .getByTestId("mixer-panel")
     .getByRole("meter", { name: "MIDI 1 level" });
+  await page.getByTestId("loop-toggle").click();
   await page.getByTestId("play-button").click();
   await expect.poll(() => getLevel(trackMeter)).toBeGreaterThan(-60);
 });

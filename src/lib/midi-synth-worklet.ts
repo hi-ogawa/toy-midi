@@ -11,7 +11,13 @@ const BANK_SELECT_CONTROLLER = 0;
 
 export type MidiSynthClientMessage =
   | { type: "init" }
-  | { type: "addSoundfont"; id: string; soundfont: ArrayBuffer }
+  | {
+      type: "addSoundfont";
+      id: string;
+      soundfont: ArrayBuffer;
+      /** Every sample decoded, in the file's order */
+      samples: Float32Array[];
+    }
   | { type: "setPreset"; preset: SynthPreset; standIn?: SynthPreset }
   | { type: "noteOn"; pitch: number; velocity: number }
   | { type: "noteOff"; pitch: number }
@@ -72,10 +78,11 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     const synth = this.synth!;
     switch (message.type) {
       case "addSoundfont": {
-        synth.soundBankManager.addSoundBank(
-          SoundBankLoader.fromArrayBuffer(message.soundfont),
-          message.id,
-        );
+        const bank = SoundBankLoader.fromArrayBuffer(message.soundfont);
+        bank.samples.forEach((sample, index) => {
+          sample.setAudioData(message.samples[index]!, sample.sampleRate);
+        });
+        synth.soundBankManager.addSoundBank(bank, message.id);
         this.applyPreset();
         break;
       }
@@ -139,9 +146,6 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
       synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
     }
     synth.programChange(CHANNEL, program);
-    // SF3 samples decode on first use, which would underrun the render
-    // quantum of the first note that needs them, so decode them up front.
-    synth.midiChannels[CHANNEL].preset?.preload(0, 127);
   }
 
   private async init(): Promise<void> {
@@ -152,8 +156,6 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
         // on their own, so MIDI tracks are only dry with effects disabled.
         effectsEnabled: false,
       });
-      // SF3 samples need the Vorbis decoder, which loads asynchronously.
-      await synth.processorInitialized;
       this.synth = synth;
       this.postMessage({ type: "ready" });
     } catch (error) {
