@@ -75,11 +75,15 @@ async function fetchFile(
   }
   const url = `${RELEASE_URL}/${file.name}`;
   console.log(`Downloading ${url}`);
+  const startedAt = performance.now();
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to download ${url}: ${response.status}`);
   }
   const data = Buffer.from(await response.arrayBuffer());
+  const megabytes = (data.length / 1e6).toFixed(1);
+  const milliseconds = Math.round(performance.now() - startedAt);
+  console.log(`Downloaded in ${milliseconds} ms (${megabytes} MB)`);
   const sha256 = hashSha256(data);
   if (sha256 !== file.sha256) {
     throw new Error(
