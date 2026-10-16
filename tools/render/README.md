@@ -8,6 +8,7 @@ The app plays MIDI with SpessaSynth, so a render with the same SoundFont is clos
 
 - `fluidsynth` and `ffmpeg` on `PATH`
 - Repository dependencies installed with `pnpm i`, for `tsx`
+- The app's SoundFonts downloaded with `pnpm fetch-soundfonts`, which `pnpm dev` and `pnpm build` also run
 
 ## Render a Project
 

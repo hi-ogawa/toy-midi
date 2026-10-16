@@ -25,7 +25,7 @@ import { encodeTrackMidi } from "./midi-file.ts";
 
 const DEFAULT_SOUNDFONT = path.join(
   import.meta.dirname,
-  "../../src/assets/soundfonts/GeneralUserGS.sf3",
+  "../../public/soundfonts/GeneralUserGS-2.0.3.sf3",
 );
 
 const TMP_DIR = path.join(import.meta.dirname, "../../.tmp");
