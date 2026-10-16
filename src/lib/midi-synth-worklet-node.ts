@@ -45,7 +45,7 @@ export class MidiSynthWorkletNode {
       this.postMessage({ type: "init" });
     });
     await this.setPreset(preset);
-    this.addSoundfont(GENERAL_USER_SOUNDFONT);
+    void this.addSoundfont(GENERAL_USER_SOUNDFONT);
   }
 
   async setPreset({ bank = 0, program }: MidiPreset): Promise<void> {
@@ -80,19 +80,20 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  private addSoundfont(soundfont: Soundfont): void {
-    loadSoundfont(soundfont).then(
-      (data) => {
-        if (this.node) {
-          this.postMessage(
-            { type: "addSoundfont", id: soundfont.id, soundfont: data },
-            [data],
-          );
-        }
-      },
+  private async addSoundfont(soundfont: Soundfont): Promise<void> {
+    let data: ArrayBuffer;
+    try {
+      data = await loadSoundfont(soundfont);
+    } catch {
       // The loader reports the failure.
-      () => {},
-    );
+      return;
+    }
+    if (this.node) {
+      this.postMessage(
+        { type: "addSoundfont", id: soundfont.id, soundfont: data },
+        [data],
+      );
+    }
   }
 
   private postMessage(
