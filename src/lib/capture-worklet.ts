@@ -60,8 +60,8 @@ export class Capture {
 
   /** Resolves with the frame at which the render thread applied the change. */
   async setActive(value: boolean): Promise<number> {
-    // Resolving replies from the render thread. Keep this to infrequent control
-    // changes rather than anything per render quantum.
+    // Resolving here sends the RPC reply from the render thread, so keep this
+    // to infrequent control changes rather than anything per render quantum.
     return await new Promise<number>((resolve) => {
       // Queue transitions until render() so capture state, buffered PCM, and
       // the returned frame share render-thread ordering.
@@ -148,7 +148,6 @@ export class Capture {
     this.captureLength = 0;
   }
 
-  /** Notifications go straight to the port, outside any RPC call. */
   private postMessage(
     message: CaptureWorkletNotification,
     transfer?: Transferable[],
