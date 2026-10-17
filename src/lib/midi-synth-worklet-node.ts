@@ -44,21 +44,18 @@ export class MidiSynthWorkletNode {
 
   /**
    * Until the preset's SoundFont arrives, the synth plays the preset from any
-   * other loaded SoundFont that has it. Resolves once it arrives when this is
-   * the first request for that SoundFont.
+   * other loaded SoundFont that has it.
    */
-  async setPreset(preset: MidiPreset): Promise<void> {
+  setPreset(preset: MidiPreset): void {
     const soundfont = preset.soundfont
       ? findSoundfont(preset.soundfont)
       : GENERAL_USER_SOUNDFONT;
-    await Promise.all([
-      this.getSynth().setPreset({
-        soundfont: soundfont.id,
-        bank: preset.bank ?? 0,
-        program: preset.program,
-      }),
-      this.addSoundfont(soundfont),
-    ]);
+    void this.getSynth().setPreset({
+      soundfont: soundfont.id,
+      bank: preset.bank ?? 0,
+      program: preset.program,
+    });
+    void this.addSoundfont(soundfont);
   }
 
   noteOn(pitch: number): void {
@@ -90,10 +87,6 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  /**
-   * The first call for a SoundFont resolves once the processor has it, or once
-   * its load fails. Later calls resolve immediately.
-   */
   async addSoundfont(soundfont: Soundfont): Promise<void> {
     if (this.soundfonts.has(soundfont.id)) {
       return;
