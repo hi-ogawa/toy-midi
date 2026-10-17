@@ -28,8 +28,8 @@ export type Automation = {
   type: "controller";
   /**
    * MIDI controller number (0-119), such as 1 modulation, 11 expression, or
-   * 64 sustain. At most one sequence per controller. The player sets bank
-   * select (0, 32) and parameter numbers with data entry (6, 38, 98-101).
+   * 64 sustain. At most one sequence per controller. The player owns bank
+   * select (0, 32), parameter numbers (98-101), and data entry (6, 38).
    */
   controller: number;
   /** Sorted by beat */
