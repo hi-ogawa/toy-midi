@@ -3,6 +3,7 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
+import { renderOfflineInFrame } from "./offline-render.ts";
 import type { EditorRuntimeState } from "./runtime.ts";
 
 interface Mix {
@@ -48,40 +49,43 @@ export async function renderMix({
   if (mix.duration <= 0) {
     throw new Error("No audio to export.");
   }
-  const context = new OfflineAudioContext({
-    numberOfChannels: 2,
-    length: Math.ceil(mix.duration * sampleRate),
-    sampleRate,
-  });
-  const master = context.createGain();
-  master.gain.value = mix.masterGain;
-  master.channelCount = 2;
-  master.channelCountMode = "explicit";
-  master.channelInterpretation = "speakers";
-  master.connect(context.destination);
-  await ensureBiquadEqWorklet(context);
-  for (const track of mix.tracks) {
-    const channel = new AudioChannel({
-      context,
-      output: master,
-      eq: track.eq,
-      gain: track.gain,
-      pan: track.pan,
-    });
-    for (const region of track.regions) {
-      const source = context.createBufferSource();
-      source.buffer = region.buffer;
-      const gain = context.createGain();
-      gain.gain.value = region.gain;
-      source.connect(gain).connect(channel.input);
-      source.start(
-        region.timelineStart,
-        region.timelineStart - region.timelineOffset,
-        region.timelineEnd - region.timelineStart,
-      );
-    }
-  }
-  return context.startRendering();
+  return renderOfflineInFrame(
+    {
+      numberOfChannels: 2,
+      length: Math.ceil(mix.duration * sampleRate),
+      sampleRate,
+    },
+    async (context) => {
+      const master = context.createGain();
+      master.gain.value = mix.masterGain;
+      master.channelCount = 2;
+      master.channelCountMode = "explicit";
+      master.channelInterpretation = "speakers";
+      master.connect(context.destination);
+      await ensureBiquadEqWorklet(context);
+      for (const track of mix.tracks) {
+        const channel = new AudioChannel({
+          context,
+          output: master,
+          eq: track.eq,
+          gain: track.gain,
+          pan: track.pan,
+        });
+        for (const region of track.regions) {
+          const source = context.createBufferSource();
+          source.buffer = region.buffer;
+          const gain = context.createGain();
+          gain.gain.value = region.gain;
+          source.connect(gain).connect(channel.input);
+          source.start(
+            region.timelineStart,
+            region.timelineStart - region.timelineOffset,
+            region.timelineEnd - region.timelineStart,
+          );
+        }
+      }
+    },
+  );
 }
 
 /** Render raw sources to mono, ignoring clip playback gain, cropping pre-zero audio and returning the timeline offset in seconds. */
