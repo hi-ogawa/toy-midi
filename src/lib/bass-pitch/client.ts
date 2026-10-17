@@ -1,5 +1,5 @@
 import type { RpcClient } from "../rpc/core.ts";
-import { createWorkerRpc } from "../rpc/worker.ts";
+import { createRpcClient } from "../rpc/endpoint.ts";
 import { resampleToModelRate } from "./audio.ts";
 import type {
   GridTranscribedNote,
@@ -78,7 +78,7 @@ class BassPitchClient {
       });
       this.connection = {
         worker,
-        rpc: createWorkerRpc<BassPitchWorkerHandlers>(worker),
+        rpc: createRpcClient<BassPitchWorkerHandlers>(worker),
       };
     }
     return this.connection.rpc;

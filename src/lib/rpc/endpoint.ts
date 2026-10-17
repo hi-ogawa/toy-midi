@@ -1,32 +1,50 @@
 import type { RpcClient } from "./core.ts";
 import { createRpcProxy, deserializeParams, serializeParams } from "./core.ts";
 
-const WORKER_RPC_REQUEST = "worker-rpc-request";
-const WORKER_RPC_RESPONSE = "worker-rpc-response";
-const WORKER_RPC_CALLBACK = "worker-rpc-callback";
+const RPC_REQUEST = "rpc-request";
+const RPC_RESPONSE = "rpc-response";
+const RPC_CALLBACK = "rpc-callback";
+
+/** A worker, a worker's global scope, or a `MessagePort` such as a worklet's. */
+interface RpcEndpoint {
+  postMessage(message: unknown, options?: { transfer: Transferable[] }): void;
+  addEventListener(
+    type: "message" | "messageerror" | "error",
+    listener: (event: any) => void,
+  ): void;
+  removeEventListener(
+    type: "message" | "messageerror" | "error",
+    listener: (event: any) => void,
+  ): void;
+  /** A `MessagePort` delivers nothing to listeners until started. */
+  start?(): void;
+}
 
 interface RpcRequest {
-  type: typeof WORKER_RPC_REQUEST;
+  type: typeof RPC_REQUEST;
   id: string;
   method: string;
   params: unknown;
 }
 
 interface RpcResponse {
-  type: typeof WORKER_RPC_RESPONSE;
+  type: typeof RPC_RESPONSE;
   id: string;
   result?: unknown;
   error?: string;
 }
 
 interface RpcCallbackInvoke {
-  type: typeof WORKER_RPC_CALLBACK;
+  type: typeof RPC_CALLBACK;
   requestId: string;
   callbackId: string;
   args: unknown[];
 }
 
-export function createWorkerRpc<Handlers>(worker: Worker): RpcClient<Handlers> {
+export function createRpcClient<Handlers>(
+  endpoint: RpcEndpoint,
+): RpcClient<Handlers> {
+  endpoint.start?.();
   return createRpcProxy<Handlers>((method, params) => {
     return new Promise((resolve, reject) => {
       const id = crypto.randomUUID();
@@ -38,19 +56,19 @@ export function createWorkerRpc<Handlers>(worker: Worker): RpcClient<Handlers> {
         },
       );
       const cleanup = () => {
-        worker.removeEventListener("message", handleMessage);
-        worker.removeEventListener("error", handleError);
-        worker.removeEventListener("messageerror", handleMessageError);
+        endpoint.removeEventListener("message", handleMessage);
+        endpoint.removeEventListener("error", handleError);
+        endpoint.removeEventListener("messageerror", handleMessageError);
       };
       const handleMessage = (
         event: MessageEvent<RpcResponse | RpcCallbackInvoke>,
       ) => {
         const message = event.data;
-        if (message.type === WORKER_RPC_CALLBACK && message.requestId === id) {
+        if (message.type === RPC_CALLBACK && message.requestId === id) {
           callbacks.get(message.callbackId)?.(...message.args);
           return;
         }
-        if (message.type === WORKER_RPC_RESPONSE && message.id === id) {
+        if (message.type === RPC_RESPONSE && message.id === id) {
           cleanup();
           if (message.error) {
             reject(new Error(message.error));
@@ -67,33 +85,36 @@ export function createWorkerRpc<Handlers>(worker: Worker): RpcClient<Handlers> {
         cleanup();
         reject(new Error("Worker message could not be read"));
       };
-      worker.addEventListener("message", handleMessage);
-      worker.addEventListener("error", handleError);
-      worker.addEventListener("messageerror", handleMessageError);
-      worker.postMessage(
+      endpoint.addEventListener("message", handleMessage);
+      endpoint.addEventListener("error", handleError);
+      endpoint.addEventListener("messageerror", handleMessageError);
+      endpoint.postMessage(
         {
-          type: WORKER_RPC_REQUEST,
+          type: RPC_REQUEST,
           id,
           method,
           params: serializedParams,
         } satisfies RpcRequest,
-        collectTransferables(serializedParams),
+        { transfer: collectTransferables(serializedParams) },
       );
     });
   });
 }
 
-export function registerWorkerRpcHandlers(handlers: object): void {
-  self.addEventListener("message", async (event: MessageEvent<RpcRequest>) => {
-    if (event.data?.type !== WORKER_RPC_REQUEST) {
+export function registerRpcHandlers(
+  endpoint: RpcEndpoint,
+  handlers: object,
+): void {
+  const handleRequest = async (event: MessageEvent<RpcRequest>) => {
+    if (event.data?.type !== RPC_REQUEST) {
       return;
     }
 
     const { id, method, params } = event.data;
     const handler = Reflect.get(handlers, method) as unknown;
     if (typeof handler !== "function") {
-      self.postMessage({
-        type: WORKER_RPC_RESPONSE,
+      endpoint.postMessage({
+        type: RPC_RESPONSE,
         id,
         error: `Unknown method: ${method}`,
       } satisfies RpcResponse);
@@ -101,8 +122,8 @@ export function registerWorkerRpcHandlers(handlers: object): void {
     }
 
     const deserializedParams = deserializeParams(params, (callbackId, args) => {
-      self.postMessage({
-        type: WORKER_RPC_CALLBACK,
+      endpoint.postMessage({
+        type: RPC_CALLBACK,
         requestId: id,
         callbackId,
         args,
@@ -113,22 +134,24 @@ export function registerWorkerRpcHandlers(handlers: object): void {
       const result = await Reflect.apply(handler, handlers, [
         deserializedParams,
       ]);
-      self.postMessage(
+      endpoint.postMessage(
         {
-          type: WORKER_RPC_RESPONSE,
+          type: RPC_RESPONSE,
           id,
           result,
         } satisfies RpcResponse,
         { transfer: collectTransferables(result) },
       );
     } catch (error) {
-      self.postMessage({
-        type: WORKER_RPC_RESPONSE,
+      endpoint.postMessage({
+        type: RPC_RESPONSE,
         id,
         error: error instanceof Error ? error.message : String(error),
       } satisfies RpcResponse);
     }
-  });
+  };
+  endpoint.addEventListener("message", handleRequest);
+  endpoint.start?.();
 }
 
 function collectTransferables(value: unknown): Transferable[] {

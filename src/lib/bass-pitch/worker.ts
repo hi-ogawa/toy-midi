@@ -1,12 +1,12 @@
 import initBassPitchWasm, { transcribe } from "@hiogawa/bass-pitch-wasm";
-import { registerWorkerRpcHandlers } from "../rpc/worker.ts";
+import { registerRpcHandlers } from "../rpc/endpoint.ts";
 import type {
   GridTranscribedNote,
   GridTranscribeParams,
 } from "./transcription.ts";
 
 function main(): void {
-  registerWorkerRpcHandlers(new BassPitchWorkerHandlers());
+  registerRpcHandlers(self, new BassPitchWorkerHandlers());
 }
 
 let wasmReady: Promise<unknown> | undefined;
