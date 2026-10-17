@@ -1,4 +1,5 @@
 import type { Note } from "../types.ts";
+import { memo } from "../utils/memo.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { TimelineNote } from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
@@ -21,7 +22,6 @@ export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
   private synth?: RpcClient<MidiSynth>;
-  private readonly soundfonts = new Set<string>();
 
   constructor(private readonly context: BaseAudioContext) {
     this.output = context.createGain();
@@ -46,8 +46,7 @@ export class MidiSynthWorkletNode {
 
   /**
    * Until the preset's SoundFont arrives, the synth plays the preset from any
-   * other loaded SoundFont that has it. Resolves once it arrives when this is
-   * the first request for that SoundFont.
+   * other loaded SoundFont that has it.
    */
   async setPreset(preset: MidiPreset): Promise<void> {
     const soundfont = preset.soundfont
@@ -90,19 +89,11 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  /**
-   * The first call for a SoundFont resolves once the processor has it, or once
-   * its load fails. Later calls resolve immediately.
-   */
-  async addSoundfont(soundfont: Soundfont): Promise<void> {
-    if (this.soundfonts.has(soundfont.id)) {
-      return;
-    }
-    this.soundfonts.add(soundfont.id);
+  readonly addSoundfont = memo(async (soundfont: Soundfont): Promise<void> => {
     const loaded = await loadSoundfont(soundfont);
     // The synth may have been disposed while the SoundFont loaded.
     await this.synth?.addSoundfont({ id: soundfont.id, ...loaded });
-  }
+  });
 
   private getSynth(): RpcClient<MidiSynth> {
     if (!this.synth) {
