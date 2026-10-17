@@ -98,7 +98,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 
   start(): void {
-    this.synth.start(this.transport.playbackRun!.options);
+    void this.synth.start(this.transport.playbackRun!.options);
   }
 
   stop(): void {
@@ -116,7 +116,7 @@ export class MidiTrackPlayback implements TransportParticipant {
    * keep playing.
    */
   private sendNotes(): void {
-    this.synth.setNotes(convertToTimelineNotes(this.notes, this.tempo));
+    void this.synth.setNotes(convertToTimelineNotes(this.notes, this.tempo));
   }
 }
 

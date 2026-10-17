@@ -128,8 +128,10 @@ export async function renderMix({
           });
           cleanup.defer(() => channel.dispose());
           synth.output.connect(channel.input);
-          synth.setNotes(track.notes);
-          synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
+          await synth.setNotes(track.notes);
+          // An offline render outruns messages, so the synth must have
+          // started before rendering does or it misses the first notes.
+          await synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
         }),
       );
       // Await so cleanup runs after rendering, not before.
