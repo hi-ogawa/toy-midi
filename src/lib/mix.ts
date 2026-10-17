@@ -117,8 +117,7 @@ export async function renderMix({
         mix.midiTracks.map(async (track) => {
           const synth = new MidiSynthWorkletNode(context);
           cleanup.defer(() => synth.dispose());
-          await synth.init(track.preset);
-          await synth.waitForSoundfonts();
+          await synth.init(track.preset, { waitForSoundfonts: true });
           const channel = new AudioChannel({
             context,
             output: master,
