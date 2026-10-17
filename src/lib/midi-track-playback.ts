@@ -1,9 +1,11 @@
 import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
-import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
+import {
+  convertToTimelineNotes,
+  MidiSynthWorkletNode,
+} from "./midi-synth-worklet-node.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { GENERAL_USER_SOUNDFONT } from "./soundfonts.ts";
-import { beatsToSeconds } from "./timeline.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -96,7 +98,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 
   start(): void {
-    this.synth.start(this.transport.playbackRun!.options);
+    void this.synth.start(this.transport.playbackRun!.options);
   }
 
   stop(): void {
@@ -114,16 +116,7 @@ export class MidiTrackPlayback implements TransportParticipant {
    * keep playing.
    */
   private sendNotes(): void {
-    this.synth.setNotes(
-      this.notes
-        .map((note) => ({
-          start: beatsToSeconds(note.start, this.tempo),
-          end: beatsToSeconds(note.start + note.duration, this.tempo),
-          pitch: note.pitch,
-          velocity: note.velocity,
-        }))
-        .sort((a, b) => a.start - b.start),
-    );
+    void this.synth.setNotes(convertToTimelineNotes(this.notes, this.tempo));
   }
 }
 

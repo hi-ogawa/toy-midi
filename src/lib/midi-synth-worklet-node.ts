@@ -1,3 +1,4 @@
+import type { Note } from "../types.ts";
 import { memo } from "../utils/memo.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { TimelineNote } from "./midi-note-scheduler.ts";
@@ -13,6 +14,7 @@ import {
   GENERAL_USER_SOUNDFONT,
   type Soundfont,
 } from "./soundfonts.ts";
+import { beatsToSeconds } from "./timeline.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
@@ -21,7 +23,7 @@ export class MidiSynthWorkletNode {
   private node?: AudioWorkletNode;
   private synth?: RpcClient<MidiSynth>;
 
-  constructor(private readonly context: AudioContext) {
+  constructor(private readonly context: BaseAudioContext) {
     this.output = context.createGain();
   }
 
@@ -62,12 +64,12 @@ export class MidiSynthWorkletNode {
     void this.getSynth().noteOff(pitch);
   }
 
-  setNotes(notes: TimelineNote[]): void {
-    void this.getSynth().setNotes(notes);
+  setNotes(notes: TimelineNote[]): Promise<void> {
+    return this.getSynth().setNotes(notes);
   }
 
-  start(playbackRunOptions: PlaybackRunOptions): void {
-    void this.getSynth().start(playbackRunOptions);
+  start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
+    return this.getSynth().start(playbackRunOptions);
   }
 
   stop(): void {
@@ -97,9 +99,24 @@ export class MidiSynthWorkletNode {
   }
 }
 
-const registrations = new WeakMap<AudioContext, Promise<void>>();
+/** Converts notes in beats to the synth's notes in seconds, sorted by start. */
+export function convertToTimelineNotes(
+  notes: readonly Note[],
+  tempo: number,
+): TimelineNote[] {
+  return notes
+    .map((note) => ({
+      start: beatsToSeconds(note.start, tempo),
+      end: beatsToSeconds(note.start + note.duration, tempo),
+      pitch: note.pitch,
+      velocity: note.velocity,
+    }))
+    .sort((a, b) => a.start - b.start);
+}
 
-async function ensureMidiWorklet(context: AudioContext): Promise<void> {
+const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
+
+async function ensureMidiWorklet(context: BaseAudioContext): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
     registration = context.audioWorklet.addModule(midiSynthWorkletUrl);
