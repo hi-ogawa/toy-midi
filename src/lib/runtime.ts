@@ -90,7 +90,6 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
-  /** Expression over time, such as swells and sustain, sent to the synth */
   automation?: Automation[];
   /**
    * SoundFont the preset comes from, one of {@link SOUNDFONTS}, or the bundled

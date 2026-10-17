@@ -20,18 +20,16 @@ export interface Note {
 }
 
 /**
- * Values for one synth parameter over the track's timeline. Each value holds
- * until the next point. Before the first point, the synth's default applies,
- * such as 127 for expression (CC11), 0 for sustain (CC64), and no bend.
+ * Each value holds until the next point, so start a sequence at beat 0 to set
+ * its value from the start. A track has at most one sequence per controller
+ * and one for pitch bend.
  */
 export type Automation =
   | {
       type: "controller";
       /**
        * MIDI controller number (0-119), such as 1 modulation, 11 expression,
-       * or 64 sustain. At most one sequence per controller. The player owns
-       * bank select (0, 32), parameter numbers (98-101), and data entry
-       * (6, 38).
+       * or 64 sustain
        */
       controller: number;
       /** Sorted by beat */
@@ -43,7 +41,6 @@ export type Automation =
       }[];
     }
   | {
-      /** At most one sequence per track */
       type: "pitch-bend";
       /** Sorted by beat */
       points: {
