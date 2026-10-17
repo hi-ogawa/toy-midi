@@ -42,13 +42,15 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   const downloadPath = test.info().outputPath("mix.wav");
   await download.saveAs(downloadPath);
 
-  // Inspect the downloaded file as stereo 16-bit PCM WAV, not just a named blob.
+  // Check the file is stereo 16-bit PCM holding the 3 s backing audio.
   const wav = decodeWav(await readFile(downloadPath));
   expect(wav).toMatchObject({
     channelCount: 2,
     sampleRate: 48000,
     bitsPerSample: 16,
   });
+  expect(wav.duration).toBeCloseTo(3);
+  expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
   await expect(exportButton).toBeEnabled();
 });
 
@@ -67,8 +69,13 @@ test("exports MIDI tracks in the WAV", async ({ page }) => {
   const downloadPath = test.info().outputPath("mix.wav");
   await download.saveAs(downloadPath);
 
-  // Check the file runs past the note into its release and is not silent.
+  // Check the file is stereo 16-bit PCM running past the note into its release.
   const wav = decodeWav(await readFile(downloadPath));
+  expect(wav).toMatchObject({
+    channelCount: 2,
+    sampleRate: 48000,
+    bitsPerSample: 16,
+  });
   expect(wav.duration).toBeGreaterThan(2);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
