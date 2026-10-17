@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { parseArgs, styleText } from "node:util";
 import { chromium } from "playwright-core";
@@ -44,11 +44,18 @@ async function main() {
       `No render capture page found at ${url}. The app may predate it.`,
     );
   }
-  const { wav, midiTrackCount } = await page.evaluate(
-    (archive) => window.__toyMidiRenderCapture!.renderArchive(archive),
-    archive.toString("base64"),
-  );
-  await writeFile(options.output, Buffer.from(wav, "base64"));
+  // Pass the archive in as a response and the WAV out as a download, because
+  // both move bytes several times faster than a base64 string through evaluate.
+  const archiveUrl = new URL("/render-capture/archive", options.url).href;
+  await page.route(archiveUrl, (route) => route.fulfill({ body: archive }));
+  const [download, { midiTrackCount }] = await Promise.all([
+    page.waitForEvent("download"),
+    page.evaluate(
+      (src) => window.__toyMidiRenderCapture!.renderArchive(src),
+      archiveUrl,
+    ),
+  ]);
+  await download.saveAs(options.output);
   writeLine(
     `${style("green", "✓")} wrote ${style("cyan", options.output)}  ${style("dim", formatDuration(performance.now() - startedAt))}`,
   );

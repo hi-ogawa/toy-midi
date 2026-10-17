@@ -30,7 +30,7 @@ By default, the CLI renders against the deployed app at https://toy-midi.hiro181
 
 ## How It Works
 
-The CLI opens `/render-capture`, a bare page that exposes a render function as `window.__toyMidiRenderCapture`. The CLI passes the archive to it, and the page imports the archive the way the project list does, loads it into an editor runtime, and renders and encodes the mix with the same calls as Export Audio. The page returns the WAV, and the CLI writes it to the output path.
+The CLI opens `/render-capture`, a bare page that exposes a render function as `window.__toyMidiRenderCapture`. The CLI serves the archive to the page at an intercepted URL, and the page imports it the way the project list does, loads it into an editor runtime, and renders and encodes the mix with the same calls as Export Audio. The page downloads the WAV like Export Audio, and the CLI saves the download to the output path.
 
 ## Development
 
