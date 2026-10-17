@@ -27,6 +27,7 @@ import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
+import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -320,6 +321,7 @@ export class EditorRuntime {
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
+  private midiSynth?: Promise<MidiSynthWorkletNode>;
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
@@ -495,7 +497,8 @@ export class EditorRuntime {
     index?: number;
   }): Promise<void> {
     const state = this.store.get();
-    const playback = await MidiTrackPlayback.create({
+    const playback = new MidiTrackPlayback({
+      synth: await this.getMidiSynth(),
       transport: this.transport,
       output: this.masterOutput,
       track,
@@ -722,7 +725,7 @@ export class EditorRuntime {
   }
 
   async setMidiTrackPreset(id: string, preset: MidiPreset): Promise<void> {
-    await this.midiTrackPlaybacks.get(id)?.setPreset(preset);
+    this.midiTrackPlaybacks.get(id)?.setPreset(preset);
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
@@ -1213,7 +1216,8 @@ export class EditorRuntime {
     for (const track of project.midiTracks) {
       this.midiTrackPlaybacks.set(
         track.id,
-        await MidiTrackPlayback.create({
+        new MidiTrackPlayback({
+          synth: await this.getMidiSynth(),
           transport: this.transport,
           output: this.masterOutput,
           track,
@@ -1258,6 +1262,21 @@ export class EditorRuntime {
       listener,
       equals: shallowEqual,
     });
+  }
+
+  /**
+   * Created on first use and kept for the runtime's lifetime, so a project
+   * switch doesn't parse the soundfont again.
+   */
+  private getMidiSynth(): Promise<MidiSynthWorkletNode> {
+    this.midiSynth ??= MidiSynthWorkletNode.create(this.context).catch(
+      (error: unknown) => {
+        // Forget the failure so the next MIDI track retries.
+        this.midiSynth = undefined;
+        throw error;
+      },
+    );
+    return this.midiSynth;
   }
 
   private syncTrackMix(): void {

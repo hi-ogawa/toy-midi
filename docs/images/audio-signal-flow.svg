@@ -106,8 +106,8 @@
   <text x="56" y="424" fill="#666" font-size="11">same chain as the armed track, without monitoring</text>
   <rect x="40" y="454" width="460" height="58" rx="6" fill="#fff" stroke="#557"/>
   <text x="56" y="472" font-weight="bold">MIDI tracks <tspan class="c">MidiTrackPlayback</tspan></text>
-  <text x="56" y="487" fill="#666" font-size="11">synth → channel</text>
-  <text x="56" y="502" class="c">MidiSynth → AudioChannel</text>
+  <text x="56" y="487" fill="#666" font-size="11">shared synth, one output per track → channel</text>
+  <text x="56" y="502" class="c">MidiSynthChannel → AudioChannel</text>
   <rect x="48" y="506" width="85" height="18" rx="9" class="w"/>
   <text x="90.5" y="519" text-anchor="middle" class="wt">spessasynth</text>
   <rect x="40" y="542" width="460" height="58" rx="6" fill="#fff" stroke="#557"/>

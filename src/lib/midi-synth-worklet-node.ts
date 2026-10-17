@@ -3,6 +3,7 @@ import type { TimelineNote } from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
 import type {
   MidiSynthClientMessage,
+  MidiSynthProcessorOptions,
   MidiSynthWorkletMessage,
 } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
@@ -12,83 +13,80 @@ import {
   findSoundfont,
   GENERAL_USER_SOUNDFONT,
   type Soundfont,
+  SOUNDFONTS,
 } from "./soundfonts.ts";
 
 const PROCESSOR_NAME = "midi-synth";
+// An AudioWorkletNode's output count is fixed at construction, so the synth
+// gets a fixed pool of channels, each with its own output.
+const CHANNEL_COUNT = 32;
+// The synth holds every SoundFont at once, so a channel picks one by bank. Each
+// bundled SoundFont sits at its own offset, clear of GeneralUser's banks (0-26,
+// 120, and 128 for drums). Until a SoundFont loads, its bank is missing, and
+// the synth substitutes GeneralUser's preset with the same program.
+const SOUNDFONT_BANK_OFFSET = 100;
 
+/** One synth shared by every MIDI track, so each SoundFont is parsed once. */
 export class MidiSynthWorkletNode {
-  readonly output: GainNode;
-  private node?: AudioWorkletNode;
+  private readonly usedChannels = new Set<number>();
   private readonly soundfonts = new Set<string>();
 
-  constructor(private readonly context: AudioContext) {
-    this.output = context.createGain();
-  }
-
-  async init(preset: MidiPreset): Promise<void> {
-    await ensureMidiWorklet(this.context);
-    const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
+  static async create(context: AudioContext): Promise<MidiSynthWorkletNode> {
+    await ensureMidiWorklet(context);
+    const processorOptions: MidiSynthProcessorOptions = {
+      channelCount: CHANNEL_COUNT,
+    };
+    const node = new AudioWorkletNode(context, PROCESSOR_NAME, {
       numberOfInputs: 0,
-      numberOfOutputs: 1,
-      outputChannelCount: [2],
+      numberOfOutputs: CHANNEL_COUNT,
+      outputChannelCount: Array(CHANNEL_COUNT).fill(2),
+      processorOptions,
     });
-    this.node = node;
-    node.connect(this.output);
-
-    await new Promise<void>((resolve, reject) => {
-      node.port.onmessage = (event: MessageEvent<MidiSynthWorkletMessage>) => {
-        if (event.data.type === "ready") {
-          resolve();
-        } else {
-          reject(new Error(`MIDI synth failed to load: ${event.data.message}`));
-        }
-      };
-      this.postMessage({ type: "init" });
-    });
-    await this.setPreset(preset);
-    void this.addSoundfont(GENERAL_USER_SOUNDFONT);
-  }
-
-  async setPreset({
-    soundfont: id,
-    bank = 0,
-    program,
-  }: MidiPreset): Promise<void> {
-    this.postMessage({
-      type: "setPreset",
-      preset: { soundfont: id ?? GENERAL_USER_SOUNDFONT.id, bank, program },
-    });
-    if (id) {
-      void this.addSoundfont(findSoundfont(id));
+    try {
+      await new Promise<void>((resolve, reject) => {
+        node.port.onmessage = (
+          event: MessageEvent<MidiSynthWorkletMessage>,
+        ) => {
+          if (event.data.type === "ready") {
+            resolve();
+          } else {
+            reject(
+              new Error(`MIDI synth failed to load: ${event.data.message}`),
+            );
+          }
+        };
+        const message: MidiSynthClientMessage = { type: "init" };
+        node.port.postMessage(message);
+      });
+    } catch (error) {
+      disposeWorklet(node);
+      throw error;
     }
+    const synth = new MidiSynthWorkletNode(node);
+    void synth.addSoundfont(GENERAL_USER_SOUNDFONT);
+    return synth;
   }
 
-  noteOn(pitch: number): void {
-    this.postMessage({ type: "noteOn", pitch, velocity: 100 });
-  }
+  private constructor(private readonly node: AudioWorkletNode) {}
 
-  noteOff(pitch: number): void {
-    this.postMessage({ type: "noteOff", pitch });
-  }
-
-  setNotes(notes: TimelineNote[]): void {
-    this.postMessage({ type: "setNotes", notes });
-  }
-
-  start(playbackRunOptions: PlaybackRunOptions): void {
-    this.postMessage({ type: "start", playbackRunOptions });
-  }
-
-  stop(): void {
-    this.postMessage({ type: "stop" });
-  }
-
-  dispose(): void {
-    this.output.disconnect();
-    if (this.node) {
-      disposeWorklet(this.node);
-      this.node = undefined;
+  allocateChannel(preset: MidiPreset): MidiSynthChannel {
+    const channel = Array.from({ length: CHANNEL_COUNT }, (_, i) => i).find(
+      (i) => !this.usedChannels.has(i),
+    );
+    if (channel === undefined) {
+      throw new Error(
+        `A project can have at most ${CHANNEL_COUNT} MIDI tracks.`,
+      );
     }
+    this.usedChannels.add(channel);
+    const synthChannel = new MidiSynthChannel({
+      node: this.node,
+      channel,
+      addSoundfont: (soundfont) => void this.addSoundfont(soundfont),
+      onDispose: () => this.usedChannels.delete(channel),
+    });
+    synthChannel.setPreset(preset);
+    return synthChannel;
   }
 
   private async addSoundfont(soundfont: Soundfont): Promise<void> {
@@ -103,23 +101,101 @@ export class MidiSynthWorkletNode {
       // The loader reports the failure.
       return;
     }
-    if (this.node) {
-      this.postMessage({ type: "addSoundfont", id: soundfont.id, ...loaded }, [
-        loaded.soundfont,
-        ...(loaded.samples ?? []).map(({ buffer }) => buffer),
-      ]);
+    const message: MidiSynthClientMessage = {
+      type: "addSoundfont",
+      id: soundfont.id,
+      bankOffset: getBankOffset(soundfont.id),
+      ...loaded,
+    };
+    this.node.port.postMessage(message, [
+      loaded.soundfont,
+      ...(loaded.samples ?? []).map(({ buffer }) => buffer),
+    ]);
+  }
+}
+
+/** One MIDI track's channel on the shared synth, with its own output. */
+export class MidiSynthChannel {
+  readonly output: GainNode;
+  private readonly node: AudioWorkletNode;
+  private readonly channel: number;
+  private readonly addSoundfont: (soundfont: Soundfont) => void;
+  private readonly onDispose: () => void;
+
+  constructor({
+    node,
+    channel,
+    addSoundfont,
+    onDispose,
+  }: {
+    node: AudioWorkletNode;
+    channel: number;
+    addSoundfont: (soundfont: Soundfont) => void;
+    onDispose: () => void;
+  }) {
+    this.node = node;
+    this.channel = channel;
+    this.addSoundfont = addSoundfont;
+    this.onDispose = onDispose;
+    this.output = node.context.createGain();
+    node.connect(this.output, channel);
+  }
+
+  setPreset({ soundfont: id, bank = 0, program }: MidiPreset): void {
+    this.postMessage({
+      type: "setPreset",
+      channel: this.channel,
+      bank: (id ? getBankOffset(id) : 0) + bank,
+      program,
+    });
+    if (id) {
+      this.addSoundfont(findSoundfont(id));
     }
   }
 
-  private postMessage(
-    message: MidiSynthClientMessage,
-    transfer?: Transferable[],
-  ): void {
-    if (!this.node) {
-      throw new Error("MIDI synth is not initialized.");
-    }
-    this.node.port.postMessage(message, transfer ?? []);
+  noteOn(pitch: number): void {
+    this.postMessage({
+      type: "noteOn",
+      channel: this.channel,
+      pitch,
+      velocity: 100,
+    });
   }
+
+  noteOff(pitch: number): void {
+    this.postMessage({ type: "noteOff", channel: this.channel, pitch });
+  }
+
+  setNotes(notes: TimelineNote[]): void {
+    this.postMessage({ type: "setNotes", channel: this.channel, notes });
+  }
+
+  start(playbackRunOptions: PlaybackRunOptions): void {
+    this.postMessage({
+      type: "start",
+      channel: this.channel,
+      playbackRunOptions,
+    });
+  }
+
+  stop(): void {
+    this.postMessage({ type: "stop", channel: this.channel });
+  }
+
+  dispose(): void {
+    this.output.disconnect();
+    this.postMessage({ type: "release", channel: this.channel });
+    this.onDispose();
+  }
+
+  private postMessage(message: MidiSynthClientMessage): void {
+    this.node.port.postMessage(message);
+  }
+}
+
+function getBankOffset(id: string): number {
+  const index = SOUNDFONTS.findIndex((soundfont) => soundfont.id === id);
+  return index === -1 ? 0 : SOUNDFONT_BANK_OFFSET + index;
 }
 
 const registrations = new WeakMap<AudioContext, Promise<void>>();
