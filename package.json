@@ -20,6 +20,7 @@
     "test": "vitest",
     "test-e2e": "playwright test",
     "test-e2e-trace": "E2E_TRACE=1 playwright test",
+    "render-audio": "node packages/render-audio/bin/cli.js",
     "render-score-video": "node packages/score-video/bin/cli.js",
     "wsola": "tsx tools/wsola.ts"
   },
