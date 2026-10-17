@@ -21,9 +21,9 @@ const PROCESSOR_NAME = "midi-synth";
 const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
 const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
-  noteOff: 0,
+  "note-off": 0,
   controller: 1,
-  noteOn: 2,
+  "note-on": 2,
 };
 
 interface SynthPreset {
@@ -244,7 +244,7 @@ export class MidiSynth {
         offset = eventOffset;
       }
       switch (event.type) {
-        case "noteOff": {
+        case "note-off": {
           synth.noteOff(CHANNEL, event.pitch);
           break;
         }
@@ -256,7 +256,7 @@ export class MidiSynth {
           );
           break;
         }
-        case "noteOn": {
+        case "note-on": {
           synth.noteOn(CHANNEL, event.pitch, event.velocity);
           break;
         }

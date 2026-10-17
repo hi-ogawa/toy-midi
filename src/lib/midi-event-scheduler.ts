@@ -26,8 +26,8 @@ export type ScheduledAutomation = TimelineAutomation & { initialValue: number };
 
 /** A synth event placed on the audio clock. */
 export type ScheduledEvent =
-  | { type: "noteOn"; time: number; pitch: number; velocity: number }
-  | { type: "noteOff"; time: number; pitch: number }
+  | { type: "note-on"; time: number; pitch: number; velocity: number }
+  | { type: "note-off"; time: number; pitch: number }
   | { type: "controller"; time: number; controller: number; value: number };
 
 /**
@@ -114,13 +114,13 @@ export class MidiEventScheduler {
       const noteEnd = Math.min(note.end, range.pass.end);
       scheduled.push(
         {
-          type: "noteOn",
+          type: "note-on",
           time: range.pass.getContextTimeAt(note.start),
           pitch: note.pitch,
           velocity: note.velocity,
         },
         {
-          type: "noteOff",
+          type: "note-off",
           time: range.pass.getContextTimeAt(noteEnd),
           pitch: note.pitch,
         },
