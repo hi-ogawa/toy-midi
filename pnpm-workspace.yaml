@@ -3,6 +3,7 @@ packages:
   - packages/webmcp-bridge
   - packages/score-video
 allowBuilds:
+  core-js: false
   esbuild: true
   gl: false
   wasm-pack: true
