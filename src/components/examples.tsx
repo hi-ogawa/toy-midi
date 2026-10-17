@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { FileTextIcon, HouseIcon, SearchIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type Example, fetchExamples, getExampleHref } from "../lib/examples";
+import { z } from "zod";
 import { routes } from "../lib/routes";
 import { pluralCount } from "../utils/plural-count";
 import { cn } from "./ui/utils";
@@ -258,4 +258,40 @@ function matchesExampleSearch({
     .toLowerCase()
     .split(/\s+/)
     .every((term) => text.includes(term));
+}
+
+// The catalog is curated by hand in llm-music-probe. Its raw URL on main always
+// serves the latest version, so editing it there updates the examples without
+// a release.
+const CATALOG_URL =
+  "https://raw.githubusercontent.com/hi-ogawa/llm-music-probe/main/compositions/catalog.json";
+
+const catalogSchema = z.array(
+  z.object({
+    name: z.string(),
+    description: z.string(),
+    date: z.string(),
+    tags: z.array(z.string()),
+    url: z.string(),
+    writeup: z.string(),
+  }),
+);
+
+type Example = z.infer<typeof catalogSchema>[number];
+
+async function fetchExamples(): Promise<Example[]> {
+  let response: Response;
+  try {
+    response = await fetch(CATALOG_URL);
+  } catch {
+    throw new Error("Could not fetch the examples.");
+  }
+  if (!response.ok) {
+    throw new Error(`Could not fetch the examples (HTTP ${response.status}).`);
+  }
+  return catalogSchema.parse(await response.json());
+}
+
+function getExampleHref(example: Example) {
+  return `${routes.draft.href()}?${new URLSearchParams({ src: example.url })}`;
 }
