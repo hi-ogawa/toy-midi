@@ -51,14 +51,14 @@ export class MidiSynthWorkletNode {
     bank = 0,
     program,
   }: MidiPreset): Promise<void> {
-    if (id) {
-      void this.addSoundfont(findSoundfont(id));
-    }
     await this.getSynth().setPreset({
       soundfont: id ?? GENERAL_USER_SOUNDFONT.id,
       bank,
       program,
     });
+    if (id) {
+      void this.addSoundfont(findSoundfont(id));
+    }
   }
 
   /**
