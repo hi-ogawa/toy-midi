@@ -1,12 +1,14 @@
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { TimelineNote } from "./midi-note-scheduler.ts";
+import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
 import type {
   MidiSynthClientMessage,
   MidiSynthWorkletMessage,
 } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
-import { midiAssetUrls, waitForMidiAssets } from "./runtime-assets";
+import { loadSoundfont } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
+import { GENERAL_USER_SOUNDFONT, type Soundfont } from "./soundfonts.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
@@ -19,7 +21,6 @@ export class MidiSynthWorkletNode {
   }
 
   async init(preset: MidiPreset): Promise<void> {
-    await waitForMidiAssets();
     await ensureMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
       numberOfInputs: 0,
@@ -29,9 +30,6 @@ export class MidiSynthWorkletNode {
     this.node = node;
     node.connect(this.output);
 
-    const soundfont = await fetch(midiAssetUrls.soundfontUrl).then((response) =>
-      response.arrayBuffer(),
-    );
     await new Promise<void>((resolve, reject) => {
       node.port.onmessage = (event: MessageEvent<MidiSynthWorkletMessage>) => {
         if (event.data.type === "ready") {
@@ -40,9 +38,10 @@ export class MidiSynthWorkletNode {
           reject(new Error(`MIDI synth failed to load: ${event.data.message}`));
         }
       };
-      this.postMessage({ type: "init", soundfont }, [soundfont]);
+      this.postMessage({ type: "init" });
     });
     await this.setPreset(preset);
+    void this.addSoundfont(GENERAL_USER_SOUNDFONT);
   }
 
   async setPreset({ bank = 0, program }: MidiPreset): Promise<void> {
@@ -77,6 +76,22 @@ export class MidiSynthWorkletNode {
     }
   }
 
+  private async addSoundfont(soundfont: Soundfont): Promise<void> {
+    let data: ArrayBuffer;
+    try {
+      data = await loadSoundfont(soundfont);
+    } catch {
+      // The loader reports the failure.
+      return;
+    }
+    if (this.node) {
+      this.postMessage(
+        { type: "addSoundfont", id: soundfont.id, soundfont: data },
+        [data],
+      );
+    }
+  }
+
   private postMessage(
     message: MidiSynthClientMessage,
     transfer?: Transferable[],
@@ -93,7 +108,7 @@ const registrations = new WeakMap<AudioContext, Promise<void>>();
 async function ensureMidiWorklet(context: AudioContext): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
-    registration = context.audioWorklet.addModule(midiAssetUrls.workletUrl);
+    registration = context.audioWorklet.addModule(midiSynthWorkletUrl);
     registrations.set(context, registration);
   }
   try {
