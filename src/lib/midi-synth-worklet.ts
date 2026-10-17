@@ -304,19 +304,19 @@ function prepareAutomation(sequence: TimelineAutomation): ScheduledAutomation {
         ...sequence,
         points: sequence.points.map((point) => ({
           time: point.time,
-          value: convertToPitchWheel(point.value),
+          value: clamp(
+            Math.round(
+              PITCH_WHEEL_CENTER +
+                (point.value / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
+            ),
+            0,
+            2 * PITCH_WHEEL_CENTER - 1,
+          ),
         })),
         initialValue: PITCH_WHEEL_CENTER,
       };
     }
   }
-}
-
-function convertToPitchWheel(semitones: number): number {
-  const value = Math.round(
-    PITCH_WHEEL_CENTER + (semitones / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
-  );
-  return clamp(value, 0, 2 * PITCH_WHEEL_CENTER - 1);
 }
 
 function isSameTarget(a: TimelineAutomation, b: TimelineAutomation): boolean {
