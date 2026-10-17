@@ -1,6 +1,7 @@
 import {
   DEFAULT_MIDI_CONTROLLERS,
   type MIDIController,
+  MIDIControllers,
   SoundBankLoader,
   SpessaSynthProcessor,
 } from "spessasynth_core";
@@ -20,9 +21,13 @@ const PROCESSOR_NAME = "midi-synth";
 // Every track plays on the first MIDI channel of its own synth.
 const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
+// Wide enough for slides of up to an octave either way.
+const PITCH_BEND_RANGE = 12;
+const PITCH_WHEEL_CENTER = 8192;
 const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
   noteOff: 0,
   controller: 1,
+  pitchWheel: 1,
   noteOn: 2,
 };
 
@@ -135,16 +140,12 @@ export class MidiSynth {
   }
 
   async setAutomation(automation: TimelineAutomation[]): Promise<void> {
-    const next = automation.map((sequence) => ({
-      ...sequence,
-      initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
-    }));
+    const next = automation.map(prepareAutomation);
     // A removed sequence would otherwise hold its last value, such as a
     // pedal left down.
-    this.resetControllers(
+    this.resetAutomation(
       this.automation.filter(
-        (sequence) =>
-          !next.some((other) => other.controller === sequence.controller),
+        (sequence) => !next.some((other) => isSameTarget(other, sequence)),
       ),
     );
     this.automation = next;
@@ -161,16 +162,26 @@ export class MidiSynth {
     this.events = [];
     this.synth!.stopAllChannels();
     // Keep a held pedal or swell from carrying into live playing.
-    this.resetControllers(this.automation);
+    this.resetAutomation(this.automation);
   }
 
-  private resetControllers(automation: ScheduledAutomation[]): void {
-    for (const { controller, initialValue } of automation) {
-      this.synth!.controllerChange(
-        CHANNEL,
-        controller as MIDIController,
-        initialValue,
-      );
+  private resetAutomation(automation: ScheduledAutomation[]): void {
+    const synth = this.synth!;
+    for (const sequence of automation) {
+      switch (sequence.type) {
+        case "controller": {
+          synth.controllerChange(
+            CHANNEL,
+            sequence.controller as MIDIController,
+            sequence.initialValue,
+          );
+          break;
+        }
+        case "pitch-bend": {
+          synth.pitchWheel(CHANNEL, sequence.initialValue);
+          break;
+        }
+      }
     }
   }
 
@@ -197,6 +208,8 @@ export class MidiSynth {
       synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
     }
     synth.programChange(CHANNEL, program);
+    // Adding a sound bank resets every channel, bend range included.
+    setPitchBendRange(synth, PITCH_BEND_RANGE);
     // SF3 samples decode on first use, which would underrun the render
     // quantum of the first note that needs them, so decode them up front.
     synth.midiChannels[CHANNEL].preset?.preload(0, 127);
@@ -256,6 +269,10 @@ export class MidiSynth {
           );
           break;
         }
+        case "pitchWheel": {
+          synth.pitchWheel(CHANNEL, event.value);
+          break;
+        }
         case "noteOn": {
           synth.noteOn(CHANNEL, event.pitch, event.velocity);
           break;
@@ -266,6 +283,53 @@ export class MidiSynth {
       synth.process(left, right, offset, left.length - offset);
     }
   }
+}
+
+/** Converts a sequence's values to what the synth takes. */
+function prepareAutomation(sequence: TimelineAutomation): ScheduledAutomation {
+  switch (sequence.type) {
+    case "controller": {
+      return {
+        ...sequence,
+        initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
+      };
+    }
+    case "pitch-bend": {
+      return {
+        ...sequence,
+        points: sequence.points.map((point) => ({
+          time: point.time,
+          value: convertToPitchWheel(point.value),
+        })),
+        initialValue: PITCH_WHEEL_CENTER,
+      };
+    }
+  }
+}
+
+function convertToPitchWheel(semitones: number): number {
+  const value = Math.round(
+    PITCH_WHEEL_CENTER + (semitones / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
+  );
+  return Math.min(Math.max(value, 0), 2 * PITCH_WHEEL_CENTER - 1);
+}
+
+function isSameTarget(a: TimelineAutomation, b: TimelineAutomation): boolean {
+  if (a.type === "controller" && b.type === "controller") {
+    return a.controller === b.controller;
+  }
+  return a.type === b.type;
+}
+
+/** Sets the bend range through registered parameter 0. */
+function setPitchBendRange(
+  synth: SpessaSynthProcessor,
+  semitones: number,
+): void {
+  synth.controllerChange(CHANNEL, MIDIControllers.registeredParameterMSB, 0);
+  synth.controllerChange(CHANNEL, MIDIControllers.registeredParameterLSB, 0);
+  synth.controllerChange(CHANNEL, MIDIControllers.dataEntryMSB, semitones);
+  synth.controllerChange(CHANNEL, MIDIControllers.dataEntryLSB, 0);
 }
 
 registerProcessor(PROCESSOR_NAME, MidiSynthProcessor);

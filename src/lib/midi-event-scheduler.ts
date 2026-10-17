@@ -14,21 +14,30 @@ export type TimelineNote = {
   velocity: number;
 };
 
-/** A controller sequence on the timeline, in seconds. */
-export type TimelineAutomation = {
-  controller: number;
+/**
+ * An automation sequence on the timeline, in seconds, with values in the
+ * automation's units.
+ */
+export type TimelineAutomation = (
+  | { type: "controller"; controller: number }
+  | { type: "pitch-bend" }
+) & {
   /** Sorted by time */
   points: { time: number; value: number }[];
 };
 
-/** A controller sequence with the value it has before its first point. */
+/**
+ * A sequence with values as the synth takes them, and the value it has before
+ * its first point.
+ */
 export type ScheduledAutomation = TimelineAutomation & { initialValue: number };
 
 /** A synth event placed on the audio clock. */
 export type ScheduledEvent =
   | { type: "noteOn"; time: number; pitch: number; velocity: number }
   | { type: "noteOff"; time: number; pitch: number }
-  | { type: "controller"; time: number; controller: number; value: number };
+  | { type: "controller"; time: number; controller: number; value: number }
+  | { type: "pitchWheel"; time: number; value: number };
 
 /**
  * Places a track's notes and controller changes on the audio clock for windows
@@ -85,15 +94,17 @@ export class MidiEventScheduler {
     scheduled: ScheduledEvent[],
   ): void {
     const time = range.pass.getContextTimeAt(range.start);
-    for (const { controller, points, initialValue } of this.automation) {
+    for (const sequence of this.automation) {
+      const { points, initialValue } = sequence;
       const index =
         findSortedIndex(points, (point) => point.time >= range.start) - 1;
-      scheduled.push({
-        type: "controller",
-        time,
-        controller,
-        value: index >= 0 ? points[index].value : initialValue,
-      });
+      scheduled.push(
+        createAutomationEvent(
+          sequence,
+          time,
+          index >= 0 ? points[index].value : initialValue,
+        ),
+      );
     }
   }
 
@@ -132,7 +143,8 @@ export class MidiEventScheduler {
     range: ScheduledRange,
     scheduled: ScheduledEvent[],
   ): void {
-    for (const { controller, points } of this.automation) {
+    for (const sequence of this.automation) {
+      const { points } = sequence;
       for (
         let index = findSortedIndex(
           points,
@@ -142,13 +154,34 @@ export class MidiEventScheduler {
         index++
       ) {
         const point = points[index];
-        scheduled.push({
-          type: "controller",
-          time: range.pass.getContextTimeAt(point.time),
-          controller,
-          value: point.value,
-        });
+        scheduled.push(
+          createAutomationEvent(
+            sequence,
+            range.pass.getContextTimeAt(point.time),
+            point.value,
+          ),
+        );
       }
+    }
+  }
+}
+
+function createAutomationEvent(
+  sequence: ScheduledAutomation,
+  time: number,
+  value: number,
+): ScheduledEvent {
+  switch (sequence.type) {
+    case "controller": {
+      return {
+        type: "controller",
+        time,
+        controller: sequence.controller,
+        value,
+      };
+    }
+    case "pitch-bend": {
+      return { type: "pitchWheel", time, value };
     }
   }
 }
