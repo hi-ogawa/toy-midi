@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
-import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
+import type { SharedProject } from "../src/lib/project-share";
+import { encodeSharePayload } from "../src/lib/share-payload";
 import {
   addAudio,
   addMidiTrack,
@@ -76,7 +77,7 @@ test("exports MIDI tracks in the WAV", async ({ page }) => {
 test("exports MIDI automation in the WAV", async ({ page }) => {
   // Open a shared project whose held note swells in from silence on
   // expression (CC11), reaching full level at beat 2, one second at 120 BPM.
-  const project = {
+  const project: SharedProject = {
     title: "Swell",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
@@ -98,8 +99,7 @@ test("exports MIDI automation in the WAV", async ({ page }) => {
       },
     ],
   };
-  const payload = deflateRawSync(JSON.stringify(project)).toString("base64url");
-  await page.goto(`/draft#p=${payload}`);
+  await page.goto(`/draft#p=${await encodeSharePayload(project)}`);
   await expect(page.getByTestId("draft-badge")).toBeVisible();
 
   // Export the draft.

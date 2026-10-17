@@ -13,6 +13,7 @@ import {
   type Locator,
   MIN_TRACK_HEIGHT,
 } from "./runtime.ts";
+import { decodeSharePayload, encodeSharePayload } from "./share-payload.ts";
 
 // A share link carries the project, deflated and base64url-encoded, in the
 // URL fragment. The browser never sends the fragment in a request, so the
@@ -30,7 +31,7 @@ export async function createShareLink(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
   const url = new URL(routes.draft.href(), window.location.origin);
-  url.hash = `${PAYLOAD_PARAM}=${await encodeSharedProject(project)}`;
+  url.hash = `${PAYLOAD_PARAM}=${await encodeSharePayload(omitIds(project))}`;
   return url.href;
 }
 
@@ -92,25 +93,11 @@ export async function fetchSharedProject(
   }
 }
 
-async function encodeSharedProject(
-  project: SerializedEditorRuntimeState,
-): Promise<string> {
-  const bytes = await transformBytes(
-    new TextEncoder().encode(JSON.stringify(omitIds(project))),
-    new CompressionStream("deflate-raw"),
-  );
-  return encodeBase64Url(bytes);
-}
-
 export async function decodeSharedProject(
   payload: string,
 ): Promise<SerializedEditorRuntimeState> {
   try {
-    const bytes = await transformBytes(
-      decodeBase64Url(payload),
-      new DecompressionStream("deflate-raw"),
-    );
-    return assignIds(JSON.parse(new TextDecoder().decode(bytes)));
+    return assignIds(await decodeSharePayload(payload));
   } catch {
     throw new Error("The share link does not hold a readable project.");
   }
@@ -157,28 +144,4 @@ function assignIds(project: SharedProject): SerializedEditorRuntimeState {
       }),
     })),
   };
-}
-
-async function transformBytes(
-  bytes: Uint8Array<ArrayBuffer>,
-  transform: CompressionStream | DecompressionStream,
-): Promise<Uint8Array<ArrayBuffer>> {
-  const stream = new Blob([bytes]).stream().pipeThrough(transform);
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-function encodeBase64Url(bytes: Uint8Array<ArrayBuffer>): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/, "");
-}
-
-function decodeBase64Url(text: string): Uint8Array<ArrayBuffer> {
-  const binary = atob(text.replaceAll("-", "+").replaceAll("_", "/"));
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
