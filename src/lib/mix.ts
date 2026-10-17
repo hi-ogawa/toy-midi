@@ -6,7 +6,7 @@ import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import type {
   TimelineAutomation,
   TimelineNote,
-} from "./midi-event-scheduler.ts";
+} from "./midi-note-scheduler.ts";
 import {
   convertToTimelineAutomation,
   convertToTimelineNotes,

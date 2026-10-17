@@ -40,7 +40,7 @@ export type ScheduledEvent =
  * Places a track's notes and controller changes on the audio clock for windows
  * of a playback run. Consecutive windows take each note and point exactly once.
  */
-export class MidiEventScheduler {
+export class MidiNoteScheduler {
   /** Sorted by start. */
   private notes: TimelineNote[] = [];
   private automation: ScheduledAutomation[] = [];

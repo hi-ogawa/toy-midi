@@ -4,7 +4,7 @@ import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type {
   TimelineAutomation,
   TimelineNote,
-} from "./midi-event-scheduler.ts";
+} from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
 import type { MidiSynth } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
