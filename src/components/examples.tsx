@@ -83,12 +83,12 @@ function ExampleList({ examples }: { examples: Example[] }) {
     setActiveTag((current) => (current === tag ? undefined : tag));
   }
 
-  const shown = examples.filter(
+  const filteredExamples = examples.filter(
     (example) =>
       (!activeTag || example.tags.includes(activeTag)) &&
       matchesExampleSearch({ example, query }),
   );
-  const filtered = Boolean(query.trim() || activeTag);
+  const hasFilter = Boolean(query.trim() || activeTag);
 
   return (
     <>
@@ -122,7 +122,7 @@ function ExampleList({ examples }: { examples: Example[] }) {
             role="status"
             className="text-right text-xs whitespace-nowrap tabular-nums text-neutral-400"
           >
-            {filtered ? `${shown.length} of ` : ""}
+            {hasFilter ? `${filteredExamples.length} of ` : ""}
             {pluralCount(examples.length, "example")}
           </p>
         </div>
@@ -139,12 +139,12 @@ function ExampleList({ examples }: { examples: Example[] }) {
         </div>
       </div>
       <ul className="min-h-0 overflow-y-auto scrollbar-thin p-3">
-        {shown.length === 0 ? (
+        {filteredExamples.length === 0 ? (
           <li className="py-3 text-center text-sm text-neutral-500">
             No matching examples
           </li>
         ) : (
-          shown.map((example) => (
+          filteredExamples.map((example) => (
             <li
               key={example.url}
               className="rounded-lg px-3 py-3 hover:bg-neutral-800/70"
