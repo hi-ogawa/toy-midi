@@ -25,7 +25,7 @@ export class MidiSynthWorkletNode {
     this.output = context.createGain();
   }
 
-  async init(preset: MidiPreset): Promise<void> {
+  async init(): Promise<void> {
     await ensureMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
       numberOfInputs: 0,
@@ -45,22 +45,25 @@ export class MidiSynthWorkletNode {
       };
       this.postMessage({ type: "init" });
     });
-    await this.setPreset(preset);
-    void this.addSoundfont(GENERAL_USER_SOUNDFONT);
   }
 
-  async setPreset({
-    soundfont: id,
-    bank = 0,
-    program,
-  }: MidiPreset): Promise<void> {
+  /**
+   * Selects the preset and loads its SoundFont. Until it arrives, the synth
+   * plays the preset from any other loaded SoundFont that has it.
+   */
+  setPreset(preset: MidiPreset): void {
+    const soundfont = preset.soundfont
+      ? findSoundfont(preset.soundfont)
+      : GENERAL_USER_SOUNDFONT;
     this.postMessage({
       type: "setPreset",
-      preset: { soundfont: id ?? GENERAL_USER_SOUNDFONT.id, bank, program },
+      preset: {
+        soundfont: soundfont.id,
+        bank: preset.bank ?? 0,
+        program: preset.program,
+      },
     });
-    if (id) {
-      void this.addSoundfont(findSoundfont(id));
-    }
+    void this.addSoundfont(soundfont);
   }
 
   noteOn(pitch: number): void {
@@ -91,7 +94,7 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  private async addSoundfont(soundfont: Soundfont): Promise<void> {
+  async addSoundfont(soundfont: Soundfont): Promise<void> {
     if (this.soundfonts.has(soundfont.id)) {
       return;
     }

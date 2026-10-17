@@ -721,16 +721,14 @@ export class EditorRuntime {
     }
   }
 
-  async setMidiTrackPreset(id: string, preset: MidiPreset): Promise<void> {
-    await this.midiTrackPlaybacks.get(id)?.setPreset(preset);
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({
-        ...track,
-        soundfont: preset.soundfont,
-        bank: preset.bank,
-        program: preset.program,
-      }));
-    }
+  setMidiTrackPreset(id: string, preset: MidiPreset): void {
+    this.midiTrackPlaybacks.get(id)?.setPreset(preset);
+    this.updateMidiTrack(id, (track) => ({
+      ...track,
+      soundfont: preset.soundfont,
+      bank: preset.bank,
+      program: preset.program,
+    }));
   }
 
   setMidiTrackSettings(

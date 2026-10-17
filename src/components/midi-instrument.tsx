@@ -8,12 +8,10 @@ import { InstrumentCombobox } from "./instrument-combobox";
 
 export function MidiInstrument({
   track,
-  presetPending,
   onPresetChange,
   onSettingsChange,
 }: {
   track: MidiTrackState;
-  presetPending: boolean;
   onPresetChange: (preset: MidiPreset) => void;
   onSettingsChange: (settings: Partial<MidiTrackState>) => void;
 }) {
@@ -29,7 +27,6 @@ export function MidiInstrument({
             bank: track.bank,
             program: track.program,
           }}
-          disabled={presetPending}
           onValueChange={onPresetChange}
         />
       </div>
