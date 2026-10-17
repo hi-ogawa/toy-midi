@@ -64,16 +64,14 @@ export async function renderMix({
       using channels = new DisposableStack();
       await ensureBiquadEqWorklet(context);
       for (const track of mix.tracks) {
-        const channel = channels.adopt(
-          new AudioChannel({
-            context,
-            output: master,
-            eq: track.eq,
-            gain: track.gain,
-            pan: track.pan,
-          }),
-          (channel) => channel.dispose(),
-        );
+        const channel = new AudioChannel({
+          context,
+          output: master,
+          eq: track.eq,
+          gain: track.gain,
+          pan: track.pan,
+        });
+        channels.defer(() => channel.dispose());
         for (const region of track.regions) {
           const source = context.createBufferSource();
           source.buffer = region.buffer;
@@ -104,9 +102,8 @@ async function renderOfflineInFrame(
   render: (context: OfflineAudioContext) => Promise<AudioBuffer>,
 ): Promise<AudioBuffer> {
   using frames = new DisposableStack();
-  const frame = frames.adopt(document.createElement("iframe"), (frame) =>
-    frame.remove(),
-  );
+  const frame = document.createElement("iframe");
+  frames.defer(() => frame.remove());
   frame.hidden = true;
   document.body.append(frame);
   const frameWindow = frame.contentWindow as Window & typeof globalThis;
