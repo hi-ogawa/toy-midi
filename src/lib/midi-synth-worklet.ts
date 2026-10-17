@@ -135,7 +135,7 @@ export class MidiSynth {
   }
 
   async setAutomation(automation: TimelineAutomation[]): Promise<void> {
-    const next = automation.map((sequence) => ({
+    const next: ScheduledAutomation[] = automation.map((sequence) => ({
       ...sequence,
       initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
     }));
