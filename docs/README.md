@@ -11,6 +11,7 @@
 - [What a MIDI file can encode](concepts/midi-file-model.md): tracks, channels, programs, events over time, and the tempo map in a Standard MIDI File.
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
 - [YIN pitch detection](concepts/yin-pitch-detection.md): YIN difference analysis, period selection, and frequency refinement.
+- [Loudness](concepts/loudness.md): K-weighting, gating, loudness range, how track loudness relates to the mix, and true peak.
 - [WSOLA time stretching](concepts/wsola-time-stretching.md): derive source-window selection, waveform similarity, and complementary fades from the goal of changing duration while preserving pitch.
 
 ## Bass Pitch
