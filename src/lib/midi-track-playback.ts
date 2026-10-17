@@ -120,5 +120,9 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 }
 
-/** The loader reports a failed SoundFont, and playback keeps whatever it has. */
+/**
+ * A failed SoundFont should not interrupt editing. The loader already shows a
+ * toast naming it, and the track keeps sounding through whatever SoundFont the
+ * synth has, usually GeneralUser, so playback has nothing more to report.
+ */
 function ignoreLoadFailure(): void {}
