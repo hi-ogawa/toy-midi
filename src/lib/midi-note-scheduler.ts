@@ -1,9 +1,11 @@
+import type { Note } from "../types.ts";
 import { findSortedIndex } from "../utils/array.ts";
 import {
   type ContextTimeWindow,
   PlaybackRun,
   type PlaybackRunOptions,
 } from "./playback-run.ts";
+import { beatsToSeconds } from "./timeline.ts";
 
 /** A note on the timeline, in seconds. */
 export type TimelineNote = {
@@ -12,6 +14,21 @@ export type TimelineNote = {
   pitch: number;
   velocity: number;
 };
+
+/** Converts notes in beats to timeline notes, sorted by start. */
+export function convertToTimelineNotes(
+  notes: readonly Note[],
+  tempo: number,
+): TimelineNote[] {
+  return notes
+    .map((note) => ({
+      start: beatsToSeconds(note.start, tempo),
+      end: beatsToSeconds(note.start + note.duration, tempo),
+      pitch: note.pitch,
+      velocity: note.velocity,
+    }))
+    .sort((a, b) => a.start - b.start);
+}
 
 /** A note placed on the audio clock. */
 export type ScheduledNote = {

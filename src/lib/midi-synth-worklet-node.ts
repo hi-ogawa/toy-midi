@@ -19,9 +19,11 @@ const PROCESSOR_NAME = "midi-synth";
 export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
-  private readonly soundfonts = new Set<string>();
+  /** Resolves once the processor has the SoundFont, or once its load fails. */
+  private readonly soundfonts = new Map<string, Promise<void>>();
+  private readonly addedSoundfonts = new Map<string, () => void>();
 
-  constructor(private readonly context: AudioContext) {
+  constructor(private readonly context: BaseAudioContext) {
     this.output = context.createGain();
   }
 
@@ -37,10 +39,20 @@ export class MidiSynthWorkletNode {
 
     await new Promise<void>((resolve, reject) => {
       node.port.onmessage = (event: MessageEvent<MidiSynthWorkletMessage>) => {
-        if (event.data.type === "ready") {
-          resolve();
-        } else {
-          reject(new Error(`MIDI synth failed to load: ${event.data.message}`));
+        const message = event.data;
+        switch (message.type) {
+          case "ready": {
+            resolve();
+            break;
+          }
+          case "error": {
+            reject(new Error(`MIDI synth failed to load: ${message.message}`));
+            break;
+          }
+          case "soundfontAdded": {
+            this.addedSoundfonts.get(message.id)?.();
+            break;
+          }
         }
       };
       this.postMessage({ type: "init" });
@@ -61,6 +73,14 @@ export class MidiSynthWorkletNode {
     if (id) {
       void this.addSoundfont(findSoundfont(id));
     }
+  }
+
+  /**
+   * Playing starts without waiting for this, with GeneralUser standing in for a
+   * preset until its SoundFont arrives. An offline render has to wait.
+   */
+  async waitForSoundfonts(): Promise<void> {
+    await Promise.all(this.soundfonts.values());
   }
 
   noteOn(pitch: number): void {
@@ -91,11 +111,16 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  private async addSoundfont(soundfont: Soundfont): Promise<void> {
-    if (this.soundfonts.has(soundfont.id)) {
-      return;
+  private addSoundfont(soundfont: Soundfont): Promise<void> {
+    let added = this.soundfonts.get(soundfont.id);
+    if (!added) {
+      added = this.sendSoundfont(soundfont);
+      this.soundfonts.set(soundfont.id, added);
     }
-    this.soundfonts.add(soundfont.id);
+    return added;
+  }
+
+  private async sendSoundfont(soundfont: Soundfont): Promise<void> {
     let loaded: LoadedSoundfont;
     try {
       loaded = await loadSoundfont(soundfont);
@@ -103,12 +128,16 @@ export class MidiSynthWorkletNode {
       // The loader reports the failure.
       return;
     }
-    if (this.node) {
-      this.postMessage({ type: "addSoundfont", id: soundfont.id, ...loaded }, [
-        loaded.soundfont,
-        ...(loaded.samples ?? []).map(({ buffer }) => buffer),
-      ]);
+    if (!this.node) {
+      return;
     }
+    const { promise, resolve } = Promise.withResolvers<void>();
+    this.addedSoundfonts.set(soundfont.id, resolve);
+    this.postMessage({ type: "addSoundfont", id: soundfont.id, ...loaded }, [
+      loaded.soundfont,
+      ...(loaded.samples ?? []).map(({ buffer }) => buffer),
+    ]);
+    await promise;
   }
 
   private postMessage(
@@ -122,9 +151,9 @@ export class MidiSynthWorkletNode {
   }
 }
 
-const registrations = new WeakMap<AudioContext, Promise<void>>();
+const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
-async function ensureMidiWorklet(context: AudioContext): Promise<void> {
+async function ensureMidiWorklet(context: BaseAudioContext): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
     registration = context.audioWorklet.addModule(midiSynthWorkletUrl);

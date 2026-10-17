@@ -3,7 +3,16 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
-import type { EditorRuntimeState } from "./runtime.ts";
+import {
+  convertToTimelineNotes,
+  type TimelineNote,
+} from "./midi-note-scheduler.ts";
+import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
+import type { EditorRuntimeState, MidiPreset } from "./runtime.ts";
+
+// Release length depends on the preset, so this only needs to cover typical
+// ones.
+const MIDI_RELEASE_SECONDS = 2;
 
 interface Mix {
   tracks: {
@@ -12,11 +21,18 @@ interface Mix {
     pan: number;
     regions: AudioPlaybackSource[];
   }[];
+  midiTracks: {
+    eq: MultibandEqParameters;
+    gain: number;
+    pan: number;
+    preset: MidiPreset;
+    notes: TimelineNote[];
+  }[];
   masterGain: number;
   duration: number;
 }
 
-/** Snapshot committed audio at 1x, independent of transport and reference audio. */
+/** Snapshot committed audio and MIDI at 1x, independent of transport and reference audio. */
 export function resolveMix(state: EditorRuntimeState): Mix {
   const gains = deriveTrackMix(state);
   const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
@@ -24,6 +40,13 @@ export function resolveMix(state: EditorRuntimeState): Mix {
     gain: gains.get(track.id)!,
     pan: track.pan,
     regions: getClipSources(track.regions),
+  }));
+  const midiTracks: Mix["midiTracks"] = state.midiTracks.map((track) => ({
+    eq: track.eq,
+    gain: gains.get(track.id)!,
+    pan: track.pan,
+    preset: track,
+    notes: convertToTimelineNotes(track.notes, state.tempo),
   }));
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;
@@ -34,7 +57,12 @@ export function resolveMix(state: EditorRuntimeState): Mix {
       duration = Math.max(duration, region.timelineEnd);
     }
   }
-  return { tracks, masterGain: state.masterGain, duration };
+  for (const track of midiTracks) {
+    for (const note of track.notes) {
+      duration = Math.max(duration, note.end + MIDI_RELEASE_SECONDS);
+    }
+  }
+  return { tracks, midiTracks, masterGain: state.masterGain, duration };
 }
 
 /** Render floats without normalization or clipping; PCM encoding owns clipping. */
@@ -81,7 +109,31 @@ export async function renderMix({
       );
     }
   }
-  return context.startRendering();
+  const synths = mix.midiTracks.map(() => new MidiSynthWorkletNode(context));
+  try {
+    await Promise.all(
+      mix.midiTracks.map(async (track, index) => {
+        const synth = synths[index]!;
+        await synth.init(track.preset);
+        await synth.waitForSoundfonts();
+        const channel = new AudioChannel({
+          context,
+          output: master,
+          eq: track.eq,
+          gain: track.gain,
+          pan: track.pan,
+        });
+        synth.output.connect(channel.input);
+        synth.setNotes(track.notes);
+        synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
+      }),
+    );
+    return await context.startRendering();
+  } finally {
+    for (const synth of synths) {
+      synth.dispose();
+    }
+  }
 }
 
 /** Render raw sources to mono, ignoring clip playback gain, cropping pre-zero audio and returning the timeline offset in seconds. */

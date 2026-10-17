@@ -33,7 +33,8 @@ interface SynthPreset {
 
 export type MidiSynthWorkletMessage =
   | { type: "ready" }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  | { type: "soundfontAdded"; id: string };
 
 type ScheduledEvent =
   | { type: "noteOff"; frame: number; pitch: number }
@@ -85,6 +86,7 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
         }
         synth.soundBankManager.addSoundBank(bank, message.id);
         this.applyPreset();
+        this.postMessage({ type: "soundfontAdded", id: message.id });
         break;
       }
       case "setPreset": {
