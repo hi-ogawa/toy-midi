@@ -188,10 +188,12 @@ test("opens an example project as a draft", async ({ page }) => {
     .first()
     .click();
   await expect(page.getByRole("status")).toHaveText("1 of 2 examples");
-  await expect(page.getByRole("link", { name: "Clichê" })).toBeHidden();
+  await expect(
+    page.getByRole("link", { name: "Clichê", exact: true }),
+  ).toBeHidden();
 
   // Open the piece, and see it as an unsaved draft with its tracks.
-  await page.getByRole("link", { name: "Slow Tide" }).click();
+  await page.getByRole("link", { name: "Slow Tide", exact: true }).click();
   await expect(page.getByTestId("draft-badge")).toBeVisible();
   await expect(page.getByTestId("project-name")).toHaveText("Slow Tide");
   await expect(page.getByTestId("midi-track-row")).toHaveCount(2);
