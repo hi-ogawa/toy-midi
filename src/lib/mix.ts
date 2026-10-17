@@ -3,7 +3,6 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
-import { renderOfflineInFrame } from "./offline-render.ts";
 import type { EditorRuntimeState } from "./runtime.ts";
 
 interface Mix {
@@ -86,6 +85,38 @@ export async function renderMix({
       }
     },
   );
+}
+
+/**
+ * Renders in a temporary iframe and returns the result copied into this page.
+ * Chromium never collects an OfflineAudioContext that has loaded an AudioWorklet
+ * module, so its render target would stay in memory for the life of the page.
+ * Removing the iframe tears the context down with it.
+ */
+async function renderOfflineInFrame(
+  options: OfflineAudioContextOptions,
+  setup: (context: OfflineAudioContext) => Promise<void>,
+): Promise<AudioBuffer> {
+  const frame = document.createElement("iframe");
+  frame.hidden = true;
+  document.body.append(frame);
+  try {
+    const frameWindow = frame.contentWindow as Window & typeof globalThis;
+    const context = new frameWindow.OfflineAudioContext(options);
+    await setup(context);
+    const rendered = await context.startRendering();
+    const buffer = new AudioBuffer({
+      numberOfChannels: rendered.numberOfChannels,
+      length: rendered.length,
+      sampleRate: rendered.sampleRate,
+    });
+    for (let channel = 0; channel < rendered.numberOfChannels; channel++) {
+      buffer.copyToChannel(rendered.getChannelData(channel), channel);
+    }
+    return buffer;
+  } finally {
+    frame.remove();
+  }
 }
 
 /** Render raw sources to mono, ignoring clip playback gain, cropping pre-zero audio and returning the timeline offset in seconds. */
