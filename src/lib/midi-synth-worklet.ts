@@ -25,10 +25,10 @@ const BANK_SELECT_CONTROLLER = 0;
 const PITCH_BEND_RANGE = 12;
 const PITCH_WHEEL_CENTER = 8192;
 const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
-  noteOff: 0,
+  "note-off": 0,
   controller: 1,
   "pitch-bend": 1,
-  noteOn: 2,
+  "note-on": 2,
 };
 
 interface SynthPreset {
@@ -257,7 +257,7 @@ export class MidiSynth {
         offset = eventOffset;
       }
       switch (event.type) {
-        case "noteOff": {
+        case "note-off": {
           synth.noteOff(CHANNEL, event.pitch);
           break;
         }
@@ -273,7 +273,7 @@ export class MidiSynth {
           synth.pitchWheel(CHANNEL, event.value);
           break;
         }
-        case "noteOn": {
+        case "note-on": {
           synth.noteOn(CHANNEL, event.pitch, event.velocity);
           break;
         }
