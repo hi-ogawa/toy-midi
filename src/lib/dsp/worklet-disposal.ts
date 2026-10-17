@@ -18,14 +18,25 @@ export function disposeWorklet(node: AudioWorkletNode): void {
   node.disconnect();
 }
 
-/** Install before other message handlers so disposal is consumed before them. */
-export function watchWorkletDisposal(port: MessagePort): () => boolean {
+/**
+ * Install before other message handlers so disposal is consumed before them.
+ *
+ * Chromium 151 never collects an OfflineAudioContext that has loaded a worklet
+ * module, so its processors outlive the render. `onDispose` lets a processor
+ * holding large state release it, because `process()` never runs again after
+ * an offline render to check the watcher.
+ */
+export function watchWorkletDisposal(
+  port: MessagePort,
+  onDispose?: () => void,
+): () => boolean {
   let disposed = false;
   port.addEventListener("message", (event: MessageEvent<{ type?: string }>) => {
     if (event.data?.type !== "dispose") {
       return;
     }
     disposed = true;
+    onDispose?.();
     // Other handlers may interpret every message as DSP settings.
     event.stopImmediatePropagation();
   });

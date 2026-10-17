@@ -53,7 +53,10 @@ declare function registerProcessor(
 ): void;
 
 class MidiSynthProcessor extends AudioWorkletProcessor {
-  private readonly isDisposed = watchWorkletDisposal(this.port);
+  private readonly isDisposed = watchWorkletDisposal(this.port, () => {
+    // The synth holds every loaded SoundFont.
+    this.synth = undefined;
+  });
   private synth?: SpessaSynthProcessor;
   private preset?: SynthPreset;
   // Scheduling here rather than on a main-thread timer keeps a busy page from
