@@ -6,15 +6,20 @@ import type {
   MidiSynthWorkletMessage,
 } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
-import { loadSoundfont } from "./runtime-assets";
+import { type LoadedSoundfont, loadSoundfont } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
-import { GENERAL_USER_SOUNDFONT, type Soundfont } from "./soundfonts.ts";
+import {
+  findSoundfont,
+  GENERAL_USER_SOUNDFONT,
+  type Soundfont,
+} from "./soundfonts.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
 export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
+  private readonly soundfonts = new Set<string>();
 
   constructor(private readonly context: AudioContext) {
     this.output = context.createGain();
@@ -44,8 +49,18 @@ export class MidiSynthWorkletNode {
     void this.addSoundfont(GENERAL_USER_SOUNDFONT);
   }
 
-  async setPreset({ bank = 0, program }: MidiPreset): Promise<void> {
-    this.postMessage({ type: "setPreset", bank, program });
+  async setPreset({
+    soundfont: id,
+    bank = 0,
+    program,
+  }: MidiPreset): Promise<void> {
+    this.postMessage({
+      type: "setPreset",
+      preset: { soundfont: id ?? GENERAL_USER_SOUNDFONT.id, bank, program },
+    });
+    if (id) {
+      void this.addSoundfont(findSoundfont(id));
+    }
   }
 
   noteOn(pitch: number): void {
@@ -77,18 +92,22 @@ export class MidiSynthWorkletNode {
   }
 
   private async addSoundfont(soundfont: Soundfont): Promise<void> {
-    let data: ArrayBuffer;
+    if (this.soundfonts.has(soundfont.id)) {
+      return;
+    }
+    this.soundfonts.add(soundfont.id);
+    let loaded: LoadedSoundfont;
     try {
-      data = await loadSoundfont(soundfont);
+      loaded = await loadSoundfont(soundfont);
     } catch {
       // The loader reports the failure.
       return;
     }
     if (this.node) {
-      this.postMessage(
-        { type: "addSoundfont", id: soundfont.id, soundfont: data },
-        [data],
-      );
+      this.postMessage({ type: "addSoundfont", id: soundfont.id, ...loaded }, [
+        loaded.soundfont,
+        ...(loaded.samples ?? []).map(({ buffer }) => buffer),
+      ]);
     }
   }
 

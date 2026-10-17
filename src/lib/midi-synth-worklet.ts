@@ -11,13 +11,25 @@ const BANK_SELECT_CONTROLLER = 0;
 
 export type MidiSynthClientMessage =
   | { type: "init" }
-  | { type: "addSoundfont"; id: string; soundfont: ArrayBuffer }
-  | { type: "setPreset"; bank: number; program: number }
+  | {
+      type: "addSoundfont";
+      id: string;
+      soundfont: ArrayBuffer;
+      samples?: Float32Array[];
+    }
+  | { type: "setPreset"; preset: SynthPreset }
   | { type: "noteOn"; pitch: number; velocity: number }
   | { type: "noteOff"; pitch: number }
   | { type: "setNotes"; notes: TimelineNote[] }
   | { type: "start"; playbackRunOptions: PlaybackRunOptions }
   | { type: "stop" };
+
+interface SynthPreset {
+  /** Id of the SoundFont the preset comes from */
+  soundfont: string;
+  bank: number;
+  program: number;
+}
 
 export type MidiSynthWorkletMessage =
   | { type: "ready" }
@@ -42,7 +54,7 @@ declare function registerProcessor(
 class MidiSynthProcessor extends AudioWorkletProcessor {
   private readonly isDisposed = watchWorkletDisposal(this.port);
   private synth?: SpessaSynthProcessor;
-  private preset?: { bank: number; program: number };
+  private preset?: SynthPreset;
   // Scheduling here rather than on a main-thread timer keeps a busy page from
   // dropping notes.
   private readonly scheduler = new MidiNoteScheduler();
@@ -64,15 +76,19 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     const synth = this.synth!;
     switch (message.type) {
       case "addSoundfont": {
-        synth.soundBankManager.addSoundBank(
-          SoundBankLoader.fromArrayBuffer(message.soundfont),
-          message.id,
-        );
+        const bank = SoundBankLoader.fromArrayBuffer(message.soundfont);
+        const { samples } = message;
+        if (samples) {
+          bank.samples.forEach((sample, index) => {
+            sample.setAudioData(samples[index]!, sample.sampleRate);
+          });
+        }
+        synth.soundBankManager.addSoundBank(bank, message.id);
         this.applyPreset();
         break;
       }
       case "setPreset": {
-        this.preset = { bank: message.bank, program: message.program };
+        this.preset = message.preset;
         this.applyPreset();
         break;
       }
@@ -122,10 +138,18 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
   /** Selects the track's preset once a SoundFont has loaded. */
   private applyPreset(): void {
     const synth = this.synth!;
-    if (!this.preset || synth.soundBankManager.soundBankList.length === 0) {
+    const banks = synth.soundBankManager;
+    const preset = this.preset;
+    if (!preset || banks.soundBankList.length === 0) {
       return;
     }
-    const { bank, program } = this.preset;
+    // The first loaded sound bank that has the preset plays it, so GeneralUser
+    // plays the same program until the track's SoundFont arrives.
+    banks.priorityOrder = [
+      preset.soundfont,
+      ...banks.priorityOrder.filter((id) => id !== preset.soundfont),
+    ];
+    const { bank, program } = preset;
     // A drum kit bank only plays on a drum channel, so the single channel
     // switches to drums for it. SpessaSynth substitutes a missing preset.
     const isDrum = bank === DRUM_KIT_BANK;

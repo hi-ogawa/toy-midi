@@ -184,6 +184,32 @@ test("plays a MIDI track as a drum kit and persists it", async ({ page }) => {
   );
 });
 
+test("plays a MIDI track on the Telecaster SoundFont and persists it", async ({
+  page,
+}) => {
+  // Select the Telecaster bridge pickup's muted preset through the track actions.
+  await createProject(page);
+  await addMidiTrack(page);
+  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
+  await selectMidiInstrument(instrument, {
+    option: "Telecaster Bridge: Muted",
+  });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+
+  // Save and reload, then verify the Telecaster preset persists.
+  await saveProject(page);
+  await page.reload();
+  await openMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "Telecaster Bridge: Muted",
+  );
+
+  // Switch to the General MIDI program with the same number.
+  await selectMidiInstrument(instrument, {
+    option: "1: Bright Acoustic Piano",
+  });
+});
+
 test("scrolls the instrument picker list with the mouse wheel", async ({
   page,
 }) => {

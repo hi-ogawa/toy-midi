@@ -1,26 +1,47 @@
 import { toast } from "sonner";
 import { memo } from "../utils/memo.ts";
+import { createWorkerRpc } from "./rpc/worker.ts";
+import type { SoundfontDecoderWorkerHandlers } from "./soundfont-decoder-worker.ts";
 import { GENERAL_USER_SOUNDFONT, type Soundfont } from "./soundfonts.ts";
 
+export interface LoadedSoundfont {
+  soundfont: ArrayBuffer;
+  /** Every sample decoded, in the file's order, when decoded in a worker */
+  samples?: Float32Array[];
+}
+
 /**
- * Resolves to the SoundFont's bytes, showing one loading indicator per
- * SoundFont across tracks while it downloads. Each call resolves to its own
- * copy, because posting the bytes to a synth transfers them.
+ * Resolves to the SoundFont, showing one loading indicator per SoundFont
+ * across tracks while it loads. Each call resolves to its own copy, because
+ * posting to a synth transfers the buffers.
  */
 export async function loadSoundfont(
   soundfont: Soundfont,
-): Promise<ArrayBuffer> {
-  return (await loadSharedSoundfont(soundfont)).slice(0);
+): Promise<LoadedSoundfont> {
+  const { soundfont: bytes, samples } = await loadSharedSoundfont(soundfont);
+  return {
+    soundfont: bytes.slice(0),
+    samples: samples?.map((sample) => sample.slice()),
+  };
 }
 
 const loadSharedSoundfont = memo(
-  async ({ name, url }: Soundfont): Promise<ArrayBuffer> => {
+  async ({
+    name,
+    url,
+    decodeInWorker,
+  }: Soundfont): Promise<LoadedSoundfont> => {
     let toastId: string | number | undefined;
     const timer = setTimeout(() => {
       toastId = toast.loading(`Loading ${name} SoundFont…`);
     }, 300);
     try {
-      return await downloadSoundfont(url);
+      const soundfont = await downloadSoundfont(url);
+      // The RPC call transfers the bytes to the worker, so send a copy.
+      const samples = decodeInWorker
+        ? await decodeSamples(soundfont.slice(0))
+        : undefined;
+      return { soundfont, samples };
     } catch (error) {
       toast.error(`Failed to load the ${name} SoundFont`);
       throw error;
@@ -49,3 +70,17 @@ const downloadSoundfont = memo(async (url: string): Promise<ArrayBuffer> => {
   }
   return await response.arrayBuffer();
 });
+
+async function decodeSamples(soundfont: ArrayBuffer): Promise<Float32Array[]> {
+  const worker = new Worker(
+    new URL("./soundfont-decoder-worker.ts", import.meta.url),
+    { type: "module" },
+  );
+  try {
+    return await createWorkerRpc<SoundfontDecoderWorkerHandlers>(
+      worker,
+    ).decodeSamples({ soundfont });
+  } finally {
+    worker.terminate();
+  }
+}
