@@ -90,7 +90,7 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
-  automation?: Automation[];
+  automation: Automation[];
   /**
    * SoundFont the preset comes from, one of {@link SOUNDFONTS}, or the bundled
    * GeneralUser GS when absent
@@ -1657,6 +1657,7 @@ export function createMidiTrackState({
     id: crypto.randomUUID(),
     name,
     notes: [],
+    automation: [],
     ...preset,
     eq: createDefaultMultibandEq(),
     height: 300,
