@@ -28,12 +28,13 @@ export class MidiSynthWorkletNode {
   }
 
   /**
-   * Playing starts without waiting for SoundFonts, with GeneralUser standing in
-   * for a preset until its SoundFont arrives. An offline render has to wait.
+   * Playing starts without waiting for the preset's SoundFont, with GeneralUser
+   * standing in until it arrives. An offline render has no later moment to
+   * switch, so it waits for the SoundFont instead and needs no stand-in.
    */
   async init(
     preset: MidiPreset,
-    { waitForSoundfonts = false }: { waitForSoundfonts?: boolean } = {},
+    { waitForSoundfont = false }: { waitForSoundfont?: boolean } = {},
   ): Promise<void> {
     await ensureMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
@@ -50,20 +51,17 @@ export class MidiSynthWorkletNode {
       throw new Error(`MIDI synth failed to load: ${(error as Error).message}`);
     }
     await this.selectPreset(preset);
-    const added = Promise.all([
-      this.addSoundfont(GENERAL_USER_SOUNDFONT),
-      preset.soundfont && this.addSoundfont(findSoundfont(preset.soundfont)),
-    ]);
-    if (waitForSoundfonts) {
-      await added;
+    if (waitForSoundfont) {
+      await this.addSoundfont(getPresetSoundfont(preset));
+    } else {
+      void this.addSoundfont(GENERAL_USER_SOUNDFONT);
+      void this.addSoundfont(getPresetSoundfont(preset));
     }
   }
 
   async setPreset(preset: MidiPreset): Promise<void> {
     await this.selectPreset(preset);
-    if (preset.soundfont) {
-      void this.addSoundfont(findSoundfont(preset.soundfont));
-    }
+    void this.addSoundfont(getPresetSoundfont(preset));
   }
 
   noteOn(pitch: number): void {
@@ -95,15 +93,11 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  private async selectPreset({
-    soundfont: id,
-    bank = 0,
-    program,
-  }: MidiPreset): Promise<void> {
+  private async selectPreset(preset: MidiPreset): Promise<void> {
     await this.getSynth().setPreset({
-      soundfont: id ?? GENERAL_USER_SOUNDFONT.id,
-      bank,
-      program,
+      soundfont: getPresetSoundfont(preset).id,
+      bank: preset.bank ?? 0,
+      program: preset.program,
     });
   }
 
@@ -130,6 +124,10 @@ export class MidiSynthWorkletNode {
     }
     return this.synth;
   }
+}
+
+function getPresetSoundfont({ soundfont }: MidiPreset): Soundfont {
+  return soundfont ? findSoundfont(soundfont) : GENERAL_USER_SOUNDFONT;
 }
 
 /** Converts notes in beats to the synth's notes in seconds, sorted by start. */
