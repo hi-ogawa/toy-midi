@@ -2,6 +2,7 @@ import { Editor } from "./components/editor";
 import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
 import { Preview } from "./components/preview";
+import { RenderCapture } from "./components/render-capture";
 import { RouteError } from "./components/route-error";
 import { ScoreCapture } from "./components/score-capture";
 import { ScorePage } from "./components/score-page";
@@ -38,6 +39,9 @@ export function App() {
     }
     case "scoreCapture": {
       return <ScoreCapture />;
+    }
+    case "renderCapture": {
+      return <RenderCapture />;
     }
     case "legacyProjectScore": {
       return <LegacyProjectRoute />;

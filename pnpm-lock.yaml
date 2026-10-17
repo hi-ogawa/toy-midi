@@ -121,6 +121,15 @@ importers:
         specifier: 0.15.0
         version: 0.15.0
 
+  packages/render-audio:
+    dependencies:
+      playwright-core:
+        specifier: ^1.62.1
+        version: 1.62.1
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
+
   packages/score-video:
     dependencies:
       playwright-core:

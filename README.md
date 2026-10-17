@@ -12,6 +12,7 @@ A browser-based tool for practicing with backing tracks, recording an instrument
 - Mix tracks with gain, mute, solo, and parametric EQ, then export audio as WAV.
 - Save projects in your browser and import or export portable project archives.
 - Render scrolling score videos from MusicXML for video editing with the standalone [score video CLI](packages/score-video/README.md).
+- Render project archives to WAV from the command line with the standalone [render audio CLI](packages/render-audio/README.md).
 
 ## Development
 
