@@ -134,7 +134,32 @@ test("Projects search follows the temporary legacy filter", async ({
 });
 
 test("opens an example project as a draft", async ({ page }) => {
-  // Serve the example's project file in place of the catalog.
+  // Serve the catalog and one piece's project file.
+  await page.route(
+    "https://raw.githubusercontent.com/**/catalog.json",
+    (route) =>
+      route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: [
+          {
+            name: "Slow Tide",
+            description: "Ambient waltz that drifts across the stereo field",
+            date: "2026-10-12",
+            tags: ["ambient"],
+            url: "https://raw.githubusercontent.com/test/slow-tide/slow-tide.json",
+            writeup: "https://github.com/test/slow-tide",
+          },
+          {
+            name: "Clichê",
+            description: "Bossa nova for flute, nylon guitar and brushes",
+            date: "2026-10-11",
+            tags: ["bossa nova"],
+            url: "https://raw.githubusercontent.com/test/cliche/cliche.json",
+            writeup: "https://github.com/test/cliche",
+          },
+        ],
+      }),
+  );
   await page.route(
     "https://raw.githubusercontent.com/**/slow-tide.json",
     (route) =>
@@ -152,11 +177,21 @@ test("opens an example project as a draft", async ({ page }) => {
       }),
   );
 
-  // Choose an example from the Examples menu on home.
+  // Follow the Examples link on home, and see the catalog listed.
   await page.goto("/");
-  await selectMenuItem(page, { menu: "Examples", item: /Slow Tide/ });
+  await page.getByRole("link", { name: "Examples" }).click();
+  await expect(page.getByRole("status")).toHaveText("2 examples");
 
-  // See it open as an unsaved draft with its tracks.
+  // Filter by a tag, and see only that piece.
+  await page
+    .getByRole("button", { name: /ambient/ })
+    .first()
+    .click();
+  await expect(page.getByRole("status")).toHaveText("1 of 2 examples");
+  await expect(page.getByRole("link", { name: "Clichê" })).toBeHidden();
+
+  // Open the piece, and see it as an unsaved draft with its tracks.
+  await page.getByRole("link", { name: "Slow Tide" }).click();
   await expect(page.getByTestId("draft-badge")).toBeVisible();
   await expect(page.getByTestId("project-name")).toHaveText("Slow Tide");
   await expect(page.getByTestId("midi-track-row")).toHaveCount(2);
