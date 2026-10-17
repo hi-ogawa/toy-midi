@@ -13,8 +13,6 @@ import { pluralCount } from "../utils/plural-count";
 import { cn } from "./ui/utils";
 
 export function Examples() {
-  const [query, setQuery] = useState("");
-  const [activeTag, setActiveTag] = useState<string>();
   const examplesQuery = useQuery({
     queryKey: ["examples"],
     queryFn: fetchExamples,
@@ -24,10 +22,6 @@ export function Examples() {
   useEffect(() => {
     document.title = "Examples - Toy MIDI";
   }, []);
-
-  function toggleTag(tag: string) {
-    setActiveTag((current) => (current === tag ? undefined : tag));
-  }
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-neutral-900">
@@ -73,13 +67,7 @@ export function Examples() {
               {examplesQuery.error.message}
             </p>
           ) : (
-            <ExampleList
-              examples={examplesQuery.data}
-              query={query}
-              onQueryChange={setQuery}
-              activeTag={activeTag}
-              onTagToggle={toggleTag}
-            />
+            <ExampleList examples={examplesQuery.data} />
           )}
         </main>
       </div>
@@ -87,19 +75,14 @@ export function Examples() {
   );
 }
 
-function ExampleList({
-  examples,
-  query,
-  onQueryChange,
-  activeTag,
-  onTagToggle,
-}: {
-  examples: Example[];
-  query: string;
-  onQueryChange: (query: string) => void;
-  activeTag?: string;
-  onTagToggle: (tag: string) => void;
-}) {
+function ExampleList({ examples }: { examples: Example[] }) {
+  const [query, setQuery] = useState("");
+  const [activeTag, setActiveTag] = useState<string>();
+
+  function toggleTag(tag: string) {
+    setActiveTag((current) => (current === tag ? undefined : tag));
+  }
+
   const shown = examples.filter(
     (example) =>
       (!activeTag || example.tags.includes(activeTag)) &&
@@ -121,14 +104,14 @@ function ExampleList({
               aria-label="Search examples"
               placeholder="Search names, descriptions and tags…"
               value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
+              onChange={(event) => setQuery(event.target.value)}
               className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-200 outline-none"
             />
             {query && (
               <button
                 type="button"
                 aria-label="Clear search"
-                onClick={() => onQueryChange("")}
+                onClick={() => setQuery("")}
                 className="rounded p-1 text-neutral-400 hover:text-neutral-200"
               >
                 <XIcon aria-hidden="true" className="size-4" />
@@ -150,7 +133,7 @@ function ExampleList({
               tag={tag}
               count={count}
               active={tag === activeTag}
-              onToggle={onTagToggle}
+              onToggle={toggleTag}
             />
           ))}
         </div>
@@ -199,7 +182,7 @@ function ExampleList({
                     key={tag}
                     tag={tag}
                     active={tag === activeTag}
-                    onToggle={onTagToggle}
+                    onToggle={toggleTag}
                   />
                 ))}
               </div>
