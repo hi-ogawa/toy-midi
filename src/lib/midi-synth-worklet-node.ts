@@ -43,8 +43,9 @@ export class MidiSynthWorkletNode {
   }
 
   /**
-   * Resolves once the preset plays from its own SoundFont. Until then, the
-   * synth plays it from any other loaded SoundFont that has it.
+   * Until the preset's SoundFont arrives, the synth plays the preset from any
+   * other loaded SoundFont that has it. Resolves once it arrives when this is
+   * the first request for that SoundFont.
    */
   async setPreset(preset: MidiPreset): Promise<void> {
     const soundfont = preset.soundfont
@@ -89,6 +90,10 @@ export class MidiSynthWorkletNode {
     }
   }
 
+  /**
+   * The first call for a SoundFont resolves once the processor has it, or once
+   * its load fails. Later calls resolve immediately.
+   */
   async addSoundfont(soundfont: Soundfont): Promise<void> {
     if (this.soundfonts.has(soundfont.id)) {
       return;
