@@ -44,7 +44,6 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  /** Resolves once the preset's SoundFont has loaded into the synth. */
   async setPreset(preset: MidiPreset): Promise<void> {
     const soundfont = preset.soundfont
       ? findSoundfont(preset.soundfont)
