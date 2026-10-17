@@ -27,10 +27,7 @@ export class MidiSynthWorkletNode {
     this.output = context.createGain();
   }
 
-  async init(
-    preset: MidiPreset,
-    { waitForSoundfont = false }: { waitForSoundfont?: boolean } = {},
-  ): Promise<void> {
+  async init(): Promise<void> {
     await ensureMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
       numberOfInputs: 0,
@@ -45,31 +42,24 @@ export class MidiSynthWorkletNode {
     } catch (error) {
       throw new Error(`MIDI synth failed to load: ${(error as Error).message}`);
     }
-    // Playing starts without waiting for the preset's SoundFont, with
-    // GeneralUser standing in until it arrives. An offline render has no later
-    // moment to switch, so it waits for the SoundFont instead.
-    if (!waitForSoundfont) {
-      void this.addSoundfont(GENERAL_USER_SOUNDFONT);
-    }
-    await this.setPreset(preset, { waitForSoundfont });
   }
 
-  async setPreset(
-    preset: MidiPreset,
-    { waitForSoundfont = false }: { waitForSoundfont?: boolean } = {},
-  ): Promise<void> {
+  /**
+   * Resolves once the preset plays from its own SoundFont. Until then, the
+   * synth plays it from any other loaded SoundFont that has it.
+   */
+  async setPreset(preset: MidiPreset): Promise<void> {
     const soundfont = preset.soundfont
       ? findSoundfont(preset.soundfont)
       : GENERAL_USER_SOUNDFONT;
-    const added = this.addSoundfont(soundfont);
-    await this.getSynth().setPreset({
-      soundfont: soundfont.id,
-      bank: preset.bank ?? 0,
-      program: preset.program,
-    });
-    if (waitForSoundfont) {
-      await added;
-    }
+    await Promise.all([
+      this.getSynth().setPreset({
+        soundfont: soundfont.id,
+        bank: preset.bank ?? 0,
+        program: preset.program,
+      }),
+      this.addSoundfont(soundfont),
+    ]);
   }
 
   noteOn(pitch: number): void {
@@ -102,7 +92,7 @@ export class MidiSynthWorkletNode {
   }
 
   /** Resolves once the processor has the SoundFont, or once its load fails. */
-  private async addSoundfont(soundfont: Soundfont): Promise<void> {
+  async addSoundfont(soundfont: Soundfont): Promise<void> {
     if (this.soundfonts.has(soundfont.id)) {
       return;
     }

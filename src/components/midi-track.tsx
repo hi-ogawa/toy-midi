@@ -22,7 +22,7 @@ import { importMidiNotes, parseMidiFile } from "../lib/midi-import";
 import { isBlackKey, MAX_PITCH } from "../lib/music";
 import { exportMusicXml } from "../lib/musicxml/render";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
-import type { MidiPreset, MidiTrackState, EditorRuntime } from "../lib/runtime";
+import type { MidiTrackState, EditorRuntime } from "../lib/runtime";
 import {
   getTabAnnotationDisplay,
   type TabAnnotationDisplay,
@@ -91,10 +91,6 @@ export function MidiTrackRow({
   onScorePreview: () => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
-  const presetMutation = useMutation({
-    mutationFn: (preset: MidiPreset) =>
-      runtime.setMidiTrackPreset(track.id, preset),
-  });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseMidiFile(file);
@@ -244,8 +240,9 @@ export function MidiTrackRow({
       >
         <MidiInstrument
           track={track}
-          presetPending={presetMutation.isPending}
-          onPresetChange={(preset) => presetMutation.mutate(preset)}
+          onPresetChange={(preset) =>
+            runtime.setMidiTrackPreset(track.id, preset)
+          }
           onSettingsChange={(settings) =>
             runtime.setMidiTrackSettings(track.id, settings)
           }

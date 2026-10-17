@@ -5,6 +5,7 @@ import {
   MidiSynthWorkletNode,
 } from "./midi-synth-worklet-node.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
+import { GENERAL_USER_SOUNDFONT } from "./soundfonts.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -31,7 +32,10 @@ export class MidiTrackPlayback implements TransportParticipant {
   }): Promise<MidiTrackPlayback> {
     const synth = new MidiSynthWorkletNode(transport.context);
     try {
-      await synth.init(track);
+      await synth.init();
+      // Play GeneralUser rather than wait for the track's SoundFont.
+      void synth.addSoundfont(GENERAL_USER_SOUNDFONT);
+      void synth.setPreset(track);
       return new MidiTrackPlayback({ transport, output, track, tempo, synth });
     } catch (error) {
       synth.dispose();
@@ -81,8 +85,9 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.sendNotes();
   }
 
-  async setPreset(preset: MidiPreset): Promise<void> {
-    await this.synth.setPreset(preset);
+  /** Switches over once the preset's SoundFont arrives. */
+  setPreset(preset: MidiPreset): void {
+    void this.synth.setPreset(preset);
   }
 
   noteOn(pitch: number): void {
