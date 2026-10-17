@@ -1,16 +1,33 @@
 import { DRUM_KIT_BANK } from "../../src/lib/general-midi.ts";
 import type { Note, TimeSignature } from "../../src/types.ts";
-import type { PitchBendPoint } from "./articulations.ts";
 
 const PPQ = 480;
 const BEND_RANGE_SEMITONES = 12;
 const DRUM_CHANNEL = 9;
 
 // Events on the same tick go in this order, so a note ending where the next
-// one starts frees the voice first, and a bend reset lands before the pick.
+// one starts frees the voice first, and a controller or bend change lands
+// before the note it shapes.
 const NOTE_OFF = 0;
-const PITCH_BEND = 1;
+const CHANNEL_CHANGE = 1;
 const NOTE_ON = 2;
+
+/**
+ * A parameter that changes over time on a MIDI track, as points sorted by
+ * beat. This is the format proposed in
+ * https://github.com/hi-ogawa/toy-midi/issues/804.
+ */
+export type Automation =
+  | {
+      type: "controller";
+      controller: number;
+      points: { beat: number; value: number }[];
+    }
+  | { type: "pitch-bend"; points: { beat: number; semitones: number }[] }
+  | {
+      type: "program";
+      points: { beat: number; bank: number; program: number }[];
+    };
 
 interface TrackEvent {
   tick: number;
@@ -29,7 +46,7 @@ export function encodeTrackMidi({
   program,
   nrpn = {},
   notes,
-  bends,
+  automation = [],
 }: {
   tempo: number;
   timeSignature?: TimeSignature;
@@ -37,7 +54,7 @@ export function encodeTrackMidi({
   program: number;
   nrpn?: Record<string, number>;
   notes: Omit<Note, "id">[];
-  bends: PitchBendPoint[];
+  automation?: Automation[];
 }): Uint8Array {
   const isDrum = bank === DRUM_KIT_BANK;
   const channel = isDrum ? DRUM_CHANNEL : 0;
@@ -50,6 +67,7 @@ export function encodeTrackMidi({
 
   // Setup at tick 0, before any note: tempo, meter, preset, generator offsets,
   // and the pitch-bend range when the track bends.
+  const bends = automation.some((sequence) => sequence.type === "pitch-bend");
   const microsecondsPerBeat = Math.round(60_000_000 / tempo);
   const setup = [
     ...[0, 0xff, 0x51, 3, ...bytesBigEndian(microsecondsPerBeat, 3)],
@@ -68,7 +86,7 @@ export function encodeTrackMidi({
     ...encodeSoundFontNrpn(nrpn).flatMap(([controller, value]) =>
       controlChange(controller, value),
     ),
-    ...(bends.length > 0
+    ...(bends
       ? [
           ...controlChange(101, 0),
           ...controlChange(100, 0),
@@ -97,18 +115,14 @@ export function encodeTrackMidi({
       bytes: [0x80 | channel, note.pitch, 0],
     });
   }
-  for (const { beat, semitones } of bends) {
-    const value = Math.round(
-      Math.min(
-        16383,
-        Math.max(0, 8192 + (semitones / BEND_RANGE_SEMITONES) * 8192),
-      ),
-    );
-    events.push({
-      tick: Math.max(0, Math.round(beat * PPQ)),
-      order: PITCH_BEND,
-      bytes: [0xe0 | channel, value & 0x7f, value >> 7],
-    });
+  for (const sequence of automation) {
+    for (const point of sequence.points) {
+      events.push({
+        tick: Math.max(0, Math.round(point.beat * PPQ)),
+        order: CHANNEL_CHANGE,
+        bytes: encodeAutomationPoint({ sequence, point, channel }),
+      });
+    }
   }
   events.sort((a, b) => a.tick - b.tick || a.order - b.order);
 
@@ -132,6 +146,39 @@ export function encodeTrackMidi({
     ...bytesBigEndian(track.length, 4),
     ...track,
   ]);
+}
+
+function encodeAutomationPoint({
+  sequence,
+  point,
+  channel,
+}: {
+  sequence: Automation;
+  point: Automation["points"][number];
+  channel: number;
+}): number[] {
+  switch (sequence.type) {
+    case "controller": {
+      const { value } = point as { value: number };
+      return [0xb0 | channel, sequence.controller, value];
+    }
+    case "pitch-bend": {
+      const { semitones } = point as { semitones: number };
+      // Points beyond the bend range clamp to it.
+      const value = Math.round(
+        Math.min(
+          16383,
+          Math.max(0, 8192 + (semitones / BEND_RANGE_SEMITONES) * 8192),
+        ),
+      );
+      return [0xe0 | channel, value & 0x7f, value >> 7];
+    }
+    case "program": {
+      const { bank, program } = point as { bank: number; program: number };
+      // Bank select, then the program change after a zero delta time.
+      return [0xb0 | channel, 0, bank, 0, 0xc0 | channel, program];
+    }
+  }
 }
 
 // SoundFont NRPNs (NRPN MSB 120, LSB the generator number, then data entry LSB

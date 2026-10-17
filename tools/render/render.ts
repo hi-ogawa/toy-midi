@@ -12,8 +12,6 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { inflateRawSync } from "node:zlib";
 import type { SharedProject } from "../../src/lib/project-share.ts";
-import type { ArticulatedNote } from "./articulations.ts";
-import { expandArticulations } from "./articulations.ts";
 import {
   applyChannel,
   encodeMp3,
@@ -21,7 +19,7 @@ import {
   mixTracks,
   renderMidi,
 } from "./audio.ts";
-import { encodeTrackMidi } from "./midi-file.ts";
+import { type Automation, encodeTrackMidi } from "./midi-file.ts";
 
 const DEFAULT_SOUNDFONT = path.join(
   import.meta.dirname,
@@ -49,8 +47,8 @@ interface RenderProject extends Omit<SharedProject, "midiTracks"> {
 
 type SharedMidiTrack = NonNullable<SharedProject["midiTracks"]>[number];
 
-interface RenderMidiTrack extends Omit<SharedMidiTrack, "notes"> {
-  notes: ArticulatedNote[];
+interface RenderMidiTrack extends SharedMidiTrack {
+  automation?: Automation[];
   /** SoundFont that replaces `--sf2` for this track */
   sf2?: string;
   /** SoundFont generator number to an NRPN offset in -8192..8191 */
@@ -178,10 +176,6 @@ async function renderTrack({
     return report;
   }
 
-  const { notes, bends } = expandArticulations({
-    notes: track.notes,
-    tempo: project.tempo,
-  });
   await writeFile(
     `${basePath}.mid`,
     encodeTrackMidi({
@@ -190,8 +184,8 @@ async function renderTrack({
       bank: track.bank,
       program: track.program,
       nrpn: track.nrpn,
-      notes,
-      bends,
+      notes: track.notes,
+      automation: track.automation,
     }),
   );
   await renderMidi({
