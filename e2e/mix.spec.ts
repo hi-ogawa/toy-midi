@@ -43,10 +43,12 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   await download.saveAs(downloadPath);
 
   // Inspect the downloaded file as stereo 16-bit PCM WAV, not just a named blob.
-  const wav = await readFile(downloadPath);
-  expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
-  expect(wav.toString("ascii", 8, 12)).toBe("WAVE");
-  expect(wav.readUInt32LE(24)).toBe(48000);
+  const wav = decodeWav(await readFile(downloadPath));
+  expect(wav).toMatchObject({
+    channelCount: 2,
+    sampleRate: 48000,
+    bitsPerSample: 16,
+  });
   await expect(exportButton).toBeEnabled();
 });
 
@@ -66,11 +68,43 @@ test("exports MIDI tracks in the WAV", async ({ page }) => {
   await download.saveAs(downloadPath);
 
   // Check the file runs past the note into its release and is not silent.
-  const wav = await readFile(downloadPath);
-  const dataOffset = wav.indexOf("data", 12) + 8;
-  const samples = new Int16Array(
-    wav.buffer.slice(wav.byteOffset + dataOffset, wav.byteOffset + wav.length),
-  );
-  expect(samples.length / 2 / 48000).toBeGreaterThan(2);
-  expect(samples.some((sample) => sample !== 0)).toBe(true);
+  const wav = decodeWav(await readFile(downloadPath));
+  const duration = wav.samples.length / wav.channelCount / wav.sampleRate;
+  expect(duration).toBeGreaterThan(2);
+  expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
+
+/** Decode a 16-bit PCM WAV into its format and interleaved samples. */
+function decodeWav(bytes: Buffer) {
+  if (
+    bytes.toString("ascii", 0, 4) !== "RIFF" ||
+    bytes.toString("ascii", 8, 12) !== "WAVE"
+  ) {
+    throw new Error("Not a WAV file.");
+  }
+  let format: Buffer | undefined;
+  let data: Buffer | undefined;
+  for (let offset = 12; offset + 8 <= bytes.length; ) {
+    const id = bytes.toString("ascii", offset, offset + 4);
+    const size = bytes.readUInt32LE(offset + 4);
+    const body = bytes.subarray(offset + 8, offset + 8 + size);
+    if (id === "fmt ") {
+      format = body;
+    } else if (id === "data") {
+      data = body;
+    }
+    // Chunks are padded to an even size.
+    offset += 8 + size + (size % 2);
+  }
+  if (!format || !data) {
+    throw new Error("WAV is missing its format or data chunk.");
+  }
+  return {
+    channelCount: format.readUInt16LE(2),
+    sampleRate: format.readUInt32LE(4),
+    bitsPerSample: format.readUInt16LE(14),
+    samples: new Int16Array(
+      data.buffer.slice(data.byteOffset, data.byteOffset + data.length),
+    ),
+  };
+}
