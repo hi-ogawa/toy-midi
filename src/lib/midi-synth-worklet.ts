@@ -285,7 +285,10 @@ export class MidiSynth {
   }
 }
 
-/** Converts a sequence's values to what the synth takes. */
+/**
+ * Controllers start from SpessaSynth's defaults, and bends become 14-bit wheel
+ * values.
+ */
 function prepareAutomation(sequence: TimelineAutomation): ScheduledAutomation {
   switch (sequence.type) {
     case "controller": {
