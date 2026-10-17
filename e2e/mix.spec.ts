@@ -44,11 +44,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
 
   // Check the file is stereo 16-bit PCM holding the 3 s backing audio.
   const wav = decodeWav(await readFile(downloadPath));
-  expect(wav).toMatchObject({
-    channelCount: 2,
-    sampleRate: 48000,
-    bitsPerSample: 16,
-  });
+  expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
   expect(wav.duration).toBeCloseTo(3);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
   await expect(exportButton).toBeEnabled();
@@ -71,11 +67,7 @@ test("exports MIDI tracks in the WAV", async ({ page }) => {
 
   // Check the file is stereo 16-bit PCM running past the note into its release.
   const wav = decodeWav(await readFile(downloadPath));
-  expect(wav).toMatchObject({
-    channelCount: 2,
-    sampleRate: 48000,
-    bitsPerSample: 16,
-  });
+  expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
   expect(wav.duration).toBeGreaterThan(2);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
@@ -105,6 +97,10 @@ function decodeWav(bytes: Buffer) {
   if (!format || !data) {
     throw new Error("WAV is missing its format or data chunk.");
   }
+  const PCM = 1;
+  if (format.readUInt16LE(0) !== PCM || format.readUInt16LE(14) !== 16) {
+    throw new Error("Only 16-bit PCM WAV is supported.");
+  }
   const channelCount = format.readUInt16LE(2);
   const sampleRate = format.readUInt32LE(4);
   const samples = new Int16Array(
@@ -113,7 +109,6 @@ function decodeWav(bytes: Buffer) {
   return {
     channelCount,
     sampleRate,
-    bitsPerSample: format.readUInt16LE(14),
     duration: samples.length / channelCount / sampleRate,
     samples,
   };
