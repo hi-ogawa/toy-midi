@@ -20,8 +20,8 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
 
 /**
  * SoundFonts bundled beside GeneralUser GS. A MIDI track selects one by
- * setting `soundfont` to its id and `program` to one of its presets. Each
- * preset plays a GeneralUser stand-in until the font has loaded.
+ * setting `soundfont` to its id and `program` to one of its presets. Until the
+ * font has loaded, the track plays GeneralUser's preset with the same program.
  *
  * - `"flamestudios-telecaster-bridge"`: a clean electric guitar from a
  *   Telecaster's bridge pickup, recorded direct in. It's bright with a sharp
@@ -39,8 +39,8 @@ export const SOUNDFONTS = [
     url: "/soundfonts/FlameStudios-Telecaster-Bridge-SM-b50f761.sf3",
     decodeInWorker: true,
     presets: [
-      { program: 0, name: "Standard", standIn: { program: 27 } },
-      { program: 1, name: "Muted", standIn: { program: 28 } },
+      { program: 0, name: "Standard" },
+      { program: 1, name: "Muted" },
     ],
   },
   {
@@ -49,8 +49,8 @@ export const SOUNDFONTS = [
     url: "/soundfonts/FlameStudios-Telecaster-Neck-SM-b50f761.sf3",
     decodeInWorker: true,
     presets: [
-      { program: 0, name: "Standard", standIn: { program: 27 } },
-      { program: 1, name: "Muted", standIn: { program: 28 } },
+      { program: 0, name: "Standard" },
+      { program: 1, name: "Muted" },
     ],
   },
 ] as const;

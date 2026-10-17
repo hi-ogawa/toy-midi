@@ -54,29 +54,13 @@ export class MidiSynthWorkletNode {
     bank = 0,
     program,
   }: MidiPreset): Promise<void> {
-    if (!id) {
-      this.postMessage({
-        type: "setPreset",
-        preset: { soundfont: GENERAL_USER_SOUNDFONT.id, bank, program },
-      });
-      return;
-    }
-    // A GeneralUser stand-in plays until the font has loaded, so playback never
-    // waits for it.
-    const soundfont = findSoundfont(id);
-    const { standIn } =
-      soundfont.presets.find((other) => other.program === program) ??
-      soundfont.presets[0];
     this.postMessage({
       type: "setPreset",
-      preset: { soundfont: id, bank, program },
-      standIn: {
-        soundfont: GENERAL_USER_SOUNDFONT.id,
-        bank: 0,
-        program: standIn.program,
-      },
+      preset: { soundfont: id ?? GENERAL_USER_SOUNDFONT.id, bank, program },
     });
-    void this.addSoundfont(soundfont);
+    if (id) {
+      void this.addSoundfont(findSoundfont(id));
+    }
   }
 
   noteOn(pitch: number): void {
