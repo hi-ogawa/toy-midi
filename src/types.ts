@@ -25,6 +25,10 @@ export interface Note {
  */
 export type Automation = {
   type: "controller";
+  /**
+   * MIDI controller number (0-119), such as 1 modulation, 11 expression, or
+   * 64 sustain
+   */
   controller: number;
   /** Sorted by beat */
   points: {
