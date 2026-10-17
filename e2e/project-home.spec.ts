@@ -134,9 +134,9 @@ test("Projects search follows the temporary legacy filter", async ({
 });
 
 test("opens an example project as a draft", async ({ page }) => {
-  // Serve the example's project file in place of the catalog gist.
+  // Serve the example's project file in place of the catalog.
   await page.route(
-    "https://gist.githubusercontent.com/**/slow-tide.json",
+    "https://raw.githubusercontent.com/**/slow-tide.json",
     (route) =>
       route.fulfill({
         headers: { "access-control-allow-origin": "*" },

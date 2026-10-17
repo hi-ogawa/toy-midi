@@ -1,10 +1,10 @@
 import { routes } from "./routes";
 
-// The examples are project files in the catalog gist, which is curated by
-// hand. Its raw URLs always serve the latest revision, so editing a file there
-// updates the example without a release.
+// The examples are project files in llm-music-probe's compositions, which are
+// curated by hand. Their raw URLs on main always serve the latest version, so
+// editing a file there updates the example without a release.
 const CATALOG_URL =
-  "https://gist.githubusercontent.com/hi-ogawa-agent/349526d87606848b9dfb206355a4bdc1/raw/";
+  "https://raw.githubusercontent.com/hi-ogawa/llm-music-probe/main/compositions/pieces/";
 
 export const EXAMPLE_PROJECTS = [
   {
