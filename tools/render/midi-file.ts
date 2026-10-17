@@ -26,11 +26,7 @@ export type Automation =
       controller: number;
       points: { beat: number; value: number }[];
     }
-  | { type: "pitch-bend"; points: { beat: number; semitones: number }[] }
-  | {
-      type: "program";
-      points: { beat: number; bank: number; program: number }[];
-    };
+  | { type: "pitch-bend"; points: { beat: number; semitones: number }[] };
 
 interface TrackEvent {
   tick: number;
@@ -171,11 +167,6 @@ function encodeAutomationPoint({
         ),
       );
       return [0xe0 | channel, value & 0x7f, value >> 7];
-    }
-    case "program": {
-      const { bank, program } = point as { bank: number; program: number };
-      // Bank select, then the program change after a zero delta time.
-      return [0xb0 | channel, 0, bank, 0, 0xc0 | channel, program];
     }
   }
 }

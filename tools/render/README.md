@@ -21,10 +21,10 @@ The input is a project JSON file, a share link, or a share link's `p` payload. T
 
 The renderer also reads track fields that the app doesn't play yet:
 
-| Field              | Meaning                                                                                                                                                                                                             |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| track `sf2`        | SoundFont path for this track instead of `--sf2`                                                                                                                                                                    |
-| track `automation` | Controller, pitch-bend, and program sequences in the format proposed in https://github.com/hi-ogawa/toy-midi/issues/804, such as a hammer-on written as a pitch-bend step. Pitch bend uses a range of ±12 semitones |
+| Field              | Meaning                                                                                                                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| track `sf2`        | SoundFont path for this track instead of `--sf2`                                                                                                                                                          |
+| track `automation` | Controller and pitch-bend sequences in the format proposed in https://github.com/hi-ogawa/toy-midi/issues/804, such as a hammer-on written as a pitch-bend step. Pitch bend uses a range of ±12 semitones |
 
 ## Inspect a SoundFont
 
