@@ -1,25 +1,16 @@
-import type {
-  CaptureClientMessage,
-  CaptureWorkletMessage,
-  CaptureWorkletNotification,
-} from "./capture-worklet.ts";
+import type { Capture, CaptureWorkletNotification } from "./capture-worklet.ts";
 import captureWorkletUrl from "./capture-worklet.ts?worker&url";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
+import type { RpcClient } from "./rpc/core.ts";
+import { createRpcClient } from "./rpc/endpoint.ts";
 
 const PROCESSOR_NAME = "recorder-capture";
 const registrations = new WeakMap<AudioContext, Promise<void>>();
 
 export class CaptureWorkletNode {
   readonly node: AudioWorkletNode;
-  private nextRequestId = 0;
-  private pendingActiveChanges = new Map<
-    number,
-    {
-      reject: (error: Error) => void;
-      resolve: (frameStart: number) => void;
-      timeout: number;
-    }
-  >();
+  private readonly capture: RpcClient<Capture>;
+  private readonly pendingActiveChanges = new Set<(error: Error) => void>();
 
   constructor({
     context,
@@ -33,23 +24,19 @@ export class CaptureWorkletNode {
       numberOfOutputs: 1,
       outputChannelCount: [1],
     });
-    this.node.port.onmessage = (event: MessageEvent<CaptureWorkletMessage>) => {
-      if (event.data.type !== "activeChanged") {
+    this.node.port.onmessage = (
+      event: MessageEvent<CaptureWorkletNotification | { type?: unknown }>,
+    ) => {
+      // RPC replies share the port.
+      if (isCaptureNotification(event.data)) {
         onNotification(event.data);
-        return;
       }
-      const pending = this.pendingActiveChanges.get(event.data.requestId);
-      if (!pending) {
-        return;
-      }
-      window.clearTimeout(pending.timeout);
-      pending.resolve(event.data.frame);
-      this.pendingActiveChanges.delete(event.data.requestId);
     };
+    this.capture = createRpcClient<Capture>(this.node.port);
   }
 
   setChannel(value: number) {
-    this.postMessage({ type: "channel", value });
+    void this.capture.setChannel(value);
   }
 
   start() {
@@ -64,31 +51,36 @@ export class CaptureWorkletNode {
     const error = new Error(
       "Input stopped during an audio capture transition.",
     );
-    for (const pending of this.pendingActiveChanges.values()) {
-      window.clearTimeout(pending.timeout);
-      pending.reject(error);
+    for (const reject of this.pendingActiveChanges) {
+      reject(error);
     }
     this.pendingActiveChanges.clear();
     disposeWorklet(this.node);
   }
 
-  private setActive(value: boolean) {
-    const requestId = this.nextRequestId++;
-    // Resolve only after the render thread applies this transition. Request IDs
-    // prevent delayed acknowledgements from satisfying a newer transition.
-    return new Promise<number>((resolve, reject) => {
-      const timeout = window.setTimeout(() => {
-        this.pendingActiveChanges.delete(requestId);
-        reject(new Error("Audio capture state change timed out."));
-      }, 3_000);
-      this.pendingActiveChanges.set(requestId, { reject, resolve, timeout });
-      this.postMessage({ type: "active", requestId, value });
-    });
+  private async setActive(value: boolean): Promise<number> {
+    // A disposed worklet never replies, so dispose and the timeout end the wait.
+    const stopped = Promise.withResolvers<never>();
+    this.pendingActiveChanges.add(stopped.reject);
+    const timeout = window.setTimeout(() => {
+      stopped.reject(new Error("Audio capture state change timed out."));
+    }, 3_000);
+    try {
+      return await Promise.race([
+        this.capture.setActive(value),
+        stopped.promise,
+      ]);
+    } finally {
+      window.clearTimeout(timeout);
+      this.pendingActiveChanges.delete(stopped.reject);
+    }
   }
+}
 
-  private postMessage(message: CaptureClientMessage) {
-    this.node.port.postMessage(message);
-  }
+function isCaptureNotification(
+  message: CaptureWorkletNotification | { type?: unknown },
+): message is CaptureWorkletNotification {
+  return message.type === "channels" || message.type === "samples";
 }
 
 export async function ensureCaptureWorklet(

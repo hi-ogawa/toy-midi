@@ -1,10 +1,7 @@
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
+import { registerRpcHandlers } from "./rpc/endpoint.ts";
 
 const PROCESSOR_NAME = "recorder-capture";
-
-export type CaptureClientMessage =
-  | { type: "channel"; value: number }
-  | { type: "active"; requestId: number; value: boolean };
 
 export type CaptureChunk = {
   /** Absolute AudioContext frame corresponding to `samples[0]`. */
@@ -15,15 +12,6 @@ export type CaptureChunk = {
 export type CaptureWorkletNotification =
   | { type: "channels"; value: number }
   | ({ type: "samples" } & CaptureChunk);
-
-export type CaptureWorkletMessage =
-  | CaptureWorkletNotification
-  | {
-      type: "activeChanged";
-      requestId: number;
-      value: boolean;
-      frame: number;
-    };
 
 declare const AudioWorkletProcessor: new (
   options?: AudioWorkletNodeOptions,
@@ -38,6 +26,24 @@ declare function registerProcessor(
 
 class CaptureProcessor extends AudioWorkletProcessor {
   private readonly isDisposed = watchWorkletDisposal(this.port);
+  private readonly capture = new Capture(this.port);
+
+  constructor(options?: AudioWorkletNodeOptions) {
+    super(options);
+    registerRpcHandlers(this.port, this.capture);
+  }
+
+  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    if (this.isDisposed()) {
+      return false;
+    }
+    this.capture.render(inputs[0] ?? [], outputs[0]?.[0]);
+    return true;
+  }
+}
+
+/** Capture state, with its async methods called from the main thread. */
+export class Capture {
   private recording = false;
   private selectedChannel = 0;
   private observedChannelCount = -1;
@@ -46,48 +52,36 @@ class CaptureProcessor extends AudioWorkletProcessor {
   private captureLength = 0;
   private captureStartFrame = 0;
 
-  constructor(options?: AudioWorkletNodeOptions) {
-    super(options);
-    this.port.onmessage = (event: MessageEvent<CaptureClientMessage>) => {
-      switch (event.data.type) {
-        case "channel": {
-          this.selectedChannel = event.data.value;
-          break;
-        }
-        case "active": {
-          const { requestId, value } = event.data;
-          // Queue transitions until process() so capture state, buffered PCM,
-          // and acknowledgement frames share render-thread ordering.
-          this.pendingRenderActions.push(() => {
-            if (value) {
-              this.captureLength = 0;
-            } else {
-              this.flushCapture();
-            }
-            this.recording = value;
-            this.postMessage({
-              type: "activeChanged",
-              requestId,
-              value,
-              frame: currentFrame,
-            });
-          });
-          break;
-        }
-      }
-    };
+  constructor(private readonly port: MessagePort) {}
+
+  async setChannel(value: number): Promise<void> {
+    this.selectedChannel = value;
   }
 
-  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
-    if (this.isDisposed()) {
-      return false;
-    }
+  /** Resolves with the frame at which the render thread applied the change. */
+  async setActive(value: boolean): Promise<number> {
+    // Resolving replies from the render thread. Keep this to infrequent control
+    // changes rather than anything per render quantum.
+    return await new Promise<number>((resolve) => {
+      // Queue transitions until render() so capture state, buffered PCM, and
+      // the returned frame share render-thread ordering.
+      this.pendingRenderActions.push(() => {
+        if (value) {
+          this.captureLength = 0;
+        } else {
+          this.flushCapture();
+        }
+        this.recording = value;
+        resolve(currentFrame);
+      });
+    });
+  }
+
+  render(channels: Float32Array[], output: Float32Array | undefined): void {
     for (const action of this.pendingRenderActions) {
       action();
     }
     this.pendingRenderActions = [];
-    const channels = inputs[0] ?? [];
-    const output = outputs[0]?.[0];
     if (channels.length !== this.observedChannelCount) {
       // Track settings may be absent or disagree with actual render quanta.
       this.observedChannelCount = channels.length;
@@ -110,7 +104,6 @@ class CaptureProcessor extends AudioWorkletProcessor {
     if (channels.length === 0) {
       output?.fill(0);
     }
-    return true;
   }
 
   private appendCapture(source: Float32Array): void {
@@ -155,8 +148,9 @@ class CaptureProcessor extends AudioWorkletProcessor {
     this.captureLength = 0;
   }
 
+  /** Notifications go straight to the port, outside any RPC call. */
   private postMessage(
-    message: CaptureWorkletMessage,
+    message: CaptureWorkletNotification,
     transfer?: Transferable[],
   ): void {
     this.port.postMessage(message, transfer ?? []);
