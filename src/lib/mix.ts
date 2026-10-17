@@ -61,7 +61,7 @@ export async function renderMix({
       master.channelCountMode = "explicit";
       master.channelInterpretation = "speakers";
       master.connect(context.destination);
-      using channels = new DisposableStack();
+      using cleanup = new DisposableStack();
       await ensureBiquadEqWorklet(context);
       for (const track of mix.tracks) {
         const channel = new AudioChannel({
@@ -71,7 +71,7 @@ export async function renderMix({
           gain: track.gain,
           pan: track.pan,
         });
-        channels.defer(() => channel.dispose());
+        cleanup.defer(() => channel.dispose());
         for (const region of track.regions) {
           const source = context.createBufferSource();
           source.buffer = region.buffer;
@@ -85,7 +85,7 @@ export async function renderMix({
           );
         }
       }
-      // Await so the channels are disposed after rendering, not before.
+      // Await so cleanup runs after rendering, not before.
       return await context.startRendering();
     },
   );
@@ -101,9 +101,9 @@ async function renderOfflineInFrame(
   options: OfflineAudioContextOptions,
   render: (context: OfflineAudioContext) => Promise<AudioBuffer>,
 ): Promise<AudioBuffer> {
-  using frames = new DisposableStack();
+  using cleanup = new DisposableStack();
   const frame = document.createElement("iframe");
-  frames.defer(() => frame.remove());
+  cleanup.defer(() => frame.remove());
   frame.hidden = true;
   document.body.append(frame);
   const frameWindow = frame.contentWindow as Window & typeof globalThis;
