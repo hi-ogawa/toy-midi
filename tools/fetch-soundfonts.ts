@@ -25,6 +25,18 @@ const FILES = [
     name: "GeneralUserGS-2.0.3-LICENSE.txt",
     sha256: "2c3b923ff1f913f115d5457689156b6dcddc340a15772ea93b8dafcf0c3f3caa",
   },
+  {
+    name: "FlameStudios-Telecaster-Bridge-SM-b50f761.sf3",
+    sha256: "4e4cccb3d1ce252b821f6907c8c43a5432e991557aabd2f20d9e080ae8ad0f2f",
+  },
+  {
+    name: "FlameStudios-Telecaster-Neck-SM-b50f761.sf3",
+    sha256: "d53132c7b7951f5bf45e20b5f2c9e3c7234794be5efb693c07c71bb08badaac9",
+  },
+  {
+    name: "FlameStudios-SM-b50f761-LICENSE.txt",
+    sha256: "20c42f9a86c894c8a38204e0310f07bc69f47b5afb05ad1e01410c91c545ea7c",
+  },
 ];
 
 async function main() {
@@ -63,11 +75,15 @@ async function fetchFile(
   }
   const url = `${RELEASE_URL}/${file.name}`;
   console.log(`Downloading ${url}`);
+  const startedAt = performance.now();
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to download ${url}: ${response.status}`);
   }
   const data = Buffer.from(await response.arrayBuffer());
+  const megabytes = (data.length / 1e6).toFixed(1);
+  const milliseconds = Math.round(performance.now() - startedAt);
+  console.log(`Downloaded in ${milliseconds} ms (${megabytes} MB)`);
   const sha256 = hashSha256(data);
   if (sha256 !== file.sha256) {
     throw new Error(
