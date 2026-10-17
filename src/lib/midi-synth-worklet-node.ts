@@ -64,12 +64,10 @@ export class MidiSynthWorkletNode {
     void this.getSynth().noteOff(pitch);
   }
 
-  /** Resolves once the synth has the notes. */
   setNotes(notes: TimelineNote[]): Promise<void> {
     return this.getSynth().setNotes(notes);
   }
 
-  /** Resolves once the synth has started. */
   start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
     return this.getSynth().start(playbackRunOptions);
   }

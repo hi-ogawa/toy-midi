@@ -129,8 +129,8 @@ export async function renderMix({
           cleanup.defer(() => channel.dispose());
           synth.output.connect(channel.input);
           await synth.setNotes(track.notes);
-          // An offline render outruns messages, so the synth must have
-          // started before rendering does or it misses the first notes.
+          // An offline render runs faster than the synth receives messages,
+          // so it would pass the first notes before the synth had started.
           await synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
         }),
       );
