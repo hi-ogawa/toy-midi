@@ -127,7 +127,7 @@ function ExampleList({
             {pluralCount(examples.length, "example")}
           </p>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label="Tags" className="flex flex-wrap gap-1.5">
           {countTags(examples).map(([tag, count]) => (
             <TagChip
               key={tag}
@@ -221,6 +221,7 @@ function TagChip({
       {tag}
       {count !== undefined && (
         <span
+          aria-hidden="true"
           className={cn(
             "ml-1",
             active ? "text-emerald-100" : "text-neutral-600",

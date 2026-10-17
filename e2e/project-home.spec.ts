@@ -184,8 +184,8 @@ test("opens an example project as a draft", async ({ page }) => {
 
   // Filter by a tag, and see only that piece.
   await page
-    .getByRole("button", { name: /ambient/ })
-    .first()
+    .getByRole("group", { name: "Tags" })
+    .getByRole("button", { name: "ambient", exact: true })
     .click();
   await expect(page.getByRole("status")).toHaveText("1 of 2 examples");
   await expect(
