@@ -7,12 +7,12 @@ import {
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
 import { DRUM_KIT_BANK } from "./general-midi.ts";
 import {
-  MidiEventScheduler,
+  MidiNoteScheduler,
   type ScheduledAutomation,
   type ScheduledEvent,
   type TimelineAutomation,
   type TimelineNote,
-} from "./midi-event-scheduler.ts";
+} from "./midi-note-scheduler.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import { registerRpcHandlers } from "./rpc/endpoint.ts";
 
@@ -74,7 +74,7 @@ export class MidiSynth {
   private preset?: SynthPreset;
   // Scheduling here rather than on a main-thread timer keeps a busy page from
   // dropping notes.
-  private readonly scheduler = new MidiEventScheduler();
+  private readonly scheduler = new MidiNoteScheduler();
   private automation: ScheduledAutomation[] = [];
   // Sorted by frame, then note-offs, controller changes, and note-ons on the
   // same frame, so a controller change applies to the note starting with it.
