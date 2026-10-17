@@ -83,7 +83,6 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.sendNotes();
   }
 
-  /** Switches over once the preset's SoundFont arrives. */
   setPreset(preset: MidiPreset): void {
     this.synth.setPreset(preset).catch(ignoreLoadFailure);
   }
