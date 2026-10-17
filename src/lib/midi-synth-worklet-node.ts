@@ -1,11 +1,10 @@
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { TimelineNote } from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
-import type {
-  MidiSynthClientMessage,
-  MidiSynthWorkletMessage,
-} from "./midi-synth-worklet.ts";
+import type { MidiSynth } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
+import type { RpcClient } from "./rpc/core.ts";
+import { createRpcClient } from "./rpc/endpoint.ts";
 import { type LoadedSoundfont, loadSoundfont } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
 import {
@@ -19,6 +18,7 @@ const PROCESSOR_NAME = "midi-synth";
 export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
+  private synth?: RpcClient<MidiSynth>;
   private readonly soundfonts = new Set<string>();
 
   constructor(private readonly context: AudioContext) {
@@ -34,56 +34,50 @@ export class MidiSynthWorkletNode {
     });
     this.node = node;
     node.connect(this.output);
-
-    await new Promise<void>((resolve, reject) => {
-      node.port.onmessage = (event: MessageEvent<MidiSynthWorkletMessage>) => {
-        if (event.data.type === "ready") {
-          resolve();
-        } else {
-          reject(new Error(`MIDI synth failed to load: ${event.data.message}`));
-        }
-      };
-      this.postMessage({ type: "init" });
-    });
+    this.synth = createRpcClient<MidiSynth>(node.port);
+    try {
+      await this.synth.init();
+    } catch (error) {
+      throw new Error(`MIDI synth failed to load: ${(error as Error).message}`);
+    }
   }
 
   /**
-   * Selects the preset and loads its SoundFont. Until it arrives, the synth
-   * plays the preset from any other loaded SoundFont that has it.
+   * Resolves once the preset plays from its own SoundFont. Until then, the
+   * synth plays it from any other loaded SoundFont that has it.
    */
-  setPreset(preset: MidiPreset): void {
+  async setPreset(preset: MidiPreset): Promise<void> {
     const soundfont = preset.soundfont
       ? findSoundfont(preset.soundfont)
       : GENERAL_USER_SOUNDFONT;
-    this.postMessage({
-      type: "setPreset",
-      preset: {
+    await Promise.all([
+      this.getSynth().setPreset({
         soundfont: soundfont.id,
         bank: preset.bank ?? 0,
         program: preset.program,
-      },
-    });
-    void this.addSoundfont(soundfont);
+      }),
+      this.addSoundfont(soundfont),
+    ]);
   }
 
   noteOn(pitch: number): void {
-    this.postMessage({ type: "noteOn", pitch, velocity: 100 });
+    void this.getSynth().noteOn({ pitch, velocity: 100 });
   }
 
   noteOff(pitch: number): void {
-    this.postMessage({ type: "noteOff", pitch });
+    void this.getSynth().noteOff(pitch);
   }
 
   setNotes(notes: TimelineNote[]): void {
-    this.postMessage({ type: "setNotes", notes });
+    void this.getSynth().setNotes(notes);
   }
 
   start(playbackRunOptions: PlaybackRunOptions): void {
-    this.postMessage({ type: "start", playbackRunOptions });
+    void this.getSynth().start(playbackRunOptions);
   }
 
   stop(): void {
-    this.postMessage({ type: "stop" });
+    void this.getSynth().stop();
   }
 
   dispose(): void {
@@ -91,6 +85,7 @@ export class MidiSynthWorkletNode {
     if (this.node) {
       disposeWorklet(this.node);
       this.node = undefined;
+      this.synth = undefined;
     }
   }
 
@@ -106,22 +101,15 @@ export class MidiSynthWorkletNode {
       // The loader reports the failure.
       return;
     }
-    if (this.node) {
-      this.postMessage({ type: "addSoundfont", id: soundfont.id, ...loaded }, [
-        loaded.soundfont,
-        ...(loaded.samples ?? []).map(({ buffer }) => buffer),
-      ]);
-    }
+    // The synth may have been disposed while the SoundFont loaded.
+    await this.synth?.addSoundfont({ id: soundfont.id, ...loaded });
   }
 
-  private postMessage(
-    message: MidiSynthClientMessage,
-    transfer?: Transferable[],
-  ): void {
-    if (!this.node) {
+  private getSynth(): RpcClient<MidiSynth> {
+    if (!this.synth) {
       throw new Error("MIDI synth is not initialized.");
     }
-    this.node.port.postMessage(message, transfer ?? []);
+    return this.synth;
   }
 }
 

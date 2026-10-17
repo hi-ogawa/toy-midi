@@ -1,8 +1,8 @@
 import { BasicSoundBank, SoundBankLoader } from "spessasynth_core";
-import { registerWorkerRpcHandlers } from "./rpc/worker.ts";
+import { registerRpcHandlers } from "./rpc/endpoint.ts";
 
 function main(): void {
-  registerWorkerRpcHandlers(new SoundfontDecoderWorkerHandlers());
+  registerRpcHandlers(self, new SoundfontDecoderWorkerHandlers());
 }
 
 export class SoundfontDecoderWorkerHandlers {
