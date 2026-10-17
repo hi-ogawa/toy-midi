@@ -19,18 +19,17 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
 };
 
 /**
- * SoundFonts bundled beside GeneralUser GS. A MIDI track selects one by
- * setting `soundfont` to its id and `program` to one of its presets. Until the
- * font has loaded, the track plays GeneralUser's preset with the same program.
+ * SoundFonts bundled beside GeneralUser GS. A MIDI track uses one by setting
+ * `soundfont` to its id and `program` to one of its presets.
  *
- * - `"flamestudios-telecaster-bridge"`: a clean electric guitar from a
- *   Telecaster's bridge pickup, recorded direct in. It's bright with a sharp
- *   attack, so it cuts through a full arrangement, which makes it the default
- *   for clean electric parts. A track EQ that trims the highs warms it up.
- * - `"flamestudios-telecaster-neck"`: the same guitar's neck pickup, warmer
- *   and rounder, for jazz, neo-soul, ballads, or a guitar that plays alone.
+ * - `"flamestudios-telecaster-bridge"`: a clean electric guitar, recorded direct
+ *   in from a Telecaster's bridge pickup. It's bright with a sharp attack and
+ *   cuts through a full arrangement, so choose it first for clean electric
+ *   parts. A track EQ that trims the highs warms it up.
+ * - `"flamestudios-telecaster-neck"`: the same guitar's neck pickup, warmer and
+ *   rounder, for jazz, neo-soul, ballads, or a guitar that plays alone.
  *
- * Both have a Muted preset that plays muted strokes and ghost notes.
+ * Both have a Muted preset for muted strokes and ghost notes.
  */
 export const SOUNDFONTS = [
   {
