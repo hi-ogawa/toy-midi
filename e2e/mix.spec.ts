@@ -70,6 +70,25 @@ test("exports MIDI tracks in the WAV", async ({ page }) => {
   expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
   expect(wav.duration).toBeGreaterThan(2);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
+
+  // Check the dialog reports the mix's loudness, and each track's, where the
+  // empty audio track reads as silence.
+  const loudness = modal.getByTestId("audio-export-loudness");
+  await expect(loudness).toContainText(
+    /Loudness−\d+\.\d LUFS, −\d+\.\d dBTP, LRA \d+\.\d LU/,
+  );
+  await expect(loudness.getByRole("row", { name: /^MIDI 1/ })).toHaveText(
+    /^MIDI 1−\d+\.\d−\d+\.\d$/,
+  );
+  await expect(loudness.getByRole("row", { name: /^Audio 1/ })).toHaveText(
+    "Audio 1−∞−∞",
+  );
+
+  // Close the dialog, which clears the numbers of the last export.
+  await modal.getByRole("button", { name: "Close", exact: true }).click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
+  await expect(modal).toBeVisible();
+  await expect(loudness).toHaveCount(0);
 });
 
 /** Decode a 16-bit PCM WAV into its format, duration in seconds, and interleaved samples. */
