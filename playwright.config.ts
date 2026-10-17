@@ -39,7 +39,7 @@ export default defineConfig({
       "@hiogawa/playwright-trace-pack/reporter",
       {
         excludeResponseBody: ({ url }) =>
-          new URL(url).pathname.endsWith(".sf2"),
+          /\.sf[23]$/.test(new URL(url).pathname),
       } satisfies TracePackReporterOptions,
     ],
     ...(process.env.CI ? [["github"] as const] : []),
