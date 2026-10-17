@@ -7,9 +7,9 @@ import { encodeWav } from "../lib/wav";
 export interface RenderCaptureApi {
   /**
    * Render the project archive at `src` the way Export Audio does and download
-   * the WAV, resolving to the number of MIDI tracks the render leaves out.
+   * the WAV.
    */
-  renderArchive(src: string): Promise<{ midiTrackCount: number }>;
+  renderArchive(src: string): Promise<void>;
 }
 
 // Bare Export Audio for command-line render tools such as packages/render-audio.
@@ -33,5 +33,4 @@ async function renderArchive(src: string) {
   ]);
   await runtime.deserializeProject(project);
   downloadBlob(encodeWav(await runtime.renderMix()), "render.wav");
-  return { midiTrackCount: project.midiTracks?.length ?? 0 };
 }

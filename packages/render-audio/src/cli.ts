@@ -48,7 +48,7 @@ async function main() {
   // both move bytes several times faster than a base64 string through evaluate.
   const archiveUrl = new URL("/render-capture/archive", options.url).href;
   await page.route(archiveUrl, (route) => route.fulfill({ body: archive }));
-  const [download, { midiTrackCount }] = await Promise.all([
+  const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.evaluate(
       (src) => window.__toyMidiRenderCapture!.renderArchive(src),
@@ -59,14 +59,6 @@ async function main() {
   writeLine(
     `${style("green", "✓")} wrote ${style("cyan", options.output)}  ${style("dim", formatDuration(performance.now() - startedAt))}`,
   );
-  if (midiTrackCount > 0) {
-    writeLine(
-      style(
-        "yellow",
-        `! left out ${midiTrackCount} MIDI track${midiTrackCount === 1 ? "" : "s"}, because Export Audio renders audio tracks only`,
-      ),
-    );
-  }
 }
 
 async function launchBrowser() {

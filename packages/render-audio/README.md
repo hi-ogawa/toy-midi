@@ -1,8 +1,6 @@
 # Render Audio CLI
 
-`toy-midi-render-audio` renders a Toy MIDI project archive to a WAV file from the command line. It runs the real app's Export Audio in headless Chromium, so the file is the same one the app exports.
-
-Export Audio renders audio tracks only for now, so MIDI tracks are left out of the render, and the CLI warns when a project has any.
+`toy-midi-render-audio` renders a Toy MIDI project archive, with its audio and MIDI tracks, to a WAV file from the command line. It runs the real app's Export Audio in headless Chromium, so the file is the same one the app exports.
 
 ## Install
 
