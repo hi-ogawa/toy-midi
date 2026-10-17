@@ -1,4 +1,5 @@
 import { Editor } from "./components/editor";
+import { Examples } from "./components/examples";
 import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
 import { Preview } from "./components/preview";
@@ -29,6 +30,10 @@ export function App() {
     case "draft": {
       preloadMidiAssetsWhenIdle();
       return <DraftRoute />;
+    }
+    case "examples": {
+      preloadMidiAssetsWhenIdle();
+      return <Examples />;
     }
     case "latencyChecker": {
       return <LatencyChecker />;
