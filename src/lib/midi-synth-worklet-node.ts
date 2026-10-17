@@ -27,11 +27,6 @@ export class MidiSynthWorkletNode {
     this.output = context.createGain();
   }
 
-  /**
-   * Playing starts without waiting for the preset's SoundFont, with GeneralUser
-   * standing in until it arrives. An offline render has no later moment to
-   * switch, so it waits for the SoundFont instead and needs no stand-in.
-   */
   async init(
     preset: MidiPreset,
     { waitForSoundfont = false }: { waitForSoundfont?: boolean } = {},
@@ -50,18 +45,29 @@ export class MidiSynthWorkletNode {
     } catch (error) {
       throw new Error(`MIDI synth failed to load: ${(error as Error).message}`);
     }
-    await this.selectPreset(preset);
-    if (waitForSoundfont) {
-      await this.addSoundfont(getPresetSoundfont(preset));
-    } else {
+    // Playing starts without waiting for the preset's SoundFont, with
+    // GeneralUser standing in until it arrives. An offline render has no later
+    // moment to switch, so it waits for the SoundFont instead.
+    if (!waitForSoundfont) {
       void this.addSoundfont(GENERAL_USER_SOUNDFONT);
-      void this.addSoundfont(getPresetSoundfont(preset));
     }
+    await this.setPreset(preset, { waitForSoundfont });
   }
 
-  async setPreset(preset: MidiPreset): Promise<void> {
-    await this.selectPreset(preset);
-    void this.addSoundfont(getPresetSoundfont(preset));
+  async setPreset(
+    preset: MidiPreset,
+    { waitForSoundfont = false }: { waitForSoundfont?: boolean } = {},
+  ): Promise<void> {
+    const soundfont = getPresetSoundfont(preset);
+    const added = this.addSoundfont(soundfont);
+    await this.getSynth().setPreset({
+      soundfont: soundfont.id,
+      bank: preset.bank ?? 0,
+      program: preset.program,
+    });
+    if (waitForSoundfont) {
+      await added;
+    }
   }
 
   noteOn(pitch: number): void {
@@ -91,14 +97,6 @@ export class MidiSynthWorkletNode {
       this.node = undefined;
       this.synth = undefined;
     }
-  }
-
-  private async selectPreset(preset: MidiPreset): Promise<void> {
-    await this.getSynth().setPreset({
-      soundfont: getPresetSoundfont(preset).id,
-      bank: preset.bank ?? 0,
-      program: preset.program,
-    });
   }
 
   /** Resolves once the processor has the SoundFont, or once its load fails. */
