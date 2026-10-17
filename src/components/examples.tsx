@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { HouseIcon, SearchIcon, XIcon } from "lucide-react";
+import { FileTextIcon, HouseIcon, SearchIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type Example, fetchExamples, getExampleHref } from "../lib/examples";
 import { routes } from "../lib/routes";
@@ -150,7 +150,7 @@ function ExampleList({
               key={example.url}
               className="rounded-lg px-3 py-3 hover:bg-neutral-800/70"
             >
-              <div className="flex items-baseline gap-3">
+              <div className="flex items-center gap-2">
                 <a
                   href={getExampleHref(example)}
                   className="font-medium text-neutral-100 hover:text-emerald-400"
@@ -161,9 +161,11 @@ function ExampleList({
                   href={example.writeup}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-neutral-500 underline underline-offset-2 hover:text-emerald-400"
+                  title="Write-up"
+                  aria-label={`Write-up for ${example.name}`}
+                  className="rounded p-0.5 text-neutral-500 transition-colors hover:text-emerald-400"
                 >
-                  Write-up
+                  <FileTextIcon aria-hidden="true" className="size-4" />
                 </a>
                 <time
                   dateTime={example.date}
