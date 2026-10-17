@@ -218,8 +218,16 @@ export class MidiSynth {
     }
     synth.programChange(CHANNEL, program);
     // Changing the sound banks resets every channel, so the bend range and the
-    // automation's values need sending again.
-    setPitchBendRange(synth, PITCH_BEND_RANGE);
+    // automation's values need sending again. Registered parameter 0 is the
+    // bend range.
+    synth.controllerChange(CHANNEL, MIDIControllers.registeredParameterMSB, 0);
+    synth.controllerChange(CHANNEL, MIDIControllers.registeredParameterLSB, 0);
+    synth.controllerChange(
+      CHANNEL,
+      MIDIControllers.dataEntryMSB,
+      PITCH_BEND_RANGE,
+    );
+    synth.controllerChange(CHANNEL, MIDIControllers.dataEntryLSB, 0);
     this.scheduler.requestChase();
     // SF3 samples decode on first use, which would underrun the render
     // quantum of the first note that needs them, so decode them up front.
@@ -328,17 +336,6 @@ function convertToScheduledAutomation(
       };
     }
   }
-}
-
-/** Sets the bend range through registered parameter 0. */
-function setPitchBendRange(
-  synth: SpessaSynthProcessor,
-  semitones: number,
-): void {
-  synth.controllerChange(CHANNEL, MIDIControllers.registeredParameterMSB, 0);
-  synth.controllerChange(CHANNEL, MIDIControllers.registeredParameterLSB, 0);
-  synth.controllerChange(CHANNEL, MIDIControllers.dataEntryMSB, semitones);
-  synth.controllerChange(CHANNEL, MIDIControllers.dataEntryLSB, 0);
 }
 
 registerProcessor(PROCESSOR_NAME, MidiSynthProcessor);
