@@ -1,7 +1,10 @@
-import type { Note } from "../types.ts";
+import type { Automation, Note } from "../types.ts";
 import { memo } from "../utils/memo.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
-import type { TimelineNote } from "./midi-note-scheduler.ts";
+import type {
+  TimelineAutomation,
+  TimelineNote,
+} from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
 import type { MidiSynth } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
@@ -68,6 +71,10 @@ export class MidiSynthWorkletNode {
     return this.getSynth().setNotes(notes);
   }
 
+  setAutomation(automation: TimelineAutomation[]): Promise<void> {
+    return this.getSynth().setAutomation(automation);
+  }
+
   start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
     return this.getSynth().start(playbackRunOptions);
   }
@@ -112,6 +119,20 @@ export function convertToTimelineNotes(
       velocity: note.velocity,
     }))
     .sort((a, b) => a.start - b.start);
+}
+
+/** Converts automation in beats to the synth's sequences in seconds. */
+export function convertToTimelineAutomation(
+  automation: readonly Automation[],
+  tempo: number,
+): TimelineAutomation[] {
+  return automation.map(({ controller, points }) => ({
+    controller,
+    points: points.map((point) => ({
+      time: beatsToSeconds(point.beat, tempo),
+      value: point.value,
+    })),
+  }));
 }
 
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();

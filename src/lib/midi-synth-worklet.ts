@@ -1,7 +1,18 @@
-import { SoundBankLoader, SpessaSynthProcessor } from "spessasynth_core";
+import {
+  DEFAULT_MIDI_CONTROLLERS,
+  type MIDIController,
+  SoundBankLoader,
+  SpessaSynthProcessor,
+} from "spessasynth_core";
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
 import { DRUM_KIT_BANK } from "./general-midi.ts";
-import { MidiNoteScheduler, type TimelineNote } from "./midi-note-scheduler.ts";
+import {
+  MidiNoteScheduler,
+  type ScheduledAutomation,
+  type ScheduledEvent,
+  type TimelineAutomation,
+  type TimelineNote,
+} from "./midi-note-scheduler.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import { registerRpcHandlers } from "./rpc/endpoint.ts";
 
@@ -9,6 +20,11 @@ const PROCESSOR_NAME = "midi-synth";
 // Every track plays on the first MIDI channel of its own synth.
 const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
+const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
+  "note-off": 0,
+  controller: 1,
+  "note-on": 2,
+};
 
 interface SynthPreset {
   /** Id of the SoundFont the preset comes from */
@@ -17,9 +33,7 @@ interface SynthPreset {
   program: number;
 }
 
-type ScheduledEvent =
-  | { type: "noteOff"; frame: number; pitch: number }
-  | { type: "noteOn"; frame: number; pitch: number; velocity: number };
+type QueuedEvent = ScheduledEvent & { frame: number };
 
 declare const AudioWorkletProcessor: new (
   options?: AudioWorkletNodeOptions,
@@ -61,8 +75,10 @@ export class MidiSynth {
   // Scheduling here rather than on a main-thread timer keeps a busy page from
   // dropping notes.
   private readonly scheduler = new MidiNoteScheduler();
-  // Sorted by frame, with note-offs before note-ons on the same frame.
-  private events: ScheduledEvent[] = [];
+  private automation: ScheduledAutomation[] = [];
+  // Sorted by frame, then note-offs, controller changes, and note-ons on the
+  // same frame, so a controller change applies to the note starting with it.
+  private events: QueuedEvent[] = [];
 
   async init(): Promise<void> {
     const synth = new SpessaSynthProcessor(sampleRate, {
@@ -118,6 +134,21 @@ export class MidiSynth {
     this.scheduler.setNotes(notes);
   }
 
+  async setAutomation(automation: TimelineAutomation[]): Promise<void> {
+    const next: ScheduledAutomation[] = automation.map((sequence) => ({
+      ...sequence,
+      initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
+    }));
+    this.resetControllers(
+      this.automation.filter(
+        (sequence) =>
+          !next.some((other) => other.controller === sequence.controller),
+      ),
+    );
+    this.automation = next;
+    this.scheduler.setAutomation(next);
+  }
+
   async start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
     this.scheduler.start(playbackRunOptions);
   }
@@ -127,6 +158,21 @@ export class MidiSynth {
     this.scheduler.stop();
     this.events = [];
     this.synth!.stopAllChannels();
+    this.resetControllers(this.automation);
+  }
+
+  /**
+   * A controller keeps its last value until changed, so this returns each
+   * sequence's controller to its initial value.
+   */
+  private resetControllers(automation: ScheduledAutomation[]): void {
+    for (const { controller, initialValue } of automation) {
+      this.synth!.controllerChange(
+        CHANNEL,
+        controller as MIDIController,
+        initialValue,
+      );
+    }
   }
 
   /** Selects the track's preset once a SoundFont has loaded. */
@@ -152,34 +198,30 @@ export class MidiSynth {
       synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
     }
     synth.programChange(CHANNEL, program);
+    // Changing the sound banks resets every channel, so the automation's
+    // controller values need sending again.
+    this.scheduler.requestChase();
     // SF3 samples decode on first use, which would underrun the render
     // quantum of the first note that needs them, so decode them up front.
     synth.midiChannels[CHANNEL].preset?.preload(0, 127);
   }
 
-  /** Queues the notes that start before `endFrame`. */
-  private scheduleNotes(endFrame: number): void {
-    const notes = this.scheduler.getScheduledNotes({
+  /** Queues the events that start before `endFrame`. */
+  private scheduleEvents(endFrame: number): void {
+    const events = this.scheduler.getScheduledEvents({
       start: currentFrame / sampleRate,
       end: endFrame / sampleRate,
     });
-    for (const { startTime, endTime, pitch, velocity } of notes) {
+    for (const event of events) {
       this.insertEvent({
-        type: "noteOn",
-        frame: Math.round(startTime * sampleRate),
-        pitch,
-        velocity,
-      });
-      this.insertEvent({
-        type: "noteOff",
-        frame: Math.round(endTime * sampleRate),
-        pitch,
+        ...event,
+        frame: Math.round(event.time * sampleRate),
       });
     }
   }
 
-  private insertEvent(event: ScheduledEvent): void {
-    const rank = (e: ScheduledEvent) => (e.type === "noteOff" ? 0 : 1);
+  private insertEvent(event: QueuedEvent): void {
+    const rank = (e: QueuedEvent) => EVENT_RANKS[e.type];
     // Insert after every event that sorts at or before this one, so equal
     // events keep their arrival order.
     const index = this.events.findLastIndex(
@@ -194,7 +236,7 @@ export class MidiSynth {
       return;
     }
     const blockEnd = currentFrame + left.length;
-    this.scheduleNotes(blockEnd);
+    this.scheduleEvents(blockEnd);
     // Split the render block at each due event so it starts on its own frame.
     // Events that arrived late apply at the start of the block.
     let offset = 0;
@@ -205,10 +247,23 @@ export class MidiSynth {
         synth.process(left, right, offset, eventOffset - offset);
         offset = eventOffset;
       }
-      if (event.type === "noteOff") {
-        synth.noteOff(CHANNEL, event.pitch);
-      } else {
-        synth.noteOn(CHANNEL, event.pitch, event.velocity);
+      switch (event.type) {
+        case "note-off": {
+          synth.noteOff(CHANNEL, event.pitch);
+          break;
+        }
+        case "controller": {
+          synth.controllerChange(
+            CHANNEL,
+            event.controller as MIDIController,
+            event.value,
+          );
+          break;
+        }
+        case "note-on": {
+          synth.noteOn(CHANNEL, event.pitch, event.velocity);
+          break;
+        }
       }
     }
     if (offset < left.length) {

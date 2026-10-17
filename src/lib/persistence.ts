@@ -83,6 +83,7 @@ export interface SerializedMidiTrackState extends Omit<
   | "keySignature"
   | "viewMode"
   | "pan"
+  | "automation"
 > {
   tabAnnotationEnabled?: boolean;
   tabOpenStringPitches?: number[];
@@ -90,6 +91,8 @@ export interface SerializedMidiTrackState extends Omit<
   viewMode?: MidiTrackState["viewMode"];
   // 🟢 Optional for MIDI tracks saved before pan support.
   pan?: number;
+  // 🟢 Optional for MIDI tracks saved before automation support.
+  automation?: MidiTrackState["automation"];
 }
 
 interface SerializedAudioTrackState<ChannelData> {
@@ -212,6 +215,7 @@ export function deserializeEditorRuntimeState({
       ...track,
       viewMode: track.viewMode ?? "editor",
       pan: track.pan ?? 0,
+      automation: track.automation ?? [],
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,
