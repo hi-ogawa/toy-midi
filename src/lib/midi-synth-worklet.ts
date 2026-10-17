@@ -35,9 +35,7 @@ declare function registerProcessor(
 
 class MidiSynthProcessor extends AudioWorkletProcessor {
   private readonly synth = new MidiSynth();
-  private readonly isDisposed = watchWorkletDisposal(this.port, () => {
-    this.synth.release();
-  });
+  private readonly isDisposed = watchWorkletDisposal(this.port);
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
@@ -129,11 +127,6 @@ export class MidiSynth {
     this.scheduler.stop();
     this.events = [];
     this.synth!.stopAllChannels();
-  }
-
-  /** Drops every loaded SoundFont. */
-  release(): void {
-    this.synth = undefined;
   }
 
   render(left: Float32Array, right: Float32Array): void {
