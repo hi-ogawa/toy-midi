@@ -61,37 +61,34 @@ export async function renderMix({
       master.channelCountMode = "explicit";
       master.channelInterpretation = "speakers";
       master.connect(context.destination);
-      const channels: AudioChannel[] = [];
-      try {
-        await ensureBiquadEqWorklet(context);
-        for (const track of mix.tracks) {
-          const channel = new AudioChannel({
+      using channels = new DisposableStack();
+      await ensureBiquadEqWorklet(context);
+      for (const track of mix.tracks) {
+        const channel = channels.adopt(
+          new AudioChannel({
             context,
             output: master,
             eq: track.eq,
             gain: track.gain,
             pan: track.pan,
-          });
-          channels.push(channel);
-          for (const region of track.regions) {
-            const source = context.createBufferSource();
-            source.buffer = region.buffer;
-            const gain = context.createGain();
-            gain.gain.value = region.gain;
-            source.connect(gain).connect(channel.input);
-            source.start(
-              region.timelineStart,
-              region.timelineStart - region.timelineOffset,
-              region.timelineEnd - region.timelineStart,
-            );
-          }
-        }
-        return await context.startRendering();
-      } finally {
-        for (const channel of channels) {
-          channel.dispose();
+          }),
+          (channel) => channel.dispose(),
+        );
+        for (const region of track.regions) {
+          const source = context.createBufferSource();
+          source.buffer = region.buffer;
+          const gain = context.createGain();
+          gain.gain.value = region.gain;
+          source.connect(gain).connect(channel.input);
+          source.start(
+            region.timelineStart,
+            region.timelineStart - region.timelineOffset,
+            region.timelineEnd - region.timelineStart,
+          );
         }
       }
+      // Await so the channels are disposed after rendering, not before.
+      return await context.startRendering();
     },
   );
 }
