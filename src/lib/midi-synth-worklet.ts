@@ -1,6 +1,7 @@
 import {
   DEFAULT_MIDI_CONTROLLERS,
   type MIDIController,
+  MIDIControllers,
   SoundBankLoader,
   SpessaSynthProcessor,
 } from "spessasynth_core";
@@ -13,6 +14,7 @@ import {
   type TimelineAutomation,
   type TimelineNote,
 } from "./midi-note-scheduler.ts";
+import { clamp } from "./music.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import { registerRpcHandlers } from "./rpc/endpoint.ts";
 
@@ -20,9 +22,13 @@ const PROCESSOR_NAME = "midi-synth";
 // Every track plays on the first MIDI channel of its own synth.
 const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
+// Wide enough for slides of up to an octave either way.
+const PITCH_BEND_RANGE = 12;
+const PITCH_WHEEL_CENTER = 8192;
 const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
   "note-off": 0,
   controller: 1,
+  "pitch-bend": 1,
   "note-on": 2,
 };
 
@@ -135,16 +141,19 @@ export class MidiSynth {
   }
 
   async setAutomation(automation: TimelineAutomation[]): Promise<void> {
-    const next: ScheduledAutomation[] = automation.map((sequence) => ({
-      ...sequence,
-      initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
-    }));
-    this.resetControllers(
-      this.automation.filter(
-        (sequence) =>
-          !next.some((other) => other.controller === sequence.controller),
-      ),
+    const next: ScheduledAutomation[] = automation.map(
+      convertToScheduledAutomation,
     );
+    const removed = this.automation.filter(
+      (sequence) =>
+        !next.some((other) =>
+          sequence.type === "controller"
+            ? other.type === "controller" &&
+              other.controller === sequence.controller
+            : other.type === sequence.type,
+        ),
+    );
+    this.resetAutomation(removed);
     this.automation = next;
     this.scheduler.setAutomation(next);
   }
@@ -158,20 +167,30 @@ export class MidiSynth {
     this.scheduler.stop();
     this.events = [];
     this.synth!.stopAllChannels();
-    this.resetControllers(this.automation);
+    this.resetAutomation(this.automation);
   }
 
   /**
-   * A controller keeps its last value until changed, so this returns each
-   * sequence's controller to its initial value.
+   * A controller or bend keeps its last value until changed, so this returns
+   * each sequence's target to its initial value.
    */
-  private resetControllers(automation: ScheduledAutomation[]): void {
-    for (const { controller, initialValue } of automation) {
-      this.synth!.controllerChange(
-        CHANNEL,
-        controller as MIDIController,
-        initialValue,
-      );
+  private resetAutomation(automation: ScheduledAutomation[]): void {
+    const synth = this.synth!;
+    for (const sequence of automation) {
+      switch (sequence.type) {
+        case "controller": {
+          synth.controllerChange(
+            CHANNEL,
+            sequence.controller as MIDIController,
+            sequence.initialValue,
+          );
+          break;
+        }
+        case "pitch-bend": {
+          synth.pitchWheel(CHANNEL, sequence.initialValue);
+          break;
+        }
+      }
     }
   }
 
@@ -198,8 +217,17 @@ export class MidiSynth {
       synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
     }
     synth.programChange(CHANNEL, program);
-    // Changing the sound banks resets every channel, so the automation's
-    // controller values need sending again.
+    // Changing the sound banks resets every channel, so the bend range and the
+    // automation's values need sending again. Registered parameter 0 is the
+    // bend range.
+    synth.controllerChange(CHANNEL, MIDIControllers.registeredParameterMSB, 0);
+    synth.controllerChange(CHANNEL, MIDIControllers.registeredParameterLSB, 0);
+    synth.controllerChange(
+      CHANNEL,
+      MIDIControllers.dataEntryMSB,
+      PITCH_BEND_RANGE,
+    );
+    synth.controllerChange(CHANNEL, MIDIControllers.dataEntryLSB, 0);
     this.scheduler.requestChase();
     // SF3 samples decode on first use, which would underrun the render
     // quantum of the first note that needs them, so decode them up front.
@@ -260,6 +288,10 @@ export class MidiSynth {
           );
           break;
         }
+        case "pitch-bend": {
+          synth.pitchWheel(CHANNEL, event.value);
+          break;
+        }
         case "note-on": {
           synth.noteOn(CHANNEL, event.pitch, event.velocity);
           break;
@@ -268,6 +300,40 @@ export class MidiSynth {
     }
     if (offset < left.length) {
       synth.process(left, right, offset, left.length - offset);
+    }
+  }
+}
+
+/**
+ * Controllers start from SpessaSynth's defaults, and bends become 14-bit wheel
+ * values.
+ */
+function convertToScheduledAutomation(
+  sequence: TimelineAutomation,
+): ScheduledAutomation {
+  switch (sequence.type) {
+    case "controller": {
+      return {
+        ...sequence,
+        initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
+      };
+    }
+    case "pitch-bend": {
+      return {
+        ...sequence,
+        points: sequence.points.map((point) => ({
+          time: point.time,
+          value: clamp(
+            Math.round(
+              PITCH_WHEEL_CENTER +
+                (point.value / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
+            ),
+            0,
+            2 * PITCH_WHEEL_CENTER - 1,
+          ),
+        })),
+        initialValue: PITCH_WHEEL_CENTER,
+      };
     }
   }
 }

@@ -126,13 +126,29 @@ export function convertToTimelineAutomation(
   automation: readonly Automation[],
   tempo: number,
 ): TimelineAutomation[] {
-  return automation.map(({ controller, points }) => ({
-    controller,
-    points: points.map((point) => ({
-      time: beatsToSeconds(point.beat, tempo),
-      value: point.value,
-    })),
-  }));
+  return automation.map((sequence) => {
+    switch (sequence.type) {
+      case "controller": {
+        return {
+          type: "controller",
+          controller: sequence.controller,
+          points: sequence.points.map((point) => ({
+            time: beatsToSeconds(point.beat, tempo),
+            value: point.value,
+          })),
+        };
+      }
+      case "pitch-bend": {
+        return {
+          type: "pitch-bend",
+          points: sequence.points.map((point) => ({
+            time: beatsToSeconds(point.beat, tempo),
+            value: point.semitones,
+          })),
+        };
+      }
+    }
+  });
 }
 
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
