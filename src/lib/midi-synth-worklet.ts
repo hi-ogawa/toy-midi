@@ -27,7 +27,7 @@ const PITCH_WHEEL_CENTER = 8192;
 const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
   noteOff: 0,
   controller: 1,
-  pitchBend: 1,
+  "pitch-bend": 1,
   noteOn: 2,
 };
 
@@ -269,7 +269,7 @@ export class MidiSynth {
           );
           break;
         }
-        case "pitchBend": {
+        case "pitch-bend": {
           synth.pitchWheel(CHANNEL, event.value);
           break;
         }

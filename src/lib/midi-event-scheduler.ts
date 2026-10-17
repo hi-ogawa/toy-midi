@@ -37,7 +37,7 @@ export type ScheduledEvent =
   | { type: "noteOn"; time: number; pitch: number; velocity: number }
   | { type: "noteOff"; time: number; pitch: number }
   | { type: "controller"; time: number; controller: number; value: number }
-  | { type: "pitchBend"; time: number; value: number };
+  | { type: "pitch-bend"; time: number; value: number };
 
 /**
  * Places a track's notes and controller changes on the audio clock for windows
@@ -181,7 +181,7 @@ function createAutomationEvent(
       };
     }
     case "pitch-bend": {
-      return { type: "pitchBend", time, value };
+      return { type: "pitch-bend", time, value };
     }
   }
 }
