@@ -4,6 +4,7 @@ packages:
   - packages/render-audio
   - packages/score-video
 allowBuilds:
+  core-js: false
   esbuild: true
   gl: false
   wasm-pack: true
