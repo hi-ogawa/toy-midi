@@ -33,7 +33,7 @@ export class MidiTrackPlayback implements TransportParticipant {
       await synth.init();
       // Play GeneralUser rather than wait for the track's SoundFont.
       void synth.addSoundfont(GENERAL_USER_SOUNDFONT);
-      synth.setPreset(track);
+      void synth.setPreset(track);
       return new MidiTrackPlayback({ transport, output, track, tempo, synth });
     } catch (error) {
       synth.dispose();
@@ -83,8 +83,9 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.sendNotes();
   }
 
+  /** Switches over once the preset's SoundFont arrives. */
   setPreset(preset: MidiPreset): void {
-    this.synth.setPreset(preset);
+    void this.synth.setPreset(preset);
   }
 
   noteOn(pitch: number): void {
