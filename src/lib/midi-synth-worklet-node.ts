@@ -1,3 +1,4 @@
+import { memo } from "../utils/memo.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { TimelineNote } from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
@@ -5,7 +6,7 @@ import type { MidiSynth } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import type { RpcClient } from "./rpc/core.ts";
 import { createRpcClient } from "./rpc/endpoint.ts";
-import { type LoadedSoundfont, loadSoundfont } from "./runtime-assets";
+import { loadSoundfont } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
 import {
   findSoundfont,
@@ -19,13 +20,12 @@ export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
   private synth?: RpcClient<MidiSynth>;
-  private readonly soundfonts = new Set<string>();
 
   constructor(private readonly context: AudioContext) {
     this.output = context.createGain();
   }
 
-  async init(preset: MidiPreset): Promise<void> {
+  async init(): Promise<void> {
     await ensureMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
       numberOfInputs: 0,
@@ -40,23 +40,18 @@ export class MidiSynthWorkletNode {
     } catch (error) {
       throw new Error(`MIDI synth failed to load: ${(error as Error).message}`);
     }
-    await this.setPreset(preset);
-    void this.addSoundfont(GENERAL_USER_SOUNDFONT);
   }
 
-  async setPreset({
-    soundfont: id,
-    bank = 0,
-    program,
-  }: MidiPreset): Promise<void> {
+  async setPreset(preset: MidiPreset): Promise<void> {
+    const soundfont = preset.soundfont
+      ? findSoundfont(preset.soundfont)
+      : GENERAL_USER_SOUNDFONT;
     await this.getSynth().setPreset({
-      soundfont: id ?? GENERAL_USER_SOUNDFONT.id,
-      bank,
-      program,
+      soundfont: soundfont.id,
+      bank: preset.bank ?? 0,
+      program: preset.program,
     });
-    if (id) {
-      void this.addSoundfont(findSoundfont(id));
-    }
+    await this.addSoundfont(soundfont);
   }
 
   noteOn(pitch: number): void {
@@ -88,21 +83,11 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  private async addSoundfont(soundfont: Soundfont): Promise<void> {
-    if (this.soundfonts.has(soundfont.id)) {
-      return;
-    }
-    this.soundfonts.add(soundfont.id);
-    let loaded: LoadedSoundfont;
-    try {
-      loaded = await loadSoundfont(soundfont);
-    } catch {
-      // The loader reports the failure.
-      return;
-    }
+  readonly addSoundfont = memo(async (soundfont: Soundfont): Promise<void> => {
+    const loaded = await loadSoundfont(soundfont);
     // The synth may have been disposed while the SoundFont loaded.
     await this.synth?.addSoundfont({ id: soundfont.id, ...loaded });
-  }
+  });
 
   private getSynth(): RpcClient<MidiSynth> {
     if (!this.synth) {
