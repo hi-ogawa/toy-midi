@@ -140,7 +140,7 @@ export class MidiSynth {
   }
 
   async setAutomation(automation: TimelineAutomation[]): Promise<void> {
-    const next = automation.map(prepareAutomation);
+    const next: ScheduledAutomation[] = automation.map(prepareAutomation);
     this.resetAutomation(
       this.automation.filter(
         (sequence) => !next.some((other) => isSameTarget(other, sequence)),
