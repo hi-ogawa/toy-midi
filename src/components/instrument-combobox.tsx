@@ -2,6 +2,7 @@ import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { useState } from "react";
 import { DRUM_KIT_BANK, DRUM_KITS, GM_PROGRAMS } from "../lib/general-midi";
 import type { MidiPreset } from "../lib/runtime";
+import { findSoundfont, SOUNDFONTS } from "../lib/soundfonts";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -52,6 +53,7 @@ export function InstrumentCombobox({
   function renderItem(preset: MidiPreset) {
     const label = formatPresetLabel(preset);
     const selected =
+      value.soundfont === preset.soundfont &&
       (value.bank ?? 0) === (preset.bank ?? 0) &&
       value.program === preset.program;
     return (
@@ -73,7 +75,7 @@ export function InstrumentCombobox({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           data-testid="instrument-select"
@@ -109,6 +111,13 @@ export function InstrumentCombobox({
                 renderItem({ bank: DRUM_KIT_BANK, program }),
               )}
             </CommandGroup>
+            {SOUNDFONTS.map((soundfont) => (
+              <CommandGroup key={soundfont.id} heading={soundfont.name}>
+                {soundfont.presets.map(({ program }) =>
+                  renderItem({ soundfont: soundfont.id, program }),
+                )}
+              </CommandGroup>
+            ))}
           </CommandList>
         </Command>
       </PopoverContent>
@@ -116,7 +125,12 @@ export function InstrumentCombobox({
   );
 }
 
-function formatPresetLabel({ bank, program }: MidiPreset): string {
+function formatPresetLabel({ soundfont, bank, program }: MidiPreset): string {
+  if (soundfont) {
+    const { name, presets } = findSoundfont(soundfont);
+    const preset = presets.find((preset) => preset.program === program);
+    return preset ? `${name}: ${preset.name}` : `${name}: ${program}`;
+  }
   if (bank === DRUM_KIT_BANK) {
     const kit = DRUM_KITS.find((kit) => kit.program === program);
     return kit ? `Drums ${program}: ${kit.name}` : `Drums ${program}`;

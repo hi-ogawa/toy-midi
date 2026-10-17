@@ -1,53 +1,86 @@
 import { toast } from "sonner";
-import soundfontUrl from "../assets/soundfonts/GeneralUserGS.sf3?url";
-import workletUrl from "./midi-synth-worklet.ts?worker&url";
+import { memo } from "../utils/memo.ts";
+import { createWorkerRpc } from "./rpc/worker.ts";
+import type { SoundfontDecoderWorkerHandlers } from "./soundfont-decoder-worker.ts";
+import { GENERAL_USER_SOUNDFONT, type Soundfont } from "./soundfonts.ts";
 
-export const midiAssetUrls = { workletUrl, soundfontUrl };
+export interface LoadedSoundfont {
+  soundfont: ArrayBuffer;
+  /** Every sample decoded, in the file's order, when decoded in a worker */
+  samples?: Float32Array[];
+}
 
-let preloadPromise: Promise<void> | undefined;
-let demandPromise: Promise<void> | undefined;
+/**
+ * Resolves to the SoundFont, showing one loading indicator per SoundFont
+ * across tracks while it loads. Each call resolves to its own copy, because
+ * posting to a synth transfers the buffers.
+ */
+export async function loadSoundfont(
+  soundfont: Soundfont,
+): Promise<LoadedSoundfont> {
+  const { soundfont: bytes, samples } = await loadSharedSoundfont(soundfont);
+  return {
+    soundfont: bytes.slice(0),
+    samples: samples?.map((sample) => sample.slice()),
+  };
+}
 
-// Share one indicator across MIDI consumers, starting the delay at first demand.
-export function waitForMidiAssets(): Promise<void> {
-  return (demandPromise ??= (async () => {
+const loadSharedSoundfont = memo(
+  async ({
+    name,
+    url,
+    decodeInWorker,
+  }: Soundfont): Promise<LoadedSoundfont> => {
     let toastId: string | number | undefined;
     const timer = setTimeout(() => {
-      toastId = toast.loading("Loading MIDI soundfont…");
+      toastId = toast.loading(`Loading ${name} SoundFont…`);
     }, 300);
     try {
-      await preloadMidiAssets();
+      const soundfont = await downloadSoundfont(url);
+      // The RPC call transfers the bytes to the worker, so send a copy.
+      const samples = decodeInWorker
+        ? await decodeSamples(soundfont.slice(0))
+        : undefined;
+      return { soundfont, samples };
+    } catch (error) {
+      toast.error(`Failed to load the ${name} SoundFont`);
+      throw error;
     } finally {
       clearTimeout(timer);
       if (toastId !== undefined) {
         toast.dismiss(toastId);
       }
     }
-  })());
-}
+  },
+);
 
-// Warm the cache after initial render on routes that lead to MIDI playback.
+// Start the download after initial render on routes that lead to MIDI playback.
 export function preloadMidiAssetsWhenIdle() {
   requestIdleCallback(() => {
-    void preloadMidiAssets();
+    downloadSoundfont(GENERAL_USER_SOUNDFONT.url).catch(() => {});
   });
 }
 
-// Warm the browser cache silently. Synth initialization still handles asset failures.
-function preloadMidiAssets(): Promise<void> {
-  return (preloadPromise ??= Promise.allSettled(
-    Object.values(midiAssetUrls).map(preloadAsset),
-  ).then(() => {}));
-}
+// The idle preload and the loader share one download, because Chromium fails some of several concurrent
+// requests for the same large file with ERR_CACHE_WRITE_FAILURE.
+const downloadSoundfont = memo(async (url: string): Promise<ArrayBuffer> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}: ${response.status}`);
+  }
+  return await response.arrayBuffer();
+});
 
-function preloadAsset(href: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "fetch";
-    link.crossOrigin = "anonymous";
-    link.href = href;
-    link.onload = () => resolve();
-    link.onerror = () => reject(new Error(`Failed to preload ${href}`));
-    document.head.appendChild(link);
-  });
+async function decodeSamples(soundfont: ArrayBuffer): Promise<Float32Array[]> {
+  const worker = new Worker(
+    new URL("./soundfont-decoder-worker.ts", import.meta.url),
+    { type: "module" },
+  );
+  try {
+    return await createWorkerRpc<SoundfontDecoderWorkerHandlers>(
+      worker,
+    ).decodeSamples({ soundfont });
+  } finally {
+    worker.terminate();
+  }
 }
