@@ -145,52 +145,66 @@ function ExampleList({ examples }: { examples: Example[] }) {
           </li>
         ) : (
           filteredExamples.map((example) => (
-            <li
+            <ExampleListItem
               key={example.url}
-              className="rounded-lg px-3 py-3 hover:bg-neutral-800/70"
-            >
-              <div className="flex items-center gap-2">
-                <a
-                  href={getExampleHref(example)}
-                  className="font-medium text-neutral-100 hover:text-emerald-400"
-                >
-                  {example.name}
-                </a>
-                <a
-                  href={example.writeup}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Write-up"
-                  aria-label={`Write-up for ${example.name}`}
-                  className="rounded p-0.5 text-neutral-500 transition-colors hover:text-emerald-400"
-                >
-                  <FileTextIcon aria-hidden="true" className="size-4" />
-                </a>
-                <time
-                  dateTime={example.date}
-                  className="ml-auto text-xs tabular-nums text-neutral-500"
-                >
-                  {example.date}
-                </time>
-              </div>
-              <p className="mt-0.5 text-sm text-neutral-400">
-                {example.description}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {example.tags.map((tag) => (
-                  <TagChip
-                    key={tag}
-                    tag={tag}
-                    active={tag === activeTag}
-                    onToggle={toggleTag}
-                  />
-                ))}
-              </div>
-            </li>
+              example={example}
+              activeTag={activeTag}
+              onTagToggle={toggleTag}
+            />
           ))
         )}
       </ul>
     </>
+  );
+}
+
+function ExampleListItem({
+  example,
+  activeTag,
+  onTagToggle,
+}: {
+  example: Example;
+  activeTag?: string;
+  onTagToggle: (tag: string) => void;
+}) {
+  return (
+    <li className="rounded-lg px-3 py-3 hover:bg-neutral-800/70">
+      <div className="flex items-center gap-2">
+        <a
+          href={getExampleHref(example)}
+          className="font-medium text-neutral-100 hover:text-emerald-400"
+        >
+          {example.name}
+        </a>
+        <a
+          href={example.writeup}
+          target="_blank"
+          rel="noreferrer"
+          title="Write-up"
+          aria-label={`Write-up for ${example.name}`}
+          className="rounded p-0.5 text-neutral-500 transition-colors hover:text-emerald-400"
+        >
+          <FileTextIcon aria-hidden="true" className="size-4" />
+        </a>
+        <time
+          dateTime={example.date}
+          className="ml-auto text-xs tabular-nums text-neutral-500"
+        >
+          {example.date}
+        </time>
+      </div>
+      <p className="mt-0.5 text-sm text-neutral-400">{example.description}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {example.tags.map((tag) => (
+          <TagChip
+            key={tag}
+            tag={tag}
+            active={tag === activeTag}
+            onToggle={onTagToggle}
+          />
+        ))}
+      </div>
+    </li>
   );
 }
 
