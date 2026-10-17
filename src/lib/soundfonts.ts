@@ -23,11 +23,9 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
  * `soundfont` to its id and `program` to one of its presets.
  *
  * - `"flamestudios-telecaster-bridge"`: a clean electric guitar, recorded direct
- *   in from a Telecaster's bridge pickup. It's bright with a sharp attack and
- *   cuts through a full arrangement, so choose it first for clean electric
- *   parts. A track EQ that trims the highs warms it up.
- * - `"flamestudios-telecaster-neck"`: the same guitar's neck pickup, warmer and
- *   rounder, for jazz, neo-soul, ballads, or a guitar that plays alone.
+ *   in from a Telecaster's bridge pickup. Bright, with a sharp attack.
+ * - `"flamestudios-telecaster-neck"`: the same guitar's neck pickup. Warmer and
+ *   rounder.
  *
  * Both have a Muted preset for muted strokes and ghost notes.
  */
