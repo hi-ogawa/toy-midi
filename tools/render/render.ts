@@ -54,8 +54,6 @@ interface RenderMidiTrack extends SharedMidiTrack {
   automation?: Automation[];
   /** SoundFont file that replaces `--sf2` and `soundfont` for this track */
   sf2?: string;
-  /** SoundFont generator number to an NRPN offset in -8192..8191 */
-  nrpn?: Record<string, number>;
 }
 
 interface TrackReport {
@@ -188,7 +186,6 @@ async function renderTrack({
       timeSignature: project.timeSignature,
       bank: track.bank,
       program: track.program,
-      nrpn: track.nrpn,
       notes: track.notes,
       automation: track.automation,
     }),

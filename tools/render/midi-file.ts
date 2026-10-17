@@ -44,7 +44,6 @@ export function encodeTrackMidi({
   timeSignature,
   bank = 0,
   program,
-  nrpn = {},
   notes,
   automation = [],
 }: {
@@ -52,7 +51,6 @@ export function encodeTrackMidi({
   timeSignature?: TimeSignature;
   bank?: number;
   program: number;
-  nrpn?: Record<string, number>;
   notes: Omit<Note, "id">[];
   automation?: Automation[];
 }): Uint8Array {
@@ -65,8 +63,8 @@ export function encodeTrackMidi({
     value,
   ];
 
-  // Setup at tick 0, before any note: tempo, meter, preset, generator offsets,
-  // and the pitch-bend range when the track bends.
+  // Setup at tick 0, before any note: tempo, meter, preset, and the pitch-bend
+  // range when the track bends.
   const bends = automation.some((sequence) => sequence.type === "pitch-bend");
   const microsecondsPerBeat = Math.round(60_000_000 / tempo);
   const setup = [
@@ -83,9 +81,6 @@ export function encodeTrackMidi({
     ],
     ...(isDrum ? [] : controlChange(0, bank)),
     ...[0, 0xc0 | channel, program],
-    ...encodeSoundFontNrpn(nrpn).flatMap(([controller, value]) =>
-      controlChange(controller, value),
-    ),
     ...(bends
       ? [
           ...controlChange(101, 0),
@@ -179,24 +174,6 @@ function encodeAutomationPoint({
       return [0xb0 | channel, 0, bank, 0, 0xc0 | channel, program];
     }
   }
-}
-
-// SoundFont NRPNs (NRPN MSB 120, LSB the generator number, then data entry LSB
-// and MSB) offset a generator on the whole channel. Offsets range over
-// -8192..8191, and the synth scales them per generator, such as 2 timecents
-// per step for envelope times (generator 38 is volume release).
-function encodeSoundFontNrpn(
-  nrpn: Record<string, number>,
-): [controller: number, value: number][] {
-  return Object.entries(nrpn).flatMap(([generator, offset]) => {
-    const value = Math.min(16383, Math.max(0, 8192 + offset));
-    return [
-      [99, 120],
-      [98, Number(generator)],
-      [38, value & 0x7f],
-      [6, value >> 7],
-    ];
-  });
 }
 
 function encodeVariableLength(value: number): number[] {
