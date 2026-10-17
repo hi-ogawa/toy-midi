@@ -1,14 +1,12 @@
+import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
-import {
-  convertToTimelineNotes,
-  type TimelineNote,
-} from "./midi-note-scheduler.ts";
 import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
 import type { EditorRuntimeState, MidiPreset } from "./runtime.ts";
+import { beatsToSeconds } from "./timeline.ts";
 
 // Release length depends on the preset, so this only needs to cover typical
 // ones.
@@ -26,8 +24,9 @@ interface Mix {
     gain: number;
     pan: number;
     preset: MidiPreset;
-    notes: TimelineNote[];
+    notes: Note[];
   }[];
+  tempo: number;
   masterGain: number;
   duration: number;
 }
@@ -46,7 +45,7 @@ export function resolveMix(state: EditorRuntimeState): Mix {
     gain: gains.get(track.id)!,
     pan: track.pan,
     preset: track,
-    notes: convertToTimelineNotes(track.notes, state.tempo),
+    notes: track.notes,
   }));
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;
@@ -59,10 +58,17 @@ export function resolveMix(state: EditorRuntimeState): Mix {
   }
   for (const track of midiTracks) {
     for (const note of track.notes) {
-      duration = Math.max(duration, note.end + MIDI_RELEASE_SECONDS);
+      const end = beatsToSeconds(note.start + note.duration, state.tempo);
+      duration = Math.max(duration, end + MIDI_RELEASE_SECONDS);
     }
   }
-  return { tracks, midiTracks, masterGain: state.masterGain, duration };
+  return {
+    tracks,
+    midiTracks,
+    tempo: state.tempo,
+    masterGain: state.masterGain,
+    duration,
+  };
 }
 
 /** Render floats without normalization or clipping; PCM encoding owns clipping. */
@@ -124,7 +130,7 @@ export async function renderMix({
           pan: track.pan,
         });
         synth.output.connect(channel.input);
-        synth.setNotes(track.notes);
+        synth.setNotes(track.notes, mix.tempo);
         synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
       }),
     );

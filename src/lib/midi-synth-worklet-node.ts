@@ -1,5 +1,5 @@
+import type { Note } from "../types.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
-import type { TimelineNote } from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
 import type {
   MidiSynthClientMessage,
@@ -13,6 +13,7 @@ import {
   GENERAL_USER_SOUNDFONT,
   type Soundfont,
 } from "./soundfonts.ts";
+import { beatsToSeconds } from "./timeline.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
@@ -91,8 +92,18 @@ export class MidiSynthWorkletNode {
     this.postMessage({ type: "noteOff", pitch });
   }
 
-  setNotes(notes: TimelineNote[]): void {
-    this.postMessage({ type: "setNotes", notes });
+  setNotes(notes: readonly Note[], tempo: number): void {
+    this.postMessage({
+      type: "setNotes",
+      notes: notes
+        .map((note) => ({
+          start: beatsToSeconds(note.start, tempo),
+          end: beatsToSeconds(note.start + note.duration, tempo),
+          pitch: note.pitch,
+          velocity: note.velocity,
+        }))
+        .sort((a, b) => a.start - b.start),
+    });
   }
 
   start(playbackRunOptions: PlaybackRunOptions): void {
