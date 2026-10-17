@@ -60,3 +60,33 @@ If you can publish a file, such as by committing it to a GitHub repository or cr
 ```
 
 URL-encode the file's URL when you put it in the query string. The app fetches the file from the browser, so the host must allow cross-origin requests. Raw files on `raw.githubusercontent.com` and `gist.githubusercontent.com` do. The link stays short however large the project grows, and it opens the file's current contents each time.
+
+## Shape Notes with Expression
+
+A MIDI track's notes set what plays, and its `automation` shapes how it plays over time. Each sequence sends one MIDI controller's values to the track's synth, such as expression (CC11) for swells on held notes, sustain (CC64) for the piano pedal, and modulation (CC1) for vibrato. The type is `Automation` in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts). This track swells a held note and pedals it from beat 0 to beat 4:
+
+```json
+{
+  "name": "Piano",
+  "program": 0,
+  "notes": [{ "pitch": 60, "start": 0, "duration": 4, "velocity": 90 }],
+  "automation": [
+    {
+      "type": "controller",
+      "controller": 11,
+      "points": [
+        { "beat": 0, "value": 60 },
+        { "beat": 2, "value": 127 }
+      ]
+    },
+    {
+      "type": "controller",
+      "controller": 64,
+      "points": [
+        { "beat": 0, "value": 127 },
+        { "beat": 4, "value": 0 }
+      ]
+    }
+  ]
+}
+```

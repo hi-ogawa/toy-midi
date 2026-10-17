@@ -3,8 +3,12 @@ import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
-import type { TimelineNote } from "./midi-note-scheduler.ts";
+import type {
+  TimelineAutomation,
+  TimelineNote,
+} from "./midi-event-scheduler.ts";
 import {
+  convertToTimelineAutomation,
   convertToTimelineNotes,
   MidiSynthWorkletNode,
 } from "./midi-synth-worklet-node.ts";
@@ -27,6 +31,7 @@ interface Mix {
     pan: number;
     preset: MidiPreset;
     notes: TimelineNote[];
+    automation: TimelineAutomation[];
   }[];
   masterGain: number;
   duration: number;
@@ -47,6 +52,10 @@ export function resolveMix(state: EditorRuntimeState): Mix {
     pan: track.pan,
     preset: track,
     notes: convertToTimelineNotes(track.notes, state.tempo),
+    automation: convertToTimelineAutomation(
+      track.automation ?? [],
+      state.tempo,
+    ),
   }));
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;
@@ -129,6 +138,7 @@ export async function renderMix({
           cleanup.defer(() => channel.dispose());
           synth.output.connect(channel.input);
           await synth.setNotes(track.notes);
+          await synth.setAutomation(track.automation);
           await synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
         }),
       );

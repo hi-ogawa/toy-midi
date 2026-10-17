@@ -19,6 +19,28 @@ export interface Note {
   tabString?: TabString;
 }
 
+/**
+ * Values for one synth parameter over the track's timeline. Each value holds
+ * until the next point. Before the first point, the synth's default applies,
+ * such as 127 for expression (CC11) and 0 for sustain (CC64).
+ */
+export type Automation = {
+  type: "controller";
+  /**
+   * MIDI controller number (0-119), such as 1 modulation, 11 expression, or
+   * 64 sustain. At most one sequence per controller. The player sets bank
+   * select (0, 32) and parameter numbers with data entry (6, 38, 98-101).
+   */
+  controller: number;
+  /** Sorted by beat */
+  points: {
+    /** Time in beats from the start of the project */
+    beat: number;
+    /** 0-127 */
+    value: number;
+  }[];
+};
+
 export interface TimeSignature {
   /** Beats per bar (e.g., 3, 4, 5, 7) */
   numerator: number;

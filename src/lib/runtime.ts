@@ -1,4 +1,5 @@
 import {
+  type Automation,
   DEFAULT_TIME_SIGNATURE,
   type Note,
   type TimeSignature,
@@ -89,6 +90,8 @@ export interface MidiTrackState {
   id: string;
   name: string;
   notes: Note[];
+  /** Expression over time, such as swells and sustain, sent to the synth */
+  automation?: Automation[];
   /**
    * SoundFont the preset comes from, one of {@link SOUNDFONTS}, or the bundled
    * GeneralUser GS when absent
@@ -769,6 +772,11 @@ export class EditorRuntime {
     const before = track.notes;
     this.applyMidiTrackNotes(id, notes);
     this.history.pushMidiNotes(id, before, notes);
+  }
+
+  setMidiTrackAutomation(id: string, automation: Automation[]): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, automation }));
+    this.midiTrackPlaybacks.get(id)?.setAutomation(automation);
   }
 
   /** @internal for undo */
