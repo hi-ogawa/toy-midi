@@ -17,21 +17,6 @@ import { beatsToSeconds } from "./timeline.ts";
 
 const PROCESSOR_NAME = "midi-synth";
 
-/** Converts notes in beats to the synth's notes in seconds, sorted by start. */
-export function convertToTimelineNotes(
-  notes: readonly Note[],
-  tempo: number,
-): TimelineNote[] {
-  return notes
-    .map((note) => ({
-      start: beatsToSeconds(note.start, tempo),
-      end: beatsToSeconds(note.start + note.duration, tempo),
-      pitch: note.pitch,
-      velocity: note.velocity,
-    }))
-    .sort((a, b) => a.start - b.start);
-}
-
 export class MidiSynthWorkletNode {
   readonly output: GainNode;
   private node?: AudioWorkletNode;
@@ -141,6 +126,21 @@ export class MidiSynthWorkletNode {
     }
     return this.synth;
   }
+}
+
+/** Converts notes in beats to the synth's notes in seconds, sorted by start. */
+export function convertToTimelineNotes(
+  notes: readonly Note[],
+  tempo: number,
+): TimelineNote[] {
+  return notes
+    .map((note) => ({
+      start: beatsToSeconds(note.start, tempo),
+      end: beatsToSeconds(note.start + note.duration, tempo),
+      pitch: note.pitch,
+      velocity: note.velocity,
+    }))
+    .sort((a, b) => a.start - b.start);
 }
 
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
