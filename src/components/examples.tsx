@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { FileTextIcon, HouseIcon, SearchIcon, XIcon } from "lucide-react";
+import {
+  FileTextIcon,
+  HouseIcon,
+  ListTodoIcon,
+  SearchIcon,
+  XIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { routes } from "../lib/routes";
@@ -43,6 +49,16 @@ export function Examples() {
             >
               <HouseIcon className="size-4" />
               Home
+            </a>
+            <a
+              href="https://github.com/hi-ogawa/toy-midi/issues/862"
+              target="_blank"
+              rel="noreferrer"
+              title="Pieces still being iterated on"
+              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+            >
+              <ListTodoIcon className="size-4" />
+              Tracker
             </a>
           </nav>
         </header>
