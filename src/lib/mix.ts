@@ -61,26 +61,35 @@ export async function renderMix({
       master.channelCountMode = "explicit";
       master.channelInterpretation = "speakers";
       master.connect(context.destination);
-      await ensureBiquadEqWorklet(context);
-      for (const track of mix.tracks) {
-        const channel = new AudioChannel({
-          context,
-          output: master,
-          eq: track.eq,
-          gain: track.gain,
-          pan: track.pan,
-        });
-        for (const region of track.regions) {
-          const source = context.createBufferSource();
-          source.buffer = region.buffer;
-          const gain = context.createGain();
-          gain.gain.value = region.gain;
-          source.connect(gain).connect(channel.input);
-          source.start(
-            region.timelineStart,
-            region.timelineStart - region.timelineOffset,
-            region.timelineEnd - region.timelineStart,
-          );
+      const channels: AudioChannel[] = [];
+      try {
+        await ensureBiquadEqWorklet(context);
+        for (const track of mix.tracks) {
+          const channel = new AudioChannel({
+            context,
+            output: master,
+            eq: track.eq,
+            gain: track.gain,
+            pan: track.pan,
+          });
+          channels.push(channel);
+          for (const region of track.regions) {
+            const source = context.createBufferSource();
+            source.buffer = region.buffer;
+            const gain = context.createGain();
+            gain.gain.value = region.gain;
+            source.connect(gain).connect(channel.input);
+            source.start(
+              region.timelineStart,
+              region.timelineStart - region.timelineOffset,
+              region.timelineEnd - region.timelineStart,
+            );
+          }
+        }
+        return await context.startRendering();
+      } finally {
+        for (const channel of channels) {
+          channel.dispose();
         }
       }
     },
@@ -95,7 +104,7 @@ export async function renderMix({
  */
 async function renderOfflineInFrame(
   options: OfflineAudioContextOptions,
-  setup: (context: OfflineAudioContext) => Promise<void>,
+  render: (context: OfflineAudioContext) => Promise<AudioBuffer>,
 ): Promise<AudioBuffer> {
   const frame = document.createElement("iframe");
   frame.hidden = true;
@@ -103,8 +112,7 @@ async function renderOfflineInFrame(
   try {
     const frameWindow = frame.contentWindow as Window & typeof globalThis;
     const context = new frameWindow.OfflineAudioContext(options);
-    await setup(context);
-    const rendered = await context.startRendering();
+    const rendered = await render(context);
     const buffer = new AudioBuffer({
       numberOfChannels: rendered.numberOfChannels,
       length: rendered.length,
