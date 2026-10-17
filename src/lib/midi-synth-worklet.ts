@@ -144,11 +144,16 @@ export class MidiSynth {
     const next: ScheduledAutomation[] = automation.map(
       convertToScheduledAutomation,
     );
-    this.resetAutomation(
-      this.automation.filter(
-        (sequence) => !next.some((other) => isSameTarget(other, sequence)),
-      ),
+    const removed = this.automation.filter(
+      (sequence) =>
+        !next.some((other) =>
+          sequence.type === "controller"
+            ? other.type === "controller" &&
+              other.controller === sequence.controller
+            : other.type === sequence.type,
+        ),
     );
+    this.resetAutomation(removed);
     this.automation = next;
     this.scheduler.setAutomation(next);
   }
@@ -323,13 +328,6 @@ function convertToScheduledAutomation(
       };
     }
   }
-}
-
-function isSameTarget(a: TimelineAutomation, b: TimelineAutomation): boolean {
-  if (a.type === "controller" && b.type === "controller") {
-    return a.controller === b.controller;
-  }
-  return a.type === b.type;
 }
 
 /** Sets the bend range through registered parameter 0. */
