@@ -141,8 +141,6 @@ export class MidiSynth {
 
   async setAutomation(automation: TimelineAutomation[]): Promise<void> {
     const next = automation.map(prepareAutomation);
-    // A removed sequence would otherwise hold its last value, such as a
-    // pedal left down.
     this.resetAutomation(
       this.automation.filter(
         (sequence) => !next.some((other) => isSameTarget(other, sequence)),
@@ -161,10 +159,13 @@ export class MidiSynth {
     this.scheduler.stop();
     this.events = [];
     this.synth!.stopAllChannels();
-    // Keep a held pedal or swell from carrying into live playing.
     this.resetAutomation(this.automation);
   }
 
+  /**
+   * A controller or bend keeps its last value until changed, so this returns
+   * each sequence's target to its initial value.
+   */
   private resetAutomation(automation: ScheduledAutomation[]): void {
     const synth = this.synth!;
     for (const sequence of automation) {
