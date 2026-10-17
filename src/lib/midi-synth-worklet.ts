@@ -14,6 +14,7 @@ import {
   type TimelineAutomation,
   type TimelineNote,
 } from "./midi-note-scheduler.ts";
+import { clamp } from "./music.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import { registerRpcHandlers } from "./rpc/endpoint.ts";
 
@@ -315,7 +316,7 @@ function convertToPitchWheel(semitones: number): number {
   const value = Math.round(
     PITCH_WHEEL_CENTER + (semitones / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
   );
-  return Math.min(Math.max(value, 0), 2 * PITCH_WHEEL_CENTER - 1);
+  return clamp(value, 0, 2 * PITCH_WHEEL_CENTER - 1);
 }
 
 function isSameTarget(a: TimelineAutomation, b: TimelineAutomation): boolean {
