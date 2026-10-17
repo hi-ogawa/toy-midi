@@ -82,46 +82,22 @@ export async function renderMix({
   if (mix.duration <= 0) {
     throw new Error("No audio to export.");
   }
-  const context = new OfflineAudioContext({
-    numberOfChannels: 2,
-    length: Math.ceil(mix.duration * sampleRate),
-    sampleRate,
-  });
-  const master = context.createGain();
-  master.gain.value = mix.masterGain;
-  master.channelCount = 2;
-  master.channelCountMode = "explicit";
-  master.channelInterpretation = "speakers";
-  master.connect(context.destination);
-  await ensureBiquadEqWorklet(context);
-  for (const track of mix.tracks) {
-    const channel = new AudioChannel({
-      context,
-      output: master,
-      eq: track.eq,
-      gain: track.gain,
-      pan: track.pan,
-    });
-    for (const region of track.regions) {
-      const source = context.createBufferSource();
-      source.buffer = region.buffer;
-      const gain = context.createGain();
-      gain.gain.value = region.gain;
-      source.connect(gain).connect(channel.input);
-      source.start(
-        region.timelineStart,
-        region.timelineStart - region.timelineOffset,
-        region.timelineEnd - region.timelineStart,
-      );
-    }
-  }
-  const synths = mix.midiTracks.map(() => new MidiSynthWorkletNode(context));
-  try {
-    await Promise.all(
-      mix.midiTracks.map(async (track, index) => {
-        const synth = synths[index]!;
-        await synth.init(track.preset);
-        await synth.waitForSoundfonts();
+  return renderOfflineInFrame(
+    {
+      numberOfChannels: 2,
+      length: Math.ceil(mix.duration * sampleRate),
+      sampleRate,
+    },
+    async (context) => {
+      const master = context.createGain();
+      master.gain.value = mix.masterGain;
+      master.channelCount = 2;
+      master.channelCountMode = "explicit";
+      master.channelInterpretation = "speakers";
+      master.connect(context.destination);
+      using cleanup = new DisposableStack();
+      await ensureBiquadEqWorklet(context);
+      for (const track of mix.tracks) {
         const channel = new AudioChannel({
           context,
           output: master,
@@ -129,17 +105,72 @@ export async function renderMix({
           gain: track.gain,
           pan: track.pan,
         });
-        synth.output.connect(channel.input);
-        synth.setNotes(track.notes, mix.tempo);
-        synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
-      }),
-    );
-    return await context.startRendering();
-  } finally {
-    for (const synth of synths) {
-      synth.dispose();
-    }
+        cleanup.defer(() => channel.dispose());
+        for (const region of track.regions) {
+          const source = context.createBufferSource();
+          source.buffer = region.buffer;
+          const gain = context.createGain();
+          gain.gain.value = region.gain;
+          source.connect(gain).connect(channel.input);
+          source.start(
+            region.timelineStart,
+            region.timelineStart - region.timelineOffset,
+            region.timelineEnd - region.timelineStart,
+          );
+        }
+      }
+      await Promise.all(
+        mix.midiTracks.map(async (track) => {
+          const synth = new MidiSynthWorkletNode(context);
+          cleanup.defer(() => synth.dispose());
+          await synth.init(track.preset);
+          await synth.waitForSoundfonts();
+          const channel = new AudioChannel({
+            context,
+            output: master,
+            eq: track.eq,
+            gain: track.gain,
+            pan: track.pan,
+          });
+          cleanup.defer(() => channel.dispose());
+          synth.output.connect(channel.input);
+          synth.setNotes(track.notes, mix.tempo);
+          synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
+        }),
+      );
+      // Await so cleanup runs after rendering, not before.
+      return await context.startRendering();
+    },
+  );
+}
+
+/**
+ * Renders in a temporary iframe and returns the result copied into this page.
+ * Chromium never collects an OfflineAudioContext that has loaded an AudioWorklet
+ * module, so its render target would stay in memory for the life of the page.
+ * Removing the iframe tears the context down with it.
+ */
+async function renderOfflineInFrame(
+  options: OfflineAudioContextOptions,
+  render: (context: OfflineAudioContext) => Promise<AudioBuffer>,
+): Promise<AudioBuffer> {
+  using cleanup = new DisposableStack();
+  const frame = document.createElement("iframe");
+  cleanup.defer(() => frame.remove());
+  frame.hidden = true;
+  document.body.append(frame);
+  const frameWindow = frame.contentWindow as Window & typeof globalThis;
+  const context = new frameWindow.OfflineAudioContext(options);
+  const rendered = await render(context);
+  const buffer = new AudioBuffer({
+    numberOfChannels: rendered.numberOfChannels,
+    length: rendered.length,
+    sampleRate: rendered.sampleRate,
+  });
+  for (let channel = 0; channel < rendered.numberOfChannels; channel++) {
+    buffer.copyToChannel(rendered.getChannelData(channel), channel);
   }
+  return buffer;
 }
 
 /** Render raw sources to mono, ignoring clip playback gain, cropping pre-zero audio and returning the timeline offset in seconds. */
