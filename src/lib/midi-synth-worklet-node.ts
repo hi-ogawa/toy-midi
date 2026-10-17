@@ -20,10 +20,6 @@ export class MidiSynthWorkletNode {
     this.output = context.createGain();
   }
 
-  /**
-   * Resolves once the synth is running, without waiting for its SoundFont, so
-   * the track is silent until the font arrives.
-   */
   async init(preset: MidiPreset): Promise<void> {
     await ensureMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
