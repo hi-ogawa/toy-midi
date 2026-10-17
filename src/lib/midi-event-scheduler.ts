@@ -14,10 +14,7 @@ export type TimelineNote = {
   velocity: number;
 };
 
-/**
- * An automation sequence on the timeline, in seconds, with values in the
- * automation's units.
- */
+/** An automation sequence on the timeline, in seconds, with bends in semitones. */
 export type TimelineAutomation = (
   | { type: "controller"; controller: number }
   | { type: "pitch-bend" }
