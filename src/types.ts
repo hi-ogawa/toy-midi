@@ -20,8 +20,10 @@ export interface Note {
 }
 
 /**
- * Each value holds until the next point, and the synth's default applies
- * before the first. A track has at most one sequence per controller.
+ * Each value holds until the next point. Before the first point, the
+ * controller is at its MIDI default, such as 127 for expression (CC11) and 0
+ * for sustain (CC64), so start a sequence at beat 0 to set its value from the
+ * start. A track has at most one sequence per controller.
  */
 export type Automation = {
   type: "controller";
