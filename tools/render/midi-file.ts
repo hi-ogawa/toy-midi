@@ -2,6 +2,9 @@ import { DRUM_KIT_BANK } from "../../src/lib/general-midi.ts";
 import type { Note, TimeSignature } from "../../src/types.ts";
 
 const PPQ = 480;
+// The pitch-bend range each bending track sets through RPN 0, and the scale
+// that converts a point's semitones to a 14-bit bend value, so a bend sounds
+// as written. An octave covers slides and glides with ample resolution.
 const BEND_RANGE_SEMITONES = 12;
 const DRUM_CHANNEL = 9;
 
@@ -159,7 +162,8 @@ function encodeAutomationPoint({
     }
     case "pitch-bend": {
       const { semitones } = point as { semitones: number };
-      // Points beyond the bend range clamp to it.
+      // The value runs 8192 steps down from center but only 8191 up, so a bend
+      // of the full range up, or beyond it either way, clamps to the end.
       const value = Math.round(
         Math.min(
           16383,
