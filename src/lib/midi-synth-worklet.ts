@@ -198,6 +198,9 @@ export class MidiSynth {
       synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
     }
     synth.programChange(CHANNEL, program);
+    // Changing the sound banks resets every channel, so the automation's
+    // controller values need sending again.
+    this.scheduler.requestChase();
     // SF3 samples decode on first use, which would underrun the render
     // quantum of the first note that needs them, so decode them up front.
     synth.midiChannels[CHANNEL].preset?.preload(0, 127);

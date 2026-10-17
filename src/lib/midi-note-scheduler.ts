@@ -39,8 +39,7 @@ export class MidiNoteScheduler {
   private notes: TimelineNote[] = [];
   private automation: ScheduledAutomation[] = [];
   private playbackRun?: PlaybackRun;
-  // The next pass `scheduleChase` runs for. 0 runs it in the next window, after
-  // a start or an automation change.
+  // The next pass `scheduleChase` runs for. 0 runs it in the next window.
   private nextChasePassIndex = 0;
 
   setNotes(notes: TimelineNote[]): void {
@@ -49,11 +48,16 @@ export class MidiNoteScheduler {
 
   setAutomation(automation: ScheduledAutomation[]): void {
     this.automation = automation;
-    this.nextChasePassIndex = 0;
+    this.requestChase();
   }
 
   start(playbackRunOptions: PlaybackRunOptions): void {
     this.playbackRun = new PlaybackRun(playbackRunOptions);
+    this.requestChase();
+  }
+
+  /** Sends every sequence's value at the playhead again, from the next window. */
+  requestChase(): void {
     this.nextChasePassIndex = 0;
   }
 
