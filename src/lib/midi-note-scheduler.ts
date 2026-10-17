@@ -45,9 +45,8 @@ export class MidiNoteScheduler {
   private notes: TimelineNote[] = [];
   private automation: ScheduledAutomation[] = [];
   private playbackRun?: PlaybackRun;
-  // A controller value holds until the next point, so the first window of each
-  // pass sends every sequence's value at the pass's start, as if playback had
-  // run from the top. Changed automation chases again from the next window.
+  // The last pass `scheduleChase` ran for. -1 runs it in the next window, after
+  // a start or an automation change.
   private chasedPassIndex = -1;
 
   setNotes(notes: TimelineNote[]): void {
@@ -86,6 +85,16 @@ export class MidiNoteScheduler {
     return scheduled;
   }
 
+  /**
+   * Sends each sequence's value at the range start, as if playback had run from
+   * the top, because a controller holds its value until the next point. This is
+   * what DAWs call chasing. It runs at every pass start, loop wraps included, so
+   * each pass sounds like a straight play-through and like Export Audio. The
+   * alternative is to carry values across a wrap, so a repeat starts from the
+   * values at loop-out. Logic makes chasing at a wrap an option ("Chase on Cycle
+   * Jump"), but Toy MIDI has no preference for it.
+   * https://help.apple.com/logicpro/mac/10.1/en.lproj/lgcp621f927c.html
+   */
   private scheduleChase(
     range: ScheduledRange,
     scheduled: ScheduledEvent[],
