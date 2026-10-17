@@ -139,8 +139,6 @@ export class MidiSynth {
       ...sequence,
       initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
     }));
-    // A removed sequence would otherwise hold its last value, such as a
-    // pedal left down.
     this.resetControllers(
       this.automation.filter(
         (sequence) =>
@@ -160,10 +158,13 @@ export class MidiSynth {
     this.scheduler.stop();
     this.events = [];
     this.synth!.stopAllChannels();
-    // Keep a held pedal or swell from carrying into live playing.
     this.resetControllers(this.automation);
   }
 
+  /**
+   * A controller keeps its last value until changed, so this returns each
+   * sequence's controller to its initial value.
+   */
   private resetControllers(automation: ScheduledAutomation[]): void {
     for (const { controller, initialValue } of automation) {
       this.synth!.controllerChange(
