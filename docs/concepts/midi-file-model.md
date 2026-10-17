@@ -35,7 +35,7 @@ Event
     note off         key
     control change   controller 0..127, value 0..127   (volume, pan, expression, sustain, ...)
     program change   program 0..127                    (which sound)
-    pitch bend       value, finer than 0..127
+    pitch bend       value 0..16383, 8192 is no bend
     aftertouch       pressure while held
   MetaEvent          read by the player or an editor, never sent to the synth
     tempo, time signature, key signature, track name, text, lyric, marker, end of track
@@ -61,6 +61,8 @@ There is no "voice" or "part" concept in MIDI. A part is whatever you decide a t
 
 The knobs belong to the channel, not to a note or a track. Volume, pan, program, pitch bend, and sustain apply to everything sounding on that channel at that moment. So bending one note of a chord bends all of them, and two drums on channel 10 cannot be panned apart.
 
+Two of the knobs both set loudness, for different jobs. Volume (controller 7) sets the part's level in the mix and usually stays put, like a fader. Expression (controller 11) shapes the phrase within that level, such as a swell on a held note, so a swell never has to touch the mix balance. A knob only means something because the synth routes it somewhere. A SoundFont synth routes them by default modulators that every preset inherits: volume and expression attenuate each voice on a curve, modulation and channel aftertouch set vibrato depth, pan places the voice, and pitch bend shifts the pitch. A soundfont can add or override these routes, which is how the same controller can brighten one instrument and do nothing on another.
+
 ## Store a Note as Two Events
 
 ![A three-note chord shown as blocks in a piano roll is stored as three key-down events at the same time and three key-up events 960 ticks later](images/midi-note-events.svg)
@@ -70,6 +72,16 @@ The knobs belong to the channel, not to a note or a track. Volume, pan, program,
 - **Velocity** is how hard the key was struck, fixed at the attack. Anything that changes during a held note (a swell, vibrato, a bend) must be a separate control change or pitch bend on the channel.
 - **Overlap** is ambiguous. If the same key goes down twice on the same channel before it comes up, readers disagree about which one the note off ends. Same-pitch legato on one channel is fragile for this reason.
 - **A swell is many events.** A control change is a single value at a moment, so a curve is a series of points, the way an automation lane is drawn.
+
+## Scale Pitch Bend with a Range
+
+![A pitch bend message holds a 14-bit value centered on 8192, and the channel's bend range, set through registered parameter 0, scales that value to semitones](images/midi-pitch-bend-range.svg)
+
+Pitch bend has its own message and extra resolution. A control change carries 7 bits, but a pitch bend carries 14, from 0 to 16383 with 8192 as no bend, because the ear hears pitch in fine, absolute steps. With 7 bits over a range of 12 semitones each way, a step would be about 19 cents, and a slow slide would audibly climb a staircase. With 14 bits the step is about 0.15 cents.
+
+The message says how far the wheel is pushed, not by how many semitones. The channel's **bend range** turns one into the other, and it defaults to 2 semitones each way, enough for a guitar bend but not a slide. The value also isn't symmetric: there are 8192 steps below center and 8191 above, so a bend of the full range up lands one step short.
+
+The bend range has no controller of its own. It's a **registered parameter**, one of a handful of channel settings that are set through ordinary control changes in two steps. Controllers 101 and 100 select the parameter, then data entry (controllers 6 and 38) writes its value. Registered parameter 0 is the bend range, with controller 6 as semitones and 38 as cents, and parameters 1 and 2 are fine and coarse tuning. Non-registered parameters work the same way through controllers 99 and 98, with meanings that each synth defines. Because data entry writes to whichever parameter was selected last, it's good practice to end the exchange by selecting parameter 127/127, which selects nothing, so a stray data entry later can't change the bend range.
 
 ## Turn Ticks into Seconds
 
@@ -104,14 +116,15 @@ MIDI is a performance recording format. It is exact about when and how hard, but
 
 Each channel event is a status byte, whose top half is the event type and whose bottom half is the channel (0 to 15 in bytes, so "channel 10" is 9), followed by one or two data bytes from 0 to 127. Each event in a track is preceded by its delta time, the ticks since the previous event, written as a variable-length number (0 is one byte, 960 is `87 40`).
 
-| Event          | Bytes (hex)         | Meaning                                                        |
-| -------------- | ------------------- | -------------------------------------------------------------- |
-| Note on        | `90 3C 5A`          | Channel 1, key 60 (middle C), velocity 90                      |
-| Note off       | `80 3C 00`          | Channel 1, key 60 up. A note on with velocity 0 means the same |
-| Program change | `C1 20`             | Channel 2 switches to program 32 (General MIDI: Acoustic Bass) |
-| Control change | `B0 07 64`          | Channel 1, controller 7 (volume) set to 100                    |
-| Pitch bend     | `E0 00 40`          | Channel 1, bend at center, 14 bits                             |
-| Aftertouch     | `D0 xx`, `A0 kk xx` | Pressure after the key is down, per channel or per key         |
-| Tempo (meta)   | `FF 51 03 09 89 68` | 625000 microseconds per quarter note, which is 96 bpm          |
+| Event          | Bytes (hex)                        | Meaning                                                                               |
+| -------------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| Note on        | `90 3C 5A`                         | Channel 1, key 60 (middle C), velocity 90                                             |
+| Note off       | `80 3C 00`                         | Channel 1, key 60 up. A note on with velocity 0 means the same                        |
+| Program change | `C1 20`                            | Channel 2 switches to program 32 (General MIDI: Acoustic Bass)                        |
+| Control change | `B0 07 64`                         | Channel 1, controller 7 (volume) set to 100                                           |
+| Pitch bend     | `E0 00 40`                         | Channel 1, bend at center, 14 bits                                                    |
+| Bend range     | `B0 65 00`, `B0 64 00`, `B0 06 0C` | Channel 1 selects registered parameter 0, the bend range, and sets it to 12 semitones |
+| Aftertouch     | `D0 xx`, `A0 kk xx`                | Pressure after the key is down, per channel or per key                                |
+| Tempo (meta)   | `FF 51 03 09 89 68`                | 625000 microseconds per quarter note, which is 96 bpm                                 |
 
-Controllers with fixed meaning in General MIDI: 1 modulation (vibrato in most synths), 7 channel volume, 10 pan, 11 expression, 64 sustain pedal.
+Controllers with fixed meaning in General MIDI: 1 modulation (vibrato in most synths), 7 channel volume, 10 pan, 11 expression, 64 sustain pedal, and 100 and 101 with data entry on 6 and 38 for registered parameters.
