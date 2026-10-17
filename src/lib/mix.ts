@@ -22,7 +22,6 @@ interface Mix {
     regions: AudioPlaybackSource[];
   }[];
   midiTracks: {
-    name: string;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
@@ -43,7 +42,6 @@ export function resolveMix(state: EditorRuntimeState): Mix {
     regions: getClipSources(track.regions),
   }));
   const midiTracks: Mix["midiTracks"] = state.midiTracks.map((track) => ({
-    name: track.name,
     eq: track.eq,
     gain: gains.get(track.id)!,
     pan: track.pan,
@@ -120,13 +118,7 @@ export async function renderMix({
           const synth = new MidiSynthWorkletNode(context);
           cleanup.defer(() => synth.dispose());
           await synth.init();
-          await synth.setPreset(track.preset).catch((error: unknown) => {
-            // A partial export would sound finished, so fail instead.
-            throw new Error(
-              `Cannot export because the SoundFont for ${track.name} failed to load.`,
-              { cause: error },
-            );
-          });
+          await synth.setPreset(track.preset);
           const channel = new AudioChannel({
             context,
             output: master,
