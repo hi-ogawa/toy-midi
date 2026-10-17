@@ -1,6 +1,9 @@
 import type { Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
-import { MidiSynthWorkletNode } from "./midi-synth-worklet-node.ts";
+import {
+  convertToTimelineNotes,
+  MidiSynthWorkletNode,
+} from "./midi-synth-worklet-node.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import type {
   AudioContextTransport,
@@ -109,6 +112,6 @@ export class MidiTrackPlayback implements TransportParticipant {
    * keep playing.
    */
   private sendNotes(): void {
-    this.synth.setNotes(this.notes, this.tempo);
+    this.synth.setNotes(convertToTimelineNotes(this.notes, this.tempo));
   }
 }

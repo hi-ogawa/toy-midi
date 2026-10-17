@@ -1,5 +1,6 @@
 import type { Note } from "../types.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
+import type { TimelineNote } from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
 import type { MidiSynth } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
@@ -15,6 +16,21 @@ import {
 import { beatsToSeconds } from "./timeline.ts";
 
 const PROCESSOR_NAME = "midi-synth";
+
+/** Converts notes in beats to the synth's notes in seconds, sorted by start. */
+export function convertToTimelineNotes(
+  notes: readonly Note[],
+  tempo: number,
+): TimelineNote[] {
+  return notes
+    .map((note) => ({
+      start: beatsToSeconds(note.start, tempo),
+      end: beatsToSeconds(note.start + note.duration, tempo),
+      pitch: note.pitch,
+      velocity: note.velocity,
+    }))
+    .sort((a, b) => a.start - b.start);
+}
 
 export class MidiSynthWorkletNode {
   readonly output: GainNode;
@@ -77,17 +93,8 @@ export class MidiSynthWorkletNode {
     void this.getSynth().noteOff(pitch);
   }
 
-  setNotes(notes: readonly Note[], tempo: number): void {
-    void this.getSynth().setNotes(
-      notes
-        .map((note) => ({
-          start: beatsToSeconds(note.start, tempo),
-          end: beatsToSeconds(note.start + note.duration, tempo),
-          pitch: note.pitch,
-          velocity: note.velocity,
-        }))
-        .sort((a, b) => a.start - b.start),
-    );
+  setNotes(notes: TimelineNote[]): void {
+    void this.getSynth().setNotes(notes);
   }
 
   start(playbackRunOptions: PlaybackRunOptions): void {
