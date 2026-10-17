@@ -69,12 +69,11 @@ test("exports MIDI tracks in the WAV", async ({ page }) => {
 
   // Check the file runs past the note into its release and is not silent.
   const wav = decodeWav(await readFile(downloadPath));
-  const duration = wav.samples.length / wav.channelCount / wav.sampleRate;
-  expect(duration).toBeGreaterThan(2);
+  expect(wav.duration).toBeGreaterThan(2);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
 
-/** Decode a 16-bit PCM WAV into its format and interleaved samples. */
+/** Decode a 16-bit PCM WAV into its format, duration in seconds, and interleaved samples. */
 function decodeWav(bytes: Buffer) {
   if (
     bytes.toString("ascii", 0, 4) !== "RIFF" ||
@@ -99,12 +98,16 @@ function decodeWav(bytes: Buffer) {
   if (!format || !data) {
     throw new Error("WAV is missing its format or data chunk.");
   }
+  const channelCount = format.readUInt16LE(2);
+  const sampleRate = format.readUInt32LE(4);
+  const samples = new Int16Array(
+    data.buffer.slice(data.byteOffset, data.byteOffset + data.length),
+  );
   return {
-    channelCount: format.readUInt16LE(2),
-    sampleRate: format.readUInt32LE(4),
+    channelCount,
+    sampleRate,
     bitsPerSample: format.readUInt16LE(14),
-    samples: new Int16Array(
-      data.buffer.slice(data.byteOffset, data.byteOffset + data.length),
-    ),
+    duration: samples.length / channelCount / sampleRate,
+    samples,
   };
 }
