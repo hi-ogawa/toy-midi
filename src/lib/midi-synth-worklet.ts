@@ -141,7 +141,9 @@ export class MidiSynth {
   }
 
   async setAutomation(automation: TimelineAutomation[]): Promise<void> {
-    const next: ScheduledAutomation[] = automation.map(prepareAutomation);
+    const next: ScheduledAutomation[] = automation.map(
+      convertToScheduledAutomation,
+    );
     this.resetAutomation(
       this.automation.filter(
         (sequence) => !next.some((other) => isSameTarget(other, sequence)),
@@ -293,7 +295,9 @@ export class MidiSynth {
  * Controllers start from SpessaSynth's defaults, and bends become 14-bit wheel
  * values.
  */
-function prepareAutomation(sequence: TimelineAutomation): ScheduledAutomation {
+function convertToScheduledAutomation(
+  sequence: TimelineAutomation,
+): ScheduledAutomation {
   switch (sequence.type) {
     case "controller": {
       return {
