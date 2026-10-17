@@ -19,6 +19,38 @@ export interface Note {
   tabString?: TabString;
 }
 
+/**
+ * Each value holds until the next point, so start a sequence at beat 0 to set
+ * its value from the start. A track has at most one sequence per controller
+ * and one for pitch bend.
+ */
+export type Automation =
+  | {
+      type: "controller";
+      /**
+       * MIDI controller number (0-119), such as 1 modulation, 11 expression,
+       * or 64 sustain
+       */
+      controller: number;
+      /** Sorted by beat */
+      points: {
+        /** Time in beats from the start of the project */
+        beat: number;
+        /** 0-127 */
+        value: number;
+      }[];
+    }
+  | {
+      type: "pitch-bend";
+      /** Sorted by beat */
+      points: {
+        /** Time in beats from the start of the project */
+        beat: number;
+        /** Offset from the note's pitch, from -12 to 12 */
+        semitones: number;
+      }[];
+    };
+
 export interface TimeSignature {
   /** Beats per bar (e.g., 3, 4, 5, 7) */
   numerator: number;

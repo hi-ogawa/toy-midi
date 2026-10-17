@@ -1,6 +1,7 @@
-import type { Note } from "../types.ts";
+import type { Automation, Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import {
+  convertToTimelineAutomation,
   convertToTimelineNotes,
   MidiSynthWorkletNode,
 } from "./midi-synth-worklet-node.ts";
@@ -14,6 +15,7 @@ import type {
 export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
   private notes: Note[] = [];
+  private automation: Automation[] = [];
   private tempo = 120;
   private readonly synth: MidiSynthWorkletNode;
   private readonly unregister: () => void;
@@ -69,6 +71,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.transport = transport;
     this.unregister = transport.register(this);
     this.setNotes(track.notes);
+    this.setAutomation(track.automation);
     // A track added during playback joins the running playback.
     if (transport.store.get().isPlaying) {
       this.start();
@@ -80,9 +83,15 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.sendNotes();
   }
 
+  setAutomation(automation: Automation[]): void {
+    this.automation = automation;
+    this.sendAutomation();
+  }
+
   setTempo(tempo: number): void {
     this.tempo = tempo;
     this.sendNotes();
+    this.sendAutomation();
   }
 
   setPreset(preset: MidiPreset): void {
@@ -117,6 +126,12 @@ export class MidiTrackPlayback implements TransportParticipant {
    */
   private sendNotes(): void {
     void this.synth.setNotes(convertToTimelineNotes(this.notes, this.tempo));
+  }
+
+  private sendAutomation(): void {
+    void this.synth.setAutomation(
+      convertToTimelineAutomation(this.automation, this.tempo),
+    );
   }
 }
 
