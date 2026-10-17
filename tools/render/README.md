@@ -17,7 +17,7 @@ pnpm exec tsx tools/render/render.ts project.json
 pnpm exec tsx tools/render/render.ts 'https://toy-midi.hiro18181.workers.dev/draft#p=...' --mp3
 ```
 
-The input is a project JSON file, a share link, or a share link's `p` payload. The default SoundFont is the app's bundled GeneralUser GS, and `--sf2` replaces it. Output goes to `.tmp/render/<title>` unless `--out` sets a directory, with a MIDI file, a dry WAV, and a WAV after gain and pan for each track, plus `00-mix.wav`. `--mp3` adds MP3 copies.
+The input is a project JSON file, a share link, or a share link's `p` payload. The default SoundFont is the app's bundled GeneralUser GS, and `--sf2` replaces it. A track whose `soundfont` names one of the app's bundled fonts, such as `flamestudios-telecaster-bridge`, renders with that font, as in the app. Output goes to `.tmp/render/<title>` unless `--out` sets a directory, with a MIDI file, a dry WAV, and a WAV after gain and pan for each track, plus `00-mix.wav`. `--mp3` adds MP3 copies.
 
 The renderer also reads track fields that the app doesn't play yet:
 

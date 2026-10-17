@@ -12,6 +12,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { inflateRawSync } from "node:zlib";
 import type { SharedProject } from "../../src/lib/project-share.ts";
+import { findSoundfont } from "../../src/lib/soundfonts.ts";
 import {
   applyChannel,
   encodeMp3,
@@ -21,9 +22,11 @@ import {
 } from "./audio.ts";
 import { type Automation, encodeTrackMidi } from "./midi-file.ts";
 
+const PUBLIC_DIR = path.join(import.meta.dirname, "../../public");
+
 const DEFAULT_SOUNDFONT = path.join(
-  import.meta.dirname,
-  "../../public/soundfonts/GeneralUserGS-2.0.3.sf3",
+  PUBLIC_DIR,
+  "soundfonts/GeneralUserGS-2.0.3.sf3",
 );
 
 const TMP_DIR = path.join(import.meta.dirname, "../../.tmp");
@@ -49,7 +52,7 @@ type SharedMidiTrack = NonNullable<SharedProject["midiTracks"]>[number];
 
 interface RenderMidiTrack extends SharedMidiTrack {
   automation?: Automation[];
-  /** SoundFont that replaces `--sf2` for this track */
+  /** SoundFont file that replaces `--sf2` and `soundfont` for this track */
   sf2?: string;
   /** SoundFont generator number to an NRPN offset in -8192..8191 */
   nrpn?: Record<string, number>;
@@ -165,7 +168,9 @@ async function renderTrack({
 }): Promise<TrackReport> {
   const report: TrackReport = {
     name: track.name,
-    preset: `${track.bank ?? 0}/${track.program}`,
+    preset: track.soundfont
+      ? `${findSoundfont(track.soundfont).name} ${track.program}`
+      : `${track.bank ?? 0}/${track.program}`,
     noteCount: track.notes.length,
     meanVelocity:
       track.notes.reduce((sum, note) => sum + note.velocity, 0) /
@@ -191,7 +196,11 @@ async function renderTrack({
   await renderMidi({
     midiPath: `${basePath}.mid`,
     wavPath: `${basePath}-raw.wav`,
-    soundFont: track.sf2 ?? soundFont,
+    soundFont:
+      track.sf2 ??
+      (track.soundfont
+        ? path.join(PUBLIC_DIR, findSoundfont(track.soundfont).url)
+        : soundFont),
   });
   await applyChannel({
     inputPath: `${basePath}-raw.wav`,
