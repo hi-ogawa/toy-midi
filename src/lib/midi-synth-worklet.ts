@@ -210,8 +210,10 @@ export class MidiSynth {
       synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
     }
     synth.programChange(CHANNEL, program);
-    // Adding a sound bank resets every channel, bend range included.
+    // Changing the sound banks resets every channel, so the bend range and the
+    // automation's values need sending again.
     setPitchBendRange(synth, PITCH_BEND_RANGE);
+    this.scheduler.requestChase();
     // SF3 samples decode on first use, which would underrun the render
     // quantum of the first note that needs them, so decode them up front.
     synth.midiChannels[CHANNEL].preset?.preload(0, 127);
