@@ -71,7 +71,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.transport = transport;
     this.unregister = transport.register(this);
     this.setNotes(track.notes);
-    this.setAutomation(track.automation ?? []);
+    this.setAutomation(track.automation);
     // A track added during playback joins the running playback.
     if (transport.store.get().isPlaying) {
       this.start();

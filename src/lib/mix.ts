@@ -52,10 +52,7 @@ export function resolveMix(state: EditorRuntimeState): Mix {
     pan: track.pan,
     preset: track,
     notes: convertToTimelineNotes(track.notes, state.tempo),
-    automation: convertToTimelineAutomation(
-      track.automation ?? [],
-      state.tempo,
-    ),
+    automation: convertToTimelineAutomation(track.automation, state.tempo),
   }));
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;
