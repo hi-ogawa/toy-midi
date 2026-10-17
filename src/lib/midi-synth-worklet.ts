@@ -120,6 +120,23 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     }
   }
 
+  private async init(): Promise<void> {
+    try {
+      const synth = new SpessaSynthProcessor(sampleRate, {
+        eventsEnabled: false,
+        // Soundfont presets send to SpessaSynth's built-in reverb and chorus
+        // on their own, so MIDI tracks are only dry with effects disabled.
+        effectsEnabled: false,
+      });
+      // SF3 samples need the Vorbis decoder, which loads asynchronously.
+      await synth.processorInitialized;
+      this.synth = synth;
+      this.postMessage({ type: "ready" });
+    } catch (error) {
+      this.postMessage({ type: "error", message: String(error) });
+    }
+  }
+
   /**
    * Selects the track's preset once its SoundFont has loaded, and the stand-in
    * before then. The track is silent while neither has loaded.
@@ -151,23 +168,6 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
     // SF3 samples decode on first use, which would underrun the render
     // quantum of the first note that needs them, so decode them up front.
     synth.midiChannels[CHANNEL].preset?.preload(0, 127);
-  }
-
-  private async init(): Promise<void> {
-    try {
-      const synth = new SpessaSynthProcessor(sampleRate, {
-        eventsEnabled: false,
-        // Soundfont presets send to SpessaSynth's built-in reverb and chorus
-        // on their own, so MIDI tracks are only dry with effects disabled.
-        effectsEnabled: false,
-      });
-      // SF3 samples need the Vorbis decoder, which loads asynchronously.
-      await synth.processorInitialized;
-      this.synth = synth;
-      this.postMessage({ type: "ready" });
-    } catch (error) {
-      this.postMessage({ type: "error", message: String(error) });
-    }
   }
 
   /** Queues the notes that start before `endFrame`. */
