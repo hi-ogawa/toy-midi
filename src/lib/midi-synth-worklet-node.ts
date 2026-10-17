@@ -6,7 +6,7 @@ import type { MidiSynth } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import type { RpcClient } from "./rpc/core.ts";
 import { createRpcClient } from "./rpc/endpoint.ts";
-import { type LoadedSoundfont, loadSoundfont } from "./runtime-assets";
+import { loadSoundfont } from "./runtime-assets";
 import type { MidiPreset } from "./runtime.ts";
 import {
   findSoundfont,
@@ -99,13 +99,7 @@ export class MidiSynthWorkletNode {
       return;
     }
     this.soundfonts.add(soundfont.id);
-    let loaded: LoadedSoundfont;
-    try {
-      loaded = await loadSoundfont(soundfont);
-    } catch {
-      // The loader reports the failure.
-      return;
-    }
+    const loaded = await loadSoundfont(soundfont);
     // The synth may have been disposed while the SoundFont loaded.
     await this.synth?.addSoundfont({ id: soundfont.id, ...loaded });
   }
