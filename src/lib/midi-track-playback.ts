@@ -32,8 +32,8 @@ export class MidiTrackPlayback implements TransportParticipant {
     try {
       await synth.init();
       // Play GeneralUser rather than wait for the track's SoundFont.
-      void synth.addSoundfont(GENERAL_USER_SOUNDFONT);
-      void synth.setPreset(track);
+      synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
+      synth.setPreset(track).catch(ignoreLoadFailure);
       return new MidiTrackPlayback({ transport, output, track, tempo, synth });
     } catch (error) {
       synth.dispose();
@@ -85,7 +85,7 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   /** Switches over once the preset's SoundFont arrives. */
   setPreset(preset: MidiPreset): void {
-    void this.synth.setPreset(preset);
+    this.synth.setPreset(preset).catch(ignoreLoadFailure);
   }
 
   noteOn(pitch: number): void {
@@ -127,3 +127,6 @@ export class MidiTrackPlayback implements TransportParticipant {
     );
   }
 }
+
+/** The loader reports a failed SoundFont, and playback keeps whatever it has. */
+function ignoreLoadFailure(): void {}
