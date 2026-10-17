@@ -53,14 +53,12 @@ export class MidiSynthWorkletNode {
     const soundfont = preset.soundfont
       ? findSoundfont(preset.soundfont)
       : GENERAL_USER_SOUNDFONT;
-    await Promise.all([
-      this.getSynth().setPreset({
-        soundfont: soundfont.id,
-        bank: preset.bank ?? 0,
-        program: preset.program,
-      }),
-      this.addSoundfont(soundfont),
-    ]);
+    await this.getSynth().setPreset({
+      soundfont: soundfont.id,
+      bank: preset.bank ?? 0,
+      program: preset.program,
+    });
+    await this.addSoundfont(soundfont);
   }
 
   noteOn(pitch: number): void {
