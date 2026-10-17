@@ -58,7 +58,9 @@ export class MidiSynthWorkletNode {
     preset: MidiPreset,
     { waitForSoundfont = false }: { waitForSoundfont?: boolean } = {},
   ): Promise<void> {
-    const soundfont = getPresetSoundfont(preset);
+    const soundfont = preset.soundfont
+      ? findSoundfont(preset.soundfont)
+      : GENERAL_USER_SOUNDFONT;
     const added = this.addSoundfont(soundfont);
     await this.getSynth().setPreset({
       soundfont: soundfont.id,
@@ -122,10 +124,6 @@ export class MidiSynthWorkletNode {
     }
     return this.synth;
   }
-}
-
-function getPresetSoundfont({ soundfont }: MidiPreset): Soundfont {
-  return soundfont ? findSoundfont(soundfont) : GENERAL_USER_SOUNDFONT;
 }
 
 /** Converts notes in beats to the synth's notes in seconds, sorted by start. */
