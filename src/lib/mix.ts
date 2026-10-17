@@ -103,25 +103,24 @@ async function renderOfflineInFrame(
   options: OfflineAudioContextOptions,
   render: (context: OfflineAudioContext) => Promise<AudioBuffer>,
 ): Promise<AudioBuffer> {
-  const frame = document.createElement("iframe");
+  using frames = new DisposableStack();
+  const frame = frames.adopt(document.createElement("iframe"), (frame) =>
+    frame.remove(),
+  );
   frame.hidden = true;
   document.body.append(frame);
-  try {
-    const frameWindow = frame.contentWindow as Window & typeof globalThis;
-    const context = new frameWindow.OfflineAudioContext(options);
-    const rendered = await render(context);
-    const buffer = new AudioBuffer({
-      numberOfChannels: rendered.numberOfChannels,
-      length: rendered.length,
-      sampleRate: rendered.sampleRate,
-    });
-    for (let channel = 0; channel < rendered.numberOfChannels; channel++) {
-      buffer.copyToChannel(rendered.getChannelData(channel), channel);
-    }
-    return buffer;
-  } finally {
-    frame.remove();
+  const frameWindow = frame.contentWindow as Window & typeof globalThis;
+  const context = new frameWindow.OfflineAudioContext(options);
+  const rendered = await render(context);
+  const buffer = new AudioBuffer({
+    numberOfChannels: rendered.numberOfChannels,
+    length: rendered.length,
+    sampleRate: rendered.sampleRate,
+  });
+  for (let channel = 0; channel < rendered.numberOfChannels; channel++) {
+    buffer.copyToChannel(rendered.getChannelData(channel), channel);
   }
+  return buffer;
 }
 
 /** Render raw sources to mono, ignoring clip playback gain, cropping pre-zero audio and returning the timeline offset in seconds. */
