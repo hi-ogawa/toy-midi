@@ -116,11 +116,7 @@ export interface MidiTrackState {
   pan: number;
   muted: boolean;
   soloed: boolean;
-  /**
-   * Shows each note's string and fret on its block in the note editor, and
-   * enables the keys that move a note to another string. The score's tab staff
-   * and playback do not depend on it.
-   */
+  /** Shows tab annotation in the note editor and enables editing it */
   tabAnnotationEnabled: boolean;
   /** MIDI note numbers of the open strings, highest string first */
   tabOpenStringPitches: number[];
