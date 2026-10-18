@@ -211,7 +211,18 @@ export function deserializeEditorRuntimeState({
       muted: track.muted,
       soloed: track.soloed,
     })),
-    midiTracks: (project.midiTracks ?? []).map(deserializeMidiTrackState),
+    midiTracks: (project.midiTracks ?? []).map((track) => ({
+      ...track,
+      viewMode: track.viewMode ?? "editor",
+      pan: track.pan ?? 0,
+      automation: track.automation ?? [],
+      tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
+      tabOpenStringPitches: track.tabOpenStringPitches ?? [
+        ...DEFAULT_TAB_OPEN_STRING_PITCHES,
+      ],
+      keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
+      eq: deserializeEq(track.eq),
+    })),
     // The runtime fills in tracks missing from older or partial orders.
     trackOrder: project.trackOrder ?? [],
     masterGain: project.masterGain ?? 1,
@@ -221,23 +232,6 @@ export function deserializeEditorRuntimeState({
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
-  };
-}
-
-function deserializeMidiTrackState(
-  track: SerializedMidiTrackState,
-): MidiTrackState {
-  return {
-    ...track,
-    viewMode: track.viewMode ?? "editor",
-    pan: track.pan ?? 0,
-    automation: track.automation ?? [],
-    tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
-    tabOpenStringPitches: track.tabOpenStringPitches ?? [
-      ...DEFAULT_TAB_OPEN_STRING_PITCHES,
-    ],
-    keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
-    eq: deserializeEq(track.eq),
   };
 }
 
