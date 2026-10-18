@@ -70,7 +70,7 @@ Archives and `.json` files can be paths or URLs. A `SharedProject` has no audio 
 
 ## `export-midi`
 
-`export-midi` writes a project's MIDI tracks to a Standard MIDI File without opening the editor. It produces the same file as the editor menu's "Export MIDI" action: one track per MIDI track with its name, program, gain, pan, and automation, and the project's tempo, time signature, and locators as markers.
+`export-midi` writes a project's MIDI tracks to a Standard MIDI File without opening the editor. It produces the same file as the editor menu's "Export MIDI" action: one track per MIDI track with its name, program, and automation, and the project's tempo, time signature, and locators as markers. It carries what the synth plays, so the mixer's gain, pan, and EQ stay out, and `render-audio` renders the mix.
 
 A MIDI file addresses a preset only by bank and program, so it doesn't say which SoundFont a track uses. Read each track's `soundfont` from the project to play it as the app does.
 
