@@ -175,20 +175,16 @@ function asymmetricTanh(x: number) {
   return Math.tanh(x + DC_OFFSET) - Math.tanh(DC_OFFSET);
 }
 
+// The drive the renders settled on, at its two gain levels.
 const DRIVES = [
   {
-    label: "v1 crunch: tanh(10x)",
-    color: "#c0392b",
-    apply: (x: number) => Math.tanh(dbToGain(20) * x),
-  },
-  {
-    label: "v2 crunch: asymmetric, then ×2",
+    label: "crunch: two stages",
     color: "#2c6fbb",
     apply: (x: number) =>
       Math.tanh(dbToGain(6) * asymmetricTanh(dbToGain(18) * x)),
   },
   {
-    label: "v2 high gain: three stages",
+    label: "high gain: three stages",
     color: "#8e44ad",
     apply: (x: number) =>
       Math.tanh(
@@ -197,6 +193,14 @@ const DRIVES = [
       ),
   },
 ];
+
+// Crunch without the shift in its first stage, to show the even harmonics
+// come from the shift.
+const SYMMETRIC_CRUNCH = {
+  label: "crunch without the shift",
+  color: "#bbb",
+  apply: (x: number) => Math.tanh(dbToGain(6) * Math.tanh(dbToGain(18) * x)),
+};
 
 // Input level against output level for each drive, over the range of the
 // guitar tracks' peaks.
@@ -240,7 +244,7 @@ function plotDriveWaves() {
   );
   drawPlot({
     file: "drive-waves.svg",
-    title: `A quiet sine (${QUIET_INPUT}) through each drive: from rounded to nearly square`,
+    title: `A quiet sine (${QUIET_INPUT}): crunch rounds it, high gain squares it`,
     xLabel: "two cycles",
     yLabel: "sample",
     xMap: (i) => i / n,
@@ -263,33 +267,35 @@ function plotDriveWaves() {
 }
 
 // The first ten harmonics of the waves above, relative to the fundamental.
-// The symmetric drive adds only odd harmonics, the asymmetric ones also even.
+// Without the shift a drive adds only odd harmonics, with it also even ones.
 function plotDriveHarmonics() {
   const n = 4096;
   const cycles = 8;
-  const groups = DRIVES.map(({ label, color, apply }) => {
-    const out = Array.from({ length: n }, (_, i) =>
-      apply(QUIET_INPUT * Math.sin((2 * Math.PI * cycles * i) / n)),
-    );
-    const amplitude = (k: number) => {
-      let re = 0;
-      let im = 0;
-      for (let i = 0; i < n; i++) {
-        re += out[i]! * Math.cos((2 * Math.PI * cycles * k * i) / n);
-        im += out[i]! * Math.sin((2 * Math.PI * cycles * k * i) / n);
-      }
-      return Math.hypot(re, im);
-    };
-    const fundamental = amplitude(1);
-    const levels = Array.from({ length: 10 }, (_, i) =>
-      Math.max(-80, 20 * Math.log10(amplitude(i + 1) / fundamental)),
-    );
-    return { label, color, levels };
-  });
+  const groups = [SYMMETRIC_CRUNCH, ...DRIVES].map(
+    ({ label, color, apply }) => {
+      const out = Array.from({ length: n }, (_, i) =>
+        apply(QUIET_INPUT * Math.sin((2 * Math.PI * cycles * i) / n)),
+      );
+      const amplitude = (k: number) => {
+        let re = 0;
+        let im = 0;
+        for (let i = 0; i < n; i++) {
+          re += out[i]! * Math.cos((2 * Math.PI * cycles * k * i) / n);
+          im += out[i]! * Math.sin((2 * Math.PI * cycles * k * i) / n);
+        }
+        return Math.hypot(re, im);
+      };
+      const fundamental = amplitude(1);
+      const levels = Array.from({ length: 10 }, (_, i) =>
+        Math.max(-80, 20 * Math.log10(amplitude(i + 1) / fundamental)),
+      );
+      return { label, color, levels };
+    },
+  );
   drawBars({
     file: "drive-harmonics.svg",
     title:
-      "Harmonics of the quiet sine: even ones (2, 4, 6…) only from the asymmetric stage",
+      "Harmonics of the quiet sine: even ones (2, 4, 6…) come from the shift",
     xLabel: "harmonic (1 is the note itself)",
     yLabel: "level (dB, from harmonic 1)",
     yRange: [-80, 25],
