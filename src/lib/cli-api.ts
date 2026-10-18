@@ -1,4 +1,4 @@
-import type { EditorUtils } from "../components/editor-runtime-page";
+import type { EditorUtils } from "../components/editor-cli-page";
 import type { ScoreViewerRuntime } from "../components/score-viewer-runtime";
 import type { EditorRuntime } from "./runtime";
 

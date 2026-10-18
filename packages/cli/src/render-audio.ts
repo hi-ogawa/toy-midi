@@ -42,7 +42,7 @@ export async function runRenderAudio(args: string[]) {
   const page = await openCliPage({
     browser,
     url: options.url,
-    pathname: "/editor-runtime",
+    pathname: "/editor-cli",
     api: "editor",
   });
   // Pass the archive in and the WAV out as a request and a download rather

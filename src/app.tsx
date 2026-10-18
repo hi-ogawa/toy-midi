@@ -1,5 +1,5 @@
+import { EditorCliPage } from "./components/editor-cli-page";
 import { EditorPage } from "./components/editor-page";
-import { EditorRuntimePage } from "./components/editor-runtime-page";
 import { ExamplesPage } from "./components/examples-page";
 import { HomePage } from "./components/home-page";
 import { LatencyCheckerPage } from "./components/latency-checker-page";
@@ -45,8 +45,8 @@ export function App() {
     case "scoreCapture": {
       return <ScoreCapturePage />;
     }
-    case "editorRuntime": {
-      return <EditorRuntimePage />;
+    case "editorCli": {
+      return <EditorCliPage />;
     }
     case "legacyProjectScore": {
       return <LegacyProjectPage />;

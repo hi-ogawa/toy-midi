@@ -14,7 +14,7 @@ const editorUtils = {
 export type EditorUtils = typeof editorUtils;
 
 // Bare editor runtime for commands in packages/cli.
-export function EditorRuntimePage() {
+export function EditorCliPage() {
   const [runtime] = useState(() => new EditorRuntime());
   useEffect(() => {
     window.__toyMidiCli = { editor: runtime, editorUtils };
