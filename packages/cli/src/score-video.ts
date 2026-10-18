@@ -1,21 +1,25 @@
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { readFile } from "node:fs/promises";
-import { createRequire } from "node:module";
 import path from "node:path";
-import { parseArgs, styleText } from "node:util";
-import { type Browser, chromium } from "playwright-core";
+import { parseArgs } from "node:util";
+import type { Browser } from "playwright-core";
+import { DEFAULT_URL, launchBrowser, openCliPage } from "./browser";
+import {
+  finishLine,
+  formatDuration,
+  rewriteLine,
+  style,
+  writeLine,
+} from "./terminal";
 
 // Render a silent score video by stepping the real score viewer frame by frame
 // and screenshotting its score area, so the video matches interactive playback.
 
-const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
-
 const USAGE =
-  "Usage: toy-midi-score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--start 0] [--end SECONDS] [--workers 4] [--url URL]";
+  "Usage: toy-midi score-video <input.musicxml> <output.mp4> [--fps 30] [--width 1280] [--height 480] [--start 0] [--end SECONDS] [--workers 4] [--url URL]";
 
-async function main() {
-  const args = process.argv.slice(2);
+export async function runScoreVideo(args: string[]) {
   if (args.includes("--help") || args.includes("-h")) {
     console.log(USAGE);
     return;
@@ -107,7 +111,7 @@ async function renderVideo({
       await page.evaluate(
         ({ workerStartFrame, fps }) => {
           for (let frame = 0; frame < workerStartFrame; frame++) {
-            window.__toyMidiScoreViewer!.seek(frame / fps);
+            window.__toyMidiCli!.scoreViewer!.seek(frame / fps);
           }
         },
         { workerStartFrame: startFrame + worker, fps: options.fps },
@@ -116,7 +120,7 @@ async function renderVideo({
       // shorter than that, but real scores have no such systems.
       for (let frame = worker; frame < frameCount; frame += options.workers) {
         await page.evaluate(
-          (seconds) => window.__toyMidiScoreViewer!.seek(seconds),
+          (seconds) => window.__toyMidiCli!.scoreViewer!.seek(seconds),
           (startFrame + frame) / options.fps,
         );
         const { data } = await cdp.send("Page.captureScreenshot", {
@@ -136,22 +140,6 @@ async function renderVideo({
   progress.done();
 }
 
-async function launchBrowser() {
-  try {
-    // Use full Chromium in headless mode, matching the e2e setup, so a single
-    // `install chromium --no-shell` covers both.
-    return await chromium.launch({ channel: "chromium" });
-  } catch (error) {
-    const { version } = createRequire(import.meta.url)(
-      "playwright-core/package.json",
-    );
-    throw new Error(
-      `Failed to launch Chromium. Install it with:\n\n  npx playwright-core@${version} install chromium --no-shell\n`,
-      { cause: error },
-    );
-  }
-}
-
 async function openScorePage({
   browser,
   options,
@@ -163,23 +151,15 @@ async function openScorePage({
 }) {
   // The capture page shows only the score scaled to the viewport width, so the
   // viewport is the video frame.
-  const page = await browser.newPage({
+  const page = await openCliPage({
+    browser,
+    url: options.url,
+    pathname: "/score-capture",
+    api: "scoreViewer",
     viewport: { width: options.width, height: options.height },
   });
-  const url = new URL("/score-capture", options.url).href;
-  await page.goto(url);
-  // The deployed app may predate the capture page, so fail with a clear message.
-  try {
-    await page.waitForFunction(() => window.__toyMidiScoreViewer, undefined, {
-      timeout: 10_000,
-    });
-  } catch {
-    throw new Error(
-      `No score capture page found at ${url}. The app may predate it.`,
-    );
-  }
   const duration = await page.evaluate(async (score) => {
-    const viewer = window.__toyMidiScoreViewer!;
+    const viewer = window.__toyMidiCli!.scoreViewer!;
     // The composition adds its own title, so the score layer omits it.
     await viewer.load({
       score,
@@ -355,43 +335,3 @@ class RenderProgress {
     finishLine(`${style("green", "✓")} ${message}  ${style("dim", time)}`);
   }
 }
-
-function style(format: Parameters<typeof styleText>[0], text: string) {
-  return styleText(format, text, { stream: process.stderr });
-}
-
-function writeLine(text: string) {
-  process.stderr.write(`${text}\n`);
-}
-
-// Print a finished line in place of any in-place progress line.
-function finishLine(text: string) {
-  rewriteLine("");
-  writeLine(text);
-}
-
-// Replace the current terminal line. Off a terminal, only finished lines print.
-function rewriteLine(text: string) {
-  if (process.stderr.isTTY) {
-    process.stderr.write(`\r${text}\x1b[K`);
-  }
-}
-
-function formatDuration(ms: number) {
-  const seconds = ms / 1000;
-  if (seconds < 60) {
-    return `${seconds.toFixed(1)}s`;
-  }
-  const whole = Math.round(seconds);
-  return `${Math.floor(whole / 60)}m${String(whole % 60).padStart(2, "0")}s`;
-}
-
-main().catch((error) => {
-  // Errors carry user-facing messages, so skip stack traces. Clear any
-  // in-place progress line first.
-  rewriteLine("");
-  console.error(
-    style("red", error instanceof Error ? error.message : String(error)),
-  );
-  process.exitCode = 1;
-});
