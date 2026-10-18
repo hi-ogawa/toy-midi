@@ -6,7 +6,7 @@ import { PreviewPage } from "./components/preview-page";
 import { ProjectScorePage } from "./components/project-score-page";
 import { RouteError } from "./components/route-error";
 import { ScoreCapturePage } from "./components/score-capture-page";
-import { ScoreViewerPage } from "./components/score-viewer-page";
+import { ScoreViewer } from "./components/score-viewer";
 import { useWindowEvent } from "./components/use-window-event";
 import { getSharePayload, getShareSource } from "./lib/project-share";
 import { matchRoute, routes } from "./lib/routes";
@@ -29,7 +29,7 @@ export function App() {
     }
     case "draft": {
       preloadMidiAssetsWhenIdle();
-      return <DraftRoute />;
+      return <DraftPage />;
     }
     case "examples": {
       preloadMidiAssetsWhenIdle();
@@ -39,16 +39,16 @@ export function App() {
       return <LatencyCheckerPage />;
     }
     case "scoreViewer": {
-      return <ScoreViewerRoute />;
+      return <ScoreViewerPage />;
     }
     case "scoreCapture": {
       return <ScoreCapturePage />;
     }
     case "legacyProjectScore": {
-      return <LegacyProjectRoute />;
+      return <LegacyProjectPage />;
     }
     case "legacyProject": {
-      return <LegacyProjectRoute />;
+      return <LegacyProjectPage />;
     }
     case "home":
     default: {
@@ -58,7 +58,7 @@ export function App() {
   }
 }
 
-function DraftRoute() {
+function DraftPage() {
   // Another share link in this tab changes only the hash, which does not
   // reload the page, so reload it to open that project afresh.
   useWindowEvent("hashchange", () => window.location.reload());
@@ -67,7 +67,7 @@ function DraftRoute() {
   return <EditorPage source={{ type: "draft", payload, src }} />;
 }
 
-function LegacyProjectRoute() {
+function LegacyProjectPage() {
   return (
     <RouteError
       error='The legacy editor has been retired. To migrate your project, go home and choose "Migrate to new editor" under Legacy projects.'
@@ -77,7 +77,7 @@ function LegacyProjectRoute() {
   );
 }
 
-function ScoreViewerRoute() {
+function ScoreViewerPage() {
   const params = new URL(window.location.href).searchParams;
   const projectId = params.get("projectId");
   const trackId = params.get("trackId");
@@ -93,5 +93,5 @@ function ScoreViewerRoute() {
       />
     );
   }
-  return <ScoreViewerPage />;
+  return <ScoreViewer />;
 }
