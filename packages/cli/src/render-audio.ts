@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
+import { inflateRawSync } from "node:zlib";
 import { DEFAULT_URL, launchBrowser, openCliPage } from "./browser";
 import {
   finishLine,
@@ -11,13 +12,14 @@ import {
 
 // Render a project's mix offline in the app, as Export Audio does. The input is
 // a project archive or a JSON file in the SharedProject format that share links
-// carry, from disk or a URL.
+// carry, from disk, a URL, or a share link.
 
 const USAGE = `\
 Usage: toy-midi render-audio <input> <output.wav> [--url URL]
 
 <input> is a .toymidi.zip archive or a SharedProject .json file, as a path or
-a URL. A /draft?src=<url> link renders the project at its src URL.`;
+a URL, or a share link: /draft#p=<payload>, or /draft?src=<url> for the
+project at its src URL.`;
 
 // Every ZIP archive starts with a local file header.
 const ZIP_SIGNATURE = Buffer.from("PK\x03\x04", "latin1");
@@ -95,10 +97,31 @@ export async function runRenderAudio(args: string[]) {
 }
 
 async function readInput(input: string): Promise<Buffer> {
-  const url = resolveInputUrl(input);
-  if (!url) {
+  if (!/^https?:\/\//.test(input)) {
     return readFile(input);
   }
+  const url = new URL(input);
+  if (url.pathname === "/draft") {
+    // A share link carries the project in its fragment, which a request never
+    // sends, so decode it here as the app does.
+    const payload = new URLSearchParams(url.hash.slice(1)).get("p");
+    if (payload) {
+      try {
+        return inflateRawSync(Buffer.from(payload, "base64url"));
+      } catch {
+        throw new Error("The share link does not hold a readable project.");
+      }
+    }
+    // Resolve src as the app does, against the draft link's origin.
+    const src = url.searchParams.get("src");
+    if (src) {
+      return fetchInput(new URL(src, url).href);
+    }
+  }
+  return fetchInput(url.href);
+}
+
+async function fetchInput(url: string): Promise<Buffer> {
   let response: Response;
   try {
     response = await fetch(url);
@@ -113,19 +136,6 @@ async function readInput(input: string): Promise<Buffer> {
     );
   }
   return Buffer.from(await response.arrayBuffer());
-}
-
-function resolveInputUrl(input: string): string | undefined {
-  if (!/^https?:\/\//.test(input)) {
-    return undefined;
-  }
-  const url = new URL(input);
-  const src = url.searchParams.get("src");
-  // Resolve src as the app does, against the draft link's origin.
-  if (url.pathname === "/draft" && src) {
-    return new URL(src, url).href;
-  }
-  return url.href;
 }
 
 function parseCliOptions(args: string[]) {

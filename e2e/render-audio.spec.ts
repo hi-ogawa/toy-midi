@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
+import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 import type { SharedProject } from "../src/lib/project-share";
 import { execFileAsync } from "../src/utils/exec";
@@ -75,6 +76,26 @@ test("renders a shared project JSON through the CLI", async ({ baseURL }) => {
   const wav = decodeWav(await readFile(outputPath));
   expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
   expect(wav.duration).toBeGreaterThan(2);
+  expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
+});
+
+test("renders a share link's project through the CLI", async ({ baseURL }) => {
+  // Render a share link that carries a one-note project in its fragment.
+  const payload = deflateRawSync(JSON.stringify(ONE_NOTE_PROJECT)).toString(
+    "base64url",
+  );
+  const outputPath = test.info().outputPath("mix.wav");
+  await execFileAsync("node", [
+    "packages/cli/bin/cli.js",
+    "render-audio",
+    `${baseURL}/draft#p=${payload}`,
+    outputPath,
+    "--url",
+    baseURL!,
+  ]);
+
+  // Check the file holds the note.
+  const wav = decodeWav(await readFile(outputPath));
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
 
