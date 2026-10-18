@@ -9,14 +9,16 @@ import {
   writeLine,
 } from "./terminal";
 
-// Render a project archive's mix offline in the app, as Export Audio does.
+// Render a project's mix offline in the app, as Export Audio does. The input is
+// a project archive, or a .json file in the SharedProject format that share
+// links carry.
 
 const USAGE =
-  "Usage: toy-midi render-audio <input.toymidi.zip> <output.wav> [--url URL]";
+  "Usage: toy-midi render-audio <input.toymidi.zip|input.json> <output.wav> [--url URL]";
 
-// Same-origin path the page fetches the archive from. The app never serves it,
+// Same-origin path the page fetches the input from. The app never serves it,
 // because the CLI intercepts the request.
-const INPUT_PATHNAME = "/__toy-midi-cli/input.toymidi.zip";
+const INPUT_PATHNAME = "/__toy-midi-cli/input";
 
 export async function runRenderAudio(args: string[]) {
   if (args.includes("--help") || args.includes("-h")) {
@@ -24,7 +26,7 @@ export async function runRenderAudio(args: string[]) {
     return;
   }
   const options = parseCliOptions(args);
-  const archive = await readFile(options.input);
+  const input = await readFile(options.input);
 
   const startedAt = performance.now();
   writeLine(style("bold", "render-audio"));
@@ -45,28 +47,31 @@ export async function runRenderAudio(args: string[]) {
     pathname: "/editor-cli",
     api: "editor",
   });
-  // Pass the archive in and the WAV out as a request and a download rather
+  // Pass the project in and the WAV out as a request and a download rather
   // than through evaluate, which serializes bytes inefficiently. A 3-minute
   // WAV is about 35 MB.
   const inputUrl = new URL(INPUT_PATHNAME, options.url).href;
-  await page.route(inputUrl, (route) => route.fulfill({ body: archive }));
+  await page.route(inputUrl, (route) => route.fulfill({ body: input }));
   const [download] = await Promise.all([
     // Rendering takes longer for longer projects, so wait without a timeout.
     page.waitForEvent("download", { timeout: 0 }),
-    page.evaluate(async (inputUrl) => {
-      const { editor: runtime, editorUtils: utils } = window.__toyMidiCli!;
-      const response = await fetch(inputUrl);
-      const [, project] = await Promise.all([
-        runtime!.init(),
-        utils!.readProjectArchive(await response.blob()),
-      ]);
-      await runtime!.deserializeProject(project);
-      const wav = utils!.encodeWav(await runtime!.renderMix());
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(wav);
-      link.download = "output.wav";
-      link.click();
-    }, inputUrl),
+    page.evaluate(
+      async ({ inputUrl, isSharedProject }) => {
+        const { editor: runtime, editorUtils: utils } = window.__toyMidiCli!;
+        const response = await fetch(inputUrl);
+        const project = isSharedProject
+          ? utils!.assignSharedProjectIds(await response.json())
+          : await utils!.readProjectArchive(await response.blob());
+        await runtime!.init();
+        await runtime!.deserializeProject(project);
+        const wav = utils!.encodeWav(await runtime!.renderMix());
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(wav);
+        link.download = "output.wav";
+        link.click();
+      },
+      { inputUrl, isSharedProject: options.input.endsWith(".json") },
+    ),
   ]);
   await download.saveAs(options.output);
 

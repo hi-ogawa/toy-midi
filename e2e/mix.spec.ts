@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 import type { SharedProject } from "../src/lib/project-share";
@@ -152,6 +152,41 @@ test("renders a project archive through the CLI", async ({ page, baseURL }) => {
   const wav = decodeWav(await readFile(outputPath));
   expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
   expect(wav.duration).toBeCloseTo(3);
+  expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
+});
+
+test("renders a shared project JSON through the CLI", async ({ baseURL }) => {
+  // Write a one-note project in the share link format.
+  const project: SharedProject = {
+    title: "One note",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    midiTracks: [
+      {
+        name: "Piano",
+        program: 0,
+        notes: [{ pitch: 60, start: 0, duration: 1, velocity: 100 }],
+      },
+    ],
+  };
+  const projectPath = test.info().outputPath("project.json");
+  await writeFile(projectPath, JSON.stringify(project));
+
+  // Render the JSON with the CLI against the test server.
+  const outputPath = test.info().outputPath("mix.wav");
+  await execFileAsync("node", [
+    "packages/cli/bin/cli.js",
+    "render-audio",
+    projectPath,
+    outputPath,
+    "--url",
+    baseURL!,
+  ]);
+
+  // Check the file holds the note running into its release.
+  const wav = decodeWav(await readFile(outputPath));
+  expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
+  expect(wav.duration).toBeGreaterThan(2);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
 

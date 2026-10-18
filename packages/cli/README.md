@@ -45,15 +45,16 @@ Rendering is faster than real time with the default settings. For example, a 2:1
 
 ## `render-audio`
 
-`render-audio` renders a project archive's mix to a WAV without opening the editor. It produces the same file as the editor's "Export Audio" action: stereo, 48 kHz, 16-bit PCM, with every audio and MIDI track at its mixer settings.
+`render-audio` renders a project's mix to a WAV without opening the editor. It produces the same file as the editor's "Export Audio" action: stereo, 48 kHz, 16-bit PCM, with every audio and MIDI track at its mixer settings.
 
 ### Usage
 
 ```sh
 toy-midi render-audio song.toymidi.zip song.wav
+toy-midi render-audio song.json song.wav
 ```
 
-Export the archive from the editor menu's "Export Project" action.
+The input is either a project archive, exported from the editor menu's "Export Project" action, or a `.json` file in the `SharedProject` format that share links carry and `/draft?src=<url>` opens. A `SharedProject` has no audio tracks, so its mix holds only MIDI.
 
 | Option  | Default      | Description                                              |
 | ------- | ------------ | -------------------------------------------------------- |
@@ -68,4 +69,4 @@ pnpm dev --port 5173
 pnpm toy-midi score-video score.musicxml score.mp4 --url http://localhost:5173
 ```
 
-The `capture score video` test in `e2e/score-viewer-output.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-output-video.mp4` for inspection. The `renders a project archive through the CLI` test in `e2e/mix.spec.ts` covers `render-audio`.
+The `capture score video` test in `e2e/score-viewer-output.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-output-video.mp4` for inspection. The `renders a project archive through the CLI` and `renders a shared project JSON through the CLI` tests in `e2e/mix.spec.ts` cover `render-audio`.

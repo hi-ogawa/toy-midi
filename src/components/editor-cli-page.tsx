@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { useEffect, useState } from "react";
 import { readProjectArchive } from "../lib/project-archive";
+import { assignSharedProjectIds } from "../lib/project-share";
 import { EditorRuntime } from "../lib/runtime";
 import { encodeWav } from "../lib/wav";
 
@@ -8,6 +9,7 @@ import { encodeWav } from "../lib/wav";
 const editorUtils = {
   readProjectArchive: async (archive: Blob) =>
     readProjectArchive(await JSZip.loadAsync(archive)),
+  assignSharedProjectIds,
   encodeWav,
 };
 

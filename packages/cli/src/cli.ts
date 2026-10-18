@@ -6,8 +6,8 @@ const USAGE = `\
 Usage: toy-midi <command> [options]
 
 Commands:
-  score-video <input.musicxml> <output.mp4>      Render a scrolling score video
-  render-audio <input.toymidi.zip> <output.wav>  Render a project's mix to WAV
+  score-video <input.musicxml> <output.mp4>  Render a scrolling score video
+  render-audio <input> <output.wav>          Render a project's mix to WAV
 
 Run \`toy-midi <command> --help\` for the command's options.`;
 
