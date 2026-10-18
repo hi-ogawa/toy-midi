@@ -160,6 +160,15 @@ describe(exportMidi, () => {
     ).toThrow("at most 15 non-drum tracks");
   });
 
+  it("rejects drum tracks with different kits", () => {
+    expect(() =>
+      exportAndParse([
+        createTrack({ bank: DRUM_KIT_BANK, program: 0 }),
+        createTrack({ bank: DRUM_KIT_BANK, program: 25 }),
+      ]),
+    ).toThrow("must use the same kit");
+  });
+
   it("writes automation after the bend range it needs", () => {
     const { tracks } = exportAndParse([
       createTrack({

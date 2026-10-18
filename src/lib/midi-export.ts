@@ -49,13 +49,15 @@ export function exportMidi({
   timeSignature: TimeSignature;
   tracks: MidiExportTrack[];
 }): Uint8Array {
-  const melodicCount = tracks.filter(
-    (track) => track.bank !== DRUM_KIT_BANK,
-  ).length;
-  if (melodicCount > MELODIC_CHANNELS.length) {
+  const drumTracks = tracks.filter((track) => track.bank === DRUM_KIT_BANK);
+  if (tracks.length - drumTracks.length > MELODIC_CHANNELS.length) {
     throw new Error(
       `A MIDI file holds at most ${MELODIC_CHANNELS.length} non-drum tracks.`,
     );
+  }
+  // Drum tracks share the one drum channel, which plays a single kit.
+  if (new Set(drumTracks.map((track) => track.program)).size > 1) {
+    throw new Error("Drum tracks in a MIDI file must use the same kit.");
   }
 
   let nextMelodic = 0;
