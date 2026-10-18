@@ -39,7 +39,11 @@ Near 0 a curve is steep, so a quiet input comes out much louder, and past a smal
 
 ![A quiet sine through each drive: crunch rounded, high gain nearly square](images/drive-waves.svg)
 
-Flattening a wave adds harmonics, multiples of the note's frequency, and they're what makes it sound distorted. tanh is symmetric, tanh(−x) = −tanh(x), so it flattens the top and bottom alike and adds only odd harmonics. The first stage shifts the wave up the curve first, y = tanh(g·x + 0.15) − tanh(0.15), so the top flattens more than the bottom, which adds even harmonics too, the way a tube stage biased off center does. Gray is crunch without the shift:
+tanh is symmetric, tanh(−x) = −tanh(x), so it flattens the top and bottom of a wave alike. The first stage shifts the wave up the curve before clipping and back down after, y = tanh(g·x + 0.15) − tanh(0.15), so the top reaches the flat part sooner than the bottom, the way a tube stage biased off center does:
+
+![One stage on a sine: without the shift the top and bottom flatten alike, with it the top flattens lower and the bottom swings further](images/drive-shift.svg)
+
+Flattening a wave adds harmonics, multiples of the note's frequency, and they're what makes it sound distorted. Flattening both halves alike adds only odd harmonics, and flattening them unevenly adds even ones too. Gray is crunch without the shift:
 
 ![Harmonics of the quiet sine: crunch without the shift has only 3, 5, and 7, crunch adds 2, 4, and 6, high gain has strong odd harmonics up to 9](images/drive-harmonics.svg)
 

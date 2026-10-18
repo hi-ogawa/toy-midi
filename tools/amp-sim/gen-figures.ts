@@ -91,6 +91,7 @@ async function main() {
   // the gate, and the cabinet.
   plotDriveCurves();
   plotDriveWaves();
+  plotDriveShift();
   plotDriveHarmonics();
   plotSustain(heldNote);
   plotGate({ riff, riffProject });
@@ -262,6 +263,41 @@ function plotDriveWaves() {
         const mean = out.slice(0, n).reduce((a, b) => a + b) / n;
         return { label, color, points: out.map((y, i) => [i, y - mean]) };
       }),
+    ],
+  });
+}
+
+// One crunch first stage on a sine, without and with the shift. Without it,
+// the top and bottom come out alike. With it, the top flattens more than the
+// bottom.
+function plotDriveShift() {
+  const n = 400;
+  const gain = dbToGain(18);
+  const input = Array.from(
+    { length: n + 1 },
+    (_, i) => 0.2 * Math.sin((4 * Math.PI * i) / n),
+  );
+  drawPlot({
+    file: "drive-shift.svg",
+    title:
+      "One stage on a sine (0.2): the shift flattens the top more than the bottom",
+    xLabel: "two cycles",
+    yLabel: "sample",
+    xMap: (i) => i / n,
+    xTicks: [],
+    yRange: [-1.2, 1.5],
+    yTicks: [-1, -0.5, 0, 0.5, 1],
+    series: [
+      {
+        label: "tanh(7.9x)",
+        color: "#bbb",
+        points: input.map((x, i) => [i, Math.tanh(gain * x)]),
+      },
+      {
+        label: "tanh(7.9x + 0.15) − tanh(0.15)",
+        color: "#2c6fbb",
+        points: input.map((x, i) => [i, asymmetricTanh(gain * x)]),
+      },
     ],
   });
 }
