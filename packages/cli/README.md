@@ -59,10 +59,6 @@ Export the archive from the editor menu's "Export Project" action.
 | ------- | ------------ | -------------------------------------------------------- |
 | `--url` | deployed app | Toy MIDI app to render with, such as a local dev server. |
 
-### How It Works
-
-The CLI opens `/editor-runtime`, a bare page that exposes an editor runtime as `window.__toyMidiCli.editor`, the same runtime the editor drives. The page fetches the archive from a URL that the CLI intercepts and serves from the input file, loads it into the runtime, renders the mix through the runtime's Export Audio path, and triggers a download that the CLI saves to the output path. MIDI tracks load their SoundFonts from the app, so the CLI needs no local copy of them.
-
 ## Development
 
 Run the CLI from the repository against a local dev server:
