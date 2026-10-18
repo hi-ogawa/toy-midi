@@ -20,6 +20,7 @@
     "test": "vitest",
     "test-e2e": "playwright test",
     "test-e2e-trace": "E2E_TRACE=1 playwright test",
+    "export-midi": "tsx tools/export-midi.ts",
     "toy-midi": "node packages/cli/bin/cli.js",
     "wsola": "tsx tools/wsola.ts"
   },
