@@ -10,11 +10,17 @@ import {
 } from "./terminal";
 
 // Render a project's mix offline in the app, as Export Audio does. The input is
-// a project archive, or a .json file in the SharedProject format that share
-// links carry.
+// a project archive or a JSON file in the SharedProject format that share links
+// carry, from disk or a URL.
 
-const USAGE =
-  "Usage: toy-midi render-audio <input.toymidi.zip|input.json> <output.wav> [--url URL]";
+const USAGE = `\
+Usage: toy-midi render-audio <input> <output.wav> [--url URL]
+
+<input> is a .toymidi.zip archive or a SharedProject .json file, as a path or
+a URL. A /draft?src=<url> link renders the project at its src URL.`;
+
+// Every ZIP archive starts with a local file header.
+const ZIP_SIGNATURE = Buffer.from("PK\x03\x04", "latin1");
 
 // Same-origin path the page fetches the input from. The app never serves it,
 // because the CLI intercepts the request.
@@ -26,7 +32,7 @@ export async function runRenderAudio(args: string[]) {
     return;
   }
   const options = parseCliOptions(args);
-  const input = await readFile(options.input);
+  const input = await readInput(options.input);
 
   const startedAt = performance.now();
   writeLine(style("bold", "render-audio"));
@@ -70,7 +76,10 @@ export async function runRenderAudio(args: string[]) {
         link.download = "output.wav";
         link.click();
       },
-      { inputUrl, isSharedProject: options.input.endsWith(".json") },
+      {
+        inputUrl,
+        isSharedProject: !input.subarray(0, 4).equals(ZIP_SIGNATURE),
+      },
     ),
   ]);
   await download.saveAs(options.output);
@@ -78,6 +87,40 @@ export async function runRenderAudio(args: string[]) {
   finishLine(
     `${style("green", "✓")} wrote ${style("cyan", options.output)}  ${style("dim", formatDuration(performance.now() - startedAt))}`,
   );
+}
+
+async function readInput(input: string): Promise<Buffer> {
+  const url = resolveInputUrl(input);
+  if (!url) {
+    return readFile(input);
+  }
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch (error) {
+    throw new Error(`Could not fetch the project from ${url}.`, {
+      cause: error,
+    });
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Could not fetch the project from ${url} (HTTP ${response.status}).`,
+    );
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
+function resolveInputUrl(input: string): string | undefined {
+  if (!/^https?:\/\//.test(input)) {
+    return undefined;
+  }
+  const url = new URL(input);
+  const src = url.searchParams.get("src");
+  // Resolve src as the app does, against the draft link's origin.
+  if (url.pathname === "/draft" && src) {
+    return new URL(src, url).href;
+  }
+  return url.href;
 }
 
 function parseCliOptions(args: string[]) {

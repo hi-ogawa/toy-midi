@@ -1,4 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 import type { SharedProject } from "../src/lib/project-share";
@@ -157,20 +159,8 @@ test("renders a project archive through the CLI", async ({ page, baseURL }) => {
 
 test("renders a shared project JSON through the CLI", async ({ baseURL }) => {
   // Write a one-note project in the share link format.
-  const project: SharedProject = {
-    title: "One note",
-    tempo: 120,
-    timeSignature: { numerator: 4, denominator: 4 },
-    midiTracks: [
-      {
-        name: "Piano",
-        program: 0,
-        notes: [{ pitch: 60, start: 0, duration: 1, velocity: 100 }],
-      },
-    ],
-  };
   const projectPath = test.info().outputPath("project.json");
-  await writeFile(projectPath, JSON.stringify(project));
+  await writeFile(projectPath, JSON.stringify(ONE_NOTE_PROJECT));
 
   // Render the JSON with the CLI against the test server.
   const outputPath = test.info().outputPath("mix.wav");
@@ -189,6 +179,57 @@ test("renders a shared project JSON through the CLI", async ({ baseURL }) => {
   expect(wav.duration).toBeGreaterThan(2);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
+
+test("renders a draft link's src project through the CLI", async ({
+  baseURL,
+}) => {
+  // Serve a one-note project as JSON from another origin.
+  await using server = await serveJson(ONE_NOTE_PROJECT);
+
+  // Render a draft link that points at it.
+  const draftUrl = new URL("/draft", baseURL);
+  draftUrl.searchParams.set("src", server.url);
+  const outputPath = test.info().outputPath("mix.wav");
+  await execFileAsync("node", [
+    "packages/cli/bin/cli.js",
+    "render-audio",
+    draftUrl.href,
+    outputPath,
+    "--url",
+    baseURL!,
+  ]);
+
+  // Check the file holds the note.
+  const wav = decodeWav(await readFile(outputPath));
+  expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
+});
+
+const ONE_NOTE_PROJECT: SharedProject = {
+  title: "One note",
+  tempo: 120,
+  timeSignature: { numerator: 4, denominator: 4 },
+  midiTracks: [
+    {
+      name: "Piano",
+      program: 0,
+      notes: [{ pitch: 60, start: 0, duration: 1, velocity: 100 }],
+    },
+  ],
+};
+
+async function serveJson(value: unknown) {
+  const server = createServer((_request, response) => {
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify(value));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+  return {
+    url: `http://127.0.0.1:${port}/project.json`,
+    [Symbol.asyncDispose]: () =>
+      new Promise<void>((resolve) => server.close(() => resolve())),
+  };
+}
 
 /** Decode a 16-bit PCM WAV into its format, duration in seconds, and interleaved samples. */
 function decodeWav(bytes: Buffer) {

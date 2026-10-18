@@ -52,9 +52,10 @@ Rendering is faster than real time with the default settings. For example, a 2:1
 ```sh
 toy-midi render-audio song.toymidi.zip song.wav
 toy-midi render-audio song.json song.wav
+toy-midi render-audio 'https://toy-midi.hiro18181.workers.dev/draft?src=https://example.com/song.json' song.wav
 ```
 
-The input is either a project archive, exported from the editor menu's "Export Project" action, or a `.json` file in the `SharedProject` format that share links carry and `/draft?src=<url>` opens. A `SharedProject` has no audio tracks, so its mix holds only MIDI.
+The input is either a project archive, exported from the editor menu's "Export Project" action, or a `.json` file in the `SharedProject` format that share links carry and `/draft?src=<url>` opens. A `SharedProject` has no audio tracks, so its mix holds only MIDI. The input can be a path or a URL, and a `/draft?src=<url>` link renders the project at its `src` URL.
 
 | Option  | Default      | Description                                              |
 | ------- | ------------ | -------------------------------------------------------- |
@@ -69,4 +70,4 @@ pnpm dev --port 5173
 pnpm toy-midi score-video score.musicxml score.mp4 --url http://localhost:5173
 ```
 
-The `capture score video` test in `e2e/score-viewer-output.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-output-video.mp4` for inspection. The `renders a project archive through the CLI` and `renders a shared project JSON through the CLI` tests in `e2e/mix.spec.ts` cover `render-audio`.
+The `capture score video` test in `e2e/score-viewer-output.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-output-video.mp4` for inspection. The `render-audio` tests in `e2e/mix.spec.ts` render an archive, a JSON file, and a `/draft?src=<url>` link through the CLI.
