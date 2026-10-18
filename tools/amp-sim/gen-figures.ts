@@ -280,7 +280,7 @@ function plotDriveWaves() {
   );
   drawPlot({
     file: "drive-waves.svg",
-    title: `A quiet sine (${QUIET_INPUT}): crunch rounds it, high gain squares it`,
+    title: `A quiet sine peaking at ${QUIET_INPUT}: crunch rounds it, high gain squares it`,
     xLabel: "two cycles",
     yLabel: "sample",
     xMap: (i) => i / n,
@@ -315,7 +315,7 @@ function plotDriveShift() {
   drawPlot({
     file: "drive-shift.svg",
     title:
-      "One stage on a sine (0.2): the shift flattens the top more than the bottom",
+      "One stage on a sine peaking at 0.2: the shift flattens the top more than the bottom",
     xLabel: "two cycles",
     yLabel: "sample",
     xMap: (i) => i / n,

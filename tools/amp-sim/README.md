@@ -35,7 +35,7 @@ A drive stage is a gain followed by a soft clipper, y = tanh(g·x), where x is a
 
 ![The clipper: tanh follows y = x near 0 and flattens toward ±1, the shifted one flattens lower above and further below](images/drive-tanh.svg)
 
-On a sine, one stage with crunch's first gain of 7.9 flattens the top and bottom alike without the shift, and the top more than the bottom with it:
+On a sine peaking at 0.2, between −0.2 and 0.2 like a soft stroke, one stage with crunch's first gain of 7.9 flattens the top and bottom alike without the shift, and the top more than the bottom with it:
 
 ![One stage on a sine: the gain alone swings to ±1.6, without the shift the top and bottom flatten alike, with it the top flattens lower and the bottom swings further](images/drive-shift.svg)
 
@@ -43,7 +43,7 @@ Stages chain, each one's output feeding the next stage's gain: crunch has two st
 
 ![Drive curves: crunch rises steeply, high gain almost straight up to ±1](images/drive-curves.svg)
 
-Near 0 a curve is steep, so a quiet input comes out much louder, and past a small input it's flat, so a louder input barely comes out louder. A guitar's peaks, from about 0.3 to 0.6, sit far out on both curves, where both drives give nearly a square wave. They differ on quiet input, such as a note decaying: crunch rounds it, and high gain still squares it, which is why high gain sustains:
+Near 0 a curve is steep, so a quiet input comes out much louder, and past a small input it's flat, so a louder input barely comes out louder. A guitar's peaks, from about 0.3 to 0.6, sit far out on both curves, where both drives give nearly a square wave. They differ on quiet input, such as a note decaying, here a sine peaking at 0.05: crunch rounds it, and high gain still squares it, which is why high gain sustains:
 
 ![A quiet sine through each drive: crunch rounded, high gain nearly square](images/drive-waves.svg)
 
