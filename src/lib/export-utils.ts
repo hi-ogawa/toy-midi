@@ -40,15 +40,16 @@ export async function buildStemsArchive({
   let index = 0;
   for await (const stem of stems) {
     index++;
-    zip.file(formatStemFileName(index, stem.name), encodeWav(stem.buffer));
+    // The index keeps track order when sorted by name and keeps duplicate
+    // track names apart.
+    const prefix = String(index).padStart(2, "0");
+    zip.file(
+      `${prefix}-${sanitizeFileName(stem.name)}.wav`,
+      encodeWav(stem.buffer),
+    );
   }
   // PCM barely compresses, so deflating only costs time.
   return zip.generateAsync({ type: "blob", compression: "STORE" });
-}
-
-/** The index keeps track order when sorted by name and keeps duplicate track names apart. */
-function formatStemFileName(index: number, name: string): string {
-  return `${String(index).padStart(2, "0")}-${sanitizeFileName(name)}.wav`;
 }
 
 function sanitizeBaseName(baseName: string): string {
