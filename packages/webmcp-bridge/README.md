@@ -17,37 +17,37 @@ pnpm i
 pnpm -C packages/webmcp-bridge build-extension
 ```
 
-Then load it in Chrome. Open `chrome://extensions`, turn on Developer mode, choose Load unpacked, and select `packages/webmcp-bridge/dist/extension`.
+Then load it in Chrome. Open `chrome://extensions`, turn on Developer mode, choose Load unpacked, and select `packages/webmcp-bridge/dist/extension`. Every build has the same extension ID, which the bridge accepts.
 
-Allow each site whose pages may connect. The site is saved to `~/.config/webmcp-bridge/config.json`, under `$XDG_CONFIG_HOME` when it is set, so this is needed once per site:
+Run the bridge. It stays in the foreground and logs pages as they connect and leave:
+
+```console
+$ webmcp-bridge serve
+[webmcp-bridge] listening on http://127.0.0.1:4747/
+[webmcp-bridge] accepting pages from the extension and /home/me/.config/webmcp-bridge/config.json
+[webmcp-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…
+```
+
+Then open a project in the app and click the extension's button in the toolbar to turn the tab on. The first click on a site asks you to allow the extension there and reloads the tab. The tab stays on across reloads until you click the button again or the tab leaves the site.
+
+The button shows the tab's connection:
+
+| Badge | Meaning                                                                                                             |
+| ----- | ------------------------------------------------------------------------------------------------------------------- |
+| ON    | Connected to the bridge                                                                                             |
+| …     | Connecting, or the bridge is not running                                                                            |
+| !     | The bridge refused the extension, as an older webmcp-bridge does. Update it, then click the button to connect again |
+
+To stop the extension running on a site, remove the site under the extension's Site access settings.
+
+Without the extension, Toy MIDI exposes its tools by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port. The page then connects as its own site, which the bridge accepts only once it is allowed. The site is saved to `~/.config/webmcp-bridge/config.json`, under `$XDG_CONFIG_HOME` when it is set, so this is needed once per site:
 
 ```console
 $ webmcp-bridge allow https://toy-midi.hiro18181.workers.dev
 allowed https://toy-midi.hiro18181.workers.dev in /home/me/.config/webmcp-bridge/config.json
 ```
 
-Run the bridge. It stays in the foreground and logs pages as they connect and leave. It reads the allowed sites whenever a page connects, so a site allowed while it runs works without a restart, and it logs the `allow` command for a site it refuses:
-
-```console
-$ webmcp-bridge serve
-[webmcp-bridge] listening on http://127.0.0.1:4747/
-[webmcp-bridge] accepting pages from /home/me/.config/webmcp-bridge/config.json
-[webmcp-bridge] page cbfe8f6b connected from https://toy-midi.hiro18181.workers.dev/recorder/082669e2-…
-```
-
-Then open a project in the app and click the extension's button in the toolbar to turn the tab on. The first click on a site asks you to allow the extension there and reloads the tab. The tab stays on across reloads until you click the button again or the tab leaves the site. The first time a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs.
-
-The button shows the tab's connection:
-
-| Badge | Meaning                                                                                                  |
-| ----- | -------------------------------------------------------------------------------------------------------- |
-| ON    | Connected to the bridge                                                                                  |
-| …     | Connecting, or the bridge is not running                                                                 |
-| !     | The bridge refused the site. Allow it with `webmcp-bridge allow`, then click the button to connect again |
-
-To stop the extension running on a site, remove the site under the extension's Site access settings.
-
-Without the extension, Toy MIDI exposes its tools by itself when a project is opened with `?webmcp-bridge` at the end of its URL, or `?webmcp-bridge=<port>` for another port.
+The bridge reads the allowed sites whenever a page connects, so a site allowed while it runs works without a restart, and it logs the `allow` command for a site it refuses. The first time such a page connects, Chrome may ask whether the site may access devices on your local network, which the bridge needs.
 
 The commands below run from another terminal, or from the agent.
 
@@ -198,17 +198,19 @@ A web app with no server of its own cannot be reached from a terminal, so the br
 
 When the agent runs `webmcp-bridge get-tools` or `execute-tool`, the command sends an ordinary HTTP request to the bridge, and the bridge does not answer right away. It passes the request down the page's open connection, tagged with a new id. The page runs the tool and sends the result back to the bridge in a separate HTTP request with the same id. The bridge matches the id, and the result becomes its answer to the waiting command.
 
+With the extension, an offscreen document, a hidden page the extension keeps open, holds the connection on the tab's behalf. It passes each request into the tab, where the extension's script runs the tool, and passes the result back. The bridge sees one connection per tab either way.
+
 The bridge only passes requests along and does not know which tools or operations exist. Only the command line and the page client need to agree on those, so adding a new kind of request does not change the bridge.
 
 Each open connection is one page, and the bridge gives each a short id when it connects. `webmcp-bridge pages` lists them, and the bridge answers it from its own list without asking any page. A page that reloads connects again and gets a new id.
 
 ## Security
 
-The bridge only accepts connections from your own machine. Within your machine, it tells pages and the command line apart by the `Origin` header, which a browser adds when a web page sends a request to another site and a terminal command does not send:
+The bridge only accepts connections from your own machine. Within your machine, it tells pages and the command line apart by the `Origin` header, which a browser adds when a web page or an extension sends a request to another site and a terminal command does not send:
 
-- Pages may connect only from the sites saved with `allow` or listed with `--origin`.
+- Pages may connect only from the extension, or from the sites saved with `allow` or listed with `--origin`.
 - Requests meant for the command line are refused if they carry an `Origin` header at all, so a page on another site cannot run tools.
 
-The extension runs only on the sites you allow, connects only the tabs you turn on, and its script makes its requests as the page, with the page's `Origin`. So the bridge's allowed sites still decide which sites' tools reach the agent, and any other site is refused when it connects.
+The extension runs only on the sites you allow it, and connects only the tabs you turn on. It keeps their connections itself, so they carry the extension's `Origin`, which no web page can send. The extension's site access therefore decides which sites' tools reach the agent. The extension addresses the bridge as `127.0.0.1`, which it is never allowed to access, because Chrome would otherwise leave the `Origin` out for a site on `localhost` that you allow it.
 
 Every request must also be addressed to `localhost` or `127.0.0.1`. That stops a site that points its own domain name at your machine. Its page would otherwise count as the bridge's own site, so the browser would send no `Origin` header and let the page read the bridge's answers.

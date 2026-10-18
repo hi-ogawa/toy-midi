@@ -4,16 +4,17 @@ import { extensionTest, test } from "./webmcp-bridge-helpers";
 
 extensionTest(
   "drives the open project from the webmcp-bridge command",
-  async ({ page, bridge, extension }) => {
+  async ({ page, bridge, baseURL, extension }) => {
     // Open a project, and see that it does not connect before the tab opts in.
     await createProject(page);
     expect(JSON.parse((await bridge.run(["pages"])).stdout)).toEqual([]);
 
-    // Opt the tab in from the extension, and see it connect and the badge say so.
+    // Opt the tab in from the extension, and see it connect as the app's site
+    // and the badge say so.
     await extension.toggleTab(page);
     await expect
       .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
-      .toHaveLength(1);
+      .toMatchObject([{ origin: new URL(baseURL!).origin, url: page.url() }]);
     await expect.poll(() => extension.getBadgeText(page)).toBe("ON");
 
     // List the tools the project exposes.
@@ -133,28 +134,4 @@ test.describe(() => {
       .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
       .toMatchObject([{ origin }]);
   });
-});
-
-extensionTest.describe(() => {
-  extensionTest.use({ allowAppOrigin: false });
-
-  extensionTest(
-    "retries a refused tab once its site is allowed",
-    async ({ page, bridge, baseURL, extension }) => {
-      // Open a project, turn the tab on, and see the bridge refuse it.
-      await createProject(page);
-      await extension.toggleTab(page);
-      await expect.poll(() => extension.getBadgeText(page)).toBe("!");
-
-      // Allow the site while the bridge runs, click again, and see the tab connect.
-      const origin = new URL(baseURL!).origin;
-      const allow = await bridge.run(["allow", origin]);
-      expect(allow.code).toBe(0);
-      await extension.toggleTab(page);
-      await expect.poll(() => extension.getBadgeText(page)).toBe("ON");
-      await expect
-        .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
-        .toMatchObject([{ origin }]);
-    },
-  );
 });

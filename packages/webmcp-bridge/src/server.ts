@@ -3,6 +3,7 @@ import * as srvx from "srvx";
 import {
   AGENT_ENDPOINTS,
   AGENT_PREFIX,
+  EXTENSION_ORIGIN,
   PAGE_ENDPOINTS,
   PAGE_PREFIX,
   PAGE_EVENTS,
@@ -48,15 +49,15 @@ export class BridgeServer {
     }
     const url = new URL(request.url);
     const origin = request.headers.get("origin");
-    // Requests from pages carry an Origin, and only listed origins may
-    // connect. Agent requests come from a shell, so any request with an
-    // Origin is rejected there, which keeps other sites from driving the
-    // page.
+    // Requests from pages carry an Origin, and only the extension and listed
+    // origins may connect. Agent requests come from a shell, so any request
+    // with an Origin is rejected there, which keeps other sites from driving
+    // the page.
     if (url.pathname.startsWith(PAGE_PREFIX)) {
       if (!origin) {
         return respondForbidden("page requests need an Origin");
       }
-      if (!this.getOrigins().includes(origin)) {
+      if (origin !== EXTENSION_ORIGIN && !this.getOrigins().includes(origin)) {
         return respondForbidden(
           `origin ${origin} is not allowed, allow it with: webmcp-bridge allow ${origin}`,
         );
@@ -98,10 +99,12 @@ export class BridgeServer {
 
   private connect(url: URL, origin: string): Response {
     let ping: ReturnType<typeof setInterval>;
+    const pageUrl = url.searchParams.get("url") ?? undefined;
     const page: PageConnection = {
       id: randomUUID().slice(0, 8),
-      origin,
-      url: url.searchParams.get("url") ?? undefined,
+      // The extension connects on behalf of a tab, which its URL names.
+      origin: origin === EXTENSION_ORIGIN ? new URL(pageUrl!).origin : origin,
+      url: pageUrl,
       connectedAt: new Date().toISOString(),
       send: () => {},
     };
