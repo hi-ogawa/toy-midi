@@ -43,6 +43,31 @@ The output is a silent H.264 MP4 at a constant frame rate. The video starts at t
 
 Rendering is faster than real time with the default settings. For example, a 2:19 score renders at 1280x480 in about a minute on a desktop machine, and larger frames take proportionally longer.
 
+## `render-audio`
+
+`render-audio` renders a project's mix to a WAV without opening the editor. It produces the same file as the editor's "Export Audio" action: stereo, 48 kHz, 16-bit PCM, with every audio and MIDI track at its mixer settings.
+
+### Usage
+
+```sh
+toy-midi render-audio song.toymidi.zip song.wav
+toy-midi render-audio song.json song.wav
+toy-midi render-audio 'https://toy-midi.hiro18181.workers.dev/draft#p=<payload>' song.wav
+toy-midi render-audio 'https://toy-midi.hiro18181.workers.dev/draft?src=https://example.com/song.json' song.wav
+```
+
+The input is one of:
+
+- A project archive, exported from the editor menu's "Export Project" action.
+- A `.json` file in the `SharedProject` format that share links carry.
+- A share link, either `/draft#p=<payload>` from the editor menu's "Copy Share Link" action or `/draft?src=<url>`, which renders the project at its `src` URL.
+
+Archives and `.json` files can be paths or URLs. A `SharedProject` has no audio tracks, so its mix holds only MIDI.
+
+| Option  | Default      | Description                                              |
+| ------- | ------------ | -------------------------------------------------------- |
+| `--url` | deployed app | Toy MIDI app to render with, such as a local dev server. |
+
 ## Development
 
 Run the CLI from the repository against a local dev server:
