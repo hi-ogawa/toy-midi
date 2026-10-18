@@ -8,11 +8,8 @@ import type {
   SerializedMidiTrackState,
 } from "./persistence.ts";
 import { routes } from "./routes.ts";
-import {
-  createMidiTrackState,
-  type Locator,
-  MIN_TRACK_HEIGHT,
-} from "./runtime.ts";
+import type { Locator } from "./runtime.ts";
+import { createMidiTrackState, MIN_TRACK_HEIGHT } from "./track-state.ts";
 
 // A share link carries the project, deflated and base64url-encoded, in the
 // URL fragment. The browser never sends the fragment in a request, so the
