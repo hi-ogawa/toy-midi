@@ -1,9 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { buildExportFileName, downloadBlob } from "../lib/export-utils";
+import {
+  buildExportFileName,
+  buildStemsArchive,
+  downloadBlob,
+} from "../lib/export-utils";
 import type { StemTap } from "../lib/mix";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
-import { buildStemsArchive } from "../lib/stem-export";
 import { encodeWav } from "../lib/wav";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
