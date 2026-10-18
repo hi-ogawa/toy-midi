@@ -43,7 +43,7 @@ A clean Telecaster bridge pickup is the classic country sound, so the riffs soun
 
 ![Step 2 adds pre-EQ, one tanh drive stage, and the cabinet](images/chain-2-v1.svg)
 
-- **Pre-EQ:** cuts below 90 Hz so the low end stays tight under distortion, and boosts 750 Hz like an overdrive pedal in front of an amp.
+- **Pre-EQ:** a high-pass at 90 Hz (12 dB per octave) so the low end stays tight under distortion, and a peak of +4 dB at 750 Hz, 1.2 octaves wide, for the mid hump of an overdrive pedal in front of an amp. It's a rough stand-in for the pedal's tone: a Tube Screamer gets its hump mostly by cutting lows and highs rather than with a peak.
 - **Drive:** a fixed boost into a tanh soft clipper, which rounds off the peaks and adds harmonics.
 - **Cabinet:** filters standing in for a guitar speaker, mainly a steep roll-off from about 5 kHz. Step 6 shows why it's there.
 
@@ -56,7 +56,7 @@ A clean Telecaster bridge pickup is the classic country sound, so the riffs soun
 ![Step 3 adds a compressor before the drive and changes the drive to an asymmetric stage plus cascaded stages](images/chain-3-v2.svg)
 
 - **Compressor:** turns a note up as it decays, so the string stays pushed into the clipper instead of cleaning up.
-- **Drive, changed:** the first stage clips asymmetrically, because a DC offset before the clipper flattens one half of the wave more than the other, which adds even harmonics like a tube stage. High gain adds two more stages that each clip a little, the way a high-gain preamp does, instead of one hard push.
+- **Drive, changed:** the first stage clips asymmetrically, because a DC offset before the clipper flattens one half of the wave more than the other, which adds even harmonics like a tube stage. High gain adds two more stages that each clip a little, the way a high-gain preamp does, instead of one hard push. A small mid peak between stages, +2 dB at 1 kHz on crunch and +3 dB on high gain, keeps adding to the hump.
 
 ![A held note through high gain: v1 drops about 18 dB over 6 seconds, v2 about 5 dB](images/sustain.svg)
 
