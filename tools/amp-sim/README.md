@@ -108,12 +108,19 @@ Two ffmpeg details that silently broke the drive, worth knowing for an implement
 
 `amp-sim.ts` loads a project as the app does, writes each MIDI track as its own MIDI file with the app's Export MIDI, renders it with fluidsynth on the track's SoundFont, and runs the guitar tracks through the amp. It needs `fluidsynth`, `ffmpeg`, and `ffprobe` on `PATH`, and the bundled SoundFonts from `pnpm fetch-soundfonts`.
 
+Download the two pieces from llm-music-probe:
+
+```sh
+mkdir -p /tmp/ampsim
+curl -sLo /tmp/ampsim/quiet-loud.json https://raw.githubusercontent.com/hi-ogawa/llm-music-probe/main/compositions/pieces/quiet-loud-in-e/quiet-loud.json
+curl -sLo /tmp/ampsim/riff.json https://raw.githubusercontent.com/hi-ogawa/llm-music-probe/main/compositions/pieces/open-e-mixolydian/project.json
+```
+
 Each call writes one variant as `<tag>.mp3` and `<tag>-guitars.mp3`, with the guitars soloed:
 
 ```sh
 run() {
-  pnpm amp-sim https://raw.githubusercontent.com/hi-ogawa/llm-music-probe/main/compositions/pieces/quiet-loud-in-e/quiet-loud.json \
-    --out /tmp/ampsim/quiet-loud "$@"
+  pnpm amp-sim /tmp/ampsim/quiet-loud.json --out /tmp/ampsim/quiet-loud "$@"
 }
 run --tag gm --gm
 run --tag tele-dry --amp none
@@ -135,7 +142,6 @@ The figures come from renders of [`held-note.json`](held-note.json), three notes
 ```sh
 pnpm amp-sim tools/amp-sim/held-note.json --out /tmp/ampsim/held --tag v1 --amp v1
 pnpm amp-sim tools/amp-sim/held-note.json --out /tmp/ampsim/held --tag v2 --amp v2
-# Open E Mixolydian into /tmp/ampsim/riff, with the tags v2, v2-gate-filtercab, v2-gate-nocab, and v2-ir-gate
-curl -sLo /tmp/ampsim/riff.json https://raw.githubusercontent.com/hi-ogawa/llm-music-probe/main/compositions/pieces/open-e-mixolydian/project.json
-tsx tools/amp-sim/gen-figures.ts --held-note /tmp/ampsim/held --riff /tmp/ampsim/riff --riff-project /tmp/ampsim/riff.json
+# /tmp/ampsim/riff.json into /tmp/ampsim/riff, with the tags v2, v2-gate-filtercab, v2-gate-nocab, and v2-ir-gate
+pnpm exec tsx tools/amp-sim/gen-figures.ts --held-note /tmp/ampsim/held --riff /tmp/ampsim/riff --riff-project /tmp/ampsim/riff.json
 ```

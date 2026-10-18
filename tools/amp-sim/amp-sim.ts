@@ -26,7 +26,7 @@ import {
 const USAGE = `\
 usage: tsx tools/amp-sim/amp-sim.ts <project.json> --out <dir> --tag <name> [options]
 
-<project.json> is a SharedProject .json file, as a path or a URL.
+<project.json> is a SharedProject .json file.
 
 Options:
   --amp none|v1|v2   Amp for the guitar tracks (default v2)
@@ -58,7 +58,7 @@ async function main() {
 
   // Load the project as the app does, and for the General MIDI baseline, swap
   // the guitar tracks onto General MIDI's guitars.
-  const { tempo, midiTracks } = await readProject(options.input);
+  const { tempo, midiTracks } = readProject(options.input);
   if (options.gm) {
     for (const track of midiTracks) {
       const gain = findGainLevel(track);
@@ -153,15 +153,12 @@ function parseAmp(value: string): AmpName | "none" {
   throw new Error(`Unknown --amp ${value}\n\n${USAGE}`);
 }
 
-async function readProject(input: string) {
-  const json = /^https?:\/\//.test(input)
-    ? await (await fetch(input)).text()
-    : fs.readFileSync(input, "utf8");
+function readProject(input: string) {
   // Only audio clips need an AudioContext, to decode their samples, and a
   // SharedProject has no audio tracks.
   return deserializeEditorRuntimeState({
     context: undefined as never,
-    project: convertSharedProject(JSON.parse(json)),
+    project: convertSharedProject(JSON.parse(fs.readFileSync(input, "utf8"))),
   });
 }
 
