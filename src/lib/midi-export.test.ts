@@ -53,14 +53,10 @@ describe(exportMidi, () => {
       ],
     });
     const midi = parseMidi(bytes);
-    // One line per event, at absolute ticks
-    const tracks = midi.tracks.map((events) => {
-      let tick = 0;
-      return events.map(({ deltaTime, ...event }) => {
-        tick += deltaTime;
-        return JSON.stringify({ tick, ...event });
-      });
-    });
+    // One line per event
+    const tracks = midi.tracks.map((events) =>
+      events.map((event) => JSON.stringify(event)),
+    );
     expect({ header: midi.header, tracks }).toMatchInlineSnapshot(`
       {
         "header": {
@@ -70,44 +66,44 @@ describe(exportMidi, () => {
         },
         "tracks": [
           [
-            "{"tick":0,"meta":true,"type":"trackName","text":"Song"}",
-            "{"tick":0,"meta":true,"type":"setTempo","microsecondsPerBeat":666667}",
-            "{"tick":0,"meta":true,"type":"timeSignature","numerator":6,"denominator":8,"metronome":24,"thirtyseconds":8}",
-            "{"tick":480,"meta":true,"type":"marker","text":"Verse"}",
-            "{"tick":1920,"meta":true,"type":"endOfTrack"}",
+            "{"deltaTime":0,"meta":true,"type":"trackName","text":"Song"}",
+            "{"deltaTime":0,"meta":true,"type":"setTempo","microsecondsPerBeat":666667}",
+            "{"deltaTime":0,"meta":true,"type":"timeSignature","numerator":6,"denominator":8,"metronome":24,"thirtyseconds":8}",
+            "{"deltaTime":480,"meta":true,"type":"marker","text":"Verse"}",
+            "{"deltaTime":1440,"meta":true,"type":"endOfTrack"}",
           ],
           [
-            "{"tick":0,"meta":true,"type":"trackName","text":"Lead"}",
-            "{"tick":0,"channel":0,"type":"programChange","programNumber":29}",
-            "{"tick":0,"channel":0,"type":"controller","controllerType":7,"value":64}",
-            "{"tick":0,"channel":0,"type":"controller","controllerType":10,"value":0}",
-            "{"tick":0,"channel":0,"type":"controller","controllerType":101,"value":0}",
-            "{"tick":0,"channel":0,"type":"controller","controllerType":100,"value":0}",
-            "{"tick":0,"channel":0,"type":"controller","controllerType":6,"value":12}",
-            "{"tick":0,"channel":0,"type":"controller","controllerType":38,"value":0}",
-            "{"tick":0,"channel":0,"type":"noteOn","noteNumber":60,"velocity":90}",
-            "{"tick":240,"channel":0,"type":"pitchBend","value":-8192}",
-            "{"tick":480,"channel":0,"type":"noteOff","noteNumber":60,"velocity":0}",
-            "{"tick":480,"channel":0,"type":"controller","controllerType":64,"value":127}",
-            "{"tick":480,"channel":0,"type":"noteOn","noteNumber":60,"velocity":100}",
-            "{"tick":720,"channel":0,"type":"pitchBend","value":8191}",
-            "{"tick":960,"channel":0,"type":"noteOff","noteNumber":60,"velocity":0}",
-            "{"tick":1920,"meta":true,"type":"endOfTrack"}",
+            "{"deltaTime":0,"meta":true,"type":"trackName","text":"Lead"}",
+            "{"deltaTime":0,"channel":0,"type":"programChange","programNumber":29}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":7,"value":64}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":10,"value":0}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":101,"value":0}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":100,"value":0}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":6,"value":12}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":38,"value":0}",
+            "{"deltaTime":0,"channel":0,"type":"noteOn","noteNumber":60,"velocity":90}",
+            "{"deltaTime":240,"channel":0,"type":"pitchBend","value":-8192}",
+            "{"deltaTime":240,"channel":0,"type":"noteOff","noteNumber":60,"velocity":0}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":64,"value":127}",
+            "{"deltaTime":0,"channel":0,"type":"noteOn","noteNumber":60,"velocity":100}",
+            "{"deltaTime":240,"channel":0,"type":"pitchBend","value":8191}",
+            "{"deltaTime":240,"channel":0,"type":"noteOff","noteNumber":60,"velocity":0}",
+            "{"deltaTime":960,"meta":true,"type":"endOfTrack"}",
           ],
           [
-            "{"tick":0,"meta":true,"type":"trackName","text":"Drums"}",
-            "{"tick":0,"channel":9,"type":"programChange","programNumber":25}",
-            "{"tick":0,"channel":9,"type":"controller","controllerType":7,"value":127}",
-            "{"tick":0,"channel":9,"type":"controller","controllerType":10,"value":64}",
-            "{"tick":1920,"meta":true,"type":"endOfTrack"}",
+            "{"deltaTime":0,"meta":true,"type":"trackName","text":"Drums"}",
+            "{"deltaTime":0,"channel":9,"type":"programChange","programNumber":25}",
+            "{"deltaTime":0,"channel":9,"type":"controller","controllerType":7,"value":127}",
+            "{"deltaTime":0,"channel":9,"type":"controller","controllerType":10,"value":64}",
+            "{"deltaTime":1920,"meta":true,"type":"endOfTrack"}",
           ],
           [
-            "{"tick":0,"meta":true,"type":"trackName","text":"Organ"}",
-            "{"tick":0,"channel":1,"type":"controller","controllerType":0,"value":8}",
-            "{"tick":0,"channel":1,"type":"programChange","programNumber":16}",
-            "{"tick":0,"channel":1,"type":"controller","controllerType":7,"value":127}",
-            "{"tick":0,"channel":1,"type":"controller","controllerType":10,"value":127}",
-            "{"tick":1920,"meta":true,"type":"endOfTrack"}",
+            "{"deltaTime":0,"meta":true,"type":"trackName","text":"Organ"}",
+            "{"deltaTime":0,"channel":1,"type":"controller","controllerType":0,"value":8}",
+            "{"deltaTime":0,"channel":1,"type":"programChange","programNumber":16}",
+            "{"deltaTime":0,"channel":1,"type":"controller","controllerType":7,"value":127}",
+            "{"deltaTime":0,"channel":1,"type":"controller","controllerType":10,"value":127}",
+            "{"deltaTime":1920,"meta":true,"type":"endOfTrack"}",
           ],
         ],
       }
