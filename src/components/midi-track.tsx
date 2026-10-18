@@ -847,7 +847,7 @@ function MidiGridRow({ pitch }: { pitch: number }) {
     <div
       className={cn(
         "pointer-events-none absolute inset-x-0 border-t",
-        pitch % 12 === 11 ? "border-[#404040]" : "border-[#333333]",
+        pitch % 12 === 11 ? "border-[#525252]" : "border-[#333333]",
         isBlackKey(pitch) ? "bg-[#111111]" : "bg-[#1a1a1a]",
       )}
       style={{
