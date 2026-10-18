@@ -60,7 +60,7 @@ export async function runRenderAudio(args: string[]) {
         const { editor: runtime, editorUtils: utils } = window.__toyMidiCli!;
         const response = await fetch(inputUrl);
         const project = isSharedProject
-          ? utils!.assignSharedProjectIds(await response.json())
+          ? utils!.convertSharedProject(await response.json())
           : await utils!.readProjectArchive(await response.blob());
         await runtime!.init();
         await runtime!.deserializeProject(project);

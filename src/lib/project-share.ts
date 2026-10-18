@@ -86,7 +86,7 @@ export async function fetchSharedProject(
     );
   }
   try {
-    return assignSharedProjectIds(await response.json());
+    return convertSharedProject(await response.json());
   } catch {
     throw new Error(`${src} does not hold a readable project.`);
   }
@@ -110,7 +110,7 @@ export async function decodeSharedProject(
       decodeBase64Url(payload),
       new DecompressionStream("deflate-raw"),
     );
-    return assignSharedProjectIds(JSON.parse(new TextDecoder().decode(bytes)));
+    return convertSharedProject(JSON.parse(new TextDecoder().decode(bytes)));
   } catch {
     throw new Error("The share link does not hold a readable project.");
   }
@@ -134,7 +134,7 @@ function omitIds({
   };
 }
 
-export function assignSharedProjectIds(
+export function convertSharedProject(
   project: SharedProject,
 ): SerializedEditorRuntimeState {
   return {
