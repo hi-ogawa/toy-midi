@@ -285,9 +285,14 @@ function plotDriveShift() {
     yLabel: "sample",
     xMap: (i) => i / n,
     xTicks: [],
-    yRange: [-1.2, 1.5],
-    yTicks: [-1, -0.5, 0, 0.5, 1],
+    yRange: [-1.7, 2.4],
+    yTicks: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5],
     series: [
+      {
+        label: "7.9x, the gain alone without clipping",
+        color: "#ddd",
+        points: input.map((x, i) => [i, gain * x]),
+      },
       {
         label: "tanh(7.9x)",
         color: "#bbb",
