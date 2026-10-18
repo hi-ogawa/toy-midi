@@ -14,9 +14,6 @@ import {
 } from "./midi-synth-worklet-node.ts";
 import type { EditorRuntimeState, MidiPreset } from "./runtime.ts";
 
-/** Export Audio's fixed output rate. */
-export const MIX_SAMPLE_RATE = 48000;
-
 // Release length depends on the preset, so this only needs to cover typical
 // ones.
 const MIDI_RELEASE_SECONDS = 2;
@@ -41,12 +38,7 @@ interface Mix {
 }
 
 /** Snapshot committed audio and MIDI at 1x, independent of transport and reference audio. */
-export function resolveMix(
-  state: Pick<
-    EditorRuntimeState,
-    "audioTracks" | "midiTracks" | "masterGain" | "tempo"
-  >,
-): Mix {
+export function resolveMix(state: EditorRuntimeState): Mix {
   const gains = deriveTrackMix(state);
   const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
     eq: track.eq,

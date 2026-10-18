@@ -67,7 +67,7 @@ Export the archive from the editor menu's "Export Project" action.
 
 ### How It Works
 
-The CLI opens `/audio-render`, a bare page that exposes the app's project renderer as `window.__toyMidiCli.renderProjectAudio`. The page fetches the archive from a URL that the CLI intercepts and serves from the input file, renders the mix in an `OfflineAudioContext`, and triggers a download that the CLI saves to the output path. MIDI tracks load their SoundFonts from the app, so the CLI needs no local copy of them.
+The CLI opens `/editor-runtime`, a bare page that exposes an editor runtime as `window.__toyMidiCli.editor`, the same runtime the editor drives. The page fetches the archive from a URL that the CLI intercepts and serves from the input file, loads it into the runtime, renders the mix through the runtime's Export Audio path, and triggers a download that the CLI saves to the output path. MIDI tracks load their SoundFonts from the app, so the CLI needs no local copy of them.
 
 ## Development
 

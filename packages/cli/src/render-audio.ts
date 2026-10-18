@@ -42,8 +42,8 @@ export async function runRenderAudio(args: string[]) {
   const page = await openCliPage({
     browser,
     url: options.url,
-    pathname: "/audio-render",
-    api: "renderProjectAudio",
+    pathname: "/editor-runtime",
+    api: "editor",
   });
   // Pass the archive in and the WAV out as a request and a download rather
   // than through evaluate, which serializes bytes inefficiently. A 3-minute
@@ -54,10 +54,11 @@ export async function runRenderAudio(args: string[]) {
     // Rendering takes longer for longer projects, so wait without a timeout.
     page.waitForEvent("download", { timeout: 0 }),
     page.evaluate(async (inputUrl) => {
+      const runtime = window.__toyMidiCli!.editor!;
       const response = await fetch(inputUrl);
-      const wav = await window.__toyMidiCli!.renderProjectAudio!(
-        await response.blob(),
-      );
+      await runtime.init();
+      await runtime.importProject(await response.blob());
+      const wav = await runtime.exportAudio();
       const link = document.createElement("a");
       link.href = URL.createObjectURL(wav);
       link.download = "output.wav";

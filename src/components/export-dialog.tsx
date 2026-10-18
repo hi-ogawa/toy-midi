@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
-import { encodeWav } from "../lib/wav";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
 
@@ -24,8 +23,7 @@ export function ExportDialog({
         baseName: state.title,
         extension: "wav",
       });
-      const buffer = await runtime.renderMix();
-      downloadBlob(encodeWav(buffer), fileName);
+      downloadBlob(await runtime.exportAudio(), fileName);
     },
   });
 

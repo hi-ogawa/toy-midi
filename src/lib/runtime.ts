@@ -1,3 +1,4 @@
+import JSZip from "jszip";
 import {
   type Automation,
   DEFAULT_TIME_SIGNATURE,
@@ -32,7 +33,6 @@ import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
   getAudibleItems,
-  MIX_SAMPLE_RATE,
   renderMix,
   resolveMix,
 } from "./mix.ts";
@@ -44,12 +44,14 @@ import {
   serializeEditorRuntimeState,
 } from "./persistence.ts";
 import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "./pitch-spelling.ts";
+import { readProjectArchive } from "./project-archive.ts";
 import { ActiveRecording } from "./recording.ts";
 import type { SoundfontId } from "./soundfonts.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import { syncTrackOrder, type TrackListsState } from "./track-order.ts";
 import { AudioContextTransport } from "./transport.ts";
+import { encodeWav } from "./wav.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 import type { YouTubePlayerApi } from "./youtube.ts";
 
@@ -1153,7 +1155,8 @@ export class EditorRuntime {
     this.attachedYouTubePlayer = undefined;
   }
 
-  async renderMix(): Promise<AudioBuffer> {
+  /** Render the mix to a stereo, 48 kHz, 16-bit PCM WAV. */
+  async exportAudio(): Promise<Blob> {
     const state = this.store.get();
     if (
       state.captureStatus === "recording" ||
@@ -1161,10 +1164,11 @@ export class EditorRuntime {
     ) {
       throw new Error("Cannot render a mix while capture is in progress.");
     }
-    return renderMix({
+    const buffer = await renderMix({
       mix: resolveMix(state),
-      sampleRate: MIX_SAMPLE_RATE,
+      sampleRate: 48000,
     });
+    return encodeWav(buffer);
   }
 
   /** @internal */
@@ -1181,6 +1185,13 @@ export class EditorRuntime {
         context: this.context,
         project,
       }),
+    );
+  }
+
+  /** @internal */
+  async importProject(archive: Blob): Promise<void> {
+    await this.deserializeProject(
+      await readProjectArchive(await JSZip.loadAsync(archive)),
     );
   }
 
@@ -1578,7 +1589,7 @@ function updateTrackClips({
   return resolveTrackRegions({ ...track, clips });
 }
 
-export function resolveTrackRegions(
+function resolveTrackRegions(
   track: Omit<AudioTrackState, "regions">,
 ): AudioTrackState {
   return { ...track, regions: deriveClipRegions(getAudibleItems(track.clips)) };

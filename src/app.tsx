@@ -1,5 +1,5 @@
-import { AudioRenderPage } from "./components/audio-render-page";
 import { EditorPage } from "./components/editor-page";
+import { EditorRuntimePage } from "./components/editor-runtime-page";
 import { ExamplesPage } from "./components/examples-page";
 import { HomePage } from "./components/home-page";
 import { LatencyCheckerPage } from "./components/latency-checker-page";
@@ -45,8 +45,8 @@ export function App() {
     case "scoreCapture": {
       return <ScoreCapturePage />;
     }
-    case "audioRender": {
-      return <AudioRenderPage />;
+    case "editorRuntime": {
+      return <EditorRuntimePage />;
     }
     case "legacyProjectScore": {
       return <LegacyProjectPage />;
