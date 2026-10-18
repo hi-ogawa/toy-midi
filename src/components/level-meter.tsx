@@ -48,7 +48,7 @@ export function LevelMeter({
     const meterCanvas = new MeterCanvas(canvasRef.current!, orientation);
     const meter = meterRef.current!;
     const dots = [...clipRef.current!.children] as HTMLElement[];
-    const readout = readoutRef.current;
+    const readoutElement = readoutRef.current;
     const unsubscribe = meters.subscribe(target, (stereo) => {
       const channels = stereo.slice(0, channelCount);
       meterCanvas.draw(channels);
@@ -61,11 +61,11 @@ export function LevelMeter({
       if (meter.getAttribute("aria-valuenow") !== valueNow) {
         meter.setAttribute("aria-valuenow", valueNow);
       }
-      if (readout) {
+      if (readoutElement) {
         const peak = Math.max(...channels.map((c) => c.peak));
         const text = peak > MIN_DB ? `${peak.toFixed(1)} dBFS` : SILENT_READOUT;
-        if (readout.textContent !== text) {
-          readout.textContent = text;
+        if (readoutElement.textContent !== text) {
+          readoutElement.textContent = text;
         }
       }
     });
