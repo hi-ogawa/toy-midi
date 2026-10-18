@@ -52,10 +52,17 @@ Rendering is faster than real time with the default settings. For example, a 2:1
 ```sh
 toy-midi render-audio song.toymidi.zip song.wav
 toy-midi render-audio song.json song.wav
+toy-midi render-audio 'https://toy-midi.hiro18181.workers.dev/draft#p=<payload>' song.wav
 toy-midi render-audio 'https://toy-midi.hiro18181.workers.dev/draft?src=https://example.com/song.json' song.wav
 ```
 
-The input is either a project archive, exported from the editor menu's "Export Project" action, or a `.json` file in the `SharedProject` format that share links carry and `/draft?src=<url>` opens. A `SharedProject` has no audio tracks, so its mix holds only MIDI. The input can be a path or a URL, and a `/draft?src=<url>` link renders the project at its `src` URL.
+The input is one of:
+
+- A project archive, exported from the editor menu's "Export Project" action.
+- A `.json` file in the `SharedProject` format that share links carry.
+- A share link, either `/draft#p=<payload>` from the editor menu's "Copy Share Link" action or `/draft?src=<url>`, which renders the project at its `src` URL.
+
+Archives and `.json` files can be paths or URLs. A `SharedProject` has no audio tracks, so its mix holds only MIDI.
 
 | Option  | Default      | Description                                              |
 | ------- | ------------ | -------------------------------------------------------- |
