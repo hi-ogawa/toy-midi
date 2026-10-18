@@ -22,6 +22,6 @@ export async function buildStemsArchive({
 }
 
 /** The index keeps track order when sorted by name and keeps duplicate track names apart. */
-export function formatStemFileName(index: number, name: string): string {
+function formatStemFileName(index: number, name: string): string {
   return `${String(index).padStart(2, "0")}-${sanitizeFileName(name)}.wav`;
 }
