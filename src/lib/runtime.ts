@@ -32,6 +32,7 @@ import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
   getAudibleItems,
+  MIX_SAMPLE_RATE,
   renderMix,
   resolveMix,
 } from "./mix.ts";
@@ -1158,7 +1159,7 @@ export class EditorRuntime {
     }
     return renderMix({
       mix: resolveMix(state),
-      sampleRate: 48000,
+      sampleRate: MIX_SAMPLE_RATE,
     });
   }
 
@@ -1573,7 +1574,7 @@ function updateTrackClips({
   return resolveTrackRegions({ ...track, clips });
 }
 
-function resolveTrackRegions(
+export function resolveTrackRegions(
   track: Omit<AudioTrackState, "regions">,
 ): AudioTrackState {
   return { ...track, regions: deriveClipRegions(getAudibleItems(track.clips)) };

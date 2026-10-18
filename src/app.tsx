@@ -1,3 +1,4 @@
+import { AudioRender } from "./components/audio-render";
 import { Editor } from "./components/editor";
 import { Examples } from "./components/examples";
 import { Home } from "./components/home";
@@ -43,6 +44,9 @@ export function App() {
     }
     case "scoreCapture": {
       return <ScoreCapture />;
+    }
+    case "audioRender": {
+      return <AudioRender />;
     }
     case "legacyProjectScore": {
       return <LegacyProjectRoute />;

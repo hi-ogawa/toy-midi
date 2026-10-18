@@ -1,4 +1,6 @@
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { promisify } from "node:util";
 import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 import type { SharedProject } from "../src/lib/project-share";
@@ -9,6 +11,8 @@ import {
   createProject,
 } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
+
+const execFileAsync = promisify(execFile);
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
@@ -126,6 +130,35 @@ test("exports MIDI automation in the WAV", async ({ page }) => {
 });
 
 /** Decode a 16-bit PCM WAV into its format, duration in seconds, and interleaved samples. */
+test("renders a project archive through the CLI", async ({ page, baseURL }) => {
+  // Build a project with backing audio and a MIDI note, and export its archive.
+  await createProject(page);
+  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  const track = await addMidiTrack(page);
+  await createMidiNote(page, track, { beat: 0, pitch: "C4" });
+  const downloadPromise = page.waitForEvent("download");
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Project" });
+  const archivePath = test.info().outputPath("project.toymidi.zip");
+  await (await downloadPromise).saveAs(archivePath);
+
+  // Render the archive with the CLI against the test server.
+  const outputPath = test.info().outputPath("mix.wav");
+  await execFileAsync("node", [
+    "packages/cli/bin/cli.js",
+    "render-audio",
+    archivePath,
+    outputPath,
+    "--url",
+    baseURL!,
+  ]);
+
+  // Check the file matches Export Audio's format and holds the 3 s mix.
+  const wav = decodeWav(await readFile(outputPath));
+  expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
+  expect(wav.duration).toBeCloseTo(3);
+  expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
+});
+
 function decodeWav(bytes: Buffer) {
   if (
     bytes.toString("ascii", 0, 4) !== "RIFF" ||

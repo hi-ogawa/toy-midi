@@ -179,7 +179,7 @@ export function deserializeEditorRuntimeState({
   context,
   project,
 }: {
-  context: AudioContext;
+  context: BaseAudioContext;
   project: SerializedEditorRuntimeState;
 }): PersistableEditorRuntimeState {
   const audioTracks = foldRecordingTrack(project);
@@ -304,7 +304,7 @@ function deserializeAudioClip({
   clip,
   index,
 }: {
-  context: AudioContext;
+  context: BaseAudioContext;
   clip: SerializedAudioClip<Float32Array>;
   index: number;
 }): AudioClip {
@@ -349,7 +349,7 @@ function serializeAudioBuffer(buffer: AudioBuffer): Pcm<Float32Array> {
 }
 
 function deserializeAudioBuffer(
-  context: AudioContext,
+  context: BaseAudioContext,
   pcm: Pcm<Float32Array>,
 ): AudioBuffer {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {

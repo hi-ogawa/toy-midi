@@ -4,6 +4,7 @@ import type { ScoreViewerRuntime } from "../components/score-viewer-runtime";
 // drives them through this global. Each page sets only the entry it serves.
 export type CliApi = {
   scoreViewer?: ScoreViewerRuntime;
+  renderProjectAudio?: (archive: Blob) => Promise<Blob>;
 };
 
 declare global {

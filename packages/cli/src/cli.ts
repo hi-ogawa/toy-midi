@@ -1,10 +1,12 @@
+import { runRenderAudio } from "./render-audio";
 import { runScoreVideo } from "./score-video";
 import { rewriteLine, style } from "./terminal";
 
 const USAGE = `Usage: toy-midi <command> [options]
 
 Commands:
-  score-video <input.musicxml> <output.mp4>  Render a scrolling score video
+  score-video <input.musicxml> <output.mp4>     Render a scrolling score video
+  render-audio <input.toymidi.zip> <output.wav>  Render a project's mix to WAV
 
 Run \`toy-midi <command> --help\` for the command's options.`;
 
@@ -13,6 +15,10 @@ async function main() {
   switch (command) {
     case "score-video": {
       await runScoreVideo(args);
+      break;
+    }
+    case "render-audio": {
+      await runRenderAudio(args);
       break;
     }
     case undefined:

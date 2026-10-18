@@ -49,6 +49,26 @@ The CLI opens `/score-capture`, a bare page that renders only the score viewer r
 
 Several pages capture interleaved frames in parallel. Each page still steps forward through the score, so the viewer's scroll position, which depends on which systems the cursor has passed, matches a sequential render. A time range render replays earlier seeks without capturing for the same reason.
 
+## `render-audio`
+
+`render-audio` renders a project archive's mix to a WAV without opening the editor. It produces the same file as the editor's "Export Audio" action: stereo, 48 kHz, 16-bit PCM, with every audio and MIDI track at its mixer settings.
+
+### Usage
+
+```sh
+toy-midi render-audio song.toymidi.zip song.wav
+```
+
+Export the archive from the editor menu's "Export Project" action.
+
+| Option  | Default      | Description                                              |
+| ------- | ------------ | -------------------------------------------------------- |
+| `--url` | deployed app | Toy MIDI app to render with, such as a local dev server. |
+
+### How It Works
+
+The CLI opens `/audio-render`, a bare page that exposes the app's project renderer as `window.__toyMidiCli.renderProjectAudio`. The page fetches the archive from a URL that the CLI intercepts and serves from the input file, renders the mix in an `OfflineAudioContext`, and triggers a download that the CLI saves to the output path. MIDI tracks load their SoundFonts from the app, so the CLI needs no local copy of them.
+
 ## Development
 
 Run the CLI from the repository against a local dev server:
@@ -58,4 +78,4 @@ pnpm dev --port 5173
 pnpm toy-midi score-video score.musicxml score.mp4 --url http://localhost:5173
 ```
 
-The `capture score video` test in `e2e/score-viewer-output.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-output-video.mp4` for inspection.
+The `capture score video` test in `e2e/score-viewer-output.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-output-video.mp4` for inspection. The `renders a project archive through the CLI` test in `e2e/mix.spec.ts` covers `render-audio`.
