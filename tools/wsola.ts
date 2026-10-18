@@ -8,7 +8,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { WsolaProcessor } from "../src/lib/dsp/wsola.ts";
-import { execFileAsync } from "../src/utils/exec-file.ts";
+import { execFileAsync } from "../src/utils/exec.ts";
 
 const SAMPLE_RATE = 48_000;
 const CHANNELS = 2;

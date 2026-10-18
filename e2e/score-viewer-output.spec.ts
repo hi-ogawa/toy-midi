@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { expect, test } from "@playwright/test";
-import { execFileAsync } from "../src/utils/exec-file";
+import { execFileAsync } from "../src/utils/exec";
 import { selectMenuItem } from "./helpers";
 
 test("capture score viewer sample cursor", async ({ page }) => {

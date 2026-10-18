@@ -3,7 +3,7 @@ import { once } from "node:events";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { chromium, expect, test as base, type Page } from "@playwright/test";
-import { execFileAsync } from "../src/utils/exec-file";
+import { execFileAsync } from "../src/utils/exec";
 
 /** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
 export const test = base.extend<{
