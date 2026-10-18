@@ -1,7 +1,11 @@
 import type { TimeSignature } from "../types";
-import { getBeatsPerBar, getVisibleBarInterval } from "./timeline";
+import {
+  getBeatsPerBar,
+  getDenominatorNoteLength,
+  getVisibleBarInterval,
+} from "./timeline";
 
-type TimelineGridKind = "bar" | "beat" | "subdivision";
+type TimelineGridKind = "bar" | "denominator-note" | "subdivision";
 
 type TimelineGridLayer = {
   kind: TimelineGridKind;
@@ -11,7 +15,7 @@ type TimelineGridLayer = {
 
 const GRID_COLORS: Record<TimelineGridKind, string> = {
   bar: "#525252",
-  beat: "#404040",
+  "denominator-note": "#404040",
   subdivision: "#333333",
 };
 
@@ -72,8 +76,8 @@ function calculateTimelineGridLayers({
   const layers: TimelineGridLayer[] = [];
   const beatsPerBar = getBeatsPerBar(timeSignature);
   // A time signature counts its bar in denominator notes, such as six eighth
-  // notes in 6/8. The metronome also clicks on denominator notes.
-  const denominatorNoteInterval = 4 / timeSignature.denominator;
+  // notes in 6/8.
+  const denominatorNoteInterval = getDenominatorNoteLength(timeSignature);
   const barInterval =
     getVisibleBarInterval({
       barWidth: beatsPerBar * pixelsPerBeat,
@@ -92,7 +96,7 @@ function calculateTimelineGridLayers({
     layers.push(
       createLayer({
         intervalBeats: denominatorNoteInterval,
-        kind: "beat",
+        kind: "denominator-note",
         pixelsPerBeat,
         viewportStartBeat,
       }),
