@@ -31,7 +31,7 @@ const EVENT_RANKS = {
 
 interface TrackEvent {
   tick: number;
-  rank?: "note-off" | "note-on";
+  type?: "note-off" | "note-on";
   bytes: number[];
 }
 
@@ -164,12 +164,12 @@ function encodeTrackEvents({
     );
     events.push({
       tick: on,
-      rank: "note-on",
+      type: "note-on",
       bytes: [0x90 | channel, note.pitch, note.velocity],
     });
     events.push({
       tick: off,
-      rank: "note-off",
+      type: "note-off",
       bytes: [0x80 | channel, note.pitch, 0],
     });
   }
@@ -222,7 +222,7 @@ function encodeTrackChunk({
   const sorted = events.toSorted(
     (a, b) =>
       a.tick - b.tick ||
-      EVENT_RANKS[a.rank ?? "other"] - EVENT_RANKS[b.rank ?? "other"],
+      EVENT_RANKS[a.type ?? "other"] - EVENT_RANKS[b.type ?? "other"],
   );
   const body: number[] = [];
   let lastTick = 0;
