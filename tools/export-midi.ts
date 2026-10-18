@@ -15,7 +15,6 @@ import {
 } from "../src/lib/persistence.ts";
 import { readProjectArchive } from "../src/lib/project-archive.ts";
 import { convertSharedProject } from "../src/lib/project-share.ts";
-import { syncTrackOrder } from "../src/lib/track-order.ts";
 
 const USAGE = `\
 usage: tsx tools/export-midi.ts <input> <output.mid>
@@ -62,15 +61,7 @@ function exportProjectMidi(project: SerializedEditorRuntimeState): Uint8Array {
     context: undefined as never,
     project: { ...project, audioTracks: [] },
   });
-  // The runtime completes an older or partial track order on load, so complete
-  // it the same way before reading the MIDI tracks off it.
-  const trackOrder = syncTrackOrder({ ...state, audioTracks: [] });
-  return exportMidi({
-    ...state,
-    tracks: state.midiTracks.toSorted(
-      (a, b) => trackOrder.indexOf(a.id) - trackOrder.indexOf(b.id),
-    ),
-  });
+  return exportMidi({ ...state, tracks: state.midiTracks });
 }
 
 main().catch((error: unknown) => {
