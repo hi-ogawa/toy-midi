@@ -20,10 +20,7 @@ import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput, type CapturedAudio } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
-import {
-  createDefaultMultibandEq,
-  ensureBiquadEqWorklet,
-} from "./dsp/biquad-eq-worklet-node.ts";
+import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
@@ -42,27 +39,24 @@ import {
   type SerializedEditorRuntimeState,
   serializeEditorRuntimeState,
 } from "./persistence.ts";
-import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "./pitch-spelling.ts";
+import type { KeySignature } from "./pitch-spelling.ts";
 import { ActiveRecording } from "./recording.ts";
 import type { SoundfontId } from "./soundfonts.ts";
-import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import { syncTrackOrder, type TrackListsState } from "./track-order.ts";
+import {
+  createAudioTrackState,
+  createMidiTrackState,
+  MAX_MIDI_TRACK_HEIGHT,
+  MIN_TRACK_HEIGHT,
+  clampTrackHeight,
+} from "./track-state.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 export const MIN_CLIP_DURATION = 0.01;
-// Fits the track header with its gain slider row below the title row.
-export const MIN_GAIN_SLIDER_HEIGHT = 72;
-// New tracks open with the gain slider showing.
-const DEFAULT_TRACK_HEIGHT = MIN_GAIN_SLIDER_HEIGHT;
-// Fits the compact track header, which is a single title row.
-export const MIN_TRACK_HEIGHT = 44;
-const MAX_TRACK_HEIGHT = 300;
-// Tall enough for several octaves of piano roll.
-const MAX_MIDI_TRACK_HEIGHT = 800;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
@@ -1631,51 +1625,4 @@ function findAudioTrackById(
     throw new Error("Audio track state is missing.");
   }
   return track;
-}
-
-function createAudioTrackState({ name }: { name: string }): AudioTrackState {
-  return {
-    eq: createDefaultMultibandEq(),
-    id: crypto.randomUUID(),
-    name,
-    nextTakeNumber: 1,
-    showClips: false,
-    height: DEFAULT_TRACK_HEIGHT,
-    gain: 1,
-    pan: 0,
-    muted: false,
-    soloed: false,
-    clips: [],
-    regions: [],
-  };
-}
-
-export function createMidiTrackState({
-  name,
-  preset,
-}: {
-  name: string;
-  preset: MidiPreset;
-}): MidiTrackState {
-  return {
-    id: crypto.randomUUID(),
-    name,
-    notes: [],
-    automation: [],
-    ...preset,
-    eq: createDefaultMultibandEq(),
-    height: 300,
-    viewMode: "editor",
-    gain: 1,
-    pan: 0,
-    muted: false,
-    soloed: false,
-    tabAnnotationEnabled: false,
-    tabOpenStringPitches: [...DEFAULT_TAB_OPEN_STRING_PITCHES],
-    keySignature: { ...DEFAULT_KEY_SIGNATURE },
-  };
-}
-
-export function clampTrackHeight(height: number): number {
-  return clamp(height, MIN_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
 }

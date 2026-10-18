@@ -1,9 +1,9 @@
 import { type AudioClip, createAudioClip } from "./audio-clip.ts";
-import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
-} from "./dsp/biquad-eq-worklet-node.ts";
+  type MultibandEqParameters,
+} from "./dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {

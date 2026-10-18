@@ -1,4 +1,4 @@
-import { createDefaultMultibandEq } from "./dsp/biquad-eq-worklet-node";
+import { createDefaultMultibandEq } from "./dsp/biquad-eq-multiband";
 import {
   type AnyLegacySavedProject,
   normalizeLegacySavedProject,
@@ -7,7 +7,8 @@ import {
   serializeEditorRuntimeState,
   type SerializedEditorRuntimeState,
 } from "./persistence";
-import { clampTrackHeight, createDefaultEditorRuntimeState } from "./runtime";
+import { createDefaultEditorRuntimeState } from "./runtime";
+import { clampTrackHeight } from "./track-state";
 
 export async function convertLegacyProject({
   name,

@@ -5,7 +5,7 @@ import {
   type MultibandEqBand,
   type MultibandEqParameters,
 } from "../lib/dsp/biquad-eq-multiband";
-import { createDefaultEqBand } from "../lib/dsp/biquad-eq-worklet-node";
+import { createDefaultEqBand } from "../lib/dsp/biquad-eq-multiband";
 import { dbToGain, gainToDb } from "../lib/music";
 import type { ProjectUiStore } from "../lib/preferences";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
