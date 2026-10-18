@@ -66,7 +66,7 @@ In the prototype:
 
 - The drive is `--amp v2 --no-comp`. `v1` was the first try, a single unshifted stage, tanh(10x) for crunch.
 - Each clipper is ffmpeg's `asoftclip=type=tanh`, which is exactly tanh(x) at its defaults, and a 20 Hz high-pass after s does the subtraction of tanh(b).
-- The drive runs at 4× the sample rate, so harmonics above the original Nyquist frequency are filtered out on the way back down instead of aliasing.
+- The drive upsamples its input from 48 to 192 kHz, 4× the sample rate, runs the gain stages there, then low-passes and downsamples back to 48 kHz. That's because clipping adds harmonics above 24 kHz, the highest frequency 48 kHz can hold. Clipped at 48 kHz, they would fold back below 24 kHz as inharmonic fizz (aliasing). Clipped at 192 kHz, they exist up to 96 kHz, and the downsample removes them instead. 4× is a common choice for amp sims, not measured here.
 - The gains assume fluidsynth's output at `-g 0.5`, where guitar peaks are about 0.56 for open strokes and 0.28 for muted ones.
 - After the drive, ×0.126 (−18 dB) brings the level down before the cabinet, and loudness matching sets the final level.
 - `v2`'s clean level is the compressor alone, so `--no-comp` leaves clean tracks dry.
