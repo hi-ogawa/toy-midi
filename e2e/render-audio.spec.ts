@@ -13,6 +13,19 @@ import {
 import { selectMenuItem } from "./helpers";
 import { decodeWav } from "./wav-helpers";
 
+const ONE_NOTE_PROJECT: SharedProject = {
+  title: "One note",
+  tempo: 120,
+  timeSignature: { numerator: 4, denominator: 4 },
+  midiTracks: [
+    {
+      name: "Piano",
+      program: 0,
+      notes: [{ pitch: 60, start: 0, duration: 1, velocity: 100 }],
+    },
+  ],
+};
+
 test("renders a project archive through the CLI", async ({ page, baseURL }) => {
   // Build a project with backing audio and a MIDI note, and export its archive.
   await createProject(page);
@@ -88,19 +101,6 @@ test("renders a draft link's src project through the CLI", async ({
   const wav = decodeWav(await readFile(outputPath));
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
-
-const ONE_NOTE_PROJECT: SharedProject = {
-  title: "One note",
-  tempo: 120,
-  timeSignature: { numerator: 4, denominator: 4 },
-  midiTracks: [
-    {
-      name: "Piano",
-      program: 0,
-      notes: [{ pitch: 60, start: 0, duration: 1, velocity: 100 }],
-    },
-  ],
-};
 
 async function serveJson(value: unknown) {
   const server = createServer((_request, response) => {
