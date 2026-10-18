@@ -39,7 +39,7 @@ A share link is the site's `/draft` page with the project in the URL fragment:
 
 The payload is the project as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SharedProject` in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts).
 
-Leave tab annotation off when composing, by leaving `tabAnnotationEnabled` unset. It shows each note's string and fret in the note editor, for transcribing and practicing a part, and playback ignores it.
+Composing doesn't need tab annotation, so leave `tabAnnotationEnabled` on tracks and `tabString` on notes unset.
 
 Encode the payload with Node, which has raw deflate and base64url built in:
 
