@@ -13,6 +13,7 @@ export const routes = route({
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
   scoreCapture: "/score-capture",
+  editorCli: "/editor-cli",
   legacyProject: "/project/:projectId",
   legacyProjectScore: "/project/:projectId/score",
 });

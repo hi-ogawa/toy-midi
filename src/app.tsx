@@ -1,3 +1,4 @@
+import { EditorCliPage } from "./components/editor-cli-page";
 import { EditorPage } from "./components/editor-page";
 import { ExamplesPage } from "./components/examples-page";
 import { HomePage } from "./components/home-page";
@@ -43,6 +44,9 @@ export function App() {
     }
     case "scoreCapture": {
       return <ScoreCapturePage />;
+    }
+    case "editorCli": {
+      return <EditorCliPage />;
     }
     case "legacyProjectScore": {
       return <LegacyProjectPage />;
