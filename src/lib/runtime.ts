@@ -811,6 +811,9 @@ export class EditorRuntime {
       }
       return this.masterAnalyser;
     }
+    if (target.kind === "input") {
+      return this.captureInput?.analyser;
+    }
     const playback =
       this.trackPlaybacks.get(target.id) ??
       this.midiTrackPlaybacks.get(target.id);
