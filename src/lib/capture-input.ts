@@ -110,7 +110,6 @@ export class CaptureInput {
       .connect(this.tunerAnalyser.node)
       .connect(this.monitorGain)
       .connect(output);
-    // Tapped before monitor gain, so the meter shows what gets recorded.
     this.tunerAnalyser.node.connect(this.analyser.input);
   }
 
