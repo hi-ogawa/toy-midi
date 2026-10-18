@@ -10,6 +10,21 @@ Yes. The final chain sustains like General MIDI's distortion, keeps the DI's pic
 
 Each stage is there because of something heard along the way, so the iterations below are the explanation.
 
+### In guitarist terms
+
+The stage names are DSP terms, named for what each stage does to the signal. A guitarist would describe the same chain as pedals, an amp, and a recording, and names like "pre-EQ" aren't something they'd say:
+
+| Stage      | What a guitarist would call it                                                                                                                                                                                                                                                                                                         |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Note gate  | A noise gate pedal, which high-gain players use to silence the amp between notes, though a real one opens on the signal's level rather than on note-offs. Muting with the hands does most of this job on a real guitar.                                                                                                                |
+| Pre-EQ     | The tone shaping of an overdrive pedal used as a boost in front of the amp, such as a Tube Screamer, whose low cut and mid hump tighten palm mutes and help the distortion cut through a mix. The pedal also clips a little, which the chain leaves to the drive. Players treat it as a pedal that's on or off, not as an EQ to tweak. |
+| Compressor | A compressor pedal at the start of the chain. It's common for clean and country playing, while high-gain amps compress the signal on their own.                                                                                                                                                                                        |
+| Drive      | The amp's preamp, set by its gain knob and channel, clean, crunch, or lead. The cascaded stages are how a high-gain amp gets more distortion than one stage could give.                                                                                                                                                                |
+| Cabinet    | The speaker cabinet and the microphone in front of it. Amp sim plugins call this "cab sim", and it's the one stage a guitarist would name the same way.                                                                                                                                                                                |
+| Room       | The room the cabinet is recorded in, picked up by a room mic, or a short reverb.                                                                                                                                                                                                                                                       |
+
+Two parts of a real amp aren't modeled. The tone stack, the bass, middle, and treble knobs that guitarists tweak for tone, sits after the preamp, so it changes how the distortion sounds rather than how hard the amp breaks up. And the power amp adds its own compression and saturation when played loud.
+
 ## Iterations
 
 Each step changes one thing, shown in yellow in its chain diagram, all on the filter cabinet the chain ships with, and the cabinet gets its own comparison at the end. Every render is normalized to −16 LUFS, so a comparison is about tone, not level, because the louder of two versions tends to sound better, and drive makes a track much louder. Each guitar track is also matched to its dry loudness before mixing, so the amp doesn't move it in the mix. The tags name the variants to compare, [Reproduce](#reproduce) generates them, and `gen-figures.ts` draws the plots from those renders.
