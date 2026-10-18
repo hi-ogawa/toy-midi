@@ -5,8 +5,7 @@ import {
   PITCH_BEND_RANGE,
 } from "./general-midi";
 import { clamp } from "./music";
-import type { EditorRuntimeState, Locator, MidiTrackState } from "./runtime";
-import { resolveTrackOrder, type TrackListsState } from "./track-order";
+import type { Locator, MidiTrackState } from "./runtime";
 
 export type MidiExportTrack = Pick<
   MidiTrackState,
@@ -36,24 +35,8 @@ interface TrackEvent {
   bytes: number[];
 }
 
-/** Encode a project's MIDI tracks in timeline order. */
-export function exportProjectMidi(
-  state: TrackListsState &
-    Pick<EditorRuntimeState, "title" | "tempo" | "timeSignature" | "locators">,
-): Uint8Array {
-  return exportMidi({
-    title: state.title,
-    tempo: state.tempo,
-    timeSignature: state.timeSignature,
-    locators: state.locators,
-    tracks: resolveTrackOrder(state).flatMap((entry) =>
-      entry.kind === "midi" ? [entry.track] : [],
-    ),
-  });
-}
-
 /**
- * Encode MIDI tracks as a format 1 Standard MIDI File: a conductor track with
+ * Encode a project as a format 1 Standard MIDI File: a conductor track with
  * the title, tempo, time signature, and locators as markers, then one track
  * per MIDI track on its own channel, with drum kits on the drum channel.
  */
