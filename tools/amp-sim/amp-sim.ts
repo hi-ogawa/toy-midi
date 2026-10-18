@@ -14,6 +14,13 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs, promisify } from "node:util";
+import {
+  audioToWav,
+  BasicMIDI,
+  SoundBankLoader,
+  SpessaSynthProcessor,
+  SpessaSynthSequencer,
+} from "spessasynth_core";
 import { exportMidi } from "../../src/lib/midi-export.ts";
 import { deserializeEditorRuntimeState } from "../../src/lib/persistence.ts";
 import { convertSharedProject } from "../../src/lib/project-share.ts";
@@ -33,8 +40,11 @@ Options:
   --note-gate        Gate each guitar track's input by its note-offs
   --ir <cabinet.wav> Convolve with a cabinet impulse response instead of filters
   --no-cab           Leave out the cabinet
+  --no-comp          Leave out v2's compressor
   --room             Add a short room after the amp
   --gm               Play the guitar tracks on General MIDI's guitars instead
+  --synth fluidsynth|spessasynth
+                     Synth for the dry tracks (default fluidsynth)
 
 Run \`pnpm fetch-soundfonts\` first. fluidsynth, ffmpeg, and ffprobe must be on
 PATH.`;
@@ -121,8 +131,10 @@ function parseCliOptions(args: string[]) {
       "note-gate": { type: "boolean", default: false },
       ir: { type: "string" },
       "no-cab": { type: "boolean", default: false },
+      "no-comp": { type: "boolean", default: false },
       room: { type: "boolean", default: false },
       gm: { type: "boolean", default: false },
+      synth: { type: "string", default: "fluidsynth" },
       help: { type: "boolean", short: "h", default: false },
     },
   });
@@ -141,9 +153,18 @@ function parseCliOptions(args: string[]) {
     noteGate: values["note-gate"],
     ir: values.ir,
     noCab: values["no-cab"],
+    noComp: values["no-comp"],
     room: values.room,
     gm: values.gm,
+    synth: parseSynth(values.synth),
   };
+}
+
+function parseSynth(value: string) {
+  if (value === "fluidsynth" || value === "spessasynth") {
+    return value;
+  }
+  throw new Error(`unknown --synth: ${value}\n\n${USAGE}`);
 }
 
 function parseAmp(value: string): AmpName | "none" {
@@ -179,7 +200,7 @@ async function renderDryTracks({
 }) {
   const hash = crypto
     .createHash("sha1")
-    .update(JSON.stringify({ tempo, midiTracks }))
+    .update(JSON.stringify({ tempo, midiTracks, synth: options.synth }))
     .digest("hex")
     .slice(0, 8);
   const dir = path.join(options.out, `render-${hash}`);
@@ -204,6 +225,11 @@ async function renderDryTracks({
       const soundfont = track.soundfont
         ? findSoundfont(track.soundfont)
         : GENERAL_USER_SOUNDFONT;
+      const soundfontPath = path.join(PUBLIC_DIR, soundfont.url);
+      if (options.synth === "spessasynth") {
+        await renderWithSpessaSynth({ soundfontPath, trackMidi, file: raw });
+        return;
+      }
       await execFileAsync("fluidsynth", [
         ...["-n", "-i", "-q"],
         ...["-g", "0.5"],
@@ -211,7 +237,7 @@ async function renderDryTracks({
         ...["-R", "0", "-C", "0"],
         ...["-r", "48000"],
         ...["-F", raw],
-        path.join(PUBLIC_DIR, soundfont.url),
+        soundfontPath,
         trackMidi,
       ]);
     }),
@@ -221,6 +247,58 @@ async function renderDryTracks({
 }
 
 const PUBLIC_DIR = path.join(import.meta.dirname, "../../public");
+
+// Render with the synth the app plays MIDI tracks on, which responds to
+// controllers fluidsynth ignores, such as CC 72 release time.
+async function renderWithSpessaSynth({
+  soundfontPath,
+  trackMidi,
+  file,
+}: {
+  soundfontPath: string;
+  trackMidi: string;
+  file: string;
+}) {
+  const rate = 48_000;
+  const synth = new SpessaSynthProcessor(rate, {
+    eventsEnabled: false,
+    effectsEnabled: false,
+  });
+  await synth.processorInitialized;
+  synth.soundBankManager.addSoundBank(
+    SoundBankLoader.fromArrayBuffer(
+      toArrayBuffer(fs.readFileSync(soundfontPath)),
+    ),
+    "main",
+  );
+  const midi = BasicMIDI.fromArrayBuffer(
+    toArrayBuffer(fs.readFileSync(trackMidi)),
+  );
+  const sequencer = new SpessaSynthSequencer(synth);
+  // Start at beat 0 like fluidsynth, so every track stays aligned.
+  sequencer.skipToFirstNoteOn = false;
+  sequencer.loadNewSongList([midi]);
+  sequencer.play();
+  const length = Math.ceil(midi.duration * rate);
+  const left = new Float32Array(length);
+  const right = new Float32Array(length);
+  const blockSize = 128;
+  for (let offset = 0; offset < length; offset += blockSize) {
+    sequencer.processTick();
+    synth.process(left, right, offset, Math.min(blockSize, length - offset));
+  }
+  fs.writeFileSync(
+    file,
+    new Uint8Array(audioToWav([left, right], rate, { normalizeAudio: false })),
+  );
+}
+
+function toArrayBuffer(buffer: Buffer) {
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  ) as ArrayBuffer;
+}
 
 function getDryTrackPath({
   renderDir,
@@ -265,7 +343,10 @@ async function runAmp({
   // 16-bit format the drive's volume boost would hard-clip before the soft
   // clipper sees it, and headroom so later boosts don't clip the 16-bit file.
   const mono = "aformat=sample_fmts=flt:channel_layouts=mono";
-  const chain = [AMPS[amp][gain](rate), "volume=-18dB"];
+  const chain = [
+    AMPS[amp][gain](rate, { compressor: !options.noComp }),
+    "volume=-18dB",
+  ];
   if (!options.ir && !options.noCab) {
     chain.push(FILTER_CABINET);
   }
@@ -340,7 +421,10 @@ const ASYMMETRIC_TANH = `dcshift=0.15,${TANH},highpass=f=20`;
 
 // A compressor in front of the drive keeps a decaying note pushed into the
 // clipper, so it sustains at full distortion instead of cleaning up.
-function buildSustainCompressor(ratio: number) {
+function buildSustainCompressor(ratio: number, { compressor }: AmpOptions) {
+  if (!compressor) {
+    return "";
+  }
   return `acompressor=threshold=0.03:ratio=${ratio}:attack=5:release=200:makeup=4`;
 }
 
@@ -351,6 +435,8 @@ function buildSustainCompressor(ratio: number) {
 function buildOversampled(rate: number, stages: string[]) {
   return [`aresample=${rate * 4}`, ...stages, `aresample=${rate}`].join(",");
 }
+
+type AmpOptions = { compressor: boolean };
 
 const AMPS = {
   v1: {
@@ -372,11 +458,11 @@ const AMPS = {
   // Compression for sustain, an asymmetric first stage, and cascaded stages
   // that each clip less, the way a high-gain preamp does.
   v2: {
-    clean: () => buildSustainCompressor(2),
-    crunch: (rate) =>
+    clean: (_rate, options) => buildSustainCompressor(2, options),
+    crunch: (rate, options) =>
       [
         PRE_EQ,
-        buildSustainCompressor(4),
+        buildSustainCompressor(4, options),
         buildOversampled(rate, [
           "volume=18dB",
           ASYMMETRIC_TANH,
@@ -384,11 +470,13 @@ const AMPS = {
           "volume=6dB",
           TANH,
         ]),
-      ].join(","),
-    "high gain": (rate) =>
+      ]
+        .filter(Boolean)
+        .join(","),
+    "high gain": (rate, options) =>
       [
         PRE_EQ,
-        buildSustainCompressor(8),
+        buildSustainCompressor(8, options),
         buildOversampled(rate, [
           "volume=18dB",
           ASYMMETRIC_TANH,
@@ -398,9 +486,14 @@ const AMPS = {
           "volume=10dB",
           TANH,
         ]),
-      ].join(","),
+      ]
+        .filter(Boolean)
+        .join(","),
   },
-} satisfies Record<string, Record<GainLevel, (rate: number) => string>>;
+} satisfies Record<
+  string,
+  Record<GainLevel, (rate: number, options: AmpOptions) => string>
+>;
 
 // A small room, as a few early reflections, because a fully dry distorted
 // guitar sounds small next to a recorded one.
