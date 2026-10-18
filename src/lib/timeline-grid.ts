@@ -1,4 +1,5 @@
-import { getVisibleBarInterval } from "./timeline";
+import type { TimeSignature } from "../types";
+import { getBeatsPerBar, getVisibleBarInterval } from "./timeline";
 
 type TimelineGridKind = "bar" | "beat" | "subdivision";
 
@@ -18,12 +19,12 @@ const MINIMUM_PIXEL_SPACING = 8;
 
 /** The timeline's grid, with the same divisions and colors wherever it's drawn. */
 export function getTimelineGridBackground({
-  beatsPerBar,
+  timeSignature,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
@@ -33,7 +34,7 @@ export function getTimelineGridBackground({
   backgroundSize: string;
 } {
   const layers = calculateTimelineGridLayers({
-    beatsPerBar,
+    timeSignature,
     minimumPixelSpacing: MINIMUM_PIXEL_SPACING,
     pixelsPerBeat,
     viewportStartBeat,
@@ -56,19 +57,23 @@ export function getTimelineGridBackground({
 }
 
 function calculateTimelineGridLayers({
-  beatsPerBar,
+  timeSignature,
   minimumPixelSpacing,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   minimumPixelSpacing: number;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
+  const beatsPerBar = getBeatsPerBar(timeSignature);
+  // A time signature counts its bar in denominator notes, such as six eighth
+  // notes in 6/8. The metronome also clicks on denominator notes.
+  const denominatorNoteInterval = 4 / timeSignature.denominator;
   const barInterval =
     getVisibleBarInterval({
       barWidth: beatsPerBar * pixelsPerBeat,
@@ -83,10 +88,10 @@ function calculateTimelineGridLayers({
     }),
   );
 
-  if (pixelsPerBeat >= minimumPixelSpacing) {
+  if (denominatorNoteInterval * pixelsPerBeat >= minimumPixelSpacing) {
     layers.push(
       createLayer({
-        intervalBeats: 1,
+        intervalBeats: denominatorNoteInterval,
         kind: "beat",
         pixelsPerBeat,
         viewportStartBeat,

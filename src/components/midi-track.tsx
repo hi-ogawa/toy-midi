@@ -28,7 +28,7 @@ import {
   type TabAnnotationDisplay,
 } from "../lib/tab-annotation";
 import { getTimelineGridBackground } from "../lib/timeline-grid";
-import type { Note } from "../types";
+import type { Note, TimeSignature } from "../types";
 import { pluralCount } from "../utils/plural-count";
 import { openFilePicker } from "./file-drop-input";
 import { MidiInstrument } from "./midi-instrument";
@@ -67,7 +67,7 @@ export function MidiTrackRow({
   track,
   runtime,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
   subdivisionsPerBeat,
   viewportStartBeat,
   move,
@@ -80,7 +80,7 @@ export function MidiTrackRow({
   track: MidiTrackState;
   runtime: EditorRuntime;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
   move: TrackMoveControls;
@@ -210,7 +210,7 @@ export function MidiTrackRow({
           <MidiTrackOverview
             track={track}
             pixelsPerBeat={pixelsPerBeat}
-            beatsPerBar={beatsPerBar}
+            timeSignature={timeSignature}
             subdivisionsPerBeat={subdivisionsPerBeat}
             viewportStartBeat={viewportStartBeat}
           />
@@ -220,7 +220,7 @@ export function MidiTrackRow({
             runtime={runtime}
             midiInteraction={midiInteraction}
             pixelsPerBeat={pixelsPerBeat}
-            beatsPerBar={beatsPerBar}
+            timeSignature={timeSignature}
             subdivisionsPerBeat={subdivisionsPerBeat}
             viewportStartBeat={viewportStartBeat}
           />
@@ -344,13 +344,13 @@ function MidiTrackActions({
 function MidiTrackOverview({
   track,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
   subdivisionsPerBeat,
   viewportStartBeat,
 }: {
   track: MidiTrackState;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
@@ -361,7 +361,7 @@ function MidiTrackOverview({
       aria-label={`${track.name} note overview, ${pluralCount(track.notes.length, "note")}`}
       className="relative col-start-2 row-start-1 overflow-hidden bg-neutral-900"
       style={getTimelineGridBackground({
-        beatsPerBar,
+        timeSignature,
         pixelsPerBeat,
         viewportStartBeat,
         subdivisionsPerBeat,
@@ -471,7 +471,7 @@ function MidiTrackEditor({
   runtime,
   midiInteraction,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
   subdivisionsPerBeat,
   viewportStartBeat,
 }: {
@@ -479,7 +479,7 @@ function MidiTrackEditor({
   runtime: EditorRuntime;
   midiInteraction: ReturnType<typeof useMidiInteraction>;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
@@ -695,7 +695,7 @@ function MidiTrackEditor({
           <div
             className="pointer-events-none absolute inset-0"
             style={getTimelineGridBackground({
-              beatsPerBar,
+              timeSignature,
               pixelsPerBeat,
               viewportStartBeat,
               subdivisionsPerBeat,
