@@ -1,4 +1,5 @@
-import { getVisibleBarInterval } from "./timeline";
+import type { TimeSignature } from "../types";
+import { getBeatsPerBar, getVisibleBarInterval } from "./timeline";
 
 type TimelineGridKind = "bar" | "beat" | "subdivision";
 
@@ -10,14 +11,14 @@ type TimelineGridLayer = {
 
 // TODO: Migrate the main editor's grid rendering to this shared utility.
 export function getTimelineGridBackground({
-  beatsPerBar,
+  timeSignature,
   colors,
   minimumPixelSpacing,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   colors: Record<TimelineGridKind, string>;
   minimumPixelSpacing: number;
   pixelsPerBeat: number;
@@ -29,7 +30,7 @@ export function getTimelineGridBackground({
   backgroundSize: string;
 } {
   const layers = calculateTimelineGridLayers({
-    beatsPerBar,
+    timeSignature,
     minimumPixelSpacing,
     pixelsPerBeat,
     viewportStartBeat,
@@ -52,19 +53,23 @@ export function getTimelineGridBackground({
 }
 
 function calculateTimelineGridLayers({
-  beatsPerBar,
+  timeSignature,
   minimumPixelSpacing,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   minimumPixelSpacing: number;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
+  const beatsPerBar = getBeatsPerBar(timeSignature);
+  // Beat lines follow the time signature's beat, such as eighth notes in 7/8,
+  // so they divide every bar evenly.
+  const beatInterval = 4 / timeSignature.denominator;
   const barInterval =
     getVisibleBarInterval({
       barWidth: beatsPerBar * pixelsPerBeat,
@@ -79,10 +84,10 @@ function calculateTimelineGridLayers({
     }),
   );
 
-  if (pixelsPerBeat >= minimumPixelSpacing) {
+  if (beatInterval * pixelsPerBeat >= minimumPixelSpacing) {
     layers.push(
       createLayer({
-        intervalBeats: 1,
+        intervalBeats: beatInterval,
         kind: "beat",
         pixelsPerBeat,
         viewportStartBeat,

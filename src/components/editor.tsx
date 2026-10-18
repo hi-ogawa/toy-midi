@@ -386,7 +386,7 @@ export function Editor({ source }: { source: ProjectSource }) {
             />
             <TimelineHeader
               pixelsPerBeat={timeline.pixelsPerBeat}
-              beatsPerBar={timeline.beatsPerBar}
+              timeSignature={timeline.timeSignature}
               subdivisionsPerBeat={timeline.subdivisionsPerBeat}
               viewportStartBeat={timeline.viewportStartBeat}
               tempo={timeline.tempo}
@@ -413,7 +413,7 @@ export function Editor({ source }: { source: ProjectSource }) {
               <ReferenceTimelineRow
                 referenceVideo={clipInteraction.referenceVideo!}
                 pixelsPerBeat={timeline.pixelsPerBeat}
-                beatsPerBar={timeline.beatsPerBar}
+                timeSignature={timeline.timeSignature}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 viewportStartBeat={timeline.viewportStartBeat}
                 tempo={timeline.tempo}
@@ -528,7 +528,7 @@ export function Editor({ source }: { source: ProjectSource }) {
                           emptyLabel="Record or import audio"
                           recordingClipId={pendingRecording?.id}
                           pixelsPerBeat={timeline.pixelsPerBeat}
-                          beatsPerBar={timeline.beatsPerBar}
+                          timeSignature={timeline.timeSignature}
                           subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                           viewportStartBeat={timeline.viewportStartBeat}
                           tempo={timeline.tempo}
@@ -590,7 +590,7 @@ export function Editor({ source }: { source: ProjectSource }) {
                               regions={deriveClipRegions([clip])}
                               testId="clip-lane"
                               pixelsPerBeat={timeline.pixelsPerBeat}
-                              beatsPerBar={timeline.beatsPerBar}
+                              timeSignature={timeline.timeSignature}
                               subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                               viewportStartBeat={timeline.viewportStartBeat}
                               tempo={timeline.tempo}
@@ -621,7 +621,7 @@ export function Editor({ source }: { source: ProjectSource }) {
                       track={track}
                       runtime={runtime}
                       pixelsPerBeat={timeline.pixelsPerBeat}
-                      beatsPerBar={timeline.beatsPerBar}
+                      timeSignature={timeline.timeSignature}
                       subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                       viewportStartBeat={timeline.viewportStartBeat}
                       onEffectsOpen={() => effects.showEffects(track.id)}
