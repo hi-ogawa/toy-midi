@@ -9,18 +9,22 @@ type TimelineGridLayer = {
   spacingPixels: number;
 };
 
-// TODO: Migrate the main editor's grid rendering to this shared utility.
+const GRID_COLORS: Record<TimelineGridKind, string> = {
+  bar: "#525252",
+  beat: "#404040",
+  subdivision: "#333333",
+};
+
+const MINIMUM_PIXEL_SPACING = 8;
+
+/** The timeline's grid, with the same divisions and colors wherever it's drawn. */
 export function getTimelineGridBackground({
   timeSignature,
-  colors,
-  minimumPixelSpacing,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
 }: {
   timeSignature: TimeSignature;
-  colors: Record<TimelineGridKind, string>;
-  minimumPixelSpacing: number;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
@@ -31,7 +35,7 @@ export function getTimelineGridBackground({
 } {
   const layers = calculateTimelineGridLayers({
     timeSignature,
-    minimumPixelSpacing,
+    minimumPixelSpacing: MINIMUM_PIXEL_SPACING,
     pixelsPerBeat,
     viewportStartBeat,
     subdivisionsPerBeat,
@@ -40,7 +44,7 @@ export function getTimelineGridBackground({
     backgroundImage: layers
       .map(
         ({ kind }) =>
-          `linear-gradient(to right, ${colors[kind]} 1px, transparent 1px)`,
+          `linear-gradient(to right, ${GRID_COLORS[kind]} 1px, transparent 1px)`,
       )
       .join(", "),
     backgroundPosition: layers

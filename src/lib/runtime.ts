@@ -116,6 +116,7 @@ export interface MidiTrackState {
   pan: number;
   muted: boolean;
   soloed: boolean;
+  /** Shows tab annotation in the note editor and enables editing it */
   tabAnnotationEnabled: boolean;
   /** MIDI note numbers of the open strings, highest string first */
   tabOpenStringPitches: number[];
@@ -810,6 +811,9 @@ export class EditorRuntime {
         this.masterOutput.connect(this.masterAnalyser.input);
       }
       return this.masterAnalyser;
+    }
+    if (target.kind === "input") {
+      return this.captureInput?.analyser;
     }
     const playback =
       this.trackPlaybacks.get(target.id) ??

@@ -211,6 +211,7 @@ export function MidiTrackRow({
             track={track}
             pixelsPerBeat={pixelsPerBeat}
             timeSignature={timeSignature}
+            subdivisionsPerBeat={subdivisionsPerBeat}
             viewportStartBeat={viewportStartBeat}
           />
         ) : (
@@ -344,11 +345,13 @@ function MidiTrackOverview({
   track,
   pixelsPerBeat,
   timeSignature,
+  subdivisionsPerBeat,
   viewportStartBeat,
 }: {
   track: MidiTrackState;
   pixelsPerBeat: number;
   timeSignature: TimeSignature;
+  subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
   return (
@@ -361,9 +364,7 @@ function MidiTrackOverview({
         timeSignature,
         pixelsPerBeat,
         viewportStartBeat,
-        subdivisionsPerBeat: 1,
-        minimumPixelSpacing: 8,
-        colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
+        subdivisionsPerBeat,
       })}
     >
       {track.notes.length > 0 && (
@@ -698,12 +699,6 @@ function MidiTrackEditor({
               pixelsPerBeat,
               viewportStartBeat,
               subdivisionsPerBeat,
-              minimumPixelSpacing: 8,
-              colors: {
-                bar: "#525252",
-                beat: "#404040",
-                subdivision: "#333333",
-              },
             })}
           />
           {track.notes

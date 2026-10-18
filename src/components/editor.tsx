@@ -664,7 +664,6 @@ export function Editor({ source }: { source: ProjectSource }) {
             error={input.error}
             hasAccess={input.hasAccess}
             inputActive={input.active}
-            inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
             isRecording={flags.isRecording}
             isPlaying={state.isPlaying}
@@ -762,7 +761,7 @@ export function Editor({ source }: { source: ProjectSource }) {
             routeNeedsSetup={input.route.needsSetup}
             accessRequired={input.initialized && !input.hasAccess}
             inputActive={input.active}
-            inputAnalyser={runtime.captureInput?.analyser}
+            levelMeters={runtime.levelMeters}
             toggleDisabled={
               input.mutationPending ||
               !input.initialized ||
