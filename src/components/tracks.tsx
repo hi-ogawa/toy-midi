@@ -13,7 +13,7 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { formatGainDb } from "../lib/music";
-import { MIN_GAIN_SLIDER_HEIGHT } from "../lib/runtime";
+import { MIN_GAIN_SLIDER_HEIGHT } from "../lib/track-state";
 import { openFilePicker } from "./file-drop-input";
 import { MixToggle } from "./mix-toggle";
 import { GainSlider } from "./mixer";

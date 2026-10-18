@@ -18,6 +18,17 @@ export interface MultibandEqParameters {
   bands: MultibandEqBand[];
 }
 
+export function createDefaultEqBand(): MultibandEqBand {
+  return {
+    id: crypto.randomUUID(),
+    ...DEFAULT_PARAMETERS,
+  };
+}
+
+export function createDefaultMultibandEq(): MultibandEqParameters {
+  return { bypass: false, bands: [createDefaultEqBand()] };
+}
+
 /** Whether the EQ changes the sound, which a flat or bypassed band doesn't. */
 export function isEqActive({ bypass, bands }: MultibandEqParameters): boolean {
   return !bypass && bands.some((band) => !band.bypass && band.gain !== 1);
