@@ -1,4 +1,4 @@
-import { AudioRender } from "./components/audio-render";
+import { AudioRenderPage } from "./components/audio-render-page";
 import { EditorPage } from "./components/editor-page";
 import { ExamplesPage } from "./components/examples-page";
 import { HomePage } from "./components/home-page";
@@ -46,7 +46,7 @@ export function App() {
       return <ScoreCapturePage />;
     }
     case "audioRender": {
-      return <AudioRender />;
+      return <AudioRenderPage />;
     }
     case "legacyProjectScore": {
       return <LegacyProjectPage />;
