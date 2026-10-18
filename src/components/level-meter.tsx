@@ -79,16 +79,6 @@ export function LevelMeter({
     // Keyed by value, so a target object recreated on render keeps the subscription.
   }, [meters, targetKey, orientation, channelCount]);
 
-  const dots = Array.from({ length: channelCount }, (_, index) => (
-    <span
-      key={index}
-      data-testid="meter-clip"
-      className={cn(
-        "rounded-[1px] bg-neutral-700 data-[clipped=true]:bg-red-500",
-        orientation === "vertical" ? "h-1 w-[3px]" : "w-1 flex-1",
-      )}
-    />
-  ));
   const clipButton = (
     <button
       ref={clipRef}
@@ -105,7 +95,16 @@ export function LevelMeter({
           : "flex-col",
       )}
     >
-      {dots}
+      {Array.from({ length: channelCount }, (_, index) => (
+        <span
+          key={index}
+          data-testid="meter-clip"
+          className={cn(
+            "rounded-[1px] bg-neutral-700 data-[clipped=true]:bg-red-500",
+            orientation === "vertical" ? "h-1 w-[3px]" : "w-1 flex-1",
+          )}
+        />
+      ))}
     </button>
   );
   const canvas = <canvas ref={canvasRef} className="size-full" />;
