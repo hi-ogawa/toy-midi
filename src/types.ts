@@ -1,5 +1,3 @@
-export type TabString = 1 | 2 | 3 | 4 | 5;
-
 export interface Note {
   /** Any string unique within the track, such as `crypto.randomUUID()` */
   id: string;
@@ -16,7 +14,7 @@ export interface Note {
    * or when that string cannot play the pitch, tab and score use the highest
    * string that can.
    */
-  tabString?: TabString;
+  tabString?: number;
 }
 
 /**
