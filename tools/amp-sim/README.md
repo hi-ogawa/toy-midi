@@ -27,6 +27,25 @@ The order doesn't follow a pedalboard. A guitarist would put the compressor peda
 
 Two parts of a real amp aren't modeled. The tone stack, the bass, middle, and treble knobs that guitarists tweak for tone, sits after the preamp, so it changes how the distortion sounds rather than how hard the amp breaks up. And the power amp adds its own compression and saturation when played loud.
 
+### The drive in math
+
+The drive runs on float samples at 4× the sample rate, upsampled before the first gain and downsampled after the last clipper by ffmpeg's resampler. Dry tracks come out of fluidsynth at `-g 0.5`, which puts the guitar tracks' peaks at about −5 dBFS (0.56) for open strokes and about −11 dBFS (0.28) for muted ones, and the gains below are tuned for that level.
+
+Each clipper is ffmpeg's `asoftclip=type=tanh` at its defaults, which is y = tanh(x). tanh is close to linear for small x and flattens toward ±1 for large x, so a stage with gain g on input x gives y = tanh(g·x): the larger g, the more of the wave is flattened. tanh is odd, tanh(−x) = −tanh(x), so it flattens both halves alike and adds only odd harmonics.
+
+The asymmetric stage adds a DC offset before the clipper, y = tanh(g·x + 0.15), and a 20 Hz high-pass after it removes the constant tanh(0.15) ≈ 0.149 again. The offset moves the wave up the curve, so its top half flattens more than its bottom half, which adds even harmonics, the way a tube stage biased off center does.
+
+Gains in dB, with the factor, from pre-EQ output to the cabinet:
+
+| Amp, gain level | Stages                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `v1`, crunch    | ×10 (20 dB) → tanh                                                                                                 |
+| `v1`, high gain | ×15.8 (24 dB) → tanh → +3 dB peak at 1 kHz → ×4.0 (12 dB) → tanh                                                   |
+| `v2`, crunch    | ×7.9 (18 dB) → asymmetric tanh → +2 dB peak at 1 kHz → ×2.0 (6 dB) → tanh                                          |
+| `v2`, high gain | ×7.9 (18 dB) → asymmetric tanh → 120 Hz high-pass, +3 dB peak at 1 kHz → ×5.0 (14 dB) → tanh → ×3.2 (10 dB) → tanh |
+
+After the drive, ×0.126 (−18 dB) brings the level back down before the cabinet, and loudness matching sets the final level. `v2`'s compressor, when on, sits before the first gain, and its clean level is the compressor alone, so `--no-comp` leaves clean tracks dry.
+
 ## Iterations
 
 Each step changes one thing, shown in yellow in its chain diagram, all on the filter cabinet the chain ships with, and the cabinet gets its own comparison at the end. Every render is normalized to −16 LUFS, so a comparison is about tone, not level, because the louder of two versions tends to sound better, and drive makes a track much louder. Each guitar track is also matched to its dry loudness before mixing, so the amp doesn't move it in the mix. The tags name the variants to compare, [Reproduce](#reproduce) generates them, and `gen-figures.ts` draws the plots from those renders.
@@ -44,7 +63,7 @@ A clean Telecaster bridge pickup is the classic country sound, so the riffs soun
 ![Step 2 adds pre-EQ, one tanh drive stage, and the cabinet](images/chain-2-v1.svg)
 
 - **Pre-EQ:** a high-pass at 90 Hz (12 dB per octave) so the low end stays tight under distortion, and a peak of +4 dB at 750 Hz, 1.2 octaves wide, for the mid hump of an overdrive pedal in front of an amp. It's a rough stand-in for the pedal's tone: a Tube Screamer gets its hump mostly by cutting lows and highs rather than with a peak.
-- **Drive:** a fixed boost into a tanh soft clipper, which rounds off the peaks and adds harmonics.
+- **Drive:** a fixed boost into a tanh soft clipper, which rounds off the peaks and adds harmonics. [The drive in math](#the-drive-in-math) has the formulas and gains.
 - **Cabinet:** filters standing in for a guitar speaker, mainly a steep roll-off from about 5 kHz. Step 6 shows why it's there.
 
 **Heard:** better than clean. But General MIDI's distortion (`gm`) sustains more convincingly, even though its samples have no pick attack.
