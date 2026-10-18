@@ -6,18 +6,6 @@
   scrollbar-color: #525252 transparent;
 }
 
-/*
- * Lines rank by what they separate. Edges between regions of the layout, such
- * as tracks, header rows, and the track header column, stay brighter than any
- * line of the timeline grid, so a boundary never reads as one more grid line.
- */
-@theme {
-  --color-edge: #525252;
-  --color-grid-strong: #404040;
-  --color-grid: #333333;
-  --color-grid-faint: #292929;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -35,6 +23,10 @@
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
+  --color-edge: var(--edge);
+  --color-grid-strong: var(--grid-strong);
+  --color-grid: var(--grid);
+  --color-grid-faint: var(--grid-faint);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -60,6 +52,16 @@
   --border: oklch(0.35 0 0);
   --input: oklch(0.35 0 0);
   --ring: oklch(0.648 0.15 160);
+  /*
+   * Lines rank by what they separate. Edges between regions of the layout,
+   * such as tracks, header rows, and the track header column, stay brighter
+   * than any line of the timeline grid, so a boundary never reads as one more
+   * grid line.
+   */
+  --edge: #525252;
+  --grid-strong: #404040;
+  --grid: #333333;
+  --grid-faint: #292929;
 }
 
 @layer base {

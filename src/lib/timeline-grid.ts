@@ -9,9 +9,9 @@ type TimelineGridLayer = {
 };
 
 const GRID_COLORS: Record<TimelineGridKind, string> = {
-  bar: "var(--color-grid-strong)",
-  beat: "var(--color-grid)",
-  subdivision: "var(--color-grid-faint)",
+  bar: "var(--grid-strong)",
+  beat: "var(--grid)",
+  subdivision: "var(--grid-faint)",
 };
 
 export function getTimelineGridBackground({
