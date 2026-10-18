@@ -239,7 +239,9 @@ function getDryTrackPath({
 // --- amp ------------------------------------------------------------------------
 
 // Run a guitar track's dry render through the amp and cabinet, matched to its
-// dry loudness, then apply the track's gain and pan.
+// dry loudness, then apply the track's gain and pan. Drive makes a track much
+// denser, so without the match the amp would also move the guitar up in the
+// mix.
 async function runAmp({
   track,
   gain,
@@ -454,7 +456,11 @@ function writeNoteGate({
 
 // --- mixing ---------------------------------------------------------------------
 
-// Mix the given track files and normalize the mix to MIX_LUFS as an MP3.
+// Mix the given track files and normalize the mix to MIX_LUFS as an MP3, so
+// variants compare by tone rather than by level, since the louder of two
+// otherwise tends to sound better. The gain is measured, then applied as one
+// linear step. ffmpeg's loudnorm in one pass would apply dynamic gain, which
+// changes the sound under comparison.
 async function mixTracks(inputs: string[], output: string) {
   const wav = output.replace(/\.mp3$/, ".wav");
   await runFfmpeg([
