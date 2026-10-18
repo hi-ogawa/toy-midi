@@ -255,7 +255,7 @@ export function TrackRow({
       {children}
       <div
         ref={resizeRef}
-        className="absolute inset-x-0 bottom-0 z-30 h-px cursor-ns-resize border-b border-neutral-700 after:absolute after:inset-x-0 after:-top-1 after:h-2"
+        className="absolute inset-x-0 bottom-0 z-30 h-[3px] cursor-ns-resize bg-black after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title={`Resize ${title}`}
       />
     </div>
