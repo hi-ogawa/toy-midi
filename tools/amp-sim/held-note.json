@@ -1,0 +1,37 @@
+{
+  "title": "Held notes",
+  "tempo": 60,
+  "timeSignature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "midiTracks": [
+    {
+      "name": "High Gain",
+      "soundfont": "flamestudios-telecaster-bridge",
+      "program": 0,
+      "notes": [
+        {
+          "pitch": 40,
+          "start": 0,
+          "duration": 6,
+          "velocity": 100
+        },
+        {
+          "pitch": 52,
+          "start": 8,
+          "duration": 6,
+          "velocity": 100
+        },
+        {
+          "pitch": 64,
+          "start": 16,
+          "duration": 6,
+          "velocity": 100
+        }
+      ],
+      "gain": 1,
+      "pan": 0
+    }
+  ]
+}

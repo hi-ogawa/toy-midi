@@ -21,6 +21,7 @@
     "test-e2e": "playwright test",
     "test-e2e-trace": "E2E_TRACE=1 playwright test",
     "toy-midi": "node packages/cli/bin/cli.js",
+    "amp-sim": "tsx tools/amp-sim/amp-sim.ts",
     "wsola": "tsx tools/wsola.ts"
   },
   "dependencies": {
