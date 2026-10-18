@@ -3,7 +3,7 @@ import {
   type LevelMeters,
   type MeterChannel,
   type MeterTarget,
-  getMeterKey,
+  getMeterTargetKey,
 } from "../lib/level-meters";
 import { MAX_DB, MIN_DB, clamp } from "../lib/music";
 import { cn } from "./ui/utils";
@@ -42,7 +42,7 @@ export function LevelMeter({
   const meterRef = useRef<HTMLDivElement>(null);
   const clipRef = useRef<HTMLButtonElement>(null);
   const readoutRef = useRef<HTMLOutputElement>(null);
-  const targetKey = getMeterKey(target);
+  const targetKey = getMeterTargetKey(target);
 
   useEffect(() => {
     const meterCanvas = new MeterCanvas(canvasRef.current!, orientation);

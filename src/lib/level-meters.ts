@@ -29,7 +29,7 @@ export class LevelMeters {
       channels: [MeterChannel, MeterChannel];
       listeners: Set<MeterListener>;
     }
-  >(getMeterKey);
+  >(getMeterTargetKey);
   private stopLoop?: () => void;
   private lastTime?: number;
   private readonly getAnalyser: AnalyserLookup;
@@ -93,7 +93,7 @@ export class LevelMeters {
   }
 }
 
-export function getMeterKey(target: MeterTarget): string {
+export function getMeterTargetKey(target: MeterTarget): string {
   return target.kind === "track" ? `track:${target.id}` : target.kind;
 }
 
