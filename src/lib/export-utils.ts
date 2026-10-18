@@ -29,7 +29,11 @@ function sanitizeBaseName(baseName: string): string {
   if (!trimmed) {
     return "toy-midi-export";
   }
-  return trimmed.replace(/[^a-zA-Z0-9-_]/g, "_");
+  return sanitizeFileName(trimmed);
+}
+
+export function sanitizeFileName(name: string): string {
+  return name.trim().replace(/[^a-zA-Z0-9-_]/g, "_");
 }
 
 function normalizeExtension(extension: string): string {

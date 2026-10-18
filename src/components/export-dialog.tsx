@@ -1,6 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
+import type { StemTap } from "../lib/mix";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
+import { buildStemsArchive } from "../lib/stem-export";
 import { encodeWav } from "../lib/wav";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
@@ -18,14 +21,27 @@ export function ExportDialog({
   onClose: () => void;
   disabled: boolean;
 }) {
+  const [stemTap, setStemTap] = useState<StemTap>();
   const exportMutation = useMutation({
     mutationFn: async () => {
+      const mix = await runtime.renderMix();
+      if (!stemTap) {
+        const fileName = buildExportFileName({
+          baseName: state.title,
+          extension: "wav",
+        });
+        downloadBlob(encodeWav(mix), fileName);
+        return;
+      }
       const fileName = buildExportFileName({
-        baseName: state.title,
-        extension: "wav",
+        baseName: `${state.title}-stems`,
+        extension: "zip",
       });
-      const buffer = await runtime.renderMix();
-      downloadBlob(encodeWav(buffer), fileName);
+      const archive = await buildStemsArchive({
+        mix,
+        stems: runtime.renderStems(stemTap),
+      });
+      downloadBlob(archive, fileName);
     },
   });
 
@@ -40,7 +56,29 @@ export function ExportDialog({
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
           <dt className="text-neutral-400">Format</dt>
           <dd>WAV, stereo, 48 kHz, 16-bit PCM</dd>
+          <dt className="text-neutral-400">Stems</dt>
+          <dd>
+            <select
+              aria-label="Stems"
+              value={stemTap ?? "none"}
+              onChange={(event) => {
+                const value = event.target.value;
+                setStemTap(value === "none" ? undefined : (value as StemTap));
+              }}
+              className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
+            >
+              <option value="none">None, mix only</option>
+              <option value="post-fader">Post-fader, as in the mix</option>
+              <option value="dry">Dry, before EQ, gain, and pan</option>
+            </select>
+          </dd>
         </dl>
+        {stemTap && (
+          <p className="text-xs leading-relaxed text-neutral-400">
+            Downloads a zip with the mix and one WAV per track. Every stem runs
+            the length of the mix and ignores mute and solo.
+          </p>
+        )}
       </div>
       <Button
         className="w-full px-4 py-2 text-sm hover:bg-neutral-700"
