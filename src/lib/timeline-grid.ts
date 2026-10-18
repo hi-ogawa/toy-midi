@@ -71,9 +71,9 @@ function calculateTimelineGridLayers({
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
   const beatsPerBar = getBeatsPerBar(timeSignature);
-  // Beat lines follow the time signature's beat, such as eighth notes in 7/8,
-  // so they divide every bar evenly.
-  const beatInterval = 4 / timeSignature.denominator;
+  // Lines follow the time signature's denominator note, such as eighth notes
+  // in 7/8, so they divide every bar evenly.
+  const denominatorNoteInterval = 4 / timeSignature.denominator;
   const barInterval =
     getVisibleBarInterval({
       barWidth: beatsPerBar * pixelsPerBeat,
@@ -88,10 +88,10 @@ function calculateTimelineGridLayers({
     }),
   );
 
-  if (beatInterval * pixelsPerBeat >= minimumPixelSpacing) {
+  if (denominatorNoteInterval * pixelsPerBeat >= minimumPixelSpacing) {
     layers.push(
       createLayer({
-        intervalBeats: beatInterval,
+        intervalBeats: denominatorNoteInterval,
         kind: "beat",
         pixelsPerBeat,
         viewportStartBeat,
