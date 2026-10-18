@@ -157,6 +157,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         title: state.title,
         tempo: state.tempo,
         timeSignature: state.timeSignature,
+        locators: state.locators,
         tracks: orderedMidiTracks,
       });
       downloadBlob(

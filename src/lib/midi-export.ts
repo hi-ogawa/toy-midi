@@ -5,7 +5,7 @@ import {
   PITCH_BEND_RANGE,
 } from "./general-midi";
 import { clamp } from "./music";
-import type { MidiTrackState } from "./runtime";
+import type { Locator, MidiTrackState } from "./runtime";
 
 export type MidiExportTrack = Pick<
   MidiTrackState,
@@ -35,18 +35,20 @@ interface TrackEvent {
 
 /**
  * Encode a project as a format 1 Standard MIDI File: a conductor track with
- * the title, tempo, and time signature, then one track per MIDI track on its
+ * the title, tempo, time signature, and locators as markers, then one track per MIDI track on its
  * own channel, with drum kits on the drum channel.
  */
 export function exportMidi({
   title,
   tempo,
   timeSignature,
+  locators,
   tracks,
 }: {
   title: string;
   tempo: number;
   timeSignature: TimeSignature;
+  locators: Pick<Locator, "beat" | "label">[];
   tracks: MidiExportTrack[];
 }): Uint8Array {
   const drumTracks = tracks.filter((track) => track.bank === DRUM_KIT_BANK);
@@ -68,10 +70,6 @@ export function exportMidi({
         : MELODIC_CHANNELS[nextMelodic++];
     return encodeTrackEvents({ track, channel });
   });
-  // Every track ends at the same tick, two beats after the last event to
-  // leave room for release tails.
-  const endTick =
-    Math.max(0, ...trackEvents.flat().map((event) => event.tick)) + PPQ * 2;
 
   const microsecondsPerBeat = Math.round(60_000_000 / tempo);
   const conductor: TrackEvent[] = [
@@ -94,9 +92,20 @@ export function exportMidi({
         8,
       ],
     },
+    ...locators.map((locator) => ({
+      tick: Math.max(0, Math.round(locator.beat * PPQ)),
+      order: 0,
+      bytes: encodeTextMeta(0x06, locator.label),
+    })),
   ];
 
-  const chunks = [conductor, ...trackEvents].map((events) =>
+  const allEvents = [conductor, ...trackEvents];
+  // Every track ends at the same tick, two beats after the last event to
+  // leave room for release tails.
+  const endTick =
+    Math.max(0, ...allEvents.flat().map((event) => event.tick)) + PPQ * 2;
+
+  const chunks = allEvents.map((events) =>
     encodeTrackChunk({ events, endTick }),
   );
   return Uint8Array.from([

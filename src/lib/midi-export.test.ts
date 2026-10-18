@@ -17,12 +17,16 @@ function createTrack(track: Partial<MidiExportTrack>): MidiExportTrack {
 
 // Each track's events at absolute ticks, without the parser's encoding
 // details.
-function exportAndParse(tracks: MidiExportTrack[]) {
+function exportAndParse(
+  tracks: MidiExportTrack[],
+  locators: Parameters<typeof exportMidi>[0]["locators"] = [],
+) {
   const midi = parseMidi(
     exportMidi({
       title: "Song",
       tempo: 90,
       timeSignature: { numerator: 6, denominator: 8 },
+      locators,
       tracks,
     }),
   );
@@ -37,6 +41,7 @@ function exportAndParse(tracks: MidiExportTrack[]) {
           running: _running,
           ...rest
         } = event as {
+          type: string;
           meta?: true;
           running?: true;
         };
@@ -68,6 +73,24 @@ describe(exportMidi, () => {
         thirtyseconds: 8,
       },
       { tick: 960, type: "endOfTrack" },
+    ]);
+  });
+
+  it("writes locators as markers on the conductor track", () => {
+    const { tracks } = exportAndParse(
+      [createTrack({})],
+      [
+        { beat: 8, label: "Chorus" },
+        { beat: 0, label: "Verse" },
+      ],
+    );
+    expect(tracks[0].filter((event) => event.type === "marker")).toEqual([
+      { tick: 0, type: "marker", text: "Verse" },
+      { tick: 3840, type: "marker", text: "Chorus" },
+    ]);
+    expect(tracks.map((events) => events.at(-1))).toEqual([
+      { tick: 4800, type: "endOfTrack" },
+      { tick: 4800, type: "endOfTrack" },
     ]);
   });
 
