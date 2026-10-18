@@ -29,56 +29,45 @@ Two parts of a real amp aren't modeled. The tone stack, the bass, middle, and tr
 
 ### The drive in math
 
-The drive models an amp's preamp: a chain of gain stages, each amplifying the signal and clipping it softly once pushed too hard, as a tube triode does. Crunch chains two, high gain three. This is the settled drive (render 9), and x is a sample in [−1, 1].
+The drive models an amp's preamp: a chain of gain stages, each amplifying the signal and clipping it softly once pushed too hard, as a tube triode does. Crunch chains two, high gain three. This section follows the settled drive (render 9), with x a sample in [−1, 1].
 
-**Gain stage:** y = tanh(g·x), gain g, then a soft clipper.
+Each gain stage computes y = tanh(g·x), a gain g followed by a soft clipper. Since tanh(u) ≈ u for small u and tanh(u) → ±1 for large u, the gain decides how much of the wave gets flattened. Since tanh is odd, it flattens the top and bottom of a wave alike, which adds only odd harmonics.
 
-- tanh(u) ≈ u for |u| ≪ 1, and → ±1 for |u| ≫ 1, so g sets how much of the wave is flattened.
-- tanh is odd ⇒ top and bottom flatten alike ⇒ odd harmonics only.
-
-**Shifted stage**, the first gain stage in each drive: s(u) = tanh(u + b) − tanh(b), b = 0.15.
-
-- Saturates at 1 − tanh(b) ≈ 0.85 above and −1 − tanh(b) ≈ −1.15 below ⇒ the top flattens first ⇒ even harmonics too.
-- Subtracting tanh(b) keeps s(0) = 0, so silence stays silent.
+The first stage of each drive is shifted: s(u) = tanh(u + b) − tanh(b) with b = 0.15. It saturates at 1 − tanh(b) ≈ 0.85 above and −1 − tanh(b) ≈ −1.15 below, so the top flattens first, which adds even harmonics too. Subtracting tanh(b) keeps s(0) = 0, so silence stays silent.
 
 ![The clipper: tanh follows y = x near 0 and flattens toward ±1, the shifted one flattens lower above and further below](images/drive-tanh.svg)
 
-One gain stage, g = 7.9, on x = 0.2·sin(t):
+On x = 0.2·sin(t), a single stage with g = 7.9 shows the difference: without the shift the top and bottom flatten alike, and with it the top flattens more.
 
 ![One stage on a sine: the input swings to ±0.2, the gain alone to ±1.6, without the shift the top and bottom flatten alike, with it the top flattens lower and the bottom swings further](images/drive-shift.svg)
 
-**Drives**, chained gain stages, with the filters between them omitted:
-
-- crunch: D(x) = tanh(2.0·s(7.9x))
-- high gain: D(x) = tanh(3.2·tanh(5.0·s(7.9x)))
-
-Small-signal gain D′(0) = 7.9·sech²(b)·(2.0, or 5.0·3.2) ≈ 15.5 (24 dB) for crunch and ≈ 123 (42 dB) for high gain. An input well above 1/D′(0), 0.06 for crunch and 0.008 for high gain, comes out nearly square:
+Chaining the stages, and leaving out the filters between them, crunch is D(x) = tanh(2.0·s(7.9x)) and high gain is D(x) = tanh(3.2·tanh(5.0·s(7.9x))). Their small-signal gain, the slope at 0, is D′(0) = 7.9·sech²(b)·2.0 ≈ 15.5 (24 dB) for crunch and 7.9·sech²(b)·5.0·3.2 ≈ 123 (42 dB) for high gain. An input well above 1/D′(0), which is 0.06 for crunch and 0.008 for high gain, comes out nearly square.
 
 ![Drive curves: crunch rises steeply, high gain almost straight up to ±1](images/drive-curves.svg)
 
-Guitar peaks, 0.3 to 0.6, are far above both, so a stroke's attack is nearly square either way. A decaying note at x = 0.05·sin(t) is below crunch's 0.06 and far above high gain's 0.008 ⇒ crunch rounds it, high gain still squares it ⇒ high gain sustains:
+A guitar's peaks, 0.3 to 0.6, are far above both, so every stroke's attack comes out nearly square. The drives differ on a decaying note. At x = 0.05·sin(t), the note is below crunch's 0.06 but far above high gain's 0.008, so crunch only rounds it while high gain still squares it, which is why high gain sustains.
 
 ![A quiet sine through each drive: crunch rounded, high gain nearly square](images/drive-waves.svg)
 
-Harmonics of that sine, relative to the fundamental. Gray is crunch with tanh in place of s:
+The harmonics of that sine show the shift at work. Crunch without the shift, in gray, has only odd harmonics, and crunch with it adds even ones.
 
 ![Harmonics of the quiet sine: crunch without the shift has only 3, 5, and 7, crunch adds 2, 4, and 6, high gain has strong odd harmonics up to 9](images/drive-harmonics.svg)
 
-**Full stages**, with the filters:
+The full stages, with the filters:
 
 | Gain level | Stages                                                                                               |
 | ---------- | ---------------------------------------------------------------------------------------------------- |
 | Crunch     | ×7.9 (18 dB) → s → +2 dB peak at 1 kHz → ×2.0 (6 dB) → tanh                                          |
 | High gain  | ×7.9 (18 dB) → s → 120 Hz high-pass, +3 dB peak at 1 kHz → ×5.0 (14 dB) → tanh → ×3.2 (10 dB) → tanh |
 
-**In the prototype:**
+In the prototype:
 
-- Drive: `--amp v2 --no-comp`. `v1` is the first try, one unshifted stage, tanh(10x) for crunch.
-- Clipper: ffmpeg's `asoftclip=type=tanh` at defaults = tanh(x). The −tanh(b) is a 20 Hz high-pass after s.
-- Oversampling: 4× around the drive, so harmonics above the original Nyquist frequency are filtered out instead of aliasing.
-- Input: fluidsynth at `-g 0.5`, guitar peaks ≈ 0.56 open and 0.28 muted. The gains assume this level.
-- Output: ×0.126 (−18 dB) before the cabinet, then loudness matching.
-- Clean: `v2`'s clean is the compressor alone, so `--no-comp` leaves clean tracks dry.
+- The drive is `--amp v2 --no-comp`. `v1` was the first try, a single unshifted stage, tanh(10x) for crunch.
+- Each clipper is ffmpeg's `asoftclip=type=tanh`, which is exactly tanh(x) at its defaults, and a 20 Hz high-pass after s does the subtraction of tanh(b).
+- The drive runs at 4× the sample rate, so harmonics above the original Nyquist frequency are filtered out on the way back down instead of aliasing.
+- The gains assume fluidsynth's output at `-g 0.5`, where guitar peaks are about 0.56 for open strokes and 0.28 for muted ones.
+- After the drive, ×0.126 (−18 dB) brings the level down before the cabinet, and loudness matching sets the final level.
+- `v2`'s clean level is the compressor alone, so `--no-comp` leaves clean tracks dry.
 
 TODO: wrong, clean tracks still get the −18 dB, the mono fold, and the cabinet.
 
