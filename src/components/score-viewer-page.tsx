@@ -39,7 +39,7 @@ import { cn } from "./ui/utils";
 import { useDraftInput } from "./use-draft-input";
 import { useWindowEvent } from "./use-window-event";
 
-export function ScoreViewer({
+export function ScoreViewerPage({
   initialSource,
 }: {
   initialSource?: ScoreSource;

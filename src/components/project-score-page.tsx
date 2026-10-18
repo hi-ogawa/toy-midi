@@ -5,9 +5,9 @@ import { projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../lib/tab-annotation";
 import { RouteError } from "./route-error";
-import { ScoreViewer } from "./score-viewer";
+import { ScoreViewerPage } from "./score-viewer-page";
 
-export function ScorePage({
+export function ProjectScorePage({
   projectId,
   trackId,
 }: {
@@ -34,7 +34,7 @@ export function ScorePage({
   if (scoreQuery.isPending) {
     return <div className="p-6 text-neutral-400">Loading score…</div>;
   }
-  return <ScoreViewer initialSource={scoreQuery.data} />;
+  return <ScoreViewerPage initialSource={scoreQuery.data} />;
 }
 
 async function getProjectScoreSource({

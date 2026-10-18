@@ -54,7 +54,7 @@ import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
 import { useWindowEvent } from "./use-window-event";
 
-export function Editor({ source }: { source: ProjectSource }) {
+export function EditorPage({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
   useWebMcpBridge(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(source));

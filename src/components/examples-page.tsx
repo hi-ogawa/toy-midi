@@ -12,7 +12,7 @@ import { routes } from "../lib/routes";
 import { pluralCount } from "../utils/plural-count";
 import { cn } from "./ui/utils";
 
-export function Examples() {
+export function ExamplesPage() {
   const examplesQuery = useQuery({
     queryKey: ["examples"],
     queryFn: fetchExamples,
