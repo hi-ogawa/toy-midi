@@ -1,4 +1,6 @@
+import { execFile } from "node:child_process";
 import path from "node:path";
+import { promisify } from "node:util";
 import { test, type Locator, type Page } from "@playwright/test";
 
 /** Call at file scope to enable a fake microphone for this test file. */
@@ -81,3 +83,5 @@ export async function setSliderValue(
     { box: true },
   );
 }
+
+export const execFileAsync = promisify(execFile);
