@@ -79,76 +79,59 @@ export function LevelMeter({
     // Keyed by value, so a target object recreated on render keeps the subscription.
   }, [meters, targetKey, orientation, channelCount]);
 
-  const clipButton = (
-    <button
-      ref={clipRef}
-      type="button"
-      tabIndex={-1}
-      aria-label={`Clear ${label} clip`}
-      title="Clipped. Click to clear."
-      onClick={() => meters.clearClip(target)}
-      style={orientation === "horizontal" ? { height: WIDTH } : undefined}
-      className={cn(
-        "flex cursor-pointer items-center gap-px",
-        orientation === "vertical"
-          ? "absolute -top-2 -left-1 h-2 px-1"
-          : "flex-col",
-      )}
+  const vertical = orientation === "vertical";
+  const meter = (
+    <div
+      ref={meterRef}
+      role="meter"
+      aria-label={`${label} level`}
+      aria-valuemin={MIN_DB}
+      aria-valuemax={MAX_DB}
+      aria-valuenow={MIN_DB}
+      className={cn("relative", vertical ? "shrink-0" : "mr-2 min-w-0 flex-1")}
+      style={vertical ? { width: WIDTH } : { height: WIDTH }}
     >
-      {Array.from({ length: channelCount }, (_, index) => (
-        <span
-          key={index}
-          data-testid="meter-clip"
-          className={cn(
-            "rounded-[1px] bg-neutral-700 data-[clipped=true]:bg-red-500",
-            orientation === "vertical" ? "h-1 w-[3px]" : "w-1 flex-1",
-          )}
-        />
-      ))}
-    </button>
-  );
-  const canvas = <canvas ref={canvasRef} className="size-full" />;
-
-  if (orientation === "vertical") {
-    return (
-      <div
-        ref={meterRef}
-        role="meter"
-        aria-label={`${label} level`}
-        aria-valuemin={MIN_DB}
-        aria-valuemax={MAX_DB}
-        aria-valuenow={MIN_DB}
-        className="relative shrink-0"
-        style={{ width: WIDTH }}
+      {/* Sits past the loud end of the bar, with padding to enlarge the target. */}
+      <button
+        ref={clipRef}
+        type="button"
+        tabIndex={-1}
+        aria-label={`Clear ${label} clip`}
+        title="Clipped. Click to clear."
+        onClick={() => meters.clearClip(target)}
+        className={cn(
+          "absolute flex cursor-pointer items-center gap-px",
+          vertical
+            ? "-inset-x-1 -top-2 h-2 px-1"
+            : "-inset-y-1 -right-2 w-2 flex-col py-1",
+        )}
       >
-        {clipButton}
-        {canvas}
-      </div>
-    );
+        {Array.from({ length: channelCount }, (_, index) => (
+          <span
+            key={index}
+            data-testid="meter-clip"
+            className={cn(
+              "flex-1 rounded-[1px] bg-neutral-700 data-[clipped=true]:bg-red-500",
+              vertical ? "h-1" : "w-1",
+            )}
+          />
+        ))}
+      </button>
+      <canvas ref={canvasRef} className="size-full" />
+    </div>
+  );
+  if (!readout) {
+    return meter;
   }
   return (
     <div className="flex items-center gap-1">
-      <div
-        ref={meterRef}
-        role="meter"
-        aria-label={`${label} level`}
-        aria-valuemin={MIN_DB}
-        aria-valuemax={MAX_DB}
-        aria-valuenow={MIN_DB}
-        className="min-w-0 flex-1"
-        style={{ height: WIDTH }}
+      {meter}
+      <output
+        ref={readoutRef}
+        className="w-[76px] shrink-0 text-right font-mono text-xs tabular-nums text-neutral-400"
       >
-        {canvas}
-      </div>
-      {clipButton}
-      {readout && (
-        <output
-          ref={readoutRef}
-          className="w-[76px] shrink-0 text-right font-mono text-xs tabular-nums text-neutral-400"
-        >
-          {SILENT_READOUT}
-        </output>
-      )}
+        {SILENT_READOUT}
+      </output>
     </div>
   );
 }
