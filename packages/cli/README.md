@@ -43,12 +43,6 @@ The output is a silent H.264 MP4 at a constant frame rate. The video starts at t
 
 Rendering is faster than real time with the default settings. For example, a 2:19 score renders at 1280x480 in about a minute on a desktop machine, and larger frames take proportionally longer.
 
-### How It Works
-
-The CLI opens `/score-capture`, a bare page that renders only the score viewer runtime and exposes it as `window.__toyMidiCli.scoreViewer`. The CLI uses the runtime to load the score, fit it to the frame width, read its duration, and seek the playhead. For each frame, the CLI seeks the viewer to the frame time and captures a screenshot, then pipes the frames to `ffmpeg`.
-
-Several pages capture interleaved frames in parallel. Each page still steps forward through the score, so the viewer's scroll position, which depends on which systems the cursor has passed, matches a sequential render. A time range render replays earlier seeks without capturing for the same reason.
-
 ## Development
 
 Run the CLI from the repository against a local dev server:
