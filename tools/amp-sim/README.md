@@ -23,6 +23,8 @@ The stage names are DSP terms, named for what each stage does to the signal. A g
 | Cabinet    | The speaker cabinet and the microphone in front of it. Amp sim plugins call this "cab sim", and it's the one stage a guitarist would name the same way.                                                                                                                                                                                |
 | Room       | The room the cabinet is recorded in, picked up by a room mic, or a short reverb.                                                                                                                                                                                                                                                       |
 
+The order doesn't follow a pedalboard. A guitarist would put the compressor pedal first and the boost after it, but the chain puts the compressor after the pre-EQ, right before the drive, because its job here is to keep a decaying note pushed into the clipper, and the low cut in front keeps the bass from triggering it. Without the compressor, the chain reads as a guitar rig would: a boost pedal's tone, the amp, the cabinet, the room.
+
 Two parts of a real amp aren't modeled. The tone stack, the bass, middle, and treble knobs that guitarists tweak for tone, sits after the preamp, so it changes how the distortion sounds rather than how hard the amp breaks up. And the power amp adds its own compression and saturation when played loud.
 
 ## Iterations
