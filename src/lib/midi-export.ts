@@ -23,20 +23,22 @@ const MELODIC_CHANNELS = Array.from({ length: 16 }, (_, i) => i).filter(
 // Events on the same tick go in this order, so a note ending where the next
 // one starts frees the voice first, and a controller or bend change lands
 // before the note it shapes.
-const NOTE_OFF = 0;
-const CHANNEL_CHANGE = 1;
-const NOTE_ON = 2;
+const EVENT_RANKS = {
+  "note-off": 0,
+  change: 1,
+  "note-on": 2,
+};
 
 interface TrackEvent {
   tick: number;
-  order: number;
+  rank: keyof typeof EVENT_RANKS;
   bytes: number[];
 }
 
 /**
  * Encode a project as a format 1 Standard MIDI File: a conductor track with
- * the title, tempo, time signature, and locators as markers, then one track per MIDI track on its
- * own channel, with drum kits on the drum channel.
+ * the title, tempo, time signature, and locators as markers, then one track
+ * per MIDI track on its own channel, with drum kits on the drum channel.
  */
 export function exportMidi({
   title,
@@ -73,15 +75,15 @@ export function exportMidi({
 
   const microsecondsPerBeat = Math.round(60_000_000 / tempo);
   const conductor: TrackEvent[] = [
-    { tick: 0, order: 0, bytes: encodeTextMeta(0x03, title) },
+    { tick: 0, rank: "change", bytes: encodeTextMeta(0x03, title) },
     {
       tick: 0,
-      order: 0,
+      rank: "change",
       bytes: [0xff, 0x51, 3, ...bytesBigEndian(microsecondsPerBeat, 3)],
     },
     {
       tick: 0,
-      order: 0,
+      rank: "change",
       bytes: [
         0xff,
         0x58,
@@ -92,11 +94,13 @@ export function exportMidi({
         8,
       ],
     },
-    ...locators.map((locator) => ({
-      tick: Math.max(0, Math.round(locator.beat * PPQ)),
-      order: 0,
-      bytes: encodeTextMeta(0x06, locator.label),
-    })),
+    ...locators.map(
+      (locator): TrackEvent => ({
+        tick: Math.max(0, Math.round(locator.beat * PPQ)),
+        rank: "change",
+        bytes: encodeTextMeta(0x06, locator.label),
+      }),
+    ),
   ];
 
   const allEvents = [conductor, ...trackEvents];
@@ -125,9 +129,9 @@ function encodeTrackEvents({
   track: MidiExportTrack;
   channel: number;
 }): TrackEvent[] {
-  const controlChange = (controller: number, value: number) => ({
+  const controlChange = (controller: number, value: number): TrackEvent => ({
     tick: 0,
-    order: CHANNEL_CHANGE,
+    rank: "change",
     bytes: [0xb0 | channel, controller, value],
   });
   const bends = track.automation.some(
@@ -137,14 +141,18 @@ function encodeTrackEvents({
   // Setup at tick 0, before any note or automation point: name, preset, the
   // channel strip's gain and pan, and the bend range when the track bends.
   const events: TrackEvent[] = [
-    { tick: 0, order: CHANNEL_CHANGE, bytes: encodeTextMeta(0x03, track.name) },
+    { tick: 0, rank: "change", bytes: encodeTextMeta(0x03, track.name) },
     // A channel starts on bank 0, and a drum kit is chosen by its channel, so
     // only other banks need a bank select. Leaving it out also keeps
     // @tonejs/midi, which the app imports with, from splitting the track at it.
     ...(track.bank && track.bank !== DRUM_KIT_BANK
       ? [controlChange(0, track.bank)]
       : []),
-    { tick: 0, order: CHANNEL_CHANGE, bytes: [0xc0 | channel, track.program] },
+    {
+      tick: 0,
+      rank: "change",
+      bytes: [0xc0 | channel, track.program],
+    },
     controlChange(7, encodeVolume(track.gain)),
     controlChange(10, clamp(Math.round(64 + track.pan * 64), 0, 127)),
     ...(bends
@@ -166,12 +174,12 @@ function encodeTrackEvents({
     );
     events.push({
       tick: on,
-      order: NOTE_ON,
+      rank: "note-on",
       bytes: [0x90 | channel, note.pitch, note.velocity],
     });
     events.push({
       tick: off,
-      order: NOTE_OFF,
+      rank: "note-off",
       bytes: [0x80 | channel, note.pitch, 0],
     });
   }
@@ -179,7 +187,7 @@ function encodeTrackEvents({
     for (const point of sequence.points) {
       events.push({
         tick: Math.max(0, Math.round(point.beat * PPQ)),
-        order: CHANNEL_CHANGE,
+        rank: "change",
         bytes: encodeAutomationPoint({ sequence, point, channel }),
       });
     }
@@ -223,7 +231,7 @@ function encodeTrackChunk({
   endTick: number;
 }): number[] {
   const sorted = events.toSorted(
-    (a, b) => a.tick - b.tick || a.order - b.order,
+    (a, b) => a.tick - b.tick || EVENT_RANKS[a.rank] - EVENT_RANKS[b.rank],
   );
   const body: number[] = [];
   let lastTick = 0;
