@@ -667,7 +667,7 @@ function MidiTrackEditor({
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
-        <div className="relative border-r border-neutral-700">
+        <div className="relative border-r-2 border-neutral-600">
           {PITCHES.map((pitch) => (
             <MidiPianoKey
               key={pitch}
@@ -842,7 +842,7 @@ function MidiGridRow({ pitch }: { pitch: number }) {
     <div
       className={cn(
         "pointer-events-none absolute inset-x-0 border-t",
-        pitch % 12 === 11 ? "border-[#666666]" : "border-[#333333]",
+        pitch % 12 === 11 ? "border-neutral-600" : "border-[#333333]",
         isBlackKey(pitch) ? "bg-[#111111]" : "bg-[#1a1a1a]",
       )}
       style={{
