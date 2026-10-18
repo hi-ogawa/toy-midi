@@ -280,7 +280,7 @@ function plotDriveWaves() {
   );
   drawPlot({
     file: "drive-waves.svg",
-    title: `A quiet sine peaking at ${QUIET_INPUT}: crunch rounds it, high gain squares it`,
+    title: `x = ${QUIET_INPUT}·sin(t) through each drive: crunch rounds it, high gain squares it`,
     xLabel: "two cycles",
     yLabel: "sample",
     xMap: (i) => i / n,
@@ -289,7 +289,7 @@ function plotDriveWaves() {
     yTicks: [-1, -0.5, 0, 0.5, 1],
     series: [
       {
-        label: "input",
+        label: `x = ${QUIET_INPUT}·sin(t)`,
         color: "#999",
         points: input.map((x, i) => [i, x]),
       },
@@ -315,7 +315,7 @@ function plotDriveShift() {
   drawPlot({
     file: "drive-shift.svg",
     title:
-      "One stage on a sine peaking at 0.2: the shift flattens the top more than the bottom",
+      "One stage on x = 0.2·sin(t): the shift flattens the top more than the bottom",
     xLabel: "two cycles",
     yLabel: "sample",
     xMap: (i) => i / n,
@@ -323,6 +323,11 @@ function plotDriveShift() {
     yRange: [-1.7, 2.4],
     yTicks: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5],
     series: [
+      {
+        label: "x = 0.2·sin(t)",
+        color: "#999",
+        points: input.map((x, i) => [i, x]),
+      },
       {
         label: "7.9x, the gain alone without clipping",
         color: "#ddd",
