@@ -75,6 +75,8 @@ function calculateTimelineGridLayers({
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
   const beatsPerBar = getBeatsPerBar(timeSignature);
+  // A time signature counts its bar in denominator notes, such as six eighth
+  // notes in 6/8.
   const denominatorNoteInterval = getDenominatorNoteLength(timeSignature);
   const barInterval =
     getVisibleBarInterval({
