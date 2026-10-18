@@ -49,9 +49,11 @@ A guitar's peaks, 0.3 to 0.6, are far above both, so every stroke's attack comes
 
 ![A quiet sine through each drive: crunch rounded, high gain nearly square](images/drive-waves.svg)
 
-The harmonics of that sine show the shift at work. Crunch without the shift, in gray, has only odd harmonics, and crunch with it adds even ones.
+The harmonics of that sine show the shift at work. Crunch without the shift, in gray, has only odd harmonics, and crunch with it adds even ones. [Appendix: odd harmonics](#appendix-odd-harmonics) has the proof.
 
 ![Harmonics of the quiet sine: crunch without the shift has only 3, 5, and 7, crunch adds 2, 4, and 6, high gain has strong odd harmonics up to 9](images/drive-harmonics.svg)
+
+This holds for one pure sine. A real guitar note already carries even harmonics, and a chord's notes also produce sum and difference tones between them, so "odd harmonics only" describes the clipper, not what comes out of it on a guitar.
 
 The full stages, with the filters:
 
@@ -221,3 +223,37 @@ pnpm amp-sim tools/amp-sim/held-note.json --out /tmp/ampsim/held --tag v2 --amp 
 # /tmp/ampsim/riff.json into /tmp/ampsim/riff, with the tags v2, v2-gate-filtercab, v2-gate-nocab, and v2-ir-gate
 pnpm exec tsx tools/amp-sim/gen-figures.ts --held-note /tmp/ampsim/held --riff /tmp/ampsim/riff --riff-project /tmp/ampsim/riff.json
 ```
+
+## Appendix: odd harmonics
+
+**Claim.** If $f$ is odd, $f(-u) = -f(u)$, then $y(t) = f(A \sin \omega t)$ has only odd harmonics.
+
+**Proof.** With input $x(t) = A \sin \omega t$ and period $T = 2\pi/\omega$, the input flips sign over half a period, $x(t + T/2) = -x(t)$, and $f$ keeps that:
+
+$$
+y(t + T/2) = f\big(x(t + T/2)\big) = f\big(-x(t)\big) = -f\big(x(t)\big) = -y(t).
+$$
+
+Write $y$ as a Fourier series. Shifting by $T/2$ multiplies the $n$th term by $e^{i n \pi} = (-1)^n$:
+
+$$
+y(t) = \sum_n c_n e^{i n \omega t}, \qquad y(t + T/2) = \sum_n (-1)^n c_n e^{i n \omega t}.
+$$
+
+Matching coefficients with $-y(t)$ gives $(-1)^n c_n = -c_n$, so $c_n = 0$ for every even $n$. $\blacksquare$
+
+**The same through powers.** An odd $f$ has only odd powers in its Taylor series, $\tanh u = u - u^3/3 + 2u^5/15 - \cdots$, and odd powers of a sine hold only odd harmonics, for example
+
+$$
+\sin^3 t = \tfrac{3}{4} \sin t - \tfrac{1}{4} \sin 3t,
+$$
+
+while even powers hold even harmonics and a constant, $\sin^2 t = \tfrac{1}{2} - \tfrac{1}{2} \cos 2t$.
+
+**The shifted stage.** $s(u) = \tanh(u + b) - \tanh b$ isn't odd. Its expansion around 0 has a square term,
+
+$$
+s(u) = \operatorname{sech}^2 b \cdot u - \tanh b \operatorname{sech}^2 b \cdot u^2 + O(u^3),
+$$
+
+with $\tanh b \operatorname{sech}^2 b \approx 0.15$ at $b = 0.15$. The $u^2$ term gives the 2nd harmonic and a constant, and the constant is what the 20 Hz high-pass after $s$ removes.
