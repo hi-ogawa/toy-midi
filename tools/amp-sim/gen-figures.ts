@@ -89,9 +89,10 @@ async function main() {
 
   // Plot the drive from its formulas, then the measured effect of the sustain,
   // the gate, and the cabinet.
+  plotTanh();
+  plotDriveShift();
   plotDriveCurves();
   plotDriveWaves();
-  plotDriveShift();
   plotDriveHarmonics();
   plotSustain(heldNote);
   plotGate({ riff, riffProject });
@@ -202,6 +203,40 @@ const SYMMETRIC_CRUNCH = {
   color: "#bbb",
   apply: (x: number) => Math.tanh(dbToGain(6) * Math.tanh(dbToGain(18) * x)),
 };
+
+// The clipper on its own, without and with the shift, against y = x.
+function plotTanh() {
+  const xs = Array.from({ length: 301 }, (_, i) => -3 + i * 0.02);
+  drawPlot({
+    file: "drive-tanh.svg",
+    title: "The clipper: tanh follows y = x near 0 and flattens toward ±1",
+    xLabel: "input sample",
+    yLabel: "output sample",
+    xMap: (x) => (x + 3) / 6,
+    xTicks: [-3, -2, -1, 0, 1, 2, 3].map((x) => [x, String(x)]),
+    yRange: [-1.5, 1.5],
+    yTicks: [-1, -0.5, 0, 0.5, 1],
+    legendAt: "left",
+    series: [
+      {
+        label: "y = x",
+        color: "#999",
+        // Only where it stays inside the plot.
+        points: xs.filter((x) => Math.abs(x) <= 1.5).map((x) => [x, x]),
+      },
+      {
+        label: "tanh(x)",
+        color: "#bbb",
+        points: xs.map((x) => [x, Math.tanh(x)]),
+      },
+      {
+        label: "tanh(x + 0.15) − tanh(0.15)",
+        color: "#2c6fbb",
+        points: xs.map((x) => [x, asymmetricTanh(x)]),
+      },
+    ],
+  });
+}
 
 // Input level against output level for each drive, over the range of the
 // guitar tracks' peaks.
