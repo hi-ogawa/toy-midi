@@ -116,6 +116,7 @@ export interface MidiTrackState {
   pan: number;
   muted: boolean;
   soloed: boolean;
+  /** Shows tab annotation in the note editor and enables editing it */
   tabAnnotationEnabled: boolean;
   /** MIDI note numbers of the open strings, highest string first */
   tabOpenStringPitches: number[];
