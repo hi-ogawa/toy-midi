@@ -205,13 +205,10 @@ export function LatencyChecker() {
               </ActionButton>
             </div>
             <div className="mt-4">
-              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
+              <div className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Input meter
-                <InputMeter
-                  active={isMonitoring}
-                  analyser={runtime.captureInput?.analyser}
-                />
-              </label>
+                <InputMeter meters={runtime.levelMeters} />
+              </div>
             </div>
             <InputDiagnostics runtime={runtime} />
             {input.error && <ErrorMessage>{input.error.message}</ErrorMessage>}

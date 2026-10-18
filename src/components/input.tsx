@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { CheckIcon, MicIcon, TriangleAlertIcon } from "lucide-react";
-import type { AudioAnalyser } from "../lib/audio-analyser";
 import { summarizeCalibration } from "../lib/latency-checker/calibration";
 import { measureLatency } from "../lib/latency-checker/runtime";
 import { routes } from "../lib/routes";
@@ -17,7 +16,6 @@ export function InputSetup({
   error,
   hasAccess,
   inputActive,
-  inputAnalyser,
   inputsInitialized,
   isRecording,
   isPlaying,
@@ -37,7 +35,6 @@ export function InputSetup({
   error?: Error | null;
   hasAccess: boolean;
   inputActive: boolean;
-  inputAnalyser?: AudioAnalyser;
   inputsInitialized: boolean;
   isRecording: boolean;
   isPlaying: boolean;
@@ -146,12 +143,12 @@ export function InputSetup({
                   : "Enable input"
                 : "Allow microphone access"}
         </Button>
-        <label className="block text-xs font-medium text-neutral-400">
+        <div className="text-xs font-medium text-neutral-400">
           Level
           <div className="mt-2">
-            <InputMeter active={inputActive} analyser={inputAnalyser} />
+            <InputMeter meters={runtime.levelMeters} />
           </div>
-        </label>
+        </div>
         <section
           className="space-y-3 border-t border-neutral-700 pt-4"
           aria-label="Recording latency compensation"

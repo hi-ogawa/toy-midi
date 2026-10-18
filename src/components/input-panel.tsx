@@ -4,7 +4,7 @@ import {
   PowerIcon,
   Settings2Icon,
 } from "lucide-react";
-import type { AudioAnalyser } from "../lib/audio-analyser";
+import type { LevelMeters } from "../lib/level-meters";
 import { InputMeter } from "./input-meter";
 import { Panel } from "./panel";
 import { Button } from "./ui/button";
@@ -15,7 +15,7 @@ export function InputPanel({
   routeNeedsSetup,
   accessRequired,
   inputActive,
-  inputAnalyser,
+  levelMeters,
   toggleDisabled,
   togglePending,
   tunerOpen,
@@ -28,7 +28,7 @@ export function InputPanel({
   routeNeedsSetup: boolean;
   accessRequired: boolean;
   inputActive: boolean;
-  inputAnalyser?: AudioAnalyser;
+  levelMeters: LevelMeters;
   toggleDisabled: boolean;
   togglePending: boolean;
   tunerOpen: boolean;
@@ -87,7 +87,7 @@ export function InputPanel({
           </Button>
         </div>
       )}
-      <InputMeter active={inputActive} analyser={inputAnalyser} compact />
+      <InputMeter meters={levelMeters} compact />
       <Button
         aria-pressed={tunerOpen}
         onClick={onTunerToggle}
