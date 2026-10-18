@@ -209,7 +209,7 @@ export function TrackRow({
   return (
     <div
       data-testid={testId}
-      className="relative grid grid-cols-[15rem_1fr] border-b-[3px] border-black"
+      className="relative grid grid-cols-[15rem_1fr]"
       style={{ height }}
     >
       <div className="sticky left-0 col-start-1 row-start-1 border-r border-neutral-700 bg-neutral-800" />
@@ -255,7 +255,7 @@ export function TrackRow({
       {children}
       <div
         ref={resizeRef}
-        className="absolute inset-x-0 top-full z-30 h-[3px] cursor-ns-resize after:absolute after:inset-x-0 after:-top-1 after:h-2"
+        className="absolute inset-x-0 bottom-0 z-30 h-px cursor-ns-resize border-b border-neutral-600 after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title={`Resize ${title}`}
       />
     </div>
