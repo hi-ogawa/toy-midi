@@ -41,7 +41,7 @@ The asymmetric stage adds a DC offset before the clipper, y = tanh(g·x + 0.15),
 
 A guitar's peaks, from 0.3 to 0.6, sit far out on these curves, where every drive gives nearly a square wave. A quiet input, such as a note decaying, shows how they differ: v1 crunch only rounds it, and v2 high gain still squares it, which is why high gain sustains:
 
-![A quiet sine through each drive: v1 crunch rounded, v2 crunch rounder and a little uneven, v2 high gain nearly square](images/drive-waves.svg)
+![A quiet sine through each drive: v1 crunch rounded, v2 crunch a little squarer and uneven, v2 high gain nearly square](images/drive-waves.svg)
 
 The flattening adds harmonics, multiples of the note's frequency, and they're what makes the sound distorted. The symmetric v1 crunch adds only odd ones, while the offset in v2 adds even ones too:
 
