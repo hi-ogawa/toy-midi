@@ -73,7 +73,6 @@ export function LevelMeter({
       meterCanvas.dispose();
       unsubscribe();
     };
-    // Keyed by value, so a target object recreated on render keeps the subscription.
   }, [meters, targetKey, orientation, channelCount]);
 
   const vertical = orientation === "vertical";
