@@ -26,7 +26,7 @@ const PREVIEWS = [
   id: entry.label.toLowerCase().replaceAll(" ", "-"),
 }));
 
-export function Preview() {
+export function PreviewPage() {
   const previewId = new URL(window.location.href).searchParams.get("component");
   const preview =
     PREVIEWS.find((entry) => entry.id === previewId) ?? PREVIEWS[0];

@@ -31,7 +31,7 @@ import {
 import { cn } from "./ui/utils";
 import { useInput } from "./use-input";
 
-export function LatencyChecker() {
+export function LatencyCheckerPage() {
   const [runtime] = useState(() => new EditorRuntime());
   const state = useSyncExternalStore(
     runtime.store.subscribe,

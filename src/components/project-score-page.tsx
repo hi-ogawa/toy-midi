@@ -7,7 +7,7 @@ import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "../lib/tab-annotation";
 import { RouteError } from "./route-error";
 import { ScoreViewer } from "./score-viewer";
 
-export function ScorePage({
+export function ProjectScorePage({
   projectId,
   trackId,
 }: {
