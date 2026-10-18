@@ -1,3 +1,6 @@
+import JSZip from "jszip";
+import { encodeWav } from "./wav.ts";
+
 export function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -24,12 +27,36 @@ export function buildExportFileName({
   return `${safeName}-${formattedTimestamp}${normalizedExtension}`;
 }
 
+/** Zip one WAV per stem, numbered in track order. */
+export async function buildStemsArchive(
+  stems: AsyncIterable<{ name: string; buffer: AudioBuffer }>,
+): Promise<Blob> {
+  const zip = new JSZip();
+  let index = 0;
+  for await (const stem of stems) {
+    index++;
+    // The index keeps track order when sorted by name and keeps duplicate
+    // track names apart.
+    const prefix = String(index).padStart(2, "0");
+    zip.file(
+      `${prefix}-${sanitizeFileName(stem.name)}.wav`,
+      encodeWav(stem.buffer),
+    );
+  }
+  // PCM barely compresses, so deflating only costs time.
+  return zip.generateAsync({ type: "blob", compression: "STORE" });
+}
+
 function sanitizeBaseName(baseName: string): string {
   const trimmed = baseName.trim();
   if (!trimmed) {
     return "toy-midi-export";
   }
-  return trimmed.replace(/[^a-zA-Z0-9-_]/g, "_");
+  return sanitizeFileName(trimmed);
+}
+
+function sanitizeFileName(name: string): string {
+  return name.trim().replace(/[^a-zA-Z0-9-_]/g, "_");
 }
 
 function normalizeExtension(extension: string): string {

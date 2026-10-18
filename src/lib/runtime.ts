@@ -32,8 +32,11 @@ import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
   getAudibleItems,
+  type Mix,
   renderMix,
+  renderStem,
   resolveMix,
+  type StemTap,
 } from "./mix.ts";
 import { clamp } from "./music.ts";
 import { sliceSamples } from "./pcm.ts";
@@ -53,6 +56,7 @@ import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
+const EXPORT_SAMPLE_RATE = 48000;
 export const MIN_CLIP_DURATION = 0.01;
 // Fits the track header with its gain slider row below the title row.
 export const MIN_GAIN_SLIDER_HEIGHT = 72;
@@ -1153,6 +1157,29 @@ export class EditorRuntime {
   }
 
   async renderMix(): Promise<AudioBuffer> {
+    return renderMix({
+      mix: this.resolveExportMix(),
+      sampleRate: EXPORT_SAMPLE_RATE,
+    });
+  }
+
+  /** Render one stem per track in track order, one at a time, so only one stem's floats are held at once. */
+  async *renderStems(
+    tap: StemTap,
+  ): AsyncGenerator<{ name: string; buffer: AudioBuffer }> {
+    const mix = this.resolveExportMix();
+    for (const track of mix.tracks) {
+      const buffer = await renderStem({
+        mix,
+        track,
+        tap,
+        sampleRate: EXPORT_SAMPLE_RATE,
+      });
+      yield { name: track.name, buffer };
+    }
+  }
+
+  private resolveExportMix(): Mix {
     const state = this.store.get();
     if (
       state.captureStatus === "recording" ||
@@ -1160,10 +1187,7 @@ export class EditorRuntime {
     ) {
       throw new Error("Cannot render a mix while capture is in progress.");
     }
-    return renderMix({
-      mix: resolveMix(state),
-      sampleRate: 48000,
-    });
+    return resolveMix(state);
   }
 
   /** @internal */

@@ -13,62 +13,80 @@ import {
   MidiSynthWorkletNode,
 } from "./midi-synth-worklet-node.ts";
 import type { EditorRuntimeState, MidiPreset } from "./runtime.ts";
+import { resolveTrackOrder } from "./track-order.ts";
 
 // Release length depends on the preset, so this only needs to cover typical
 // ones.
 const MIDI_RELEASE_SECONDS = 2;
 
-interface Mix {
-  tracks: {
-    eq: MultibandEqParameters;
-    gain: number;
-    pan: number;
-    regions: AudioPlaybackSource[];
-  }[];
-  midiTracks: {
-    eq: MultibandEqParameters;
-    gain: number;
-    pan: number;
-    preset: MidiPreset;
-    notes: TimelineNote[];
-    automation: TimelineAutomation[];
-  }[];
+export interface Mix {
+  tracks: MixTrack[];
   masterGain: number;
   duration: number;
 }
 
-/** Snapshot committed audio and MIDI at 1x, independent of transport and reference audio. */
+type MixTrack = {
+  name: string;
+  eq: MultibandEqParameters;
+  gain: number;
+  /** False when mute or solo silences the track in the mix. */
+  audible: boolean;
+  pan: number;
+} & (
+  | { kind: "audio"; regions: AudioPlaybackSource[] }
+  | {
+      kind: "midi";
+      preset: MidiPreset;
+      notes: TimelineNote[];
+      automation: TimelineAutomation[];
+    }
+);
+
+/** Where a stem taps its track: before the channel strip, or after it and the master gain. */
+export type StemTap = "dry" | "post-fader";
+
+/** Snapshot committed audio and MIDI at 1x in track order, independent of transport and reference audio. */
 export function resolveMix(state: EditorRuntimeState): Mix {
-  const gains = deriveTrackMix(state);
-  const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
-    eq: track.eq,
-    gain: gains.get(track.id)!,
-    pan: track.pan,
-    regions: getClipSources(track.regions),
-  }));
-  const midiTracks: Mix["midiTracks"] = state.midiTracks.map((track) => ({
-    eq: track.eq,
-    gain: gains.get(track.id)!,
-    pan: track.pan,
-    preset: track,
-    notes: convertToTimelineNotes(track.notes, state.tempo),
-    automation: convertToTimelineAutomation(track.automation, state.tempo),
-  }));
+  const audibleTracks = new Set(
+    getAudibleItems([...state.audioTracks, ...state.midiTracks]),
+  );
+  const tracks = resolveTrackOrder(state).map(({ kind, track }): MixTrack => {
+    const channel = {
+      name: track.name,
+      eq: track.eq,
+      gain: track.gain,
+      audible: audibleTracks.has(track),
+      pan: track.pan,
+    };
+    return kind === "audio"
+      ? { ...channel, kind, regions: getClipSources(track.regions) }
+      : {
+          ...channel,
+          kind,
+          preset: track,
+          notes: convertToTimelineNotes(track.notes, state.tempo),
+          automation: convertToTimelineAutomation(
+            track.automation,
+            state.tempo,
+          ),
+        };
+  });
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;
   for (const track of tracks) {
-    for (const region of track.regions) {
-      // Crop pre-zero audio without shifting the region's timeline end.
-      region.timelineStart = Math.max(0, region.timelineStart);
-      duration = Math.max(duration, region.timelineEnd);
+    if (track.kind === "audio") {
+      for (const region of track.regions) {
+        // Crop pre-zero audio without shifting the region's timeline end.
+        region.timelineStart = Math.max(0, region.timelineStart);
+        duration = Math.max(duration, region.timelineEnd);
+      }
+    } else {
+      for (const note of track.notes) {
+        duration = Math.max(duration, note.end + MIDI_RELEASE_SECONDS);
+      }
     }
   }
-  for (const track of midiTracks) {
-    for (const note of track.notes) {
-      duration = Math.max(duration, note.end + MIDI_RELEASE_SECONDS);
-    }
-  }
-  return { tracks, midiTracks, masterGain: state.masterGain, duration };
+  return { tracks, masterGain: state.masterGain, duration };
 }
 
 /** Render floats without normalization or clipping; PCM encoding owns clipping. */
@@ -78,6 +96,78 @@ export async function renderMix({
 }: {
   mix: Mix;
   sampleRate: number;
+}): Promise<AudioBuffer> {
+  return renderMixGraph({
+    mix,
+    sampleRate,
+    connect: async (context, cleanup) => {
+      const master = connectMaster(context, mix.masterGain);
+      await Promise.all(
+        mix.tracks.map((track) =>
+          connectTrackSource({
+            context,
+            cleanup,
+            track,
+            output: connectChannel({
+              context,
+              cleanup,
+              track,
+              gain: track.audible ? track.gain : 0,
+              output: master,
+            }),
+          }),
+        ),
+      );
+    },
+  });
+}
+
+/**
+ * Render one track alone for the whole mix duration, so stems line up with
+ * the mix. Mute and solo don't apply, since stems are for working outside
+ * the app.
+ */
+export async function renderStem({
+  mix,
+  track,
+  tap,
+  sampleRate,
+}: {
+  mix: Mix;
+  track: MixTrack;
+  tap: StemTap;
+  sampleRate: number;
+}): Promise<AudioBuffer> {
+  return renderMixGraph({
+    mix,
+    sampleRate,
+    connect: async (context, cleanup) => {
+      const output =
+        tap === "dry"
+          ? context.destination
+          : connectChannel({
+              context,
+              cleanup,
+              track,
+              gain: track.gain,
+              output: connectMaster(context, mix.masterGain),
+            });
+      await connectTrackSource({ context, cleanup, track, output });
+    },
+  });
+}
+
+async function renderMixGraph({
+  mix,
+  sampleRate,
+  connect,
+}: {
+  mix: Mix;
+  sampleRate: number;
+  connect: (
+    context: OfflineAudioContext,
+    cleanup: DisposableStack,
+  ) => Promise<void>;
 }): Promise<AudioBuffer> {
   if (mix.duration <= 0) {
     throw new Error("No audio to export.");
@@ -89,60 +179,83 @@ export async function renderMix({
       sampleRate,
     },
     async (context) => {
-      const master = context.createGain();
-      master.gain.value = mix.masterGain;
-      master.channelCount = 2;
-      master.channelCountMode = "explicit";
-      master.channelInterpretation = "speakers";
-      master.connect(context.destination);
       using cleanup = new DisposableStack();
       await ensureBiquadEqWorklet(context);
-      for (const track of mix.tracks) {
-        const channel = new AudioChannel({
-          context,
-          output: master,
-          eq: track.eq,
-          gain: track.gain,
-          pan: track.pan,
-        });
-        cleanup.defer(() => channel.dispose());
-        for (const region of track.regions) {
-          const source = context.createBufferSource();
-          source.buffer = region.buffer;
-          const gain = context.createGain();
-          gain.gain.value = region.gain;
-          source.connect(gain).connect(channel.input);
-          source.start(
-            region.timelineStart,
-            region.timelineStart - region.timelineOffset,
-            region.timelineEnd - region.timelineStart,
-          );
-        }
-      }
-      await Promise.all(
-        mix.midiTracks.map(async (track) => {
-          const synth = new MidiSynthWorkletNode(context);
-          cleanup.defer(() => synth.dispose());
-          await synth.init();
-          await synth.setPreset(track.preset);
-          const channel = new AudioChannel({
-            context,
-            output: master,
-            eq: track.eq,
-            gain: track.gain,
-            pan: track.pan,
-          });
-          cleanup.defer(() => channel.dispose());
-          synth.output.connect(channel.input);
-          await synth.setNotes(track.notes);
-          await synth.setAutomation(track.automation);
-          await synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
-        }),
-      );
+      await connect(context, cleanup);
       // Await so cleanup runs after rendering, not before.
       return await context.startRendering();
     },
   );
+}
+
+function connectMaster(context: BaseAudioContext, gain: number): GainNode {
+  const master = context.createGain();
+  master.gain.value = gain;
+  master.channelCount = 2;
+  master.channelCountMode = "explicit";
+  master.channelInterpretation = "speakers";
+  master.connect(context.destination);
+  return master;
+}
+
+function connectChannel({
+  context,
+  cleanup,
+  track,
+  gain,
+  output,
+}: {
+  context: BaseAudioContext;
+  cleanup: DisposableStack;
+  track: MixTrack;
+  gain: number;
+  output: AudioNode;
+}): AudioNode {
+  const channel = new AudioChannel({
+    context,
+    output,
+    eq: track.eq,
+    gain,
+    pan: track.pan,
+  });
+  cleanup.defer(() => channel.dispose());
+  return channel.input;
+}
+
+async function connectTrackSource({
+  context,
+  cleanup,
+  track,
+  output,
+}: {
+  context: BaseAudioContext;
+  cleanup: DisposableStack;
+  track: MixTrack;
+  output: AudioNode;
+}): Promise<void> {
+  if (track.kind === "audio") {
+    for (const region of track.regions) {
+      const source = context.createBufferSource();
+      source.buffer = region.buffer;
+      const gain = context.createGain();
+      gain.gain.value = region.gain;
+      source.connect(gain).connect(output);
+      source.start(
+        region.timelineStart,
+        region.timelineStart - region.timelineOffset,
+        region.timelineEnd - region.timelineStart,
+      );
+    }
+    return;
+  }
+  const synth = new MidiSynthWorkletNode(context);
+  cleanup.defer(() => synth.dispose());
+  await synth.init();
+  await synth.setPreset(track.preset);
+  synth.output.connect(output);
+  await synth.setNotes(track.notes);
+  await synth.setAutomation(track.automation);
+  await synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
 }
 
 /**

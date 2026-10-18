@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
+import JSZip from "jszip";
 import type { SharedProject } from "../src/lib/project-share";
 import {
   addAudio,
@@ -73,6 +74,52 @@ test("exports MIDI tracks in the WAV", async ({ page }) => {
   expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
   expect(wav.duration).toBeGreaterThan(2);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
+});
+
+test("exports per-track stems as a zip", async ({ page }) => {
+  // Add backing audio and a MIDI track with one note.
+  await createProject(page);
+  await addAudio(page, "e2e/fixtures/test-audio.wav");
+  const track = await addMidiTrack(page);
+  await createMidiNote(page, track, { beat: 0, pitch: "C4" });
+
+  // Export stems.
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
+  const modal = page.getByTestId("audio-export");
+  await modal.getByLabel("Type").selectOption("Stems");
+  const downloadPromise = page.waitForEvent("download");
+  await modal.getByRole("button", { name: "Export file" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/-stems-.*\.zip$/);
+  const downloadPath = test.info().outputPath("stems.zip");
+  await download.saveAs(downloadPath);
+
+  // Check the zip holds one stem per track, all the same length, with the
+  // project's empty default track rendered as silence.
+  const zip = await JSZip.loadAsync(await readFile(downloadPath));
+  expect(Object.keys(zip.files).sort()).toEqual([
+    "01-Audio_1.wav",
+    "02-Audio_2.wav",
+    "03-MIDI_1.wav",
+  ]);
+  const wavs = new Map(
+    await Promise.all(
+      Object.values(zip.files).map(
+        async (file) =>
+          [file.name, decodeWav(await file.async("nodebuffer"))] as const,
+      ),
+    ),
+  );
+  for (const [name, wav] of wavs) {
+    expect(wav).toMatchObject({
+      channelCount: 2,
+      sampleRate: 48000,
+      duration: wavs.get("02-Audio_2.wav")!.duration,
+    });
+    expect(wav.samples.some((sample) => sample !== 0)).toBe(
+      name !== "01-Audio_1.wav",
+    );
+  }
 });
 
 test("exports MIDI automation in the WAV", async ({ page }) => {
