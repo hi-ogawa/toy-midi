@@ -11,7 +11,7 @@
  * as tracks, header rows, and the track header column, stay brighter than any
  * line of the timeline grid, so a boundary never reads as one more grid line.
  */
-@theme static {
+@theme {
   --color-edge: #525252;
   --color-grid-strong: #404040;
   --color-grid: #333333;
