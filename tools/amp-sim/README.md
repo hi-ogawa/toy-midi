@@ -29,25 +29,19 @@ Two parts of a real amp aren't modeled. The tone stack, the bass, middle, and tr
 
 ### The drive in math
 
-The drive runs on float samples at 4× the sample rate, upsampled before the first gain and downsampled after the last clipper by ffmpeg's resampler. Dry tracks come out of fluidsynth at `-g 0.5`, which puts the guitar tracks' peaks at about −5 dBFS (0.56) for open strokes and about −11 dBFS (0.28) for muted ones, and the gains below are tuned for that level.
-
-Each clipper is ffmpeg's `asoftclip=type=tanh` at its defaults, which is y = tanh(x). tanh is close to linear for small x and flattens toward ±1 for large x, so a stage with gain g on input x gives y = tanh(g·x): the larger g, the more of the wave is flattened. tanh is odd, tanh(−x) = −tanh(x), so it flattens both halves alike and adds only odd harmonics.
-
-Each curve below is a whole drive, input sample in and output sample out, without the filters between stages. Near 0 a curve is steep, so a quiet input comes out much louder, and past a small input it flattens toward ±1, so louder inputs barely come out louder:
+A drive stage is a gain followed by a soft clipper, y = tanh(g·x), where x is a sample between −1 and 1. tanh is close to y = x near 0 and flattens toward ±1, so the gain g decides how much of the wave reaches the flat part. Stages chain, each one's output feeding the next stage's gain. Each curve below is a whole drive, sample in against sample out:
 
 ![Drive curves: v1 crunch rises gently, v2 crunch more steeply and unevenly, v2 high gain almost straight up to ±1](images/drive-curves.svg)
 
-The asymmetric stage adds a DC offset before the clipper, y = tanh(g·x + 0.15), and a 20 Hz high-pass after it removes the constant tanh(0.15) ≈ 0.149 again. The offset moves the wave up the curve, so its top half flattens more than its bottom half, which adds even harmonics, the way a tube stage biased off center does.
-
-A guitar's peaks, from 0.3 to 0.6, sit far out on these curves, where every drive gives nearly a square wave. A quiet input, such as a note decaying, shows how they differ: v1 crunch only rounds it, and v2 high gain still squares it, which is why high gain sustains:
+Near 0 a curve is steep, so a quiet input comes out much louder, and past a small input it's flat, so a louder input barely comes out louder. A guitar's peaks, from about 0.3 to 0.6, sit far out on every curve, where all the drives give nearly a square wave. They differ on quiet input, such as a note decaying: v1 crunch only rounds it, and v2 high gain still squares it, which is why high gain sustains:
 
 ![A quiet sine through each drive: v1 crunch rounded, v2 crunch a little squarer and uneven, v2 high gain nearly square](images/drive-waves.svg)
 
-The flattening adds harmonics, multiples of the note's frequency, and they're what makes the sound distorted. The symmetric v1 crunch adds only odd ones, while the offset in v2 adds even ones too:
+Flattening a wave adds harmonics, multiples of the note's frequency, and they're what makes it sound distorted. tanh is symmetric, tanh(−x) = −tanh(x), so it flattens the top and bottom alike and adds only odd harmonics. v2's first stage shifts the wave up the curve first, y = tanh(g·x + 0.15) − tanh(0.15), so the top flattens more than the bottom, which adds even harmonics too, the way a tube stage biased off center does:
 
 ![Harmonics of the quiet sine: v1 crunch only 3 and 5, v2 crunch also 2, 4, and 6, v2 high gain strong odd harmonics up to 9](images/drive-harmonics.svg)
 
-Gains in dB, with the factor, from pre-EQ output to the cabinet:
+The stages of each drive, with gains in dB and as factors:
 
 | Amp, gain level | Stages                                                                                                             |
 | --------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -56,7 +50,15 @@ Gains in dB, with the factor, from pre-EQ output to the cabinet:
 | `v2`, crunch    | ×7.9 (18 dB) → asymmetric tanh → +2 dB peak at 1 kHz → ×2.0 (6 dB) → tanh                                          |
 | `v2`, high gain | ×7.9 (18 dB) → asymmetric tanh → 120 Hz high-pass, +3 dB peak at 1 kHz → ×5.0 (14 dB) → tanh → ×3.2 (10 dB) → tanh |
 
-After the drive, ×0.126 (−18 dB) brings the level back down before the cabinet, and loudness matching sets the final level. `v2`'s compressor, when on, sits before the first gain, and its clean level is the compressor alone, so `--no-comp` leaves clean tracks dry.
+The figures leave out the filters between stages, which barely change a low note.
+
+In the prototype:
+
+- **Clipper:** ffmpeg's `asoftclip=type=tanh` at its defaults, which is exactly tanh(x). A 20 Hz high-pass after the asymmetric stage removes the constant tanh(0.15) ≈ 0.149 that the shift leaves.
+- **Oversampling:** the harmonics that clipping adds can go past half the sample rate, where they would fold back down as inharmonic noise (aliasing). The drive runs at 4× the sample rate, between an upsample before the first gain and a downsample after the last clipper, which filters them out.
+- **Input level:** the gains are tuned for fluidsynth's output at `-g 0.5`, where open strokes peak near 0.56 and muted ones near 0.28.
+- **Output level:** ×0.126 (−18 dB) brings the level back down before the cabinet, and loudness matching sets the final level.
+- **Compressor:** when on, it sits before the first gain. `v2`'s clean level is the compressor alone, so `--no-comp` leaves clean tracks dry.
 
 TODO: wrong, clean tracks still get the −18 dB, the mono fold, and the cabinet.
 
