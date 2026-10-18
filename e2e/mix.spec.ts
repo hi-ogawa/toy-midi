@@ -126,7 +126,6 @@ test("exports MIDI automation in the WAV", async ({ page }) => {
   expect(isSilent(1, 2)).toBe(false);
 });
 
-/** Decode a 16-bit PCM WAV into its format, duration in seconds, and interleaved samples. */
 test("renders a project archive through the CLI", async ({ page, baseURL }) => {
   // Build a project with backing audio and a MIDI note, and export its archive.
   await createProject(page);
@@ -156,6 +155,7 @@ test("renders a project archive through the CLI", async ({ page, baseURL }) => {
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
 
+/** Decode a 16-bit PCM WAV into its format, duration in seconds, and interleaved samples. */
 function decodeWav(bytes: Buffer) {
   if (
     bytes.toString("ascii", 0, 4) !== "RIFF" ||
