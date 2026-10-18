@@ -46,7 +46,8 @@ test("capture score video", async ({ baseURL }) => {
   const output = ".tmp/score-viewer-output-video.mp4";
   fs.rmSync(output, { force: true });
   await execFileAsync("node", [
-    "packages/score-video/bin/cli.js",
+    "packages/cli/bin/cli.js",
+    "score-video",
     "src/lib/musicxml/__snapshots__/five-string-tab.musicxml",
     output,
     "--url",

@@ -1,9 +1,9 @@
 {
-  "name": "@hiogawa/toy-midi-score-video",
+  "name": "@hiogawa/toy-midi-cli",
   "version": "0.0.0",
   "private": true,
   "bin": {
-    "toy-midi-score-video": "./bin/cli.js"
+    "toy-midi": "./bin/cli.js"
   },
   "type": "module",
   "dependencies": {

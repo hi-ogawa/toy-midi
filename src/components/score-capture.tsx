@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PlayheadClock, ScoreViewerRuntime } from "./score-viewer-runtime";
 
-// Bare score viewer runtime for frame capture tools such as packages/score-video.
+// Bare score viewer runtime for the score video command in packages/cli.
 export function ScoreCapture() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [runtime] = useState(
@@ -16,9 +16,9 @@ export function ScoreCapture() {
   );
   useEffect(() => {
     runtime.attach(rootRef.current!);
-    window.__toyMidiScoreViewer = runtime;
+    window.__toyMidiCli = { scoreViewer: runtime };
     return () => {
-      delete window.__toyMidiScoreViewer;
+      delete window.__toyMidiCli;
       runtime.dispose();
     };
   }, [runtime]);

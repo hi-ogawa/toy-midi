@@ -121,7 +121,7 @@ importers:
         specifier: 0.15.0
         version: 0.15.0
 
-  packages/score-video:
+  packages/cli:
     dependencies:
       playwright-core:
         specifier: ^1.62.1
