@@ -58,7 +58,7 @@ function main() {
 
   // For E2E, which cannot click the extension's button.
   Object.assign(globalThis, {
-    __e2e: { toggleTab, setBridgePort, getBadgeText },
+    __e2e: { toggleTab, setBridgePort, getBadgeText, syncContentScript },
   });
 }
 
@@ -71,14 +71,12 @@ async function toggleTab(tabId: number, origin: string) {
     tabId,
     exposed ? { origin, status: "connecting" } : undefined,
   );
-  // A site allowed by this click has no content script in the tab yet, so
-  // reload it, and `onUpdated` exposes it.
-  if (!(await isContentScriptRegistered(origin))) {
+  // A tab loaded before its site was allowed has no content script, so reload
+  // it once the script is registered, and `onUpdated` exposes it.
+  if (!(await dispatchExpose(tabId, exposed)) && exposed) {
     await syncContentScript();
     await chrome.tabs.reload(tabId);
-    return;
   }
-  await dispatchExpose(tabId, exposed);
 }
 
 interface TabState {
@@ -160,16 +158,19 @@ function tabKey(tabId: number) {
   return `tab:${tabId}`;
 }
 
+/** Returns whether the tab's content script received the event. */
 async function dispatchExpose(tabId: number, exposed: boolean) {
   const bridgeUrl = `http://localhost:${await getBridgePort()}`;
-  await chrome.scripting.executeScript({
+  const [injection] = await chrome.scripting.executeScript({
     target: { tabId },
     world: "MAIN",
-    func: (type: string, detail?: string) => {
-      window.dispatchEvent(new CustomEvent(type, { detail }));
-    },
+    func: (type: string, detail?: string) =>
+      !window.dispatchEvent(
+        new CustomEvent(type, { detail, cancelable: true }),
+      ),
     args: exposed ? [EXPOSE_EVENT, bridgeUrl] : [EXPOSE_EVENT],
   });
+  return injection?.result === true;
 }
 
 async function getBridgePort() {
@@ -179,13 +180,6 @@ async function getBridgePort() {
 
 async function setBridgePort(port: number) {
   await chrome.storage.local.set({ [BRIDGE_PORT_KEY]: port });
-}
-
-async function isContentScriptRegistered(origin: string) {
-  const [script] = await chrome.scripting.getRegisteredContentScripts({
-    ids: [CONTENT_SCRIPT_ID],
-  });
-  return script?.matches?.includes(`${origin}/*`) ?? false;
 }
 
 // Calls can overlap, as a click and `onAdded` both follow one grant, so each

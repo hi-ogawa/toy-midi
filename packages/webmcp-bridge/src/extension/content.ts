@@ -12,6 +12,8 @@ function main() {
   let dispose: (() => void) | undefined;
 
   window.addEventListener(EXPOSE_EVENT, (event) => {
+    // Cancelling tells the background worker that this tab has the script.
+    event.preventDefault();
     dispose?.();
     dispose = undefined;
     const bridgeUrl = (event as CustomEvent<string | undefined>).detail;
