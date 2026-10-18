@@ -6,7 +6,7 @@ import {
   SpessaSynthProcessor,
 } from "spessasynth_core";
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
-import { DRUM_KIT_BANK } from "./general-midi.ts";
+import { DRUM_KIT_BANK, PITCH_BEND_RANGE } from "./general-midi.ts";
 import {
   MidiNoteScheduler,
   type ScheduledAutomation,
@@ -22,8 +22,6 @@ const PROCESSOR_NAME = "midi-synth";
 // Every track plays on the first MIDI channel of its own synth.
 const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
-// Wide enough for slides of up to an octave either way.
-const PITCH_BEND_RANGE = 12;
 const PITCH_WHEEL_CENTER = 8192;
 const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
   "note-off": 0,

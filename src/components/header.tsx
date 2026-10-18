@@ -84,6 +84,7 @@ export function Header({
   onGridDivisionChange,
   onExportProject,
   onExportAudio,
+  onExportMidi,
   onShareLink,
   onReferenceVideoOpenChange,
   onMixerToggle,
@@ -127,6 +128,7 @@ export function Header({
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
   onExportAudio: () => void;
+  onExportMidi: () => void;
   onShareLink: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
@@ -444,6 +446,10 @@ export function Header({
           >
             <DownloadIcon />
             Export Audio
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onExportMidi}>
+            <DownloadIcon />
+            Export MIDI
           </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="export-project"

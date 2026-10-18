@@ -1,57 +1,255 @@
-import { Midi } from "@tonejs/midi";
-import { Note, TimeSignature } from "../types";
+import type { Automation, TimeSignature } from "../types";
+import { DRUM_KIT_BANK, PITCH_BEND_RANGE } from "./general-midi";
+import { clamp } from "./music";
+import type { MidiTrackState } from "./runtime";
 
-export interface MidiExportOptions {
-  notes: Note[];
-  tempo: number;
-  timeSignature: TimeSignature;
-  /** Sequence name (song title) */
-  name: string;
-  trackName: string;
+export type MidiExportTrack = Pick<
+  MidiTrackState,
+  "name" | "bank" | "program" | "notes" | "automation" | "gain" | "pan"
+>;
+
+const PPQ = 480;
+const DRUM_CHANNEL = 9;
+// Every channel except the drum channel, so each melodic track keeps its own
+// program and controllers.
+const MELODIC_CHANNELS = Array.from({ length: 16 }, (_, i) => i).filter(
+  (channel) => channel !== DRUM_CHANNEL,
+);
+const PITCH_WHEEL_CENTER = 8192;
+
+// Events on the same tick go in this order, so a note ending where the next
+// one starts frees the voice first, and a controller or bend change lands
+// before the note it shapes.
+const NOTE_OFF = 0;
+const CHANNEL_CHANGE = 1;
+const NOTE_ON = 2;
+
+interface TrackEvent {
+  tick: number;
+  order: number;
+  bytes: number[];
 }
 
 /**
- * Export notes to a MIDI file with the specified tempo and time signature
- * @param options - Notes, tempo, time signature, sequence name, and track name
- * @returns Uint8Array containing the MIDI file data
+ * Encode a project as a format 1 Standard MIDI File: a conductor track with
+ * the title, tempo, and time signature, then one track per MIDI track on its
+ * own channel, with drum kits on the drum channel.
  */
-export function exportMidi(options: MidiExportOptions): Uint8Array {
-  const { notes, tempo, timeSignature, name, trackName } = options;
+export function exportMidi({
+  title,
+  tempo,
+  timeSignature,
+  tracks,
+}: {
+  title: string;
+  tempo: number;
+  timeSignature: TimeSignature;
+  tracks: MidiExportTrack[];
+}): Uint8Array {
+  const melodicCount = tracks.filter(
+    (track) => track.bank !== DRUM_KIT_BANK,
+  ).length;
+  if (melodicCount > MELODIC_CHANNELS.length) {
+    throw new Error(
+      `A MIDI file holds at most ${MELODIC_CHANNELS.length} non-drum tracks.`,
+    );
+  }
 
-  // Create a new MIDI file
-  const midi = new Midi();
-  midi.name = name;
+  let nextMelodic = 0;
+  const trackEvents = tracks.map((track) => {
+    const channel =
+      track.bank === DRUM_KIT_BANK
+        ? DRUM_CHANNEL
+        : MELODIC_CHANNELS[nextMelodic++];
+    return encodeTrackEvents({ track, channel });
+  });
+  // Every track ends at the same tick, two beats after the last event to
+  // leave room for release tails.
+  const endTick =
+    Math.max(0, ...trackEvents.flat().map((event) => event.tick)) + PPQ * 2;
 
-  // Set tempo
-  midi.header.setTempo(tempo);
-
-  // Set time signature
-  midi.header.timeSignatures = [
+  const microsecondsPerBeat = Math.round(60_000_000 / tempo);
+  const conductor: TrackEvent[] = [
+    { tick: 0, order: 0, bytes: encodeTextMeta(0x03, title) },
     {
-      ticks: 0,
-      timeSignature: [timeSignature.numerator, timeSignature.denominator],
-      measures: 0,
+      tick: 0,
+      order: 0,
+      bytes: [0xff, 0x51, 3, ...bytesBigEndian(microsecondsPerBeat, 3)],
+    },
+    {
+      tick: 0,
+      order: 0,
+      bytes: [
+        0xff,
+        0x58,
+        4,
+        timeSignature.numerator,
+        Math.log2(timeSignature.denominator),
+        24,
+        8,
+      ],
     },
   ];
 
-  // Add a single track for all notes
-  const track = midi.addTrack();
-  track.name = trackName;
+  const chunks = [conductor, ...trackEvents].map((events) =>
+    encodeTrackChunk({ events, endTick }),
+  );
+  return Uint8Array.from([
+    ...asciiBytes("MThd"),
+    ...bytesBigEndian(6, 4),
+    ...bytesBigEndian(1, 2),
+    ...bytesBigEndian(chunks.length, 2),
+    ...bytesBigEndian(PPQ, 2),
+    ...chunks.flat(),
+  ]);
+}
 
-  // Add all notes to the track
-  // Notes in the store are in beats (quarter notes), so writing ticks
-  // directly keeps grid alignment exact instead of round-tripping
-  // through seconds and the tempo
-  const ppq = midi.header.ppq;
-  notes.forEach((note) => {
-    track.addNote({
-      midi: note.pitch,
-      ticks: Math.round(note.start * ppq),
-      durationTicks: Math.max(1, Math.round(note.duration * ppq)),
-      velocity: note.velocity / 127, // @tonejs/midi uses normalized 0-1 velocity
-    });
+function encodeTrackEvents({
+  track,
+  channel,
+}: {
+  track: MidiExportTrack;
+  channel: number;
+}): TrackEvent[] {
+  const controlChange = (controller: number, value: number) => ({
+    tick: 0,
+    order: CHANNEL_CHANGE,
+    bytes: [0xb0 | channel, controller, value],
   });
+  const bends = track.automation.some(
+    (sequence) => sequence.type === "pitch-bend",
+  );
 
-  // Convert to Uint8Array
-  return midi.toArray();
+  // Setup at tick 0, before any note or automation point: name, preset, the
+  // channel strip's gain and pan, and the bend range when the track bends.
+  const events: TrackEvent[] = [
+    { tick: 0, order: CHANNEL_CHANGE, bytes: encodeTextMeta(0x03, track.name) },
+    // A channel starts on bank 0, and a drum kit is chosen by its channel, so
+    // only other banks need a bank select. Leaving it out also keeps
+    // @tonejs/midi, which the app imports with, from splitting the track at it.
+    ...(track.bank && track.bank !== DRUM_KIT_BANK
+      ? [controlChange(0, track.bank)]
+      : []),
+    { tick: 0, order: CHANNEL_CHANGE, bytes: [0xc0 | channel, track.program] },
+    controlChange(7, encodeVolume(track.gain)),
+    controlChange(10, clamp(Math.round(64 + track.pan * 64), 0, 127)),
+    ...(bends
+      ? [
+          controlChange(101, 0),
+          controlChange(100, 0),
+          controlChange(6, PITCH_BEND_RANGE),
+          controlChange(38, 0),
+        ]
+      : []),
+  ];
+
+  for (const note of track.notes) {
+    // Notes before beat 0 start at 0, since a delta time can't be negative.
+    const on = Math.max(0, Math.round(note.start * PPQ));
+    const off = Math.max(
+      on + 1,
+      Math.round((note.start + note.duration) * PPQ),
+    );
+    events.push({
+      tick: on,
+      order: NOTE_ON,
+      bytes: [0x90 | channel, note.pitch, note.velocity],
+    });
+    events.push({
+      tick: off,
+      order: NOTE_OFF,
+      bytes: [0x80 | channel, note.pitch, 0],
+    });
+  }
+  for (const sequence of track.automation) {
+    for (const point of sequence.points) {
+      events.push({
+        tick: Math.max(0, Math.round(point.beat * PPQ)),
+        order: CHANNEL_CHANGE,
+        bytes: encodeAutomationPoint({ sequence, point, channel }),
+      });
+    }
+  }
+  return events;
+}
+
+// The SoundFont default modulator attenuates CC 7 by 40·log10(v/127) dB, so
+// amplitude follows (v/127)². CC 7 can't boost, so gains above unity clamp.
+function encodeVolume(gain: number): number {
+  return Math.round(127 * Math.sqrt(Math.min(gain, 1)));
+}
+
+function encodeAutomationPoint({
+  sequence,
+  point,
+  channel,
+}: {
+  sequence: Automation;
+  point: Automation["points"][number];
+  channel: number;
+}): number[] {
+  switch (sequence.type) {
+    case "controller": {
+      const { value } = point as { value: number };
+      return [0xb0 | channel, sequence.controller, value];
+    }
+    case "pitch-bend": {
+      const { semitones } = point as { semitones: number };
+      // The value runs 8192 steps down from center but only 8191 up, so a bend
+      // of the full range up clamps to the end.
+      const value = clamp(
+        Math.round(
+          PITCH_WHEEL_CENTER +
+            (semitones / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
+        ),
+        0,
+        2 * PITCH_WHEEL_CENTER - 1,
+      );
+      return [0xe0 | channel, value & 0x7f, value >> 7];
+    }
+  }
+}
+
+function encodeTrackChunk({
+  events,
+  endTick,
+}: {
+  events: TrackEvent[];
+  endTick: number;
+}): number[] {
+  const sorted = events.toSorted(
+    (a, b) => a.tick - b.tick || a.order - b.order,
+  );
+  const body: number[] = [];
+  let lastTick = 0;
+  for (const { tick, bytes } of sorted) {
+    body.push(...encodeVariableLength(tick - lastTick), ...bytes);
+    lastTick = tick;
+  }
+  body.push(...encodeVariableLength(endTick - lastTick), 0xff, 0x2f, 0);
+  return [...asciiBytes("MTrk"), ...bytesBigEndian(body.length, 4), ...body];
+}
+
+function encodeTextMeta(type: number, text: string): number[] {
+  const bytes = [...new TextEncoder().encode(text)];
+  return [0xff, type, ...encodeVariableLength(bytes.length), ...bytes];
+}
+
+function encodeVariableLength(value: number): number[] {
+  const bytes = [value & 0x7f];
+  while ((value >>= 7)) {
+    bytes.unshift((value & 0x7f) | 0x80);
+  }
+  return bytes;
+}
+
+function bytesBigEndian(value: number, length: number): number[] {
+  return Array.from(
+    { length },
+    (_, i) => (value >>> (8 * (length - 1 - i))) & 0xff,
+  );
+}
+
+function asciiBytes(text: string): number[] {
+  return Array.from(text, (char) => char.charCodeAt(0));
 }

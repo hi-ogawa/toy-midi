@@ -71,6 +71,42 @@ test("imports and exports a MIDI file from track actions", async ({ page }) => {
   ).toEqual([{ pitch: 60, beat: 1, duration: 0.5 }]);
 });
 
+test("exports every MIDI track from the editor menu", async ({ page }) => {
+  // Create a bass track with a C4 note and a piano track with an E4 note.
+  await createProject(page);
+  const bass = await addMidiTrack(page);
+  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
+  await selectMidiInstrument(instrument, {
+    option: "33: Electric Bass (finger)",
+  });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+  await createMidiNote(page, bass, { beat: 0, pitch: "C4" });
+  const piano = await addMidiTrack(page);
+  await createMidiNote(page, piano, { beat: 1, pitch: "E4" });
+
+  // Export the project and find both tracks with their instruments and notes.
+  const downloadPromise = page.waitForEvent("download");
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export MIDI" });
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/\.mid$/);
+  const destination = test.info().outputPath("project.mid");
+  await download.saveAs(destination);
+  const exported = new Midi(await readFile(destination));
+  expect(
+    exported.tracks.map((track) => ({
+      name: track.name,
+      program: track.instrument.number,
+      notes: track.notes.map((note) => ({
+        pitch: note.midi,
+        beat: note.ticks / exported.header.ppq,
+      })),
+    })),
+  ).toEqual([
+    { name: "MIDI 1", program: 33, notes: [{ pitch: 60, beat: 0 }] },
+    { name: "MIDI 2", program: 0, notes: [{ pitch: 64, beat: 1 }] },
+  ]);
+});
+
 test("exports MusicXML from track actions", async ({ page }) => {
   // Create an empty MIDI track.
   await createProject(page);

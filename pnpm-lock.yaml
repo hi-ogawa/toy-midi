@@ -93,6 +93,9 @@ importers:
       fallow:
         specifier: ^2.50.0
         version: 2.104.0
+      midi-file:
+        specifier: ^1.2.4
+        version: 1.2.4
       pkg-pr-new:
         specifier: 0.0.75
         version: 0.0.75

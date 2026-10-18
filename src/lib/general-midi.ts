@@ -150,6 +150,10 @@ export const GM_PROGRAMS = [
 // the bank that synths play on channel 10, the drum channel.
 export const DRUM_KIT_BANK = 128;
 
+// The pitch-bend range in semitones each way, set through registered parameter
+// 0. An octave is wide enough for slides.
+export const PITCH_BEND_RANGE = 12;
+
 // The kits the bundled soundfont ships.
 export const DRUM_KITS = [
   { program: 0, name: "Standard" },

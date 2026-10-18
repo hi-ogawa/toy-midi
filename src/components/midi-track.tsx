@@ -114,11 +114,10 @@ export function MidiTrackRow({
     mutationFn: async () => {
       const state = runtime.store.get();
       const data = exportMidi({
-        notes: track.notes,
+        title: state.title,
         tempo: state.tempo,
         timeSignature: state.timeSignature,
-        name: state.title,
-        trackName: track.name,
+        tracks: [track],
       });
       downloadBlob(
         new Blob([new Uint8Array(data)], { type: "audio/midi" }),
