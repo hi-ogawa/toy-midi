@@ -3,7 +3,6 @@ import {
   type LevelMeters,
   type MeterChannel,
   type MeterTarget,
-  getMeterChannelCount,
   getMeterKey,
 } from "../lib/level-meters";
 import { MAX_DB, MIN_DB, clamp } from "../lib/music";
@@ -28,12 +27,15 @@ export function LevelMeter({
   target,
   label,
   orientation = "vertical",
+  channelCount = 2,
   readout = false,
 }: {
   meters: LevelMeters;
   target: MeterTarget;
   label: string;
   orientation?: "vertical" | "horizontal";
+  /** Shows only the first channel of the stereo levels when 1 */
+  channelCount?: 1 | 2;
   readout?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -49,7 +51,8 @@ export function LevelMeter({
     const readout = readoutRef.current;
     let valueNow: number | undefined;
     let readoutText: string | undefined;
-    const unsubscribe = meters.subscribe(target, (channels) => {
+    const unsubscribe = meters.subscribe(target, (stereo) => {
+      const channels = stereo.slice(0, channelCount);
       meterCanvas.draw(channels);
       channels.forEach((channel, index) => {
         dots[index]!.dataset.clipped = String(channel.clipped);
@@ -74,21 +77,18 @@ export function LevelMeter({
       unsubscribe();
     };
     // Keyed by value, so a target object recreated on render keeps the subscription.
-  }, [meters, targetKey, orientation]);
+  }, [meters, targetKey, orientation, channelCount]);
 
-  const dots = Array.from(
-    { length: getMeterChannelCount(target) },
-    (_, index) => (
-      <span
-        key={index}
-        data-testid="meter-clip"
-        className={cn(
-          "rounded-[1px] bg-neutral-700 data-[clipped=true]:bg-red-500",
-          orientation === "vertical" ? "h-1 w-[3px]" : "w-1 flex-1",
-        )}
-      />
-    ),
-  );
+  const dots = Array.from({ length: channelCount }, (_, index) => (
+    <span
+      key={index}
+      data-testid="meter-clip"
+      className={cn(
+        "rounded-[1px] bg-neutral-700 data-[clipped=true]:bg-red-500",
+        orientation === "vertical" ? "h-1 w-[3px]" : "w-1 flex-1",
+      )}
+    />
+  ));
   const clipButton = (
     <button
       ref={clipRef}

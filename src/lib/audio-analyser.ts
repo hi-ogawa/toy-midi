@@ -4,7 +4,7 @@ export type AudioLevels = {
   rms: number;
 };
 
-export class AudioAnalyser {
+class AudioAnalyser {
   readonly node: AnalyserNode;
 
   private readonly samples: Float32Array<ArrayBuffer>;

@@ -7,7 +7,7 @@ import {
 import { insertAtIndices } from "../utils/array.ts";
 import { createNumberedName } from "../utils/name.ts";
 import { createStore, shallowEqual } from "../utils/store.ts";
-import { type AudioLevels, StereoAnalyser } from "./audio-analyser.ts";
+import { StereoAnalyser } from "./audio-analyser.ts";
 import {
   createAudioClip,
   WAVEFORM_POINTS_PER_SECOND,
@@ -316,7 +316,7 @@ export class EditorRuntime {
   private readonly masterOutput: GainNode;
   private masterAnalyser?: StereoAnalyser;
   readonly levelMeters = new LevelMeters({
-    measure: (target) => this.measureMeter(target),
+    getAnalyser: (target) => this.getMeterAnalyser(target),
   });
   /** @internal */
   captureInput?: CaptureInput;
@@ -803,26 +803,21 @@ export class EditorRuntime {
     return audioTracks[index]!;
   }
 
-  private measureMeter(target: MeterTarget): AudioLevels[] | undefined {
-    switch (target.kind) {
-      case "master": {
-        if (!this.masterAnalyser) {
-          this.masterAnalyser = new StereoAnalyser(this.context);
-          this.masterOutput.connect(this.masterAnalyser.input);
-        }
-        return this.masterAnalyser.measure();
+  private getMeterAnalyser(target: MeterTarget): StereoAnalyser | undefined {
+    if (target.kind === "master") {
+      if (!this.masterAnalyser) {
+        this.masterAnalyser = new StereoAnalyser(this.context);
+        this.masterOutput.connect(this.masterAnalyser.input);
       }
-      case "track": {
-        const playback =
-          this.trackPlaybacks.get(target.id) ??
-          this.midiTrackPlaybacks.get(target.id);
-        return playback?.channel.getAnalyser().measure();
-      }
-      case "input": {
-        // Measured before monitor gain, so it shows what gets recorded.
-        return this.captureInput && [this.captureInput.analyser.measure()];
-      }
+      return this.masterAnalyser;
     }
+    if (target.kind === "input") {
+      return this.captureInput?.analyser;
+    }
+    const playback =
+      this.trackPlaybacks.get(target.id) ??
+      this.midiTrackPlaybacks.get(target.id);
+    return playback?.channel.getAnalyser();
   }
 
   private getTrackPlayback(id: string): AudioTrackPlayback {

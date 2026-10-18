@@ -1,6 +1,6 @@
 import { KeyedMap } from "../utils/keyed-map.ts";
 import { startAnimationFrameLoop } from "../utils/timing.ts";
-import type { AudioLevels } from "./audio-analyser.ts";
+import type { AudioLevels, StereoAnalyser } from "./audio-analyser.ts";
 import { MIN_DB, gainToDb } from "./music.ts";
 
 export type MeterTarget =
@@ -8,10 +8,9 @@ export type MeterTarget =
   | { kind: "track"; id: string }
   | { kind: "input" };
 
-type MeterListener = (channels: readonly MeterChannel[]) => void;
+type MeterListener = (channels: readonly [MeterChannel, MeterChannel]) => void;
 
-/** Levels per channel, or undefined while the target has no audio node. */
-type LevelsLookup = (target: MeterTarget) => readonly AudioLevels[] | undefined;
+type AnalyserLookup = (target: MeterTarget) => StereoAnalyser | undefined;
 
 // Long frames, such as a background tab resuming, settle in one step instead
 // of animating a stale fall.
@@ -27,16 +26,16 @@ export class LevelMeters {
     MeterTarget,
     {
       target: MeterTarget;
-      channels: MeterChannel[];
+      channels: [MeterChannel, MeterChannel];
       listeners: Set<MeterListener>;
     }
-  >((target) => (target.kind === "track" ? `track:${target.id}` : target.kind));
+  >(getMeterKey);
   private stopLoop?: () => void;
   private lastTime?: number;
-  private readonly measure: LevelsLookup;
+  private readonly getAnalyser: AnalyserLookup;
 
-  constructor({ measure }: { measure: LevelsLookup }) {
-    this.measure = measure;
+  constructor({ getAnalyser }: { getAnalyser: AnalyserLookup }) {
+    this.getAnalyser = getAnalyser;
   }
 
   subscribe(target: MeterTarget, listener: MeterListener): () => void {
@@ -44,10 +43,7 @@ export class LevelMeters {
     if (!meter) {
       meter = {
         target,
-        channels: Array.from(
-          { length: getMeterChannelCount(target) },
-          () => new MeterChannel(),
-        ),
+        channels: [new MeterChannel(), new MeterChannel()],
         listeners: new Set(),
       };
       this.meters.set(target, meter);
@@ -83,13 +79,12 @@ export class LevelMeters {
     for (const meter of this.meters.values()) {
       // Resolve on every frame, because a track's channel is replaced when a
       // project loads, and the input is replaced when it is turned on.
-      const levels = this.measure(meter.target);
+      const levels = this.getAnalyser(meter.target)?.measure() ?? [
+        SILENCE,
+        SILENCE,
+      ];
       for (const [index, channel] of meter.channels.entries()) {
-        channel.update({
-          levels: levels?.[index] ?? SILENCE,
-          time: timeMs / 1000,
-          elapsed,
-        });
+        channel.update({ levels: levels[index], time: timeMs / 1000, elapsed });
       }
       for (const listener of meter.listeners) {
         listener(meter.channels);
@@ -100,11 +95,6 @@ export class LevelMeters {
 
 export function getMeterKey(target: MeterTarget): string {
   return target.kind === "track" ? `track:${target.id}` : target.kind;
-}
-
-export function getMeterChannelCount(target: MeterTarget): number {
-  // Capture records one selected channel, so the input meter is mono.
-  return target.kind === "input" ? 1 : 2;
 }
 
 const RMS_ATTACK_SECONDS = 0.05;

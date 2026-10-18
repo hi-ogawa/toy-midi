@@ -92,6 +92,7 @@ export function InputPanel({
         target={{ kind: "input" }}
         label="Input"
         orientation="horizontal"
+        channelCount={1}
       />
       <Button
         aria-pressed={tunerOpen}

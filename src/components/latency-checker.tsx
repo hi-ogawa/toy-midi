@@ -212,6 +212,7 @@ export function LatencyChecker() {
                   target={{ kind: "input" }}
                   label="Input"
                   orientation="horizontal"
+                  channelCount={1}
                   readout
                 />
               </div>

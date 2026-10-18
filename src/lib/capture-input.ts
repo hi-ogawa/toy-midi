@@ -1,4 +1,4 @@
-import { AudioAnalyser } from "./audio-analyser.ts";
+import { StereoAnalyser } from "./audio-analyser.ts";
 import {
   CaptureWorkletNode,
   ensureCaptureWorklet,
@@ -25,7 +25,8 @@ export class CaptureInput {
   readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly captureNode: CaptureWorkletNode;
-  readonly analyser: AudioAnalyser;
+  /** Capture is mono for now, so only the first channel carries signal. */
+  readonly analyser: StereoAnalyser;
   readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;
   private capture?: { chunks: CaptureChunk[]; startFrame: number };
@@ -98,7 +99,7 @@ export class CaptureInput {
         onNotification(message);
       },
     });
-    this.analyser = new AudioAnalyser(context);
+    this.analyser = new StereoAnalyser(context);
     this.tunerAnalyser = new TunerAnalyser(context);
     this.monitorGain = context.createGain();
     this.monitorGain.gain.value = 0;
@@ -107,9 +108,10 @@ export class CaptureInput {
     this.source
       .connect(this.captureNode.node)
       .connect(this.tunerAnalyser.node)
-      .connect(this.analyser.node)
       .connect(this.monitorGain)
       .connect(output);
+    // Tapped before monitor gain, so the meter shows what gets recorded.
+    this.tunerAnalyser.node.connect(this.analyser.input);
   }
 
   setChannel(channel: number): void {
