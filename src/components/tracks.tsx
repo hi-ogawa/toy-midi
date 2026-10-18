@@ -12,9 +12,11 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
+import type { LevelMeters } from "../lib/level-meters";
 import { formatGainDb } from "../lib/music";
 import { MIN_GAIN_SLIDER_HEIGHT } from "../lib/runtime";
 import { openFilePicker } from "./file-drop-input";
+import { ActivityLed } from "./level-meter";
 import { MixToggle } from "./mix-toggle";
 import { GainSlider } from "./mixer";
 import { Button } from "./ui/button";
@@ -166,6 +168,8 @@ export function RenameTrackMenuItem({
 }
 
 export function TrackRow({
+  trackId,
+  meters,
   title,
   "data-testid": testId,
   controlsClassName,
@@ -181,6 +185,8 @@ export function TrackRow({
   onHeightChange,
   children,
 }: {
+  trackId: string;
+  meters: LevelMeters;
   title: string;
   "data-testid"?: string;
   controlsClassName?: string;
@@ -220,8 +226,9 @@ export function TrackRow({
           controlsClassName,
         )}
       >
-        <div className="min-w-0 self-center truncate text-xs font-semibold">
-          {title}
+        <div className="flex min-w-0 items-center gap-1.5 self-center text-xs font-semibold">
+          <ActivityLed meters={meters} trackId={trackId} />
+          <span className="truncate">{title}</span>
         </div>
         <div className="flex self-center gap-1">
           {action}

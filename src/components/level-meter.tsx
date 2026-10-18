@@ -107,6 +107,44 @@ export function LevelMeter({
   );
 }
 
+// Quieter than this reads as silence, such as a reverb tail fading out.
+const ACTIVITY_THRESHOLD_DB = -48;
+
+/** Dot that lights while a track is sounding and dims with its level. */
+export function ActivityLed({
+  meters,
+  trackId,
+}: {
+  meters: LevelMeters;
+  trackId: string;
+}) {
+  const ledRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const led = ledRef.current!;
+    return meters.subscribe(getMeterTarget(trackId), (channels) => {
+      const peak = Math.max(...channels.map((c) => c.peak));
+      const rms = Math.max(...channels.map((c) => c.rms));
+      const active = peak > ACTIVITY_THRESHOLD_DB;
+      const level = 1 - getMeterPosition(rms);
+      led.dataset.active = String(active);
+      led.style.opacity = active ? String(0.45 + 0.55 * level) : "";
+      led.style.boxShadow = active
+        ? `0 0 ${2 + 4 * level}px var(--color-emerald-400)`
+        : "";
+    });
+  }, [meters, trackId]);
+
+  return (
+    <span
+      ref={ledRef}
+      data-testid="track-activity"
+      aria-hidden="true"
+      className="size-2 shrink-0 rounded-full bg-neutral-700 data-[active=true]:bg-emerald-400"
+    />
+  );
+}
+
 /** dB labels on the meter's scale. */
 export function MeterScale() {
   return (

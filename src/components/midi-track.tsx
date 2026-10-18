@@ -159,6 +159,8 @@ export function MidiTrackRow({
     <div onFocus={midiInteraction.activate}>
       <TrackRow
         data-testid="midi-track-row"
+        trackId={track.id}
+        meters={runtime.levelMeters}
         // Anchor the keyboard’s top edge to the controls so pitch scrolling keeps it visible.
         controlsClassName={
           track.viewMode === "editor"

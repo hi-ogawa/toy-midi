@@ -20,19 +20,26 @@ test("meters playback levels after the fader", async ({ page }) => {
   const panel = page.getByTestId("mixer-panel");
   const trackMeter = panel.getByRole("meter", { name: "Audio 2 level" });
   const masterMeter = panel.getByRole("meter", { name: "Master level" });
+  const trackLed = page
+    .getByTestId("audio-track-row")
+    .filter({ hasText: "Audio 2" })
+    .getByTestId("track-activity");
 
-  // Meters rest at the bottom of the scale while stopped.
+  // Meters rest at the bottom of the scale and the header LED stays dark while stopped.
   await expect(trackMeter).toHaveAttribute("aria-valuenow", "-60");
   await expect(masterMeter).toHaveAttribute("aria-valuenow", "-60");
+  await expect(trackLed).toHaveAttribute("data-active", "false");
 
-  // Play, and both the track and the master meter rise.
+  // Play, and both the track and the master meter rise while the header LED lights.
   await page.getByTestId("play-button").click();
   await expect.poll(() => getLevel(trackMeter)).toBeGreaterThan(-60);
   await expect.poll(() => getLevel(masterMeter)).toBeGreaterThan(-60);
+  await expect(trackLed).toHaveAttribute("data-active", "true");
 
-  // Mute the track, and its meter falls back, because it reads after the fader.
+  // Mute the track, and its meter and LED fall back, because they read after the fader.
   await panel.getByRole("button", { name: "Toggle Audio 2 mute" }).click();
   await expect(trackMeter).toHaveAttribute("aria-valuenow", "-60");
+  await expect(trackLed).toHaveAttribute("data-active", "false");
 });
 
 test("meters MIDI track playback", async ({ page }) => {
@@ -46,11 +53,15 @@ test("meters MIDI track playback", async ({ page }) => {
   await saveProject(page);
   await page.reload();
 
-  // Play the restored notes, and the track meter rises.
+  // Play the restored notes, and the track meter and header LED rise.
   await page.getByTestId("mixer-button").click();
   const trackMeter = page
     .getByTestId("mixer-panel")
     .getByRole("meter", { name: "MIDI 1 level" });
   await page.getByTestId("play-button").click();
   await expect.poll(() => getLevel(trackMeter)).toBeGreaterThan(-60);
+  await expect(row.getByTestId("track-activity")).toHaveAttribute(
+    "data-active",
+    "true",
+  );
 });

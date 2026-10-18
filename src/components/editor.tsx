@@ -460,6 +460,8 @@ export function Editor({ source }: { source: ProjectSource }) {
                     <Fragment key={track.id}>
                       <TrackRow
                         data-testid="audio-track-row"
+                        trackId={track.id}
+                        meters={runtime.levelMeters}
                         title={track.name}
                         height={track.height}
                         gain={track.gain}
