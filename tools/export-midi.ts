@@ -10,7 +10,7 @@ import { parseArgs } from "node:util";
 import JSZip from "jszip";
 import { exportMidi } from "../src/lib/midi-export.ts";
 import {
-  deserializeMidiTrackState,
+  deserializeEditorRuntimeState,
   type SerializedEditorRuntimeState,
 } from "../src/lib/persistence.ts";
 import { readProjectArchive } from "../src/lib/project-archive.ts";
@@ -55,21 +55,19 @@ async function readProject(
   throw new Error(USAGE);
 }
 
-// The runtime completes an older or partial track order on load, so complete
-// it the same way before reading the MIDI tracks off it.
 function exportProjectMidi(project: SerializedEditorRuntimeState): Uint8Array {
-  const midiTracks = (project.midiTracks ?? []).map(deserializeMidiTrackState);
-  const trackOrder = syncTrackOrder({
-    trackOrder: project.trackOrder ?? [],
-    audioTracks: [],
-    midiTracks,
+  // Only audio clips need an AudioContext, to decode their samples, and audio
+  // tracks never reach a MIDI file.
+  const state = deserializeEditorRuntimeState({
+    context: undefined as never,
+    project: { ...project, audioTracks: [] },
   });
+  // The runtime completes an older or partial track order on load, so complete
+  // it the same way before reading the MIDI tracks off it.
+  const trackOrder = syncTrackOrder({ ...state, audioTracks: [] });
   return exportMidi({
-    title: project.title,
-    tempo: project.tempo,
-    timeSignature: project.timeSignature,
-    locators: project.locators ?? [],
-    tracks: midiTracks.toSorted(
+    ...state,
+    tracks: state.midiTracks.toSorted(
       (a, b) => trackOrder.indexOf(a.id) - trackOrder.indexOf(b.id),
     ),
   });

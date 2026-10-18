@@ -224,7 +224,7 @@ export function deserializeEditorRuntimeState({
   };
 }
 
-export function deserializeMidiTrackState(
+function deserializeMidiTrackState(
   track: SerializedMidiTrackState,
 ): MidiTrackState {
   return {
