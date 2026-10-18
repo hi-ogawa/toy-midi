@@ -1,7 +1,6 @@
 import type { TimeSignature } from "../types.ts";
 import { midiToHz, parseMidiPitch } from "./music.ts";
 import type { ScheduledRange } from "./playback-run.ts";
-import { getDenominatorNoteLength } from "./timeline.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -40,7 +39,7 @@ export class Metronome implements TransportParticipant {
 
   private updateTiming(): void {
     this.secondsPerClick =
-      (60 / this.tempo) * getDenominatorNoteLength(this.timeSignature);
+      (60 / this.tempo) * (4 / this.timeSignature.denominator);
     if (this.transport.store.get().isPlaying) {
       this.start();
     }

@@ -1,9 +1,5 @@
 import type { TimeSignature } from "../types";
-import {
-  getBeatsPerBar,
-  getDenominatorNoteLength,
-  getVisibleBarInterval,
-} from "./timeline";
+import { getBeatsPerBar, getVisibleBarInterval } from "./timeline";
 
 type TimelineGridKind = "bar" | "denominator-note" | "subdivision";
 
@@ -75,7 +71,7 @@ function calculateTimelineGridLayers({
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
   const beatsPerBar = getBeatsPerBar(timeSignature);
-  const denominatorNoteInterval = getDenominatorNoteLength(timeSignature);
+  const denominatorNoteInterval = 4 / timeSignature.denominator;
   const barInterval =
     getVisibleBarInterval({
       barWidth: beatsPerBar * pixelsPerBeat,
