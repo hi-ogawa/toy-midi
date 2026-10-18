@@ -4,12 +4,11 @@ import {
   encodePitchBend,
   PITCH_BEND_RANGE,
 } from "./general-midi";
-import { clamp } from "./music";
 import type { Locator, MidiTrackState } from "./runtime";
 
 export type MidiExportTrack = Pick<
   MidiTrackState,
-  "name" | "bank" | "program" | "notes" | "automation" | "gain" | "pan"
+  "name" | "bank" | "program" | "notes" | "automation"
 >;
 
 const PPQ = 480;
@@ -132,8 +131,10 @@ function encodeTrackEvents({
     (sequence) => sequence.type === "pitch-bend",
   );
 
-  // Setup at tick 0, before any note or automation point: name, preset, the
-  // channel strip's gain and pan, and the bend range when the track bends.
+  // Setup at tick 0, before any note or automation point: name, preset, and
+  // the bend range when the track bends. The channel strip's gain and pan stay
+  // out, because the app applies them after the synth, where they compose with
+  // CC 7 and CC 10 automation instead of replacing it.
   const events: TrackEvent[] = [
     { tick: 0, bytes: encodeTextMeta(0x03, track.name) },
     // A channel starts on bank 0, and a drum kit is chosen by its channel, so
@@ -143,8 +144,6 @@ function encodeTrackEvents({
       ? [controlChange(0, track.bank)]
       : []),
     { tick: 0, bytes: [0xc0 | channel, track.program] },
-    controlChange(7, encodeVolume(track.gain)),
-    controlChange(10, clamp(Math.round(64 + track.pan * 64), 0, 127)),
     ...(bends
       ? [
           controlChange(101, 0),
@@ -182,12 +181,6 @@ function encodeTrackEvents({
     }
   }
   return events;
-}
-
-// The SoundFont default modulator attenuates CC 7 by 40·log10(v/127) dB, so
-// amplitude follows (v/127)². CC 7 can't boost, so gains above unity clamp.
-function encodeVolume(gain: number): number {
-  return Math.round(127 * Math.sqrt(Math.min(gain, 1)));
 }
 
 function encodeAutomationPoint({
