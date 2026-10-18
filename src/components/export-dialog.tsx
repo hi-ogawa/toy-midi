@@ -70,18 +70,12 @@ export function ExportDialog({
               }}
               className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
             >
-              <option value="none">None, mix only</option>
-              <option value="post-fader">Post-fader, as in the mix</option>
-              <option value="dry">Dry, before EQ, gain, and pan</option>
+              <option value="none">None</option>
+              <option value="post-fader">As mixed</option>
+              <option value="dry">Dry</option>
             </select>
           </dd>
         </dl>
-        {stemTap && (
-          <p className="text-xs leading-relaxed text-neutral-400">
-            Downloads a zip with the mix and one WAV per track. Every stem runs
-            the length of the mix and ignores mute and solo.
-          </p>
-        )}
       </div>
       <Button
         className="w-full px-4 py-2 text-sm hover:bg-neutral-700"
