@@ -1,5 +1,9 @@
 import type { Automation, TimeSignature } from "../types";
-import { DRUM_KIT_BANK, PITCH_BEND_RANGE } from "./general-midi";
+import {
+  DRUM_KIT_BANK,
+  encodePitchBend,
+  PITCH_BEND_RANGE,
+} from "./general-midi";
 import { clamp } from "./music";
 import type { MidiTrackState } from "./runtime";
 
@@ -15,7 +19,6 @@ const DRUM_CHANNEL = 9;
 const MELODIC_CHANNELS = Array.from({ length: 16 }, (_, i) => i).filter(
   (channel) => channel !== DRUM_CHANNEL,
 );
-const PITCH_WHEEL_CENTER = 8192;
 
 // Events on the same tick go in this order, so a note ending where the next
 // one starts frees the voice first, and a controller or bend change lands
@@ -195,16 +198,7 @@ function encodeAutomationPoint({
     }
     case "pitch-bend": {
       const { semitones } = point as { semitones: number };
-      // The value runs 8192 steps down from center but only 8191 up, so a bend
-      // of the full range up clamps to the end.
-      const value = clamp(
-        Math.round(
-          PITCH_WHEEL_CENTER +
-            (semitones / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
-        ),
-        0,
-        2 * PITCH_WHEEL_CENTER - 1,
-      );
+      const value = encodePitchBend(semitones);
       return [0xe0 | channel, value & 0x7f, value >> 7];
     }
   }
