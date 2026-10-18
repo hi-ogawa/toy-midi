@@ -44,9 +44,8 @@ export class LevelMeters {
     if (!meter) {
       meter = {
         target,
-        // Capture records one selected channel, so the input meter is mono.
         channels: Array.from(
-          { length: target.kind === "input" ? 1 : 2 },
+          { length: getMeterChannelCount(target) },
           () => new MeterChannel(),
         ),
         listeners: new Set(),
@@ -97,6 +96,15 @@ export class LevelMeters {
       }
     }
   }
+}
+
+export function getMeterKey(target: MeterTarget): string {
+  return target.kind === "track" ? `track:${target.id}` : target.kind;
+}
+
+export function getMeterChannelCount(target: MeterTarget): number {
+  // Capture records one selected channel, so the input meter is mono.
+  return target.kind === "input" ? 1 : 2;
 }
 
 const RMS_ATTACK_SECONDS = 0.05;

@@ -47,7 +47,7 @@ export function Mixer({
             meter={
               <LevelMeter
                 meters={runtime.levelMeters}
-                trackId={track.id}
+                target={{ kind: "track", id: track.id }}
                 label={track.name}
               />
             }
@@ -84,7 +84,13 @@ export function Mixer({
         onGainChange={(gain) => runtime.setMasterGain(gain)}
         inputProps={masterInput.props}
         data-testid="mixer-master"
-        meter={<LevelMeter meters={runtime.levelMeters} label="Master" />}
+        meter={
+          <LevelMeter
+            meters={runtime.levelMeters}
+            target={{ kind: "master" }}
+            label="Master"
+          />
+        }
       />
     </div>
   );

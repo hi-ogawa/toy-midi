@@ -20,7 +20,7 @@ import { routes } from "../lib/routes";
 import { EditorRuntime } from "../lib/runtime";
 import { pluralCount } from "../utils/plural-count";
 import { InputDiagnostics } from "./input-diagnostics";
-import { InputMeter } from "./input-meter";
+import { LevelMeter } from "./level-meter";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -207,7 +207,13 @@ export function LatencyChecker() {
             <div className="mt-4">
               <div className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Input meter
-                <InputMeter meters={runtime.levelMeters} />
+                <LevelMeter
+                  meters={runtime.levelMeters}
+                  target={{ kind: "input" }}
+                  label="Input"
+                  orientation="horizontal"
+                  readout
+                />
               </div>
             </div>
             <InputDiagnostics runtime={runtime} />

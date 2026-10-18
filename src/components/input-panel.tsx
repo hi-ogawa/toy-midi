@@ -5,7 +5,7 @@ import {
   Settings2Icon,
 } from "lucide-react";
 import type { LevelMeters } from "../lib/level-meters";
-import { InputMeter } from "./input-meter";
+import { LevelMeter } from "./level-meter";
 import { Panel } from "./panel";
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
@@ -87,7 +87,12 @@ export function InputPanel({
           </Button>
         </div>
       )}
-      <InputMeter meters={levelMeters} compact />
+      <LevelMeter
+        meters={levelMeters}
+        target={{ kind: "input" }}
+        label="Input"
+        orientation="horizontal"
+      />
       <Button
         aria-pressed={tunerOpen}
         onClick={onTunerToggle}

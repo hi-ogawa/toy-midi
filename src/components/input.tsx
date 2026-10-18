@@ -5,7 +5,7 @@ import { measureLatency } from "../lib/latency-checker/runtime";
 import { routes } from "../lib/routes";
 import type { EditorRuntime } from "../lib/runtime";
 import { InputDiagnostics } from "./input-diagnostics";
-import { InputMeter } from "./input-meter";
+import { LevelMeter } from "./level-meter";
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
 import { useDraftInput } from "./use-draft-input";
@@ -146,7 +146,13 @@ export function InputSetup({
         <div className="text-xs font-medium text-neutral-400">
           Level
           <div className="mt-2">
-            <InputMeter meters={runtime.levelMeters} />
+            <LevelMeter
+              meters={runtime.levelMeters}
+              target={{ kind: "input" }}
+              label="Input"
+              orientation="horizontal"
+              readout
+            />
           </div>
         </div>
         <section

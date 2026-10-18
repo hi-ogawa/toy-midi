@@ -1,12 +1,16 @@
 import { useEffect, useRef } from "react";
-import type {
-  LevelMeters,
-  MeterChannel,
-  MeterTarget,
+import {
+  type LevelMeters,
+  type MeterChannel,
+  type MeterTarget,
+  getMeterChannelCount,
+  getMeterKey,
 } from "../lib/level-meters";
 import { MAX_DB, MIN_DB, clamp } from "../lib/music";
+import { cn } from "./ui/utils";
 
 const WIDTH = 7;
+const SILENT_READOUT = "-∞ dBFS";
 const SCALE_TICKS = [6, 0, -6, -12, -18, -24, -36, -48, -60];
 // Zones are by level, so a color means the same dB wherever the bar ends.
 const ZONES = [
@@ -15,79 +19,137 @@ const ZONES = [
   { below: Infinity, body: "#b91c1c", line: "#fca5a5" }, // red-700, red-300
 ];
 
-/** Stereo meter on the fader's dB scale, with a latched clip indicator. */
+/**
+ * Meter on the fader's dB scale, one bar per channel, with a latched clip
+ * indicator. The readout shows the peak in dBFS, for setting a recording level.
+ */
 export function LevelMeter({
   meters,
-  trackId,
+  target,
   label,
+  orientation = "vertical",
+  readout = false,
 }: {
   meters: LevelMeters;
-  /** Meters the master output when omitted */
-  trackId?: string;
+  target: MeterTarget;
   label: string;
+  orientation?: "vertical" | "horizontal";
+  readout?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const meterRef = useRef<HTMLDivElement>(null);
   const clipRef = useRef<HTMLButtonElement>(null);
+  const readoutRef = useRef<HTMLOutputElement>(null);
+  const targetKey = getMeterKey(target);
 
   useEffect(() => {
-    const meterCanvas = new MeterCanvas(canvasRef.current!, "vertical");
+    const meterCanvas = new MeterCanvas(canvasRef.current!, orientation);
     const meter = meterRef.current!;
     const dots = [...clipRef.current!.children] as HTMLElement[];
+    const readout = readoutRef.current;
     let valueNow: number | undefined;
-    const unsubscribe = meters.subscribe(
-      getMeterTarget(trackId),
-      (channels) => {
-        meterCanvas.draw(channels);
-        channels.forEach((channel, index) => {
-          dots[index]!.dataset.clipped = String(channel.clipped);
-        });
-        // Rounded so the attribute changes only when the reading does.
-        const rms = Math.round(Math.max(...channels.map((c) => c.rms)));
-        if (rms !== valueNow) {
-          valueNow = rms;
-          meter.setAttribute(
-            "aria-valuenow",
-            String(clamp(rms, MIN_DB, MAX_DB)),
-          );
+    let readoutText: string | undefined;
+    const unsubscribe = meters.subscribe(target, (channels) => {
+      meterCanvas.draw(channels);
+      channels.forEach((channel, index) => {
+        dots[index]!.dataset.clipped = String(channel.clipped);
+      });
+      // Rounded so the DOM changes only when the reading does.
+      const rms = Math.round(Math.max(...channels.map((c) => c.rms)));
+      if (rms !== valueNow) {
+        valueNow = rms;
+        meter.setAttribute("aria-valuenow", String(clamp(rms, MIN_DB, MAX_DB)));
+      }
+      if (readout) {
+        const peak = Math.max(...channels.map((c) => c.peak));
+        const text = peak > MIN_DB ? `${peak.toFixed(1)} dBFS` : SILENT_READOUT;
+        if (text !== readoutText) {
+          readoutText = text;
+          readout.textContent = text;
         }
-      },
-    );
+      }
+    });
     return () => {
       meterCanvas.dispose();
       unsubscribe();
     };
-  }, [meters, trackId]);
+    // Keyed by value, so a target object recreated on render keeps the subscription.
+  }, [meters, targetKey, orientation]);
 
-  return (
-    <div
-      ref={meterRef}
-      role="meter"
-      aria-label={`${label} level`}
-      aria-valuemin={MIN_DB}
-      aria-valuemax={MAX_DB}
-      aria-valuenow={MIN_DB}
-      className="relative shrink-0"
-      style={{ width: WIDTH }}
+  const dots = Array.from(
+    { length: getMeterChannelCount(target) },
+    (_, index) => (
+      <span
+        key={index}
+        data-testid="meter-clip"
+        className={cn(
+          "rounded-[1px] bg-neutral-700 data-[clipped=true]:bg-red-500",
+          orientation === "vertical" ? "h-1 w-[3px]" : "w-1 flex-1",
+        )}
+      />
+    ),
+  );
+  const clipButton = (
+    <button
+      ref={clipRef}
+      type="button"
+      tabIndex={-1}
+      aria-label={`Clear ${label} clip`}
+      title="Clipped. Click to clear."
+      onClick={() => meters.clearClip(target)}
+      style={orientation === "horizontal" ? { height: WIDTH } : undefined}
+      className={cn(
+        "flex cursor-pointer items-center gap-px",
+        orientation === "vertical"
+          ? "absolute -top-2 -left-1 h-2 px-1"
+          : "flex-col",
+      )}
     >
-      <button
-        ref={clipRef}
-        type="button"
-        tabIndex={-1}
-        aria-label={`Clear ${label} clip`}
-        title="Clipped. Click to clear."
-        onClick={() => meters.clearClip(getMeterTarget(trackId))}
-        className="absolute -top-2 -left-1 flex h-2 cursor-pointer items-center gap-px px-1"
+      {dots}
+    </button>
+  );
+  const canvas = <canvas ref={canvasRef} className="size-full" />;
+
+  if (orientation === "vertical") {
+    return (
+      <div
+        ref={meterRef}
+        role="meter"
+        aria-label={`${label} level`}
+        aria-valuemin={MIN_DB}
+        aria-valuemax={MAX_DB}
+        aria-valuenow={MIN_DB}
+        className="relative shrink-0"
+        style={{ width: WIDTH }}
       >
-        {[0, 1].map((index) => (
-          <span
-            key={index}
-            data-testid="meter-clip"
-            className="h-1 w-[3px] rounded-[1px] bg-neutral-700 data-[clipped=true]:bg-red-500"
-          />
-        ))}
-      </button>
-      <canvas ref={canvasRef} className="size-full" />
+        {clipButton}
+        {canvas}
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <div
+        ref={meterRef}
+        role="meter"
+        aria-label={`${label} level`}
+        aria-valuemin={MIN_DB}
+        aria-valuemax={MAX_DB}
+        aria-valuenow={MIN_DB}
+        className="min-w-0 flex-1"
+        style={{ height: WIDTH }}
+      >
+        {canvas}
+      </div>
+      {clipButton}
+      {readout && (
+        <output
+          ref={readoutRef}
+          className="w-[76px] shrink-0 text-right font-mono text-xs tabular-nums text-neutral-400"
+        >
+          {SILENT_READOUT}
+        </output>
+      )}
     </div>
   );
 }
@@ -110,12 +172,6 @@ export function MeterScale() {
   );
 }
 
-function getMeterTarget(trackId: string | undefined): MeterTarget {
-  return trackId === undefined
-    ? { kind: "master" }
-    : { kind: "track", id: trackId };
-}
-
 /** Position from the top of the scale, from 0 at MAX_DB to 1 at MIN_DB. */
 function getMeterPosition(db: number): number {
   return 1 - (clamp(db, MIN_DB, MAX_DB) - MIN_DB) / (MAX_DB - MIN_DB);
@@ -126,7 +182,7 @@ function getMeterPosition(db: number): number {
  * size. Drawing happens in meter coordinates, across the bars and along the
  * scale from MAX_DB, and the canvas transform maps them to either orientation.
  */
-export class MeterCanvas {
+class MeterCanvas {
   private readonly context: CanvasRenderingContext2D;
   private readonly observer: ResizeObserver;
   private thickness = 0;
