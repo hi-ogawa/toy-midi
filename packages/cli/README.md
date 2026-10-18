@@ -69,5 +69,3 @@ Run the CLI from the repository against a local dev server:
 pnpm dev --port 5173
 pnpm toy-midi score-video score.musicxml score.mp4 --url http://localhost:5173
 ```
-
-The `capture score video` test in `e2e/score-viewer-output.spec.ts` renders a short clip through the CLI and leaves it at `.tmp/score-viewer-output-video.mp4` for inspection. The `render-audio` tests in `e2e/mix.spec.ts` render an archive, a JSON file, and a `/draft?src=<url>` link through the CLI.
