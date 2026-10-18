@@ -25,7 +25,7 @@ export class CaptureInput {
   readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly captureNode: CaptureWorkletNode;
-  /** Capture is mono for now, so only the first channel carries signal. */
+  /** Capture outputs one channel, so only the first channel carries signal. */
   readonly analyser: StereoAnalyser;
   readonly tunerAnalyser: TunerAnalyser;
   private readonly monitorGain: GainNode;

@@ -20,7 +20,7 @@ const ZONES = [
 
 /**
  * Meter on the fader's dB scale, one bar per channel, with a latched clip
- * indicator. The readout shows the peak in dBFS, for setting a recording level.
+ * indicator. The readout shows the peak in dBFS.
  */
 export function LevelMeter({
   meters,
