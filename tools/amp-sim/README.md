@@ -60,6 +60,8 @@ The full stages, with the filters:
 | Crunch     | ×7.9 (18 dB) → s → +2 dB peak at 1 kHz → ×2.0 (6 dB) → tanh                                          |
 | High gain  | ×7.9 (18 dB) → s → 120 Hz high-pass, +3 dB peak at 1 kHz → ×5.0 (14 dB) → tanh → ×3.2 (10 dB) → tanh |
 
+The structure follows common amp design: cascaded stages, a high-pass between them like the small coupling capacitors that keep a high-gain preamp's lows tight, and a mid bump. The numbers aren't derived or fitted to a real amp. They were picked to put the small-signal gains near 24 and 42 dB with a guitar's peaks well into saturation, then accepted after one listen, so treat them as starting presets.
+
 In the prototype:
 
 - The drive is `--amp v2 --no-comp`. `v1` was the first try, a single unshifted stage, tanh(10x) for crunch.
