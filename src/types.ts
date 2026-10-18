@@ -14,7 +14,7 @@ export interface Note {
   /**
    * Tab string, 1-based into the track's `tabOpenStringPitches`. Without one,
    * or when that string cannot play the pitch, tab and score use the highest
-   * string that can. Only tab annotation and the score read it, not playback.
+   * string that can.
    */
   tabString?: TabString;
 }

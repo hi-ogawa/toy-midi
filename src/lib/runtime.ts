@@ -121,10 +121,7 @@ export interface MidiTrackState {
    * a part. Tab annotation does not change playback.
    */
   tabAnnotationEnabled: boolean;
-  /**
-   * MIDI note numbers of the open strings, highest string first. Tab
-   * annotation and the score's tab staff read them, not playback.
-   */
+  /** MIDI note numbers of the open strings, highest string first */
   tabOpenStringPitches: number[];
   keySignature: KeySignature;
 }
