@@ -20,7 +20,7 @@ import { routes } from "../lib/routes";
 import { EditorRuntime } from "../lib/runtime";
 import { pluralCount } from "../utils/plural-count";
 import { InputDiagnostics } from "./input-diagnostics";
-import { InputMeter } from "./input-meter";
+import { LevelMeter } from "./level-meter";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -31,7 +31,7 @@ import {
 import { cn } from "./ui/utils";
 import { useInput } from "./use-input";
 
-export function LatencyChecker() {
+export function LatencyCheckerPage() {
   const [runtime] = useState(() => new EditorRuntime());
   const state = useSyncExternalStore(
     runtime.store.subscribe,
@@ -205,13 +205,17 @@ export function LatencyChecker() {
               </ActionButton>
             </div>
             <div className="mt-4">
-              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
+              <div className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Input meter
-                <InputMeter
-                  active={isMonitoring}
-                  analyser={runtime.captureInput?.analyser}
+                <LevelMeter
+                  meters={runtime.levelMeters}
+                  target={{ kind: "input" }}
+                  label="Input"
+                  orientation="horizontal"
+                  channelCount={1}
+                  readout
                 />
-              </label>
+              </div>
             </div>
             <InputDiagnostics runtime={runtime} />
             {input.error && <ErrorMessage>{input.error.message}</ErrorMessage>}

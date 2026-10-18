@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { PlayheadClock, ScoreViewerRuntime } from "./score-viewer-runtime";
 
 // Bare score viewer runtime for the score video command in packages/cli.
-export function ScoreCapture() {
+export function ScoreCapturePage() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [runtime] = useState(
     () =>

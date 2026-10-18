@@ -54,7 +54,7 @@ import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
 import { useWindowEvent } from "./use-window-event";
 
-export function Editor({ source }: { source: ProjectSource }) {
+export function EditorPage({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
   useWebMcpBridge(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(source));
@@ -386,7 +386,7 @@ export function Editor({ source }: { source: ProjectSource }) {
             />
             <TimelineHeader
               pixelsPerBeat={timeline.pixelsPerBeat}
-              beatsPerBar={timeline.beatsPerBar}
+              timeSignature={timeline.timeSignature}
               subdivisionsPerBeat={timeline.subdivisionsPerBeat}
               viewportStartBeat={timeline.viewportStartBeat}
               tempo={timeline.tempo}
@@ -413,7 +413,7 @@ export function Editor({ source }: { source: ProjectSource }) {
               <ReferenceTimelineRow
                 referenceVideo={clipInteraction.referenceVideo!}
                 pixelsPerBeat={timeline.pixelsPerBeat}
-                beatsPerBar={timeline.beatsPerBar}
+                timeSignature={timeline.timeSignature}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 viewportStartBeat={timeline.viewportStartBeat}
                 tempo={timeline.tempo}
@@ -528,7 +528,7 @@ export function Editor({ source }: { source: ProjectSource }) {
                           emptyLabel="Record or import audio"
                           recordingClipId={pendingRecording?.id}
                           pixelsPerBeat={timeline.pixelsPerBeat}
-                          beatsPerBar={timeline.beatsPerBar}
+                          timeSignature={timeline.timeSignature}
                           subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                           viewportStartBeat={timeline.viewportStartBeat}
                           tempo={timeline.tempo}
@@ -590,7 +590,7 @@ export function Editor({ source }: { source: ProjectSource }) {
                               regions={deriveClipRegions([clip])}
                               testId="clip-lane"
                               pixelsPerBeat={timeline.pixelsPerBeat}
-                              beatsPerBar={timeline.beatsPerBar}
+                              timeSignature={timeline.timeSignature}
                               subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                               viewportStartBeat={timeline.viewportStartBeat}
                               tempo={timeline.tempo}
@@ -621,7 +621,7 @@ export function Editor({ source }: { source: ProjectSource }) {
                       track={track}
                       runtime={runtime}
                       pixelsPerBeat={timeline.pixelsPerBeat}
-                      beatsPerBar={timeline.beatsPerBar}
+                      timeSignature={timeline.timeSignature}
                       subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                       viewportStartBeat={timeline.viewportStartBeat}
                       onEffectsOpen={() => effects.showEffects(track.id)}
@@ -664,7 +664,6 @@ export function Editor({ source }: { source: ProjectSource }) {
             error={input.error}
             hasAccess={input.hasAccess}
             inputActive={input.active}
-            inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
             isRecording={flags.isRecording}
             isPlaying={state.isPlaying}
@@ -762,7 +761,7 @@ export function Editor({ source }: { source: ProjectSource }) {
             routeNeedsSetup={input.route.needsSetup}
             accessRequired={input.initialized && !input.hasAccess}
             inputActive={input.active}
-            inputAnalyser={runtime.captureInput?.analyser}
+            levelMeters={runtime.levelMeters}
             toggleDisabled={
               input.mutationPending ||
               !input.initialized ||
