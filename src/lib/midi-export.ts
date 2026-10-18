@@ -185,10 +185,15 @@ function encodeTrackEvents({
 }
 
 // The SoundFont default modulator attenuates CC 7 by 40·log10(v/127) dB, so
-// amplitude follows (v/127)². CC 7 can't boost, so gains above unity clamp.
+// amplitude follows (v/127)². The app's synth plays every channel at the
+// General MIDI default of 100 and applies the gain after it, so unity gain is
+// 100, which leaves room for boosts up to (127/100)², about +4 dB, before
+// they clamp.
 function encodeVolume(gain: number): number {
-  return Math.round(127 * Math.sqrt(Math.min(gain, 1)));
+  return Math.min(Math.round(DEFAULT_VOLUME * Math.sqrt(gain)), 127);
 }
+
+const DEFAULT_VOLUME = 100;
 
 function encodeAutomationPoint({
   sequence,

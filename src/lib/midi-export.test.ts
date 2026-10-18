@@ -75,7 +75,7 @@ describe(exportMidi, () => {
           [
             "{"deltaTime":0,"meta":true,"type":"trackName","text":"Lead"}",
             "{"deltaTime":0,"channel":0,"type":"programChange","programNumber":29}",
-            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":7,"value":64}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":7,"value":50}",
             "{"deltaTime":0,"channel":0,"type":"controller","controllerType":10,"value":0}",
             "{"deltaTime":0,"channel":0,"type":"controller","controllerType":101,"value":0}",
             "{"deltaTime":0,"channel":0,"type":"controller","controllerType":100,"value":0}",
@@ -93,7 +93,7 @@ describe(exportMidi, () => {
           [
             "{"deltaTime":0,"meta":true,"type":"trackName","text":"Drums"}",
             "{"deltaTime":0,"channel":9,"type":"programChange","programNumber":25}",
-            "{"deltaTime":0,"channel":9,"type":"controller","controllerType":7,"value":127}",
+            "{"deltaTime":0,"channel":9,"type":"controller","controllerType":7,"value":100}",
             "{"deltaTime":0,"channel":9,"type":"controller","controllerType":10,"value":64}",
             "{"deltaTime":1920,"meta":true,"type":"endOfTrack"}",
           ],
