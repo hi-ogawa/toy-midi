@@ -1,9 +1,8 @@
-import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { promisify } from "node:util";
 import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 import type { SharedProject } from "../src/lib/project-share";
+import { execFileAsync } from "../src/utils/exec";
 import {
   addAudio,
   addMidiTrack,
@@ -11,8 +10,6 @@ import {
   createProject,
 } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
-
-const execFileAsync = promisify(execFile);
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
