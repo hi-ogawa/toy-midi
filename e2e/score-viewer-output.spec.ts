@@ -1,10 +1,7 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs";
-import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
+import { execFileAsync } from "../src/utils/exec-file";
 import { selectMenuItem } from "./helpers";
-
-const execFileAsync = promisify(execFile);
 
 test("capture score viewer sample cursor", async ({ page }) => {
   await page.goto("/score-viewer");

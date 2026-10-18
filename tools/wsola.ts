@@ -4,13 +4,12 @@
 //   tsx tools/wsola.ts input.wav --rate 0.5
 //   tsx tools/wsola.ts input.mp3 --start 30 --duration 20 --output .tmp/slow.wav
 
-import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { parseArgs, promisify } from "node:util";
+import { parseArgs } from "node:util";
 import { WsolaProcessor } from "../src/lib/dsp/wsola.ts";
+import { execFileAsync } from "../src/utils/exec-file.ts";
 
-const execFileAsync = promisify(execFile);
 const SAMPLE_RATE = 48_000;
 const CHANNELS = 2;
 const TMP_DIR = path.join(import.meta.dirname, "../.tmp");
