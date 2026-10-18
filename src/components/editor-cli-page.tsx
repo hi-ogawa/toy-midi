@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { useEffect, useState } from "react";
+import { exportProjectMidi } from "../lib/midi-export";
 import { readProjectArchive } from "../lib/project-archive";
 import { convertSharedProject } from "../lib/project-share";
 import { EditorRuntime } from "../lib/runtime";
@@ -11,6 +12,7 @@ const editorUtils = {
     readProjectArchive(await JSZip.loadAsync(archive)),
   convertSharedProject,
   encodeWav,
+  exportProjectMidi,
 };
 
 export type EditorUtils = typeof editorUtils;

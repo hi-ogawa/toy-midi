@@ -68,6 +68,24 @@ Archives and `.json` files can be paths or URLs. A `SharedProject` has no audio 
 | ------- | ------------ | -------------------------------------------------------- |
 | `--url` | deployed app | Toy MIDI app to render with, such as a local dev server. |
 
+## `export-midi`
+
+`export-midi` writes a project's MIDI tracks to a Standard MIDI File without opening the editor. It produces the same file as the editor menu's "Export MIDI" action: one track per MIDI track with its name, program, gain, pan, and automation, and the project's tempo and time signature.
+
+A MIDI file addresses a preset only by bank and program, so it doesn't say which SoundFont a track uses. Read each track's `soundfont` from the project to play it as the app does.
+
+### Usage
+
+```sh
+toy-midi export-midi song.json song.mid
+```
+
+The input is any project that `render-audio` takes. Audio tracks are left out.
+
+| Option  | Default      | Description                                              |
+| ------- | ------------ | -------------------------------------------------------- |
+| `--url` | deployed app | Toy MIDI app to export with, such as a local dev server. |
+
 ## Development
 
 Run the CLI from the repository against a local dev server:

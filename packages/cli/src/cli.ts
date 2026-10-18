@@ -1,3 +1,4 @@
+import { runExportMidi } from "./export-midi";
 import { runRenderAudio } from "./render-audio";
 import { runScoreVideo } from "./score-video";
 import { rewriteLine, style } from "./terminal";
@@ -8,6 +9,7 @@ Usage: toy-midi <command> [options]
 Commands:
   score-video <input.musicxml> <output.mp4>  Render a scrolling score video
   render-audio <input> <output.wav>          Render a project's mix to WAV
+  export-midi <input> <output.mid>           Write a project's MIDI tracks
 
 Run \`toy-midi <command> --help\` for the command's options.`;
 
@@ -20,6 +22,10 @@ async function main() {
     }
     case "render-audio": {
       await runRenderAudio(args);
+      break;
+    }
+    case "export-midi": {
+      await runExportMidi(args);
       break;
     }
     case undefined:
