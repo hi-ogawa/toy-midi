@@ -49,8 +49,6 @@ export function LevelMeter({
     const meter = meterRef.current!;
     const dots = [...clipRef.current!.children] as HTMLElement[];
     const readout = readoutRef.current;
-    let valueNow: number | undefined;
-    let readoutText: string | undefined;
     const unsubscribe = meters.subscribe(target, (stereo) => {
       const channels = stereo.slice(0, channelCount);
       meterCanvas.draw(channels);
@@ -59,15 +57,14 @@ export function LevelMeter({
       });
       // Rounded so the DOM changes only when the reading does.
       const rms = Math.round(Math.max(...channels.map((c) => c.rms)));
-      if (rms !== valueNow) {
-        valueNow = rms;
-        meter.setAttribute("aria-valuenow", String(clamp(rms, MIN_DB, MAX_DB)));
+      const valueNow = String(clamp(rms, MIN_DB, MAX_DB));
+      if (meter.getAttribute("aria-valuenow") !== valueNow) {
+        meter.setAttribute("aria-valuenow", valueNow);
       }
       if (readout) {
         const peak = Math.max(...channels.map((c) => c.peak));
         const text = peak > MIN_DB ? `${peak.toFixed(1)} dBFS` : SILENT_READOUT;
-        if (text !== readoutText) {
-          readoutText = text;
+        if (readout.textContent !== text) {
           readout.textContent = text;
         }
       }
