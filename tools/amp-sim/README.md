@@ -64,7 +64,7 @@ A clean Telecaster bridge pickup is the classic country sound, so the riffs soun
 
 - **Pre-EQ:** a high-pass at 90 Hz (12 dB per octave) so the low end stays tight under distortion, and a peak of +4 dB at 750 Hz, 1.2 octaves wide, for the mid hump of an overdrive pedal in front of an amp. It's a rough stand-in for the pedal's tone: a Tube Screamer gets its hump mostly by cutting lows and highs rather than with a peak.
 - **Drive:** a fixed boost into a tanh soft clipper, which rounds off the peaks and adds harmonics. [The drive in math](#the-drive-in-math) has the formulas and gains.
-- **Cabinet:** filters standing in for a guitar speaker, mainly a steep roll-off from about 5 kHz. Step 6 shows why it's there.
+- **Cabinet:** filters standing in for a guitar speaker, mainly low-passes that roll off from about 5 kHz. Step 6 lists the filters and shows why they're there.
 
 **Heard:** better than clean. But General MIDI's distortion (`gm`) sustains more convincingly, even though its samples have no pick attack.
 
@@ -120,7 +120,16 @@ With the gate, the level drops right after each note-off:
 
 ![Step 6 varies only the cabinet: none, filters, or a recorded Marshall IR](images/chain-6-cab.svg)
 
-The same gated chain three ways. The filter cabinet is a 75 Hz high-pass, a steep roll-off from about 5 kHz, a presence bump at 2.4 kHz, and a dip at 450 Hz. The IR is a recorded Marshall 1960A 4×12 cabinet with an SM57.
+The same gated chain three ways. The filter cabinet is ffmpeg's two-pole filters, each a Butterworth (Q 0.71) falling 12 dB per octave past its cutoff, and two peaking EQs:
+
+| Filter                                          | What it does                                                                                                                               |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| High-pass at 75 Hz                              | Cuts the lows below what a guitar speaker reproduces                                                                                       |
+| Low-pass at 5.2 kHz twice, then at 7 kHz        | The roll-off. Together they fall 36 dB per octave once past 7 kHz: −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz, and −31 dB at 10 kHz |
+| Peak of +3 dB at 2.4 kHz, 1 octave (Q 1.41)     | The presence bump, the upper-mid edge a speaker has just below its roll-off                                                                |
+| Peak of −2.5 dB at 450 Hz, 1.5 octaves (Q 0.92) | A low-mid dip, which keeps a distorted guitar from sounding boxy                                                                           |
+
+The IR is a recorded Marshall 1960A 4×12 cabinet with an SM57.
 
 ![Without a cabinet the spectrum stays high above 5 kHz; both cabinets cut it, and the IR also lifts the low end around 100 Hz](images/cabinet.svg)
 
