@@ -9,8 +9,6 @@ function createTrack(track: Partial<MidiExportTrack>): MidiExportTrack {
     program: 0,
     notes: [],
     automation: [],
-    gain: 1,
-    pan: 0,
     ...track,
   };
 }
@@ -26,8 +24,6 @@ describe(exportMidi, () => {
         createTrack({
           name: "Lead",
           program: 29,
-          gain: 0.25,
-          pan: -1,
           // A repeated pitch and a sustain change on the same tick
           notes: [
             { id: "b", pitch: 60, start: 1, duration: 1, velocity: 100 },
@@ -49,7 +45,7 @@ describe(exportMidi, () => {
           ],
         }),
         createTrack({ name: "Drums", bank: DRUM_KIT_BANK, program: 25 }),
-        createTrack({ name: "Organ", bank: 8, program: 16, gain: 2, pan: 1 }),
+        createTrack({ name: "Organ", bank: 8, program: 16 }),
       ],
     });
     const midi = parseMidi(bytes);
@@ -75,8 +71,6 @@ describe(exportMidi, () => {
           [
             "{"deltaTime":0,"meta":true,"type":"trackName","text":"Lead"}",
             "{"deltaTime":0,"channel":0,"type":"programChange","programNumber":29}",
-            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":7,"value":50}",
-            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":10,"value":0}",
             "{"deltaTime":0,"channel":0,"type":"controller","controllerType":101,"value":0}",
             "{"deltaTime":0,"channel":0,"type":"controller","controllerType":100,"value":0}",
             "{"deltaTime":0,"channel":0,"type":"controller","controllerType":6,"value":12}",
@@ -93,16 +87,12 @@ describe(exportMidi, () => {
           [
             "{"deltaTime":0,"meta":true,"type":"trackName","text":"Drums"}",
             "{"deltaTime":0,"channel":9,"type":"programChange","programNumber":25}",
-            "{"deltaTime":0,"channel":9,"type":"controller","controllerType":7,"value":100}",
-            "{"deltaTime":0,"channel":9,"type":"controller","controllerType":10,"value":64}",
             "{"deltaTime":1920,"meta":true,"type":"endOfTrack"}",
           ],
           [
             "{"deltaTime":0,"meta":true,"type":"trackName","text":"Organ"}",
             "{"deltaTime":0,"channel":1,"type":"controller","controllerType":0,"value":8}",
             "{"deltaTime":0,"channel":1,"type":"programChange","programNumber":16}",
-            "{"deltaTime":0,"channel":1,"type":"controller","controllerType":7,"value":127}",
-            "{"deltaTime":0,"channel":1,"type":"controller","controllerType":10,"value":127}",
             "{"deltaTime":1920,"meta":true,"type":"endOfTrack"}",
           ],
         ],
