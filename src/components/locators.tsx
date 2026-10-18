@@ -81,8 +81,8 @@ export function LocatorRow({
   onSeekBeat: (beat: number) => void;
 }) {
   return (
-    <div className="grid h-7 grid-cols-[15rem_1fr] border-b-[3px] border-black bg-neutral-800">
-      <div className="flex items-center justify-between border-r-[3px] border-black px-3 text-xs font-semibold text-neutral-400">
+    <div className="grid h-7 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
+      <div className="flex items-center justify-between border-r border-neutral-700 px-3 text-xs font-semibold text-neutral-400">
         <span>Locators</span>
         <Button
           title="Add locator at playhead (L)"

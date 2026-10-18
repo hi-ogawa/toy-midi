@@ -209,13 +209,13 @@ export function TrackRow({
   return (
     <div
       data-testid={testId}
-      className="relative grid grid-cols-[15rem_1fr]"
+      className="relative grid grid-cols-[15rem_1fr] border-b-[3px] border-black"
       style={{ height }}
     >
-      <div className="sticky left-0 col-start-1 row-start-1 border-r-[3px] border-black bg-neutral-800" />
+      <div className="sticky left-0 col-start-1 row-start-1 border-r border-neutral-700 bg-neutral-800" />
       <div
         className={cn(
-          "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r-[3px] border-black bg-neutral-800 px-3 py-2",
+          "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
           showGain ? "grid-rows-[1.75rem_auto] gap-y-2" : "grid-rows-[1.75rem]",
           controlsClassName,
         )}
@@ -255,7 +255,7 @@ export function TrackRow({
       {children}
       <div
         ref={resizeRef}
-        className="absolute inset-x-0 bottom-0 z-30 h-[3px] cursor-ns-resize bg-black after:absolute after:inset-x-0 after:-top-1 after:h-2"
+        className="absolute inset-x-0 top-full z-30 h-[3px] cursor-ns-resize after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title={`Resize ${title}`}
       />
     </div>
@@ -348,7 +348,7 @@ export function ClipsDisclosureRow({
 }) {
   return (
     <div className="grid h-9 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
-      <div className="relative border-r-[3px] border-black">
+      <div className="relative border-r border-neutral-700">
         <button
           type="button"
           data-testid="clips-toggle"
@@ -419,7 +419,7 @@ export function ClipTrackRow({
       data-testid="clip-row"
       className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r-[3px] border-black bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
+      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
         <span className="truncate">{label}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
