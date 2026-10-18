@@ -45,7 +45,7 @@ A clean Telecaster bridge pickup is the classic country sound, so the riffs soun
 
 **Heard:** a good addition, but sustain leaks and muddies the phrasing and articulation.
 
-**Why:** the compressor and drive add about 40 dB of gain, so they also raise each note's decay after its note-off to full distortion, and it smears into the next note.
+**Why:** the synth doesn't stop a note at its note-off, where a guitarist would mute the string, but fades it out over the SoundFont's release, a beat or so. Dry, that tail sits under the notes. Both the drive and the compressor bring quiet parts up toward loud ones, so they bring the tail up too, until it smears into the next note. Measured 60 to 400 ms after each note-off on both pieces' guitars, the tail is 14 to 23 dB below the notes dry, 8 to 20 dB with the drive alone (`v1`), and 3 to 14 dB with the compressor in front (`v2`).
 
 ### 4. Note gate (`v2-gate-filtercab` against `v2`)
 
