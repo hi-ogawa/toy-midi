@@ -1,3 +1,4 @@
+import type { EditorUtils } from "../components/editor-runtime-page";
 import type { ScoreViewerRuntime } from "../components/score-viewer-runtime";
 import type { EditorRuntime } from "./runtime";
 
@@ -6,6 +7,7 @@ import type { EditorRuntime } from "./runtime";
 export type CliApi = {
   scoreViewer?: ScoreViewerRuntime;
   editor?: EditorRuntime;
+  editorUtils?: EditorUtils;
 };
 
 declare global {

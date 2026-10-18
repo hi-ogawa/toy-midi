@@ -54,11 +54,14 @@ export async function runRenderAudio(args: string[]) {
     // Rendering takes longer for longer projects, so wait without a timeout.
     page.waitForEvent("download", { timeout: 0 }),
     page.evaluate(async (inputUrl) => {
-      const runtime = window.__toyMidiCli!.editor!;
+      const { editor: runtime, editorUtils: utils } = window.__toyMidiCli!;
       const response = await fetch(inputUrl);
-      await runtime.init();
-      await runtime.importProject(await response.blob());
-      const wav = await runtime.exportAudio();
+      const [, project] = await Promise.all([
+        runtime!.init(),
+        utils!.readProjectArchive(await response.blob()),
+      ]);
+      await runtime!.deserializeProject(project);
+      const wav = utils!.encodeWav(await runtime!.renderMix());
       const link = document.createElement("a");
       link.href = URL.createObjectURL(wav);
       link.download = "output.wav";
