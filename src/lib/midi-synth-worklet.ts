@@ -6,7 +6,12 @@ import {
   SpessaSynthProcessor,
 } from "spessasynth_core";
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
-import { DRUM_KIT_BANK } from "./general-midi.ts";
+import {
+  DRUM_KIT_BANK,
+  encodePitchBend,
+  PITCH_BEND_RANGE,
+  PITCH_WHEEL_CENTER,
+} from "./general-midi.ts";
 import {
   MidiNoteScheduler,
   type ScheduledAutomation,
@@ -14,7 +19,6 @@ import {
   type TimelineAutomation,
   type TimelineNote,
 } from "./midi-note-scheduler.ts";
-import { clamp } from "./music.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import { registerRpcHandlers } from "./rpc/endpoint.ts";
 
@@ -22,9 +26,6 @@ const PROCESSOR_NAME = "midi-synth";
 // Every track plays on the first MIDI channel of its own synth.
 const CHANNEL = 0;
 const BANK_SELECT_CONTROLLER = 0;
-// Wide enough for slides of up to an octave either way.
-const PITCH_BEND_RANGE = 12;
-const PITCH_WHEEL_CENTER = 8192;
 const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
   "note-off": 0,
   controller: 1,
@@ -323,14 +324,7 @@ function convertToScheduledAutomation(
         ...sequence,
         points: sequence.points.map((point) => ({
           time: point.time,
-          value: clamp(
-            Math.round(
-              PITCH_WHEEL_CENTER +
-                (point.value / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
-            ),
-            0,
-            2 * PITCH_WHEEL_CENTER - 1,
-          ),
+          value: encodePitchBend(point.value),
         })),
         initialValue: PITCH_WHEEL_CENTER,
       };
