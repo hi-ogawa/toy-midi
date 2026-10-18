@@ -33,6 +33,14 @@ export async function runRenderAudio(args: string[]) {
   }
   const options = parseCliOptions(args);
   const input = await readInput(options.input);
+  const isSharedProject = !input.subarray(0, 4).equals(ZIP_SIGNATURE);
+  if (isSharedProject) {
+    try {
+      JSON.parse(input.toString());
+    } catch {
+      throw new Error(`${options.input} does not hold a readable project.`);
+    }
+  }
 
   const startedAt = performance.now();
   writeLine(style("bold", "render-audio"));
@@ -76,10 +84,7 @@ export async function runRenderAudio(args: string[]) {
         link.download = "output.wav";
         link.click();
       },
-      {
-        inputUrl,
-        isSharedProject: !input.subarray(0, 4).equals(ZIP_SIGNATURE),
-      },
+      { inputUrl, isSharedProject },
     ),
   ]);
   await download.saveAs(options.output);
