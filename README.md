@@ -9,7 +9,7 @@ A browser-based tool for practicing with backing tracks, recording an instrument
 - Arrange and trim backing audio, record multiple takes with loop and punch recording, and comp takes non-destructively.
 - Convert audio to MIDI and edit notes in a piano roll with notation and tablature previews.
 - Practice with variable playback speed, a metronome, locators, and synchronized YouTube reference video.
-- Mix tracks with gain, mute, solo, and parametric EQ, then export audio as WAV, with optional per-track stems.
+- Mix tracks with gain, mute, solo, and parametric EQ, then export audio as WAV.
 - Save projects in your browser and import or export portable project archives.
 - Render scrolling score videos from MusicXML for video editing with the standalone [score video CLI](packages/score-video/README.md).
 
