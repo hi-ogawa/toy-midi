@@ -667,7 +667,7 @@ function MidiTrackEditor({
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
-        <div className="relative border-r border-neutral-700">
+        <div className="relative border-r-2 border-neutral-700">
           {PITCHES.map((pitch) => (
             <MidiPianoKey
               key={pitch}
