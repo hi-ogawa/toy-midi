@@ -29,25 +29,25 @@ Two parts of a real amp aren't modeled. The tone stack, the bass, middle, and tr
 
 ### The drive in math
 
-The settled drive (render 9), at crunch and high gain. x is a sample in [−1, 1].
+The drive models an amp's preamp: a chain of gain stages, each amplifying the signal and clipping it softly once pushed too hard, as a tube triode does. Crunch chains two, high gain three. This is the settled drive (render 9), and x is a sample in [−1, 1].
 
-**Stage:** y = tanh(g·x).
+**Gain stage:** y = tanh(g·x), gain g, then a soft clipper.
 
 - tanh(u) ≈ u for |u| ≪ 1, and → ±1 for |u| ≫ 1, so g sets how much of the wave is flattened.
 - tanh is odd ⇒ top and bottom flatten alike ⇒ odd harmonics only.
 
-**Shifted stage**, first in each drive: s(u) = tanh(u + b) − tanh(b), b = 0.15.
+**Shifted stage**, the first gain stage in each drive: s(u) = tanh(u + b) − tanh(b), b = 0.15.
 
 - Saturates at 1 − tanh(b) ≈ 0.85 above and −1 − tanh(b) ≈ −1.15 below ⇒ the top flattens first ⇒ even harmonics too.
 - Subtracting tanh(b) keeps s(0) = 0, so silence stays silent.
 
 ![The clipper: tanh follows y = x near 0 and flattens toward ±1, the shifted one flattens lower above and further below](images/drive-tanh.svg)
 
-One stage, g = 7.9, on x = 0.2·sin(t):
+One gain stage, g = 7.9, on x = 0.2·sin(t):
 
 ![One stage on a sine: the input swings to ±0.2, the gain alone to ±1.6, without the shift the top and bottom flatten alike, with it the top flattens lower and the bottom swings further](images/drive-shift.svg)
 
-**Drives**, filters between stages omitted:
+**Drives**, chained gain stages, with the filters between them omitted:
 
 - crunch: D(x) = tanh(2.0·s(7.9x))
 - high gain: D(x) = tanh(3.2·tanh(5.0·s(7.9x)))
