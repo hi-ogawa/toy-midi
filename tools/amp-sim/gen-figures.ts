@@ -1,5 +1,6 @@
-// Draw the figures in images/ for README.md: a chain diagram per step, and
-// plots from amp-sim.ts renders, which are its per-track 16-bit mono WAVs.
+// Draw the figures in images/ for README.md: a chain diagram per step, the
+// drive's curves and what they do to a sine, and plots from amp-sim.ts renders,
+// which are its per-track 16-bit mono WAVs.
 //
 // Usage:
 //   tsx tools/amp-sim/gen-figures.ts --held-note <dir> --riff <dir> --riff-project <project.json>
@@ -86,7 +87,11 @@ async function main() {
     notes: { cab: "none · filters · IR" },
   });
 
-  // Plot the measured effect of the sustain, the gate, and the cabinet.
+  // Plot the drive from its formulas, then the measured effect of the sustain,
+  // the gate, and the cabinet.
+  plotDriveCurves();
+  plotDriveWaves();
+  plotDriveHarmonics();
   plotSustain(heldNote);
   plotGate({ riff, riffProject });
   plotCabinet(riff);
@@ -150,6 +155,206 @@ function drawChain({
 }
 
 // --- plots ------------------------------------------------------------------------
+
+// The drive section: the clipper stages of amp-sim.ts's AMPS as formulas,
+// without the filters between stages, which barely change a low sine.
+const DC_OFFSET = 0.15;
+
+// A quiet input, such as a note decaying or a soft stroke, where the drives
+// still differ. At a stroke's peak, near 0.3 to 0.6, all of them are nearly
+// square.
+const QUIET_INPUT = 0.05;
+
+function dbToGain(db: number) {
+  return 10 ** (db / 20);
+}
+
+// tanh(x + 0.15), shifted back down by tanh(0.15) as the high-pass after it
+// does, so silence stays silent.
+function asymmetricTanh(x: number) {
+  return Math.tanh(x + DC_OFFSET) - Math.tanh(DC_OFFSET);
+}
+
+const DRIVES = [
+  {
+    label: "v1 crunch: tanh(10x)",
+    color: "#c0392b",
+    apply: (x: number) => Math.tanh(dbToGain(20) * x),
+  },
+  {
+    label: "v2 crunch: asymmetric, then ×2",
+    color: "#2c6fbb",
+    apply: (x: number) =>
+      Math.tanh(dbToGain(6) * asymmetricTanh(dbToGain(18) * x)),
+  },
+  {
+    label: "v2 high gain: three stages",
+    color: "#8e44ad",
+    apply: (x: number) =>
+      Math.tanh(
+        dbToGain(10) *
+          Math.tanh(dbToGain(14) * asymmetricTanh(dbToGain(18) * x)),
+      ),
+  },
+];
+
+// Input level against output level for each drive, over the range of the
+// guitar tracks' peaks.
+function plotDriveCurves() {
+  const xs = Array.from({ length: 301 }, (_, i) => -0.15 + i * 0.001);
+  drawPlot({
+    file: "drive-curves.svg",
+    title: "Drive curves: the louder the input, the flatter the output",
+    xLabel: "input sample (stroke peaks go on to ±0.3 to ±0.6)",
+    yLabel: "output sample",
+    xMap: (x) => (x + 0.15) / 0.3,
+    xTicks: [-0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15].map((x) => [x, String(x)]),
+    legendAt: "left",
+    yRange: [-1.1, 1.1],
+    yTicks: [-1, -0.5, 0, 0.5, 1],
+    series: [
+      {
+        label: "no drive: y = x",
+        color: "#999",
+        points: xs.map((x) => [x, x]),
+      },
+      ...DRIVES.map(
+        ({ label, color, apply }): Series => ({
+          label,
+          color,
+          points: xs.map((x) => [x, apply(x)]),
+        }),
+      ),
+    ],
+  });
+}
+
+// Two cycles of a sine at the muted strokes' peak through each drive. The
+// asymmetric drives clip the top harder than the bottom, and their outputs
+// are centered as the high-pass after the offset leaves them.
+function plotDriveWaves() {
+  const n = 400;
+  const input = Array.from(
+    { length: n + 1 },
+    (_, i) => QUIET_INPUT * Math.sin((4 * Math.PI * i) / n),
+  );
+  drawPlot({
+    file: "drive-waves.svg",
+    title: `A quiet sine (${QUIET_INPUT}) through each drive: from rounded to nearly square`,
+    xLabel: "two cycles",
+    yLabel: "sample",
+    xMap: (i) => i / n,
+    xTicks: [],
+    yRange: [-1.1, 1.9],
+    yTicks: [-1, -0.5, 0, 0.5, 1],
+    series: [
+      {
+        label: "input",
+        color: "#999",
+        points: input.map((x, i) => [i, x]),
+      },
+      ...DRIVES.map(({ label, color, apply }): Series => {
+        const out = input.map(apply);
+        const mean = out.slice(0, n).reduce((a, b) => a + b) / n;
+        return { label, color, points: out.map((y, i) => [i, y - mean]) };
+      }),
+    ],
+  });
+}
+
+// The first ten harmonics of the waves above, relative to the fundamental.
+// The symmetric drive adds only odd harmonics, the asymmetric ones also even.
+function plotDriveHarmonics() {
+  const n = 4096;
+  const cycles = 8;
+  const groups = DRIVES.map(({ label, color, apply }) => {
+    const out = Array.from({ length: n }, (_, i) =>
+      apply(QUIET_INPUT * Math.sin((2 * Math.PI * cycles * i) / n)),
+    );
+    const amplitude = (k: number) => {
+      let re = 0;
+      let im = 0;
+      for (let i = 0; i < n; i++) {
+        re += out[i]! * Math.cos((2 * Math.PI * cycles * k * i) / n);
+        im += out[i]! * Math.sin((2 * Math.PI * cycles * k * i) / n);
+      }
+      return Math.hypot(re, im);
+    };
+    const fundamental = amplitude(1);
+    const levels = Array.from({ length: 10 }, (_, i) =>
+      Math.max(-80, 20 * Math.log10(amplitude(i + 1) / fundamental)),
+    );
+    return { label, color, levels };
+  });
+  drawBars({
+    file: "drive-harmonics.svg",
+    title:
+      "Harmonics of the quiet sine: even ones (2, 4, 6…) only from the asymmetric stage",
+    xLabel: "harmonic (1 is the note itself)",
+    yLabel: "level (dB, from harmonic 1)",
+    yRange: [-80, 25],
+    yTicks: [0, -20, -40, -60, -80],
+    groups,
+  });
+}
+
+function drawBars({
+  file,
+  title,
+  width = 760,
+  height = 300,
+  xLabel,
+  yLabel,
+  yRange,
+  yTicks,
+  groups,
+}: {
+  file: string;
+  title: string;
+  width?: number;
+  height?: number;
+  xLabel: string;
+  yLabel: string;
+  yRange: [number, number];
+  yTicks: number[];
+  groups: { label: string; color: string; levels: number[] }[];
+}) {
+  const L = 60;
+  const R = 20;
+  const T = 40;
+  const B = 46;
+  const pw = width - L - R;
+  const ph = height - T - B;
+  const Y = (v: number) =>
+    T + (1 - (v - yRange[0]) / (yRange[1] - yRange[0])) * ph;
+  const count = groups[0]!.levels.length;
+  const slot = pw / count;
+  const bar = (slot * 0.7) / groups.length;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="sans-serif">`;
+  s += `<rect width="100%" height="100%" fill="white"/>`;
+  s += `<text x="${L}" y="22" font-size="14" font-weight="bold">${title}</text>`;
+  for (const t of yTicks) {
+    s += `<line x1="${L}" x2="${L + pw}" y1="${Y(t)}" y2="${Y(t)}" stroke="#eee"/>`;
+    s += `<text x="${L - 6}" y="${Y(t) + 4}" font-size="11" text-anchor="end" fill="#555">${t}</text>`;
+  }
+  for (let k = 0; k < count; k++) {
+    const x0 = L + k * slot + slot * 0.15;
+    groups.forEach(({ color, levels }, g) => {
+      const y = Y(levels[k]!);
+      s += `<rect x="${(x0 + g * bar).toFixed(1)}" y="${y.toFixed(1)}" width="${bar.toFixed(1)}" height="${(Y(yRange[0]) - y).toFixed(1)}" fill="${color}"/>`;
+    });
+    s += `<text x="${L + (k + 0.5) * slot}" y="${T + ph + 16}" font-size="11" text-anchor="middle" fill="#555">${k + 1}</text>`;
+  }
+  s += `<rect x="${L}" y="${T}" width="${pw}" height="${ph}" fill="none" stroke="#999"/>`;
+  s += `<text x="${L + pw / 2}" y="${height - 8}" font-size="12" text-anchor="middle">${xLabel}</text>`;
+  s += `<text x="14" y="${T + ph / 2}" font-size="12" text-anchor="middle" transform="rotate(-90 14 ${T + ph / 2})">${yLabel}</text>`;
+  groups.forEach(({ label, color }, i) => {
+    s += `<rect x="${L + pw - 250}" y="${T + 10 + i * 18}" width="14" height="8" fill="${color}"/>`;
+    s += `<text x="${L + pw - 230}" y="${T + 18 + i * 18}" font-size="12">${label}</text>`;
+  });
+  s += `</svg>`;
+  fs.writeFileSync(path.join(OUT_DIR, file), s);
+}
 
 // Step 2 → 3: held-note.json's E3 through high gain, v1 against v2, each
 // relative to its own attack. The note starts at 8 s (beat 8 at 60 BPM) and
@@ -306,6 +511,7 @@ function drawPlot({
   series,
   shade = [],
   legend = true,
+  legendAt = "right",
 }: {
   file: string;
   title: string;
@@ -320,6 +526,7 @@ function drawPlot({
   series: Series[];
   shade?: [number, number][];
   legend?: boolean;
+  legendAt?: "left" | "right";
 }) {
   const L = 60;
   const R = 20;
@@ -356,8 +563,9 @@ function drawPlot({
       .join(" ");
     s += `<polyline points="${points}" fill="none" stroke="${line.color}" stroke-width="1.6"/>`;
     if (legend) {
-      s += `<rect x="${L + pw - 220}" y="${T + 10 + i * 18}" width="14" height="4" fill="${line.color}"/>`;
-      s += `<text x="${L + pw - 200}" y="${T + 16 + i * 18}" font-size="12">${line.label}</text>`;
+      const x = legendAt === "left" ? L + 12 : L + pw - 220;
+      s += `<rect x="${x}" y="${T + 10 + i * 18}" width="14" height="4" fill="${line.color}"/>`;
+      s += `<text x="${x + 20}" y="${T + 16 + i * 18}" font-size="12">${line.label}</text>`;
     }
   });
   s += `</svg>`;

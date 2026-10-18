@@ -33,7 +33,19 @@ The drive runs on float samples at 4× the sample rate, upsampled before the fir
 
 Each clipper is ffmpeg's `asoftclip=type=tanh` at its defaults, which is y = tanh(x). tanh is close to linear for small x and flattens toward ±1 for large x, so a stage with gain g on input x gives y = tanh(g·x): the larger g, the more of the wave is flattened. tanh is odd, tanh(−x) = −tanh(x), so it flattens both halves alike and adds only odd harmonics.
 
+Each curve below is a whole drive, input sample in and output sample out, without the filters between stages. Near 0 a curve is steep, so a quiet input comes out much louder, and past a small input it flattens toward ±1, so louder inputs barely come out louder:
+
+![Drive curves: v1 crunch rises gently, v2 crunch more steeply and unevenly, v2 high gain almost straight up to ±1](images/drive-curves.svg)
+
 The asymmetric stage adds a DC offset before the clipper, y = tanh(g·x + 0.15), and a 20 Hz high-pass after it removes the constant tanh(0.15) ≈ 0.149 again. The offset moves the wave up the curve, so its top half flattens more than its bottom half, which adds even harmonics, the way a tube stage biased off center does.
+
+A guitar's peaks, from 0.3 to 0.6, sit far out on these curves, where every drive gives nearly a square wave. A quiet input, such as a note decaying, shows how they differ: v1 crunch only rounds it, and v2 high gain still squares it, which is why high gain sustains:
+
+![A quiet sine through each drive: v1 crunch rounded, v2 crunch rounder and a little uneven, v2 high gain nearly square](images/drive-waves.svg)
+
+The flattening adds harmonics, multiples of the note's frequency, and they're what makes the sound distorted. The symmetric v1 crunch adds only odd ones, while the offset in v2 adds even ones too:
+
+![Harmonics of the quiet sine: v1 crunch only 3 and 5, v2 crunch also 2, 4, and 6, v2 high gain strong odd harmonics up to 9](images/drive-harmonics.svg)
 
 Gains in dB, with the factor, from pre-EQ output to the cabinet:
 
@@ -46,9 +58,13 @@ Gains in dB, with the factor, from pre-EQ output to the cabinet:
 
 After the drive, ×0.126 (−18 dB) brings the level back down before the cabinet, and loudness matching sets the final level. `v2`'s compressor, when on, sits before the first gain, and its clean level is the compressor alone, so `--no-comp` leaves clean tracks dry.
 
+TODO: wrong, clean tracks still get the −18 dB, the mono fold, and the cabinet.
+
 ## Iterations
 
-Each step changes one thing, shown in yellow in its chain diagram, all on the filter cabinet the chain ships with, and the cabinet gets its own comparison at the end. Every render is normalized to −16 LUFS, so a comparison is about tone, not level, because the louder of two versions tends to sound better, and drive makes a track much louder. Each guitar track is also matched to its dry loudness before mixing, so the amp doesn't move it in the mix. The tags name the variants to compare, [Reproduce](#reproduce) generates them, and `gen-figures.ts` draws the plots from those renders.
+Each step changes one thing, shown in yellow in its chain diagram, all on the filter cabinet the chain ships with, and the cabinet gets its own comparison at the end. Every render is normalized to −16 LUFS, so a comparison is about tone, not level, because the louder of two versions tends to sound better, and drive makes a track much louder. Each guitar track is also matched to its dry loudness before mixing, so the amp doesn't move it in the mix.
+
+TODO: not every step changes one thing. Step 2 adds three stages, step 3 changes the compressor and the drive together, and step 5 runs on the IR rather than the filter cabinet. The tags name the variants to compare, [Reproduce](#reproduce) generates them, and `gen-figures.ts` draws the plots from those renders.
 
 The session didn't run in this order. Its v2 round added the Marshall cabinet IR together with the amp changes, so the gate and the room were first heard with the IR. Step 6 found the IR and the filters interchangeable, and the gate was then confirmed on the filter-cabinet pair, so the steps follow the cleaner order.
 
@@ -113,6 +129,8 @@ With the gate, the level drops right after each note-off:
 ![Step 5 adds a short room after the cabinet](images/chain-5-room.svg)
 
 - **Room:** three early reflections at 19 to 47 ms, after the amp. A recorded guitar always carries some room, and that's what softens a note's end in real life. A room before the drive would itself get distorted and smear again, and a long one on fast parts would bring the blur back.
+
+TODO: the room comes after the loudness match and lowers the guitars by about 5 dB in the full mix, so this pair differs in level too. Match after the room and re-render.
 
 **Heard:** all good. This pair was rendered with the IR cabinet.
 
