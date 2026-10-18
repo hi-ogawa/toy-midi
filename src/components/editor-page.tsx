@@ -7,6 +7,7 @@ import { resolveAudioFiles } from "../lib/audio-files";
 import { deriveClipRegions } from "../lib/clip-regions";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import { exportMidi } from "../lib/midi-export";
 import { snapToGrid } from "../lib/music";
 import { getNextPlaybackRate } from "../lib/playback-rate";
 import { createProjectUiStore, preferences } from "../lib/preferences";
@@ -148,6 +149,24 @@ export function EditorPage({ source }: { source: ProjectSource }) {
           extension: ".toymidi.zip",
         }),
       );
+    },
+  });
+  const exportMidiMutation = useMutation({
+    mutationFn: async () => {
+      const data = exportMidi({
+        title: state.title,
+        tempo: state.tempo,
+        timeSignature: state.timeSignature,
+        locators: state.locators,
+        tracks: orderedMidiTracks,
+      });
+      downloadBlob(
+        new Blob([new Uint8Array(data)], { type: "audio/midi" }),
+        buildExportFileName({ baseName: state.title, extension: "mid" }),
+      );
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
   const shareLinkMutation = useMutation({
@@ -346,6 +365,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
         onExportAudio={() => setIsAudioExportOpen(true)}
+        onExportMidi={() => exportMidiMutation.mutate()}
         onShareLink={() => shareLinkMutation.mutate()}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
