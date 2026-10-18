@@ -117,6 +117,7 @@ export function MidiTrackRow({
         title: state.title,
         tempo: state.tempo,
         timeSignature: state.timeSignature,
+        locators: state.locators,
         tracks: [track],
       });
       downloadBlob(

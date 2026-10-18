@@ -1,7 +1,11 @@
 import type { Automation, TimeSignature } from "../types";
-import { DRUM_KIT_BANK, PITCH_BEND_RANGE } from "./general-midi";
+import {
+  DRUM_KIT_BANK,
+  encodePitchBend,
+  PITCH_BEND_RANGE,
+} from "./general-midi";
 import { clamp } from "./music";
-import type { EditorRuntimeState, MidiTrackState } from "./runtime";
+import type { EditorRuntimeState, Locator, MidiTrackState } from "./runtime";
 import { resolveTrackOrder, type TrackListsState } from "./track-order";
 
 export type MidiExportTrack = Pick<
@@ -16,30 +20,32 @@ const DRUM_CHANNEL = 9;
 const MELODIC_CHANNELS = Array.from({ length: 16 }, (_, i) => i).filter(
   (channel) => channel !== DRUM_CHANNEL,
 );
-const PITCH_WHEEL_CENTER = 8192;
 
 // Events on the same tick go in this order, so a note ending where the next
 // one starts frees the voice first, and a controller or bend change lands
 // before the note it shapes.
-const NOTE_OFF = 0;
-const CHANNEL_CHANGE = 1;
-const NOTE_ON = 2;
+const EVENT_RANKS = {
+  "note-off": 0,
+  other: 1,
+  "note-on": 2,
+};
 
 interface TrackEvent {
   tick: number;
-  order: number;
+  type?: "note-off" | "note-on";
   bytes: number[];
 }
 
 /** Encode a project's MIDI tracks in timeline order. */
 export function exportProjectMidi(
   state: TrackListsState &
-    Pick<EditorRuntimeState, "title" | "tempo" | "timeSignature">,
+    Pick<EditorRuntimeState, "title" | "tempo" | "timeSignature" | "locators">,
 ): Uint8Array {
   return exportMidi({
     title: state.title,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
+    locators: state.locators,
     tracks: resolveTrackOrder(state).flatMap((entry) =>
       entry.kind === "midi" ? [entry.track] : [],
     ),
@@ -48,27 +54,31 @@ export function exportProjectMidi(
 
 /**
  * Encode MIDI tracks as a format 1 Standard MIDI File: a conductor track with
- * the title, tempo, and time signature, then one track per MIDI track on its
- * own channel, with drum kits on the drum channel.
+ * the title, tempo, time signature, and locators as markers, then one track
+ * per MIDI track on its own channel, with drum kits on the drum channel.
  */
 export function exportMidi({
   title,
   tempo,
   timeSignature,
+  locators,
   tracks,
 }: {
   title: string;
   tempo: number;
   timeSignature: TimeSignature;
+  locators: Pick<Locator, "beat" | "label">[];
   tracks: MidiExportTrack[];
 }): Uint8Array {
-  const melodicCount = tracks.filter(
-    (track) => track.bank !== DRUM_KIT_BANK,
-  ).length;
-  if (melodicCount > MELODIC_CHANNELS.length) {
+  const drumTracks = tracks.filter((track) => track.bank === DRUM_KIT_BANK);
+  if (tracks.length - drumTracks.length > MELODIC_CHANNELS.length) {
     throw new Error(
       `A MIDI file holds at most ${MELODIC_CHANNELS.length} non-drum tracks.`,
     );
+  }
+  // Drum tracks share the one drum channel, which plays a single kit.
+  if (new Set(drumTracks.map((track) => track.program)).size > 1) {
+    throw new Error("Drum tracks in a MIDI file must use the same kit.");
   }
 
   let nextMelodic = 0;
@@ -79,22 +89,16 @@ export function exportMidi({
         : MELODIC_CHANNELS[nextMelodic++];
     return encodeTrackEvents({ track, channel });
   });
-  // Every track ends at the same tick, two beats after the last event to
-  // leave room for release tails.
-  const endTick =
-    Math.max(0, ...trackEvents.flat().map((event) => event.tick)) + PPQ * 2;
 
   const microsecondsPerBeat = Math.round(60_000_000 / tempo);
   const conductor: TrackEvent[] = [
-    { tick: 0, order: 0, bytes: encodeTextMeta(0x03, title) },
+    { tick: 0, bytes: encodeTextMeta(0x03, title) },
     {
       tick: 0,
-      order: 0,
       bytes: [0xff, 0x51, 3, ...bytesBigEndian(microsecondsPerBeat, 3)],
     },
     {
       tick: 0,
-      order: 0,
       bytes: [
         0xff,
         0x58,
@@ -105,9 +109,19 @@ export function exportMidi({
         8,
       ],
     },
+    ...locators.map((locator) => ({
+      tick: Math.max(0, Math.round(locator.beat * PPQ)),
+      bytes: encodeTextMeta(0x06, locator.label),
+    })),
   ];
 
-  const chunks = [conductor, ...trackEvents].map((events) =>
+  const allEvents = [conductor, ...trackEvents];
+  // Every track ends at the same tick, two beats after the last event to
+  // leave room for release tails.
+  const endTick =
+    Math.max(0, ...allEvents.flat().map((event) => event.tick)) + PPQ * 2;
+
+  const chunks = allEvents.map((events) =>
     encodeTrackChunk({ events, endTick }),
   );
   return Uint8Array.from([
@@ -129,7 +143,6 @@ function encodeTrackEvents({
 }): TrackEvent[] {
   const controlChange = (controller: number, value: number) => ({
     tick: 0,
-    order: CHANNEL_CHANGE,
     bytes: [0xb0 | channel, controller, value],
   });
   const bends = track.automation.some(
@@ -139,14 +152,14 @@ function encodeTrackEvents({
   // Setup at tick 0, before any note or automation point: name, preset, the
   // channel strip's gain and pan, and the bend range when the track bends.
   const events: TrackEvent[] = [
-    { tick: 0, order: CHANNEL_CHANGE, bytes: encodeTextMeta(0x03, track.name) },
+    { tick: 0, bytes: encodeTextMeta(0x03, track.name) },
     // A channel starts on bank 0, and a drum kit is chosen by its channel, so
     // only other banks need a bank select. Leaving it out also keeps
     // @tonejs/midi, which the app imports with, from splitting the track at it.
     ...(track.bank && track.bank !== DRUM_KIT_BANK
       ? [controlChange(0, track.bank)]
       : []),
-    { tick: 0, order: CHANNEL_CHANGE, bytes: [0xc0 | channel, track.program] },
+    { tick: 0, bytes: [0xc0 | channel, track.program] },
     controlChange(7, encodeVolume(track.gain)),
     controlChange(10, clamp(Math.round(64 + track.pan * 64), 0, 127)),
     ...(bends
@@ -168,12 +181,12 @@ function encodeTrackEvents({
     );
     events.push({
       tick: on,
-      order: NOTE_ON,
+      type: "note-on",
       bytes: [0x90 | channel, note.pitch, note.velocity],
     });
     events.push({
       tick: off,
-      order: NOTE_OFF,
+      type: "note-off",
       bytes: [0x80 | channel, note.pitch, 0],
     });
   }
@@ -181,7 +194,6 @@ function encodeTrackEvents({
     for (const point of sequence.points) {
       events.push({
         tick: Math.max(0, Math.round(point.beat * PPQ)),
-        order: CHANNEL_CHANGE,
         bytes: encodeAutomationPoint({ sequence, point, channel }),
       });
     }
@@ -211,16 +223,7 @@ function encodeAutomationPoint({
     }
     case "pitch-bend": {
       const { semitones } = point as { semitones: number };
-      // The value runs 8192 steps down from center but only 8191 up, so a bend
-      // of the full range up clamps to the end.
-      const value = clamp(
-        Math.round(
-          PITCH_WHEEL_CENTER +
-            (semitones / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
-        ),
-        0,
-        2 * PITCH_WHEEL_CENTER - 1,
-      );
+      const value = encodePitchBend(semitones);
       return [0xe0 | channel, value & 0x7f, value >> 7];
     }
   }
@@ -234,7 +237,9 @@ function encodeTrackChunk({
   endTick: number;
 }): number[] {
   const sorted = events.toSorted(
-    (a, b) => a.tick - b.tick || a.order - b.order,
+    (a, b) =>
+      a.tick - b.tick ||
+      EVENT_RANKS[a.type ?? "other"] - EVENT_RANKS[b.type ?? "other"],
   );
   const body: number[] = [];
   let lastTick = 0;
