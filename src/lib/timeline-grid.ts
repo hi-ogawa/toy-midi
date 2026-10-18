@@ -71,7 +71,8 @@ function calculateTimelineGridLayers({
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
   const beatsPerBar = getBeatsPerBar(timeSignature);
-  // Draw lines where the metronome clicks.
+  // A time signature counts its bar in denominator notes, such as six eighth
+  // notes in 6/8. The metronome also clicks on denominator notes.
   const denominatorNoteInterval = 4 / timeSignature.denominator;
   const barInterval =
     getVisibleBarInterval({
