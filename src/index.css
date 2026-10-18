@@ -6,6 +6,18 @@
   scrollbar-color: #525252 transparent;
 }
 
+/*
+ * Lines rank by what they separate. Edges between regions of the layout, such
+ * as tracks, header rows, and the track header column, stay brighter than any
+ * line of the timeline grid, so a boundary never reads as one more grid line.
+ */
+@theme static {
+  --color-edge: #525252;
+  --color-grid-strong: #404040;
+  --color-grid: #333333;
+  --color-grid-faint: #292929;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

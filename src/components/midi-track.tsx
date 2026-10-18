@@ -363,7 +363,6 @@ function MidiTrackOverview({
         viewportStartBeat,
         subdivisionsPerBeat: 1,
         minimumPixelSpacing: 8,
-        colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
       })}
     >
       {track.notes.length > 0 && (
@@ -666,7 +665,7 @@ function MidiTrackEditor({
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
-        <div className="relative border-r border-neutral-700">
+        <div className="relative border-r border-edge">
           {PITCHES.map((pitch) => (
             <MidiPianoKey
               key={pitch}
@@ -699,11 +698,6 @@ function MidiTrackEditor({
               viewportStartBeat,
               subdivisionsPerBeat,
               minimumPixelSpacing: 8,
-              colors: {
-                bar: "#525252",
-                beat: "#404040",
-                subdivision: "#333333",
-              },
             })}
           />
           {track.notes
@@ -847,7 +841,7 @@ function MidiGridRow({ pitch }: { pitch: number }) {
     <div
       className={cn(
         "pointer-events-none absolute inset-x-0 border-t",
-        pitch % 12 === 11 ? "border-[#666666]" : "border-[#333333]",
+        pitch % 12 === 11 ? "border-grid-strong" : "border-grid-faint",
         isBlackKey(pitch) ? "bg-[#111111]" : "bg-[#1a1a1a]",
       )}
       style={{
