@@ -1,27 +1,30 @@
-# Score Video CLI
+# Toy MIDI CLI
 
-`toy-midi-score-video` renders a MusicXML score into a silent scrolling score video, for use as a score layer in a video editor. It drives the real Toy MIDI score viewer frame by frame and screenshots it, so the cursor, scrolling, and score settings match interactive playback.
+`toy-midi` runs Toy MIDI features from the command line. It drives the real Toy MIDI app in headless Chromium, so the output matches what the app produces interactively.
 
 ## Install
 
 The CLI installs directly from GitHub without cloning the repository.
 
 ```sh
-pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/score-video"
+pnpm i -g "github:hi-ogawa/toy-midi#path:/packages/cli"
 ```
 
-It also needs:
+It also needs a Playwright Chromium build. When it is missing, the CLI prints the exact install command, which has the form `npx playwright-core@<version> install chromium --no-shell`.
 
-- `ffmpeg` on `PATH` for encoding.
-- A Playwright Chromium build. When it is missing, the CLI prints the exact install command, which has the form `npx playwright-core@<version> install chromium --no-shell`.
+By default, every command runs against the deployed app at https://toy-midi.hiro18181.workers.dev. Pass `--url` to use another one, such as a local dev server.
 
-## Usage
+## `score-video`
+
+`score-video` renders a MusicXML score into a silent scrolling score video, for use as a score layer in a video editor. It steps the score viewer frame by frame and screenshots it, so the cursor, scrolling, and score settings match interactive playback. It needs `ffmpeg` on `PATH` for encoding.
+
+### Usage
 
 ```sh
-toy-midi-score-video score.musicxml score.mp4
+toy-midi score-video score.musicxml score.mp4
 ```
 
-Export the MusicXML from a MIDI track with the track menu's "Export MusicXML" action. By default, the CLI renders against the deployed app at https://toy-midi.hiro18181.workers.dev.
+Export the MusicXML from a MIDI track with the track menu's "Export MusicXML" action.
 
 | Option              | Default      | Description                                                    |
 | ------------------- | ------------ | -------------------------------------------------------------- |
@@ -34,7 +37,7 @@ Export the MusicXML from a MIDI track with the track menu's "Export MusicXML" ac
 
 Width and height must be even for H.264 output.
 
-## Output
+### Output
 
 The output is a silent H.264 MP4 at a constant frame rate. The video starts at the score's first measure and ends at the end of its final measure, without any lead-in or tail, so a video editor can hold the first and last frames and align the layer against the audio.
 
@@ -46,5 +49,5 @@ Run the CLI from the repository against a local dev server:
 
 ```sh
 pnpm dev --port 5173
-pnpm render-score-video score.musicxml score.mp4 --url http://localhost:5173
+pnpm toy-midi score-video score.musicxml score.mp4 --url http://localhost:5173
 ```
