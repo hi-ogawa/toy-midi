@@ -893,31 +893,6 @@ function TimelineClip({
   );
 }
 
-function getTimelineGridStyle({
-  beatsPerBar,
-  pixelsPerBeat,
-  viewportStartBeat,
-  subdivisionsPerBeat,
-}: {
-  beatsPerBar: number;
-  pixelsPerBeat: number;
-  viewportStartBeat: number;
-  subdivisionsPerBeat: number;
-}): React.CSSProperties {
-  return getTimelineGridBackground({
-    beatsPerBar,
-    colors: {
-      bar: "rgb(82 82 82)",
-      beat: "rgb(64 64 64)",
-      subdivision: "rgb(51 51 51)",
-    },
-    minimumPixelSpacing: 8,
-    pixelsPerBeat,
-    viewportStartBeat,
-    subdivisionsPerBeat,
-  });
-}
-
 function getTimelineSurfaceProps({
   beatsPerBar,
   onSeek,
@@ -934,7 +909,7 @@ function getTimelineSurfaceProps({
   viewportStartBeat: number;
 }): React.HTMLAttributes<HTMLElement> {
   return {
-    style: getTimelineGridStyle({
+    style: getTimelineGridBackground({
       beatsPerBar,
       pixelsPerBeat,
       subdivisionsPerBeat,
