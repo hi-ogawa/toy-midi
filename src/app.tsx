@@ -1,12 +1,12 @@
 import { AudioRender } from "./components/audio-render";
-import { Editor } from "./components/editor";
-import { Examples } from "./components/examples";
-import { Home } from "./components/home";
-import { LatencyChecker } from "./components/latency-checker";
-import { Preview } from "./components/preview";
+import { EditorPage } from "./components/editor-page";
+import { ExamplesPage } from "./components/examples-page";
+import { HomePage } from "./components/home-page";
+import { LatencyCheckerPage } from "./components/latency-checker-page";
+import { PreviewPage } from "./components/preview-page";
+import { ProjectScorePage } from "./components/project-score-page";
 import { RouteError } from "./components/route-error";
-import { ScoreCapture } from "./components/score-capture";
-import { ScorePage } from "./components/score-page";
+import { ScoreCapturePage } from "./components/score-capture-page";
 import { ScoreViewer } from "./components/score-viewer";
 import { useWindowEvent } from "./components/use-window-event";
 import { getSharePayload, getShareSource } from "./lib/project-share";
@@ -18,60 +18,60 @@ export function App() {
 
   switch (match?.data) {
     case "preview": {
-      return <Preview />;
+      return <PreviewPage />;
     }
     case "project": {
       preloadMidiAssetsWhenIdle();
       return (
-        <Editor
+        <EditorPage
           source={{ type: "stored", projectId: match.params.projectId }}
         />
       );
     }
     case "draft": {
       preloadMidiAssetsWhenIdle();
-      return <DraftRoute />;
+      return <DraftPage />;
     }
     case "examples": {
       preloadMidiAssetsWhenIdle();
-      return <Examples />;
+      return <ExamplesPage />;
     }
     case "latencyChecker": {
-      return <LatencyChecker />;
+      return <LatencyCheckerPage />;
     }
     case "scoreViewer": {
-      return <ScoreViewerRoute />;
+      return <ScoreViewerPage />;
     }
     case "scoreCapture": {
-      return <ScoreCapture />;
+      return <ScoreCapturePage />;
     }
     case "audioRender": {
       return <AudioRender />;
     }
     case "legacyProjectScore": {
-      return <LegacyProjectRoute />;
+      return <LegacyProjectPage />;
     }
     case "legacyProject": {
-      return <LegacyProjectRoute />;
+      return <LegacyProjectPage />;
     }
     case "home":
     default: {
       preloadMidiAssetsWhenIdle();
-      return <Home />;
+      return <HomePage />;
     }
   }
 }
 
-function DraftRoute() {
+function DraftPage() {
   // Another share link in this tab changes only the hash, which does not
   // reload the page, so reload it to open that project afresh.
   useWindowEvent("hashchange", () => window.location.reload());
   const payload = getSharePayload(window.location.href);
   const src = getShareSource(window.location.href);
-  return <Editor source={{ type: "draft", payload, src }} />;
+  return <EditorPage source={{ type: "draft", payload, src }} />;
 }
 
-function LegacyProjectRoute() {
+function LegacyProjectPage() {
   return (
     <RouteError
       error='The legacy editor has been retired. To migrate your project, go home and choose "Migrate to new editor" under Legacy projects.'
@@ -81,12 +81,12 @@ function LegacyProjectRoute() {
   );
 }
 
-function ScoreViewerRoute() {
+function ScoreViewerPage() {
   const params = new URL(window.location.href).searchParams;
   const projectId = params.get("projectId");
   const trackId = params.get("trackId");
   if (projectId && trackId) {
-    return <ScorePage projectId={projectId} trackId={trackId} />;
+    return <ProjectScorePage projectId={projectId} trackId={trackId} />;
   }
   if (params.has("projectId") || params.has("trackId")) {
     return (

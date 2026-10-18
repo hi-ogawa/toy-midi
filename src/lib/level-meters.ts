@@ -3,7 +3,10 @@ import { startAnimationFrameLoop } from "../utils/timing.ts";
 import type { AudioLevels, StereoAnalyser } from "./audio-analyser.ts";
 import { MIN_DB, gainToDb } from "./music.ts";
 
-export type MeterTarget = { kind: "master" } | { kind: "track"; id: string };
+export type MeterTarget =
+  | { kind: "master" }
+  | { kind: "track"; id: string }
+  | { kind: "input" };
 
 type MeterListener = (channels: readonly [MeterChannel, MeterChannel]) => void;
 
@@ -26,7 +29,7 @@ export class LevelMeters {
       channels: [MeterChannel, MeterChannel];
       listeners: Set<MeterListener>;
     }
-  >((target) => (target.kind === "master" ? "master" : `track:${target.id}`));
+  >(getMeterTargetKey);
   private stopLoop?: () => void;
   private lastTime?: number;
   private readonly getAnalyser: AnalyserLookup;
@@ -75,7 +78,7 @@ export class LevelMeters {
     this.lastTime = timeMs;
     for (const meter of this.meters.values()) {
       // Resolve on every frame, because a track's channel is replaced when a
-      // project loads.
+      // project loads, and the input is replaced when it is turned on.
       const levels = this.getAnalyser(meter.target)?.measure() ?? [
         SILENCE,
         SILENCE,
@@ -88,6 +91,10 @@ export class LevelMeters {
       }
     }
   }
+}
+
+export function getMeterTargetKey(target: MeterTarget): string {
+  return target.kind === "track" ? `track:${target.id}` : target.kind;
 }
 
 const RMS_ATTACK_SECONDS = 0.05;
