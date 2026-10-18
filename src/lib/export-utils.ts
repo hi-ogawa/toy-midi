@@ -27,16 +27,11 @@ export function buildExportFileName({
   return `${safeName}-${formattedTimestamp}${normalizedExtension}`;
 }
 
-/** Zip the mix with one WAV per stem, numbered in track order. */
-export async function buildStemsArchive({
-  mix,
-  stems,
-}: {
-  mix: AudioBuffer;
-  stems: AsyncIterable<{ name: string; buffer: AudioBuffer }>;
-}): Promise<Blob> {
+/** Zip one WAV per stem, numbered in track order. */
+export async function buildStemsArchive(
+  stems: AsyncIterable<{ name: string; buffer: AudioBuffer }>,
+): Promise<Blob> {
   const zip = new JSZip();
-  zip.file("mix.wav", encodeWav(mix));
   let index = 0;
   for await (const stem of stems) {
     index++;

@@ -24,26 +24,22 @@ export function ExportDialog({
   onClose: () => void;
   disabled: boolean;
 }) {
-  const [stemTap, setStemTap] = useState<StemTap>();
+  const [exportType, setExportType] = useState<"mix" | StemTap>("mix");
   const exportMutation = useMutation({
     mutationFn: async () => {
-      const mix = await runtime.renderMix();
-      if (!stemTap) {
+      if (exportType === "mix") {
         const fileName = buildExportFileName({
           baseName: state.title,
           extension: "wav",
         });
-        downloadBlob(encodeWav(mix), fileName);
+        downloadBlob(encodeWav(await runtime.renderMix()), fileName);
         return;
       }
       const fileName = buildExportFileName({
         baseName: `${state.title}-stems`,
         extension: "zip",
       });
-      const archive = await buildStemsArchive({
-        mix,
-        stems: runtime.renderStems(stemTap),
-      });
+      const archive = await buildStemsArchive(runtime.renderStems(exportType));
       downloadBlob(archive, fileName);
     },
   });
@@ -57,24 +53,23 @@ export function ExportDialog({
     >
       <div className="mb-6 space-y-4">
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-          <dt className="text-neutral-400">Format</dt>
-          <dd>WAV, stereo, 48 kHz, 16-bit PCM</dd>
-          <dt className="text-neutral-400">Stems</dt>
+          <dt className="text-neutral-400">Type</dt>
           <dd>
             <select
-              aria-label="Stems"
-              value={stemTap ?? "none"}
-              onChange={(event) => {
-                const value = event.target.value;
-                setStemTap(value === "none" ? undefined : (value as StemTap));
-              }}
+              aria-label="Type"
+              value={exportType}
+              onChange={(event) =>
+                setExportType(event.target.value as "mix" | StemTap)
+              }
               className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
             >
-              <option value="none">None</option>
-              <option value="post-fader">As mixed</option>
-              <option value="dry">Dry</option>
+              <option value="mix">Mix</option>
+              <option value="post-fader">Stems</option>
+              <option value="dry">Dry stems</option>
             </select>
           </dd>
+          <dt className="text-neutral-400">Format</dt>
+          <dd>WAV, stereo, 48 kHz, 16-bit PCM</dd>
         </dl>
       </div>
       <Button

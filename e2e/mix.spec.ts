@@ -76,17 +76,17 @@ test("exports MIDI tracks in the WAV", async ({ page }) => {
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
 });
 
-test("exports per-track stems with the mix", async ({ page }) => {
+test("exports per-track stems as a zip", async ({ page }) => {
   // Add backing audio and a MIDI track with one note.
   await createProject(page);
   await addAudio(page, "e2e/fixtures/test-audio.wav");
   const track = await addMidiTrack(page);
   await createMidiNote(page, track, { beat: 0, pitch: "C4" });
 
-  // Export with post-fader stems.
+  // Export stems.
   await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
   const modal = page.getByTestId("audio-export");
-  await modal.getByLabel("Stems").selectOption("post-fader");
+  await modal.getByLabel("Type").selectOption("Stems");
   const downloadPromise = page.waitForEvent("download");
   await modal.getByRole("button", { name: "Export file" }).click();
   const download = await downloadPromise;
@@ -94,14 +94,13 @@ test("exports per-track stems with the mix", async ({ page }) => {
   const downloadPath = test.info().outputPath("stems.zip");
   await download.saveAs(downloadPath);
 
-  // Check the zip holds the mix and one stem per track, all as long as the
-  // mix, with the project's empty default track rendered as silence.
+  // Check the zip holds one stem per track, all the same length, with the
+  // project's empty default track rendered as silence.
   const zip = await JSZip.loadAsync(await readFile(downloadPath));
   expect(Object.keys(zip.files).sort()).toEqual([
     "01-Audio_1.wav",
     "02-Audio_2.wav",
     "03-MIDI_1.wav",
-    "mix.wav",
   ]);
   const wavs = new Map(
     await Promise.all(
@@ -115,7 +114,7 @@ test("exports per-track stems with the mix", async ({ page }) => {
     expect(wav).toMatchObject({
       channelCount: 2,
       sampleRate: 48000,
-      duration: wavs.get("mix.wav")!.duration,
+      duration: wavs.get("02-Audio_2.wav")!.duration,
     });
     expect(wav.samples.some((sample) => sample !== 0)).toBe(
       name !== "01-Audio_1.wav",
