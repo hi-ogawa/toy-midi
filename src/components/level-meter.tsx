@@ -6,8 +6,7 @@ import type {
 } from "../lib/level-meters";
 import { MAX_DB, MIN_DB, clamp } from "../lib/music";
 
-const BAR_WIDTH = 3;
-const WIDTH = BAR_WIDTH * 2 + 1;
+const WIDTH = 7;
 const SCALE_TICKS = [6, 0, -6, -12, -18, -24, -36, -48, -60];
 // Zones are by level, so a color means the same dB wherever the bar ends.
 const ZONES = [
@@ -32,28 +31,14 @@ export function LevelMeter({
   const clipRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current!;
+    const meterCanvas = new MeterCanvas(canvasRef.current!, "vertical");
     const meter = meterRef.current!;
     const dots = [...clipRef.current!.children] as HTMLElement[];
-    const context = canvas.getContext("2d")!;
-    const pixelRatio = window.devicePixelRatio;
-    let height = 0;
-    // Resizing the canvas clears it and resets its transform, and the next
-    // frame redraws at the new height.
-    const resize = () => {
-      height = canvas.clientHeight;
-      canvas.width = WIDTH * pixelRatio;
-      canvas.height = height * pixelRatio;
-      context.scale(pixelRatio, pixelRatio);
-    };
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(canvas);
     let valueNow: number | undefined;
     const unsubscribe = meters.subscribe(
       getMeterTarget(trackId),
       (channels) => {
-        drawMeter(context, channels, height);
+        meterCanvas.draw(channels);
         channels.forEach((channel, index) => {
           dots[index]!.dataset.clipped = String(channel.clipped);
         });
@@ -69,7 +54,7 @@ export function LevelMeter({
       },
     );
     return () => {
-      observer.disconnect();
+      meterCanvas.dispose();
       unsubscribe();
     };
   }, [meters, trackId]);
@@ -136,61 +121,113 @@ function getMeterPosition(db: number): number {
   return 1 - (clamp(db, MIN_DB, MAX_DB) - MIN_DB) / (MAX_DB - MIN_DB);
 }
 
-function drawMeter(
-  context: CanvasRenderingContext2D,
-  channels: readonly [MeterChannel, MeterChannel],
-  height: number,
-) {
-  const getMeterY = (db: number) => getMeterPosition(db) * height;
-  context.clearRect(0, 0, WIDTH, height);
-  channels.forEach((channel, index) => {
-    const x = index * (BAR_WIDTH + 1);
-    // A dark well, so a silent meter still stands out from the strip background.
-    context.fillStyle = "#0a0a0a"; // neutral-950
-    context.fillRect(x, 0, BAR_WIDTH, height);
+/**
+ * Draws meter channels side by side on a canvas that tracks its element's
+ * size. Drawing happens in meter coordinates, across the bars and along the
+ * scale from MAX_DB, and the canvas transform maps them to either orientation.
+ */
+class MeterCanvas {
+  private readonly context: CanvasRenderingContext2D;
+  private readonly observer: ResizeObserver;
+  private thickness = 0;
+  private length = 0;
 
-    // A faint fill between the RMS body and the peak shows the crest factor.
-    if (channel.peak > channel.rms && channel.peak > MIN_DB) {
-      context.globalAlpha = 0.18;
-      context.fillStyle = getZone(channel.peak).line;
-      const top = getMeterY(channel.peak);
-      context.fillRect(x, top, BAR_WIDTH, getMeterY(channel.rms) - top);
-      context.globalAlpha = 1;
-    }
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly orientation: "vertical" | "horizontal",
+  ) {
+    this.context = canvas.getContext("2d")!;
+    this.resize();
+    this.observer = new ResizeObserver(() => this.resize());
+    this.observer.observe(canvas);
+  }
 
-    let zoneBottom = height;
-    for (const zone of ZONES) {
-      const top = getMeterY(Math.min(channel.rms, zone.below));
-      if (top < zoneBottom) {
-        context.fillStyle = zone.body;
-        context.fillRect(x, top, BAR_WIDTH, zoneBottom - top);
+  draw(channels: readonly MeterChannel[]): void {
+    const { context, thickness, length } = this;
+    const barThickness = (thickness - (channels.length - 1)) / channels.length;
+    const getMeterY = (db: number) => getMeterPosition(db) * length;
+    context.clearRect(0, 0, thickness, length);
+    channels.forEach((channel, index) => {
+      const x = index * (barThickness + 1);
+      // A dark well, so a silent meter still stands out from its background.
+      context.fillStyle = "#0a0a0a"; // neutral-950
+      context.fillRect(x, 0, barThickness, length);
+
+      // A faint fill between the RMS body and the peak shows the crest factor.
+      if (channel.peak > channel.rms && channel.peak > MIN_DB) {
+        context.globalAlpha = 0.18;
+        context.fillStyle = getZone(channel.peak).line;
+        const top = getMeterY(channel.peak);
+        context.fillRect(x, top, barThickness, getMeterY(channel.rms) - top);
+        context.globalAlpha = 1;
       }
-      zoneBottom = getMeterY(zone.below);
-      if (channel.rms <= zone.below) {
-        break;
-      }
-    }
 
-    if (channel.peak > MIN_DB) {
-      context.fillStyle = getZone(channel.peak).line;
-      context.fillRect(
-        x,
-        Math.min(height - 1, Math.round(getMeterY(channel.peak))),
-        BAR_WIDTH,
-        1,
+      let zoneBottom = length;
+      for (const zone of ZONES) {
+        const top = getMeterY(Math.min(channel.rms, zone.below));
+        if (top < zoneBottom) {
+          context.fillStyle = zone.body;
+          context.fillRect(x, top, barThickness, zoneBottom - top);
+        }
+        zoneBottom = getMeterY(zone.below);
+        if (channel.rms <= zone.below) {
+          break;
+        }
+      }
+
+      if (channel.peak > MIN_DB) {
+        context.fillStyle = getZone(channel.peak).line;
+        context.fillRect(
+          x,
+          Math.min(length - 1, Math.round(getMeterY(channel.peak))),
+          barThickness,
+          1,
+        );
+      }
+
+      if (channel.hold > MIN_DB) {
+        context.fillStyle = "#e5e5e5"; // neutral-200
+        context.fillRect(
+          x,
+          clamp(Math.round(getMeterY(channel.hold)) - 1, 0, length - 2),
+          barThickness,
+          2,
+        );
+      }
+    });
+  }
+
+  dispose(): void {
+    this.observer.disconnect();
+  }
+
+  // Resizing the canvas clears it and resets its transform, and the next frame
+  // redraws at the new size.
+  private resize(): void {
+    const { canvas, context } = this;
+    const pixelRatio = window.devicePixelRatio;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    canvas.width = width * pixelRatio;
+    canvas.height = height * pixelRatio;
+    if (this.orientation === "vertical") {
+      this.thickness = width;
+      this.length = height;
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    } else {
+      // MAX_DB sits at the right edge, and bars stack downward.
+      this.thickness = height;
+      this.length = width;
+      context.setTransform(
+        0,
+        pixelRatio,
+        -pixelRatio,
+        0,
+        width * pixelRatio,
+        0,
       );
     }
-
-    if (channel.hold > MIN_DB) {
-      context.fillStyle = "#e5e5e5"; // neutral-200
-      context.fillRect(
-        x,
-        clamp(Math.round(getMeterY(channel.hold)) - 1, 0, height - 2),
-        BAR_WIDTH,
-        2,
-      );
-    }
-  });
+  }
 }
 
 function getZone(db: number) {

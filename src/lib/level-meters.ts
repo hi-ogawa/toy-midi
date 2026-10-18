@@ -1,13 +1,14 @@
 import { KeyedMap } from "../utils/keyed-map.ts";
 import { startAnimationFrameLoop } from "../utils/timing.ts";
-import type { AudioLevels, StereoAnalyser } from "./audio-analyser.ts";
+import type { AudioLevels } from "./audio-analyser.ts";
 import { MIN_DB, gainToDb } from "./music.ts";
 
 export type MeterTarget = { kind: "master" } | { kind: "track"; id: string };
 
-type MeterListener = (channels: readonly [MeterChannel, MeterChannel]) => void;
+type MeterListener = (channels: readonly MeterChannel[]) => void;
 
-type AnalyserLookup = (target: MeterTarget) => StereoAnalyser | undefined;
+/** Levels per channel, or undefined while the target has no audio node. */
+type LevelsLookup = (target: MeterTarget) => readonly AudioLevels[] | undefined;
 
 // Long frames, such as a background tab resuming, settle in one step instead
 // of animating a stale fall.
@@ -23,16 +24,16 @@ export class LevelMeters {
     MeterTarget,
     {
       target: MeterTarget;
-      channels: [MeterChannel, MeterChannel];
+      channels: MeterChannel[];
       listeners: Set<MeterListener>;
     }
   >((target) => (target.kind === "master" ? "master" : `track:${target.id}`));
   private stopLoop?: () => void;
   private lastTime?: number;
-  private readonly getAnalyser: AnalyserLookup;
+  private readonly measure: LevelsLookup;
 
-  constructor({ getAnalyser }: { getAnalyser: AnalyserLookup }) {
-    this.getAnalyser = getAnalyser;
+  constructor({ measure }: { measure: LevelsLookup }) {
+    this.measure = measure;
   }
 
   subscribe(target: MeterTarget, listener: MeterListener): () => void {
@@ -76,12 +77,13 @@ export class LevelMeters {
     for (const meter of this.meters.values()) {
       // Resolve on every frame, because a track's channel is replaced when a
       // project loads.
-      const levels = this.getAnalyser(meter.target)?.measure() ?? [
-        SILENCE,
-        SILENCE,
-      ];
+      const levels = this.measure(meter.target);
       for (const [index, channel] of meter.channels.entries()) {
-        channel.update({ levels: levels[index], time: timeMs / 1000, elapsed });
+        channel.update({
+          levels: levels?.[index] ?? SILENCE,
+          time: timeMs / 1000,
+          elapsed,
+        });
       }
       for (const listener of meter.listeners) {
         listener(meter.channels);

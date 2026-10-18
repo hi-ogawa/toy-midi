@@ -7,7 +7,7 @@ import {
 import { insertAtIndices } from "../utils/array.ts";
 import { createNumberedName } from "../utils/name.ts";
 import { createStore, shallowEqual } from "../utils/store.ts";
-import { StereoAnalyser } from "./audio-analyser.ts";
+import { type AudioLevels, StereoAnalyser } from "./audio-analyser.ts";
 import {
   createAudioClip,
   WAVEFORM_POINTS_PER_SECOND,
@@ -316,7 +316,7 @@ export class EditorRuntime {
   private readonly masterOutput: GainNode;
   private masterAnalyser?: StereoAnalyser;
   readonly levelMeters = new LevelMeters({
-    getAnalyser: (target) => this.getMeterAnalyser(target),
+    measure: (target) => this.measureMeter(target),
   });
   /** @internal */
   captureInput?: CaptureInput;
@@ -803,18 +803,18 @@ export class EditorRuntime {
     return audioTracks[index]!;
   }
 
-  private getMeterAnalyser(target: MeterTarget): StereoAnalyser | undefined {
+  private measureMeter(target: MeterTarget): AudioLevels[] | undefined {
     if (target.kind === "master") {
       if (!this.masterAnalyser) {
         this.masterAnalyser = new StereoAnalyser(this.context);
         this.masterOutput.connect(this.masterAnalyser.input);
       }
-      return this.masterAnalyser;
+      return this.masterAnalyser.measure();
     }
     const playback =
       this.trackPlaybacks.get(target.id) ??
       this.midiTrackPlaybacks.get(target.id);
-    return playback?.channel.getAnalyser();
+    return playback?.channel.getAnalyser().measure();
   }
 
   private getTrackPlayback(id: string): AudioTrackPlayback {
