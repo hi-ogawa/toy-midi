@@ -6,6 +6,11 @@
   scrollbar-color: #525252 transparent;
 }
 
+/*
+ * Colors are defined in :root and mapped here, the split that lets a light
+ * theme redefine them at runtime. The app only has the dark theme, so a plain
+ * @theme block holding the values would work the same.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
