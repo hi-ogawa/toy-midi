@@ -61,11 +61,10 @@ Thus the coefficient ratio sets the center gain. It remains to establish that th
 Measure frequency relative to the center by setting $u=s/\Omega_0$. Define $c_z=c_1/\Omega_0$ and $c_p=d_1/\Omega_0$, which gives a dimensionless response
 
 $$
-P(u)=H_a(\Omega_0u)
-=\frac{u^2+c_zu+1}{u^2+c_pu+1}.
+H_a(\Omega_0u)=\frac{u^2+c_zu+1}{u^2+c_pu+1}.
 $$
 
-For this family, choose $c_z,c_p\gt 0$. Both quadratics then have roots in the left half-plane, so the filter and its reciprocal have decaying natural modes. The gain requirement is $c_z/c_p=M$.
+For this family, choose $c_z,c_p\gt 0$. Both quadratics then have roots in the left half-plane, so the filter and its reciprocal have decaying natural modes. The gain requirement is $c_z/c_p=M$. Call this normalized prototype $P(u)$.
 
 ### Verify the Shape
 
