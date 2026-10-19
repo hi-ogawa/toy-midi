@@ -24,7 +24,7 @@ $$
 s(u) = \tanh(u + b) - \tanh b, \qquad b = 0.15.
 $$
 
-It saturates at $1 - \tanh b \approx 0.85$ above and $-1 - \tanh b \approx -1.15$ below, so the top flattens first, which adds even harmonics too. Subtracting $\tanh b$ keeps $s(0) = 0$, so silence stays silent.
+It saturates at $1 - \tanh b \approx 0.85$ above and $-1 - \tanh b \approx -1.15$ below, so the top flattens first, which adds even harmonics too. Subtracting $\tanh b$ keeps $s(0) = 0$, so silence stays silent. Flattening one side more also leaves a slowly varying offset in the output, which would shift the next stage's clipping, so a 20 Hz high-pass after $s$ removes it.
 
 ![The clipper: tanh follows y = x near 0 and flattens toward ±1, the shifted one flattens lower above and further below](images/amp-drive-tanh.svg)
 
@@ -62,19 +62,21 @@ The harmonics of that sine show the shift at work. Crunch with $\tanh$ in place 
 
 This holds for one pure sine. A real guitar note already carries even harmonics, and a chord's notes also produce sum and difference tones between them, so "odd harmonics only" describes the clipper, not what comes out of it on a guitar.
 
+The drive's output sits near $\pm 1$ at any input level, far louder than a dry track, so a gain of −18 dB after it brings it back toward the dry signal's level.
+
 ## Shape the Tone Around the Drive
 
 Filters before, between, and after the stages decide which frequencies get distorted and which reach the listener. All are second-order [digital filters](digital-filters/README.md) designed through the bilinear transform: [high-passes and low-passes](digital-filters/low-pass-and-high-pass.md) with the flat-passband Butterworth $Q = 1/\sqrt{2}$, and [peaking filters](digital-filters/peaking-eq.md).
 
 Peaking widths are given in octaves, which the [peaking design converts to $Q$](digital-filters/peaking-eq.md#measure-the-halfway-bandwidth). One octave is $Q\approx1.41$.
 
-| Where            | Filters                                                                                                                    | Why                                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Before the drive | 90 Hz high-pass, +4 dB at 750 Hz over 1.2 octaves                                                                          | Keep the low end tight under distortion, and put a mid hump in front like an overdrive pedal         |
-| After $s$        | 20 Hz high-pass                                                                                                            | Remove the slowly varying offset that flattening one side more leaves, before the next stage         |
-| Between stages   | +2 dB (crunch) or +3 dB (high gain) at 1 kHz over 1 octave, 120 Hz high-pass (high gain)                                   | Add to the mid hump, and cut the lows before more gain like a high-gain preamp's coupling capacitors |
-| After the drive  | −18 dB                                                                                                                     | Bring the near-±1 output back toward the dry signal's level                                          |
-| Cabinet          | 75 Hz high-pass, 5.2 kHz low-pass twice and 7 kHz once, +3 dB at 2.4 kHz over 1 octave, −2.5 dB at 450 Hz over 1.5 octaves | A guitar speaker: mostly a roll-off from about 5 kHz that removes the fizz clipping adds             |
+![Tone filters: the filters before the drive and between stages cut the lows and add a mid hump, and the cabinet adds a presence peak, a low-mid dip, and a steep fall above 5 kHz](images/amp-tone-filters.svg)
+
+| Where            | Purpose                                                                                              | Filters                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Before the drive | Keep the low end tight under distortion, and put a mid hump in front like an overdrive pedal         | 90 Hz high-pass, +4 dB at 750 Hz over 1.2 octaves                                                                          |
+| Between stages   | Add to the mid hump, and cut the lows before more gain like a high-gain preamp's coupling capacitors | +2 dB (crunch) or +3 dB (high gain) at 1 kHz over 1 octave, 120 Hz high-pass (high gain)                                   |
+| Cabinet          | A guitar speaker: mostly a roll-off from about 5 kHz that removes the fizz clipping adds             | 75 Hz high-pass, 5.2 kHz low-pass twice and 7 kHz once, +3 dB at 2.4 kHz over 1 octave, −2.5 dB at 450 Hz over 1.5 octaves |
 
 The cabinet's roll-off is three low-passes in a row, the usual way to [build a steep filter](digital-filters/low-pass-and-high-pass.md#cascade-sections-for-a-steeper-rolloff), since each second-order section adds 12 dB per octave. Two identical Butterworth sections at 5.2 kHz form a 4th-order Linkwitz–Riley low-pass, 6 dB down at the cutoff with a softer knee than a 4th-order Butterworth, and a third at 7 kHz steepens it to 36 dB per octave further up: −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz, and −31 dB at 10 kHz. Without them, the drive's high harmonics come through as raw fizz.
 
