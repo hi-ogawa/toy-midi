@@ -16,7 +16,7 @@ $$
 y = \tanh(g x).
 $$
 
-Since $\tanh u \approx u$ for small $u$ and $\tanh u \to \pm 1$ for large $u$, the gain decides how much of the wave reaches the flat part. Since $\tanh$ is odd, $\tanh(-u) = -\tanh u$, it flattens the top and bottom of a wave alike, which adds only odd harmonics, as [Why an Odd Clipper Adds Only Odd Harmonics](#why-an-odd-clipper-adds-only-odd-harmonics) shows.
+Since $\tanh u \approx u$ for small $u$ and $\tanh u \to \pm 1$ for large $u$, the gain decides how much of the wave reaches the flat part. Since $\tanh$ is odd, which means $\tanh(-u) = -\tanh u$, it flattens the top and bottom of a wave alike, which adds only odd harmonics, as the [appendix](#appendix-why-an-odd-clipper-adds-only-odd-harmonics) shows.
 
 A tube stage biased off center flattens one side sooner. Model it by shifting the wave up the curve before clipping and back down after:
 
@@ -92,7 +92,7 @@ A signal sampled at $f_s$ can't hold frequencies above $f_s/2$, its Nyquist freq
 
 So the drive runs at $4 f_s$, between an upsampler and a downsampler, and the filters before and after it stay at $f_s$. [Oversampling](oversampling.md) develops the up- and downsampling and their low-pass filter, and measures the aliasing with and without it.
 
-## Why an Odd Clipper Adds Only Odd Harmonics
+## Appendix: Why an Odd Clipper Adds Only Odd Harmonics
 
 **Claim.** If $f$ is odd, then $y(t) = f(A \sin \omega t)$ has only odd harmonics.
 
