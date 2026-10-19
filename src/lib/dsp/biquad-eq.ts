@@ -94,8 +94,8 @@ export class BiquadEq {
     );
     this.setParameters({
       frequency: spec.frequency,
-      // A low-pass or high-pass has no gain, so it stays at unity.
-      gain: "gain" in spec ? spec.gain : 1,
+      gain:
+        spec.type === "low-pass" || spec.type === "high-pass" ? 1 : spec.gain,
       q: spec.q,
       bypass,
     });
