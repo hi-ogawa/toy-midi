@@ -242,13 +242,10 @@ function calculateResponse({
   eqFrequency: number;
   q: number;
 }): number {
-  const coefficients = calculateBiquadEqCoefficients({
-    type: "peaking",
-    sampleRate: SAMPLE_RATE,
-    frequency: eqFrequency,
-    gain: dbToGain(gainDb),
-    q,
-  });
+  const coefficients = calculateBiquadEqCoefficients(
+    { sampleRate: SAMPLE_RATE },
+    { type: "peaking", frequency: eqFrequency, gain: dbToGain(gainDb), q },
+  );
   return gainToDb(
     calculateBiquadEqResponse({
       coefficients,

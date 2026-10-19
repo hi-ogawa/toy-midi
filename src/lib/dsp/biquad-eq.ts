@@ -194,39 +194,30 @@ export class BiquadEq {
     const frequency = Math.exp(this.current[0]);
     const q = Math.exp(this.current[2]);
     if (this.type === "peaking") {
-      calculateBiquadEqCoefficients({
-        type: "peaking",
-        sampleRate: this.sampleRate,
-        frequency,
-        gain: Math.exp(this.current[1]),
-        q,
-        output: this.coefficients,
-      });
+      calculateBiquadEqCoefficients(
+        { sampleRate: this.sampleRate, output: this.coefficients },
+        { type: "peaking", frequency, gain: Math.exp(this.current[1]), q },
+      );
     } else {
-      calculateBiquadEqCoefficients({
-        type: this.type,
-        sampleRate: this.sampleRate,
-        frequency,
-        q,
-        output: this.coefficients,
-      });
+      calculateBiquadEqCoefficients(
+        { sampleRate: this.sampleRate, output: this.coefficients },
+        { type: this.type, frequency, q },
+      );
     }
   }
 }
 
 export function calculateBiquadEqCoefficients(
-  parameters: BiquadFilterSpec & {
-    sampleRate: number;
-    output?: BiquadEqCoefficients;
-  },
+  { sampleRate, output }: { sampleRate: number; output?: BiquadEqCoefficients },
+  spec: BiquadFilterSpec,
 ): BiquadEqCoefficients {
-  const omega = (2 * Math.PI * parameters.frequency) / parameters.sampleRate;
+  const omega = (2 * Math.PI * spec.frequency) / sampleRate;
   const cos = Math.cos(omega);
-  const alpha = Math.sin(omega) / (2 * parameters.q);
-  const result = parameters.output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
-  switch (parameters.type) {
+  const alpha = Math.sin(omega) / (2 * spec.q);
+  const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
+  switch (spec.type) {
     case "peaking": {
-      const amplitude = Math.sqrt(parameters.gain);
+      const amplitude = Math.sqrt(spec.gain);
       const a0 = 1 + alpha / amplitude;
       result.b0 = (1 + alpha * amplitude) / a0;
       result.b1 = (-2 * cos) / a0;
@@ -241,7 +232,7 @@ export function calculateBiquadEqCoefficients(
       // their numerators put a double zero at z = 1 (high-pass, no DC) or
       // z = −1 (low-pass, no Nyquist).
       const a0 = 1 + alpha;
-      const highPass = parameters.type === "high-pass";
+      const highPass = spec.type === "high-pass";
       const edge = highPass ? (1 + cos) / 2 : (1 - cos) / 2;
       result.b0 = edge / a0;
       result.b1 = ((highPass ? -2 : 2) * edge) / a0;
