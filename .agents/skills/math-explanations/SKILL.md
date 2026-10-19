@@ -11,6 +11,8 @@ Aim for compact explanations that make a mechanism or design reconstructable. Us
 
 Separate mathematical fluency from domain familiarity. Motivate unfamiliar constructions through simple examples, then trust the reader with familiar algebra. Let the subject determine the approach rather than imposing a derivation template.
 
+Order the argument from the question a reader would ask and the computation the code performs, rather than the field's standard construction order, and introduce the standard term once the reasoning arrives at it. When revising a passage after feedback, reread the surrounding argument as a whole, since a patched sentence can keep a framing the new material no longer fits.
+
 Preserve the problem, assumptions, and motivation when shortening or splitting an article. Cut repeated previews, summaries, and implementation bookkeeping. Each section should have a clear payoff, including appendices. Headings should name concepts and group supporting calculations.
 
 Distinguish chosen constructions from necessary consequences and guarantees. Keep conditions that affect the claim without reproducing every implementation boundary case.
