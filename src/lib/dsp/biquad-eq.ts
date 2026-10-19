@@ -285,7 +285,9 @@ export const BUTTERWORTH_Q = Math.SQRT1_2;
 
 /**
  * Q of a peaking filter whose bandwidth is `octaves` wide between the
- * half-gain points: Q = √(2^N) / (2^N − 1). One octave is Q ≈ 1.41.
+ * half-gain points. See
+ * [Measure the halfway bandwidth](../../../docs/concepts/digital-filters/peaking-eq.md#measure-the-halfway-bandwidth)
+ * for the derivation.
  */
 export function convertOctavesToQ(octaves: number): number {
   const ratio = 2 ** octaves;
