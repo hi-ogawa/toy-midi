@@ -63,6 +63,7 @@ describe(BiquadEq, () => {
 
   it("ramps gain rather than switching immediately", () => {
     const eq = new BiquadEq({
+      type: "peaking",
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
       ...DEFAULT_PARAMETERS,
@@ -72,6 +73,7 @@ describe(BiquadEq, () => {
     const ramped = process(eq, input);
     const immediate = process(
       new BiquadEq({
+        type: "peaking",
         sampleRate: SAMPLE_RATE,
         channelCount: 1,
         ...DEFAULT_PARAMETERS,
@@ -91,6 +93,7 @@ describe(BiquadEq, () => {
 
   it("resets history and settles pending parameters", () => {
     const eq = new BiquadEq({
+      type: "peaking",
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
       ...DEFAULT_PARAMETERS,
@@ -100,6 +103,7 @@ describe(BiquadEq, () => {
     eq.setParameters({ frequency: 3000, gain: dbToGain(-6), q: 3 });
     eq.reset();
     const fresh = new BiquadEq({
+      type: "peaking",
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
       frequency: 3000,
@@ -246,6 +250,7 @@ function calculateResponse({
   q: number;
 }): number {
   const coefficients = calculateBiquadEqCoefficients({
+    type: "peaking",
     sampleRate: SAMPLE_RATE,
     frequency: eqFrequency,
     gain: dbToGain(gainDb),
@@ -298,6 +303,7 @@ function measureResponse({
   });
   const output = process(
     new BiquadEq({
+      type: "peaking",
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
       frequency: eqFrequency,

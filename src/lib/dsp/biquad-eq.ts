@@ -45,16 +45,11 @@ export type BiquadEqCoefficients = {
   a2: number;
 };
 
-/** A biquad's design, a peaking EQ when `type` is omitted. */
 export type BiquadFilterSpec =
-  | { type?: "peaking"; frequency: number; gain: number; q: number }
+  | { type: "peaking"; frequency: number; gain: number; q: number }
   | { type: "low-pass" | "high-pass"; frequency: number; q: number };
 
-/**
- * Standalone biquad EQ. It is a peaking EQ unless constructed with another
- * type.
- * Parameters ramp over 10 ms of processed audio.
- */
+/** Standalone biquad EQ. Parameters ramp over 10 ms of processed audio. */
 export class BiquadEq {
   private readonly sampleRate: number;
   private readonly type: "peaking" | "low-pass" | "high-pass";
@@ -83,7 +78,7 @@ export class BiquadEq {
     } & BiquadFilterSpec,
   ) {
     this.sampleRate = options.sampleRate;
-    this.type = options.type ?? "peaking";
+    this.type = options.type;
     this.rampFrames = Math.max(1, Math.round(options.sampleRate * 0.01));
     this.history = Array.from(
       { length: options.channelCount },
@@ -91,10 +86,7 @@ export class BiquadEq {
     );
     this.setParameters({
       frequency: options.frequency,
-      gain:
-        options.type === undefined || options.type === "peaking"
-          ? options.gain
-          : 1,
+      gain: options.type === "peaking" ? options.gain : 1,
       q: options.q,
       bypass: options.bypass ?? false,
     });
@@ -214,6 +206,7 @@ export class BiquadEq {
     const q = Math.exp(this.current[2]);
     if (this.type === "peaking") {
       calculateBiquadEqCoefficients({
+        type: "peaking",
         sampleRate: this.sampleRate,
         frequency,
         gain: Math.exp(this.current[1]),
@@ -243,7 +236,6 @@ export function calculateBiquadEqCoefficients(
   const alpha = Math.sin(omega) / (2 * parameters.q);
   const result = parameters.output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
   switch (parameters.type) {
-    case undefined:
     case "peaking": {
       const amplitude = Math.sqrt(parameters.gain);
       const a0 = 1 + alpha / amplitude;

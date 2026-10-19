@@ -49,7 +49,13 @@ export class MultibandEq {
   }) {
     this.pool = Array.from(
       { length: MAX_EQ_BANDS },
-      () => new BiquadEq({ sampleRate, channelCount, ...DEFAULT_PARAMETERS }),
+      () =>
+        new BiquadEq({
+          type: "peaking",
+          sampleRate,
+          channelCount,
+          ...DEFAULT_PARAMETERS,
+        }),
     );
     this.setParameters(parameters);
   }

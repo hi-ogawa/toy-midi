@@ -241,6 +241,7 @@ function createResponsePath(bands: MultibandEqBand[]): string {
   // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
   const bandCoefficients = bands.map((band) =>
     calculateBiquadEqCoefficients({
+      type: "peaking",
       sampleRate: GRAPH_SAMPLE_RATE,
       frequency: band.frequency,
       gain: band.gain,
