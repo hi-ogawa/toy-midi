@@ -1,6 +1,6 @@
 # Guitar Amp Simulation
 
-A clean DI guitar, the signal straight from the pickup, sounds thin and polite next to a recorded electric guitar. Most of the difference is the amp and its speaker: the amp's preamp amplifies the signal far past what it can pass cleanly, so it flattens the wave's peaks, and the speaker rolls off the harsh top end that flattening adds. This document develops a model of that chain and the equations used in [our implementation](../../src/lib/dsp/amp.ts):
+A clean DI guitar, which is the signal straight from the pickup, sounds thin and polite next to a recorded electric guitar. Most of the difference is the amp and its speaker. The amp's preamp amplifies the signal far past what it can pass cleanly, so it flattens the wave's peaks, and the speaker rolls off the harsh top end that flattening adds. This document develops a model of that chain and the equations used in [our implementation](../../src/lib/dsp/amp.ts):
 
 $$
 \text{pre-EQ} \rightarrow \text{drive} \rightarrow \text{cabinet}.
@@ -16,7 +16,7 @@ $$
 y = \tanh(g x).
 $$
 
-Since $\tanh u \approx u$ for small $u$ and $\tanh u \to \pm 1$ for large $u$, the gain decides how much of the wave reaches the flat part. Since $\tanh$ is odd, which means $\tanh(-u) = -\tanh u$, it flattens the top and bottom of a wave alike, which adds only odd harmonics, as the [appendix](#appendix-why-an-odd-clipper-adds-only-odd-harmonics) shows.
+Since $\tanh u \approx u$ for small $u$ and $\tanh u \to \pm 1$ for large $u$, the gain decides how much of the wave reaches the flat part. Since $\tanh$ is odd, meaning $\tanh(-u) = -\tanh u$, it flattens the top and bottom of a wave alike. That adds only odd harmonics, as the [appendix](#appendix-why-an-odd-clipper-adds-only-odd-harmonics) shows.
 
 A tube stage biased off center flattens one side sooner. Model it by shifting the wave up the curve before clipping and back down after:
 
@@ -41,14 +41,14 @@ D_\text{crunch}(x) = \tanh\big(2.0 \cdot s(7.9 x)\big), \qquad
 D_\text{high gain}(x) = \tanh\Big(3.2 \tanh\big(5.0 \cdot s(7.9 x)\big)\Big).
 $$
 
-Their **small-signal gain**, the slope at 0, is
+Their **small-signal gain**, which is the slope at 0, is
 
 $$
 D'(0) = 7.9 \text{sech}^2 b \cdot 2.0 \approx 15.5 \quad (24\text{ dB}), \qquad
 7.9 \text{sech}^2 b \cdot 5.0 \cdot 3.2 \approx 123 \quad (42\text{ dB}),
 $$
 
-and an input well above $1/D'(0)$, $0.06$ for crunch and $0.008$ for high gain, comes out nearly square:
+and an input well above $1/D'(0)$, which is $0.06$ for crunch and $0.008$ for high gain, comes out nearly square:
 
 ![Drive curves: crunch rises steeply, high gain almost straight up to ±1](images/amp-drive-curves.svg)
 
@@ -78,13 +78,13 @@ Peaking widths are given in octaves, which the [peaking design converts to $Q$](
 | Between stages   | Add to the mid hump, and cut the lows before more gain like a high-gain preamp's coupling capacitors | +2 dB (crunch) or +3 dB (high gain) at 1 kHz over 1 octave, 120 Hz high-pass (high gain)                                   |
 | Cabinet          | A guitar speaker: mostly a roll-off from about 5 kHz that removes the fizz clipping adds             | 75 Hz high-pass, 5.2 kHz low-pass twice and 7 kHz once, +3 dB at 2.4 kHz over 1 octave, −2.5 dB at 450 Hz over 1.5 octaves |
 
-The cabinet's roll-off is three low-passes in a row, the usual way to [build a steep filter](digital-filters/low-pass-and-high-pass.md#cascade-sections-for-a-steeper-rolloff): two identical Butterworth sections at 5.2 kHz for a soft knee, and a third at 7 kHz that steepens the fall further up. Without them, the drive's high harmonics come through as raw fizz.
+The cabinet's roll-off is three low-passes in a row, which is the usual way to [build a steep filter](digital-filters/low-pass-and-high-pass.md#cascade-sections-for-a-steeper-rolloff): two identical Butterworth sections at 5.2 kHz for a soft knee, and a third at 7 kHz that steepens the fall further up. Without them, the drive's high harmonics come through as raw fizz.
 
 The structure follows common amp design, but the values were picked by ear in an offline prototype, not fitted to a real amp, so they're starting presets.
 
 ## Oversample the Drive to Avoid Aliasing
 
-A signal sampled at $f_s$ can't hold frequencies above $f_s/2$, its Nyquist frequency, and clipping adds harmonics above it. Computed sample by sample at $f_s$, a harmonic at $f > f_s/2$ folds back to $f_s - f$. At 48 kHz, a 27 kHz harmonic lands at 21 kHz, no longer a multiple of the note, and these folded tones sound like inharmonic fizz.
+A signal sampled at $f_s$ can't hold frequencies above $f_s/2$, which is its Nyquist frequency, and clipping adds harmonics above it. Computed sample by sample at $f_s$, a harmonic at $f > f_s/2$ folds back to $f_s - f$. At 48 kHz, a 27 kHz harmonic lands at 21 kHz, which is no longer a multiple of the note, and these folded tones sound like inharmonic fizz.
 
 So the drive runs at $4 f_s$, between an upsampler and a downsampler, and the filters before and after it stay at $f_s$. [Oversampling](oversampling.md) develops the up- and downsampling and their low-pass filter, and measures the aliasing with and without it.
 
@@ -92,7 +92,7 @@ So the drive runs at $4 f_s$, between an upsampler and a downsampler, and the fi
 
 **Claim.** If $f$ is odd, then $y(t) = f(A \sin \omega t)$ has only odd harmonics.
 
-**Proof.** With $x(t) = A \sin \omega t$ and period $T = 2\pi/\omega$, the input flips sign over half a period, $x(t + T/2) = -x(t)$, and $f$ keeps that:
+**Proof.** With $x(t) = A \sin \omega t$ and period $T = 2\pi/\omega$, the input flips sign over half a period, meaning $x(t + T/2) = -x(t)$, and $f$ keeps that:
 
 $$
 y(t + T/2) = f\big(x(t + T/2)\big) = f\big(-x(t)\big) = -f\big(x(t)\big) = -y(t).
@@ -106,7 +106,7 @@ $$
 
 Matching coefficients with $-y(t)$ gives $(-1)^n c_n = -c_n$, so $c_n = 0$ for every even $n$. $\blacksquare$
 
-The same shows through powers. An odd $f$ has only odd powers in its Taylor series, $\tanh u = u - u^3/3 + 2u^5/15 - \cdots$, and odd powers of a sine hold only odd harmonics, for example $\sin^3 t = \tfrac{3}{4} \sin t - \tfrac{1}{4} \sin 3t$, while even powers hold even harmonics and a constant, $\sin^2 t = \tfrac{1}{2} - \tfrac{1}{2} \cos 2t$.
+The same shows through powers. An odd $f$ has only odd powers in its Taylor series, as in $\tanh u = u - u^3/3 + 2u^5/15 - \cdots$, and odd powers of a sine hold only odd harmonics, for example $\sin^3 t = \tfrac{3}{4} \sin t - \tfrac{1}{4} \sin 3t$, while even powers hold even harmonics and a constant, as in $\sin^2 t = \tfrac{1}{2} - \tfrac{1}{2} \cos 2t$.
 
 The shifted stage isn't odd. Its expansion around 0 has a square term,
 
