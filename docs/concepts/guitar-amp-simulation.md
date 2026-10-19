@@ -66,13 +66,7 @@ This holds for one pure sine. A real guitar note already carries even harmonics,
 
 Filters before, between, and after the stages decide which frequencies get distorted and which reach the listener. All are second-order [digital filters](digital-filters/README.md) designed through the bilinear transform: [high-passes and low-passes](digital-filters/low-pass-and-high-pass.md) with the flat-passband Butterworth $Q = 1/\sqrt{2}$, and [peaking filters](digital-filters/peaking-eq.md).
 
-A peaking filter's width is given here in octaves. The peaking design defines $Q$ as the reciprocal of the bandwidth between the halfway-gain points, measured in frequency relative to the center, $\nu = f/f_0$. Those points sit symmetrically on a log scale, so a bandwidth of $N$ octaves puts them at $\nu = 2^{\pm N/2}$, and
-
-$$
-Q = \frac{1}{2^{N/2} - 2^{-N/2}} = \frac{\sqrt{2^N}}{2^N - 1},
-$$
-
-so one octave is $Q \approx 1.41$. Like the peaking design's $Q$, this is exact for the analog prototype, and the bilinear transform's frequency warping narrows it slightly toward the Nyquist frequency.
+Peaking widths are given in octaves, which the [peaking design converts to $Q$](digital-filters/peaking-eq.md#measure-the-halfway-bandwidth). One octave is $Q\approx1.41$.
 
 | Where            | Filters                                                                                                                    | Why                                                                                                  |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
