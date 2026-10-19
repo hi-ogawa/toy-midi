@@ -56,7 +56,7 @@ So the zeros aren't a separate trick. They're what the input looks like at the n
 
 ![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
 
-**In frequency, the sinc bump is a low-pass.** Convolving in time multiplies in frequency, so the bump's spectrum is the upsampler's frequency response, how much of each frequency comes through. Shapes in time and in frequency come in pairs, and the sinc pairs with a box, flat up to $F_s/2$ and zero above. So the sinc bump is a **low-pass** at the original Nyquist frequency by its shape alone. The [appendix](#appendix-the-statements-behind-the-pictures) states both facts precisely and shows that this low-pass reproduces the ideal signal exactly. The simple bumps pair the other way around, since a box in time has a sinc spectrum, and a triangle is the box convolved with itself, so its spectrum is that sinc squared:
+**In frequency, the sinc bump is a low-pass.** Convolving in time multiplies in frequency, so the bump's spectrum is the upsampler's frequency response, how much of each frequency comes through. Shapes in time and in frequency come in pairs, and the sinc pairs with a box, flat up to $F_s/2$ and zero above. So the sinc bump is a **low-pass** at the original Nyquist frequency by its shape alone. The [appendix](#appendix-the-statements-behind-the-pictures) states the convolution theorem and the sinc's spectrum precisely and proves that this low-pass reproduces the ideal signal exactly. The simple bumps pair the other way around, since a box in time has a sinc spectrum, and a triangle is the box convolved with itself, so its spectrum is that sinc squared:
 
 | Interpolator         | Bump                        | Spectrum, roughly           |
 | -------------------- | --------------------------- | --------------------------- |
@@ -178,7 +178,7 @@ Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays b
 
 ## Appendix: The Statements Behind the Pictures
 
-The upsampling pictures rest on one assumption and two facts. Write a sequence's spectrum as
+The upsampling pictures rest on one assumption, the convolution theorem, and one computed spectrum. Write a sequence's spectrum as
 
 $$
 X(e^{j\omega})=\sum_n x[n] \cdot e^{-j\omega n},
@@ -188,7 +188,7 @@ with $\omega$ in radians per sample, as in the [transfer-function article](digit
 
 **Assumption.** The continuous signal $x(t)$ has finite energy and nothing at or above $F_s/2$. For a sampled input this is a definition rather than a restriction, because a finite-energy sequence has exactly one such signal through its samples, its sinc sum $x(t)=\sum_n x[n] \cdot \text{sinc}(t-n)$, which converges under this condition. So the ideal signal on the finer grid, $\tilde x[m]=x(m/L)$, is always well defined, and producing it is what upsampling means.
 
-**Fact 1, convolution multiplies spectra.** If the output $y$ is the input $v$ convolved with the weights $h$, $y[m]=\sum_j h[j] \cdot v[m-j]$, then their spectra satisfy
+**Convolution theorem.** If the output $y$ is the input $v$ convolved with the weights $h$, $y[m]=\sum_j h[j] \cdot v[m-j]$, then their spectra satisfy
 
 $$
 Y(e^{j\omega})=H(e^{j\omega}) \cdot V(e^{j\omega}),
@@ -196,29 +196,33 @@ $$
 
 because delaying by $j$ samples multiplies a spectrum by $e^{-j\omega j}$. This holds whenever $\sum_j|h[j]|$ is finite, and for finite-energy $h$ and $v$ in the sense of energy.
 
-**Fact 2, the ideal low-pass is a sinc.** The response that is 1 for $|\omega|\lt\pi/L$ and 0 for $\pi/L\lt|\omega|\le\pi$ has the weights
+**Lemma, the ideal low-pass is a sinc.** The response that is 1 for $|\omega|\lt\pi/L$ and 0 for $\pi/L\lt|\omega|\le\pi$ has the weights
 
 $$
 h[n]=\frac{1}{2\pi}\int_{-\pi/L}^{\pi/L}e^{j\omega n}d\omega=\frac{\sin(\pi n/L)}{\pi n}=\frac{1}{L}\text{sinc}\frac{n}{L}.
 $$
 
-These decay only as $1/n$, so their sum of magnitudes is infinite, and Fact 1 applies to them in the energy sense, which is why the assumption asks for finite energy.
+These decay only as $1/n$, so their sum of magnitudes is infinite, and the convolution theorem applies to them in the energy sense, which is why the assumption asks for finite energy.
 
-**Claim.** Zero insertion squeezes the spectrum:
-
-$$
-V(e^{j\omega})=\sum_n x[n] \cdot e^{-j\omega Ln}=X(e^{jL\omega}).
-$$
-
-As $\omega$ runs over $[-\pi,\pi]$, $L\omega$ runs over $L$ periods, so $V$ holds $L$ copies of the original spectrum, each $1/L$ as wide. The copy at $|\omega|\lt\pi/L$ is the wanted signal and the others, centered on multiples of $2\pi/L$, which is $kF_s$ at the high rate, are the images. Sampling the band-limited $x(t)$ at $LF_s$ gives $\tilde x$ with spectrum $L \cdot X(e^{jL\omega})$ for $|\omega|\lt\pi/L$ and zero elsewhere. By Facts 1 and 2, $L \cdot (h*v)$ has exactly that spectrum, so
+**Claim.** With $h$ the ideal low-pass of the lemma,
 
 $$
 L\sum_j h[j] \cdot v[m-j]=\tilde x[m]
 $$
 
-at every point of the finer grid. Since $L \cdot h[j]=\text{sinc}(j/L)=b(j/L)$, this is the sampling theorem evaluated at $t=m/L$, so the time picture and the frequency picture are one statement.
+at every point of the finer grid.
 
-**What the implementation approximates.** The 96-tap filter only approximates the box of Fact 2, and the window's passband ripple and stopband attenuation, set by the [Kaiser formulas](#trade-length-for-stopband-with-a-kaiser-window), bound how far it is from exact. The simple interpolators' spectra in the table are approximate in a different way. A box of $L$ samples on the finer grid, scaled to pass DC at unity, has
+**Proof.** Zero insertion squeezes the spectrum:
+
+$$
+V(e^{j\omega})=\sum_n x[n] \cdot e^{-j\omega Ln}=X(e^{jL\omega}).
+$$
+
+As $\omega$ runs over $[-\pi,\pi]$, $L\omega$ runs over $L$ periods, so $V$ holds $L$ copies of the original spectrum, each $1/L$ as wide. The copy at $|\omega|\lt\pi/L$ is the wanted signal and the others, centered on multiples of $2\pi/L$, which is $kF_s$ at the high rate, are the images. Sampling the band-limited $x(t)$ at $LF_s$ gives $\tilde x$ with spectrum $L \cdot X(e^{jL\omega})$ for $|\omega|\lt\pi/L$ and zero elsewhere. By the convolution theorem and the lemma, $L \cdot H \cdot V$ is exactly that spectrum, so the two sides are equal. $\blacksquare$
+
+Since $L \cdot h[j]=\text{sinc}(j/L)=b(j/L)$, the claim is the sampling theorem evaluated at $t=m/L$, so the time picture and the frequency picture are one statement.
+
+**What the implementation approximates.** The 96-tap filter only approximates the lemma's box, and the window's passband ripple and stopband attenuation, set by the [Kaiser formulas](#trade-length-for-stopband-with-a-kaiser-window), bound how far it is from exact. The simple interpolators' spectra in the table are approximate in a different way. A box of $L$ samples on the finer grid, scaled to pass DC at unity, has
 
 $$
 \Big|\frac{1}{L}\sum_{j=0}^{L-1}e^{-j\omega j}\Big|=\Big|\frac{\sin(L\omega/2)}{L\sin(\omega/2)}\Big|,
