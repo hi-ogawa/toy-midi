@@ -32,6 +32,8 @@ The zeros are placeholders for the values between the samples, which aren't know
 
 ![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
 
+This low-pass is a different kind from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), because it's a plain weighted sum of recent inputs with no feedback, so [Design the Low-Pass](#design-the-low-pass) builds it from scratch rather than from those articles.
+
 Two pictures show why a low-pass is the right way to fill them.
 
 **In time, it adds one bump per sample.** A signal with nothing above $F_s/2$ is fully determined by its samples. With $t$ counted in original samples, the sampling theorem rebuilds it as
@@ -70,7 +72,7 @@ Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$
 
 Both directions need the same filter: pass everything below the original Nyquist frequency and stop everything above.
 
-This low-pass is a different kind from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), and it's designed a different way. Those reuse previous outputs, the feedback in [Generalize the Weights and Add Feedback](digital-filters/transfer-functions.md#generalize-the-weights-and-add-feedback), so a few weights make a long response, and they're designed from an analog prototype through the bilinear transform. This one is only a weighted sum of the last $N$ inputs, the case before feedback in that section, so its weights are its impulse response and are designed by choosing that response directly. Without feedback it can skip outputs the downsampler drops, it delays every frequency equally, and a sharper cutoff only takes more weights. The standard names are **FIR** (finite impulse response) for this kind and **IIR** (infinite impulse response) for the feedback kind.
+The amp's low-passes and high-passes reuse previous outputs, the feedback in [Generalize the Weights and Add Feedback](digital-filters/transfer-functions.md#generalize-the-weights-and-add-feedback), so a few weights make a long response, and they're designed from an analog prototype through the bilinear transform. This one is only a weighted sum of the last $N$ inputs, the case before feedback in that section, so its weights are its impulse response and are designed by choosing that response directly. Without feedback it can skip outputs the downsampler drops, it delays every frequency equally, and a sharper cutoff only takes more weights. The standard names are **FIR** (finite impulse response) for this kind and **IIR** (infinite impulse response) for the feedback kind.
 
 ### Start from the Ideal Low-Pass
 
