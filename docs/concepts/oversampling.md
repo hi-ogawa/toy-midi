@@ -117,7 +117,7 @@ Measured with a steady sine at 0.3 through the amp's drive, the energy between t
 
 Repeating each sample, or drawing straight lines between samples, also fills in the high rate, and each is the same construction with a different filter. Inserting zeros and filtering with a kernel $k$ computes $\sum_n x[n] \cdot k(t-n)$, so every interpolator is a choice of bump:
 
-| Interpolator         | Kernel                                    | Response                    |
+| Interpolator         | Kernel                                    | Response, roughly           |
 | -------------------- | ----------------------------------------- | --------------------------- |
 | Repeat each sample   | a box one sample wide                     | $\text{sinc}(f/F_s)$        |
 | Linear interpolation | a triangle, the box convolved with itself | $\text{sinc}^2(f/F_s)$      |
