@@ -280,6 +280,8 @@ function measureResponse(
     new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1 }, spec),
     input,
   );
+  // Measure only the last half second, after the transient from the sine's
+  // sudden start has died out.
   return (
     10 *
     Math.log10(
