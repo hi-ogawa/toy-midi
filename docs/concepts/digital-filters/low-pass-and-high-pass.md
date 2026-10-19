@@ -44,7 +44,7 @@ This second-order rolloff is a design choice beyond merely reaching zero.
 
 ### Separate Frequency Scale from Damping
 
-Take $d_0,d_1\gt0$ so the natural motion decays. Without the damping term, the denominator $s^2+d_0$ has roots $\pm j\sqrt{d_0}$. This identifies the undamped natural frequency $\Omega_0=\sqrt{d_0}$.
+The denominator's roots describe the filter's natural motion, which is the damped oscillation $y''+d_1y'+d_0y=0$ from the [transfer-function article](transfer-functions.md#the-continuous-counterpart-of-the-sample-recurrence). Taking $d_0,d_1\gt0$ puts both roots in the left half-plane, so that motion decays. Without the damping term, the denominator $s^2+d_0$ has roots $\pm j\sqrt{d_0}$. This identifies the undamped natural frequency $\Omega_0=\sqrt{d_0}$.
 
 Measure the complex rate relative to that frequency, $u=s/\Omega_0$. Dividing both polynomials by $\Omega_0^2$ gives
 
