@@ -178,57 +178,52 @@ Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays b
 
 ## Appendix: The Statements Behind the Pictures
 
-The upsampling pictures rest on one assumption, the convolution theorem, and one computed spectrum. Write a sequence's spectrum as
+The upsampling pictures are cleanest in continuous time, where they amount to the sampling theorem, and the discrete upsampler then follows with one caveat. Measure time $t$ in original samples and frequency $f$ in units of $F_s$, so the original Nyquist frequency is $f=1/2$, and write $X(f)=\int x(t) \cdot e^{-j2\pi ft}dt$ for the Fourier transform of $x$, and likewise $S$, $B$ for $s$, $b$.
+
+**Assumption.** The signal $x(t)$ has finite energy and $X(f)=0$ for $|f|\ge1/2$. For a sampled input this is a definition rather than a restriction, because a finite-energy sequence has exactly one such signal through its samples, the one the claim below constructs. So the ideal signal on the finer grid, $\tilde x[m]=x(m/L)$, is always well defined, and producing it is what upsampling means.
+
+**Tools.** The convolution theorem, that $f*g$ has transform $F \cdot G$, and Poisson summation, that a comb of unit impulses transforms to a comb of unit impulses,
 
 $$
-X(e^{j\omega})=\sum_n x[n] \cdot e^{-j\omega n},
+\sum_n\delta(t-n) \quad\longleftrightarrow\quad \sum_k\delta(f-k).
 $$
 
-with $\omega$ in radians per sample, as in the [transfer-function article](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier). It repeats every $2\pi$, and $|\omega|\le\pi$ covers everything up to the Nyquist frequency. The capital letter always names the spectrum of the lowercase sequence, so $H$, $V$, and $Y$ below are the spectra of the weights $h$, the zero-filled input $v$, and the output $y$.
+Both hold for the impulses here in the sense of distributions.
 
-**Assumption.** The continuous signal $x(t)$ has finite energy and nothing at or above $F_s/2$. For a sampled input this is a definition rather than a restriction, because a finite-energy sequence has exactly one such signal through its samples, its sinc sum $x(t)=\sum_n x[n] \cdot \text{sinc}(t-n)$, which converges under this condition. So the ideal signal on the finer grid, $\tilde x[m]=x(m/L)$, is always well defined, and producing it is what upsampling means.
-
-**Convolution theorem.** If the output $y$ is the input $v$ convolved with the weights $h$, $y[m]=\sum_j h[j] \cdot v[m-j]$, then their spectra satisfy
+**Claim.** Let $b=\text{sinc}$, whose transform is the box $B(f)=1$ for $|f|\lt1/2$ and $0$ for $|f|\gt1/2$. Then
 
 $$
-Y(e^{j\omega})=H(e^{j\omega}) \cdot V(e^{j\omega}),
+\sum_n x[n] \cdot b(t-n)=x(t)
 $$
 
-because delaying by $j$ samples multiplies a spectrum by $e^{-j\omega j}$. This holds whenever $\sum_j|h[j]|$ is finite, and for finite-energy $h$ and $v$ in the sense of energy.
+for every $t$.
 
-**Lemma, the ideal low-pass is a sinc.** The response that is 1 for $|\omega|\lt\pi/L$ and 0 for $\pi/L\lt|\omega|\le\pi$ has the weights
-
-$$
-h[n]=\frac{1}{2\pi}\int_{-\pi/L}^{\pi/L}e^{j\omega n}d\omega=\frac{\sin(\pi n/L)}{\pi n}=\frac{1}{L}\text{sinc}\frac{n}{L}.
-$$
-
-These decay only as $1/n$, so their sum of magnitudes is infinite, and the convolution theorem applies to them in the energy sense, which is why the assumption asks for finite energy.
-
-**Claim.** With $h$ the ideal low-pass of the lemma,
+**Proof.** Sampling is multiplying by the comb, $s(t)=x(t)\sum_n\delta(t-n)=\sum_n x[n] \cdot \delta(t-n)$. By the two tools, its transform is the original spectrum repeated at every integer,
 
 $$
-L\sum_j h[j] \cdot v[m-j]=\tilde x[m]
+S(f)=\sum_k X(f-k).
 $$
 
-at every point of the finer grid.
+The copies at $k\ne0$ are the images. The left side of the claim is $(s*b)(t)$, with transform $S \cdot B$. Each copy $X(f-k)$ vanishes outside $|f-k|\lt1/2$, so the box keeps the $k=0$ copy whole and removes every other, which leaves $S \cdot B=X$. $\blacksquare$
 
-**Proof.** Zero insertion squeezes the spectrum:
+The box's inverse transform is $\int_{-1/2}^{1/2}e^{j2\pi ft}df=\sin(\pi t)/(\pi t)$, which is why the exact bump is the sinc and why it's a low-pass. The same proof works for any bump whose transform is 1 on $|f|\lt1/2$ and 0 on every other copy, and fails by exactly how far $B$ is from that.
+
+**The simple bumps.** Repeating each sample uses a box in time, $b=1$ on $[0,1)$, whose transform is $e^{-j\pi f} \cdot \text{sinc}(f)$. Linear interpolation uses the triangle on $[-1,1]$, the centered box convolved with itself, whose transform is $\text{sinc}^2(f)$. In continuous time these are exact, and the table's magnitudes $\text{sinc}(f/F_s)$ and $\text{sinc}^2(f/F_s)$ follow. They are 1 only at $f=0$ and fall through the band, and they are small but nonzero on the images.
+
+**On the finer grid.** The upsampler evaluates the claim at $t=m/L$ with discrete sums, and two things change, both from sampling at spacing $1/L$. Poisson summation again shows that sampling a function $g$ at spacing $1/L$ gives the discrete spectrum $L\sum_k G(f-kL)$, which repeats every $f=L$, the high rate.
+
+- The zero-filled $v$ is $s$ on the finer grid, the impulses at the samples and nothing between them. Its discrete spectrum is $\sum_n x[n] \cdot e^{-j2\pi fn}=S(f)$ itself, and of its infinitely many copies, the wanted one and the $L-1$ images at $f=1,\dots,L-1$, that is $F_s,\dots,(L-1)F_s$, fit in one period. That's the comb identity of the main text.
+- The weights $b(j/L)$ have the discrete spectrum $L\sum_k B(f-kL)$. The sinc's box lies inside $|f|\lt L/2$, so its copies don't overlap, and within one period the weights act as $L$ times the box. The discrete sum $\sum_j b(j/L) \cdot v[m-j]$ therefore has spectrum $L \cdot X(f)$ on the period, which is the discrete spectrum of $\tilde x$, so it equals $\tilde x[m]$ exactly, and the low-pass with weights $h[j]=b(j/L)/L$, scaled to pass DC at unity, gets the same after multiplying by $L$.
+
+The caveat is the second point for bumps whose transforms don't fit inside one period. The box's $\text{sinc}(f)$ extends forever, so its copies overlap, and the box of $L$ fine samples, scaled to pass DC at unity, has
 
 $$
-V(e^{j\omega})=\sum_n x[n] \cdot e^{-j\omega Ln}=X(e^{jL\omega}).
+\Big|\frac{1}{L}\sum_{j=0}^{L-1}e^{-j2\pi fj/L}\Big|=\Big|\frac{\sin(\pi f)}{L\sin(\pi f/L)}\Big|
 $$
 
-As $\omega$ runs over $[-\pi,\pi]$, $L\omega$ runs over $L$ periods, so $V$ holds $L$ copies of the original spectrum, each $1/L$ as wide. The copy at $|\omega|\lt\pi/L$ is the wanted signal and the others, centered on multiples of $2\pi/L$, which is $kF_s$ at the high rate, are the images. Sampling the band-limited $x(t)$ at $LF_s$ gives $\tilde x$ with spectrum $L \cdot X(e^{jL\omega})$ for $|\omega|\lt\pi/L$ and zero elsewhere. By the convolution theorem and the lemma, $L \cdot H \cdot V$ is exactly that spectrum, so the two sides are equal. $\blacksquare$
+rather than $|\text{sinc}(f)|$. It is close while $f$ is small next to $L$, and the triangle's is its square, which is why the table says roughly.
 
-Since $L \cdot h[j]=\text{sinc}(j/L)=b(j/L)$, the claim is the sampling theorem evaluated at $t=m/L$, so the time picture and the frequency picture are one statement.
-
-**What the implementation approximates.** The 96-tap filter only approximates the lemma's box, and the window's passband ripple and stopband attenuation, set by the [Kaiser formulas](#trade-length-for-stopband-with-a-kaiser-window), bound how far it is from exact. The simple interpolators' spectra in the table are approximate in a different way. A box of $L$ samples on the finer grid, scaled to pass DC at unity, has
-
-$$
-\Big|\frac{1}{L}\sum_{j=0}^{L-1}e^{-j\omega j}\Big|=\Big|\frac{\sin(L\omega/2)}{L\sin(\omega/2)}\Big|,
-$$
-
-which is close to $|\text{sinc}(f/F_s)|$ with $\omega=2\pi f/(LF_s)$ while $\omega$ is small, and a triangle, two such boxes convolved, has its square.
+**What the implementation approximates.** The 96-tap filter only approximates the box, and the window's passband ripple and stopband attenuation, set by the [Kaiser formulas](#trade-length-for-stopband-with-a-kaiser-window), bound how far it is from exact.
 
 ## Appendix: A Low-Pass Without Feedback
 
