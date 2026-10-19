@@ -183,7 +183,7 @@ The numerators place each filter's zeros. The weights $(b_0,b_1,b_2)$ are the co
 
 ## Cascade Sections for a Steeper Rolloff
 
-One second-order section falls 12 dB per octave. A steeper filter is built by running sections one after another, which multiplies their responses, so their dB responses add and so do their slopes: two sections fall 24 dB per octave, three 36. Building high orders from second-order sections rather than one long recurrence also keeps the arithmetic well conditioned, since each section's two poles stay where they were designed.
+The filter built so far is one [biquad](transfer-functions.md#a-second-output-delay-allows-oscillation), which is called a second-order section when it serves as one stage of a larger filter, and it falls 12 dB per octave. A steeper filter runs several sections in a cascade, each feeding the next, which multiplies their responses, so their dB responses add and so do their slopes: two sections fall 24 dB per octave, three 36. Building high orders from second-order sections rather than one long recurrence also keeps the arithmetic well conditioned, since each section's two poles stay where they were designed.
 
 Cascading identical sections doesn't give a higher-order Butterworth. Two Butterworth low-passes at the same $f_0$ multiply to
 
