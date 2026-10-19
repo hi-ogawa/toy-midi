@@ -34,7 +34,7 @@ $$
 H_a(s)=\frac{c_1s+d_0}{s^2+d_1s+d_0}.
 $$
 
-The endpoints alone do not fix the rate of attenuation. If $c_1\ne0$, then $H_a(s)\sim c_1/s$ at high frequency. To get magnitude falling as $1/|s|^2$, 12 dB per octave, we additionally require $c_1=0$:
+The endpoints alone do not fix the rate of attenuation. If $c_1\ne0$, then $H_a(s)\sim c_1/s$ at high frequency. To make the magnitude fall as $1/|s|^2$, which is a 12 dB drop per octave, we additionally require $c_1=0$:
 
 $$
 H_a(s)=\frac{d_0}{s^2+d_1s+d_0}.
