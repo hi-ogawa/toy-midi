@@ -51,10 +51,14 @@ export type Automation =
       }[];
     };
 
+/**
+ * Positions and durations are in beats, and a beat is always a quarter note,
+ * so a bar is `numerator * 4 / denominator` beats, such as 3.5 in 7/8.
+ */
 export interface TimeSignature {
-  /** Beats per bar (e.g., 3, 4, 5, 7) */
+  /** Top number (e.g., 3, 4, 5, 7) */
   numerator: number;
-  /** Beat unit (e.g., 4 for quarter note, 8 for eighth note) */
+  /** Bottom number, the note value the top number counts (e.g., 4 or 8) */
   denominator: number;
 }
 
