@@ -92,7 +92,7 @@ So the drive runs at $4 f_s$, between an upsampler and a downsampler, and the fi
 
 **Claim.** If $f$ is odd, then $y(t) = f(A \sin \omega t)$ has only odd harmonics.
 
-**Proof.** With $x(t) = A \sin \omega t$ and period $T = 2\pi/\omega$, the input flips sign over half a period, meaning $x(t + T/2) = -x(t)$, and $f$ keeps that:
+**Proof.** With $x(t) = A \sin \omega t$ and period $T = 2\pi/\omega$, the input flips sign over half a period, $x(t + T/2) = -x(t)$, and $f$ keeps that:
 
 $$
 y(t + T/2) = f\big(x(t + T/2)\big) = f\big(-x(t)\big) = -f\big(x(t)\big) = -y(t).
