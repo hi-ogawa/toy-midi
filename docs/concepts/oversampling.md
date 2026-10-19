@@ -184,11 +184,11 @@ $$
 X(e^{j\omega})=\sum_n x[n] \cdot e^{-j\omega n},
 $$
 
-with $\omega$ in radians per sample, as in the [transfer-function article](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier). It repeats every $2\pi$, and $|\omega|\le\pi$ covers everything up to the Nyquist frequency.
+with $\omega$ in radians per sample, as in the [transfer-function article](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier). It repeats every $2\pi$, and $|\omega|\le\pi$ covers everything up to the Nyquist frequency. The capital letter always names the spectrum of the lowercase sequence, so $H$, $V$, and $Y$ below are the spectra of the weights $h$, the zero-filled input $v$, and the output $y$.
 
 **Assumption.** The continuous signal $x(t)$ has finite energy and nothing at or above $F_s/2$. For a sampled input this is a definition rather than a restriction, because a finite-energy sequence has exactly one such signal through its samples, its sinc sum $x(t)=\sum_n x[n] \cdot \text{sinc}(t-n)$, which converges under this condition. So the ideal signal on the finer grid, $\tilde x[m]=x(m/L)$, is always well defined, and producing it is what upsampling means.
 
-**Fact 1, convolution multiplies spectra.** If $y[m]=\sum_j h[j] \cdot v[m-j]$, then
+**Fact 1, convolution multiplies spectra.** If the output $y$ is the input $v$ convolved with the weights $h$, $y[m]=\sum_j h[j] \cdot v[m-j]$, then their spectra satisfy
 
 $$
 Y(e^{j\omega})=H(e^{j\omega}) \cdot V(e^{j\omega}),
