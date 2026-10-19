@@ -1,7 +1,6 @@
 /**
  * Second-order (biquad) filters designed from analog prototypes through the
- * bilinear transform, with coefficients following the Audio EQ Cookbook
- * (Robert Bristow-Johnson).
+ * bilinear transform.
  *
  * - The peaking EQ boosts or cuts a band around the center frequency, with Q
  *   controlling its width, and ramps its parameters while it runs. See
