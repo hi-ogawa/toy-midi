@@ -17,47 +17,37 @@ describe(BiquadEq, () => {
     "applies %s dB at the center frequency",
     (gainDb) => {
       expect(
-        measureResponse({
-          gain: dbToGain(gainDb),
-          signalFrequency: 1000,
-          eqFrequency: 1000,
-          q: 1,
-        }),
+        measureResponse(
+          { type: "peaking", frequency: 1000, gain: dbToGain(gainDb), q: 1 },
+          1000,
+        ),
       ).toBeCloseTo(gainDb, 3);
     },
   );
 
   it("narrows the bandwidth as Q increases and preserves distant frequencies", () => {
     expect(
-      measureResponse({
-        gain: dbToGain(12),
-        signalFrequency: 1000,
-        eqFrequency: 1500,
-        q: 1,
-      }),
+      measureResponse(
+        { type: "peaking", frequency: 1500, gain: dbToGain(12), q: 1 },
+        1000,
+      ),
     ).toBeGreaterThan(
-      measureResponse({
-        gain: dbToGain(12),
-        signalFrequency: 1000,
-        eqFrequency: 1500,
-        q: 8,
-      }),
+      measureResponse(
+        { type: "peaking", frequency: 1500, gain: dbToGain(12), q: 8 },
+        1000,
+      ),
     );
     expect(
-      measureResponse({
-        gain: dbToGain(12),
-        signalFrequency: 20,
-        eqFrequency: 1500,
-        q: 1,
-      }),
+      measureResponse(
+        { type: "peaking", frequency: 1500, gain: dbToGain(12), q: 1 },
+        20,
+      ),
     ).toBeCloseTo(0, 1);
     expect(
-      measureResponse({
-        gain: dbToGain(12),
-        signalFrequency: 20000,
-        eqFrequency: 1500,
-        q: 1,
-      }),
+      measureResponse(
+        { type: "peaking", frequency: 1500, gain: dbToGain(12), q: 1 },
+        20000,
+      ),
     ).toBeCloseTo(0, 1);
   });
 
@@ -115,12 +105,12 @@ describe(BiquadEq, () => {
     "puts a Butterworth $type 3 dB down at its cutoff",
     ({ type, passband, stopband }) => {
       const spec = { type, frequency: 1000, q: BUTTERWORTH_Q };
-      expect(measureFilterResponse(spec, 1000)).toBeCloseTo(
+      expect(measureResponse(spec, 1000)).toBeCloseTo(
         gainToDb(Math.SQRT1_2),
         3,
       );
-      expect(measureFilterResponse(spec, passband)).toBeCloseTo(0, 1);
-      expect(measureFilterResponse(spec, stopband)).toBeLessThan(-35);
+      expect(measureResponse(spec, passband)).toBeCloseTo(0, 1);
+      expect(measureResponse(spec, stopband)).toBeLessThan(-35);
     },
   );
 });
@@ -148,12 +138,15 @@ describe(calculateBiquadEqResponse, () => {
       q: 2,
     };
     expect(calculateResponse(parameters)).toBeCloseTo(
-      measureResponse({
-        gain: dbToGain(parameters.gainDb),
-        signalFrequency: parameters.responseFrequency,
-        eqFrequency: parameters.eqFrequency,
-        q: parameters.q,
-      }),
+      measureResponse(
+        {
+          type: "peaking",
+          frequency: parameters.eqFrequency,
+          gain: dbToGain(parameters.gainDb),
+          q: parameters.q,
+        },
+        parameters.responseFrequency,
+      ),
       3,
     );
   });
@@ -275,32 +268,8 @@ function process(
   return output;
 }
 
-function measureResponse({
-  gain,
-  signalFrequency,
-  eqFrequency,
-  q,
-}: {
-  gain: number;
-  signalFrequency: number;
-  eqFrequency: number;
-  q: number;
-}): number {
-  const input = createSignal({
-    frames: SAMPLE_RATE,
-    frequency: signalFrequency,
-  });
-  const output = process(
-    new BiquadEq(
-      { sampleRate: SAMPLE_RATE, channelCount: 1 },
-      { type: "peaking", frequency: eqFrequency, gain, q },
-    ),
-    input,
-  );
-  return measureGainDb(input, output);
-}
-
-function measureFilterResponse(
+// Skips the first half second, where the filter is still settling.
+function measureResponse(
   spec: BiquadFilterSpec,
   signalFrequency: number,
 ): number {
@@ -312,11 +281,6 @@ function measureFilterResponse(
     new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1 }, spec),
     input,
   );
-  return measureGainDb(input, output);
-}
-
-// Skips the first half second, where the filter is still settling.
-function measureGainDb(input: Float32Array, output: Float32Array): number {
   return (
     10 *
     Math.log10(
