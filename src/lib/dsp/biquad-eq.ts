@@ -1,15 +1,7 @@
 /**
- * Second-order (biquad) filters designed from analog prototypes through the
- * bilinear transform.
- *
- * - The peaking EQ boosts or cuts a band around the center frequency, with Q
- *   controlling its width, and ramps its parameters while it runs. See
- *   [Digital filters](../../../docs/concepts/digital-filters/README.md) for
- *   its response design and coefficient derivation.
- * - The fixed filters serve processing whose response never changes while it
- *   runs, such as an amp's voicing. See
- *   [Designing low-pass and high-pass filters](../../../docs/concepts/digital-filters/low-pass-and-high-pass.md)
- *   for their derivation.
+ * Biquad filters designed from analog prototypes through the bilinear
+ * transform. See [Digital filters](../../../docs/concepts/digital-filters/README.md)
+ * for the response designs and coefficient derivations.
  */
 
 import { clamp, dbToGain } from "../music.ts";
