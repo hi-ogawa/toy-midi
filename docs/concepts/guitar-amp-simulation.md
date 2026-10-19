@@ -64,13 +64,15 @@ This holds for one pure sine. A real guitar note already carries even harmonics,
 
 ## Shape the Tone Around the Drive
 
-Filters before, between, and after the stages decide which frequencies get distorted and which reach the listener. All are second-order [digital filters](digital-filters/README.md) designed through the bilinear transform: high-passes and low-passes with Butterworth $Q = 1/\sqrt{2}$, and peaking filters whose bandwidth of $N$ octaves gives
+Filters before, between, and after the stages decide which frequencies get distorted and which reach the listener. All are second-order [digital filters](digital-filters/README.md) designed through the bilinear transform: [high-passes and low-passes](digital-filters/low-pass-and-high-pass.md) with the flat-passband Butterworth $Q = 1/\sqrt{2}$, and [peaking filters](digital-filters/peaking-eq.md).
+
+A peaking filter's width is given here in octaves. The peaking design defines $Q$ as the reciprocal of the bandwidth between the halfway-gain points, measured in frequency relative to the center, $\nu = f/f_0$. Those points sit symmetrically on a log scale, so a bandwidth of $N$ octaves puts them at $\nu = 2^{\pm N/2}$, and
 
 $$
-Q = \frac{\sqrt{2^N}}{2^N - 1},
+Q = \frac{1}{2^{N/2} - 2^{-N/2}} = \frac{\sqrt{2^N}}{2^N - 1},
 $$
 
-so one octave is $Q \approx 1.41$.
+so one octave is $Q \approx 1.41$. Like the peaking design's $Q$, this is exact for the analog prototype, and the bilinear transform's frequency warping narrows it slightly toward the Nyquist frequency.
 
 | Where            | Filters                                                                                                                    | Why                                                                                                  |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -80,7 +82,7 @@ so one octave is $Q \approx 1.41$.
 | After the drive  | −18 dB                                                                                                                     | Bring the near-±1 output back toward the dry signal's level                                          |
 | Cabinet          | 75 Hz high-pass, 5.2 kHz low-pass twice and 7 kHz once, +3 dB at 2.4 kHz over 1 octave, −2.5 dB at 450 Hz over 1.5 octaves | A guitar speaker: mostly a roll-off from about 5 kHz that removes the fizz clipping adds             |
 
-The cabinet's roll-off is three low-passes in a row, the usual way to build a steep filter, since each second-order section adds 12 dB per octave. Two identical Butterworth sections at 5.2 kHz form a 4th-order Linkwitz–Riley low-pass, 6 dB down at the cutoff with a softer knee than a 4th-order Butterworth, and a third at 7 kHz steepens it to 36 dB per octave further up: −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz, and −31 dB at 10 kHz. Without them, the drive's high harmonics come through as raw fizz.
+The cabinet's roll-off is three low-passes in a row, the usual way to [build a steep filter](digital-filters/low-pass-and-high-pass.md#cascade-sections-for-a-steeper-rolloff), since each second-order section adds 12 dB per octave. Two identical Butterworth sections at 5.2 kHz form a 4th-order Linkwitz–Riley low-pass, 6 dB down at the cutoff with a softer knee than a 4th-order Butterworth, and a third at 7 kHz steepens it to 36 dB per octave further up: −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz, and −31 dB at 10 kHz. Without them, the drive's high harmonics come through as raw fizz.
 
 The structure follows common amp design, but the values were picked by ear in an offline prototype, not fitted to a real amp, so they're starting presets.
 
@@ -88,15 +90,7 @@ The structure follows common amp design, but the values were picked by ear in an
 
 A signal sampled at $f_s$ can't hold frequencies above $f_s/2$, its Nyquist frequency, and clipping adds harmonics above it. Computed sample by sample at $f_s$, a harmonic at $f > f_s/2$ folds back to $f_s - f$. At 48 kHz, a 27 kHz harmonic lands at 21 kHz, no longer a multiple of the note, and these folded tones sound like inharmonic fizz.
 
-So the drive runs at $4 f_s$. The input is upsampled by inserting three zeros after each sample and low-passing at $f_s/2$, the stages run at 192 kHz where harmonics up to 96 kHz exist correctly, and the output is low-passed at $f_s/2$ again and every fourth sample kept. Only the harmonics above 96 kHz still fold, and they're weak.
-
-Both low-passes are one windowed-sinc filter of 96 taps at the high rate,
-
-$$
-h[n] \propto \frac{\sin\big(\pi (n - c)/4\big)}{\pi (n - c)}\, w[n], \qquad c = \frac{95}{2},
-$$
-
-with a Kaiser window $w$ of $\beta = 7.86$ for about 80 dB of stopband attenuation, scaled to a DC gain of 1. Its transition band is about $0.2 f_s$ wide around $f_s/2$: at 48 kHz, flat to about 19 kHz and down 80 dB from about 29 kHz, so what still folds from the transition band lands above 19 kHz. As polyphase filters, the upsampler computes each of the four phases from every fourth tap, skipping the inserted zeros, and the downsampler computes only the outputs it keeps.
+So the drive runs at $4 f_s$, between an upsampler and a downsampler, and the filters before and after it stay at $f_s$. [Oversampling](oversampling.md) develops the up- and downsampling and their low-pass filter, and measures the aliasing with and without it.
 
 ## Why an Odd Clipper Adds Only Odd Harmonics
 

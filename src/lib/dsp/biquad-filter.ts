@@ -3,6 +3,9 @@
  * while it runs, such as an amp's voicing. Coefficients follow the Audio EQ
  * Cookbook (Robert Bristow-Johnson), the same bilinear-transform design as
  * the peaking EQ in `biquad-eq.ts`.
+ *
+ * See [Designing low-pass and high-pass filters](../../../docs/concepts/digital-filters/low-pass-and-high-pass.md)
+ * for the derivation of the coefficients.
  */
 
 import { dbToGain } from "../music.ts";

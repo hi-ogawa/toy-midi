@@ -8,6 +8,9 @@
  * Both directions use one windowed-sinc low-pass at the original Nyquist
  * frequency, applied as a polyphase filter so no multiplications are spent on
  * the zeros that upsampling inserts or the samples that downsampling drops.
+ *
+ * See [Oversampling](../../../docs/concepts/oversampling.md) for the
+ * derivation and the filter design.
  */
 
 export const OVERSAMPLING_FACTOR = 4;
