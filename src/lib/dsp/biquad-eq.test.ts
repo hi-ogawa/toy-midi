@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { dbToGain, gainToDb } from "../music";
 import {
+  BiquadFilter,
+  type BiquadFilterSpec,
+  BUTTERWORTH_Q,
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
   DEFAULT_PARAMETERS,
@@ -216,6 +219,24 @@ describe(MultibandEq, () => {
   });
 });
 
+describe(BiquadFilter, () => {
+  it.each([
+    { type: "low-pass", passband: 100, stopband: 10000 },
+    { type: "high-pass", passband: 10000, stopband: 100 },
+  ] as const)(
+    "puts a Butterworth $type 3 dB down at its cutoff",
+    ({ type, passband, stopband }) => {
+      const spec = { type, frequency: 1000, q: BUTTERWORTH_Q };
+      expect(measureFilterResponse(spec, 1000)).toBeCloseTo(
+        gainToDb(Math.SQRT1_2),
+        3,
+      );
+      expect(measureFilterResponse(spec, passband)).toBeCloseTo(0, 1);
+      expect(measureFilterResponse(spec, stopband)).toBeLessThan(-35);
+    },
+  );
+});
+
 function calculateResponse({
   gainDb,
   responseFrequency,
@@ -289,6 +310,26 @@ function measureResponse({
     }),
     input,
   );
+  return measureGainDb(input, output);
+}
+
+function measureFilterResponse(
+  spec: BiquadFilterSpec,
+  signalFrequency: number,
+): number {
+  const input = createSignal({
+    frames: SAMPLE_RATE,
+    frequency: signalFrequency,
+  });
+  const filter = new BiquadFilter(spec, SAMPLE_RATE);
+  return measureGainDb(
+    input,
+    input.map((x) => filter.process(x)),
+  );
+}
+
+// Skips the first half second, where the filter is still settling.
+function measureGainDb(input: Float32Array, output: Float32Array): number {
   return (
     10 *
     Math.log10(
