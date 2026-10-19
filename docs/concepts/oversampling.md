@@ -56,7 +56,15 @@ So the zeros aren't a separate trick. They're what the input looks like at the n
 
 ![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
 
-**In frequency, the bump decides what survives.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
+**In frequency, the sinc bump is a low-pass.** Convolving in time multiplies in frequency, so the bump's spectrum is the upsampler's frequency response, how much of each frequency comes through. Shapes in time and in frequency come in pairs, and the sinc pairs with a box, flat up to $F_s/2$ and zero above. So the sinc bump is a **low-pass** at the original Nyquist frequency by its shape alone. The simple bumps pair the other way around, since a box in time has a sinc spectrum, and a triangle is the box convolved with itself, so its spectrum is that sinc squared:
+
+| Interpolator         | Bump                        | Spectrum, roughly           |
+| -------------------- | --------------------------- | --------------------------- |
+| Repeat each sample   | a box one sample wide       | $\text{sinc}(f/F_s)$        |
+| Linear interpolation | a triangle two samples wide | $\text{sinc}^2(f/F_s)$      |
+| Ideal                | $\text{sinc}$               | flat to $F_s/2$, zero above |
+
+**The zeros add images above $F_s/2$, and the low-pass removes them.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
 
 $$
 c[m]=\frac{1}{L}\sum_{k=0}^{L-1}e^{j2\pi km/L},
@@ -68,19 +76,11 @@ $$
 v=\frac{1}{L}\tilde x+\frac{1}{L}\sum_{k=1}^{L-1}\big(\tilde x \text{ shifted up by } kF_s\big).
 $$
 
-The first term is the wanted signal at $1/L$ of its level, and the others are **images** of it around $F_s$, $2F_s$, and so on. A weighted sum over delays multiplies each frequency by its own gain, the [frequency response](digital-filters/transfer-functions.md#a-computation-that-distinguishes-frequencies), and the bump's weights set that response. The wanted signal lies below $F_s/2$ and every image lies above it, so the right bump passes everything below $F_s/2$ and nothing above, which makes it a **low-pass** at the original Nyquist frequency. The sinc's response is exactly that, which is the frequency side of why it's exact. Scaled to pass DC at unity like any low-pass, its weights become $b(j/L)/L$, so the upsampler multiplies the result by $L$ to restore the level:
+The first term is the wanted signal at $1/L$ of its level, and the others are **images** of it around $F_s$, $2F_s$, and so on, all above $F_s/2$. The sinc's low-pass keeps the first term and removes every image. Scaled to pass DC at unity like any low-pass, its weights become $b(j/L)/L$, so the upsampler multiplies the result by $L$ to restore the level:
 
 ![The zero-stuffed sine has its 9 kHz component at a quarter of its level and copies at 39, 57, and 87 kHz; after the low-pass and ×4 only the 9 kHz component remains, at full level](images/oversampling-images.svg)
 
-The simple bumps are low-passes too, but poor ones. A box's spectrum is a sinc, and a triangle is the box convolved with itself, so its spectrum is the square of that:
-
-| Interpolator         | Bump                        | Response, roughly           |
-| -------------------- | --------------------------- | --------------------------- |
-| Repeat each sample   | a box one sample wide       | $\text{sinc}(f/F_s)$        |
-| Linear interpolation | a triangle two samples wide | $\text{sinc}^2(f/F_s)$      |
-| Ideal                | $\text{sinc}$               | flat to $F_s/2$, zero above |
-
-Their responses fall gradually, so they dull the top of the wanted band and only partly remove the images. In front of a clipper both matter, because the leftover images are clipped along with the signal, which mixes them into new tones, and the dulled top changes what gets clipped. [Compare with Simple Interpolation](#compare-with-simple-interpolation) measures how far apart they are.
+The box's and triangle's spectra fall gradually instead, so they dull the top of the wanted band and only partly remove the images. In front of a clipper both matter, because the leftover images are clipped along with the signal, which mixes them into new tones, and the dulled top changes what gets clipped. [Compare with Simple Interpolation](#compare-with-simple-interpolation) measures how far apart they are.
 
 This low-pass is a different kind of filter from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), and it's designed from the sinc rather than from those articles, as the [appendix](#appendix-a-low-pass-without-feedback) explains.
 
