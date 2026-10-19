@@ -40,19 +40,19 @@ It's also 1 at its own sample and 0 at every other one, but it's smooth and spre
 
 ![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
 
-**On the finer grid, the bumps become zeros and a weighted sum.** The upsampler needs $x(t)$ only at $t=m/L$. Insert $L-1$ zeros after each sample,
+**On the finer grid, each output is a convolution.** The upsampler needs $x(t)$ only at $t=m/L$. Read the same sum from the output's side: each output point takes a weighted sum of the input samples near it, with the bump's values at their distances as the weights, which is a convolution. On the finer grid the samples sit at every $L$th point, and there's nothing to weigh at the points between them, so the input written at the new rate is the samples with $L-1$ zeros after each,
 
 $$
-v[m]=\begin{cases}x[m/L] & L\mid m,\\ 0 & \text{otherwise.}\end{cases}
+v[m]=\begin{cases}x[m/L] & L\mid m,\\ 0 & \text{otherwise,}\end{cases}
 $$
 
-Then the sum of bumps is a weighted sum of $v$, with the bump's values on the finer grid as the weights,
+and the output is its convolution with the bump sampled on the finer grid,
 
 $$
-x(m/L)=\sum_j b(j/L) \cdot v[m-j],
+x(m/L)=\sum_j b(j/L) \cdot v[m-j].
 $$
 
-because each real sample sits $j$ fine steps away and gets the bump's value there, and the zeros contribute nothing. So the zeros are placeholders that line the samples up on the finer grid, and the bump does the interpolating:
+So the zeros aren't a separate trick. They're what the input looks like at the new rate, and the bump does the interpolating:
 
 ![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
 
