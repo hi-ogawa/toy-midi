@@ -51,7 +51,8 @@ export type BiquadFilterSpec =
   | { type: "low-pass" | "high-pass"; frequency: number; q: number };
 
 /**
- * Standalone biquad EQ, a peaking EQ unless constructed with another type.
+ * Standalone biquad EQ. It is a peaking EQ unless constructed with another
+ * type.
  * Parameters ramp over 10 ms of processed audio.
  */
 export class BiquadEq {

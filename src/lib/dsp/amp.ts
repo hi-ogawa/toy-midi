@@ -199,8 +199,8 @@ export class Amp {
 }
 
 /**
- * Runs each part of the chain over a whole block in turn. Nothing feeds back
- * between parts, so this matches running each sample through the whole chain.
+ * Runs each part of the chain over a whole block in turn, which is valid
+ * because nothing feeds back from a later part to an earlier one.
  */
 class AmpChain {
   private readonly preEq: BiquadEq[];
@@ -214,8 +214,8 @@ class AmpChain {
   private readonly upsampler = new Upsampler();
   private readonly downsampler = new Downsampler();
   private readonly frame = new Float64Array(OVERSAMPLING_FACTOR);
-  // Sized to the block, as the EQ processes whole buffers, and wrapped once in
-  // the EQ's in-place planar shape so no block allocates.
+  // Sized to the block and wrapped once, so processing a block allocates
+  // nothing.
   private signal = wrapInPlace(new Float32Array(0));
   private oversampled = wrapInPlace(new Float32Array(0));
 
