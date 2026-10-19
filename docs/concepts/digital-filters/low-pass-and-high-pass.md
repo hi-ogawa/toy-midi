@@ -185,10 +185,10 @@ The numerators place each filter's zeros. The weights $(b_0,b_1,b_2)$ are the co
 
 The filter built so far is one [biquad](transfer-functions.md#a-second-output-delay-allows-oscillation), which is called a second-order section when it serves as one stage of a larger filter, and it falls 12 dB per octave. A steeper filter runs several sections in a cascade, each feeding the next, which multiplies their responses, so their dB responses add and so do their slopes: two sections fall 24 dB per octave, three 36. Building high orders from second-order sections rather than one long recurrence also keeps the arithmetic well conditioned, since each section's two poles stay where they were designed.
 
-Cascading identical sections doesn't give a higher-order Butterworth. Two Butterworth low-passes at the same $f_0$ multiply to
+A filter is **Butterworth** when its passband is as flat as its order allows, meaning its squared magnitude is $1/(1+\nu^{2n})$ with every lower power of $\nu$ cancelled. The second-order filter above is the case $n=2$. Cascading identical Butterworth sections loses this property. Two at the same $f_0$ multiply to
 
 $$
-|H(j\nu)|^2=\frac{1}{(1+\nu^4)^2},
+|H(j\nu)|^2=\frac{1}{(1+\nu^4)^2}=\frac{1}{1+2\nu^4+\nu^8},
 $$
 
-which is $-6$ dB at $f_0$ rather than $-3$, with a softer knee. That combination is the 4th-order **Linkwitz–Riley** filter. A 4th-order Butterworth, flat out to a sharper knee, instead uses two sections with different $Q$, about $0.54$ and $1.31$, whose product is $1/(1+\nu^8)$.
+whose uncancelled $2\nu^4$ term makes it $-6$ dB at $f_0$ rather than $-3$, with a softer knee. That combination is the 4th-order **Linkwitz–Riley** filter. A 4th-order filter keeps the Butterworth property only if its two sections have different $Q$, about $0.54$ and $1.31$, chosen so the cross terms cancel and the product is $1/(1+\nu^8)$.
