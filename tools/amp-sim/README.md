@@ -265,7 +265,7 @@ while even powers hold even harmonics and a constant, $\sin^2 t = \tfrac{1}{2} -
 **The shifted stage.** $s(u) = \tanh(u + b) - \tanh b$ isn't odd. Its expansion around 0 has a square term,
 
 $$
-s(u) = \operatorname{sech}^2 b \cdot u - \tanh b \operatorname{sech}^2 b \cdot u^2 + O(u^3),
+s(u) = \text{sech}^2 b \cdot u - \tanh b \text{sech}^2 b \cdot u^2 + O(u^3),
 $$
 
-with $\tanh b \operatorname{sech}^2 b \approx 0.15$ at $b = 0.15$. The $u^2$ term gives the 2nd harmonic and a constant, and the constant is what the 20 Hz high-pass after $s$ removes.
+with $\tanh b \text{sech}^2 b \approx 0.15$ at $b = 0.15$. The $u^2$ term gives the 2nd harmonic and a constant, and the constant is what the 20 Hz high-pass after $s$ removes.
