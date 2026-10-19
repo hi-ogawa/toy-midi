@@ -113,6 +113,29 @@ Measured with a steady sine at 0.3 through the amp's drive, the energy between t
 | High gain, 1318 Hz | −22 dB   | −61 dB    |
 | Crunch, 1318 Hz    | −61 dB   | −135 dB   |
 
+### See Why Simple Interpolation Isn't Enough
+
+Repeating each sample, or drawing straight lines between samples, also fills in the high rate, and each is the same construction with a different filter. Inserting zeros and filtering with a kernel $k$ computes $\sum_n x[n] \cdot k(t-n)$, so every interpolator is a choice of bump:
+
+| Interpolator         | Kernel                                    | Response                    |
+| -------------------- | ----------------------------------------- | --------------------------- |
+| Repeat each sample   | a box one sample wide                     | $\text{sinc}(f/F_s)$        |
+| Linear interpolation | a triangle, the box convolved with itself | $\text{sinc}^2(f/F_s)$      |
+| Ideal                | $\text{sinc}$                             | flat to $F_s/2$, zero above |
+
+The response column follows because convolving in time multiplies in frequency, so the kernel's spectrum is how the interpolator treats each frequency, the wanted signal and the images alike. Computed for the actual 4-tap box, 7-tap triangle, and 96-tap low-pass:
+
+![Repeating samples and linear interpolation fall gradually and leave the images of a 9 kHz sine only 13 and 25 dB down, while the 96-tap low-pass stays flat to 19 kHz and removes them by more than 90 dB](images/oversampling-interpolators.svg)
+
+| At                      | Repeat each sample | Linear interpolation | 96-tap low-pass |
+| ----------------------- | ------------------ | -------------------- | --------------- |
+| 9 kHz, the signal       | −0.5 dB            | −1.0 dB              | 0.0 dB          |
+| 20 kHz, the signal      | −2.5 dB            | −5.0 dB              | −0.1 dB         |
+| 39 kHz, its first image | −12.6 dB           | −25.3 dB             | −91.5 dB        |
+| 57 kHz, its next image  | −15.2 dB           | −30.5 dB             | −103.1 dB       |
+
+The simple interpolators fail both ways at once. They dull the top of the wanted band, and they let the images through only 13 to 30 dB down. In front of a clipper both matter: the leftover images are clipped along with the signal, which mixes them into new tones, some of which fold back after downsampling, and the dulled top changes what gets clipped. Linear interpolation is the 7-tap end of the same scale the Kaiser formulas describe, and taking more taps moves the response toward the ideal one.
+
 ## Skip the Work That Zeros and Dropped Samples Waste
 
 Applied directly, both filters would spend most of their multiplications on nothing. The upsampler's input is mostly inserted zeros, and the downsampler throws away $L-1$ of every $L$ outputs. Splitting the filter into **polyphase** branches avoids both.
