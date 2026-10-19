@@ -101,7 +101,6 @@ describe(BiquadEq, () => {
         frequency: 3000,
         gain: dbToGain(-6),
         q: 3,
-        bypass: false,
       },
     );
     expect(
@@ -294,7 +293,7 @@ function measureResponse({
   const output = process(
     new BiquadEq(
       { sampleRate: SAMPLE_RATE, channelCount: 1 },
-      { type: "peaking", frequency: eqFrequency, gain, q, bypass: false },
+      { type: "peaking", frequency: eqFrequency, gain, q },
     ),
     input,
   );

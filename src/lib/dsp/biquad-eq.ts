@@ -64,7 +64,7 @@ export class BiquadEq {
 
   constructor(
     { sampleRate, channelCount }: { sampleRate: number; channelCount: number },
-    spec: BiquadFilterSpec & { bypass?: boolean },
+    spec: BiquadFilterSpec,
   ) {
     this.sampleRate = sampleRate;
     this.type = spec.type;
@@ -77,7 +77,7 @@ export class BiquadEq {
       frequency: spec.frequency,
       gain: spec.type === "peaking" ? spec.gain : 1,
       q: spec.q,
-      bypass: spec.bypass ?? false,
+      bypass: false,
     });
     this.reset();
   }
