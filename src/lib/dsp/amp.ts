@@ -62,8 +62,8 @@ function createMidBump(gainDb: number): BiquadFilterSpec {
 // high-gain preamp spreads its gain over several stages.
 //
 // The shift b = 0.15 is small, adding a 2nd harmonic around 30 dB below the
-// note on a quiet input, enough for the warmer, tube-like even harmonics without the one-sided
-// buzz a large shift gives.
+// note on a quiet input, enough for the warmer, tube-like even harmonics
+// without the one-sided buzz a large shift gives.
 const DRIVES: Record<AmpPreset, GainStage[]> = {
   crunch: [
     { gainDb: 18, shift: 0.15, filters: [DC_BLOCKER, createMidBump(2)] },
