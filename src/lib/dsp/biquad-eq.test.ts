@@ -6,7 +6,6 @@ import {
   BUTTERWORTH_Q,
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
-  convertOctavesToQ,
   DEFAULT_PARAMETERS,
   BiquadEq,
 } from "./biquad-eq";
@@ -236,13 +235,6 @@ describe(BiquadFilter, () => {
       expect(measureFilterResponse(spec, stopband)).toBeLessThan(-35);
     },
   );
-});
-
-describe(convertOctavesToQ, () => {
-  it("converts bandwidth in octaves to Q", () => {
-    expect(convertOctavesToQ(1)).toBeCloseTo(Math.SQRT2, 6);
-    expect(convertOctavesToQ(1.39)).toBeCloseTo(1, 2);
-  });
 });
 
 function calculateResponse({
