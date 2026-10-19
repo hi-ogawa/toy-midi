@@ -228,7 +228,7 @@ describe(calculateBiquadFilterCoefficients, () => {
         SAMPLE_RATE,
       );
       const response = (frequency: number) =>
-        toDb(
+        convertGainToDb(
           calculateBiquadEqResponse({
             coefficients,
             sampleRate: SAMPLE_RATE,
@@ -338,6 +338,6 @@ function measureEnergy(signal: Float32Array): number {
 }
 
 // Unlike gainToDb, not floored at the mixer's −60 dB.
-function toDb(gain: number): number {
+function convertGainToDb(gain: number): number {
   return 20 * Math.log10(gain);
 }
