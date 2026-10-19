@@ -45,6 +45,11 @@ export type BiquadEqCoefficients = {
   a2: number;
 };
 
+/** A biquad's design, a peaking EQ when `type` is omitted. */
+export type BiquadFilterSpec =
+  | { type?: "peaking"; frequency: number; gain: number; q: number }
+  | { type: "low-pass" | "high-pass"; frequency: number; q: number };
+
 /** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */
 export class BiquadEq {
   private readonly sampleRate: number;
@@ -201,29 +206,44 @@ export class BiquadEq {
   }
 }
 
-export function calculateBiquadEqCoefficients({
-  sampleRate,
-  frequency,
-  gain,
-  q,
-  output,
-}: {
-  sampleRate: number;
-  frequency: number;
-  gain: number;
-  q: number;
-  output?: BiquadEqCoefficients;
-}): BiquadEqCoefficients {
-  const omega = (2 * Math.PI * frequency) / sampleRate;
-  const amplitude = Math.sqrt(gain);
-  const alpha = Math.sin(omega) / (2 * q);
-  const a0 = 1 + alpha / amplitude;
-  const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
-  result.b0 = (1 + alpha * amplitude) / a0;
-  result.b1 = (-2 * Math.cos(omega)) / a0;
-  result.b2 = (1 - alpha * amplitude) / a0;
-  result.a1 = result.b1;
-  result.a2 = (1 - alpha / amplitude) / a0;
+export function calculateBiquadEqCoefficients(
+  parameters: BiquadFilterSpec & {
+    sampleRate: number;
+    output?: BiquadEqCoefficients;
+  },
+): BiquadEqCoefficients {
+  const omega = (2 * Math.PI * parameters.frequency) / parameters.sampleRate;
+  const cos = Math.cos(omega);
+  const alpha = Math.sin(omega) / (2 * parameters.q);
+  const result = parameters.output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
+  switch (parameters.type) {
+    case undefined:
+    case "peaking": {
+      const amplitude = Math.sqrt(parameters.gain);
+      const a0 = 1 + alpha / amplitude;
+      result.b0 = (1 + alpha * amplitude) / a0;
+      result.b1 = (-2 * cos) / a0;
+      result.b2 = (1 - alpha * amplitude) / a0;
+      result.a1 = result.b1;
+      result.a2 = (1 - alpha / amplitude) / a0;
+      break;
+    }
+    case "low-pass":
+    case "high-pass": {
+      // Both share the denominator 1 + α − 2cos ω·z⁻¹ + (1 − α)·z⁻², and
+      // their numerators put a double zero at z = 1 (high-pass, no DC) or
+      // z = −1 (low-pass, no Nyquist).
+      const a0 = 1 + alpha;
+      const highPass = parameters.type === "high-pass";
+      const edge = highPass ? (1 + cos) / 2 : (1 - cos) / 2;
+      result.b0 = edge / a0;
+      result.b1 = ((highPass ? -2 : 2) * edge) / a0;
+      result.b2 = result.b0;
+      result.a1 = (-2 * cos) / a0;
+      result.a2 = (1 - alpha) / a0;
+      break;
+    }
+  }
   return result;
 }
 
@@ -263,10 +283,6 @@ export function calculateBiquadEqResponse({
  */
 export const BUTTERWORTH_Q = Math.SQRT1_2;
 
-export type BiquadFilterSpec =
-  | { type: "highpass" | "lowpass"; frequency: number; q: number }
-  | { type: "peaking"; frequency: number; gainDb: number; q: number };
-
 /**
  * Q of a peaking filter whose bandwidth is `octaves` wide between the
  * half-gain points: Q = √(2^N) / (2^N − 1). One octave is Q ≈ 1.41.
@@ -274,35 +290,6 @@ export type BiquadFilterSpec =
 export function convertOctavesToQ(octaves: number): number {
   const ratio = 2 ** octaves;
   return Math.sqrt(ratio) / (ratio - 1);
-}
-
-export function calculateBiquadFilterCoefficients(
-  spec: BiquadFilterSpec,
-  sampleRate: number,
-): BiquadEqCoefficients {
-  if (spec.type === "peaking") {
-    return calculateBiquadEqCoefficients({
-      sampleRate,
-      frequency: spec.frequency,
-      gain: dbToGain(spec.gainDb),
-      q: spec.q,
-    });
-  }
-  // With ω = 2πf/fs and α = sin ω / 2Q, both filters share the denominator
-  // 1 + α − 2cos ω·z⁻¹ + (1 − α)·z⁻², and their numerators put a double zero
-  // at z = 1 (high-pass, no DC) or z = −1 (low-pass, no Nyquist).
-  const omega = (2 * Math.PI * spec.frequency) / sampleRate;
-  const cos = Math.cos(omega);
-  const alpha = Math.sin(omega) / (2 * spec.q);
-  const a0 = 1 + alpha;
-  const edge = spec.type === "highpass" ? (1 + cos) / 2 : (1 - cos) / 2;
-  return {
-    b0: edge / a0,
-    b1: ((spec.type === "highpass" ? -2 : 2) * edge) / a0,
-    b2: edge / a0,
-    a1: (-2 * cos) / a0,
-    a2: (1 - alpha) / a0,
-  };
 }
 
 /** One mono filter with fixed coefficients, processed a sample at a time. */
@@ -325,7 +312,7 @@ export class BiquadFilter {
       b2: this.b2,
       a1: this.a1,
       a2: this.a2,
-    } = calculateBiquadFilterCoefficients(spec, sampleRate));
+    } = calculateBiquadEqCoefficients({ ...spec, sampleRate }));
   }
 
   process(x: number): number {

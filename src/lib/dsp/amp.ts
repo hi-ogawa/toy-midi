@@ -41,7 +41,7 @@ type GainStage = {
 // next stage, where it would shift that stage's clipping. 20 Hz is the usual
 // DC blocker cutoff: the bottom of hearing, so nothing audible is lost.
 const DC_BLOCKER: BiquadFilterSpec = {
-  type: "highpass",
+  type: "high-pass",
   frequency: 20,
   q: BUTTERWORTH_Q,
 };
@@ -53,7 +53,7 @@ function createMidBump(gainDb: number): BiquadFilterSpec {
   return {
     type: "peaking",
     frequency: 1000,
-    gainDb,
+    gain: dbToGain(gainDb),
     q: convertOctavesToQ(1),
   };
 }
@@ -85,7 +85,7 @@ const DRIVES: Record<AmpPreset, GainStage[]> = {
       // second harmonic) partly through.
       filters: [
         DC_BLOCKER,
-        { type: "highpass", frequency: 120, q: BUTTERWORTH_Q },
+        { type: "high-pass", frequency: 120, q: BUTTERWORTH_Q },
         createMidBump(3),
       ],
     },
@@ -100,11 +100,11 @@ const DRIVES: Record<AmpPreset, GainStage[]> = {
 // whose lows roll off below it; here a 90 Hz high-pass, just above a low E,
 // and a gentle +4 dB peak at 750 Hz stand in for it.
 const PRE_EQ: BiquadFilterSpec[] = [
-  { type: "highpass", frequency: 90, q: BUTTERWORTH_Q },
+  { type: "high-pass", frequency: 90, q: BUTTERWORTH_Q },
   {
     type: "peaking",
     frequency: 750,
-    gainDb: 4,
+    gain: dbToGain(4),
     q: convertOctavesToQ(1.2),
   },
 ];
@@ -128,15 +128,20 @@ const OUTPUT_GAIN = dbToGain(-18);
 // - A low-mid dip around 400 to 500 Hz, which keeps distortion from sounding
 //   boxy.
 const CABINET: BiquadFilterSpec[] = [
-  { type: "highpass", frequency: 75, q: BUTTERWORTH_Q },
-  { type: "lowpass", frequency: 5200, q: BUTTERWORTH_Q },
-  { type: "lowpass", frequency: 5200, q: BUTTERWORTH_Q },
-  { type: "lowpass", frequency: 7000, q: BUTTERWORTH_Q },
-  { type: "peaking", frequency: 2400, gainDb: 3, q: convertOctavesToQ(1) },
+  { type: "high-pass", frequency: 75, q: BUTTERWORTH_Q },
+  { type: "low-pass", frequency: 5200, q: BUTTERWORTH_Q },
+  { type: "low-pass", frequency: 5200, q: BUTTERWORTH_Q },
+  { type: "low-pass", frequency: 7000, q: BUTTERWORTH_Q },
+  {
+    type: "peaking",
+    frequency: 2400,
+    gain: dbToGain(3),
+    q: convertOctavesToQ(1),
+  },
   {
     type: "peaking",
     frequency: 450,
-    gainDb: -2.5,
+    gain: dbToGain(-2.5),
     q: convertOctavesToQ(1.5),
   },
 ];

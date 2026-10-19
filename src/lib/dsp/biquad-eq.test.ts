@@ -4,7 +4,6 @@ import {
   BUTTERWORTH_Q,
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
-  calculateBiquadFilterCoefficients,
   convertOctavesToQ,
   DEFAULT_PARAMETERS,
   BiquadEq,
@@ -219,14 +218,16 @@ describe(MultibandEq, () => {
   });
 });
 
-describe(calculateBiquadFilterCoefficients, () => {
-  it.each(["highpass", "lowpass"] as const)(
+describe(calculateBiquadEqCoefficients, () => {
+  it.each(["high-pass", "low-pass"] as const)(
     "puts a Butterworth %s 3 dB down at its cutoff",
     (type) => {
-      const coefficients = calculateBiquadFilterCoefficients(
-        { type, frequency: 1000, q: BUTTERWORTH_Q },
-        SAMPLE_RATE,
-      );
+      const coefficients = calculateBiquadEqCoefficients({
+        type,
+        sampleRate: SAMPLE_RATE,
+        frequency: 1000,
+        q: BUTTERWORTH_Q,
+      });
       const response = (frequency: number) =>
         gainToDb(
           calculateBiquadEqResponse({
@@ -236,11 +237,13 @@ describe(calculateBiquadFilterCoefficients, () => {
           }),
         );
       expect(response(1000)).toBeCloseTo(-3.01, 1);
-      expect(response(type === "highpass" ? 10000 : 100)).toBeCloseTo(0, 1);
-      expect(response(type === "highpass" ? 100 : 10000)).toBeLessThan(-35);
+      expect(response(type === "high-pass" ? 10000 : 100)).toBeCloseTo(0, 1);
+      expect(response(type === "high-pass" ? 100 : 10000)).toBeLessThan(-35);
     },
   );
+});
 
+describe(convertOctavesToQ, () => {
   it("converts bandwidth in octaves to Q", () => {
     expect(convertOctavesToQ(1)).toBeCloseTo(Math.SQRT2, 6);
     expect(convertOctavesToQ(1.39)).toBeCloseTo(1, 2);
