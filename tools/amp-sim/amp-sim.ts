@@ -21,6 +21,7 @@ import {
   SpessaSynthProcessor,
   SpessaSynthSequencer,
 } from "spessasynth_core";
+import { Amp, type AmpPreset } from "../../src/lib/dsp/amp.ts";
 import { exportMidi } from "../../src/lib/midi-export.ts";
 import { deserializeEditorRuntimeState } from "../../src/lib/persistence.ts";
 import { convertSharedProject } from "../../src/lib/project-share.ts";
@@ -36,7 +37,9 @@ usage: tsx tools/amp-sim/amp-sim.ts <project.json> --out <dir> --tag <name> [opt
 <project.json> is a SharedProject .json file.
 
 Options:
-  --amp none|v1|v2   Amp for the guitar tracks (default v2)
+  --amp none|v1|v2|app
+                     Amp for the guitar tracks (default v2). app is the app's
+                     own amp, which has no clean setting, so Clean tracks stay dry
   --note-gate        Gate each guitar track's input by its note-offs
   --ir <cabinet.wav> Convolve with a cabinet impulse response instead of filters
   --no-cab           Leave out the cabinet
@@ -91,7 +94,13 @@ async function main() {
       const raw = getDryTrackPath({ renderDir, index, track });
       const gain = findGainLevel(track);
       const guitar = Boolean(gain);
-      if (gain && !options.gm && options.amp !== "none") {
+      // The app's amp has no clean setting, so Clean tracks stay dry.
+      if (
+        gain &&
+        !options.gm &&
+        options.amp !== "none" &&
+        !(options.amp === "app" && gain === "clean")
+      ) {
         const file = await runAmp({
           track,
           gain,
@@ -167,9 +176,9 @@ function parseSynth(value: string) {
   throw new Error(`unknown --synth: ${value}\n\n${USAGE}`);
 }
 
-function parseAmp(value: string): AmpName | "none" {
-  if (value === "none" || value in AMPS) {
-    return value as AmpName | "none";
+function parseAmp(value: string): AmpName | "app" | "none" {
+  if (value === "none" || value === "app" || value in AMPS) {
+    return value as AmpName | "app" | "none";
   }
   throw new Error(`Unknown --amp ${value}\n\n${USAGE}`);
 }
@@ -331,7 +340,7 @@ async function runAmp({
 }: {
   track: MidiTrackState;
   gain: GainLevel;
-  amp: AmpName;
+  amp: AmpName | "app";
   raw: string;
   workDir: string;
   tempo: number;
@@ -343,26 +352,39 @@ async function runAmp({
   // 16-bit format the drive's volume boost would hard-clip before the soft
   // clipper sees it, and headroom so later boosts don't clip the 16-bit file.
   const mono = "aformat=sample_fmts=flt:channel_layouts=mono";
-  const chain = [
-    AMPS[amp][gain](rate, { compressor: !options.noComp }),
-    "volume=-18dB",
-  ];
-  if (!options.ir && !options.noCab) {
-    chain.push(FILTER_CABINET);
-  }
-  const filters = chain.filter(Boolean).join(",");
-  const amped = `${base}-amp.wav`;
+  let inputs = ["-i", raw];
+  let graph = `[0:a]${mono}`;
   if (options.noteGate) {
     const gate = `${base}-gate.wav`;
     writeNoteGate({ track, tempo, rate, file: gate });
+    inputs = [...inputs, "-i", gate];
+    graph = `[0:a]${mono}[g];[1:a]${mono}[e];[g][e]amultiply`;
+  }
+  const filterCabinet = !options.ir && !options.noCab;
+  const amped = `${base}-amp.wav`;
+  if (amp === "app") {
+    await runAppAmp({
+      inputs,
+      graph,
+      rate,
+      parameters: { preset: APP_PRESETS[gain]!, cabinet: filterCabinet },
+      file: amped,
+    });
+  } else {
+    const chain = [
+      AMPS[amp][gain](rate, { compressor: !options.noComp }),
+      "volume=-18dB",
+    ];
+    if (filterCabinet) {
+      chain.push(FILTER_CABINET);
+    }
+    const filters = chain.filter(Boolean).join(",");
     await runFfmpeg([
-      ...["-i", raw, "-i", gate],
+      ...inputs,
       "-filter_complex",
-      `[0:a]${mono}[g];[1:a]${mono}[e];[g][e]amultiply,${filters}`,
+      `${graph},${filters}`,
       amped,
     ]);
-  } else {
-    await runFfmpeg(["-i", raw, "-af", `${mono},${filters}`, amped]);
   }
   let cabinet = amped;
   if (options.ir) {
@@ -383,6 +405,56 @@ async function runAmp({
   const out = `${base}-out.wav`;
   await runFfmpeg(["-i", cabinet, "-af", post.join(","), out]);
   return out;
+}
+
+// `--amp app` runs the app's amp in place of the ffmpeg chain, on the mono,
+// optionally gated input, so the two can be compared on the same renders.
+const APP_PRESETS: Partial<Record<GainLevel, AmpPreset>> = {
+  crunch: "crunch",
+  "high gain": "high-gain",
+};
+
+async function runAppAmp({
+  inputs,
+  graph,
+  rate,
+  parameters,
+  file,
+}: {
+  inputs: string[];
+  graph: string;
+  rate: number;
+  parameters: { preset: AmpPreset; cabinet: boolean };
+  file: string;
+}) {
+  const dry = `${file}.dry.f32`;
+  const wet = `${file}.wet.f32`;
+  await runFfmpeg([...inputs, "-filter_complex", graph, "-f", "f32le", dry]);
+  const bytes = fs.readFileSync(dry);
+  const input = new Float32Array(
+    bytes.buffer,
+    bytes.byteOffset,
+    bytes.byteLength / 4,
+  );
+  const output = new Float32Array(input.length);
+  new Amp({ sampleRate: rate, parameters }).process({
+    input: [input],
+    output: [output],
+  });
+  fs.writeFileSync(wet, output);
+  await runFfmpeg([
+    "-f",
+    "f32le",
+    "-ar",
+    String(rate),
+    "-ac",
+    "1",
+    "-i",
+    wet,
+    file,
+  ]);
+  fs.rmSync(dry);
+  fs.rmSync(wet);
 }
 
 // General MIDI stand-ins for `--gm`: Clean 27, Overdriven 29, Distortion 30.

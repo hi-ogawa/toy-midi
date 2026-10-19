@@ -224,6 +224,18 @@ pnpm amp-sim tools/amp-sim/held-note.json --out /tmp/ampsim/held --tag v2 --amp 
 pnpm exec tsx tools/amp-sim/gen-figures.ts --held-note /tmp/ampsim/held --riff /tmp/ampsim/riff --riff-project /tmp/ampsim/riff.json
 ```
 
+### Compare with the app's amp
+
+`--amp app` runs the guitar tracks through the app's own amp, `src/lib/dsp/amp.ts`, in place of the ffmpeg chain. It has crunch and high gain but no clean setting, so Clean tracks stay dry. `compare.ts` then compares two renders' amp outputs track by track: the level difference, the delay, and the largest difference in any third-octave band from 100 Hz to 10 kHz.
+
+```sh
+pnpm amp-sim /tmp/ampsim/riff.json --out /tmp/ampsim/riff --tag v2-no-comp --amp v2 --no-comp
+pnpm amp-sim /tmp/ampsim/riff.json --out /tmp/ampsim/riff --tag app --amp app
+pnpm exec tsx tools/amp-sim/compare.ts /tmp/ampsim/riff v2-no-comp app
+```
+
+On both pieces, every crunch and high gain track comes out within 0.2 dB in level and 0.6 dB in every band, 23 samples later, the app's oversampling delay.
+
 ## Appendix: odd harmonics
 
 **Claim.** If $f$ is odd, $f(-u) = -f(u)$, then $y(t) = f(A \sin \omega t)$ has only odd harmonics.
