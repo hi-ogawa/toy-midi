@@ -9,7 +9,7 @@ Throughout, $F_s$ is the original sample rate, 48 kHz in the examples, and $L=4$
 Sampling at $F_s$ can't tell some frequencies apart. A cosine at $f$ and one at $F_s-f$ give the same samples, since
 
 $$
-\cos\!\Big(2\pi(F_s-f)\frac{n}{F_s}\Big)=\cos\!\Big(2\pi n-2\pi f\frac{n}{F_s}\Big)=\cos\!\Big(2\pi f\frac{n}{F_s}\Big).
+\cos\Big(2\pi(F_s-f)\frac{n}{F_s}\Big)=\cos\Big(2\pi n-2\pi f\frac{n}{F_s}\Big)=\cos\Big(2\pi f\frac{n}{F_s}\Big).
 $$
 
 So every frequency above the **Nyquist frequency** $F_s/2$ has a twin below it, and a sample sequence can only represent frequencies up to $F_s/2$. A frequency $f$ above it shows up as its **alias** $F_s-f$, and more generally as $|f-mF_s|$ for the integer $m$ that lands it in $[0,F_s/2]$.
@@ -43,13 +43,13 @@ Both directions need the same filter: pass everything below the original Nyquist
 The ideal low-pass at $\omega_c=\pi/L$ has the impulse response
 
 $$
-h_\text{ideal}[n]=\frac{\sin(\omega_c n)}{\pi n}=\frac{1}{L}\operatorname{sinc}\frac{n}{L},
+h_\text{ideal}[n]=\frac{\sin(\omega_c n)}{\pi n}=\frac{1}{L}\text{sinc}\frac{n}{L},
 $$
 
 which is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly leaves ripples near the cutoff and a stopband only about 21 dB down, so the taps are tapered by a **window** $w[n]$ instead:
 
 $$
-h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)}\,w[n],
+h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)} \cdot w[n],
 \qquad n=0,\dots,N-1.
 $$
 
@@ -60,15 +60,15 @@ The taps are then scaled to sum to 1, so the filter passes DC at exactly unity.
 A window trades two things. Its taper sets how far down the stopband is, and its length sets how wide the **transition band** between passband and stopband is. The **Kaiser window**,
 
 $$
-w[n]=\frac{I_0\!\Big(\beta\sqrt{1-\big((n-c)/c\big)^2}\Big)}{I_0(\beta)},
+w[n]=\frac{I_0\Big(\beta\sqrt{1-\big((n-c)/c\big)^2}\Big)}{I_0(\beta)},
 $$
 
 with $I_0$ the modified Bessel function of order zero, exposes both. For a stopband attenuation of $A$ dB and a transition band $\Delta\omega$ wide, Kaiser's formulas give
 
 $$
-\beta=0.1102\,(A-8.7),
+\beta=0.1102 \cdot (A-8.7),
 \qquad
-N-1\approx\frac{A-8}{2.285\,\Delta\omega}.
+N-1\approx\frac{A-8}{2.285 \cdot \Delta\omega}.
 $$
 
 We take $A=80$ dB, so $\beta=7.86$, and $N=96$ taps at the high rate. Then $\Delta\omega\approx72/(2.285\cdot95)\approx0.33$ rad at the high rate, about $0.21F_s$ wide. Centered on the original Nyquist frequency, at 48 kHz the filter is flat to about 19 kHz and 80 dB down from about 29 kHz. What still folds back from inside the transition band lands above 19 kHz, where little of a guitar's sound is.
@@ -88,13 +88,13 @@ Applied directly, both filters would spend most of their multiplications on noth
 For the upsampler, the high-rate output at $m=Ln+p$, with phase $p=0,\dots,L-1$, is
 
 $$
-y[Ln+p]=L\sum_{j}h[j]\,v[Ln+p-j].
+y[Ln+p]=L\sum_{j}h[j] \cdot v[Ln+p-j].
 $$
 
 Only the terms where $Ln+p-j$ is a multiple of $L$ are nonzero, which means $j=p+Lk$, and there $v=x[n-k]$:
 
 $$
-y[Ln+p]=L\sum_{k=0}^{N/L-1}h[p+Lk]\,x[n-k].
+y[Ln+p]=L\sum_{k=0}^{N/L-1}h[p+Lk] \cdot x[n-k].
 $$
 
 Each output phase is a short filter of $N/L=24$ taps on the original samples, so each input sample costs $N=96$ multiplications for its four outputs rather than $4N$.

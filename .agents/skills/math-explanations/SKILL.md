@@ -25,4 +25,4 @@ Read relevant examples in [docs/concepts](../../../docs/concepts) for calibratio
 
 ## Known Math Rendering Issues
 
-In GitHub Markdown math, `\,` and `\;` have rendered as literal punctuation. Use `\cdot` for explicit multiplication and `\quad` for extra spacing.
+In GitHub Markdown math, `\,`, `\;`, and `\!` have rendered as literal punctuation. Use `\cdot` for explicit multiplication and `\quad` for extra spacing, and leave negative spacing out. GitHub also rejects `\operatorname`, so write a named function such as sech or sinc with `\text{sech}`.

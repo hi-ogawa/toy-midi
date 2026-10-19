@@ -37,15 +37,15 @@ On $x = 0.2 \sin t$, one stage with $g = 7.9$ flattens the top and bottom alike 
 Chaining stages raises the overall gain while every stage keeps its output within about $\pm 1$. Leaving out the filters between stages, the two drives are
 
 $$
-D_\text{crunch}(x) = \tanh\big(2.0\, s(7.9 x)\big), \qquad
-D_\text{high gain}(x) = \tanh\Big(3.2 \tanh\big(5.0\, s(7.9 x)\big)\Big).
+D_\text{crunch}(x) = \tanh\big(2.0 \cdot s(7.9 x)\big), \qquad
+D_\text{high gain}(x) = \tanh\Big(3.2 \tanh\big(5.0 \cdot s(7.9 x)\big)\Big).
 $$
 
 Their **small-signal gain**, the slope at 0, is
 
 $$
-D'(0) = 7.9 \operatorname{sech}^2 b \cdot 2.0 \approx 15.5 \;(24\text{ dB}), \qquad
-7.9 \operatorname{sech}^2 b \cdot 5.0 \cdot 3.2 \approx 123 \;(42\text{ dB}),
+D'(0) = 7.9 \text{sech}^2 b \cdot 2.0 \approx 15.5 \quad (24\text{ dB}), \qquad
+7.9 \text{sech}^2 b \cdot 5.0 \cdot 3.2 \approx 123 \quad (42\text{ dB}),
 $$
 
 and an input well above $1/D'(0)$, $0.06$ for crunch and $0.008$ for high gain, comes out nearly square:
@@ -115,7 +115,7 @@ The same shows through powers. An odd $f$ has only odd powers in its Taylor seri
 The shifted stage isn't odd. Its expansion around 0 has a square term,
 
 $$
-s(u) = \operatorname{sech}^2 b \cdot u - \tanh b \operatorname{sech}^2 b \cdot u^2 + O(u^3),
+s(u) = \text{sech}^2 b \cdot u - \tanh b \text{sech}^2 b \cdot u^2 + O(u^3),
 $$
 
-with $\tanh b \operatorname{sech}^2 b \approx 0.15$ at $b = 0.15$. The $u^2$ term gives the 2nd harmonic and a constant, which the 20 Hz high-pass after $s$ removes.
+with $\tanh b \text{sech}^2 b \approx 0.15$ at $b = 0.15$. The $u^2$ term gives the 2nd harmonic and a constant, which the 20 Hz high-pass after $s$ removes.

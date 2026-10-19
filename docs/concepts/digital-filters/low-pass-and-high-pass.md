@@ -168,7 +168,7 @@ The numerator's three outputs are $(b_0,b_1,b_2)$ and the denominator's are $(a_
 Divide both triples by two and write $\alpha=\sin\omega_0/(2Q)$. The shared denominator becomes
 
 $$
-(a_0,a_1,a_2)=(1+\alpha,\,-2\cos\omega_0,\,1-\alpha),
+(a_0,a_1,a_2)=(1+\alpha, -2\cos\omega_0, 1-\alpha),
 $$
 
 and the numerators become
