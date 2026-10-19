@@ -128,10 +128,10 @@ This preserves the response value at the selected frequency, so the digital filt
 
 ### Reuse One Quadratic Expansion
 
-The peaking derivation expanded $u^2+cu+1$. The low-pass and high-pass numerators have zero leading or constant terms, so extend the same calculation to $au^2+bu+c$. Clearing $(1+d)^2$ gives
+The peaking derivation expanded $u^2+cu+1$. The low-pass and high-pass numerators have zero leading or constant terms, so extend the same calculation to $p_2u^2+p_1u+p_0$. Clearing $(1+d)^2$ gives
 
 $$
-P_{a,b,c}(d)=aK^2(1-d)^2+bK(1-d)(1+d)+c(1+d)^2.
+P(d)=p_2K^2(1-d)^2+p_1K(1-d)(1+d)+p_0(1+d)^2.
 $$
 
 Multiplying by the common scale $2/(K^2+1)$ and using the half-angle identities
@@ -144,22 +144,22 @@ $$
 \frac{K}{K^2+1}=\frac{\sin\omega_0}{2}
 $$
 
-expands it as $\frac{2}{K^2+1}P_{a,b,c}(d)=q_0+q_1d+q_2d^2$, whose weights on the constant, one-delay, and two-delay terms are
+expands it as $\frac{2}{K^2+1}P(d)=q_0+q_1d+q_2d^2$, whose weights on the constant, one-delay, and two-delay terms are
 
 ```math
 \begin{aligned}
-q_0&=(a+c)+(a-c)\cos\omega_0+b\sin\omega_0,\\
-q_1&=2\bigl[(c-a)-(a+c)\cos\omega_0\bigr],\\
-q_2&=(a+c)+(a-c)\cos\omega_0-b\sin\omega_0.
+q_0&=(p_2+p_0)+(p_2-p_0)\cos\omega_0+p_1\sin\omega_0,\\
+q_1&=2\bigl[(p_0-p_2)-(p_2+p_0)\cos\omega_0\bigr],\\
+q_2&=(p_2+p_0)+(p_2-p_0)\cos\omega_0-p_1\sin\omega_0.
 \end{aligned}
 ```
 
 Use the analog coefficients from each prototype in this expansion:
 
-| Prototype | Numerator $(a,b,c)$ | Denominator $(a,b,c)$ |
-| --------- | ------------------- | --------------------- |
-| Low-pass  | $(0,0,1)$           | $(1,1/Q,1)$           |
-| High-pass | $(1,0,0)$           | $(1,1/Q,1)$           |
+| Prototype | Numerator $(p_2,p_1,p_0)$ | Denominator $(p_2,p_1,p_0)$ |
+| --------- | ------------------------- | --------------------------- |
+| Low-pass  | $(0,0,1)$                 | $(1,1/Q,1)$                 |
+| High-pass | $(1,0,0)$                 | $(1,1/Q,1)$                 |
 
 The numerator's three outputs are $(b_0,b_1,b_2)$ and the denominator's are $(a_0,a_1,a_2)$. Divide all six by $a_0$ to obtain the five weights used by the [sample loop](../../../src/lib/dsp/biquad-filter.ts).
 
