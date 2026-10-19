@@ -82,7 +82,7 @@ The simple bumps are low-passes too, but poor ones. A box's spectrum is a sinc, 
 
 Their responses fall gradually, so they dull the top of the wanted band and only partly remove the images. In front of a clipper both matter, because the leftover images are clipped along with the signal, which mixes them into new tones, and the dulled top changes what gets clipped. [Compare with Simple Interpolation](#compare-with-simple-interpolation) measures how far apart they are.
 
-Since it's built from a bump, this low-pass is a plain weighted sum of recent inputs with no feedback. That's a different kind from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), so [Design the Low-Pass](#design-the-low-pass) builds it from the sinc rather than from those articles.
+This low-pass is a different kind of filter from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), and it's designed from the sinc rather than from those articles, as the [appendix](#appendix-a-low-pass-without-feedback) explains.
 
 ### Downsample by Filtering and Keeping Every $L$th Sample
 
@@ -91,8 +91,6 @@ Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$
 ## Design the Low-Pass
 
 Both directions need the same filter: pass everything below the original Nyquist frequency and stop everything above.
-
-The amp's low-passes and high-passes reuse previous outputs, the feedback in [Generalize the Weights and Add Feedback](digital-filters/transfer-functions.md#generalize-the-weights-and-add-feedback), so a few weights make a long response, and they're designed from an analog prototype through the bilinear transform. This one is only a weighted sum of the last $N$ inputs, the case before feedback in that section, so its weights are its impulse response and are designed by choosing that response directly. Without feedback it can skip outputs the downsampler drops, it delays every frequency equally, and a sharper cutoff only takes more weights. The standard names are **FIR** (finite impulse response) for this kind and **IIR** (infinite impulse response) for the feedback kind.
 
 ### Start from the Ideal Low-Pass
 
@@ -177,3 +175,7 @@ For the downsampler, only the outputs that are kept are computed, one full $N$-t
 ### Account for the Delay
 
 Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays by 95. The downsampler's output $n$ is computed at high-rate sample $Ln+L-1$, the last of its block, so the round trip delays by $(95-3)/4=23$ original samples, about half a millisecond at 48 kHz.
+
+## Appendix: A Low-Pass Without Feedback
+
+The amp's low-passes and high-passes reuse previous outputs, the feedback in [Generalize the Weights and Add Feedback](digital-filters/transfer-functions.md#generalize-the-weights-and-add-feedback), so a few weights make a long response, and they're designed from an analog prototype through the bilinear transform. The oversampler's low-pass is only a weighted sum of the last $N$ inputs, the case before feedback in that section, so its weights are its impulse response and are designed by choosing that response directly. Without feedback it can skip outputs the downsampler drops, it delays every frequency equally, and a sharper cutoff only takes more weights. The standard names are **FIR** (finite impulse response) for this kind and **IIR** (infinite impulse response) for the feedback kind.
