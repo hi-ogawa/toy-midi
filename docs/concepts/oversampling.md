@@ -20,35 +20,43 @@ A linear filter never creates frequencies, so this only matters when something n
 
 If the clipper runs at $LF_s$, its Nyquist frequency is $LF_s/2$, 96 kHz at $L=4$, and harmonics up to there are represented correctly. Only harmonics above 96 kHz still fold, and a clipper's harmonics are weak that high. Afterwards everything above the original $F_s/2$ is removed before returning to $F_s$, so those harmonics are cut instead of folded.
 
-### Upsample by Inserting Zeros and Filtering
+### Upsample by Interpolating
 
-Insert $L-1$ zeros after each sample:
+Running the clipper at $LF_s$ needs values between the original samples, $L-1$ new ones after each. Filling them in is interpolation, and the obvious ways are to repeat each sample or to draw straight lines between samples. Both work the same way, because each sample places a bump centered on itself, scaled by its value, and the bumps add up. With $t$ counted in original samples,
+
+$$
+x(t)=\sum_n x[n] \cdot b(t-n),
+$$
+
+where the bump $b$ is a box one sample wide for repeating and a triangle two samples wide for straight lines. Each bump is 1 at its own sample and 0 at the others, so the curve passes through every sample, and the bump's shape decides what happens between them.
+
+**The sinc is the exact bump.** A signal with nothing above $F_s/2$ is fully determined by its samples, and the sampling theorem rebuilds it with the bump
+
+$$
+\text{sinc}(t)=\frac{\sin \pi t}{\pi t}.
+$$
+
+It's also 1 at its own sample and 0 at every other one, but it's smooth and spreads over many samples, so the sum is smooth between the samples:
+
+![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
+
+**On the finer grid, the bumps become zeros and a weighted sum.** The upsampler needs $x(t)$ only at $t=m/L$. Insert $L-1$ zeros after each sample,
 
 $$
 v[m]=\begin{cases}x[m/L] & L\mid m,\\ 0 & \text{otherwise.}\end{cases}
 $$
 
-The zeros are placeholders for the values between the samples, which aren't known yet, and a low-pass at the original Nyquist frequency fills them in. Multiplying its output by $L$ gives the signal at 4× the rate:
+Then the sum of bumps is a weighted sum of $v$, with the bump's values on the finer grid as the weights,
+
+$$
+x(m/L)=\sum_j b(j/L) \cdot v[m-j],
+$$
+
+because each real sample sits $j$ fine steps away and gets the bump's value there, and the zeros contribute nothing. So the zeros are placeholders that line the samples up on the finer grid, and the bump does the interpolating:
 
 ![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
 
-This low-pass is a different kind from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), because it's a plain weighted sum of recent inputs with no feedback, so [Design the Low-Pass](#design-the-low-pass) builds it from scratch rather than from those articles.
-
-Two pictures show why a low-pass is the right way to fill them.
-
-**In time, it adds one bump per sample.** A signal with nothing above $F_s/2$ is fully determined by its samples. With $t$ counted in original samples, the sampling theorem rebuilds it as
-
-$$
-x(t)=\sum_n x[n] \cdot \text{sinc}(t-n), \qquad \text{sinc}(t)=\frac{\sin \pi t}{\pi t}.
-$$
-
-Each sample contributes a sinc bump centered on it, which is 1 there and 0 at every other sample, so the sum passes through every sample and is smooth between them:
-
-![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
-
-Filtering $v$ with a low-pass places a copy of the filter's impulse response at each real sample, scaled by that sample, and adds them up. The ideal low-pass at the original Nyquist frequency is this same sinc, stretched over $L$ high-rate samples, as the next section shows, so the filter computes this sum at every point of the finer grid. The zeros contribute nothing, which is why they're the right placeholders.
-
-**In frequency, the zeros add images.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
+**In frequency, the bump decides what survives.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
 
 $$
 c[m]=\frac{1}{L}\sum_{k=0}^{L-1}e^{j2\pi km/L},
@@ -60,9 +68,21 @@ $$
 v=\frac{1}{L}\tilde x+\frac{1}{L}\sum_{k=1}^{L-1}\big(\tilde x \text{ shifted up by } kF_s\big).
 $$
 
-The first term is the wanted signal at $1/L$ of its level, and the others are **images** of it around $F_s$, $2F_s$, and so on. The low-pass at $F_s/2$ keeps the first term and removes the images, and multiplying by $L$ restores the level:
+The first term is the wanted signal at $1/L$ of its level, and the others are **images** of it around $F_s$, $2F_s$, and so on. A weighted sum over delays multiplies each frequency by its own gain, the [frequency response](digital-filters/transfer-functions.md#a-computation-that-distinguishes-frequencies), and the bump's weights set that response. The wanted signal lies below $F_s/2$ and every image lies above it, so the right bump passes everything below $F_s/2$ and nothing above, which makes it a **low-pass** at the original Nyquist frequency. The sinc's response is exactly that, which is the frequency side of why it's exact. Scaled to pass DC at unity like any low-pass, its weights become $b(j/L)/L$, so the upsampler multiplies the result by $L$ to restore the level:
 
 ![The zero-stuffed sine has its 9 kHz component at a quarter of its level and copies at 39, 57, and 87 kHz; after the low-pass and ×4 only the 9 kHz component remains, at full level](images/oversampling-images.svg)
+
+The simple bumps are low-passes too, but poor ones. A box's spectrum is a sinc, and a triangle is the box convolved with itself, so its spectrum is the square of that:
+
+| Interpolator         | Bump                        | Response, roughly           |
+| -------------------- | --------------------------- | --------------------------- |
+| Repeat each sample   | a box one sample wide       | $\text{sinc}(f/F_s)$        |
+| Linear interpolation | a triangle two samples wide | $\text{sinc}^2(f/F_s)$      |
+| Ideal                | $\text{sinc}$               | flat to $F_s/2$, zero above |
+
+Their responses fall gradually, so they dull the top of the wanted band and only partly remove the images. In front of a clipper both matter, because the leftover images are clipped along with the signal, which mixes them into new tones, and the dulled top changes what gets clipped. [Compare with Simple Interpolation](#compare-with-simple-interpolation) measures how far apart they are.
+
+Since it's built from a bump, this low-pass is a plain weighted sum of recent inputs with no feedback. That's a different kind from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), so [Design the Low-Pass](#design-the-low-pass) builds it from the sinc rather than from those articles.
 
 ### Downsample by Filtering and Keeping Every $L$th Sample
 
@@ -109,25 +129,9 @@ $$
 
 We take $A=80$ dB, so $\beta=7.86$, and $N=96$ taps at the high rate. Then $\Delta\omega\approx72/(2.285\cdot95)\approx0.33$ rad at the high rate, about $0.21F_s$ wide. Centered on the original Nyquist frequency, at 48 kHz the filter is flat to about 19 kHz and 80 dB down from about 29 kHz. What still folds back from inside the transition band lands above 19 kHz, where little of a guitar's sound is.
 
-Measured with a steady sine at 0.3 through the amp's drive, the energy between the note's harmonics, which is aliasing, falls this far below the note:
+### Compare with Simple Interpolation
 
-| Drive, note        | At $F_s$ | At $4F_s$ |
-| ------------------ | -------- | --------- |
-| High gain, 330 Hz  | −45 dB   | −97 dB    |
-| High gain, 1318 Hz | −22 dB   | −61 dB    |
-| Crunch, 1318 Hz    | −61 dB   | −135 dB   |
-
-### See Why Simple Interpolation Isn't Enough
-
-Repeating each sample, or drawing straight lines between samples, also fills in the high rate, and each is the same construction with a different filter. Inserting zeros and filtering with a kernel $k$ computes $\sum_n x[n] \cdot k(t-n)$, so every interpolator is a choice of bump:
-
-| Interpolator         | Kernel                                    | Response, roughly           |
-| -------------------- | ----------------------------------------- | --------------------------- |
-| Repeat each sample   | a box one sample wide                     | $\text{sinc}(f/F_s)$        |
-| Linear interpolation | a triangle, the box convolved with itself | $\text{sinc}^2(f/F_s)$      |
-| Ideal                | $\text{sinc}$                             | flat to $F_s/2$, zero above |
-
-The response column follows because convolving in time multiplies in frequency, so the kernel's spectrum is how the interpolator treats each frequency, the wanted signal and the images alike. Computed for the actual 4-tap box, 7-tap triangle, and 96-tap low-pass:
+Computed for the actual 4-tap box, 7-tap triangle, and 96-tap low-pass, the three responses show how much the extra taps buy:
 
 ![Repeating samples and linear interpolation fall gradually and leave the images of a 9 kHz sine only 13 and 25 dB down, while the 96-tap low-pass stays flat to 19 kHz and removes them by more than 90 dB](images/oversampling-interpolators.svg)
 
@@ -138,7 +142,17 @@ The response column follows because convolving in time multiplies in frequency, 
 | 39 kHz, its first image | −12.6 dB           | −25.3 dB             | −91.5 dB        |
 | 57 kHz, its next image  | −15.2 dB           | −30.5 dB             | −103.1 dB       |
 
-The simple interpolators fail both ways at once. They dull the top of the wanted band, and they let the images through only 13 to 30 dB down. In front of a clipper both matter: the leftover images are clipped along with the signal, which mixes them into new tones, some of which fold back after downsampling, and the dulled top changes what gets clipped. Linear interpolation is the 7-tap end of the same scale the Kaiser formulas describe, and taking more taps moves the response toward the ideal one.
+The simple interpolators lose up to 5 dB at the top of the wanted band and leave the images only 13 to 30 dB down, where the 96-tap low-pass is flat and removes them by more than 90 dB. Linear interpolation is the 7-tap end of the same scale the Kaiser formulas describe, and taking more taps moves the response toward the ideal one.
+
+### Measure the Aliasing Through the Drive
+
+Measured with a steady sine at 0.3 through the amp's drive, the energy between the note's harmonics, which is aliasing, falls this far below the note:
+
+| Drive, note        | At $F_s$ | At $4F_s$ |
+| ------------------ | -------- | --------- |
+| High gain, 330 Hz  | −45 dB   | −97 dB    |
+| High gain, 1318 Hz | −22 dB   | −61 dB    |
+| Crunch, 1318 Hz    | −61 dB   | −135 dB   |
 
 ## Skip the Work That Zeros and Dropped Samples Waste
 
