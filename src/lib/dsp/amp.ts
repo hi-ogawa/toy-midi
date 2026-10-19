@@ -280,7 +280,7 @@ class AmpChain {
 }
 
 function createFilter(spec: BiquadFilterSpec, sampleRate: number): BiquadEq {
-  return new BiquadEq({ sampleRate, channelCount: 1, ...spec });
+  return new BiquadEq({ sampleRate, channelCount: 1 }, spec);
 }
 
 function runFilters(filters: BiquadEq[], block: InPlaceBlock): void {

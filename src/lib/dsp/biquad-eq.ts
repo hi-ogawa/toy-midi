@@ -63,24 +63,21 @@ export class BiquadEq {
   };
 
   constructor(
-    options: {
-      sampleRate: number;
-      channelCount: number;
-      bypass?: boolean;
-    } & BiquadFilterSpec,
+    { sampleRate, channelCount }: { sampleRate: number; channelCount: number },
+    spec: BiquadFilterSpec & { bypass?: boolean },
   ) {
-    this.sampleRate = options.sampleRate;
-    this.type = options.type;
-    this.rampFrames = Math.max(1, Math.round(options.sampleRate * 0.01));
+    this.sampleRate = sampleRate;
+    this.type = spec.type;
+    this.rampFrames = Math.max(1, Math.round(sampleRate * 0.01));
     this.history = Array.from(
-      { length: options.channelCount },
+      { length: channelCount },
       () => new Float64Array(4),
     );
     this.setParameters({
-      frequency: options.frequency,
-      gain: options.type === "peaking" ? options.gain : 1,
-      q: options.q,
-      bypass: options.bypass ?? false,
+      frequency: spec.frequency,
+      gain: spec.type === "peaking" ? spec.gain : 1,
+      q: spec.q,
+      bypass: spec.bypass ?? false,
     });
     this.reset();
   }

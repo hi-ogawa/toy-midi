@@ -62,23 +62,18 @@ describe(BiquadEq, () => {
   });
 
   it("ramps gain rather than switching immediately", () => {
-    const eq = new BiquadEq({
-      type: "peaking",
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      ...DEFAULT_PARAMETERS,
-    });
+    const eq = new BiquadEq(
+      { sampleRate: SAMPLE_RATE, channelCount: 1 },
+      { type: "peaking", ...DEFAULT_PARAMETERS },
+    );
     eq.setParameters({ gain: dbToGain(18) });
     const input = createSignal({ frames: 2000, frequency: 1000 });
     const ramped = process(eq, input);
     const immediate = process(
-      new BiquadEq({
-        type: "peaking",
-        sampleRate: SAMPLE_RATE,
-        channelCount: 1,
-        ...DEFAULT_PARAMETERS,
-        gain: dbToGain(18),
-      }),
+      new BiquadEq(
+        { sampleRate: SAMPLE_RATE, channelCount: 1 },
+        { type: "peaking", ...DEFAULT_PARAMETERS, gain: dbToGain(18) },
+      ),
       input,
     );
     expect(
@@ -92,25 +87,23 @@ describe(BiquadEq, () => {
   });
 
   it("resets history and settles pending parameters", () => {
-    const eq = new BiquadEq({
-      type: "peaking",
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      ...DEFAULT_PARAMETERS,
-      gain: dbToGain(18),
-    });
+    const eq = new BiquadEq(
+      { sampleRate: SAMPLE_RATE, channelCount: 1 },
+      { type: "peaking", ...DEFAULT_PARAMETERS, gain: dbToGain(18) },
+    );
     process(eq, createSignal({ frames: 100, frequency: 1000 }));
     eq.setParameters({ frequency: 3000, gain: dbToGain(-6), q: 3 });
     eq.reset();
-    const fresh = new BiquadEq({
-      type: "peaking",
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      frequency: 3000,
-      gain: dbToGain(-6),
-      q: 3,
-      bypass: false,
-    });
+    const fresh = new BiquadEq(
+      { sampleRate: SAMPLE_RATE, channelCount: 1 },
+      {
+        type: "peaking",
+        frequency: 3000,
+        gain: dbToGain(-6),
+        q: 3,
+        bypass: false,
+      },
+    );
     expect(
       process(eq, createSignal({ frames: 2000, frequency: 1000 })),
     ).toEqual(process(fresh, createSignal({ frames: 2000, frequency: 1000 })));
@@ -302,15 +295,10 @@ function measureResponse({
     frequency: signalFrequency,
   });
   const output = process(
-    new BiquadEq({
-      type: "peaking",
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      frequency: eqFrequency,
-      gain,
-      q,
-      bypass: false,
-    }),
+    new BiquadEq(
+      { sampleRate: SAMPLE_RATE, channelCount: 1 },
+      { type: "peaking", frequency: eqFrequency, gain, q, bypass: false },
+    ),
     input,
   );
   return measureGainDb(input, output);
@@ -325,7 +313,7 @@ function measureFilterResponse(
     frequency: signalFrequency,
   });
   const output = process(
-    new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1, ...spec }),
+    new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1 }, spec),
     input,
   );
   return measureGainDb(input, output);
