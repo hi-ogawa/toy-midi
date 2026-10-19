@@ -50,9 +50,13 @@ export type BiquadFilterSpec =
   | { type?: "peaking"; frequency: number; gain: number; q: number }
   | { type: "low-pass" | "high-pass"; frequency: number; q: number };
 
-/** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */
+/**
+ * Standalone biquad EQ, a peaking EQ unless constructed with another type.
+ * Parameters ramp over 10 ms of processed audio.
+ */
 export class BiquadEq {
   private readonly sampleRate: number;
+  private readonly type: "peaking" | "low-pass" | "high-pass";
   private readonly rampFrames: number;
   // Log-space ramps make equal ratios advance evenly for frequency, gain, and Q.
   // Slots are log frequency, log gain, log Q, and linear wet mix.
@@ -73,18 +77,27 @@ export class BiquadEq {
   constructor({
     sampleRate,
     channelCount,
-    frequency,
-    gain,
-    q,
-    bypass,
-  }: { sampleRate: number; channelCount: number } & EqParameters) {
+    bypass = false,
+    ...spec
+  }: {
+    sampleRate: number;
+    channelCount: number;
+    bypass?: boolean;
+  } & BiquadFilterSpec) {
     this.sampleRate = sampleRate;
+    this.type = spec.type ?? "peaking";
     this.rampFrames = Math.max(1, Math.round(sampleRate * 0.01));
     this.history = Array.from(
       { length: channelCount },
       () => new Float64Array(4),
     );
-    this.setParameters({ frequency, gain, q, bypass });
+    this.setParameters({
+      frequency: spec.frequency,
+      // A low-pass or high-pass has no gain, so it stays at unity.
+      gain: "gain" in spec ? spec.gain : 1,
+      q: spec.q,
+      bypass,
+    });
     this.reset();
   }
 
@@ -175,9 +188,10 @@ export class BiquadEq {
         const x = input[channel][frame];
         const h = this.history[channel];
         // Direct form I retains input/output history across coefficient changes.
-        // At unity gain the exact identity also removes any residual filter tail.
+        // At unity gain a peaking EQ is the exact identity, which also removes
+        // any residual filter tail.
         const y =
-          this.current[1] === 0
+          this.type === "peaking" && this.current[1] === 0
             ? x
             : this.coefficients.b0 * x +
               this.coefficients.b1 * h[0] +
@@ -196,13 +210,25 @@ export class BiquadEq {
   }
 
   private updateCoefficients(): void {
-    calculateBiquadEqCoefficients({
-      sampleRate: this.sampleRate,
-      frequency: Math.exp(this.current[0]),
-      gain: Math.exp(this.current[1]),
-      q: Math.exp(this.current[2]),
-      output: this.coefficients,
-    });
+    const frequency = Math.exp(this.current[0]);
+    const q = Math.exp(this.current[2]);
+    if (this.type === "peaking") {
+      calculateBiquadEqCoefficients({
+        sampleRate: this.sampleRate,
+        frequency,
+        gain: Math.exp(this.current[1]),
+        q,
+        output: this.coefficients,
+      });
+    } else {
+      calculateBiquadEqCoefficients({
+        type: this.type,
+        sampleRate: this.sampleRate,
+        frequency,
+        q,
+        output: this.coefficients,
+      });
+    }
   }
 }
 
@@ -292,42 +318,4 @@ export const BUTTERWORTH_Q = Math.SQRT1_2;
 export function convertOctavesToQ(octaves: number): number {
   const ratio = 2 ** octaves;
   return Math.sqrt(ratio) / (ratio - 1);
-}
-
-/** One mono filter with fixed coefficients, processed a sample at a time. */
-export class BiquadFilter {
-  private readonly b0: number;
-  private readonly b1: number;
-  private readonly b2: number;
-  private readonly a1: number;
-  private readonly a2: number;
-  // Direct Form I history: x[n-1], x[n-2], y[n-1], y[n-2].
-  private x1 = 0;
-  private x2 = 0;
-  private y1 = 0;
-  private y2 = 0;
-
-  constructor(spec: BiquadFilterSpec, sampleRate: number) {
-    ({
-      b0: this.b0,
-      b1: this.b1,
-      b2: this.b2,
-      a1: this.a1,
-      a2: this.a2,
-    } = calculateBiquadEqCoefficients({ ...spec, sampleRate }));
-  }
-
-  process(x: number): number {
-    const y =
-      this.b0 * x +
-      this.b1 * this.x1 +
-      this.b2 * this.x2 -
-      this.a1 * this.y1 -
-      this.a2 * this.y2;
-    this.x2 = this.x1;
-    this.x1 = x;
-    this.y2 = this.y1;
-    this.y1 = y;
-    return y;
-  }
 }

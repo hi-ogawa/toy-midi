@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dbToGain, gainToDb } from "../music";
 import {
-  BiquadFilter,
   type BiquadFilterSpec,
   BUTTERWORTH_Q,
   calculateBiquadEqCoefficients,
@@ -112,6 +111,22 @@ describe(BiquadEq, () => {
       process(eq, createSignal({ frames: 2000, frequency: 1000 })),
     ).toEqual(process(fresh, createSignal({ frames: 2000, frequency: 1000 })));
   });
+
+  it.each([
+    { type: "low-pass", passband: 100, stopband: 10000 },
+    { type: "high-pass", passband: 10000, stopband: 100 },
+  ] as const)(
+    "puts a Butterworth $type 3 dB down at its cutoff",
+    ({ type, passband, stopband }) => {
+      const spec = { type, frequency: 1000, q: BUTTERWORTH_Q };
+      expect(measureFilterResponse(spec, 1000)).toBeCloseTo(
+        gainToDb(Math.SQRT1_2),
+        3,
+      );
+      expect(measureFilterResponse(spec, passband)).toBeCloseTo(0, 1);
+      expect(measureFilterResponse(spec, stopband)).toBeLessThan(-35);
+    },
+  );
 });
 
 describe(calculateBiquadEqResponse, () => {
@@ -219,24 +234,6 @@ describe(MultibandEq, () => {
   });
 });
 
-describe(BiquadFilter, () => {
-  it.each([
-    { type: "low-pass", passband: 100, stopband: 10000 },
-    { type: "high-pass", passband: 10000, stopband: 100 },
-  ] as const)(
-    "puts a Butterworth $type 3 dB down at its cutoff",
-    ({ type, passband, stopband }) => {
-      const spec = { type, frequency: 1000, q: BUTTERWORTH_Q };
-      expect(measureFilterResponse(spec, 1000)).toBeCloseTo(
-        gainToDb(Math.SQRT1_2),
-        3,
-      );
-      expect(measureFilterResponse(spec, passband)).toBeCloseTo(0, 1);
-      expect(measureFilterResponse(spec, stopband)).toBeLessThan(-35);
-    },
-  );
-});
-
 function calculateResponse({
   gainDb,
   responseFrequency,
@@ -321,11 +318,11 @@ function measureFilterResponse(
     frames: SAMPLE_RATE,
     frequency: signalFrequency,
   });
-  const filter = new BiquadFilter(spec, SAMPLE_RATE);
-  return measureGainDb(
+  const output = process(
+    new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1, ...spec }),
     input,
-    input.map((x) => filter.process(x)),
   );
+  return measureGainDb(input, output);
 }
 
 // Skips the first half second, where the filter is still settling.
