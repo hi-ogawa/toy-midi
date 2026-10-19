@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateBiquadEqResponse } from "./biquad-eq";
 import {
-  BUTTERWORTH_Q,
   calculateBiquadFilterCoefficients,
   convertOctavesToQ,
 } from "./biquad-filter";
@@ -33,7 +32,6 @@ describe(calculateBiquadFilterCoefficients, () => {
   it("converts bandwidth in octaves to Q", () => {
     expect(convertOctavesToQ(1)).toBeCloseTo(Math.SQRT2, 6);
     expect(convertOctavesToQ(1.39)).toBeCloseTo(1, 2);
-    expect(BUTTERWORTH_Q).toBeCloseTo(0.7071, 4);
   });
 });
 
