@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { dbToGain, gainToDb } from "../music";
 import {
+  BUTTERWORTH_Q,
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
+  calculateBiquadFilterCoefficients,
+  convertOctavesToQ,
   DEFAULT_PARAMETERS,
   BiquadEq,
 } from "./biquad-eq";
@@ -216,6 +219,34 @@ describe(MultibandEq, () => {
   });
 });
 
+describe(calculateBiquadFilterCoefficients, () => {
+  it.each(["highpass", "lowpass"] as const)(
+    "puts a Butterworth %s 3 dB down at its cutoff",
+    (type) => {
+      const coefficients = calculateBiquadFilterCoefficients(
+        { type, frequency: 1000, q: BUTTERWORTH_Q },
+        SAMPLE_RATE,
+      );
+      const response = (frequency: number) =>
+        toDb(
+          calculateBiquadEqResponse({
+            coefficients,
+            sampleRate: SAMPLE_RATE,
+            frequency,
+          }),
+        );
+      expect(response(1000)).toBeCloseTo(-3.01, 1);
+      expect(response(type === "highpass" ? 10000 : 100)).toBeCloseTo(0, 1);
+      expect(response(type === "highpass" ? 100 : 10000)).toBeLessThan(-35);
+    },
+  );
+
+  it("converts bandwidth in octaves to Q", () => {
+    expect(convertOctavesToQ(1)).toBeCloseTo(Math.SQRT2, 6);
+    expect(convertOctavesToQ(1.39)).toBeCloseTo(1, 2);
+  });
+});
+
 function calculateResponse({
   gainDb,
   responseFrequency,
@@ -304,4 +335,9 @@ function measureEnergy(signal: Float32Array): number {
     energy += sample ** 2;
   }
   return energy;
+}
+
+// Unlike gainToDb, not floored at the mixer's −60 dB.
+function toDb(gain: number): number {
+  return 20 * Math.log10(gain);
 }

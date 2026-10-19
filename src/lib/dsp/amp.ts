@@ -17,7 +17,7 @@ import {
   type BiquadFilterSpec,
   BUTTERWORTH_Q,
   convertOctavesToQ,
-} from "./biquad-filter.ts";
+} from "./biquad-eq.ts";
 import { Downsampler, OVERSAMPLING_FACTOR, Upsampler } from "./oversampler.ts";
 
 export type AmpPreset = "crunch" | "high-gain";

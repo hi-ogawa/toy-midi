@@ -161,7 +161,7 @@ Use the analog coefficients from each prototype in this expansion:
 | Low-pass  | $(0,0,1)$                 | $(1,1/Q,1)$                 |
 | High-pass | $(1,0,0)$                 | $(1,1/Q,1)$                 |
 
-The numerator's three outputs are $(b_0,b_1,b_2)$ and the denominator's are $(a_0,a_1,a_2)$. Divide all six by $a_0$ to obtain the five weights used by the [sample loop](../../../src/lib/dsp/biquad-filter.ts).
+The numerator's three outputs are $(b_0,b_1,b_2)$ and the denominator's are $(a_0,a_1,a_2)$. Divide all six by $a_0$ to obtain the five weights used by the [sample loop](../../../src/lib/dsp/biquad-eq.ts).
 
 ### Recognize the Implementation's Coefficients
 
