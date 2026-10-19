@@ -179,7 +179,7 @@ $$
 (b_0,b_1,b_2)_{\text{HP}}=\frac{1+\cos\omega_0}{2}(1,-2,1).
 $$
 
-The numerators place each filter's zeros. The weights $(b_0,b_1,b_2)$ are the coefficients of $b_0+b_1d+b_2d^2$, and a tone at frequency $\omega$ sits at $z=e^{j\omega}$, so zero frequency is $z=1$ and the Nyquist frequency is $z=-1$. The low-pass's $(1,2,1)$ gives $1+2d+d^2=(1+d)^2$, which has a double zero at $z=-1$, and the high-pass's $(1,-2,1)$ gives $1-2d+d^2=(1-d)^2$, which has a double zero at $z=1$. This is why each blocks its end of the spectrum completely.
+The numerators place each filter's zeros. The weights $(b_0,b_1,b_2)$ are the coefficients of $b_0+b_1d+b_2d^2$, and a tone at frequency $\omega$ sits at $z=e^{j\omega}$, so zero frequency is $z=1$ and the Nyquist frequency is $z=-1$. The low-pass's $(1,2,1)$ gives $1+2d+d^2=(1+d)^2$, which has a double zero at $z=-1$, and the high-pass's $(1,-2,1)$ gives $1-2d+d^2=(1-d)^2$, which has a double zero at $z=1$. A zero on the unit circle cancels that tone, so the low-pass outputs nothing at the Nyquist frequency and the high-pass outputs nothing for a constant signal.
 
 ## Cascade Sections for a Steeper Rolloff
 
