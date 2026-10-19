@@ -1,0 +1,127 @@
+# Guitar Amp Simulation
+
+A clean DI guitar, the signal straight from the pickup, sounds thin and polite next to a recorded electric guitar. Most of the difference is the amp and its speaker: the amp's preamp amplifies the signal far past what it can pass cleanly, so it flattens the wave's peaks, and the speaker rolls off the harsh top end that flattening adds. This document develops a model of that chain and the equations used in [our implementation](../../src/lib/dsp/amp.ts):
+
+$$
+\text{pre-EQ} \rightarrow \text{drive} \rightarrow \text{cabinet}.
+$$
+
+Throughout, $x$ is a sample in $[-1, 1]$.
+
+## Flatten the Wave with a Gain Stage
+
+A preamp is a chain of **gain stages**, such as tube triodes, each amplifying the signal and clipping it softly once pushed too hard. Model one stage as a gain $g$ followed by a soft clipper:
+
+$$
+y = \tanh(g x).
+$$
+
+Since $\tanh u \approx u$ for small $u$ and $\tanh u \to \pm 1$ for large $u$, the gain decides how much of the wave reaches the flat part. Since $\tanh$ is odd, $\tanh(-u) = -\tanh u$, it flattens the top and bottom of a wave alike, which adds only odd harmonics, as [Why an Odd Clipper Adds Only Odd Harmonics](#why-an-odd-clipper-adds-only-odd-harmonics) shows.
+
+A tube stage biased off center flattens one side sooner. Model it by shifting the wave up the curve before clipping and back down after:
+
+$$
+s(u) = \tanh(u + b) - \tanh b, \qquad b = 0.15.
+$$
+
+It saturates at $1 - \tanh b \approx 0.85$ above and $-1 - \tanh b \approx -1.15$ below, so the top flattens first, which adds even harmonics too. Subtracting $\tanh b$ keeps $s(0) = 0$, so silence stays silent.
+
+![The clipper: tanh follows y = x near 0 and flattens toward ±1, the shifted one flattens lower above and further below](images/amp-drive-tanh.svg)
+
+On $x = 0.2 \sin t$, one stage with $g = 7.9$ flattens the top and bottom alike without the shift, and the top more than the bottom with it:
+
+![One stage on a sine: the input swings to ±0.2, the gain alone to ±1.6, without the shift the top and bottom flatten alike, with it the top flattens lower and the bottom swings further](images/amp-drive-shift.svg)
+
+## Chain Stages to Sustain a Decaying Note
+
+Chaining stages raises the overall gain while every stage keeps its output within about $\pm 1$. Leaving out the filters between stages, the two drives are
+
+$$
+D_\text{crunch}(x) = \tanh\big(2.0\, s(7.9 x)\big), \qquad
+D_\text{high gain}(x) = \tanh\Big(3.2 \tanh\big(5.0\, s(7.9 x)\big)\Big).
+$$
+
+Their **small-signal gain**, the slope at 0, is
+
+$$
+D'(0) = 7.9 \operatorname{sech}^2 b \cdot 2.0 \approx 15.5 \;(24\text{ dB}), \qquad
+7.9 \operatorname{sech}^2 b \cdot 5.0 \cdot 3.2 \approx 123 \;(42\text{ dB}),
+$$
+
+and an input well above $1/D'(0)$, $0.06$ for crunch and $0.008$ for high gain, comes out nearly square:
+
+![Drive curves: crunch rises steeply, high gain almost straight up to ±1](images/amp-drive-curves.svg)
+
+A guitar's peaks, about $0.3$ to $0.6$, are far above both, so every stroke's attack comes out nearly square. The drives differ on a decaying note. At $x = 0.05 \sin t$, the note is below crunch's $0.06$ but far above high gain's $0.008$, so crunch only rounds it while high gain still squares it. A string's decay barely changes the output of high gain, which is why it sustains:
+
+![A quiet sine through each drive: crunch rounded, high gain nearly square](images/amp-drive-waves.svg)
+
+The harmonics of that sine show the shift at work. Crunch with $\tanh$ in place of $s$, in gray, has only odd harmonics, and crunch with $s$ adds even ones:
+
+![Harmonics of the quiet sine: crunch without the shift has only 3, 5, and 7, crunch adds 2, 4, and 6, high gain has strong odd harmonics up to 9](images/amp-drive-harmonics.svg)
+
+This holds for one pure sine. A real guitar note already carries even harmonics, and a chord's notes also produce sum and difference tones between them, so "odd harmonics only" describes the clipper, not what comes out of it on a guitar.
+
+## Shape the Tone Around the Drive
+
+Filters before, between, and after the stages decide which frequencies get distorted and which reach the listener. All are second-order [digital filters](digital-filters/README.md) designed through the bilinear transform: high-passes and low-passes with Butterworth $Q = 1/\sqrt{2}$, and peaking filters whose bandwidth of $N$ octaves gives
+
+$$
+Q = \frac{\sqrt{2^N}}{2^N - 1},
+$$
+
+so one octave is $Q \approx 1.41$.
+
+| Where            | Filters                                                                                                                    | Why                                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Before the drive | 90 Hz high-pass, +4 dB at 750 Hz over 1.2 octaves                                                                          | Keep the low end tight under distortion, and put a mid hump in front like an overdrive pedal         |
+| After $s$        | 20 Hz high-pass                                                                                                            | Remove the slowly varying offset that flattening one side more leaves, before the next stage         |
+| Between stages   | +2 dB (crunch) or +3 dB (high gain) at 1 kHz over 1 octave, 120 Hz high-pass (high gain)                                   | Add to the mid hump, and cut the lows before more gain like a high-gain preamp's coupling capacitors |
+| After the drive  | −18 dB                                                                                                                     | Bring the near-±1 output back toward the dry signal's level                                          |
+| Cabinet          | 75 Hz high-pass, 5.2 kHz low-pass twice and 7 kHz once, +3 dB at 2.4 kHz over 1 octave, −2.5 dB at 450 Hz over 1.5 octaves | A guitar speaker: mostly a roll-off from about 5 kHz that removes the fizz clipping adds             |
+
+The cabinet's three low-passes give −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz, and −31 dB at 10 kHz. Without them, the drive's high harmonics come through as raw fizz.
+
+The structure follows common amp design, but the values were picked by ear in an offline prototype, not fitted to a real amp, so they're starting presets.
+
+## Oversample the Drive to Avoid Aliasing
+
+A signal sampled at $f_s$ can't hold frequencies above $f_s/2$, its Nyquist frequency, and clipping adds harmonics above it. Computed sample by sample at $f_s$, a harmonic at $f > f_s/2$ folds back to $f_s - f$. At 48 kHz, a 27 kHz harmonic lands at 21 kHz, no longer a multiple of the note, and these folded tones sound like inharmonic fizz.
+
+So the drive runs at $4 f_s$. The input is upsampled by inserting three zeros after each sample and low-passing at $f_s/2$, the stages run at 192 kHz where harmonics up to 96 kHz exist correctly, and the output is low-passed at $f_s/2$ again and every fourth sample kept. Only the harmonics above 96 kHz still fold, and they're weak.
+
+Both low-passes are one windowed-sinc filter of 96 taps at the high rate,
+
+$$
+h[n] \propto \frac{\sin\big(\pi (n - c)/4\big)}{\pi (n - c)}\, w[n], \qquad c = \frac{95}{2},
+$$
+
+with a Kaiser window $w$ of $\beta = 7.86$ for about 80 dB of stopband attenuation, scaled to a DC gain of 1. Its transition band is about $0.2 f_s$ wide around $f_s/2$: at 48 kHz, flat to about 19 kHz and down 80 dB from about 29 kHz, so what still folds from the transition band lands above 19 kHz. As polyphase filters, the upsampler computes each of the four phases from every fourth tap, skipping the inserted zeros, and the downsampler computes only the outputs it keeps.
+
+## Why an Odd Clipper Adds Only Odd Harmonics
+
+**Claim.** If $f$ is odd, then $y(t) = f(A \sin \omega t)$ has only odd harmonics.
+
+**Proof.** With $x(t) = A \sin \omega t$ and period $T = 2\pi/\omega$, the input flips sign over half a period, $x(t + T/2) = -x(t)$, and $f$ keeps that:
+
+$$
+y(t + T/2) = f\big(x(t + T/2)\big) = f\big(-x(t)\big) = -f\big(x(t)\big) = -y(t).
+$$
+
+Write $y$ as a Fourier series. Shifting by $T/2$ multiplies the $n$th term by $e^{i n \pi} = (-1)^n$:
+
+$$
+y(t) = \sum_n c_n e^{i n \omega t}, \qquad y(t + T/2) = \sum_n (-1)^n c_n e^{i n \omega t}.
+$$
+
+Matching coefficients with $-y(t)$ gives $(-1)^n c_n = -c_n$, so $c_n = 0$ for every even $n$. $\blacksquare$
+
+The same shows through powers. An odd $f$ has only odd powers in its Taylor series, $\tanh u = u - u^3/3 + 2u^5/15 - \cdots$, and odd powers of a sine hold only odd harmonics, for example $\sin^3 t = \tfrac{3}{4} \sin t - \tfrac{1}{4} \sin 3t$, while even powers hold even harmonics and a constant, $\sin^2 t = \tfrac{1}{2} - \tfrac{1}{2} \cos 2t$.
+
+The shifted stage isn't odd. Its expansion around 0 has a square term,
+
+$$
+s(u) = \operatorname{sech}^2 b \cdot u - \tanh b \operatorname{sech}^2 b \cdot u^2 + O(u^3),
+$$
+
+with $\tanh b \operatorname{sech}^2 b \approx 0.15$ at $b = 0.15$. The $u^2$ term gives the 2nd harmonic and a constant, which the 20 Hz high-pass after $s$ removes.
