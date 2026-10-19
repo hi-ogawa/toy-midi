@@ -268,7 +268,6 @@ function process(
   return output;
 }
 
-// Skips the first half second, where the filter is still settling.
 function measureResponse(
   spec: BiquadFilterSpec,
   signalFrequency: number,
