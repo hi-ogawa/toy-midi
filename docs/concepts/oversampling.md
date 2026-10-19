@@ -28,7 +28,39 @@ $$
 v[m]=\begin{cases}x[m/L] & L\mid m,\\ 0 & \text{otherwise.}\end{cases}
 $$
 
-At the high rate, $v$ has the spectrum of $x$ repeated. Its z-transform is $V(z)=\sum_n x[n]z^{-Ln}=X(z^L)$, so at the high-rate frequency $\omega$ it reads $X$ at $L\omega$. As $\omega$ runs from $0$ to $\pi$, $L\omega$ runs around the circle $L/2$ times, and the original band from 0 to $F_s/2$ appears again as **images** around $F_s$, $2F_s$, and so on. A low-pass at the original Nyquist frequency, $\omega=\pi/L$ at the high rate, keeps the first copy and removes the images, leaving $x$ interpolated at the higher rate. Since only one sample in $L$ is nonzero, the low-pass's output is $1/L$ as loud, so it is multiplied by $L$.
+The zeros are placeholders for the values between the samples, which aren't known yet, and a low-pass at the original Nyquist frequency fills them in. Multiplying its output by $L$ gives the signal at 4× the rate:
+
+![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
+
+Two pictures show why a low-pass is the right way to fill them.
+
+**In time, it adds one bump per sample.** A signal with nothing above $F_s/2$ is fully determined by its samples. With $t$ counted in original samples, the sampling theorem rebuilds it as
+
+$$
+x(t)=\sum_n x[n] \cdot \text{sinc}(t-n), \qquad \text{sinc}(t)=\frac{\sin \pi t}{\pi t}.
+$$
+
+Each sample contributes a sinc bump centered on it, which is 1 there and 0 at every other sample, so the sum passes through every sample and is smooth between them:
+
+![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
+
+Filtering $v$ with a low-pass places a copy of the filter's impulse response at each real sample, scaled by that sample, and adds them up. The ideal low-pass at the original Nyquist frequency is this same sinc, stretched over $L$ high-rate samples, as the next section shows, so the filter computes this sum at every point of the finer grid. The zeros contribute nothing, which is why they're the right placeholders.
+
+**In frequency, the zeros add images.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
+
+$$
+c[m]=\frac{1}{L}\sum_{k=0}^{L-1}e^{j2\pi km/L},
+$$
+
+since the terms all equal 1 when $L$ divides $m$ and otherwise are evenly spaced around the unit circle and cancel. At the high rate $LF_s$, the tone $e^{j2\pi km/L}$ has frequency $kF_s$, and multiplying by it shifts a spectrum up by $kF_s$. So
+
+$$
+v=\frac{1}{L}\tilde x+\frac{1}{L}\sum_{k=1}^{L-1}\big(\tilde x \text{ shifted up by } kF_s\big).
+$$
+
+The first term is the wanted signal at $1/L$ of its level, and the others are **images** of it around $F_s$, $2F_s$, and so on. The low-pass at $F_s/2$ keeps the first term and removes the images, and multiplying by $L$ restores the level:
+
+![The zero-stuffed sine has its 9 kHz component at a quarter of its level and copies at 39, 57, and 87 kHz; after the low-pass and ×4 only the 9 kHz component remains, at full level](images/oversampling-images.svg)
 
 ### Downsample by Filtering and Keeping Every $L$th Sample
 
@@ -46,7 +78,7 @@ $$
 h_\text{ideal}[n]=\frac{\sin(\omega_c n)}{\pi n}=\frac{1}{L}\text{sinc}\frac{n}{L},
 $$
 
-which is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly leaves ripples near the cutoff and a stopband only about 21 dB down, so the taps are tapered by a **window** $w[n]$ instead:
+which is the sinc bump from above, stretched over $L$ high-rate samples, and infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly leaves ripples near the cutoff and a stopband only about 21 dB down, so the taps are tapered by a **window** $w[n]$ instead:
 
 $$
 h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)} \cdot w[n],
