@@ -80,7 +80,7 @@ so one octave is $Q \approx 1.41$.
 | After the drive  | −18 dB                                                                                                                     | Bring the near-±1 output back toward the dry signal's level                                          |
 | Cabinet          | 75 Hz high-pass, 5.2 kHz low-pass twice and 7 kHz once, +3 dB at 2.4 kHz over 1 octave, −2.5 dB at 450 Hz over 1.5 octaves | A guitar speaker: mostly a roll-off from about 5 kHz that removes the fizz clipping adds             |
 
-The cabinet's three low-passes give −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz, and −31 dB at 10 kHz. Without them, the drive's high harmonics come through as raw fizz.
+The cabinet's roll-off is three low-passes in a row, the usual way to build a steep filter, since each second-order section adds 12 dB per octave. Two identical Butterworth sections at 5.2 kHz form a 4th-order Linkwitz–Riley low-pass, 6 dB down at the cutoff with a softer knee than a 4th-order Butterworth, and a third at 7 kHz steepens it to 36 dB per octave further up: −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz, and −31 dB at 10 kHz. Without them, the drive's high harmonics come through as raw fizz.
 
 The structure follows common amp design, but the values were picked by ear in an offline prototype, not fitted to a real amp, so they're starting presets.
 

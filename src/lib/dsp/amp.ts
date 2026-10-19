@@ -5,6 +5,10 @@
  *
  * See [Guitar amp simulation](../../../docs/concepts/guitar-amp-simulation.md)
  * for the model, the equations, and why each filter is there.
+ *
+ * Every number below was picked by ear in the offline prototype (#963), not
+ * derived or fitted to a real amp. The comments give the convention each one
+ * follows, so a value can be judged and retuned against its intent.
  */
 
 import { dbToGain } from "../music.ts";
@@ -32,11 +36,14 @@ type GainStage = {
 };
 
 // A clipped wave carries a slowly varying offset as well as harmonics, since
-// the shifted stage flattens one side more. A 20 Hz high-pass removes it
-// before the next stage, where it would shift that stage's clipping.
+// the shifted stage flattens one side more. A high-pass removes it before the
+// next stage, where it would shift that stage's clipping. 20 Hz is the usual
+// DC blocker cutoff: the bottom of hearing, so nothing audible is lost.
 const DC_BLOCKER: BiquadFilterSpec = { type: "highpass", frequency: 20 };
 
-// A mid bump between stages, like the pre-EQ's, so each stage adds to it.
+// A mid bump between stages, so each stage adds to the pre-EQ's mid hump.
+// Rock and metal voicings center the distortion in the mids, around 500 Hz to
+// 2 kHz, where a guitar sits in a mix; 1 kHz over an octave covers that range.
 function createMidBump(gainDb: number): BiquadFilterSpec {
   return {
     type: "peaking",
@@ -46,6 +53,17 @@ function createMidBump(gainDb: number): BiquadFilterSpec {
   };
 }
 
+// Gains are set by where the clipping starts. The first stage's 18 dB (×7.9)
+// takes a stroke's peaks, about 0.3 to 0.6, to 2.4 to 4.8, well into the flat
+// part of tanh, so every stroke distorts. The stages after it set how quiet a
+// note can get and still be squared off, the drive's small-signal gain: about
+// 24 dB for crunch, which lets a decaying note clean up, and 42 dB for high
+// gain, which keeps it saturated. Later stages get less gain each, the way a
+// high-gain preamp spreads its gain over several stages.
+//
+// The shift b = 0.15 is small, adding a 2nd harmonic around 30 dB below the
+// note on a quiet input, enough for the warmer, tube-like even harmonics without the one-sided
+// buzz a large shift gives.
 const DRIVES: Record<AmpPreset, GainStage[]> = {
   crunch: [
     { gainDb: 18, shift: 0.15, filters: [DC_BLOCKER, createMidBump(2)] },
@@ -57,7 +75,9 @@ const DRIVES: Record<AmpPreset, GainStage[]> = {
       shift: 0.15,
       // The 120 Hz high-pass cuts the lows before more gain, as the small
       // coupling capacitors between a high-gain preamp's stages do, so palm
-      // mutes stay tight.
+      // mutes stay tight. Such amps cut somewhere around 100 to 200 Hz
+      // between stages; 120 Hz keeps a low E's body (82 Hz fundamental, 165 Hz
+      // second harmonic) partly through.
       filters: [
         DC_BLOCKER,
         { type: "highpass", frequency: 120 },
@@ -70,7 +90,10 @@ const DRIVES: Record<AmpPreset, GainStage[]> = {
 };
 
 // Before the drive: a low cut so the low end stays tight under distortion,
-// and a mid hump like an overdrive pedal in front of an amp.
+// and a mid hump like an overdrive pedal used as a boost in front of an amp.
+// The convention is the Tube Screamer's, whose hump peaks near 720 Hz and
+// whose lows roll off below it; here a 90 Hz high-pass, just above a low E,
+// and a gentle +4 dB peak at 750 Hz stand in for it.
 const PRE_EQ: BiquadFilterSpec[] = [
   { type: "highpass", frequency: 90 },
   {
@@ -81,12 +104,24 @@ const PRE_EQ: BiquadFilterSpec[] = [
   },
 ];
 
-// The drive's output is near ±1 at any input level, so this brings it back
-// toward the level of the dry signal.
+// The drive's output is near ±1 at any input level, louder than any dry
+// track. −18 dB brings its peaks to about 0.13, leaving headroom in the mix;
+// the track's own gain sets the final level.
 const OUTPUT_GAIN = dbToGain(-18);
 
-// A guitar speaker: mostly a steep roll-off from about 5 kHz, which removes
-// the fizz clipping adds, with a presence bump and a low-mid dip.
+// A guitar speaker, typically a 12-inch cone in a closed-back cabinet, played
+// back through a close microphone. Its response, and so these filters:
+// - Little below about 75 Hz, where the cabinet stops supporting the cone.
+// - A steep fall above about 5 kHz, where the cone stops moving as one piece.
+//   This is the cabinet's main job, since it removes the fizz clipping adds.
+//   Steep filters are built as cascades of second-order sections, each adding
+//   12 dB per octave. Two identical Butterworth sections at 5.2 kHz form a
+//   4th-order Linkwitz–Riley low-pass, 6 dB down at the cutoff with a soft
+//   knee, and a third at 7 kHz steepens it to 36 dB per octave further up:
+//   −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz.
+// - A presence peak in the 2 to 4 kHz range, where a guitar's bite is.
+// - A low-mid dip around 400 to 500 Hz, which keeps distortion from sounding
+//   boxy.
 const CABINET: BiquadFilterSpec[] = [
   { type: "highpass", frequency: 75 },
   { type: "lowpass", frequency: 5200 },
