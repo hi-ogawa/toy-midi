@@ -70,6 +70,8 @@ Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$
 
 Both directions need the same filter: pass everything below the original Nyquist frequency and stop everything above.
 
+This low-pass is a different kind from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), and it's designed a different way. Those reuse previous outputs, the feedback in [Generalize the Weights and Add Feedback](digital-filters/transfer-functions.md#generalize-the-weights-and-add-feedback), so a few weights make a long response, and they're designed from an analog prototype through the bilinear transform. This one is only a weighted sum of the last $N$ inputs, the case before feedback in that section, so its weights are its impulse response and are designed by choosing that response directly. Without feedback it can skip outputs the downsampler drops, it delays every frequency equally, and a sharper cutoff only takes more weights. The standard names are **FIR** (finite impulse response) for this kind and **IIR** (infinite impulse response) for the feedback kind.
+
 ### Start from the Ideal Low-Pass
 
 The ideal low-pass at $\omega_c=\pi/L$ has the impulse response
