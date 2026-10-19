@@ -144,7 +144,7 @@ $$
 \frac{K}{K^2+1}=\frac{\sin\omega_0}{2}
 $$
 
-gives three delay weights:
+writes the scaled polynomial as $q_0+q_1d+q_2d^2$, whose weights on the constant, one-delay, and two-delay terms are
 
 ```math
 \begin{aligned}
