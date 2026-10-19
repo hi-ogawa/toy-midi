@@ -182,8 +182,13 @@ describe(MultibandEq, () => {
         })),
       },
     });
-    // Two bands double amplitude twice, so the gain is 2 * 2 = 4.
-    expect(measureGainDb(eq, 1000)).toBeCloseTo(gainToDb(4), 3);
+    const input = createSignal({ frames: SAMPLE_RATE, frequency: 1000 });
+    const output = process(eq, input);
+    // Two bands double amplitude twice, so the energy ratio is (2 * 2) ** 2 = 16.
+    expect(
+      measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
+        measureEnergy(input.subarray(SAMPLE_RATE / 2)),
+    ).toBeCloseTo(16, 3);
   });
 
   it("reconciles updates by band ID without resetting its ramp", () => {
@@ -267,21 +272,14 @@ function measureResponse(
   spec: BiquadFilterSpec,
   signalFrequency: number,
 ): number {
-  return measureGainDb(
-    new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1 }, spec),
-    signalFrequency,
-  );
-}
-
-function measureGainDb(
-  eq: Pick<BiquadEq, "process">,
-  signalFrequency: number,
-): number {
   const input = createSignal({
     frames: SAMPLE_RATE,
     frequency: signalFrequency,
   });
-  const output = process(eq, input);
+  const output = process(
+    new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1 }, spec),
+    input,
+  );
   // Measure only the last half second, after the transient from the sine's
   // sudden start has died out.
   return (
