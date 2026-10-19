@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateBiquadEqResponse } from "./biquad-eq";
 import {
+  BUTTERWORTH_Q,
   calculateBiquadFilterCoefficients,
   convertOctavesToQ,
 } from "./biquad-filter";
@@ -12,7 +13,7 @@ describe(calculateBiquadFilterCoefficients, () => {
     "puts a Butterworth %s 3 dB down at its cutoff",
     (type) => {
       const coefficients = calculateBiquadFilterCoefficients(
-        { type, frequency: 1000 },
+        { type, frequency: 1000, q: BUTTERWORTH_Q },
         SAMPLE_RATE,
       );
       const response = (frequency: number) =>

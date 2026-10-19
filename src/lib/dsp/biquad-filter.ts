@@ -14,12 +14,14 @@ import {
   calculateBiquadEqCoefficients,
 } from "./biquad-eq.ts";
 
-// High-passes and low-passes are Butterworth, Q = 1/√2, the flattest passband
-// and −3 dB at the cutoff, since nothing needs another Q.
-const BUTTERWORTH_Q = Math.SQRT1_2;
+/**
+ * Q of a Butterworth high-pass or low-pass, the flattest passband, which puts
+ * the cutoff at −3 dB.
+ */
+export const BUTTERWORTH_Q = Math.SQRT1_2;
 
 export type BiquadFilterSpec =
-  | { type: "highpass" | "lowpass"; frequency: number }
+  | { type: "highpass" | "lowpass"; frequency: number; q: number }
   | { type: "peaking"; frequency: number; gainDb: number; q: number };
 
 /**
@@ -48,7 +50,7 @@ export function calculateBiquadFilterCoefficients(
   // at z = 1 (high-pass, no DC) or z = −1 (low-pass, no Nyquist).
   const omega = (2 * Math.PI * spec.frequency) / sampleRate;
   const cos = Math.cos(omega);
-  const alpha = Math.sin(omega) / (2 * BUTTERWORTH_Q);
+  const alpha = Math.sin(omega) / (2 * spec.q);
   const a0 = 1 + alpha;
   const edge = spec.type === "highpass" ? (1 + cos) / 2 : (1 - cos) / 2;
   return {
