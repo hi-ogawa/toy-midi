@@ -2,7 +2,7 @@
 
 A nonlinear process such as clipping creates frequencies its input didn't have, and some of them can be higher than the sample rate can hold. Computed at the original rate, those frequencies don't disappear but fold back as tones that were never in the music. Oversampling runs the process at a higher rate, where the new frequencies fit, and filters them out on the way back. This document develops that picture and the filters used in [our implementation](../../src/lib/dsp/oversampler.ts), which the [guitar amp](guitar-amp-simulation.md) runs its drive inside.
 
-Throughout, $F_s$ is the original sample rate, 48 kHz in the examples, and $L=4$ is the oversampling factor.
+Throughout, $F_s$ is the original sample rate, 48 kHz in the examples, and $L=4$ is the oversampling factor, so the process runs at the **high rate** $LF_s$, 192 kHz.
 
 ## See Why Clipping Aliases
 
@@ -90,7 +90,7 @@ Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$
 
 ## Design the Low-Pass Kernel
 
-Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above. That boundary is the filter's **cutoff**, at $F_s/2$. The filter runs at the high rate, so its formulas measure frequency in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) of that rate, $\omega=2\pi f/(LF_s)$. That puts the high rate's Nyquist frequency $LF_s/2$ at $\pi$ and the cutoff at $\omega_c=\pi/L$, a quarter of the way up for $L=4$. A real filter only approaches this sharp boundary. Its **passband**, the frequencies it keeps, stays close to unity gain, and its **stopband**, the frequencies it removes, stays at least some number of dB down, which is its **stopband attenuation**. Between them lies a **transition band**, where the gain falls from one to the other, so the cutoff becomes a range of frequencies rather than an edge.
+Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above. That boundary is the filter's **cutoff**, at $F_s/2$. The filter's formulas below, from its impulse response to the window that shortens it, measure frequency in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, where the filter runs, $\omega=2\pi f/(LF_s)$. That puts the high rate's Nyquist frequency $LF_s/2$ at $\pi$ and the cutoff at $\omega_c=\pi/L$, a quarter of the way up for $L=4$. A real filter only approaches this sharp boundary. Its **passband**, the frequencies it keeps, stays close to unity gain, and its **stopband**, the frequencies it removes, stays at least some number of dB down, which is its **stopband attenuation**. Between them lies a **transition band**, where the gain falls from one to the other, so the cutoff becomes a range of frequencies rather than an edge.
 
 ### Start from the Ideal Low-Pass
 
