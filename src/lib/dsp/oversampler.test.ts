@@ -41,8 +41,8 @@ describe(Upsampler, () => {
       );
       output.push(downsampler.processSample(block));
     }
-    // Kept unfiltered, every 4th sample of 35 kHz would read as 13 kHz. The
-    // low-pass's gain stays under −30 dB above about 29 kHz.
+    // At 48 kHz, 35 kHz is above the 24 kHz Nyquist frequency and would alias
+    // to 13 kHz. The low-pass's gain stays under −30 dB above about 29 kHz.
     expect(
       gainToDb(measureRms(output.slice(1000)) / measureRms(input)),
     ).toBeLessThan(-30);
