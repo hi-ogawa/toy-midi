@@ -86,21 +86,21 @@ This low-pass is a different kind of filter from the amp's [low-passes and high-
 
 ### Downsample by Filtering and Keeping Every $L$th Sample
 
-Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$ in the processed signal would alias by the same rule as above. A low-pass at $\omega=\pi/L$ removes it first, and then every $L$th sample is kept.
+Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$ in the processed signal would alias by the same rule as above. A low-pass at the original Nyquist frequency removes it first, and then every $L$th sample is kept.
 
 ## Design the Low-Pass Kernel
 
-Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above. A real filter only approaches this. Its **passband**, the frequencies it keeps, stays close to unity gain, and its **stopband**, the frequencies it removes, stays at least some number of dB down, which is its **stopband attenuation**. Between them lies a **transition band**, where the gain falls from one to the other, so the cutoff becomes a range of frequencies rather than an edge.
+Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above. That boundary is the filter's **cutoff**. Measured in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, where the Nyquist frequency $LF_s/2$ is $\pi$, the cutoff $F_s/2$ is $\omega_c=\pi/L$. A real filter only approaches this sharp boundary. Its **passband**, the frequencies it keeps, stays close to unity gain, and its **stopband**, the frequencies it removes, stays at least some number of dB down, which is its **stopband attenuation**. Between them lies a **transition band**, where the gain falls from one to the other, so the cutoff becomes a range of frequencies rather than an edge.
 
 ### Start from the Ideal Low-Pass
 
-The ideal low-pass at $\omega_c=\pi/L$ has the impulse response
+The ideal low-pass at $\omega_c$ has the impulse response
 
 $$
 h_\text{ideal}[n]=\frac{\sin(\omega_c n)}{\pi n}=\frac{1}{L}\text{sinc}\frac{n}{L},
 $$
 
-which is the sinc bump from above, stretched over $L$ high-rate samples, and infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly leaves ripples near the cutoff and a stopband only about 21 dB down, so the taps are tapered by a **window** $w[n]$ instead:
+which is the sinc bump from above, stretched over $L$ high-rate samples, and infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. So the taps are tapered by a **window** $w[n]$ instead:
 
 $$
 h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)} \cdot w[n],
