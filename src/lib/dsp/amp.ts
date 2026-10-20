@@ -40,7 +40,6 @@ const DC_BLOCKER: BiquadFilterSpec = {
   q: BUTTERWORTH_Q,
 };
 
-// A mid bump between stages, so each stage adds to the pre-EQ's mid hump.
 // Rock and metal voicings center the distortion in the mids, around 500 Hz to
 // 2 kHz, where a guitar sits in a mix; 1 kHz over an octave covers that range.
 function createMidBump(gainDb: number): BiquadFilterSpec {
@@ -70,11 +69,9 @@ const DRIVES: Record<AmpPreset, GainStage[]> = {
     {
       gainDb: 18,
       shift: 0.15,
-      // The 120 Hz high-pass cuts the lows before more gain, as the small
-      // coupling capacitors between a high-gain preamp's stages do, so palm
-      // mutes stay tight. Such amps cut somewhere around 100 to 200 Hz
-      // between stages; 120 Hz keeps a low E's body (82 Hz fundamental, 165 Hz
-      // second harmonic) partly through.
+      // High-gain amps cut somewhere around 100 to 200 Hz between stages, so
+      // palm mutes stay tight; 120 Hz keeps a low E's body (82 Hz
+      // fundamental, 165 Hz second harmonic) partly through.
       filters: [
         DC_BLOCKER,
         { type: "high-pass", frequency: 120, q: BUTTERWORTH_Q },
@@ -86,11 +83,10 @@ const DRIVES: Record<AmpPreset, GainStage[]> = {
   ],
 };
 
-// Before the drive: a low cut so the low end stays tight under distortion,
-// and a mid hump like an overdrive pedal used as a boost in front of an amp.
-// The convention is the Tube Screamer's, whose hump peaks near 720 Hz and
-// whose lows roll off below it; here a 90 Hz high-pass, just above a low E,
-// and a gentle +4 dB peak at 750 Hz stand in for it.
+// The convention is the Tube Screamer's, an overdrive pedal used as a boost,
+// whose hump peaks near 720 Hz and whose lows roll off below it; here a 90 Hz
+// high-pass, just above a low E, and a gentle +4 dB peak at 750 Hz stand in
+// for it.
 const PRE_EQ: BiquadFilterSpec[] = [
   { type: "high-pass", frequency: 90, q: BUTTERWORTH_Q },
   {
@@ -101,8 +97,7 @@ const PRE_EQ: BiquadFilterSpec[] = [
   },
 ];
 
-// The drive's output is near ±1 at any input level, louder than any dry
-// track. −18 dB brings its peaks to about 0.13, leaving headroom in the mix;
+// −18 dB brings the drive's peaks to about 0.13, leaving headroom in the mix;
 // the track's own gain sets the final level.
 const OUTPUT_GAIN = dbToGain(-18);
 
@@ -110,9 +105,8 @@ const OUTPUT_GAIN = dbToGain(-18);
 // back through a close microphone. Its response, and so these filters:
 // - Little below about 75 Hz, where the cabinet stops supporting the cone.
 // - A steep fall above about 5 kHz, where the cone stops moving as one piece.
-//   Two Butterworth sections at 5.2 kHz give a soft knee, and a third at
-//   7 kHz steepens the fall further up: −1 dB at 3 kHz, −7 dB at 5.2 kHz,
-//   −21 dB at 8 kHz.
+//   The three low-passes give −1 dB at 3 kHz, −7 dB at 5.2 kHz, and −21 dB
+//   at 8 kHz.
 // - A presence peak in the 2 to 4 kHz range, where a guitar's bite is.
 // - A low-mid dip around 400 to 500 Hz, which keeps distortion from sounding
 //   boxy.
