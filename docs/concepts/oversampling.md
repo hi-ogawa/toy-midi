@@ -152,7 +152,7 @@ Measured with a steady sine at 0.3 through the amp's drive, the energy between t
 | High gain, 1318 Hz | −22 dB   | −61 dB    |
 | Crunch, 1318 Hz    | −61 dB   | −135 dB   |
 
-## Filter in Polyphase Form
+## Compute the Filters in Polyphase Form
 
 Applied directly, both filters would spend most of their multiplications on nothing, because the upsampler's input is mostly inserted zeros and the downsampler throws away $L-1$ of every $L$ outputs. The **polyphase** form leaves those terms out by grouping the taps by $j$ modulo $L$. The figure draws both convolutions with a 12-tap low-pass, newest sample first, so each row lists its taps $h_0, h_1, \dots$ left to right under the samples they multiply, with tap 0 on the output the row computes:
 
