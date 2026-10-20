@@ -154,13 +154,23 @@ Measured with a steady sine at 0.3 through the amp's drive, the energy between t
 
 ## Skip the Work That Zeros and Dropped Samples Waste
 
-Applied directly, both filters would spend most of their multiplications on nothing, because the upsampler's input is mostly inserted zeros and the downsampler throws away $L-1$ of every $L$ outputs. The implementation leaves those terms out. In the upsampler's convolution, only taps $j=p+Lk$ meet a real sample at output $m=Ln+p$, so
+Applied directly, both filters would spend most of their multiplications on nothing, because the upsampler's input is mostly inserted zeros and the downsampler throws away $L-1$ of every $L$ outputs. The implementation leaves those terms out. The figure draws both convolutions with a 12-tap low-pass, newest sample first, so each row lists its taps $h_0, h_1, \dots$ left to right under the samples they multiply, with tap 0 on the output the row computes:
+
+![Upsampling: each of the four outputs of x5 slides the low-pass one step, and every one meets the same samples x5, x4, x3, at taps p, p + 4, p + 8. Downsampling: only every 4th output is computed, so the low-pass jumps four steps between them](images/oversampling-polyphase.svg)
+
+In the upsampler, the $L$ outputs of $x[n]$ slide the low-pass one step at a time, so they all meet the same real samples, each at its own taps. Output $m=Ln+p$ meets them only at taps $j=p+Lk$, so
 
 $$
-y[Ln+p]=L\sum_{k=0}^{N/L-1}h[p+Lk] \cdot x[n-k],
+y[Ln+p]=L\sum_{k=0}^{N/L-1}h[p+Lk] \cdot x[n-k].
 $$
 
-and the downsampler computes only the outputs it keeps. Both cost $N=96$ multiplications per original sample instead of $4N$. Grouping the taps by $j$ modulo $L$ this way is called the **polyphase** form.
+The downsampler computes only the outputs it keeps, one for each block of $L$ samples of the processed signal $w$,
+
+$$
+z[n]=\sum_{j=0}^{N-1}h[j] \cdot w[Ln+L-1-j].
+$$
+
+Both cost $N=96$ multiplications per original sample instead of $4N$. Grouping the taps by $j$ modulo $L$ this way is called the **polyphase** form.
 
 ### Account for the Delay
 
