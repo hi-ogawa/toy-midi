@@ -4,7 +4,7 @@
  * drive runs 4× oversampled so clipping doesn't alias.
  *
  * See [Guitar amp simulation](../../../docs/concepts/guitar-amp-simulation.md)
- * for the model, the equations, and why each filter is there. Its values were
+ * for the model, the equations, and why each filter is there. The values were
  * picked by ear, so the comments below give the convention each one follows,
  * for judging and retuning it against its intent.
  */
