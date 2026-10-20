@@ -4,9 +4,7 @@
  * drive runs 4× oversampled so clipping doesn't alias.
  *
  * See [Guitar amp simulation](../../../docs/concepts/guitar-amp-simulation.md)
- * for the model, the equations, and why each filter is there. The comments
- * below give the convention each value follows, so it can be judged and
- * retuned against its intent.
+ * for the model, the equations, and why each filter is there.
  */
 
 import { dbToGain } from "../music.ts";
