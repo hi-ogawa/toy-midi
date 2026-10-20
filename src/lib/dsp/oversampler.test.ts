@@ -41,8 +41,8 @@ describe(Upsampler, () => {
       );
       output.push(downsampler.processSample(block));
     }
-    // 35 kHz would fold to 13 kHz at 48 kHz. The kernel is at least about
-    // 30 dB down from 29 kHz.
+    // 35 kHz would fold to 13 kHz at 48 kHz. Above about 29 kHz, the kernel's
+    // gain stays under −30 dB.
     expect(
       gainToDb(measureRms(output.slice(1000)) / measureRms(input)),
     ).toBeLessThan(-30);
