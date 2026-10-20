@@ -94,13 +94,13 @@ Both directions convolve with the same kernel, a low-pass that passes everything
 
 ### Start from the Ideal Low-Pass
 
-The ideal low-pass at $\omega_c$ has the impulse response
+The sinc bump from [Upsample by Interpolating](#upsample-by-interpolating) is already this kernel. High-rate sample $n$ sits $n/L$ original samples from the bump's center, and dividing by $L$ makes the weights pass DC at unity, so
 
 $$
-h_\text{ideal}[n]=\frac{\sin(\omega_c n)}{\pi n}=\frac{1}{L}\text{sinc}\frac{n}{L},
+h_\text{ideal}[n]=\frac{1}{L}\text{sinc}\frac{n}{L}=\frac{\sin(\omega_c n)}{\pi n}.
 $$
 
-which is the sinc bump from above, stretched over $L$ high-rate samples, and infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. So the taps are tapered by a **window** $w[n]$ instead:
+The second form reaches the same kernel from the frequency side. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response $\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}\,d\omega=\frac{\sin(\omega_c n)}{\pi n}$. Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. So the taps are tapered by a **window** $w[n]$ instead:
 
 $$
 h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)} \cdot w[n],
