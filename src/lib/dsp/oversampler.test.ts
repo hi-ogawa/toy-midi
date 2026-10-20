@@ -16,7 +16,7 @@ describe(Upsampler, () => {
       phase: (-2 * Math.PI * 1000 * delay) / SAMPLE_RATE,
     });
     const settled = 1000;
-    // The kernel ripples by up to about 0.5 dB per pass.
+    // The low-pass's passband ripples by up to about 0.5 dB per pass.
     const gain =
       measureRms(output.slice(settled)) / measureRms(expected.slice(settled));
     expect(Math.abs(gainToDb(gain))).toBeLessThan(1);
@@ -41,8 +41,8 @@ describe(Upsampler, () => {
       );
       output.push(downsampler.processSample(block));
     }
-    // 35 kHz would fold to 13 kHz at 48 kHz. Above about 29 kHz, the kernel's
-    // gain stays under −30 dB.
+    // 35 kHz would fold to 13 kHz at 48 kHz. Above about 29 kHz, the
+    // low-pass's gain stays under −30 dB.
     expect(
       gainToDb(measureRms(output.slice(1000)) / measureRms(input)),
     ).toBeLessThan(-30);
