@@ -96,6 +96,8 @@ So the drive runs at $4 f_s$, between an upsampler and a downsampler, and the fi
 
 ## Appendix: Why an Odd Clipper Adds Only Odd Harmonics
 
+> 🚧 TODO: not yet internalized by the author.
+
 **Claim.** If $f$ is odd, then $y(t) = f(A \sin \omega t)$ has only odd harmonics.
 
 **Proof.** With $x(t) = A \sin \omega t$ and period $T = 2\pi/\omega$, the input flips sign over half a period, $x(t + T/2) = -x(t)$, and $f$ keeps that:

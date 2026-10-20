@@ -64,6 +64,8 @@ So the zeros aren't a separate trick. They're what the input looks like at the n
 | Linear interpolation | a triangle two samples wide | $\text{sinc}^2(f/F_s)$      |
 | Ideal                | $\text{sinc}$               | flat to $F_s/2$, zero above |
 
+> 🚧 TODO: not yet internalized by the author.
+
 **The zeros add images above $F_s/2$, and the low-pass removes them.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
 
 $$
@@ -110,6 +112,8 @@ $$
 The taps are then scaled to sum to 1, so the filter passes DC at exactly unity.
 
 ### Trade Length for Stopband with a Kaiser Window
+
+> 🚧 TODO: not yet internalized by the author.
 
 A window trades two things. Its taper sets the stopband attenuation, and its length sets how wide the transition band is. The **Kaiser window**,
 
@@ -176,6 +180,8 @@ Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays b
 - [FFmpeg resampler options](https://ffmpeg.org/ffmpeg-resampler.html), the resampler the [amp prototype](https://github.com/hi-ogawa/toy-midi/pull/963) oversampled with, whose default filter is a longer Kaiser-windowed sinc
 
 ## Appendix: The Statements Behind the Pictures
+
+> 🚧 TODO: not yet internalized by the author.
 
 The upsampling pictures are cleanest in continuous time, where they amount to the sampling theorem, and the discrete upsampler then follows with one caveat. Measure time $t$ in original samples and frequency $f$ in units of $F_s$, so the original Nyquist frequency is $f=1/2$, and write $X(f)=\int x(t) \cdot e^{-j2\pi ft}dt$ for the Fourier transform of $x$, and likewise $S$, $B$ for $s$, $b$.
 
