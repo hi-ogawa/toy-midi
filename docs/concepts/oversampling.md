@@ -90,7 +90,7 @@ Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$
 
 ## Design the Low-Pass Kernel
 
-Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above.
+Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above. A real filter only approaches this. Its **passband**, the frequencies it keeps, stays close to unity gain, and its **stopband**, the frequencies it removes, stays at least some number of dB down, which is its **stopband attenuation**. Between them lies a **transition band**, where the gain falls from one to the other, so the cutoff becomes a range of frequencies rather than an edge.
 
 ### Start from the Ideal Low-Pass
 
@@ -111,7 +111,7 @@ The taps are then scaled to sum to 1, so the filter passes DC at exactly unity.
 
 ### Trade Length for Stopband with a Kaiser Window
 
-A window trades two things. Its taper sets how far down the stopband is, and its length sets how wide the **transition band** between passband and stopband is. The **Kaiser window**,
+A window trades two things. Its taper sets the stopband attenuation, and its length sets how wide the transition band is. The **Kaiser window**,
 
 $$
 w[n]=\frac{I_0\Big(\beta\sqrt{1-\big((n-c)/c\big)^2}\Big)}{I_0(\beta)},

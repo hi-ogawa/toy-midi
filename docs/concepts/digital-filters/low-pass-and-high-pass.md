@@ -68,7 +68,7 @@ This **quality factor** expresses damping relative to the frequency scale. We ca
 
 ### Choose a Flat Passband
 
-The squared magnitude shows how $Q$ shapes the passband. Write $\nu=\Omega/\Omega_0$ for the relative frequency. Substituting $u=j\nu$ gives
+A low-pass's **passband** is the range of frequencies it lets through, here those below $\Omega_0$, where an ideal low-pass would have a gain of exactly 1. The squared magnitude shows how $Q$ shapes it. Write $\nu=\Omega/\Omega_0$ for the relative frequency. Substituting $u=j\nu$ gives
 
 ```math
 \begin{aligned}
