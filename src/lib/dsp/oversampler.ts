@@ -17,8 +17,8 @@ const KERNEL = defineKernel();
  * `processSample(x, output)` filling `output[0..3]`.
  */
 export class Upsampler {
-  // The last TAPS_PER_PHASE input samples, stored twice so a window of them
-  // is always contiguous without wrapping.
+  // The last TAPS_PER_PHASE input samples, stored twice so they always read
+  // as one contiguous run without wrapping.
   private readonly history = new Float64Array(2 * TAPS_PER_PHASE);
   private position = 0;
 
