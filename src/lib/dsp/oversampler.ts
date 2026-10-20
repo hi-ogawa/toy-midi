@@ -69,8 +69,8 @@ export class Downsampler {
  * h[n] = sinc((n − c) / 4) / 4, centered at c = (TAPS − 1) / 2, cut to TAPS
  * taps, and scaled to pass DC at exactly unity.
  */
-// TODO: Study the Kaiser window in the doc and taper the kernel with it, for
-// about 80 dB of stopband attenuation instead of 21 dB at the same length.
+// TODO: Study the Kaiser window in Oversampling and taper the kernel with it,
+// for about 80 dB of stopband attenuation instead of 21 dB at the same length.
 function defineKernel(): Float64Array {
   const taps = new Float64Array(TAPS);
   const center = (TAPS - 1) / 2;
