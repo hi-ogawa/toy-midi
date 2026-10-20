@@ -5,7 +5,7 @@
  * exist up to 4× higher, and the downsampler's low-pass removes the ones the
  * original rate can't hold.
  *
- * Both directions convolve with one windowed-sinc low-pass kernel at the
+ * Both directions convolve with one sinc low-pass kernel at the
  * original Nyquist frequency, applied as a polyphase filter so no
  * multiplications are spent on the zeros that upsampling inserts or the
  * samples that downsampling drops.
@@ -17,14 +17,11 @@
 export const OVERSAMPLING_FACTOR = 4;
 
 // Taps per polyphase branch. The low-pass is 4 × 24 = 96 taps at the high
-// rate, with a transition band about 0.2 × the original sample rate wide,
-// centered on the original Nyquist frequency: at 48 kHz, flat to about
-// 19 kHz and down 80 dB from about 29 kHz. The little that folds back from
-// the transition band lands above 19 kHz.
+// rate. Cut without a window, at 48 kHz it ripples by up to about 0.5 dB
+// below 20 kHz, and it is only about 21 dB down just above 24 kHz, 30 dB
+// down from about 29 kHz, and 40 dB down from about 40 kHz.
 const TAPS_PER_PHASE = 24;
 const TAPS = OVERSAMPLING_FACTOR * TAPS_PER_PHASE;
-// Kaiser window β for about 80 dB of stopband attenuation.
-const KAISER_BETA = 7.86;
 
 const KERNEL = defineKernel();
 
@@ -83,35 +80,21 @@ export class Downsampler {
 }
 
 /**
- * h[n] = sinc(n − c) / 4 · w[n] with c = (TAPS − 1) / 2: an ideal low-pass at
- * a quarter of the high rate's Nyquist frequency, cut to TAPS taps by a Kaiser
- * window, scaled to a DC gain of exactly 1.
+ * h[n] = sinc((n − c) / 4) / 4 with c = (TAPS − 1) / 2: an ideal low-pass at
+ * a quarter of the high rate's Nyquist frequency, cut to TAPS taps, scaled to
+ * a DC gain of exactly 1.
  */
+// TODO: Study the Kaiser window in docs/concepts/oversampling.md and taper the
+// kernel with it, which takes the stopband from about 21 dB down to about
+// 80 dB down at the same length.
 function defineKernel(): Float64Array {
   const taps = new Float64Array(TAPS);
   const center = (TAPS - 1) / 2;
   const cutoff = 1 / OVERSAMPLING_FACTOR;
   for (let n = 0; n < TAPS; n++) {
     const t = n - center;
-    const sinc =
-      t === 0 ? cutoff : Math.sin(Math.PI * cutoff * t) / (Math.PI * t);
-    const r = t / center;
-    const window =
-      calculateBesselI0(KAISER_BETA * Math.sqrt(1 - r * r)) /
-      calculateBesselI0(KAISER_BETA);
-    taps[n] = sinc * window;
+    taps[n] = t === 0 ? cutoff : Math.sin(Math.PI * cutoff * t) / (Math.PI * t);
   }
   const sum = taps.reduce((a, b) => a + b, 0);
   return taps.map((tap) => tap / sum);
-}
-
-/** Modified Bessel function of the first kind, order 0, by its power series. */
-function calculateBesselI0(x: number): number {
-  let sum = 1;
-  let term = 1;
-  for (let k = 1; term > 1e-12 * sum; k++) {
-    term *= (x / (2 * k)) ** 2;
-    sum += term;
-  }
-  return sum;
 }
