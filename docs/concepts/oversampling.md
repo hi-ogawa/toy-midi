@@ -152,9 +152,9 @@ Measured with a steady sine at 0.3 through the amp's drive, the energy between t
 | High gain, 1318 Hz | −22 dB   | −61 dB    |
 | Crunch, 1318 Hz    | −61 dB   | −135 dB   |
 
-## Skip the Work That Zeros and Dropped Samples Waste
+## Filter in Polyphase Form
 
-Applied directly, both filters would spend most of their multiplications on nothing, because the upsampler's input is mostly inserted zeros and the downsampler throws away $L-1$ of every $L$ outputs. The implementation leaves those terms out. The figure draws both convolutions with a 12-tap low-pass, newest sample first, so each row lists its taps $h_0, h_1, \dots$ left to right under the samples they multiply, with tap 0 on the output the row computes:
+Applied directly, both filters would spend most of their multiplications on nothing, because the upsampler's input is mostly inserted zeros and the downsampler throws away $L-1$ of every $L$ outputs. The **polyphase** form leaves those terms out by grouping the taps by $j$ modulo $L$. The figure draws both convolutions with a 12-tap low-pass, newest sample first, so each row lists its taps $h_0, h_1, \dots$ left to right under the samples they multiply, with tap 0 on the output the row computes:
 
 ![Upsampling: each of the four outputs of x5 slides the low-pass one step, and every one meets the same samples x5, x4, x3, at taps p, p + 4, p + 8. Downsampling: only every 4th output is computed, so the low-pass jumps four steps between them](images/oversampling-polyphase.svg)
 
@@ -170,9 +170,9 @@ $$
 z[n]=\sum_{j=0}^{N-1}h[j] \cdot w[Ln+L-1-j].
 $$
 
-Both cost $N=96$ multiplications per original sample instead of $4N$. Grouping the taps by $j$ modulo $L$ this way is called the **polyphase** form.
+Both cost $N=96$ multiplications per original sample instead of $4N$.
 
-### Account for the Delay
+## Account for the Delay
 
 Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays by 95. The downsampler's output $n$ is computed at high-rate sample $Ln+L-1$, the last of its block, so the round trip delays by $(95-3)/4=23$ original samples, about half a millisecond at 48 kHz.
 
