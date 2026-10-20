@@ -1,25 +1,12 @@
 /**
- * 4× oversampling for nonlinear processing such as clipping, which adds
- * harmonics above the Nyquist frequency. Run at the original rate, they would
- * fold back below it as inharmonic tones (aliasing). Run at 4× the rate, they
- * exist up to 4× higher, and the downsampler's low-pass removes the ones the
- * original rate can't hold.
- *
- * Both directions convolve with one sinc low-pass kernel at the
- * original Nyquist frequency, applied as a polyphase filter so no
- * multiplications are spent on the zeros that upsampling inserts or the
- * samples that downsampling drops.
- *
- * See [Oversampling](../../../docs/concepts/oversampling.md) for the
- * derivation and the filter design.
+ * 4× oversampling for nonlinear processing such as clipping. Both directions
+ * convolve with one sinc low-pass kernel in polyphase form, as
+ * [Oversampling](../../../docs/concepts/oversampling.md) derives.
  */
 
 export const OVERSAMPLING_FACTOR = 4;
 
-// Taps per polyphase branch. The low-pass is 4 × 24 = 96 taps at the high
-// rate. Cut without a window, at 48 kHz it ripples by up to about 0.5 dB
-// below 20 kHz, and it is only about 21 dB down just above 24 kHz, 30 dB
-// down from about 29 kHz, and 40 dB down from about 40 kHz.
+// Taps per polyphase branch, so the kernel is 4 × 24 = 96 taps.
 const TAPS_PER_PHASE = 24;
 const TAPS = OVERSAMPLING_FACTOR * TAPS_PER_PHASE;
 
@@ -39,9 +26,8 @@ export class Upsampler {
     this.position = (this.position + TAPS_PER_PHASE - 1) % TAPS_PER_PHASE;
     this.history[this.position] = x;
     this.history[this.position + TAPS_PER_PHASE] = x;
-    // Output phase p is the low-pass applied to the input with three zeros
-    // after each sample, which only touches taps p, p + 4, p + 8, …. The
-    // factor 4 restores the level the zeros take away.
+    // Output phase p reads taps p, p + 4, p + 8, … against the real samples,
+    // and the factor 4 restores the level the inserted zeros take away.
     for (let phase = 0; phase < OVERSAMPLING_FACTOR; phase++) {
       let sum = 0;
       for (let k = 0; k < TAPS_PER_PHASE; k++) {
@@ -80,13 +66,11 @@ export class Downsampler {
 }
 
 /**
- * h[n] = sinc((n − c) / 4) / 4 with c = (TAPS − 1) / 2: an ideal low-pass at
- * a quarter of the high rate's Nyquist frequency, cut to TAPS taps, scaled to
- * a DC gain of exactly 1.
+ * h[n] = sinc((n − c) / 4) / 4, centered at c = (TAPS − 1) / 2, cut to TAPS
+ * taps, and scaled to pass DC at exactly unity.
  */
-// TODO: Study the Kaiser window in docs/concepts/oversampling.md and taper the
-// kernel with it, which takes the stopband from about 21 dB down to about
-// 80 dB down at the same length.
+// TODO: Study the Kaiser window in the doc and taper the kernel with it, for
+// about 80 dB of stopband attenuation instead of 21 dB at the same length.
 function defineKernel(): Float64Array {
   const taps = new Float64Array(TAPS);
   const center = (TAPS - 1) / 2;
