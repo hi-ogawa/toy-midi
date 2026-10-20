@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { gainToDb } from "../music";
 import { Amp, type AmpParameters } from "./amp";
 
 const SAMPLE_RATE = 48000;
@@ -23,7 +24,7 @@ describe(Amp, () => {
             createSine({ frequency: 220, amplitude }),
           ).slice(2400),
         );
-      return toDb(level(0.02) / level(0.5));
+      return gainToDb(level(0.02) / level(0.5));
     };
     expect(fade("crunch")).toBeLessThan(-6);
     expect(fade("high-gain")).toBeGreaterThan(-3);
@@ -35,7 +36,7 @@ describe(Amp, () => {
       createSine({ frequency: 200, amplitude: 0.05 }),
     ).slice(2400);
     const harmonic = (n: number) => measureHarmonic(output, 200 * n);
-    expect(toDb(harmonic(2) / harmonic(1))).toBeGreaterThan(-50);
+    expect(gainToDb(harmonic(2) / harmonic(1))).toBeGreaterThan(-50);
   });
 
   it("rolls off the clipping's fizz with the cabinet", () => {
@@ -46,7 +47,7 @@ describe(Amp, () => {
       ).slice(2400);
       return measureHarmonic(output, 440 * 23) / measureHarmonic(output, 440);
     };
-    expect(toDb(fizz(true) / fizz(false))).toBeLessThan(-20);
+    expect(gainToDb(fizz(true) / fizz(false))).toBeLessThan(-20);
   });
 
   it("writes the same mono signal to every output channel", () => {
@@ -112,9 +113,4 @@ function measureHarmonic(
     im += samples[i] * Math.sin(angle);
   }
   return (2 * Math.hypot(re, im)) / samples.length;
-}
-
-// Unlike gainToDb, not floored at the mixer's −60 dB.
-function toDb(gain: number): number {
-  return 20 * Math.log10(gain);
 }

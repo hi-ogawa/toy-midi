@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { gainToDb } from "../music";
 import { Downsampler, OVERSAMPLING_FACTOR, Upsampler } from "./oversampler";
 
 const SAMPLE_RATE = 48000;
@@ -19,7 +20,7 @@ describe(Upsampler, () => {
     // Cut without a window, the kernel ripples by up to about 0.5 dB per pass.
     const gain =
       measureRms(output.slice(settled)) / measureRms(expected.slice(settled));
-    expect(Math.abs(toDb(gain))).toBeLessThan(1);
+    expect(Math.abs(gainToDb(gain))).toBeLessThan(1);
     // Apart from that level, it's the same sine, delayed.
     for (let i = settled; i < output.length; i++) {
       expect(output[i] / gain).toBeCloseTo(expected[i], 3);
@@ -40,7 +41,9 @@ describe(Upsampler, () => {
     }
     // 35 kHz would fold to 13 kHz at 48 kHz. The kernel, cut without a window,
     // is at least about 30 dB down from 29 kHz.
-    expect(toDb(measureRms(output.slice(1000)) * Math.SQRT2)).toBeLessThan(-30);
+    expect(gainToDb(measureRms(output.slice(1000)) * Math.SQRT2)).toBeLessThan(
+      -30,
+    );
   });
 });
 
@@ -78,9 +81,4 @@ function measureRms(samples: ArrayLike<number>): number {
     sum += samples[i] ** 2;
   }
   return Math.sqrt(sum / samples.length);
-}
-
-// Unlike gainToDb, not floored at the mixer's −60 dB.
-function toDb(gain: number): number {
-  return 20 * Math.log10(gain);
 }
