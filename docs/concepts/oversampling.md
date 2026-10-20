@@ -129,7 +129,7 @@ We take $A=80$ dB, so $\beta=7.86$, and $N=96$ taps at the high rate. Then $\Del
 
 ### Compare with Simple Interpolation
 
-Computed for the actual 4-tap box, 7-tap triangle, and 96-tap low-pass, along with the same 96 taps cut without a window, the responses show how much the extra taps and the window each buy:
+Computed for the actual 4-tap box, 7-tap triangle, and 96-tap low-pass, along with the same 96 taps cut without a window, the frequency responses show how much the extra taps and the window each buy:
 
 ![Repeating samples and linear interpolation fall gradually and leave the images of a 9 kHz sine only 13 and 25 dB down. The 96-tap sinc without a window ripples only 21 dB down just above the cutoff and stays 30 to 60 dB down across the image band, while the 96-tap Kaiser low-pass stays flat to 19 kHz and removes the images by more than 90 dB](images/oversampling-interpolators.svg)
 
