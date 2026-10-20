@@ -88,9 +88,9 @@ This low-pass is a different kind of filter from the amp's [low-passes and high-
 
 Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$ in the processed signal would alias by the same rule as above. A low-pass at $\omega=\pi/L$ removes it first, and then every $L$th sample is kept.
 
-## Design the Low-Pass
+## Design the Low-Pass Kernel
 
-Both directions need the same filter: pass everything below the original Nyquist frequency and stop everything above.
+Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above.
 
 ### Start from the Ideal Low-Pass
 

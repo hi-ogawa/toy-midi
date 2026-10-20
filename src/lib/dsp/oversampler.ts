@@ -5,9 +5,10 @@
  * exist up to 4× higher, and the downsampler's low-pass removes the ones the
  * original rate can't hold.
  *
- * Both directions use one windowed-sinc low-pass at the original Nyquist
- * frequency, applied as a polyphase filter so no multiplications are spent on
- * the zeros that upsampling inserts or the samples that downsampling drops.
+ * Both directions convolve with one windowed-sinc low-pass kernel at the
+ * original Nyquist frequency, applied as a polyphase filter so no
+ * multiplications are spent on the zeros that upsampling inserts or the
+ * samples that downsampling drops.
  *
  * See [Oversampling](../../../docs/concepts/oversampling.md) for the
  * derivation and the filter design.
