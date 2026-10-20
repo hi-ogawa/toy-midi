@@ -154,27 +154,13 @@ Measured with a steady sine at 0.3 through the amp's drive, the energy between t
 
 ## Skip the Work That Zeros and Dropped Samples Waste
 
-Applied directly, both filters would spend most of their multiplications on nothing. The upsampler's input is mostly inserted zeros, and the downsampler throws away $L-1$ of every $L$ outputs. Splitting the filter into **polyphase** branches avoids both.
-
-For the upsampler, the high-rate output at $m=Ln+p$, with phase $p=0,\dots,L-1$, is
+Applied directly, both filters would spend most of their multiplications on nothing, because the upsampler's input is mostly inserted zeros and the downsampler throws away $L-1$ of every $L$ outputs. The implementation leaves those terms out. In the upsampler's convolution, only taps $j=p+Lk$ meet a real sample at output $m=Ln+p$, so
 
 $$
-y[Ln+p]=L\sum_{j}h[j] \cdot v[Ln+p-j].
+y[Ln+p]=L\sum_{k=0}^{N/L-1}h[p+Lk] \cdot x[n-k],
 $$
 
-Only the terms where $Ln+p-j$ is a multiple of $L$ are nonzero, which means $j=p+Lk$, and there $v=x[n-k]$:
-
-$$
-y[Ln+p]=L\sum_{k=0}^{N/L-1}h[p+Lk] \cdot x[n-k].
-$$
-
-Each output phase is a short filter of $N/L=24$ taps on the original samples, so each input sample costs $N=96$ multiplications for its four outputs rather than $4N$.
-
-The branches have a direct meaning. Branch $p$'s taps $h[p+Lk]$ sample the low-pass's sinc once per original sample, starting $p$ high-rate samples in, so every branch is the same sinc read at a different offset between the taps. A sinc whose peak falls between taps is a filter that delays by a fraction of a sample, which means it reads the signal between its samples. Branch $p$'s peak sits at $k=(c-p)/L$, so it reads the signal $p/L$ of a sample later than branch 0, and upsampling by 4 is asking four such filters for the signal at 0, ¼, ½, and ¾ of the way to the next sample, then interleaving their answers:
-
-![Four rows of 24 taps, one per polyphase branch, each sampling the same windowed sinc, whose peak moves a quarter tap earlier from one branch to the next](images/oversampling-polyphase.svg)
-
-For the downsampler, only the outputs that are kept are computed, one full $N$-tap sum per original-rate sample.
+and the downsampler computes only the outputs it keeps. Both cost $N=96$ multiplications per original sample instead of $4N$. Grouping the taps by $j$ modulo $L$ this way is called the **polyphase** form.
 
 ### Account for the Delay
 
