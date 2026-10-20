@@ -25,7 +25,7 @@ const TAPS = OVERSAMPLING_FACTOR * TAPS_PER_PHASE;
 // Kaiser window β for about 80 dB of stopband attenuation.
 const KAISER_BETA = 7.86;
 
-const LOW_PASS = designLowPass();
+const KERNEL = defineKernel();
 
 /**
  * Upsample one channel by 4: each input sample becomes 4 output samples,
@@ -48,7 +48,7 @@ export class Upsampler {
       let sum = 0;
       for (let k = 0; k < TAPS_PER_PHASE; k++) {
         sum +=
-          LOW_PASS[phase + OVERSAMPLING_FACTOR * k] *
+          KERNEL[phase + OVERSAMPLING_FACTOR * k] *
           this.history[this.position + k];
       }
       output[phase] = OVERSAMPLING_FACTOR * sum;
@@ -75,7 +75,7 @@ export class Downsampler {
     // computed, from the newest sample backwards.
     let sum = 0;
     for (let k = 0; k < TAPS; k++) {
-      sum += LOW_PASS[k] * this.history[this.position + k];
+      sum += KERNEL[k] * this.history[this.position + k];
     }
     return sum;
   }
@@ -86,7 +86,7 @@ export class Downsampler {
  * a quarter of the high rate's Nyquist frequency, cut to TAPS taps by a Kaiser
  * window, scaled to a DC gain of exactly 1.
  */
-function designLowPass(): Float64Array {
+function defineKernel(): Float64Array {
   const taps = new Float64Array(TAPS);
   const center = (TAPS - 1) / 2;
   const cutoff = 1 / OVERSAMPLING_FACTOR;
