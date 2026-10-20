@@ -36,10 +36,8 @@ type GainStage = {
   filters?: BiquadFilterSpec[];
 };
 
-// A clipped wave carries a slowly varying offset as well as harmonics, since
-// the shifted stage flattens one side more. A high-pass removes it before the
-// next stage, where it would shift that stage's clipping. 20 Hz is the usual
-// DC blocker cutoff: the bottom of hearing, so nothing audible is lost.
+// 20 Hz is the usual DC blocker cutoff: the bottom of hearing, so nothing
+// audible is lost.
 const DC_BLOCKER: BiquadFilterSpec = {
   type: "high-pass",
   frequency: 20,
@@ -58,13 +56,11 @@ function createMidBump(gainDb: number): BiquadFilterSpec {
   };
 }
 
-// Gains are set by where the clipping starts. The first stage's 18 dB (×7.9)
-// takes a stroke's peaks, about 0.3 to 0.6, to 2.4 to 4.8, well into the flat
-// part of tanh, so every stroke distorts. The stages after it set how quiet a
-// note can get and still be squared off, the drive's small-signal gain: about
-// 24 dB for crunch, which lets a decaying note clean up, and 42 dB for high
-// gain, which keeps it saturated. Later stages get less gain each, the way a
-// high-gain preamp spreads its gain over several stages.
+// The first stage's 18 dB (×7.9) takes a stroke's peaks, about 0.3 to 0.6,
+// well into the flat part of tanh. The stages after it bring the small-signal
+// gain to about 24 dB for crunch and 42 dB for high gain, each getting less
+// gain than the one before, the way a high-gain preamp spreads its gain over
+// several stages.
 //
 // The shift b = 0.15 is small, adding a 2nd harmonic around 30 dB below the
 // note on a quiet input, enough for the warmer, tube-like even harmonics
@@ -118,12 +114,9 @@ const OUTPUT_GAIN = dbToGain(-18);
 // back through a close microphone. Its response, and so these filters:
 // - Little below about 75 Hz, where the cabinet stops supporting the cone.
 // - A steep fall above about 5 kHz, where the cone stops moving as one piece.
-//   This is the cabinet's main job, since it removes the fizz clipping adds.
-//   Steep filters are built as cascades of second-order sections, each adding
-//   12 dB per octave. Two identical Butterworth sections at 5.2 kHz form a
-//   4th-order Linkwitz–Riley low-pass, 6 dB down at the cutoff with a soft
-//   knee, and a third at 7 kHz steepens it to 36 dB per octave further up:
-//   −1 dB at 3 kHz, −7 dB at 5.2 kHz, −21 dB at 8 kHz.
+//   Two Butterworth sections at 5.2 kHz give a soft knee, and a third at
+//   7 kHz steepens the fall further up: −1 dB at 3 kHz, −7 dB at 5.2 kHz,
+//   −21 dB at 8 kHz.
 // - A presence peak in the 2 to 4 kHz range, where a guitar's bite is.
 // - A low-mid dip around 400 to 500 Hz, which keeps distortion from sounding
 //   boxy.
