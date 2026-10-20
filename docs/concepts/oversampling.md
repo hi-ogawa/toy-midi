@@ -90,17 +90,17 @@ Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$
 
 ## Design the Low-Pass Kernel
 
-Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above. That boundary is the filter's **cutoff**, at $F_s/2$. The filter's formulas below, from its impulse response to the window that shortens it, measure frequency in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, where the filter runs, $\omega=2\pi f/(LF_s)$. That puts the high rate's Nyquist frequency $LF_s/2$ at $\pi$ and the cutoff at $\omega_c=\pi/L$, a quarter of the way up for $L=4$. A real filter only approaches this sharp boundary. Its **passband**, the frequencies it keeps, stays close to unity gain, and its **stopband**, the frequencies it removes, stays at least some number of dB down, which is its **stopband attenuation**. Between them lies a **transition band**, where the gain falls from one to the other, so the cutoff becomes a range of frequencies rather than an edge.
+Both directions convolve with the same kernel, a low-pass that passes everything below the original Nyquist frequency and stops everything above. That boundary is the filter's **cutoff**, at $F_s/2$. A real filter only approaches this sharp boundary. Its **passband**, the frequencies it keeps, stays close to unity gain, and its **stopband**, the frequencies it removes, stays at least some number of dB down, which is its **stopband attenuation**. Between them lies a **transition band**, where the gain falls from one to the other, so the cutoff becomes a range of frequencies rather than an edge.
 
 ### Start from the Ideal Low-Pass
 
 The sinc bump from [Upsample by Interpolating](#upsample-by-interpolating) is already this kernel. High-rate sample $n$ sits $n/L$ original samples from the bump's center, and dividing by $L$ makes the weights pass DC at unity, so
 
 $$
-h_\text{ideal}[n]=\frac{1}{L}\text{sinc}\frac{n}{L}=\frac{\sin(\omega_c n)}{\pi n}.
+h_\text{ideal}[n]=\frac{1}{L}\text{sinc}\frac{n}{L}.
 $$
 
-The second form reaches the same kernel from the frequency side. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response $\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}\,d\omega=\frac{\sin(\omega_c n)}{\pi n}$. Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. So the taps are tapered by a **window** $w[n]$ instead:
+The frequency side reaches the same kernel. Measured in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, $\omega=2\pi f/(LF_s)$, the high rate's Nyquist frequency $LF_s/2$ is $\pi$ and the cutoff $F_s/2$ is $\omega_c=\pi/L$. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response $\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}\,d\omega=\frac{\sin(\omega_c n)}{\pi n}$, which is $\frac{1}{L}\text{sinc}\frac{n}{L}$ again. Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. So the taps are tapered by a **window** $w[n]$ instead:
 
 $$
 h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)} \cdot w[n],
