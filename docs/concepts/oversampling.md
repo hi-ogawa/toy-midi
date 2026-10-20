@@ -6,7 +6,7 @@ Throughout, $F_s$ is the original sample rate, 48 kHz in the examples, and $L=4$
 
 ## See Why Clipping Aliases
 
-Sampling at $F_s$ can't tell some frequencies apart. A cosine at $f$ and one at $F_s-f$ give the same samples, since
+Sampling at $F_s$ takes the nth sample at time $n/F_s$, and at those times it can't tell some frequencies apart. A cosine at any frequency $f$ and one at $F_s-f$ give the same samples, since
 
 $$
 \cos\Big(2\pi(F_s-f)\frac{n}{F_s}\Big)=\cos\Big(2\pi n-2\pi f\frac{n}{F_s}\Big)=\cos\Big(2\pi f\frac{n}{F_s}\Big).
