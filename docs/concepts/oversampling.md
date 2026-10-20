@@ -129,18 +129,18 @@ We take $A=80$ dB, so $\beta=7.86$, and $N=96$ taps at the high rate. Then $\Del
 
 ### Compare with Simple Interpolation
 
-Computed for the actual 4-tap box, 7-tap triangle, and 96-tap low-pass, the three responses show how much the extra taps buy:
+Computed for the actual 4-tap box, 7-tap triangle, and 96-tap low-pass, along with the same 96 taps cut without a window, the responses show how much the extra taps and the window each buy:
 
-![Repeating samples and linear interpolation fall gradually and leave the images of a 9 kHz sine only 13 and 25 dB down, while the 96-tap low-pass stays flat to 19 kHz and removes them by more than 90 dB](images/oversampling-interpolators.svg)
+![Repeating samples and linear interpolation fall gradually and leave the images of a 9 kHz sine only 13 and 25 dB down. The 96-tap sinc without a window ripples only 21 dB down just above the cutoff and stays 30 to 60 dB down across the image band, while the 96-tap Kaiser low-pass stays flat to 19 kHz and removes the images by more than 90 dB](images/oversampling-interpolators.svg)
 
-| At                      | Repeat each sample | Linear interpolation | 96-tap low-pass |
-| ----------------------- | ------------------ | -------------------- | --------------- |
-| 9 kHz, the signal       | −0.5 dB            | −1.0 dB              | 0.0 dB          |
-| 20 kHz, the signal      | −2.5 dB            | −5.0 dB              | −0.1 dB         |
-| 39 kHz, its first image | −12.6 dB           | −25.3 dB             | −91.5 dB        |
-| 57 kHz, its next image  | −15.2 dB           | −30.5 dB             | −103.1 dB       |
+| At                      | Repeat each sample | Linear interpolation | 96 taps, no window | 96-tap low-pass |
+| ----------------------- | ------------------ | -------------------- | ------------------ | --------------- |
+| 9 kHz, the signal       | −0.5 dB            | −1.0 dB              | +0.2 dB            | 0.0 dB          |
+| 20 kHz, the signal      | −2.5 dB            | −5.0 dB              | −0.3 dB            | −0.1 dB         |
+| 39 kHz, its first image | −12.6 dB           | −25.3 dB             | −65.2 dB           | −91.5 dB        |
+| 57 kHz, its next image  | −15.2 dB           | −30.5 dB             | −79.6 dB           | −103.1 dB       |
 
-The simple interpolators lose up to 5 dB at the top of the wanted band and leave the images only 13 to 30 dB down, where the 96-tap low-pass is flat and removes them by more than 90 dB. Linear interpolation is the 7-tap end of the same scale the Kaiser formulas describe, and taking more taps moves the response toward the ideal one.
+The simple interpolators lose up to 5 dB at the top of the wanted band and leave the images only 13 to 30 dB down, where the 96-tap low-pass is flat and removes them by more than 90 dB. The window accounts for much of that. Without it, the same 96 taps ripple by about 0.5 dB in the passband, and the stopband is only 21 dB down at its worst, just above the cutoff, and about 30 dB down from 29 kHz. The two images in the table happen to fall in dips between ripples, so they come out 65 and 80 dB down, but the ripple peaks within 2 kHz of them are only 39 and 50 dB down. Linear interpolation is the 7-tap end of the same scale the Kaiser formulas describe, and taking more taps moves the response toward the ideal one.
 
 ### Measure the Aliasing Through the Drive
 
