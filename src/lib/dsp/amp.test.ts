@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { gainToDb } from "../music";
 import { Amp, type AmpParameters } from "./amp";
-
-const SAMPLE_RATE = 48000;
+import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 
 describe(Amp, () => {
   it.each(["crunch", "high-gain"] as const)(
@@ -72,32 +71,6 @@ function runAmp(parameters: AmpParameters, input: Float32Array): Float32Array {
   const output = new Float32Array(input.length);
   amp.process({ input: [input], output: [output] });
   return output;
-}
-
-function createSine({
-  frequency,
-  amplitude,
-  phase = 0,
-  length = 9600,
-}: {
-  frequency: number;
-  amplitude: number;
-  phase?: number;
-  length?: number;
-}): Float32Array {
-  return Float32Array.from(
-    { length },
-    (_, i) =>
-      amplitude * Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE + phase),
-  );
-}
-
-function measureRms(samples: ArrayLike<number>): number {
-  let sum = 0;
-  for (let i = 0; i < samples.length; i++) {
-    sum += samples[i] ** 2;
-  }
-  return Math.sqrt(sum / samples.length);
 }
 
 /** Amplitude of one frequency, by correlating with a sine and a cosine. */

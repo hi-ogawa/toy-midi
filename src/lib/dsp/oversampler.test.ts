@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { gainToDb } from "../music";
+import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import { Downsampler, OVERSAMPLING_FACTOR, Upsampler } from "./oversampler";
-
-const SAMPLE_RATE = 48000;
 
 describe(Upsampler, () => {
   it("passes an audible sine through up and down unchanged but delayed", () => {
@@ -55,30 +54,4 @@ function runRoundTrip(input: Float32Array): Float32Array {
     upsampler.processSample(x, block);
     return downsampler.processSample(block);
   });
-}
-
-function createSine({
-  frequency,
-  amplitude,
-  phase = 0,
-  length = 9600,
-}: {
-  frequency: number;
-  amplitude: number;
-  phase?: number;
-  length?: number;
-}): Float32Array {
-  return Float32Array.from(
-    { length },
-    (_, i) =>
-      amplitude * Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE + phase),
-  );
-}
-
-function measureRms(samples: ArrayLike<number>): number {
-  let sum = 0;
-  for (let i = 0; i < samples.length; i++) {
-    sum += samples[i] ** 2;
-  }
-  return Math.sqrt(sum / samples.length);
 }

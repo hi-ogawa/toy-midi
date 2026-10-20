@@ -9,8 +9,7 @@ import {
   BiquadEq,
 } from "./biquad-eq";
 import { MultibandEq } from "./biquad-eq-multiband";
-
-const SAMPLE_RATE = 48000;
+import { createSine, SAMPLE_RATE } from "./helper";
 
 describe(BiquadEq, () => {
   it.each([-18, -6, 6, 18])(
@@ -57,7 +56,7 @@ describe(BiquadEq, () => {
       { type: "peaking", ...DEFAULT_PARAMETERS },
     );
     eq.setParameters({ gain: dbToGain(18) });
-    const input = createSignal({ frames: 2000, frequency: 1000 });
+    const input = createSine({ length: 2000, frequency: 1000 });
     const ramped = process(eq, input);
     const immediate = process(
       new BiquadEq(
@@ -81,7 +80,7 @@ describe(BiquadEq, () => {
       { sampleRate: SAMPLE_RATE, channelCount: 1 },
       { type: "peaking", ...DEFAULT_PARAMETERS, gain: dbToGain(18) },
     );
-    process(eq, createSignal({ frames: 100, frequency: 1000 }));
+    process(eq, createSine({ length: 100, frequency: 1000 }));
     eq.setParameters({ frequency: 3000, gain: dbToGain(-6), q: 3 });
     eq.reset();
     const fresh = new BiquadEq(
@@ -93,9 +92,9 @@ describe(BiquadEq, () => {
         q: 3,
       },
     );
-    expect(
-      process(eq, createSignal({ frames: 2000, frequency: 1000 })),
-    ).toEqual(process(fresh, createSignal({ frames: 2000, frequency: 1000 })));
+    expect(process(eq, createSine({ length: 2000, frequency: 1000 }))).toEqual(
+      process(fresh, createSine({ length: 2000, frequency: 1000 })),
+    );
   });
 
   it.each([
@@ -182,7 +181,7 @@ describe(MultibandEq, () => {
         })),
       },
     });
-    const input = createSignal({ frames: SAMPLE_RATE, frequency: 1000 });
+    const input = createSine({ length: SAMPLE_RATE, frequency: 1000 });
     const output = process(eq, input);
     // Two bands double amplitude twice, so the energy ratio is (2 * 2) ** 2 = 16.
     expect(
@@ -204,7 +203,7 @@ describe(MultibandEq, () => {
       bypass: false,
       bands: [{ id: "band", ...DEFAULT_PARAMETERS, gain: dbToGain(18) }],
     });
-    const input = createSignal({ frames: 100, frequency: 1000 });
+    const input = createSine({ length: 100, frequency: 1000 });
     const ramped = process(eq, input);
     const replaced = process(
       new MultibandEq({
@@ -247,18 +246,6 @@ function calculateResponse({
   );
 }
 
-function createSignal({
-  frames,
-  frequency,
-}: {
-  frames: number;
-  frequency: number;
-}): Float32Array {
-  return Float32Array.from({ length: frames }, (_, i) =>
-    Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE),
-  );
-}
-
 function process(
   eq: Pick<BiquadEq, "process">,
   input: Float32Array,
@@ -272,10 +259,7 @@ function measureResponse(
   spec: BiquadFilterSpec,
   signalFrequency: number,
 ): number {
-  const input = createSignal({
-    frames: SAMPLE_RATE,
-    frequency: signalFrequency,
-  });
+  const input = createSine({ length: SAMPLE_RATE, frequency: signalFrequency });
   const output = process(
     new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1 }, spec),
     input,
