@@ -176,6 +176,17 @@ For the downsampler, only the outputs that are kept are computed, one full $N$-t
 
 Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays by 95. The downsampler's output $n$ is computed at high-rate sample $Ln+L-1$, the last of its block, so the round trip delays by $(95-3)/4=23$ original samples, about half a millisecond at 48 kHz.
 
+## References
+
+- C. E. Shannon, [Communication in the Presence of Noise](https://doi.org/10.1109/JRPROC.1949.232969), the sampling theorem and the sinc that rebuilds a signal from its samples
+- R. E. Crochiere and L. R. Rabiner, [Interpolation and Decimation of Digital Signals: A Tutorial Review](https://doi.org/10.1109/PROC.1981.11969), the upsampler that inserts zeros and filters, the images it removes, and the polyphase split
+- A. V. Oppenheim and R. W. Schafer, _Discrete-Time Signal Processing_, the textbook treatment of changing the sample rate and of designing a low-pass with a window, including Kaiser's formulas
+- J. F. Kaiser, "Nonrecursive Digital Filter Design Using the I0-sinh Window Function", Proceedings of the 1974 IEEE International Symposium on Circuits and Systems, where the window and its formulas for $\beta$ and the length come from
+- [`scipy.signal.kaiserord`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.kaiserord.html), the same formulas as a function, which is a quick way to check the numbers above
+- J. O. Smith, [Kaiser Window](https://ccrma.stanford.edu/~jos/sasp/Kaiser_Window.html), the window's trade between transition width and stopband attenuation
+- J. O. Smith, [Digital Audio Resampling Home Page](https://ccrma.stanford.edu/~jos/resample/), interpolation with a windowed sinc as audio resamplers do it
+- [FFmpeg resampler options](https://ffmpeg.org/ffmpeg-resampler.html), the resampler the [amp prototype](https://github.com/hi-ogawa/toy-midi/pull/963) oversampled with, whose default filter is a longer Kaiser-windowed sinc
+
 ## Appendix: The Statements Behind the Pictures
 
 The upsampling pictures are cleanest in continuous time, where they amount to the sampling theorem, and the discrete upsampler then follows with one caveat. Measure time $t$ in original samples and frequency $f$ in units of $F_s$, so the original Nyquist frequency is $f=1/2$, and write $X(f)=\int x(t) \cdot e^{-j2\pi ft}dt$ for the Fourier transform of $x$, and likewise $S$, $B$ for $s$, $b$.

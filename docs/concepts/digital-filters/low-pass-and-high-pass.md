@@ -192,3 +192,10 @@ $$
 $$
 
 whose uncancelled $2\nu^4$ term makes it $-6$ dB at $f_0$ rather than $-3$, with a softer knee. That combination is the 4th-order **Linkwitz–Riley** filter. A 4th-order filter keeps the Butterworth property only if its two sections have different $Q$, about $0.54$ and $1.31$, chosen so the cross terms cancel and the product is $1/(1+\nu^8)$.
+
+## References
+
+- S. Butterworth, "On the Theory of Filter Amplifiers", _Wireless Engineer_ 7 (1930), where the maximally flat response comes from
+- J. O. Smith, [Butterworth Lowpass Design](https://ccrma.stanford.edu/~jos/filters/Butterworth_Lowpass_Design.html), the same response designed through the bilinear transform
+- R. Bristow-Johnson, [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/), whose low-pass and high-pass formulas are the coefficients above, in the same convention as the [peaking EQ](peaking-eq.md)
+- S. Linkwitz, [Active Filters](https://www.linkwitzlab.com/filters.htm), cascaded Butterworth sections and the Linkwitz–Riley crossover

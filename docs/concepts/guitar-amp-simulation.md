@@ -88,6 +88,12 @@ A signal sampled at $f_s$ can't hold frequencies above $f_s/2$, which is its Nyq
 
 So the drive runs at $4 f_s$, between an upsampler and a downsampler, and the filters before and after it stay at $f_s$. [Oversampling](oversampling.md) develops the up- and downsampling and their low-pass filter, and measures the aliasing with and without it.
 
+## References
+
+- J. Pakarinen and D. T. Yeh, [A Review of Digital Techniques for Modeling Vacuum-Tube Guitar Amplifiers](https://doi.org/10.1162/comj.2009.33.2.85), a survey that runs from static clippers with filters around them, like this model, to full circuit simulations
+- J. O. Smith, [Nonlinear Distortion](https://ccrma.stanford.edu/~jos/pasp/Nonlinear_Distortion.html) and [Soft Clipping](https://ccrma.stanford.edu/~jos/pasp/Soft_Clipping.html), guitar distortion as a memoryless clipping curve, with notes on the aliasing it causes
+- The [amp prototype](https://github.com/hi-ogawa/toy-midi/pull/963), which picked the chain and its values by ear on rendered demo pieces and documents what each stage changed
+
 ## Appendix: Why an Odd Clipper Adds Only Odd Harmonics
 
 **Claim.** If $f$ is odd, then $y(t) = f(A \sin \omega t)$ has only odd harmonics.
