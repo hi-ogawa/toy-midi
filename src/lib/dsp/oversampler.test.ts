@@ -16,7 +16,7 @@ describe(Upsampler, () => {
       phase: (-2 * Math.PI * 1000 * delay) / SAMPLE_RATE,
     });
     const settled = 1000;
-    // Cut without a window, the kernel ripples by up to about 0.5 dB per pass.
+    // The kernel ripples by up to about 0.5 dB per pass.
     const gain =
       measureRms(output.slice(settled)) / measureRms(expected.slice(settled));
     expect(Math.abs(gainToDb(gain))).toBeLessThan(1);
@@ -41,8 +41,8 @@ describe(Upsampler, () => {
       );
       output.push(downsampler.processSample(block));
     }
-    // 35 kHz would fold to 13 kHz at 48 kHz. The kernel, cut without a window,
-    // is at least about 30 dB down from 29 kHz.
+    // 35 kHz would fold to 13 kHz at 48 kHz. The kernel is at least about
+    // 30 dB down from 29 kHz.
     expect(
       gainToDb(measureRms(output.slice(1000)) / measureRms(input)),
     ).toBeLessThan(-30);
