@@ -27,22 +27,25 @@ describe(Upsampler, () => {
   });
 
   it("removes content above the original Nyquist frequency on the way down", () => {
-    const highRate = SAMPLE_RATE * OVERSAMPLING_FACTOR;
+    const input = createSine({
+      frequency: 35000,
+      sampleRate: SAMPLE_RATE * OVERSAMPLING_FACTOR,
+      length: OVERSAMPLING_FACTOR * 4800,
+    });
     const downsampler = new Downsampler();
     const block = new Float64Array(OVERSAMPLING_FACTOR);
     const output: number[] = [];
     for (let n = 0; n < 4800; n++) {
-      for (let i = 0; i < OVERSAMPLING_FACTOR; i++) {
-        const t = (n * OVERSAMPLING_FACTOR + i) / highRate;
-        block[i] = Math.sin(2 * Math.PI * 35000 * t);
-      }
+      block.set(
+        input.subarray(OVERSAMPLING_FACTOR * n, OVERSAMPLING_FACTOR * (n + 1)),
+      );
       output.push(downsampler.processSample(block));
     }
     // 35 kHz would fold to 13 kHz at 48 kHz. The kernel, cut without a window,
     // is at least about 30 dB down from 29 kHz.
-    expect(gainToDb(measureRms(output.slice(1000)) * Math.SQRT2)).toBeLessThan(
-      -30,
-    );
+    expect(
+      gainToDb(measureRms(output.slice(1000)) / measureRms(input)),
+    ).toBeLessThan(-30);
   });
 });
 
