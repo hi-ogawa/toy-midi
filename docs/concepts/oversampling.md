@@ -170,6 +170,10 @@ $$
 
 Each output phase is a short filter of $N/L=24$ taps on the original samples, so each input sample costs $N=96$ multiplications for its four outputs rather than $4N$.
 
+The branches have a direct meaning. Branch $p$'s taps $h[p+Lk]$ sample the low-pass's sinc once per original sample, starting $p$ high-rate samples in, so every branch is the same sinc read at a different offset between the taps. A sinc whose peak falls between taps is a filter that delays by a fraction of a sample, which means it reads the signal between its samples. Branch $p$'s peak sits at $k=(c-p)/L$, so it reads the signal $p/L$ of a sample later than branch 0, and upsampling by 4 is asking four such filters for the signal at 0, ¼, ½, and ¾ of the way to the next sample, then interleaving their answers:
+
+![Four rows of 24 taps, one per polyphase branch, each sampling the same windowed sinc, whose peak moves a quarter tap earlier from one branch to the next](images/oversampling-polyphase.svg)
+
 For the downsampler, only the outputs that are kept are computed, one full $N$-tap sum per original-rate sample.
 
 ### Account for the Delay
