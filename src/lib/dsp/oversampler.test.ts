@@ -41,8 +41,8 @@ describe(Upsampler, () => {
       );
       output.push(downsampler.processSample(block));
     }
-    // 35 kHz would fold to 13 kHz at 48 kHz. Above about 29 kHz, the
-    // low-pass's gain stays under −30 dB.
+    // Kept unfiltered, every 4th sample of 35 kHz would read as 13 kHz. The
+    // low-pass's gain stays under −30 dB above about 29 kHz.
     expect(
       gainToDb(measureRms(output.slice(1000)) / measureRms(input)),
     ).toBeLessThan(-30);
