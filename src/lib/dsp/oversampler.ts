@@ -13,8 +13,8 @@ const TAPS = OVERSAMPLING_FACTOR * TAPS_PER_PHASE;
 const KERNEL = defineKernel();
 
 /**
- * Upsample one channel by 4: each input sample becomes 4 output samples,
- * `processSample(x, output)` filling `output[0..3]`.
+ * Upsample one channel by 4: `process(input, output)` writes 4 output samples
+ * per input sample, so `output` is 4 times as long as `input`.
  */
 export class Upsampler {
   // The last TAPS_PER_PHASE input samples, stored twice so they always read
@@ -22,46 +22,52 @@ export class Upsampler {
   private readonly history = new Float64Array(2 * TAPS_PER_PHASE);
   private position = 0;
 
-  processSample(x: number, output: Float64Array): void {
-    this.position = (this.position + TAPS_PER_PHASE - 1) % TAPS_PER_PHASE;
-    this.history[this.position] = x;
-    this.history[this.position + TAPS_PER_PHASE] = x;
-    // Output phase p reads taps p, p + 4, p + 8, … against the real samples,
-    // and the factor 4 restores the level the inserted zeros take away.
-    for (let phase = 0; phase < OVERSAMPLING_FACTOR; phase++) {
-      let sum = 0;
-      for (let k = 0; k < TAPS_PER_PHASE; k++) {
-        sum +=
-          KERNEL[phase + OVERSAMPLING_FACTOR * k] *
-          this.history[this.position + k];
+  process(input: Float32Array, output: Float32Array): void {
+    for (let n = 0; n < input.length; n++) {
+      this.position = (this.position + TAPS_PER_PHASE - 1) % TAPS_PER_PHASE;
+      this.history[this.position] = input[n];
+      this.history[this.position + TAPS_PER_PHASE] = input[n];
+      // Output phase p reads taps p, p + 4, p + 8, … against the real
+      // samples, and the factor 4 restores the level the inserted zeros take
+      // away.
+      for (let phase = 0; phase < OVERSAMPLING_FACTOR; phase++) {
+        let sum = 0;
+        for (let k = 0; k < TAPS_PER_PHASE; k++) {
+          sum +=
+            KERNEL[phase + OVERSAMPLING_FACTOR * k] *
+            this.history[this.position + k];
+        }
+        output[OVERSAMPLING_FACTOR * n + phase] = OVERSAMPLING_FACTOR * sum;
       }
-      output[phase] = OVERSAMPLING_FACTOR * sum;
     }
   }
 }
 
 /**
- * Downsample one channel by 4: `processSample(input)` takes 4 samples from
- * `input[0..3]` and returns 1.
+ * Downsample one channel by 4: `process(input, output)` reads 4 input samples
+ * per output sample, so `input` is 4 times as long as `output`.
  */
 export class Downsampler {
   // The last TAPS high-rate samples, stored twice like the upsampler's.
   private readonly history = new Float64Array(2 * TAPS);
   private position = 0;
 
-  processSample(input: Float64Array): number {
-    for (let i = 0; i < OVERSAMPLING_FACTOR; i++) {
-      this.position = (this.position + TAPS - 1) % TAPS;
-      this.history[this.position] = input[i];
-      this.history[this.position + TAPS] = input[i];
+  process(input: Float32Array, output: Float32Array): void {
+    for (let n = 0; n < output.length; n++) {
+      for (let i = 0; i < OVERSAMPLING_FACTOR; i++) {
+        const x = input[OVERSAMPLING_FACTOR * n + i];
+        this.position = (this.position + TAPS - 1) % TAPS;
+        this.history[this.position] = x;
+        this.history[this.position + TAPS] = x;
+      }
+      // Only every 4th output of the low-pass is kept, so only that one is
+      // computed, from the newest sample backwards.
+      let sum = 0;
+      for (let k = 0; k < TAPS; k++) {
+        sum += KERNEL[k] * this.history[this.position + k];
+      }
+      output[n] = sum;
     }
-    // Only every 4th output of the low-pass is kept, so only that one is
-    // computed, from the newest sample backwards.
-    let sum = 0;
-    for (let k = 0; k < TAPS; k++) {
-      sum += KERNEL[k] * this.history[this.position + k];
-    }
-    return sum;
   }
 }
 
