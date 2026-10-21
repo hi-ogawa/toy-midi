@@ -4,7 +4,7 @@ import type { SharedProject } from "../src/lib/project-share";
 import { measureRmsDb, renderProject } from "./render-helpers";
 
 test("renders MIDI automation", async ({ page }) => {
-  // RenderedMix a held note that swells in from silence on expression (CC11),
+  // Render a held note that swells in from silence on expression (CC11),
   // reaching full level at beat 2, one second at 120 BPM.
   const mix = await renderProject(page, {
     title: "Swell",
