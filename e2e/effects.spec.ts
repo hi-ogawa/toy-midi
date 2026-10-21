@@ -49,14 +49,12 @@ test("edits and persists independent EQ settings per audio track", async ({
     .getByRole("textbox", { name: "Gain", exact: true })
     .press("Enter");
 
-  // Save and reload the independent EQ settings.
+  // Save and reload, and both panels come back with their EQ settings.
   const save = page.getByTestId("save-button");
   await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
-  await expect(page.getByTestId("effects-panel")).toHaveCount(0);
-  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
-  await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
+  await expect(page.getByTestId("effects-panel")).toHaveCount(2);
   await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
   await audio.getByRole("button", { name: "Select band 1" }).click();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
@@ -98,6 +96,45 @@ test("edits and persists independent EQ settings per audio track", async ({
     capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "unsaved");
+});
+
+test("switches a band between peaking, low-pass, and high-pass", async ({
+  page,
+}) => {
+  // Boost Audio 1's band by 6 dB.
+  await createProject(page);
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  const panel = page.getByTestId("effects-panel");
+  const filterType = panel.getByRole("combobox", { name: "Filter type" });
+  const gain = panel.getByRole("textbox", { name: "Gain", exact: true });
+  const q = panel.getByRole("textbox", { name: "Q", exact: true });
+  await expect(filterType).toHaveValue("peaking");
+  await gain.fill("6");
+  await gain.press("Enter");
+
+  // Switch to low-pass, which hides the gain and starts Q at Butterworth.
+  await filterType.selectOption("low-pass");
+  await expect(gain).toHaveCount(0);
+  await expect(q).toHaveValue("0.71");
+
+  // Switch to high-pass, which keeps the pass filter's Q.
+  await q.fill("2");
+  await q.press("Enter");
+  await filterType.selectOption("high-pass");
+  await expect(q).toHaveValue("2");
+
+  // Save and reload, and the band is still a high-pass.
+  const save = page.getByTestId("save-button");
+  await save.click();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.reload();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  await expect(filterType).toHaveValue("high-pass");
+  await expect(q).toHaveValue("2");
+
+  // Switch back to peaking, and the band keeps the gain it had.
+  await filterType.selectOption("peaking");
+  await expect(gain).toHaveValue("6");
 });
 
 test("keeps the mixer usable with many effects panels open", async ({
@@ -188,6 +225,19 @@ test("shows in the mixer whether a track's EQ is on", async ({ page }) => {
   const gain = panel.getByRole("textbox", { name: "Gain", exact: true });
   await gain.fill("3");
   await gain.press("Enter");
+  await expect(toggle).toHaveAttribute(
+    "title",
+    "Close Audio 1 effects (EQ on)",
+  );
+
+  // Flatten the band and make it a low-pass, which changes the sound at any
+  // gain, so the mark stays.
+  await gain.fill("0");
+  await gain.press("Enter");
+  await expect(toggle).toHaveAttribute("title", "Close Audio 1 effects");
+  await panel
+    .getByRole("combobox", { name: "Filter type" })
+    .selectOption("low-pass");
   await expect(toggle).toHaveAttribute(
     "title",
     "Close Audio 1 effects (EQ on)",

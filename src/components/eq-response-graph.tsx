@@ -2,6 +2,7 @@ import { useCallback, useEffectEvent } from "react";
 import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
+  isGainFilter,
 } from "../lib/dsp/biquad-eq";
 import { type MultibandEqBand } from "../lib/dsp/biquad-eq-multiband";
 import { clamp, dbToGain, gainToDb } from "../lib/music";
@@ -196,10 +197,15 @@ function EqBandHandle({
   index: number;
   selected: boolean;
   onSelect: () => void;
-  onChange: (update: Pick<MultibandEqBand, "frequency" | "gain">) => void;
+  onChange: (
+    update: Partial<Pick<MultibandEqBand, "frequency" | "gain">>,
+  ) => void;
 }) {
+  // A handle whose band has no gain rides the 0 dB line and drags only its
+  // cutoff.
+  const hasGain = isGainFilter(band.type);
   const x = frequencyToGraphX(band.frequency);
-  const y = gainDbToGraphY(gainToDb(band.gain));
+  const y = gainDbToGraphY(hasGain ? gainToDb(band.gain) : 0);
   const ref = usePointerGesture({
     onStart: (event) => {
       onSelect();
@@ -209,12 +215,14 @@ function EqBandHandle({
     onDragMove: (_event, { data, deltaX, deltaY }) => {
       const nextX = clamp(data.x + deltaX / data.bounds.width, 0, 1);
       const nextY = clamp(data.y + deltaY / data.bounds.height, 0, 1);
+      const frequency = Math.round(graphXToFrequency(nextX));
+      if (!hasGain) {
+        onChange({ frequency });
+        return;
+      }
       const step = EQ_CONTROL_LIMITS.gainDb.step;
       const gainDb = Math.round(graphYToGainDb(nextY) / step) * step;
-      onChange({
-        frequency: Math.round(graphXToFrequency(nextX)),
-        gain: dbToGain(gainDb),
-      });
+      onChange({ frequency, gain: dbToGain(gainDb) });
     },
   });
   return (
@@ -240,15 +248,7 @@ function EqBandHandle({
 function createResponsePath(bands: MultibandEqBand[]): string {
   // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
   const bandCoefficients = bands.map((band) =>
-    calculateBiquadEqCoefficients(
-      { sampleRate: GRAPH_SAMPLE_RATE },
-      {
-        type: "peaking",
-        frequency: band.frequency,
-        gain: band.gain,
-        q: band.q,
-      },
-    ),
+    calculateBiquadEqCoefficients({ sampleRate: GRAPH_SAMPLE_RATE }, band),
   );
   return Array.from({ length: 161 }, (_, index) => {
     const x = index / 160;

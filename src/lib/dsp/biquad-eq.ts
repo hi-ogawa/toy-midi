@@ -41,6 +41,10 @@ export type BiquadFilterSpec =
   | { type: "peaking"; frequency: number; gain: number; q: number }
   | { type: "low-pass" | "high-pass"; frequency: number; q: number };
 
+export function isGainFilter(type: BiquadFilterSpec["type"]): boolean {
+  return type === "peaking";
+}
+
 /** Standalone biquad EQ. Parameters ramp over 10 ms of processed audio. */
 export class BiquadEq {
   private readonly sampleRate: number;
@@ -145,13 +149,10 @@ export class BiquadEq {
    * Input and output may be the same buffers. No processing-loop allocations.
    * Bypass keeps the filter running so re-enabling it uses current history.
    */
-  process({
-    input,
-    output,
-  }: {
-    input: readonly Float32Array[];
-    output: readonly Float32Array[];
-  }): void {
+  process(
+    input: readonly Float32Array[],
+    output: readonly Float32Array[],
+  ): void {
     const frames = input[0]?.length ?? 0;
     for (let frame = 0; frame < frames; frame++) {
       if (this.remaining > 0) {
@@ -228,9 +229,6 @@ export function calculateBiquadEqCoefficients(
     }
     case "low-pass":
     case "high-pass": {
-      // Both share the denominator 1 + α − 2cos ω·z⁻¹ + (1 − α)·z⁻², and
-      // their numerators put a double zero at z = 1 (high-pass, no DC) or
-      // z = −1 (low-pass, no Nyquist).
       const a0 = 1 + alpha;
       const highPass = spec.type === "high-pass";
       const edge = highPass ? (1 + cos) / 2 : (1 - cos) / 2;

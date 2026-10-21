@@ -3,6 +3,7 @@ import { type AudioClip, createAudioClip } from "./audio-clip.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
+  type MultibandEqBand,
   type MultibandEqParameters,
 } from "./dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
@@ -37,7 +38,7 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   // 🔴 Retained for projects saved with the Capture track outside audioTracks.
   recordingTrack?: {
     // 🟢 Optional for projects saved before track EQ support.
-    eq?: MultibandEqParameters | EqParameters;
+    eq?: SerializedMultibandEq | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -77,8 +78,19 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   };
 }
 
+export interface SerializedMultibandEq extends Omit<
+  MultibandEqParameters,
+  "bands"
+> {
+  bands: (Omit<MultibandEqBand, "type"> & {
+    // 🟢 Optional for bands saved before low-pass and high-pass.
+    type?: MultibandEqBand["type"];
+  })[];
+}
+
 export interface SerializedMidiTrackState extends Omit<
   MidiTrackState,
+  | "eq"
   | "tabAnnotationEnabled"
   | "tabOpenStringPitches"
   | "keySignature"
@@ -94,6 +106,7 @@ export interface SerializedMidiTrackState extends Omit<
   pan?: number;
   // 🟢 Optional for MIDI tracks saved before automation support.
   automation?: MidiTrackState["automation"];
+  eq: SerializedMultibandEq;
 }
 
 interface SerializedAudioTrackState<ChannelData> {
@@ -101,7 +114,7 @@ interface SerializedAudioTrackState<ChannelData> {
   showClips?: boolean;
   amp?: TrackAmp;
   // 🟢 Optional for projects saved before track EQ support.
-  eq?: MultibandEqParameters | EqParameters;
+  eq?: SerializedMultibandEq | EqParameters;
   id: string;
   // 🟢 Optional for projects saved before audio track names.
   name?: string;
@@ -329,13 +342,16 @@ function deserializeAudioClip({
 }
 
 function deserializeEq(
-  eq?: MultibandEqParameters | EqParameters,
+  eq?: SerializedMultibandEq | EqParameters,
 ): MultibandEqParameters {
   if (!eq) {
     return createDefaultMultibandEq();
   }
   if ("bands" in eq) {
-    return eq;
+    return {
+      ...eq,
+      bands: eq.bands.map((band) => ({ type: "peaking", ...band })),
+    };
   }
   return {
     bypass: false,
