@@ -240,7 +240,7 @@ class AmpChain {
   /** Processes the prepared buffer in place. */
   process(): void {
     const { signal, oversampled } = this;
-    this.runFilters(this.preEq, signal);
+    runFilters(this.preEq, signal);
     for (let i = 0; i < signal.length; i++) {
       this.upsampler.processSample(signal[i], this.frame);
       oversampled.set(this.frame, i * OVERSAMPLING_FACTOR);
@@ -251,7 +251,7 @@ class AmpChain {
         oversampled[i] =
           Math.tanh(stage.gain * oversampled[i] + stage.shift) - stage.offset;
       }
-      this.runFilters(stage.filters, oversampled);
+      runFilters(stage.filters, oversampled);
     }
     for (let i = 0; i < signal.length; i++) {
       for (let j = 0; j < OVERSAMPLING_FACTOR; j++) {
@@ -259,13 +259,13 @@ class AmpChain {
       }
       signal[i] = OUTPUT_GAIN * this.downsampler.processSample(this.frame);
     }
-    this.runFilters(this.cabinet, signal);
+    runFilters(this.cabinet, signal);
   }
+}
 
-  private runFilters(filters: BiquadEq[], buffer: Float32Array): void {
-    const block = { input: [buffer], output: [buffer] };
-    for (const filter of filters) {
-      filter.process(block);
-    }
+function runFilters(filters: BiquadEq[], buffer: Float32Array): void {
+  const block = { input: [buffer], output: [buffer] };
+  for (const filter of filters) {
+    filter.process(block);
   }
 }
