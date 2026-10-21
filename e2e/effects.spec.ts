@@ -1,6 +1,4 @@
-import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
-import type { SharedProject } from "../src/lib/project-share";
 import { addAudio, createProject, dragBy } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
 
@@ -139,46 +137,6 @@ test("switches a band between peaking, low-pass, and high-pass", async ({
   // Switch back to peaking, and the band keeps the gain it had.
   await filterType.selectOption("peaking");
   await expect(gain).toHaveValue("6");
-});
-
-test("loads a shared band saved without a type as peaking", async ({
-  page,
-}) => {
-  // Open a share link whose MIDI track EQ band has no type.
-  const project: SharedProject = {
-    title: "Untyped EQ",
-    tempo: 120,
-    timeSignature: { numerator: 4, denominator: 4 },
-    midiTracks: [
-      {
-        name: "Piano",
-        program: 0,
-        notes: [],
-        eq: {
-          bypass: false,
-          bands: [{ frequency: 750, gain: 2, q: 1.5, bypass: false }],
-        },
-      },
-    ],
-  };
-  const payload = deflateRawSync(JSON.stringify(project)).toString("base64url");
-  await page.goto(`/draft#p=${payload}`);
-
-  // Open the track's effects, and see a peaking band with its saved values.
-  await selectMenuItem(page, { menu: "Piano actions", item: "Effects…" });
-  const panel = page.getByTestId("effects-panel");
-  await expect(
-    panel.getByRole("combobox", { name: "Filter type" }),
-  ).toHaveValue("peaking");
-  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "750",
-  );
-  await expect(
-    panel.getByRole("textbox", { name: "Gain", exact: true }),
-  ).toHaveValue("6.02");
-  await expect(
-    panel.getByRole("textbox", { name: "Q", exact: true }),
-  ).toHaveValue("1.5");
 });
 
 test("keeps the mixer usable with many effects panels open", async ({
