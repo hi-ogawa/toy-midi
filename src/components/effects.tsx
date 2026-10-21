@@ -106,10 +106,9 @@ export function EffectsContent({
   };
 
   const changeBandType = (band: MultibandEqBand, type: EqBandType) => {
-    // Peaking's default Q of 1 would bump a pass filter's response by 1.3 dB
-    // below the cutoff, so a band becoming one starts flat.
     updateBand(band.id, {
       type,
+      // reset to flat low/high-pass when changing eq type
       ...(isGainFilter(band.type) &&
         !isGainFilter(type) && { q: BUTTERWORTH_Q }),
     });
