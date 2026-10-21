@@ -49,6 +49,9 @@ describe(Amp, () => {
     expect(levels["high-gain"][0] - levels["high-gain"][1]).toBeLessThan(3);
   });
 
+  // TODO: Contrast with the same chain without the shift, whose 2nd harmonic
+  // should vanish. That needs AmpChain to take stages instead of a preset, so
+  // a test can build crunch with shift 0.
   it("adds even harmonics through the shifted first stage", () => {
     const output = runAmp(
       { preset: "crunch", cabinet: false },
