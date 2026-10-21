@@ -19,6 +19,8 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput, type CapturedAudio } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
+import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
@@ -63,6 +65,8 @@ type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 export interface AudioTrackState {
   id: string;
   name: string;
+  /** Guitar amp in front of the EQ, absent when off */
+  amp?: AmpParameters;
   eq: MultibandEqParameters;
   /** Row height in pixels, from 44 to 300 */
   height: number;
@@ -99,6 +103,13 @@ export interface MidiTrackState {
    * 48 Orchestra, 56 SFX.
    */
   bank?: number;
+  /**
+   * Guitar amp in front of the EQ, absent when off. The drive makes each
+   * note's release tail loud enough to smear into the next note, so mute the
+   * tails with CC 11 (expression) at 0 from just after a note-off to the next
+   * note-on.
+   */
+  amp?: AmpParameters;
   eq: MultibandEqParameters;
   /** Row height in pixels, from 44 to 800 */
   height: number;
@@ -345,6 +356,7 @@ export class EditorRuntime {
   async init(): Promise<void> {
     await Promise.all([
       ensurePitchShifterWorklet(this.context),
+      ensureAmpWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
     ]);
   }
@@ -697,6 +709,16 @@ export class EditorRuntime {
     });
   }
 
+  setTrackAmp({ id, amp }: { id: string; amp?: AmpParameters }): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, amp }));
+      this.midiTrackPlaybacks.get(id)?.channel.setAmp(amp);
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, amp }));
+      this.trackPlaybacks.get(id)?.channel.setAmp(amp);
+    }
+  }
+
   setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({ ...track, eq }));
@@ -827,6 +849,7 @@ export class EditorRuntime {
       playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
+        amp: track.amp,
         eq: track.eq,
         gain: 0,
         pan: track.pan,
@@ -1206,6 +1229,7 @@ export class EditorRuntime {
       const playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
+        amp: track.amp,
         eq: track.eq,
         gain: 0,
         pan: track.pan,

@@ -1,5 +1,6 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
+import type { AmpParameters, AmpPreset } from "../lib/dsp/amp";
 import { BUTTERWORTH_Q, isGainFilter } from "../lib/dsp/biquad-eq";
 import {
   type EqBandType,
@@ -44,14 +45,25 @@ export function useEffectsUi(projectUiStore: ProjectUiStore) {
   return { openEffects, toggleEffects, showEffects, closeEffects };
 }
 
+const DEFAULT_AMP: AmpParameters = { preset: "crunch", cabinet: true };
+
+const AMP_PRESET_LABELS: Record<AmpPreset, string> = {
+  crunch: "Crunch",
+  "high-gain": "High gain",
+};
+
 export function Effects({
   label,
+  amp,
   eq,
+  onAmpChange,
   onChange,
   onClose,
 }: {
   label: string;
+  amp?: AmpParameters;
   eq: MultibandEqParameters;
+  onAmpChange: (amp: AmpParameters | undefined) => void;
   onChange: (eq: MultibandEqParameters) => void;
   onClose: () => void;
 }) {
@@ -63,6 +75,18 @@ export function Effects({
   return (
     <Panel
       title={`${label} Effects`}
+      headerActions={
+        !amp && (
+          <button
+            type="button"
+            onClick={() => onAmpChange(DEFAULT_AMP)}
+            className="flex h-6 items-center gap-1 rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-300 outline-none hover:bg-neutral-700 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            Add amp
+          </button>
+        )
+      }
       closeLabel={`Close ${label} Effects`}
       onClose={onClose}
       data-testid="effects-panel"
@@ -74,8 +98,67 @@ export function Effects({
         handleRef={handleRef}
         label={`Resize ${label} Effects`}
       />
-      <EffectsContent eq={eq} onChange={onChange} />
+      <div className="flex h-full flex-col gap-4">
+        {amp && (
+          <AmpSection
+            amp={amp}
+            onChange={onAmpChange}
+            onRemove={() => onAmpChange(undefined)}
+          />
+        )}
+        <div className="min-h-0 flex-1">
+          <EffectsContent eq={eq} onChange={onChange} />
+        </div>
+      </div>
     </Panel>
+  );
+}
+
+function AmpSection({
+  amp,
+  onChange,
+  onRemove,
+}: {
+  amp: AmpParameters;
+  onChange: (amp: AmpParameters) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="shrink-0 space-y-3 border-b border-neutral-700 pb-4">
+      <div className="flex items-center gap-2">
+        <h3 className="mr-auto text-sm font-medium">Amp</h3>
+        <IconButton label="Remove amp" onClick={onRemove}>
+          <Trash2 className="size-3.5" aria-hidden="true" />
+        </IconButton>
+      </div>
+      <div
+        role="group"
+        aria-label="Amp preset"
+        className="flex overflow-hidden rounded border border-neutral-600"
+      >
+        {Object.entries(AMP_PRESET_LABELS).map(([preset, presetLabel]) => (
+          <button
+            key={preset}
+            type="button"
+            aria-pressed={amp.preset === preset}
+            onClick={() => onChange({ ...amp, preset: preset as AmpPreset })}
+            className="h-7 flex-1 bg-neutral-900 text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+          >
+            {presetLabel}
+          </button>
+        ))}
+      </div>
+      <label className="flex items-center gap-1.5 text-xs">
+        <input
+          type="checkbox"
+          checked={amp.cabinet}
+          onChange={(event) =>
+            onChange({ ...amp, cabinet: event.target.checked })
+          }
+        />
+        Cabinet
+      </label>
+    </div>
   );
 }
 

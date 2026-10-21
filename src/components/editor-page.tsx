@@ -721,7 +721,11 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                 <Effects
                   key={entry.id}
                   label={track.name}
+                  amp={track.amp}
                   eq={track.eq}
+                  onAmpChange={(amp) =>
+                    runtime.setTrackAmp({ id: track.id, amp })
+                  }
                   onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
                   onClose={() => effects.closeEffects(track.id)}
                 />

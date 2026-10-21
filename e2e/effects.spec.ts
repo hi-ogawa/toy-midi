@@ -247,3 +247,53 @@ test("shows in the mixer whether a track's EQ is on", async ({ page }) => {
   await panel.getByRole("checkbox", { name: "Bypass" }).first().check();
   await expect(toggle).toHaveAttribute("title", "Close Audio 1 effects");
 });
+
+test("adds, persists, and removes a track's amp", async ({ page }) => {
+  // Open Audio 1 effects, which start without an amp.
+  await createProject(page);
+  await page.getByTestId("mixer-button").click();
+  const toggle = page.getByRole("button", {
+    name: "Audio 1 effects",
+    exact: true,
+  });
+  await toggle.click();
+  const panel = page.getByTestId("effects-panel");
+  const addAmp = panel.getByRole("button", { name: "Add amp" });
+  await expect(panel.getByRole("heading", { name: "Amp" })).toHaveCount(0);
+
+  // Add the amp, which starts on Crunch with the cabinet, and the mixer marks it as on.
+  await addAmp.click();
+  await expect(addAmp).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: "Crunch" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(panel.getByRole("checkbox", { name: "Cabinet" })).toBeChecked();
+  await expect(toggle).toHaveAttribute(
+    "title",
+    "Close Audio 1 effects (amp on)",
+  );
+
+  // Switch to High gain without the cabinet.
+  await panel.getByRole("button", { name: "High gain" }).click();
+  await panel.getByRole("checkbox", { name: "Cabinet" }).uncheck();
+
+  // Save and reload, and the amp keeps its settings.
+  const save = page.getByTestId("save-button");
+  await save.click();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.reload();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  await expect(
+    panel.getByRole("button", { name: "High gain" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    panel.getByRole("checkbox", { name: "Cabinet" }),
+  ).not.toBeChecked();
+
+  // Remove the amp, and the Add amp button comes back.
+  await panel.getByRole("button", { name: "Remove amp" }).click();
+  await expect(panel.getByRole("heading", { name: "Amp" })).toHaveCount(0);
+  await expect(addAmp).toBeVisible();
+  await expect(save).toHaveAttribute("data-status", "unsaved");
+});

@@ -1,4 +1,5 @@
 import { type AudioClip, createAudioClip } from "./audio-clip.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
@@ -111,6 +112,7 @@ export interface SerializedMidiTrackState extends Omit<
 interface SerializedAudioTrackState<ChannelData> {
   // 🟢 Optional for projects saved before per-track clip visibility.
   showClips?: boolean;
+  amp?: AmpParameters;
   // 🟢 Optional for projects saved before track EQ support.
   eq?: SerializedMultibandEq | EqParameters;
   id: string;
@@ -167,6 +169,7 @@ export function serializeEditorRuntimeState(
       id: track.id,
       name: track.name,
       height: track.height,
+      amp: track.amp,
       eq: track.eq,
       gain: track.gain,
       pan: track.pan,
@@ -218,6 +221,7 @@ export function deserializeEditorRuntimeState({
       clips: getTrackClips(track).map((clip, index) =>
         deserializeAudioClip({ context, clip, index }),
       ),
+      amp: track.amp,
       eq: deserializeEq(track.eq),
       gain: track.gain,
       pan: track.pan ?? 0,

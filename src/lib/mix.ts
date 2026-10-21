@@ -1,6 +1,8 @@
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
+import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import type {
@@ -20,12 +22,14 @@ const MIDI_RELEASE_SECONDS = 2;
 
 interface Mix {
   tracks: {
+    amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
     regions: AudioPlaybackSource[];
   }[];
   midiTracks: {
+    amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
@@ -41,12 +45,14 @@ interface Mix {
 export function resolveMix(state: EditorRuntimeState): Mix {
   const gains = deriveTrackMix(state);
   const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
+    amp: track.amp,
     eq: track.eq,
     gain: gains.get(track.id)!,
     pan: track.pan,
     regions: getClipSources(track.regions),
   }));
   const midiTracks: Mix["midiTracks"] = state.midiTracks.map((track) => ({
+    amp: track.amp,
     eq: track.eq,
     gain: gains.get(track.id)!,
     pan: track.pan,
@@ -96,11 +102,15 @@ export async function renderMix({
       master.channelInterpretation = "speakers";
       master.connect(context.destination);
       using cleanup = new DisposableStack();
-      await ensureBiquadEqWorklet(context);
+      await Promise.all([
+        ensureAmpWorklet(context),
+        ensureBiquadEqWorklet(context),
+      ]);
       for (const track of mix.tracks) {
         const channel = new AudioChannel({
           context,
           output: master,
+          amp: track.amp,
           eq: track.eq,
           gain: track.gain,
           pan: track.pan,
@@ -128,6 +138,7 @@ export async function renderMix({
           const channel = new AudioChannel({
             context,
             output: master,
+            amp: track.amp,
             eq: track.eq,
             gain: track.gain,
             pan: track.pan,
