@@ -1,11 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { AmpParameters } from "../src/lib/dsp/amp";
 import type { SharedProject } from "../src/lib/project-share";
-import {
-  measureRmsDb,
-  type RenderedMix,
-  renderProject,
-} from "./render-helpers";
+import { measureRmsDb, renderProject } from "./render-helpers";
 
 test("renders MIDI automation", async ({ page }) => {
   // RenderedMix a held note that swells in from silence on expression (CC11),
@@ -40,7 +36,7 @@ test("renders MIDI automation", async ({ page }) => {
 });
 
 test("renders a track's amp", async ({ page }) => {
-  // RenderedMix one guitar note with and without the amp.
+  // Render one guitar note with and without the amp.
   const createProject = (amp?: AmpParameters): SharedProject => ({
     title: "Amp",
     tempo: 120,
@@ -60,16 +56,10 @@ test("renders a track's amp", async ({ page }) => {
     createProject({ preset: "high-gain", cabinet: true }),
   );
 
-  // Check the amp changes the mix: what it adds or removes is about as
-  // loud as the dry note itself.
-  const difference: RenderedMix = {
-    sampleRate: dry.sampleRate,
-    channels: dry.channels.map((channel, index) =>
-      channel.map((sample, frame) => amped.channels[index][frame] - sample),
-    ),
-  };
+  // Check the amp changes the note's level, which it can't unless the
+  // track's mix runs through it.
   const range = { start: 0, end: 1 };
-  expect(measureRmsDb(difference, range)).toBeGreaterThan(
-    measureRmsDb(dry, range) - 6,
-  );
+  expect(
+    Math.abs(measureRmsDb(amped, range) - measureRmsDb(dry, range)),
+  ).toBeGreaterThan(6);
 });
