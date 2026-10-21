@@ -164,13 +164,10 @@ export class Amp {
    * result is written to every output channel. Input and output may be the
    * same buffers.
    */
-  process({
-    input,
-    output,
-  }: {
-    input: readonly Float32Array[];
-    output: readonly Float32Array[];
-  }): void {
+  process(
+    input: readonly Float32Array[],
+    output: readonly Float32Array[],
+  ): void {
     const { signal } = this.chain;
     signal.fill(0);
     for (const channel of input) {

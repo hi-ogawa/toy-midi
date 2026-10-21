@@ -61,7 +61,7 @@ describe(Amp, () => {
       new Float32Array(left.length),
       new Float32Array(left.length),
     ];
-    amp.process({ input: [left, right], output });
+    amp.process([left, right], output);
     expect(output[1]).toEqual(output[0]);
     expect(measureRms(output[0])).toBeGreaterThan(0);
   });
@@ -74,7 +74,7 @@ function runAmp(parameters: AmpParameters, input: Float32Array): Float32Array {
     parameters,
   });
   const output = new Float32Array(input.length);
-  amp.process({ input: [input], output: [output] });
+  amp.process([input], [output]);
   return output;
 }
 
