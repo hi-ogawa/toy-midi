@@ -9,10 +9,11 @@
 
 import { dbToGain } from "../music.ts";
 import {
-  BiquadFilter,
+  BiquadEq,
   type BiquadFilterSpec,
+  BUTTERWORTH_Q,
   convertOctavesToQ,
-} from "./biquad-filter.ts";
+} from "./biquad-eq.ts";
 import { Downsampler, OVERSAMPLING_FACTOR, Upsampler } from "./oversampler.ts";
 
 export type AmpPreset = "crunch" | "high-gain";
@@ -31,21 +32,34 @@ type GainStage = {
   filters?: BiquadFilterSpec[];
 };
 
-// A clipped wave carries a slowly varying offset as well as harmonics, since
-// the shifted stage flattens one side more. A 20 Hz high-pass removes it
-// before the next stage, where it would shift that stage's clipping.
-const DC_BLOCKER: BiquadFilterSpec = { type: "highpass", frequency: 20 };
+// 20 Hz is the usual DC blocker cutoff: the bottom of hearing, so nothing
+// audible is lost.
+const DC_BLOCKER: BiquadFilterSpec = {
+  type: "high-pass",
+  frequency: 20,
+  q: BUTTERWORTH_Q,
+};
 
-// A mid bump between stages, like the pre-EQ's, so each stage adds to it.
+// Rock and metal voicings center the distortion in the mids, around 500 Hz to
+// 2 kHz, where a guitar sits in a mix; 1 kHz over an octave covers that range.
 function createMidBump(gainDb: number): BiquadFilterSpec {
   return {
     type: "peaking",
     frequency: 1000,
-    gainDb,
+    gain: dbToGain(gainDb),
     q: convertOctavesToQ(1),
   };
 }
 
+// The first stage's 18 dB (×7.9) takes a stroke's peaks, about 0.3 to 0.6,
+// well into the flat part of tanh. The stages after it bring the small-signal
+// gain to about 24 dB for crunch and 42 dB for high gain, each getting less
+// gain than the one before, the way a high-gain preamp spreads its gain over
+// several stages.
+//
+// The shift b = 0.15 is small, adding a 2nd harmonic around 30 dB below the
+// note on a quiet input, enough for the warmer, tube-like even harmonics
+// without the one-sided buzz a large shift gives.
 const DRIVES: Record<AmpPreset, GainStage[]> = {
   crunch: [
     { gainDb: 18, shift: 0.15, filters: [DC_BLOCKER, createMidBump(2)] },
@@ -55,12 +69,12 @@ const DRIVES: Record<AmpPreset, GainStage[]> = {
     {
       gainDb: 18,
       shift: 0.15,
-      // The 120 Hz high-pass cuts the lows before more gain, as the small
-      // coupling capacitors between a high-gain preamp's stages do, so palm
-      // mutes stay tight.
+      // High-gain amps cut somewhere around 100 to 200 Hz between stages, so
+      // palm mutes stay tight; 120 Hz keeps a low E's body (82 Hz
+      // fundamental, 165 Hz second harmonic) partly through.
       filters: [
         DC_BLOCKER,
-        { type: "highpass", frequency: 120 },
+        { type: "high-pass", frequency: 120, q: BUTTERWORTH_Q },
         createMidBump(3),
       ],
     },
@@ -69,34 +83,48 @@ const DRIVES: Record<AmpPreset, GainStage[]> = {
   ],
 };
 
-// Before the drive: a low cut so the low end stays tight under distortion,
-// and a mid hump like an overdrive pedal in front of an amp.
+// The convention is the Tube Screamer's, an overdrive pedal used as a boost,
+// whose hump peaks near 720 Hz and whose lows roll off below it; here a 90 Hz
+// high-pass, just above a low E, and a gentle +4 dB peak at 750 Hz stand in
+// for it.
 const PRE_EQ: BiquadFilterSpec[] = [
-  { type: "highpass", frequency: 90 },
+  { type: "high-pass", frequency: 90, q: BUTTERWORTH_Q },
   {
     type: "peaking",
     frequency: 750,
-    gainDb: 4,
+    gain: dbToGain(4),
     q: convertOctavesToQ(1.2),
   },
 ];
 
-// The drive's output is near ±1 at any input level, so this brings it back
-// toward the level of the dry signal.
+// −18 dB brings the drive's peaks to about 0.13, leaving headroom in the mix;
+// the track's own gain sets the final level.
 const OUTPUT_GAIN = dbToGain(-18);
 
-// A guitar speaker: mostly a steep roll-off from about 5 kHz, which removes
-// the fizz clipping adds, with a presence bump and a low-mid dip.
+// A guitar speaker, typically a 12-inch cone in a closed-back cabinet, played
+// back through a close microphone. Its response, and so these filters:
+// - Little below about 75 Hz, where the cabinet stops supporting the cone.
+// - A steep fall above about 5 kHz, where the cone stops moving as one piece.
+//   The three low-passes give −1 dB at 3 kHz, −7 dB at 5.2 kHz, and −21 dB
+//   at 8 kHz.
+// - A presence peak in the 2 to 4 kHz range, where a guitar's bite is.
+// - A low-mid dip around 400 to 500 Hz, which keeps distortion from sounding
+//   boxy.
 const CABINET: BiquadFilterSpec[] = [
-  { type: "highpass", frequency: 75 },
-  { type: "lowpass", frequency: 5200 },
-  { type: "lowpass", frequency: 5200 },
-  { type: "lowpass", frequency: 7000 },
-  { type: "peaking", frequency: 2400, gainDb: 3, q: convertOctavesToQ(1) },
+  { type: "high-pass", frequency: 75, q: BUTTERWORTH_Q },
+  { type: "low-pass", frequency: 5200, q: BUTTERWORTH_Q },
+  { type: "low-pass", frequency: 5200, q: BUTTERWORTH_Q },
+  { type: "low-pass", frequency: 7000, q: BUTTERWORTH_Q },
+  {
+    type: "peaking",
+    frequency: 2400,
+    gain: dbToGain(3),
+    q: convertOctavesToQ(1),
+  },
   {
     type: "peaking",
     frequency: 450,
-    gainDb: -2.5,
+    gain: dbToGain(-2.5),
     q: convertOctavesToQ(1.5),
   },
 ];
@@ -107,27 +135,36 @@ const CABINET: BiquadFilterSpec[] = [
  */
 export class Amp {
   private readonly sampleRate: number;
+  private readonly blockFrames: number;
   private chain!: AmpChain;
 
   constructor({
     sampleRate,
+    blockFrames,
     parameters,
   }: {
     sampleRate: number;
+    /** Frames per `process` call, such as a worklet's 128-frame quantum */
+    blockFrames: number;
     parameters: AmpParameters;
   }) {
     this.sampleRate = sampleRate;
+    this.blockFrames = blockFrames;
     this.setParameters(parameters);
   }
 
   /** Rebuilds the chain, so filter history restarts from silence. */
   setParameters(parameters: AmpParameters): void {
-    this.chain = new AmpChain({ sampleRate: this.sampleRate, parameters });
+    this.chain = new AmpChain({
+      sampleRate: this.sampleRate,
+      blockFrames: this.blockFrames,
+      parameters,
+    });
   }
 
   /**
-   * Process equally sized planar buffers. Input and output may be the same
-   * buffers. No processing-loop allocations.
+   * Process planar buffers of `blockFrames` frames. Input and output may be
+   * the same buffers. No buffer allocations.
    */
   process({
     input,
@@ -136,75 +173,103 @@ export class Amp {
     input: readonly Float32Array[];
     output: readonly Float32Array[];
   }): void {
-    const frames = input[0]?.length ?? 0;
-    for (let frame = 0; frame < frames; frame++) {
-      let x = 0;
-      for (const channel of input) {
-        x += channel[frame];
+    const { signal } = this.chain;
+    signal.fill(0);
+    for (const channel of input) {
+      for (let frame = 0; frame < signal.length; frame++) {
+        signal[frame] += channel[frame];
       }
-      const y = this.chain.processSample(x / input.length);
-      for (const channel of output) {
-        channel[frame] = y;
-      }
+    }
+    for (let frame = 0; frame < signal.length; frame++) {
+      signal[frame] /= input.length;
+    }
+    this.chain.process();
+    for (const channel of output) {
+      channel.set(signal);
     }
   }
 }
 
+/**
+ * Runs each part of the chain over a whole block in turn, which is valid
+ * because nothing feeds back from a later part to an earlier one.
+ */
 class AmpChain {
-  private readonly preEq: BiquadFilter[];
+  private readonly preEq: BiquadEq[];
   private readonly stages: {
     gain: number;
     shift: number;
     offset: number;
-    filters: BiquadFilter[];
+    filters: BiquadEq[];
   }[];
-  private readonly cabinet: BiquadFilter[];
+  private readonly cabinet: BiquadEq[];
   private readonly upsampler = new Upsampler();
   private readonly downsampler = new Downsampler();
-  private readonly oversampled = new Float64Array(OVERSAMPLING_FACTOR);
+  private readonly frame = new Float64Array(OVERSAMPLING_FACTOR);
+  // The mono signal at each rate, one block long.
+  readonly signal: Float32Array;
+  private readonly oversampled: Float32Array;
 
   constructor({
     sampleRate,
+    blockFrames,
     parameters,
   }: {
     sampleRate: number;
+    blockFrames: number;
     parameters: AmpParameters;
   }) {
+    this.signal = new Float32Array(blockFrames);
+    this.oversampled = new Float32Array(blockFrames * OVERSAMPLING_FACTOR);
     const oversampledRate = sampleRate * OVERSAMPLING_FACTOR;
-    this.preEq = PRE_EQ.map((spec) => new BiquadFilter(spec, sampleRate));
+    this.preEq = PRE_EQ.map(
+      (spec) => new BiquadEq({ sampleRate, channelCount: 1 }, spec),
+    );
     this.stages = DRIVES[parameters.preset].map((stage) => ({
       gain: dbToGain(stage.gainDb),
       shift: stage.shift ?? 0,
       offset: Math.tanh(stage.shift ?? 0),
       filters: (stage.filters ?? []).map(
-        (spec) => new BiquadFilter(spec, oversampledRate),
+        (spec) =>
+          new BiquadEq({ sampleRate: oversampledRate, channelCount: 1 }, spec),
       ),
     }));
     this.cabinet = parameters.cabinet
-      ? CABINET.map((spec) => new BiquadFilter(spec, sampleRate))
+      ? CABINET.map(
+          (spec) => new BiquadEq({ sampleRate, channelCount: 1 }, spec),
+        )
       : [];
   }
 
-  processSample(x: number): number {
-    for (const filter of this.preEq) {
-      x = filter.process(x);
+  /** Processes `signal` in place. */
+  process(): void {
+    const { signal, oversampled } = this;
+    runFilters(this.preEq, signal);
+    for (let i = 0; i < signal.length; i++) {
+      this.upsampler.processSample(signal[i], this.frame);
+      oversampled.set(this.frame, i * OVERSAMPLING_FACTOR);
     }
-    this.upsampler.processSample(x, this.oversampled);
-    for (let i = 0; i < OVERSAMPLING_FACTOR; i++) {
-      let u = this.oversampled[i];
-      for (const stage of this.stages) {
+    for (const stage of this.stages) {
+      for (let i = 0; i < oversampled.length; i++) {
         // Subtracting tanh(b) keeps silence silent: s(0) = 0.
-        u = Math.tanh(stage.gain * u + stage.shift) - stage.offset;
-        for (const filter of stage.filters) {
-          u = filter.process(u);
-        }
+        oversampled[i] =
+          Math.tanh(stage.gain * oversampled[i] + stage.shift) - stage.offset;
       }
-      this.oversampled[i] = u;
+      runFilters(stage.filters, oversampled);
     }
-    let y = OUTPUT_GAIN * this.downsampler.processSample(this.oversampled);
-    for (const filter of this.cabinet) {
-      y = filter.process(y);
+    for (let i = 0; i < signal.length; i++) {
+      for (let j = 0; j < OVERSAMPLING_FACTOR; j++) {
+        this.frame[j] = oversampled[i * OVERSAMPLING_FACTOR + j];
+      }
+      signal[i] = OUTPUT_GAIN * this.downsampler.processSample(this.frame);
     }
-    return y;
+    runFilters(this.cabinet, signal);
+  }
+}
+
+function runFilters(filters: BiquadEq[], buffer: Float32Array): void {
+  const block = { input: [buffer], output: [buffer] };
+  for (const filter of filters) {
+    filter.process(block);
   }
 }

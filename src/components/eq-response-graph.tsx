@@ -240,12 +240,15 @@ function EqBandHandle({
 function createResponsePath(bands: MultibandEqBand[]): string {
   // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
   const bandCoefficients = bands.map((band) =>
-    calculateBiquadEqCoefficients({
-      sampleRate: GRAPH_SAMPLE_RATE,
-      frequency: band.frequency,
-      gain: band.gain,
-      q: band.q,
-    }),
+    calculateBiquadEqCoefficients(
+      { sampleRate: GRAPH_SAMPLE_RATE },
+      {
+        type: "peaking",
+        frequency: band.frequency,
+        gain: band.gain,
+        q: band.q,
+      },
+    ),
   );
   return Array.from({ length: 161 }, (_, index) => {
     const x = index / 160;

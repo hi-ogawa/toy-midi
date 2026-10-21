@@ -1,8 +1,7 @@
 /**
- * Peaking EQ boosts or cuts a band around the center frequency, with Q controlling its width.
- * The biquad coefficients follow from an analog peaking filter via the bilinear transform with center-frequency prewarping.
- *
- * See [Digital filters](../../../docs/concepts/digital-filters/README.md) for the response design and coefficient derivation.
+ * Biquad filters designed from analog prototypes through the bilinear
+ * transform. See [Digital filters](../../../docs/concepts/digital-filters/README.md)
+ * for the response designs and coefficient derivations.
  */
 
 import { clamp, dbToGain } from "../music.ts";
@@ -38,9 +37,14 @@ export type BiquadEqCoefficients = {
   a2: number;
 };
 
-/** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */
+export type BiquadFilterSpec =
+  | { type: "peaking"; frequency: number; gain: number; q: number }
+  | { type: "low-pass" | "high-pass"; frequency: number; q: number };
+
+/** Standalone biquad EQ. Parameters ramp over 10 ms of processed audio. */
 export class BiquadEq {
   private readonly sampleRate: number;
+  private readonly type: "peaking" | "low-pass" | "high-pass";
   private readonly rampFrames: number;
   // Log-space ramps make equal ratios advance evenly for frequency, gain, and Q.
   // Slots are log frequency, log gain, log Q, and linear wet mix.
@@ -58,21 +62,23 @@ export class BiquadEq {
     a2: 0,
   };
 
-  constructor({
-    sampleRate,
-    channelCount,
-    frequency,
-    gain,
-    q,
-    bypass,
-  }: { sampleRate: number; channelCount: number } & EqParameters) {
+  constructor(
+    { sampleRate, channelCount }: { sampleRate: number; channelCount: number },
+    spec: BiquadFilterSpec,
+  ) {
     this.sampleRate = sampleRate;
+    this.type = spec.type;
     this.rampFrames = Math.max(1, Math.round(sampleRate * 0.01));
     this.history = Array.from(
       { length: channelCount },
       () => new Float64Array(4),
     );
-    this.setParameters({ frequency, gain, q, bypass });
+    this.setParameters({
+      frequency: spec.frequency,
+      gain: spec.type === "peaking" ? spec.gain : 1,
+      q: spec.q,
+      bypass: false,
+    });
     this.reset();
   }
 
@@ -163,9 +169,10 @@ export class BiquadEq {
         const x = input[channel][frame];
         const h = this.history[channel];
         // Direct form I retains input/output history across coefficient changes.
-        // At unity gain the exact identity also removes any residual filter tail.
+        // At unity gain a peaking EQ is the exact identity, which also removes
+        // any residual filter tail.
         const y =
-          this.current[1] === 0
+          this.type === "peaking" && this.current[1] === 0
             ? x
             : this.coefficients.b0 * x +
               this.coefficients.b1 * h[0] +
@@ -184,39 +191,57 @@ export class BiquadEq {
   }
 
   private updateCoefficients(): void {
-    calculateBiquadEqCoefficients({
-      sampleRate: this.sampleRate,
-      frequency: Math.exp(this.current[0]),
-      gain: Math.exp(this.current[1]),
-      q: Math.exp(this.current[2]),
-      output: this.coefficients,
-    });
+    const frequency = Math.exp(this.current[0]);
+    const q = Math.exp(this.current[2]);
+    if (this.type === "peaking") {
+      calculateBiquadEqCoefficients(
+        { sampleRate: this.sampleRate, output: this.coefficients },
+        { type: "peaking", frequency, gain: Math.exp(this.current[1]), q },
+      );
+    } else {
+      calculateBiquadEqCoefficients(
+        { sampleRate: this.sampleRate, output: this.coefficients },
+        { type: this.type, frequency, q },
+      );
+    }
   }
 }
 
-export function calculateBiquadEqCoefficients({
-  sampleRate,
-  frequency,
-  gain,
-  q,
-  output,
-}: {
-  sampleRate: number;
-  frequency: number;
-  gain: number;
-  q: number;
-  output?: BiquadEqCoefficients;
-}): BiquadEqCoefficients {
-  const omega = (2 * Math.PI * frequency) / sampleRate;
-  const amplitude = Math.sqrt(gain);
-  const alpha = Math.sin(omega) / (2 * q);
-  const a0 = 1 + alpha / amplitude;
+export function calculateBiquadEqCoefficients(
+  { sampleRate, output }: { sampleRate: number; output?: BiquadEqCoefficients },
+  spec: BiquadFilterSpec,
+): BiquadEqCoefficients {
+  const omega = (2 * Math.PI * spec.frequency) / sampleRate;
+  const cos = Math.cos(omega);
+  const alpha = Math.sin(omega) / (2 * spec.q);
   const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
-  result.b0 = (1 + alpha * amplitude) / a0;
-  result.b1 = (-2 * Math.cos(omega)) / a0;
-  result.b2 = (1 - alpha * amplitude) / a0;
-  result.a1 = result.b1;
-  result.a2 = (1 - alpha / amplitude) / a0;
+  switch (spec.type) {
+    case "peaking": {
+      const amplitude = Math.sqrt(spec.gain);
+      const a0 = 1 + alpha / amplitude;
+      result.b0 = (1 + alpha * amplitude) / a0;
+      result.b1 = (-2 * cos) / a0;
+      result.b2 = (1 - alpha * amplitude) / a0;
+      result.a1 = result.b1;
+      result.a2 = (1 - alpha / amplitude) / a0;
+      break;
+    }
+    case "low-pass":
+    case "high-pass": {
+      // Both share the denominator 1 + α − 2cos ω·z⁻¹ + (1 − α)·z⁻², and
+      // their numerators put a double zero at z = 1 (high-pass, no DC) or
+      // z = −1 (low-pass, no Nyquist).
+      const a0 = 1 + alpha;
+      const highPass = spec.type === "high-pass";
+      const edge = highPass ? (1 + cos) / 2 : (1 - cos) / 2;
+      result.b0 = edge / a0;
+      result.b1 = ((highPass ? -2 : 2) * edge) / a0;
+      result.b2 = result.b0;
+      result.a1 = (-2 * cos) / a0;
+      result.a2 = (1 - alpha) / a0;
+      break;
+    }
+  }
   return result;
 }
 
@@ -248,4 +273,21 @@ export function calculateBiquadEqResponse({
   const dr = 1 + a1 * cos1 + a2 * cos2;
   const di = -a1 * sin1 - a2 * sin2;
   return Math.sqrt((nr ** 2 + ni ** 2) / (dr ** 2 + di ** 2));
+}
+
+/**
+ * Q of a Butterworth high-pass or low-pass, the flattest passband, which puts
+ * the cutoff at −3 dB.
+ */
+export const BUTTERWORTH_Q = Math.SQRT1_2;
+
+/**
+ * Q of a peaking filter whose bandwidth is `octaves` wide between the
+ * half-gain points. See
+ * [Measure the halfway bandwidth](../../../docs/concepts/digital-filters/peaking-eq.md#measure-the-halfway-bandwidth)
+ * for the derivation.
+ */
+export function convertOctavesToQ(octaves: number): number {
+  const ratio = 2 ** octaves;
+  return Math.sqrt(ratio) / (ratio - 1);
 }

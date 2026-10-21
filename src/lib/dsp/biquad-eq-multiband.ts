@@ -35,6 +35,9 @@ export function isEqActive({ bypass, bands }: MultibandEqParameters): boolean {
 }
 
 export class MultibandEq {
+  // TODO: Construct a band's filter when the band is added or changes filter
+  // type, and drop the pool. Updates arrive between render calls and already
+  // allocate, so the pool keeps nothing off the processing loop.
   private readonly pool: BiquadEq[];
   private bands: { id: string; eq: BiquadEq }[] = [];
 
@@ -49,7 +52,11 @@ export class MultibandEq {
   }) {
     this.pool = Array.from(
       { length: MAX_EQ_BANDS },
-      () => new BiquadEq({ sampleRate, channelCount, ...DEFAULT_PARAMETERS }),
+      () =>
+        new BiquadEq(
+          { sampleRate, channelCount },
+          { type: "peaking", ...DEFAULT_PARAMETERS },
+        ),
     );
     this.setParameters(parameters);
   }

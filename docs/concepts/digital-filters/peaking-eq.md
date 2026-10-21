@@ -61,8 +61,7 @@ Thus the coefficient ratio sets the center gain. It remains to establish that th
 Measure frequency relative to the center by setting $u=s/\Omega_0$. Define $c_z=c_1/\Omega_0$ and $c_p=d_1/\Omega_0$, which gives a dimensionless response
 
 $$
-P(u)=H_a(\Omega_0u)
-=\frac{u^2+c_zu+1}{u^2+c_pu+1}.
+H_a(\Omega_0u)=\frac{u^2+c_zu+1}{u^2+c_pu+1}.
 $$
 
 For this family, choose $c_z,c_p\gt 0$. Both quadratics then have roots in the left half-plane, so the filter and its reciprocal have decaying natural modes. The gain requirement is $c_z/c_p=M$.
@@ -72,7 +71,7 @@ For this family, choose $c_z,c_p\gt 0$. Both quadratics then have roots in the l
 Write $\nu=\Omega/\Omega_0$, so a tone is evaluated at $u=j\nu$. Its squared amplitude response is
 
 $$
-|P(j\nu)|^2
+|H_a(j\Omega_0\nu)|^2
 =\frac{(1-\nu^2)^2+c_z^2\nu^2}
 {(1-\nu^2)^2+c_p^2\nu^2}.
 $$
@@ -80,7 +79,7 @@ $$
 For $\nu\gt 0$, divide both parts by $\nu^2$ and collect the frequency dependence into $v=(\nu-1/\nu)^2$:
 
 $$
-|P(j\nu)|^2=F(v)=\frac{v+c_z^2}{v+c_p^2},
+|H_a(j\Omega_0\nu)|^2=F(v)=\frac{v+c_z^2}{v+c_p^2},
 \qquad
 F'(v)=\frac{c_p^2-c_z^2}{(v+c_p^2)^2}.
 $$
@@ -95,7 +94,7 @@ The ratio $c_z/c_p$ already fixes the center amplitude $M$. We can now use the r
 
 ### Measure the Halfway Bandwidth
 
-To measure width, choose the level halfway between unity and $M$ in decibels. Its amplitude ratio is the geometric mean $\sqrt M$, so the two crossing frequencies satisfy $|P|^2=M$.
+To measure width, choose the level halfway between unity and $M$ in decibels. Its amplitude ratio is the geometric mean $\sqrt M$, so the two crossing frequencies satisfy $|H_a(j\Omega_0\nu)|^2=M$.
 
 For a non-flat response, substituting that level gives
 
@@ -122,12 +121,20 @@ $$
 
 Larger $Q$ gives a narrower correction. The ratio of the two coefficients controls gain, while their product controls width. At $M=1$, the response is flat and there are no distinct halfway crossings, though the coefficient formulas below remain valid.
 
+Bandwidth is often given in octaves instead. The two crossings multiply to $\nu_{\mathrm{low}}\nu_{\mathrm{high}}=1$, so they sit symmetrically around the center on a logarithmic frequency axis. A bandwidth of $N$ octaves therefore puts them at $\nu=2^{\pm N/2}$, and
+
+$$
+Q=\frac{1}{2^{N/2}-2^{-N/2}}=\frac{\sqrt{2^N}}{2^N-1}.
+$$
+
+One octave gives $Q=\sqrt2\approx1.41$.
+
 ### Express the Response Through Gain and Q
 
 Solving $c_z/c_p=M$ and $c_zc_p=1/Q^2$ gives $c_z=\sqrt M/Q$ and $c_p=1/(Q\sqrt M)$. With the abbreviation $A=\sqrt M$, the response becomes
 
 $$
-P(u)=\frac{u^2+(A/Q)u+1}{u^2+u/(AQ)+1}.
+H_a(\Omega_0u)=\frac{u^2+(A/Q)u+1}{u^2+u/(AQ)+1}.
 $$
 
 Replacing $M$ with $1/M$ swaps numerator and denominator. A matching boost and cut are therefore exact inverses for fixed parameters, while keeping the same analog halfway bandwidth. This is the peaking-EQ $Q$ convention used by the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).

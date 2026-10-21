@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { gainToDb } from "../music";
 import { Amp, type AmpParameters } from "./amp";
-
-const SAMPLE_RATE = 48000;
+import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 
 describe(Amp, () => {
   it.each(["crunch", "high-gain"] as const)(
@@ -23,7 +23,7 @@ describe(Amp, () => {
             createSine({ frequency: 220, amplitude }),
           ).slice(2400),
         );
-      return toDb(level(0.02) / level(0.5));
+      return gainToDb(level(0.02) / level(0.5));
     };
     expect(fade("crunch")).toBeLessThan(-6);
     expect(fade("high-gain")).toBeGreaterThan(-3);
@@ -35,7 +35,7 @@ describe(Amp, () => {
       createSine({ frequency: 200, amplitude: 0.05 }),
     ).slice(2400);
     const harmonic = (n: number) => measureHarmonic(output, 200 * n);
-    expect(toDb(harmonic(2) / harmonic(1))).toBeGreaterThan(-50);
+    expect(gainToDb(harmonic(2) / harmonic(1))).toBeGreaterThan(-50);
   });
 
   it("rolls off the clipping's fizz with the cabinet", () => {
@@ -46,15 +46,16 @@ describe(Amp, () => {
       ).slice(2400);
       return measureHarmonic(output, 440 * 23) / measureHarmonic(output, 440);
     };
-    expect(toDb(fizz(true) / fizz(false))).toBeLessThan(-20);
+    expect(gainToDb(fizz(true) / fizz(false))).toBeLessThan(-20);
   });
 
   it("writes the same mono signal to every output channel", () => {
+    const left = createSine({ frequency: 220, amplitude: 0.3 });
     const amp = new Amp({
       sampleRate: SAMPLE_RATE,
+      blockFrames: left.length,
       parameters: { preset: "crunch", cabinet: true },
     });
-    const left = createSine({ frequency: 220, amplitude: 0.3 });
     const right = new Float32Array(left.length);
     const output = [
       new Float32Array(left.length),
@@ -67,36 +68,14 @@ describe(Amp, () => {
 });
 
 function runAmp(parameters: AmpParameters, input: Float32Array): Float32Array {
-  const amp = new Amp({ sampleRate: SAMPLE_RATE, parameters });
+  const amp = new Amp({
+    sampleRate: SAMPLE_RATE,
+    blockFrames: input.length,
+    parameters,
+  });
   const output = new Float32Array(input.length);
   amp.process({ input: [input], output: [output] });
   return output;
-}
-
-function createSine({
-  frequency,
-  amplitude,
-  phase = 0,
-  length = 9600,
-}: {
-  frequency: number;
-  amplitude: number;
-  phase?: number;
-  length?: number;
-}): Float32Array {
-  return Float32Array.from(
-    { length },
-    (_, i) =>
-      amplitude * Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE + phase),
-  );
-}
-
-function measureRms(samples: ArrayLike<number>): number {
-  let sum = 0;
-  for (let i = 0; i < samples.length; i++) {
-    sum += samples[i] ** 2;
-  }
-  return Math.sqrt(sum / samples.length);
 }
 
 /** Amplitude of one frequency, by correlating with a sine and a cosine. */
@@ -112,9 +91,4 @@ function measureHarmonic(
     im += samples[i] * Math.sin(angle);
   }
   return (2 * Math.hypot(re, im)) / samples.length;
-}
-
-// Unlike gainToDb, not floored at the mixer's −60 dB.
-function toDb(gain: number): number {
-  return 20 * Math.log10(gain);
 }
