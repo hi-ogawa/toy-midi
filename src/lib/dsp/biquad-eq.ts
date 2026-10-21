@@ -278,3 +278,14 @@ export function calculateBiquadEqResponse({
  * the cutoff at −3 dB.
  */
 export const BUTTERWORTH_Q = Math.SQRT1_2;
+
+/**
+ * Q of a peaking filter whose bandwidth is `octaves` wide between the
+ * half-gain points. See
+ * [Measure the halfway bandwidth](../../../docs/concepts/digital-filters/peaking-eq.md#measure-the-halfway-bandwidth)
+ * for the derivation.
+ */
+export function convertOctavesToQ(octaves: number): number {
+  const ratio = 2 ** octaves;
+  return Math.sqrt(ratio) / (ratio - 1);
+}

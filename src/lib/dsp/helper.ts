@@ -19,3 +19,11 @@ export function createSine({
       amplitude * Math.sin((2 * Math.PI * frequency * i) / sampleRate + phase),
   );
 }
+
+export function measureRms(samples: ArrayLike<number>): number {
+  let sum = 0;
+  for (let i = 0; i < samples.length; i++) {
+    sum += samples[i] ** 2;
+  }
+  return Math.sqrt(sum / samples.length);
+}

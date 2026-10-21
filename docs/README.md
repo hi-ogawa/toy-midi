@@ -12,6 +12,8 @@
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
 - [YIN pitch detection](concepts/yin-pitch-detection.md): YIN difference analysis, period selection, and frequency refinement.
 - [WSOLA time stretching](concepts/wsola-time-stretching.md): derive source-window selection, waveform similarity, and complementary fades from the goal of changing duration while preserving pitch.
+- [Guitar amp simulation](concepts/guitar-amp-simulation.md): gain stages as soft clippers, why chaining them sustains a decaying note, the filters around them, and oversampling against aliasing.
+- [Oversampling](concepts/oversampling.md): why clipping aliases, upsampling and downsampling around it, the windowed-sinc low-pass they share, and the polyphase shortcut.
 
 ## Bass Pitch
 

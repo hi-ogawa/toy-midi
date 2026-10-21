@@ -121,6 +121,14 @@ $$
 
 Larger $Q$ gives a narrower correction. The ratio of the two coefficients controls gain, while their product controls width. At $M=1$, the response is flat and there are no distinct halfway crossings, though the coefficient formulas below remain valid.
 
+Bandwidth is often given in octaves instead. The two crossings multiply to $\nu_{\mathrm{low}}\nu_{\mathrm{high}}=1$, so they sit symmetrically around the center on a logarithmic frequency axis. A bandwidth of $N$ octaves therefore puts them at $\nu=2^{\pm N/2}$, and
+
+$$
+Q=\frac{1}{2^{N/2}-2^{-N/2}}=\frac{\sqrt{2^N}}{2^N-1}.
+$$
+
+One octave gives $Q=\sqrt2\approx1.41$.
+
 ### Express the Response Through Gain and Q
 
 Solving $c_z/c_p=M$ and $c_zc_p=1/Q^2$ gives $c_z=\sqrt M/Q$ and $c_p=1/(Q\sqrt M)$. With the abbreviation $A=\sqrt M$, the response becomes
