@@ -129,10 +129,6 @@ const CABINET: BiquadFilterSpec[] = [
   },
 ];
 
-/**
- * Processes a channel strip's input as one mono guitar, since a DI signal is
- * one signal, and writes the result to every output channel.
- */
 export class Amp {
   private readonly sampleRate: number;
   private readonly blockFrames: number;
@@ -163,16 +159,15 @@ export class Amp {
   }
 
   /**
-   * Process planar buffers of `blockFrames` frames. Input and output may be
-   * the same buffers. No buffer allocations.
+   * Process planar buffers of `blockFrames` frames. The input channels are
+   * averaged into one mono guitar, since a DI signal is one signal, and the
+   * result is written to every output channel. Input and output may be the
+   * same buffers.
    */
-  process({
-    input,
-    output,
-  }: {
-    input: readonly Float32Array[];
-    output: readonly Float32Array[];
-  }): void {
+  process(
+    input: readonly Float32Array[],
+    output: readonly Float32Array[],
+  ): void {
     const { signal } = this.chain;
     signal.fill(0);
     for (const channel of input) {
