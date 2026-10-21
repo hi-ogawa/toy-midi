@@ -34,7 +34,6 @@ class AmpWorkletNode extends AudioWorkletNode {
   }
 }
 
-/** A track's amp, or a direct connection while the track has none. */
 export class AmpNode {
   readonly input: GainNode;
   readonly output: GainNode;
