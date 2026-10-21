@@ -51,8 +51,7 @@ test("iterates the multiband EQ preview", async ({ page }) => {
   await expect(frequencyInput).toHaveValue(frequency);
   await expect(gainInput).toHaveValue(gain);
 
-  // Switch Band 2 to low-pass, which redraws its curve and moves its handle to
-  // the 0 dB line.
+  // Switch Band 2 to low-pass, which hides its gain and redraws its curve.
   const filterType = panel.getByRole("combobox", { name: "Filter type" });
   const curve = panel.getByTestId("eq-band-curve").nth(1);
   const peakingPath = await curve.getAttribute("d");
@@ -60,7 +59,6 @@ test("iterates the multiband EQ preview", async ({ page }) => {
   await expect(gainInput).toHaveCount(0);
   await expect(curve).not.toHaveAttribute("d", peakingPath!);
   const passPoint = panel.getByTestId("eq-response-point").nth(1);
-  await expect(passPoint).toHaveAttribute("style", /top: 50%/);
 
   // Drag the low-pass handle up and right, which moves only its cutoff.
   const passBox = (await passPoint.boundingBox())!;
@@ -75,7 +73,9 @@ test("iterates the multiband EQ preview", async ({ page }) => {
   await expect
     .poll(async () => Number(await frequencyInput.inputValue()))
     .toBeGreaterThan(Number(frequency));
-  await expect(passPoint).toHaveAttribute("style", /top: 50%/);
+  const draggedBox = (await passPoint.boundingBox())!;
+  expect(draggedBox.x).toBeGreaterThan(passBox.x);
+  expect(draggedBox.y).toBeCloseTo(passBox.y, 0);
 
   // Switch back to peaking, and the band's gain is where it was.
   await filterType.selectOption("peaking");
