@@ -213,17 +213,22 @@ class AmpChain {
     parameters: AmpParameters;
   }) {
     const oversampledRate = sampleRate * OVERSAMPLING_FACTOR;
-    this.preEq = PRE_EQ.map((spec) => createFilter(spec, sampleRate));
+    this.preEq = PRE_EQ.map(
+      (spec) => new BiquadEq({ sampleRate, channelCount: 1 }, spec),
+    );
     this.stages = DRIVES[parameters.preset].map((stage) => ({
       gain: dbToGain(stage.gainDb),
       shift: stage.shift ?? 0,
       offset: Math.tanh(stage.shift ?? 0),
-      filters: (stage.filters ?? []).map((spec) =>
-        createFilter(spec, oversampledRate),
+      filters: (stage.filters ?? []).map(
+        (spec) =>
+          new BiquadEq({ sampleRate: oversampledRate, channelCount: 1 }, spec),
       ),
     }));
     this.cabinet = parameters.cabinet
-      ? CABINET.map((spec) => createFilter(spec, sampleRate))
+      ? CABINET.map(
+          (spec) => new BiquadEq({ sampleRate, channelCount: 1 }, spec),
+        )
       : [];
   }
 
@@ -267,8 +272,4 @@ class AmpChain {
       filter.process(this.block);
     }
   }
-}
-
-function createFilter(spec: BiquadFilterSpec, sampleRate: number): BiquadEq {
-  return new BiquadEq({ sampleRate, channelCount: 1 }, spec);
 }
