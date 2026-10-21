@@ -102,14 +102,14 @@ $$
 h_\text{ideal}[n]=\frac{1}{L}\text{sinc}\frac{n}{L}.
 $$
 
-The frequency side reaches the same kernel. Measured in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, $\omega=2\pi f/(LF_s)$, the high rate's Nyquist frequency $LF_s/2$ is $\pi$ and the cutoff $F_s/2$ is $\omega_c=\pi/L$. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response $\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}\,d\omega=\frac{\sin(\omega_c n)}{\pi n}$, which is $\frac{1}{L}\text{sinc}\frac{n}{L}$ again. Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. So the taps are tapered by a **window** $w[n]$ instead:
+The frequency side reaches the same kernel. Measured in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, $\omega=2\pi f/(LF_s)$, the high rate's Nyquist frequency $LF_s/2$ is $\pi$ and the cutoff $F_s/2$ is $\omega_c=\pi/L$. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response $\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}\,d\omega=\frac{\sin(\omega_c n)}{\pi n}$, which is $\frac{1}{L}\text{sinc}\frac{n}{L}$ again. Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. Tapering the taps by a **window** $w[n]$ lowers it:
 
 $$
 h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)} \cdot w[n],
 \qquad n=0,\dots,N-1.
 $$
 
-The taps are then scaled to sum to 1, so the filter passes DC at exactly unity.
+The taps are then scaled to sum to 1, so the filter passes DC at exactly unity. [Our implementation](../../src/lib/dsp/oversampler.ts) cuts the kernel without a window for now, which is $w[n]=1$, so it has the 21 dB ripple, and tapering it is a TODO there.
 
 ### Trade Length for Stopband with a Kaiser Window
 
@@ -129,32 +129,34 @@ $$
 N-1\approx\frac{A-8}{2.285 \cdot \Delta\omega}.
 $$
 
-We take $A=80$ dB, so $\beta=7.86$, and $N=96$ taps at the high rate. Then $\Delta\omega\approx72/(2.285\cdot95)\approx0.33$ rad at the high rate, about $0.21F_s$ wide. Centered on the original Nyquist frequency, at 48 kHz the filter is flat to about 19 kHz and 80 dB down from about 29 kHz. What still folds back from inside the transition band lands above 19 kHz, where little of a guitar's sound is.
+With $A=80$ dB, $\beta=7.86$, and with $N=96$ taps at the high rate, the same length as ours, $\Delta\omega\approx72/(2.285\cdot95)\approx0.33$ rad at the high rate, about $0.21F_s$ wide. Centered on the original Nyquist frequency, at 48 kHz that filter is flat to about 19 kHz and 80 dB down from about 29 kHz, and what still folds back from inside its transition band lands above 19 kHz, where little of a guitar's sound is. The window trades the transition band for that depth. The unwindowed kernel falls from the passband within about 2 kHz of the cutoff but stays only 21 to 30 dB down, while the Kaiser kernel takes 10 kHz to fall and then stays about 75 dB down.
 
 ### Compare with Simple Interpolation
 
-Computed for the actual 4-tap box, 7-tap triangle, and 96-tap low-pass, along with the same 96 taps cut without a window, the frequency responses show how much the extra taps and the window each buy. Each curve is the gain at every frequency. The markers pick out the 9 kHz sine from the figures above and its images, so reading a curve at the markers shows how much of the signal survives and how much of each image is left, which is what the table lists:
+Computed for the actual 4-tap box and 7-tap triangle, our 96 taps cut without a window, and the same 96 taps with the Kaiser window, the frequency responses show how much the extra taps and the window each buy. Each curve is the gain at every frequency. The markers pick out the 9 kHz sine from the figures above and its images, so reading a curve at the markers shows how much of the signal survives and how much of each image is left, which is what the table lists:
 
 ![Repeating samples and linear interpolation fall gradually and leave the images of a 9 kHz sine only 13 and 25 dB down. The 96-tap sinc without a window ripples only 21 dB down just above the cutoff and stays 30 to 60 dB down across the image band, while the 96-tap Kaiser low-pass stays flat to 19 kHz and removes the images by more than 90 dB](images/oversampling-interpolators.svg)
 
-| At                      | Repeat each sample | Linear interpolation | 96 taps, no window | 96-tap low-pass |
-| ----------------------- | ------------------ | -------------------- | ------------------ | --------------- |
-| 9 kHz, the signal       | −0.5 dB            | −1.0 dB              | +0.2 dB            | 0.0 dB          |
-| 20 kHz, the signal      | −2.5 dB            | −5.0 dB              | −0.3 dB            | −0.1 dB         |
-| 39 kHz, its first image | −12.6 dB           | −25.3 dB             | −65.2 dB           | −91.5 dB        |
-| 57 kHz, its next image  | −15.2 dB           | −30.5 dB             | −79.6 dB           | −103.1 dB       |
+| At                      | Repeat each sample | Linear interpolation | 96 taps, no window (ours) | 96 taps, Kaiser |
+| ----------------------- | ------------------ | -------------------- | ------------------------- | --------------- |
+| 9 kHz, the signal       | −0.5 dB            | −1.0 dB              | +0.2 dB                   | 0.0 dB          |
+| 20 kHz, the signal      | −2.5 dB            | −5.0 dB              | −0.3 dB                   | −0.1 dB         |
+| 39 kHz, its first image | −12.6 dB           | −25.3 dB             | −65.2 dB                  | −91.5 dB        |
+| 57 kHz, its next image  | −15.2 dB           | −30.5 dB             | −79.6 dB                  | −103.1 dB       |
 
-The simple interpolators lose up to 5 dB at the top of the wanted band and leave the images only 13 to 30 dB down, where the 96-tap low-pass is flat and removes them by more than 90 dB. The window accounts for much of that. Without it, the same 96 taps ripple by about 0.5 dB in the passband, and the stopband is only 21 dB down at its worst, just above the cutoff, and about 30 dB down from 29 kHz. The two images in the table happen to fall in dips between ripples, so they come out 65 and 80 dB down, but the ripple peaks within 2 kHz of them are only 39 and 50 dB down. Linear interpolation is the 7-tap end of the same scale the Kaiser formulas describe, and taking more taps moves the response toward the ideal one.
+The simple interpolators lose up to 5 dB at the top of the wanted band and leave the images only 13 to 30 dB down, where the 96-tap Kaiser kernel is flat and removes them by more than 90 dB. The window accounts for much of that. Without it, our 96 taps ripple by about 0.5 dB in the passband, and the stopband is only 21 dB down at its worst, just above the cutoff, and about 30 dB down from 29 kHz. The two images in the table happen to fall in dips between ripples, so they come out 65 and 80 dB down, but the ripple peaks within 2 kHz of them are only 39 and 50 dB down. Linear interpolation is the 7-tap end of the same scale the Kaiser formulas describe, and taking more taps moves the response toward the ideal one.
 
 ### Measure the Aliasing Through the Drive
 
-Measured with a steady sine at 0.3 through the amp's drive, the energy between the note's harmonics, which is aliasing, falls this far below the note:
+Measured with a steady sine at 0.3 through the amp's drive, without the cabinet, the energy between the note's harmonics from 20 Hz to 24 kHz, which is aliasing, falls this far below the note. The spectrum is taken over 65,536 samples with a Blackman–Harris window, leaving out 20 Hz on either side of each harmonic, and the measurement's own floor is about −100 dB:
 
-| Drive, note        | At $F_s$ | At $4F_s$ |
-| ------------------ | -------- | --------- |
-| High gain, 330 Hz  | −45 dB   | −97 dB    |
-| High gain, 1318 Hz | −22 dB   | −61 dB    |
-| Crunch, 1318 Hz    | −61 dB   | −135 dB   |
+| Drive, note        | At $F_s$ | At $4F_s$, ours | At $4F_s$, Kaiser |
+| ------------------ | -------- | --------------- | ----------------- |
+| High gain, 330 Hz  | −55 dB   | −68 dB          | −66 dB            |
+| High gain, 1318 Hz | −19 dB   | −46 dB          | −39 dB            |
+| Crunch, 1318 Hz    | −45 dB   | −71 dB          | −60 dB            |
+
+Oversampling lowers the aliasing by 13 to 27 dB. Over the full band, the unwindowed kernel does as well as the Kaiser one or better, because its narrow transition band lets less of what lies just above 24 kHz fold back to just below it. Below 19 kHz, where the Kaiser kernel's wide transition band doesn't reach, it does better, reaching the floor on high gain at 330 Hz and on crunch, where ours stays at −80 and −83 dB.
 
 ## Compute the Filters in Polyphase Form
 
@@ -228,7 +230,7 @@ $$
 
 rather than $|\text{sinc}(f)|$. It is close while $f$ is small next to $L$, and the triangle's is its square, which is why the table says roughly.
 
-**What the implementation approximates.** The 96-tap filter only approximates the box, and the window's passband ripple and stopband attenuation, set by the [Kaiser formulas](#trade-length-for-stopband-with-a-kaiser-window), bound how far it is from exact.
+**What the implementation approximates.** The 96-tap filter only approximates the box. Cut without a window, it ripples by about 0.5 dB in the passband and stays only 21 to 30 dB down in the stopband, and a window such as [Kaiser's](#trade-length-for-stopband-with-a-kaiser-window) would trade a wider transition band for a deeper stopband.
 
 ## Appendix: A Low-Pass Without Feedback
 
