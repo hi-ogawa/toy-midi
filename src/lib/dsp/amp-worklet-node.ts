@@ -34,11 +34,7 @@ class AmpWorkletNode extends AudioWorkletNode {
   }
 }
 
-/**
- * Runs a track's amp between fixed input and output nodes, so a channel wires
- * it once. Without an amp, the input connects straight to the output, and a
- * dry track has no amp delay.
- */
+/** A track's amp, or a direct connection while the track has none. */
 export class AmpNode {
   readonly input: GainNode;
   readonly output: GainNode;
