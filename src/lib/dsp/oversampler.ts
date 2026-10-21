@@ -14,7 +14,9 @@ const KERNEL = defineKernel();
 
 /**
  * Upsample one channel by 4: `process(input, output)` writes 4 output samples
- * per input sample, so `output` is 4 times as long as `input`.
+ * per input sample, so `output` is 4 times as long as `input`. It works one
+ * input sample at a time, keeping the recent ones as history across calls, so
+ * a signal gives the same output whatever blocks it arrives in.
  */
 export class Upsampler {
   // The last TAPS_PER_PHASE input samples, stored twice so they always read
@@ -45,7 +47,9 @@ export class Upsampler {
 
 /**
  * Downsample one channel by 4: `process(input, output)` reads 4 input samples
- * per output sample, so `input` is 4 times as long as `output`.
+ * per output sample, so `input` is 4 times as long as `output`. Like the
+ * upsampler, it works one output sample at a time with history kept across
+ * calls, so the blocks a signal arrives in don't change the output.
  */
 export class Downsampler {
   // The last TAPS high-rate samples, stored twice like the upsampler's.
