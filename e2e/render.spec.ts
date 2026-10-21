@@ -56,10 +56,10 @@ test("renders a track's amp", async ({ page }) => {
     createProject({ preset: "high-gain", cabinet: true }),
   );
 
-  // Check the amp changes the note's level, which it can't unless the
+  // Check the amp's drive makes the note louder, which it can't unless the
   // track's mix runs through it.
   const range = { start: 0, end: 1 };
-  expect(
-    Math.abs(measureRmsDb(amped, range) - measureRmsDb(dry, range)),
-  ).toBeGreaterThan(6);
+  expect(measureRmsDb(amped, range)).toBeGreaterThan(
+    measureRmsDb(dry, range) + 6,
+  );
 });
