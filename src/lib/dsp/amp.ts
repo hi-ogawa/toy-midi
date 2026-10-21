@@ -257,8 +257,8 @@ class AmpChain {
 }
 
 function runFilters(filters: BiquadEq[], buffer: Float32Array): void {
-  const block = { input: [buffer], output: [buffer] };
+  const channels = [buffer];
   for (const filter of filters) {
-    filter.process(block);
+    filter.process(channels, channels);
   }
 }

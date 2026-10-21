@@ -184,7 +184,7 @@ export interface EditorRuntimeState {
   isPlaying: boolean;
   /** Playback speed, 1 being normal */
   playbackRate: number;
-  /** Beats per minute */
+  /** Quarter notes per minute, whatever the time signature */
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;

@@ -45,7 +45,7 @@ class BiquadEqProcessor extends AudioWorkletProcessor {
     if (input.length === 0 || output.length === 0) {
       return true;
     }
-    this.eq.process({ input, output });
+    this.eq.process(input, output);
     return true;
   }
 }

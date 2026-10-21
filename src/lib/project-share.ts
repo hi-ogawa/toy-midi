@@ -1,11 +1,8 @@
 import type { Note } from "../types.ts";
 import type {
-  MultibandEqBand,
-  MultibandEqParameters,
-} from "./dsp/biquad-eq-multiband.ts";
-import type {
   SerializedEditorRuntimeState,
   SerializedMidiTrackState,
+  SerializedMultibandEq,
 } from "./persistence.ts";
 import { routes } from "./routes.ts";
 import type { Locator } from "./runtime.ts";
@@ -52,8 +49,8 @@ interface SharedMidiTrack
       Omit<SerializedMidiTrackState, "id" | "name" | "program" | "notes" | "eq">
     > {
   notes: Omit<Note, "id">[];
-  eq?: Omit<MultibandEqParameters, "bands"> & {
-    bands: Omit<MultibandEqBand, "id">[];
+  eq?: Omit<SerializedMultibandEq, "bands"> & {
+    bands: Omit<SerializedMultibandEq["bands"][number], "id">[];
   };
 }
 
