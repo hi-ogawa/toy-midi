@@ -155,7 +155,7 @@ export class Amp {
 
   /**
    * Process equally sized planar buffers. Input and output may be the same
-   * buffers. No processing-loop allocations once the block size is steady.
+   * buffers. No buffer allocations once the block size is steady.
    */
   process({
     input,
@@ -200,10 +200,6 @@ class AmpChain {
   // The mono signal at each rate, sized to the block.
   private signal = new Float32Array(0);
   private oversampled = new Float32Array(0);
-  // BiquadEq takes planar channel arrays, so each filter run points this one
-  // reused channel at the buffer it filters in place.
-  private readonly channels: Float32Array[] = [this.signal];
-  private readonly block = { input: this.channels, output: this.channels };
 
   constructor({
     sampleRate,
@@ -267,9 +263,9 @@ class AmpChain {
   }
 
   private runFilters(filters: BiquadEq[], buffer: Float32Array): void {
-    this.channels[0] = buffer;
+    const channels = [buffer];
     for (const filter of filters) {
-      filter.process(this.block);
+      filter.process({ input: channels, output: channels });
     }
   }
 }
