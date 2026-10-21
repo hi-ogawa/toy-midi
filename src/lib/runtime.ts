@@ -104,9 +104,9 @@ export interface MidiTrackState {
    */
   bank?: number;
   /**
-   * Guitar amp in front of the EQ, absent when off. The drive raises each
-   * note's release tail until it smears into the next note, so mute the tails
-   * with CC 11 (expression) at 0 from just after a note-off to the next
+   * Guitar amp in front of the EQ, absent when off. The drive makes each
+   * note's release tail loud enough to smear into the next note, so mute the
+   * tails with CC 11 (expression) at 0 from just after a note-off to the next
    * note-on.
    */
   amp?: TrackAmp;
