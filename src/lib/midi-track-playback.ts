@@ -62,6 +62,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.channel = new AudioChannel({
       context: transport.context,
       output,
+      amp: track.amp,
       eq: track.eq,
       gain: 0,
       pan: track.pan,

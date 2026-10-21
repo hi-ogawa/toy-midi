@@ -41,7 +41,10 @@ export function Mixer({
             pan={track.pan}
             onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
             effectsOpen={openEffects.has(track.id)}
-            effectsActive={isEqActive(track.eq)}
+            activeEffects={[
+              ...(track.amp ? ["amp"] : []),
+              ...(isEqActive(track.eq) ? ["EQ"] : []),
+            ]}
             onEffectsToggle={() => onEffectsToggle(track.id)}
             label={track.name}
             meter={
@@ -108,7 +111,7 @@ function TrackChannel({
   onMutedChange,
   onSoloedChange,
   effectsOpen,
-  effectsActive,
+  activeEffects,
   onEffectsToggle,
 }: {
   label: string;
@@ -122,7 +125,7 @@ function TrackChannel({
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
   effectsOpen: boolean;
-  effectsActive: boolean;
+  activeEffects: string[];
   onEffectsToggle: () => void;
 }) {
   const input = useGainInput(gain, onGainChange);
@@ -154,7 +157,7 @@ function TrackChannel({
           <EffectsToggle
             label={label}
             open={effectsOpen}
-            active={effectsActive}
+            activeEffects={activeEffects}
             onClick={onEffectsToggle}
             className="col-span-2 h-6"
           />

@@ -1,5 +1,5 @@
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
-import { AudioChannel } from "./audio-channel.ts";
+import { AudioChannel, type TrackAmp } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { createPitchShifterWorkletNode } from "./dsp/pitch-shifter-worklet-node.ts";
@@ -23,12 +23,14 @@ export class AudioTrackPlayback {
   constructor({
     transport,
     output,
+    amp,
     eq,
     gain,
     pan,
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
+    amp?: TrackAmp;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
@@ -37,6 +39,7 @@ export class AudioTrackPlayback {
     this.channel = new AudioChannel({
       context: transport.context,
       output,
+      amp,
       eq,
       gain,
       pan,

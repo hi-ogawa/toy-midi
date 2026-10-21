@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
+import type { TrackAmp } from "../src/lib/audio-channel";
 import type { SharedProject } from "../src/lib/project-share";
 import {
   addAudio,
@@ -124,4 +125,63 @@ test("exports MIDI automation in the WAV", async ({ page }) => {
       .every((sample) => sample === 0);
   expect(isSilent(0, 0.9)).toBe(true);
   expect(isSilent(1, 2)).toBe(false);
+});
+
+test("exports a track's amp in the WAV", async ({ page }) => {
+  // Export a shared project holding one guitar note, with and without the amp.
+  const render = async (amp?: TrackAmp) => {
+    const project: SharedProject = {
+      title: "Amp",
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      midiTracks: [
+        {
+          name: "Guitar",
+          program: 27,
+          notes: [{ pitch: 52, start: 0, duration: 2, velocity: 100 }],
+          amp,
+        },
+      ],
+    };
+    const payload = deflateRawSync(JSON.stringify(project)).toString(
+      "base64url",
+    );
+    await page.goto(`/draft#p=${payload}`);
+    await expect(page.getByTestId("draft-badge")).toBeVisible();
+    await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
+    const modal = page.getByTestId("audio-export");
+    const downloadPromise = page.waitForEvent("download");
+    await modal.getByRole("button", { name: "Export file" }).click();
+    const download = await downloadPromise;
+    const downloadPath = test.info().outputPath(`${amp ? "amp" : "dry"}.wav`);
+    await download.saveAs(downloadPath);
+    return decodeWav(await readFile(downloadPath));
+  };
+  const dry = await render();
+  const amped = await render({
+    preset: "high-gain",
+    cabinet: true,
+    inputGain: 1,
+  });
+
+  // Check the drive sustains the note: the dry note's tail falls away from its
+  // attack, while the amp's tanh stages hold the tail near the attack's level.
+  const measureRms = (
+    wav: Awaited<ReturnType<typeof render>>,
+    start: number,
+    end: number,
+  ) => {
+    const samples = wav.samples.subarray(
+      start * wav.sampleRate * wav.channelCount,
+      end * wav.sampleRate * wav.channelCount,
+    );
+    let sum = 0;
+    for (const sample of samples) {
+      sum += sample * sample;
+    }
+    return Math.sqrt(sum / samples.length);
+  };
+  const measureDecayDb = (wav: Awaited<ReturnType<typeof render>>) =>
+    20 * Math.log10(measureRms(wav, 0.1, 0.3) / measureRms(wav, 0.8, 1));
+  expect(measureDecayDb(dry) - measureDecayDb(amped)).toBeGreaterThan(3);
 });
