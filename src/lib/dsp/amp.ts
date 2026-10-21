@@ -246,7 +246,6 @@ class AmpChain {
     }
     for (const stage of this.stages) {
       for (let i = 0; i < oversampled.length; i++) {
-        // Subtracting tanh(b) keeps silence silent: s(0) = 0.
         oversampled[i] =
           Math.tanh(stage.gain * oversampled[i] + stage.shift) - stage.offset;
       }
