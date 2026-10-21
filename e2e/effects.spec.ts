@@ -49,14 +49,12 @@ test("edits and persists independent EQ settings per audio track", async ({
     .getByRole("textbox", { name: "Gain", exact: true })
     .press("Enter");
 
-  // Save and reload the independent EQ settings.
+  // Save and reload, and both panels come back with their EQ settings.
   const save = page.getByTestId("save-button");
   await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
-  await expect(page.getByTestId("effects-panel")).toHaveCount(0);
-  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
-  await selectMenuItem(page, { menu: "Audio 2 actions", item: "Effects…" });
+  await expect(page.getByTestId("effects-panel")).toHaveCount(2);
   await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
   await audio.getByRole("button", { name: "Select band 1" }).click();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(

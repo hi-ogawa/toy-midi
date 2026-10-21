@@ -90,18 +90,15 @@ export class MultibandEq {
     });
   }
 
-  process({
-    input,
-    output,
-  }: {
-    input: readonly Float32Array[];
-    output: readonly Float32Array[];
-  }): void {
+  process(
+    input: readonly Float32Array[],
+    output: readonly Float32Array[],
+  ): void {
     for (let channel = 0; channel < input.length; channel++) {
       output[channel].set(input[channel]);
     }
     for (const band of this.bands) {
-      band.eq.process({ input: output, output });
+      band.eq.process(output, output);
     }
   }
 }

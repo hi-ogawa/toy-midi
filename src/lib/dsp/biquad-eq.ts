@@ -149,13 +149,10 @@ export class BiquadEq {
    * Input and output may be the same buffers. No processing-loop allocations.
    * Bypass keeps the filter running so re-enabling it uses current history.
    */
-  process({
-    input,
-    output,
-  }: {
-    input: readonly Float32Array[];
-    output: readonly Float32Array[];
-  }): void {
+  process(
+    input: readonly Float32Array[],
+    output: readonly Float32Array[],
+  ): void {
     const frames = input[0]?.length ?? 0;
     for (let frame = 0; frame < frames; frame++) {
       if (this.remaining > 0) {
