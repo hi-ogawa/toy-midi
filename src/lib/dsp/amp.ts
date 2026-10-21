@@ -168,19 +168,19 @@ export class Amp {
     input: readonly Float32Array[],
     output: readonly Float32Array[],
   ): void {
-    const { signal } = this.chain;
-    signal.fill(0);
+    const { block } = this.chain;
+    block.fill(0);
     for (const channel of input) {
-      for (let frame = 0; frame < signal.length; frame++) {
-        signal[frame] += channel[frame];
+      for (let frame = 0; frame < block.length; frame++) {
+        block[frame] += channel[frame];
       }
     }
-    for (let frame = 0; frame < signal.length; frame++) {
-      signal[frame] /= input.length;
+    for (let frame = 0; frame < block.length; frame++) {
+      block[frame] /= input.length;
     }
     this.chain.process();
     for (const channel of output) {
-      channel.set(signal);
+      channel.set(block);
     }
   }
 }
@@ -200,10 +200,9 @@ class AmpChain {
   private readonly cabinet: BiquadEq[];
   private readonly upsampler = new Upsampler();
   private readonly downsampler = new Downsampler();
-  private readonly frame = new Float64Array(OVERSAMPLING_FACTOR);
-  // The mono signal at each rate, one block long.
-  readonly signal: Float32Array;
-  private readonly oversampled: Float32Array;
+  // One block of the mono guitar at each rate.
+  readonly block: Float32Array;
+  private readonly oversampledBlock: Float32Array;
 
   constructor({
     sampleRate,
@@ -214,8 +213,8 @@ class AmpChain {
     blockFrames: number;
     parameters: AmpParameters;
   }) {
-    this.signal = new Float32Array(blockFrames);
-    this.oversampled = new Float32Array(blockFrames * OVERSAMPLING_FACTOR);
+    this.block = new Float32Array(blockFrames);
+    this.oversampledBlock = new Float32Array(blockFrames * OVERSAMPLING_FACTOR);
     const oversampledRate = sampleRate * OVERSAMPLING_FACTOR;
     this.preEq = PRE_EQ.map(
       (spec) => new BiquadEq({ sampleRate, channelCount: 1 }, spec),
@@ -236,29 +235,24 @@ class AmpChain {
       : [];
   }
 
-  /** Processes `signal` in place. */
+  /** Processes `block` in place. */
   process(): void {
-    const { signal, oversampled } = this;
-    runFilters(this.preEq, signal);
-    for (let i = 0; i < signal.length; i++) {
-      this.upsampler.processSample(signal[i], this.frame);
-      oversampled.set(this.frame, i * OVERSAMPLING_FACTOR);
-    }
+    const { block, oversampledBlock } = this;
+    runFilters(this.preEq, block);
+    this.upsampler.process(block, oversampledBlock);
     for (const stage of this.stages) {
-      for (let i = 0; i < oversampled.length; i++) {
-        // Subtracting tanh(b) keeps silence silent: s(0) = 0.
-        oversampled[i] =
-          Math.tanh(stage.gain * oversampled[i] + stage.shift) - stage.offset;
+      for (let i = 0; i < oversampledBlock.length; i++) {
+        oversampledBlock[i] =
+          Math.tanh(stage.gain * oversampledBlock[i] + stage.shift) -
+          stage.offset;
       }
-      runFilters(stage.filters, oversampled);
+      runFilters(stage.filters, oversampledBlock);
     }
-    for (let i = 0; i < signal.length; i++) {
-      for (let j = 0; j < OVERSAMPLING_FACTOR; j++) {
-        this.frame[j] = oversampled[i * OVERSAMPLING_FACTOR + j];
-      }
-      signal[i] = OUTPUT_GAIN * this.downsampler.processSample(this.frame);
+    this.downsampler.process(oversampledBlock, block);
+    for (let i = 0; i < block.length; i++) {
+      block[i] *= OUTPUT_GAIN;
     }
-    runFilters(this.cabinet, signal);
+    runFilters(this.cabinet, block);
   }
 }
 

@@ -32,15 +32,8 @@ describe(Upsampler, () => {
       sampleRate: SAMPLE_RATE * OVERSAMPLING_FACTOR,
       length: OVERSAMPLING_FACTOR * 4800,
     });
-    const downsampler = new Downsampler();
-    const block = new Float64Array(OVERSAMPLING_FACTOR);
-    const output: number[] = [];
-    for (let n = 0; n < 4800; n++) {
-      block.set(
-        input.subarray(OVERSAMPLING_FACTOR * n, OVERSAMPLING_FACTOR * (n + 1)),
-      );
-      output.push(downsampler.processSample(block));
-    }
+    const output = new Float32Array(4800);
+    new Downsampler().process(input, output);
     // At 48 kHz, 35 kHz is above the 24 kHz Nyquist frequency and would alias
     // to 13 kHz. The low-pass's gain stays under −30 dB above about 29 kHz.
     expect(
@@ -50,11 +43,9 @@ describe(Upsampler, () => {
 });
 
 function runRoundTrip(input: Float32Array): Float32Array {
-  const upsampler = new Upsampler();
-  const downsampler = new Downsampler();
-  const block = new Float64Array(OVERSAMPLING_FACTOR);
-  return input.map((x) => {
-    upsampler.processSample(x, block);
-    return downsampler.processSample(block);
-  });
+  const oversampled = new Float32Array(OVERSAMPLING_FACTOR * input.length);
+  new Upsampler().process(input, oversampled);
+  const output = new Float32Array(input.length);
+  new Downsampler().process(oversampled, output);
+  return output;
 }
