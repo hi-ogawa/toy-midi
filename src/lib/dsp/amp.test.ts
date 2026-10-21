@@ -58,6 +58,8 @@ describe(Amp, () => {
   });
 
   it("rolls off the clipping's fizz with the cabinet", () => {
+    // The 23rd harmonic, at 10.1 kHz, is a strong odd harmonic of the
+    // clipping in the fizz band the cabinet removes.
     const fizz = (cabinet: boolean) => {
       const output = runAmp(
         { preset: "high-gain", cabinet },
