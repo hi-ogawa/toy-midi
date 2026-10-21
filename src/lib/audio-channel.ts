@@ -9,9 +9,8 @@ export class AudioChannel {
   readonly input: GainNode;
   private readonly gain: GainNode;
   private readonly panner: StereoPannerNode;
+  private readonly amp: AmpWorkletNode;
   private readonly equalizer: BiquadEqWorkletNode;
-  /** Present only while the track has an amp, so a dry track has no delay. */
-  private amp?: AmpWorkletNode;
   private analyser?: StereoAnalyser;
 
   constructor({
@@ -29,7 +28,8 @@ export class AudioChannel {
     gain: number;
     pan: number;
   }) {
-    this.input = context.createGain();
+    this.amp = new AmpWorkletNode({ context, parameters: amp });
+    this.input = this.amp.input;
     this.gain = context.createGain();
     this.gain.gain.value = gain;
     this.equalizer = new BiquadEqWorkletNode({
@@ -39,17 +39,15 @@ export class AudioChannel {
     });
     this.panner = context.createStereoPanner();
     this.panner.pan.value = pan;
-    this.equalizer.connect(this.gain).connect(this.panner).connect(output);
-    this.connectInput(amp);
+    this.amp.output
+      .connect(this.equalizer)
+      .connect(this.gain)
+      .connect(this.panner)
+      .connect(output);
   }
 
   setAmp(amp: AmpParameters | undefined): void {
-    if (amp && this.amp) {
-      this.amp.setParameters(amp);
-      return;
-    }
-    this.disconnectInput();
-    this.connectInput(amp);
+    this.amp.setParameters(amp);
   }
 
   setEq(eq: MultibandEqParameters): void {
@@ -78,28 +76,9 @@ export class AudioChannel {
 
   dispose(): void {
     this.analyser?.dispose();
-    this.disconnectInput();
+    this.amp.dispose();
     this.equalizer.dispose();
     this.gain.disconnect();
     this.panner.disconnect();
-  }
-
-  private connectInput(amp: AmpParameters | undefined): void {
-    if (!amp) {
-      this.input.connect(this.equalizer);
-      return;
-    }
-    this.amp = new AmpWorkletNode({
-      context: this.input.context,
-      channelCount: 2,
-      parameters: amp,
-    });
-    this.input.connect(this.amp).connect(this.equalizer);
-  }
-
-  private disconnectInput(): void {
-    this.input.disconnect();
-    this.amp?.dispose();
-    this.amp = undefined;
   }
 }

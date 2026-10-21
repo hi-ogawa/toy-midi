@@ -5,32 +5,63 @@ import { disposeWorklet } from "./worklet-disposal.ts";
 const PROCESSOR_NAME = "amp";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
-export class AmpWorkletNode extends AudioWorkletNode {
+/**
+ * The amp between fixed input and output nodes. Without parameters it connects
+ * them directly, so a dry track has no amp delay.
+ */
+export class AmpWorkletNode {
+  readonly input: GainNode;
+  readonly output: GainNode;
+  private node?: AudioWorkletNode;
+
   constructor({
     context,
-    channelCount,
     parameters,
   }: {
     context: BaseAudioContext;
-    channelCount: number;
-    parameters: AmpParameters;
+    parameters?: AmpParameters;
   }) {
-    super(context, PROCESSOR_NAME, {
-      numberOfInputs: 1,
-      numberOfOutputs: 1,
-      channelCount,
-      channelCountMode: "explicit",
-      outputChannelCount: [channelCount],
-      processorOptions: { parameters },
-    });
+    this.input = context.createGain();
+    this.output = context.createGain();
+    this.connect(parameters);
   }
 
-  setParameters(parameters: AmpParameters): void {
-    this.port.postMessage(parameters);
+  setParameters(parameters: AmpParameters | undefined): void {
+    if (parameters && this.node) {
+      this.node.port.postMessage(parameters);
+      return;
+    }
+    this.disconnect();
+    this.connect(parameters);
   }
 
   dispose(): void {
-    disposeWorklet(this);
+    this.disconnect();
+    this.output.disconnect();
+  }
+
+  private connect(parameters: AmpParameters | undefined): void {
+    if (!parameters) {
+      this.input.connect(this.output);
+      return;
+    }
+    this.node = new AudioWorkletNode(this.input.context, PROCESSOR_NAME, {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      channelCount: 2,
+      channelCountMode: "explicit",
+      outputChannelCount: [2],
+      processorOptions: { parameters },
+    });
+    this.input.connect(this.node).connect(this.output);
+  }
+
+  private disconnect(): void {
+    this.input.disconnect();
+    if (this.node) {
+      disposeWorklet(this.node);
+      this.node = undefined;
+    }
   }
 }
 
