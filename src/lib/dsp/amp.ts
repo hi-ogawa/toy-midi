@@ -162,7 +162,7 @@ export class Amp {
    * Process planar buffers of `blockFrames` frames. The input channels are
    * averaged into one mono guitar, since a DI signal is one signal, and the
    * result is written to every output channel. Input and output may be the
-   * same buffers. No buffer allocations.
+   * same buffers.
    */
   process({
     input,
