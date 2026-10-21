@@ -3,6 +3,7 @@ import {
   type BiquadFilterSpec,
   DEFAULT_PARAMETERS,
   type EqParameters,
+  usesGain,
 } from "./biquad-eq.ts";
 
 export const MAX_EQ_BANDS = 8;
@@ -39,7 +40,7 @@ export function isEqActive({ bypass, bands }: MultibandEqParameters): boolean {
   return (
     !bypass &&
     bands.some(
-      (band) => !band.bypass && (band.type !== "peaking" || band.gain !== 1),
+      (band) => !band.bypass && (!usesGain(band.type) || band.gain !== 1),
     )
   );
 }

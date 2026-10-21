@@ -1,6 +1,6 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { BUTTERWORTH_Q } from "../lib/dsp/biquad-eq";
+import { BUTTERWORTH_Q, usesGain } from "../lib/dsp/biquad-eq";
 import {
   type EqBandType,
   MAX_EQ_BANDS,
@@ -91,6 +91,7 @@ export function EffectsContent({
   const selectedBand =
     eq.bands.find((band) => band.id === selectedBandId) ?? eq.bands[0];
   const selectedIndex = selectedBand ? eq.bands.indexOf(selectedBand) : -1;
+  const hasGain = selectedBand && usesGain(selectedBand.type);
 
   const updateBand = (
     id: string,
@@ -109,8 +110,7 @@ export function EffectsContent({
     // below the cutoff, so a band becoming one starts flat.
     updateBand(band.id, {
       type,
-      ...(band.type === "peaking" &&
-        type !== "peaking" && { q: BUTTERWORTH_Q }),
+      ...(usesGain(band.type) && !usesGain(type) && { q: BUTTERWORTH_Q }),
     });
   };
 
@@ -270,7 +270,7 @@ export function EffectsContent({
                 updateBand(selectedBand.id, { frequency })
               }
             />
-            {selectedBand.type === "peaking" && (
+            {hasGain && (
               <EqNumericInput
                 label="Gain"
                 unit="dB"
@@ -301,7 +301,7 @@ export function EffectsContent({
                   updateBand(selectedBand.id, { frequency })
                 }
               />
-              {selectedBand.type === "peaking" && (
+              {hasGain && (
                 <EqSlider
                   label="Gain"
                   unit="dB"

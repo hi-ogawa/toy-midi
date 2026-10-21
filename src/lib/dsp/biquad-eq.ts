@@ -41,6 +41,10 @@ export type BiquadFilterSpec =
   | { type: "peaking"; frequency: number; gain: number; q: number }
   | { type: "low-pass" | "high-pass"; frequency: number; q: number };
 
+export function usesGain(type: BiquadFilterSpec["type"]): boolean {
+  return type === "peaking";
+}
+
 /** Standalone biquad EQ. Parameters ramp over 10 ms of processed audio. */
 export class BiquadEq {
   private readonly sampleRate: number;
