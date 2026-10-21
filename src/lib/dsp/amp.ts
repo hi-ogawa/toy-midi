@@ -197,11 +197,13 @@ class AmpChain {
   private readonly upsampler = new Upsampler();
   private readonly downsampler = new Downsampler();
   private readonly frame = new Float64Array(OVERSAMPLING_FACTOR);
-  // The mono signal at each rate, as a one-channel block because BiquadEq
-  // takes planar channel arrays. Sized to the block and wrapped once, so
-  // processing a block allocates nothing.
-  private signal = wrapInPlace(new Float32Array(0));
-  private oversampled = wrapInPlace(new Float32Array(0));
+  // The mono signal at each rate, sized to the block.
+  private signal = new Float32Array(0);
+  private oversampled = new Float32Array(0);
+  // BiquadEq takes planar channel arrays, so each filter run points this one
+  // reused channel at the buffer it filters in place.
+  private readonly channels: Float32Array[] = [this.signal];
+  private readonly block = { input: this.channels, output: this.channels };
 
   constructor({
     sampleRate,
@@ -227,20 +229,17 @@ class AmpChain {
 
   /** Returns the mono buffer to fill before `process`. */
   prepare(frames: number): Float32Array {
-    if (this.signal.input[0].length !== frames) {
-      this.signal = wrapInPlace(new Float32Array(frames));
-      this.oversampled = wrapInPlace(
-        new Float32Array(frames * OVERSAMPLING_FACTOR),
-      );
+    if (this.signal.length !== frames) {
+      this.signal = new Float32Array(frames);
+      this.oversampled = new Float32Array(frames * OVERSAMPLING_FACTOR);
     }
-    return this.signal.input[0];
+    return this.signal;
   }
 
   /** Processes the prepared buffer in place. */
   process(): void {
-    const signal = this.signal.input[0];
-    const oversampled = this.oversampled.input[0];
-    runFilters(this.preEq, this.signal);
+    const { signal, oversampled } = this;
+    this.runFilters(this.preEq, signal);
     for (let i = 0; i < signal.length; i++) {
       this.upsampler.processSample(signal[i], this.frame);
       oversampled.set(this.frame, i * OVERSAMPLING_FACTOR);
@@ -251,7 +250,7 @@ class AmpChain {
         oversampled[i] =
           Math.tanh(stage.gain * oversampled[i] + stage.shift) - stage.offset;
       }
-      runFilters(stage.filters, this.oversampled);
+      this.runFilters(stage.filters, oversampled);
     }
     for (let i = 0; i < signal.length; i++) {
       for (let j = 0; j < OVERSAMPLING_FACTOR; j++) {
@@ -259,26 +258,17 @@ class AmpChain {
       }
       signal[i] = OUTPUT_GAIN * this.downsampler.processSample(this.frame);
     }
-    runFilters(this.cabinet, this.signal);
+    this.runFilters(this.cabinet, signal);
+  }
+
+  private runFilters(filters: BiquadEq[], buffer: Float32Array): void {
+    this.channels[0] = buffer;
+    for (const filter of filters) {
+      filter.process(this.block);
+    }
   }
 }
 
 function createFilter(spec: BiquadFilterSpec, sampleRate: number): BiquadEq {
   return new BiquadEq({ sampleRate, channelCount: 1 }, spec);
-}
-
-function runFilters(filters: BiquadEq[], block: InPlaceBlock): void {
-  for (const filter of filters) {
-    filter.process(block);
-  }
-}
-
-type InPlaceBlock = {
-  input: readonly Float32Array[];
-  output: readonly Float32Array[];
-};
-
-function wrapInPlace(buffer: Float32Array): InPlaceBlock {
-  const channels = [buffer];
-  return { input: channels, output: channels };
 }
