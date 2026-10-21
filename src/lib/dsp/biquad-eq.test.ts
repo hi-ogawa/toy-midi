@@ -176,6 +176,7 @@ describe(MultibandEq, () => {
         bypass: false,
         bands: ["a", "b"].map((id) => ({
           id,
+          type: "peaking" as const,
           ...DEFAULT_PARAMETERS,
           gain: 2,
         })),
@@ -196,12 +197,19 @@ describe(MultibandEq, () => {
       channelCount: 1,
       parameters: {
         bypass: false,
-        bands: [{ id: "band", ...DEFAULT_PARAMETERS }],
+        bands: [{ id: "band", type: "peaking", ...DEFAULT_PARAMETERS }],
       },
     });
     eq.setParameters({
       bypass: false,
-      bands: [{ id: "band", ...DEFAULT_PARAMETERS, gain: dbToGain(18) }],
+      bands: [
+        {
+          id: "band",
+          type: "peaking",
+          ...DEFAULT_PARAMETERS,
+          gain: dbToGain(18),
+        },
+      ],
     });
     const input = createSine({ length: 100, frequency: 1000 });
     const ramped = process(eq, input);
@@ -212,13 +220,48 @@ describe(MultibandEq, () => {
         parameters: {
           bypass: false,
           bands: [
-            { id: "replacement", ...DEFAULT_PARAMETERS, gain: dbToGain(18) },
+            {
+              id: "replacement",
+              type: "peaking",
+              ...DEFAULT_PARAMETERS,
+              gain: dbToGain(18),
+            },
           ],
         },
       }),
       input,
     );
     expect(measureEnergy(ramped) / measureEnergy(replaced)).toBeLessThan(0.5);
+  });
+
+  it("builds a new filter when a band changes type", () => {
+    const band = {
+      id: "band",
+      ...DEFAULT_PARAMETERS,
+      gain: dbToGain(6),
+      bypass: false,
+    };
+    const eq = new MultibandEq({
+      sampleRate: SAMPLE_RATE,
+      channelCount: 1,
+      parameters: { bypass: false, bands: [{ ...band, type: "peaking" }] },
+    });
+    eq.setParameters({
+      bypass: false,
+      bands: [{ ...band, type: "high-pass", q: BUTTERWORTH_Q }],
+    });
+    // A decade below its 1 kHz cutoff, the high-pass falls 12 dB per octave
+    // for 3.3 octaves, and the band's 6 dB gain doesn't apply.
+    const input = createSine({ length: SAMPLE_RATE, frequency: 100 });
+    const output = process(eq, input);
+    expect(
+      gainToDb(
+        Math.sqrt(
+          measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
+            measureEnergy(input.subarray(SAMPLE_RATE / 2)),
+        ),
+      ),
+    ).toBeCloseTo(-40, 0);
   });
 });
 

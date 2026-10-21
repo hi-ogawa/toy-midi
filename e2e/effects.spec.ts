@@ -1,4 +1,6 @@
+import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
+import type { SharedProject } from "../src/lib/project-share";
 import { addAudio, createProject, dragBy } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
 
@@ -100,6 +102,85 @@ test("edits and persists independent EQ settings per audio track", async ({
   await expect(save).toHaveAttribute("data-status", "unsaved");
 });
 
+test("switches a band between peaking, low-pass, and high-pass", async ({
+  page,
+}) => {
+  // Boost Audio 1's band by 6 dB.
+  await createProject(page);
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  const panel = page.getByTestId("effects-panel");
+  const filterType = panel.getByRole("combobox", { name: "Filter type" });
+  const gain = panel.getByRole("textbox", { name: "Gain", exact: true });
+  const q = panel.getByRole("textbox", { name: "Q", exact: true });
+  await expect(filterType).toHaveValue("peaking");
+  await gain.fill("6");
+  await gain.press("Enter");
+
+  // Switch to low-pass, which hides the gain and starts Q at Butterworth.
+  await filterType.selectOption("low-pass");
+  await expect(gain).toHaveCount(0);
+  await expect(q).toHaveValue("0.71");
+
+  // Switch to high-pass, which keeps the pass filter's Q.
+  await q.fill("2");
+  await q.press("Enter");
+  await filterType.selectOption("high-pass");
+  await expect(q).toHaveValue("2");
+
+  // Save and reload, and the band is still a high-pass.
+  const save = page.getByTestId("save-button");
+  await save.click();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.reload();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  await expect(filterType).toHaveValue("high-pass");
+  await expect(q).toHaveValue("2");
+
+  // Switch back to peaking, and the band keeps the gain it had.
+  await filterType.selectOption("peaking");
+  await expect(gain).toHaveValue("6");
+});
+
+test("loads a shared band saved without a type as peaking", async ({
+  page,
+}) => {
+  // Open a share link whose MIDI track EQ band has no type.
+  const project: SharedProject = {
+    title: "Untyped EQ",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    midiTracks: [
+      {
+        name: "Piano",
+        program: 0,
+        notes: [],
+        eq: {
+          bypass: false,
+          bands: [{ frequency: 750, gain: 2, q: 1.5, bypass: false }],
+        },
+      },
+    ],
+  };
+  const payload = deflateRawSync(JSON.stringify(project)).toString("base64url");
+  await page.goto(`/draft#p=${payload}`);
+
+  // Open the track's effects, and see a peaking band with its saved values.
+  await selectMenuItem(page, { menu: "Piano actions", item: "Effects…" });
+  const panel = page.getByTestId("effects-panel");
+  await expect(
+    panel.getByRole("combobox", { name: "Filter type" }),
+  ).toHaveValue("peaking");
+  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+    "750",
+  );
+  await expect(
+    panel.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toHaveValue("6.02");
+  await expect(
+    panel.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveValue("1.5");
+});
+
 test("keeps the mixer usable with many effects panels open", async ({
   page,
 }) => {
@@ -188,6 +269,19 @@ test("shows in the mixer whether a track's EQ is on", async ({ page }) => {
   const gain = panel.getByRole("textbox", { name: "Gain", exact: true });
   await gain.fill("3");
   await gain.press("Enter");
+  await expect(toggle).toHaveAttribute(
+    "title",
+    "Close Audio 1 effects (EQ on)",
+  );
+
+  // Flatten the band and make it a low-pass, which changes the sound at any
+  // gain, so the mark stays.
+  await gain.fill("0");
+  await gain.press("Enter");
+  await expect(toggle).toHaveAttribute("title", "Close Audio 1 effects");
+  await panel
+    .getByRole("combobox", { name: "Filter type" })
+    .selectOption("low-pass");
   await expect(toggle).toHaveAttribute(
     "title",
     "Close Audio 1 effects (EQ on)",
