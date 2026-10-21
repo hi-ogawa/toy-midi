@@ -103,7 +103,14 @@ export interface MidiTrackState {
    * 48 Orchestra, 56 SFX.
    */
   bank?: number;
-  /** Guitar amp in front of the EQ, absent when off */
+  /**
+   * Guitar amp in front of the EQ, absent when off. A SoundFont note doesn't
+   * stop at its note-off the way a guitarist mutes a string, because it fades
+   * over its release, and the amp's drive brings that quiet tail up toward the
+   * note's level, so it smears into the next note. Cut the tails with CC 11
+   * (expression) automation that drops to 0 just after a note-off and comes
+   * back at the next note-on. Leave it up under the notes you want to ring.
+   */
   amp?: TrackAmp;
   eq: MultibandEqParameters;
   /** Row height in pixels, from 44 to 800 */

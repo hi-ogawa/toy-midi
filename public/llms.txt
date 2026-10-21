@@ -41,8 +41,6 @@ The payload is the project as JSON, compressed with raw deflate, without a zlib 
 
 Composing doesn't need tab annotation, so leave `tabAnnotationEnabled` on tracks and `tabString` on notes unset.
 
-A MIDI track with `amp` set plays through a guitar amp. A SoundFont note doesn't stop at its note-off the way a guitarist mutes a string, because it fades over its release, and the amp's drive brings that quiet tail up toward the note's level, so it smears into the next note. Cut the tails with CC 11 (expression) automation that drops to 0 just after a note-off and comes back at the next note-on. Leave it up under the notes you want to ring.
-
 Encode the payload with Node, which has raw deflate and base64url built in:
 
 ```js
