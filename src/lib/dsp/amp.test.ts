@@ -50,11 +50,12 @@ describe(Amp, () => {
   });
 
   it("writes the same mono signal to every output channel", () => {
+    const left = createSine({ frequency: 220, amplitude: 0.3 });
     const amp = new Amp({
       sampleRate: SAMPLE_RATE,
+      blockFrames: left.length,
       parameters: { preset: "crunch", cabinet: true },
     });
-    const left = createSine({ frequency: 220, amplitude: 0.3 });
     const right = new Float32Array(left.length);
     const output = [
       new Float32Array(left.length),
@@ -67,7 +68,11 @@ describe(Amp, () => {
 });
 
 function runAmp(parameters: AmpParameters, input: Float32Array): Float32Array {
-  const amp = new Amp({ sampleRate: SAMPLE_RATE, parameters });
+  const amp = new Amp({
+    sampleRate: SAMPLE_RATE,
+    blockFrames: input.length,
+    parameters,
+  });
   const output = new Float32Array(input.length);
   amp.process({ input: [input], output: [output] });
   return output;

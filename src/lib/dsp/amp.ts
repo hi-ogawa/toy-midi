@@ -135,27 +135,36 @@ const CABINET: BiquadFilterSpec[] = [
  */
 export class Amp {
   private readonly sampleRate: number;
+  private readonly blockFrames: number;
   private chain!: AmpChain;
 
   constructor({
     sampleRate,
+    blockFrames,
     parameters,
   }: {
     sampleRate: number;
+    /** Frames per `process` call, such as a worklet's 128-frame quantum */
+    blockFrames: number;
     parameters: AmpParameters;
   }) {
     this.sampleRate = sampleRate;
+    this.blockFrames = blockFrames;
     this.setParameters(parameters);
   }
 
   /** Rebuilds the chain, so filter history restarts from silence. */
   setParameters(parameters: AmpParameters): void {
-    this.chain = new AmpChain({ sampleRate: this.sampleRate, parameters });
+    this.chain = new AmpChain({
+      sampleRate: this.sampleRate,
+      blockFrames: this.blockFrames,
+      parameters,
+    });
   }
 
   /**
-   * Process equally sized planar buffers. Input and output may be the same
-   * buffers. No buffer allocations once the block size is steady.
+   * Process planar buffers of `blockFrames` frames. Input and output may be
+   * the same buffers. No buffer allocations.
    */
   process({
     input,
@@ -164,7 +173,6 @@ export class Amp {
     input: readonly Float32Array[];
     output: readonly Float32Array[];
   }): void {
-    this.chain.prepare(input[0]?.length ?? 0);
     const { signal } = this.chain;
     signal.fill(0);
     for (const channel of input) {
@@ -198,17 +206,21 @@ class AmpChain {
   private readonly upsampler = new Upsampler();
   private readonly downsampler = new Downsampler();
   private readonly frame = new Float64Array(OVERSAMPLING_FACTOR);
-  // The mono signal at each rate, sized to the block by `prepare`.
-  signal = new Float32Array(0);
-  private oversampled = new Float32Array(0);
+  // The mono signal at each rate, one block long.
+  readonly signal: Float32Array;
+  private readonly oversampled: Float32Array;
 
   constructor({
     sampleRate,
+    blockFrames,
     parameters,
   }: {
     sampleRate: number;
+    blockFrames: number;
     parameters: AmpParameters;
   }) {
+    this.signal = new Float32Array(blockFrames);
+    this.oversampled = new Float32Array(blockFrames * OVERSAMPLING_FACTOR);
     const oversampledRate = sampleRate * OVERSAMPLING_FACTOR;
     this.preEq = PRE_EQ.map(
       (spec) => new BiquadEq({ sampleRate, channelCount: 1 }, spec),
@@ -227,13 +239,6 @@ class AmpChain {
           (spec) => new BiquadEq({ sampleRate, channelCount: 1 }, spec),
         )
       : [];
-  }
-
-  prepare(frames: number): void {
-    if (this.signal.length !== frames) {
-      this.signal = new Float32Array(frames);
-      this.oversampled = new Float32Array(frames * OVERSAMPLING_FACTOR);
-    }
   }
 
   /** Processes `signal` in place. */
