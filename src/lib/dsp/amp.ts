@@ -164,7 +164,8 @@ export class Amp {
     input: readonly Float32Array[];
     output: readonly Float32Array[];
   }): void {
-    const signal = this.chain.prepare(input[0]?.length ?? 0);
+    this.chain.prepare(input[0]?.length ?? 0);
+    const { signal } = this.chain;
     signal.fill(0);
     for (const channel of input) {
       for (let frame = 0; frame < signal.length; frame++) {
@@ -197,8 +198,8 @@ class AmpChain {
   private readonly upsampler = new Upsampler();
   private readonly downsampler = new Downsampler();
   private readonly frame = new Float64Array(OVERSAMPLING_FACTOR);
-  // The mono signal at each rate, sized to the block.
-  private signal = new Float32Array(0);
+  // The mono signal at each rate, sized to the block by `prepare`.
+  signal = new Float32Array(0);
   private oversampled = new Float32Array(0);
 
   constructor({
@@ -228,16 +229,14 @@ class AmpChain {
       : [];
   }
 
-  /** Returns the mono buffer to fill before `process`. */
-  prepare(frames: number): Float32Array {
+  prepare(frames: number): void {
     if (this.signal.length !== frames) {
       this.signal = new Float32Array(frames);
       this.oversampled = new Float32Array(frames * OVERSAMPLING_FACTOR);
     }
-    return this.signal;
   }
 
-  /** Processes the prepared buffer in place. */
+  /** Processes `signal` in place. */
   process(): void {
     const { signal, oversampled } = this;
     runFilters(this.preEq, signal);
