@@ -197,8 +197,9 @@ class AmpChain {
   private readonly upsampler = new Upsampler();
   private readonly downsampler = new Downsampler();
   private readonly frame = new Float64Array(OVERSAMPLING_FACTOR);
-  // Sized to the block and wrapped once, so processing a block allocates
-  // nothing.
+  // The mono signal at each rate, as a one-channel block because BiquadEq
+  // takes planar channel arrays. Sized to the block and wrapped once, so
+  // processing a block allocates nothing.
   private signal = wrapInPlace(new Float32Array(0));
   private oversampled = wrapInPlace(new Float32Array(0));
 
