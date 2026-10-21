@@ -35,10 +35,8 @@ export function isEqActive({ bypass, bands }: MultibandEqParameters): boolean {
 }
 
 export class MultibandEq {
-  // TODO: Construct a band's filter when the band is added or changes filter
-  // type, and drop the pool. Updates arrive between render calls and already
-  // allocate, so the pool keeps nothing off the processing loop.
-  private readonly pool: BiquadEq[];
+  private readonly sampleRate: number;
+  private readonly channelCount: number;
   private bands: { id: string; eq: BiquadEq }[] = [];
 
   constructor({
@@ -50,26 +48,14 @@ export class MultibandEq {
     channelCount: number;
     parameters: MultibandEqParameters;
   }) {
-    this.pool = Array.from(
-      { length: MAX_EQ_BANDS },
-      () =>
-        new BiquadEq(
-          { sampleRate, channelCount },
-          { type: "peaking", ...DEFAULT_PARAMETERS },
-        ),
-    );
+    this.sampleRate = sampleRate;
+    this.channelCount = channelCount;
     this.setParameters(parameters);
   }
 
   setParameters(parameters: MultibandEqParameters): void {
     if (parameters.bands.length > MAX_EQ_BANDS) {
       throw new RangeError(`EQ supports at most ${MAX_EQ_BANDS} bands`);
-    }
-    // Release removed bands before assigning filters to new bands.
-    for (const band of this.bands) {
-      if (!parameters.bands.some((entry) => entry.id === band.id)) {
-        this.pool.push(band.eq);
-      }
     }
     this.bands = parameters.bands.map((band) => {
       const next = { ...band, bypass: parameters.bypass || band.bypass };
@@ -78,8 +64,13 @@ export class MultibandEq {
         existing.eq.setParameters(next);
         return existing;
       }
-      const eq = this.pool.pop()!;
-      eq.setParameters(next);
+      const eq = new BiquadEq(
+        { sampleRate: this.sampleRate, channelCount: this.channelCount },
+        { type: "peaking", ...band },
+      );
+      // The constructor starts the filter active, so settle a bypassed band
+      // at once rather than ramping out of it.
+      eq.setParameters({ bypass: next.bypass });
       eq.reset();
       return { id: band.id, eq };
     });
