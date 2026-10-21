@@ -91,7 +91,7 @@ At $z=e^{j\omega_0}$, this gives $u=j$, exactly the prototype's center. Its gain
 The designed prototype is
 
 $$
-P(u)=\frac{u^2+(A/Q)u+1}{u^2+u/(AQ)+1},
+H_a(\Omega_0u)=\frac{u^2+(A/Q)u+1}{u^2+u/(AQ)+1},
 \qquad A=\sqrt M.
 $$
 

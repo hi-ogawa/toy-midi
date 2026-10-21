@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="230" viewBox="0 0 560 230" role="img" aria-labelledby="title description">
+  <title id="title">Low-pass response</title>
+  <desc id="description">A schematic magnitude response starts at unity at low frequencies and falls toward zero at high frequencies.</desc>
+  <rect width="560" height="230" rx="8" fill="#ffffff"/>
+  <g font-family="system-ui, sans-serif" font-size="14" fill="#475569">
+    <text x="76" y="27">Magnitude</text>
+  <path d="M 76 76 H 494" stroke="#d7dee5" stroke-dasharray="4 5"/>
+  <text x="62" y="81" text-anchor="end">1</text>
+    <path d="M 76 43 V 180 H 510" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    <path d="m 72 49 4 -7 4 7 M 503 176 l 8 4 -8 4" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    <text x="62" y="185" text-anchor="end">0</text>
+    <text x="76" y="207">Low</text>
+    <text x="494" y="207" text-anchor="end">High</text>
+    <text x="285" y="207" text-anchor="middle">Frequency</text>
+  </g>
+  <path d="M 76 76 H 215 C 270 76 280 105 310 140 S 395 177 494 177" fill="none" stroke="#16728b" stroke-width="3" stroke-linecap="round"/>
+</svg>

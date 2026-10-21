@@ -1,80 +1,68 @@
 import { describe, expect, it } from "vitest";
 import { dbToGain, gainToDb } from "../music";
 import {
+  type BiquadFilterSpec,
+  BUTTERWORTH_Q,
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
   DEFAULT_PARAMETERS,
   BiquadEq,
 } from "./biquad-eq";
 import { MultibandEq } from "./biquad-eq-multiband";
-
-const SAMPLE_RATE = 48000;
+import { createSine, SAMPLE_RATE } from "./helper";
 
 describe(BiquadEq, () => {
   it.each([-18, -6, 6, 18])(
     "applies %s dB at the center frequency",
     (gainDb) => {
       expect(
-        measureResponse({
-          gain: dbToGain(gainDb),
-          signalFrequency: 1000,
-          eqFrequency: 1000,
-          q: 1,
-        }),
+        measureResponse(
+          { type: "peaking", frequency: 1000, gain: dbToGain(gainDb), q: 1 },
+          1000,
+        ),
       ).toBeCloseTo(gainDb, 3);
     },
   );
 
   it("narrows the bandwidth as Q increases and preserves distant frequencies", () => {
     expect(
-      measureResponse({
-        gain: dbToGain(12),
-        signalFrequency: 1000,
-        eqFrequency: 1500,
-        q: 1,
-      }),
+      measureResponse(
+        { type: "peaking", frequency: 1500, gain: dbToGain(12), q: 1 },
+        1000,
+      ),
     ).toBeGreaterThan(
-      measureResponse({
-        gain: dbToGain(12),
-        signalFrequency: 1000,
-        eqFrequency: 1500,
-        q: 8,
-      }),
+      measureResponse(
+        { type: "peaking", frequency: 1500, gain: dbToGain(12), q: 8 },
+        1000,
+      ),
     );
     expect(
-      measureResponse({
-        gain: dbToGain(12),
-        signalFrequency: 20,
-        eqFrequency: 1500,
-        q: 1,
-      }),
+      measureResponse(
+        { type: "peaking", frequency: 1500, gain: dbToGain(12), q: 1 },
+        20,
+      ),
     ).toBeCloseTo(0, 1);
     expect(
-      measureResponse({
-        gain: dbToGain(12),
-        signalFrequency: 20000,
-        eqFrequency: 1500,
-        q: 1,
-      }),
+      measureResponse(
+        { type: "peaking", frequency: 1500, gain: dbToGain(12), q: 1 },
+        20000,
+      ),
     ).toBeCloseTo(0, 1);
   });
 
   it("ramps gain rather than switching immediately", () => {
-    const eq = new BiquadEq({
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      ...DEFAULT_PARAMETERS,
-    });
+    const eq = new BiquadEq(
+      { sampleRate: SAMPLE_RATE, channelCount: 1 },
+      { type: "peaking", ...DEFAULT_PARAMETERS },
+    );
     eq.setParameters({ gain: dbToGain(18) });
-    const input = createSignal({ frames: 2000, frequency: 1000 });
+    const input = createSine({ length: 2000, frequency: 1000 });
     const ramped = process(eq, input);
     const immediate = process(
-      new BiquadEq({
-        sampleRate: SAMPLE_RATE,
-        channelCount: 1,
-        ...DEFAULT_PARAMETERS,
-        gain: dbToGain(18),
-      }),
+      new BiquadEq(
+        { sampleRate: SAMPLE_RATE, channelCount: 1 },
+        { type: "peaking", ...DEFAULT_PARAMETERS, gain: dbToGain(18) },
+      ),
       input,
     );
     expect(
@@ -88,27 +76,42 @@ describe(BiquadEq, () => {
   });
 
   it("resets history and settles pending parameters", () => {
-    const eq = new BiquadEq({
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      ...DEFAULT_PARAMETERS,
-      gain: dbToGain(18),
-    });
-    process(eq, createSignal({ frames: 100, frequency: 1000 }));
+    const eq = new BiquadEq(
+      { sampleRate: SAMPLE_RATE, channelCount: 1 },
+      { type: "peaking", ...DEFAULT_PARAMETERS, gain: dbToGain(18) },
+    );
+    process(eq, createSine({ length: 100, frequency: 1000 }));
     eq.setParameters({ frequency: 3000, gain: dbToGain(-6), q: 3 });
     eq.reset();
-    const fresh = new BiquadEq({
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      frequency: 3000,
-      gain: dbToGain(-6),
-      q: 3,
-      bypass: false,
-    });
-    expect(
-      process(eq, createSignal({ frames: 2000, frequency: 1000 })),
-    ).toEqual(process(fresh, createSignal({ frames: 2000, frequency: 1000 })));
+    const fresh = new BiquadEq(
+      { sampleRate: SAMPLE_RATE, channelCount: 1 },
+      {
+        type: "peaking",
+        frequency: 3000,
+        gain: dbToGain(-6),
+        q: 3,
+      },
+    );
+    expect(process(eq, createSine({ length: 2000, frequency: 1000 }))).toEqual(
+      process(fresh, createSine({ length: 2000, frequency: 1000 })),
+    );
   });
+
+  it.each([
+    { type: "low-pass", passband: 100, stopband: 10000 },
+    { type: "high-pass", passband: 10000, stopband: 100 },
+  ] as const)(
+    "puts a Butterworth $type 3 dB down at its cutoff",
+    ({ type, passband, stopband }) => {
+      const spec = { type, frequency: 1000, q: BUTTERWORTH_Q };
+      expect(measureResponse(spec, 1000)).toBeCloseTo(
+        gainToDb(Math.SQRT1_2),
+        3,
+      );
+      expect(measureResponse(spec, passband)).toBeCloseTo(0, 1);
+      expect(measureResponse(spec, stopband)).toBeLessThan(-35);
+    },
+  );
 });
 
 describe(calculateBiquadEqResponse, () => {
@@ -134,12 +137,15 @@ describe(calculateBiquadEqResponse, () => {
       q: 2,
     };
     expect(calculateResponse(parameters)).toBeCloseTo(
-      measureResponse({
-        gain: dbToGain(parameters.gainDb),
-        signalFrequency: parameters.responseFrequency,
-        eqFrequency: parameters.eqFrequency,
-        q: parameters.q,
-      }),
+      measureResponse(
+        {
+          type: "peaking",
+          frequency: parameters.eqFrequency,
+          gain: dbToGain(parameters.gainDb),
+          q: parameters.q,
+        },
+        parameters.responseFrequency,
+      ),
       3,
     );
   });
@@ -175,7 +181,7 @@ describe(MultibandEq, () => {
         })),
       },
     });
-    const input = createSignal({ frames: SAMPLE_RATE, frequency: 1000 });
+    const input = createSine({ length: SAMPLE_RATE, frequency: 1000 });
     const output = process(eq, input);
     // Two bands double amplitude twice, so the energy ratio is (2 * 2) ** 2 = 16.
     expect(
@@ -197,7 +203,7 @@ describe(MultibandEq, () => {
       bypass: false,
       bands: [{ id: "band", ...DEFAULT_PARAMETERS, gain: dbToGain(18) }],
     });
-    const input = createSignal({ frames: 100, frequency: 1000 });
+    const input = createSine({ length: 100, frequency: 1000 });
     const ramped = process(eq, input);
     const replaced = process(
       new MultibandEq({
@@ -227,30 +233,16 @@ function calculateResponse({
   eqFrequency: number;
   q: number;
 }): number {
-  const coefficients = calculateBiquadEqCoefficients({
-    sampleRate: SAMPLE_RATE,
-    frequency: eqFrequency,
-    gain: dbToGain(gainDb),
-    q,
-  });
+  const coefficients = calculateBiquadEqCoefficients(
+    { sampleRate: SAMPLE_RATE },
+    { type: "peaking", frequency: eqFrequency, gain: dbToGain(gainDb), q },
+  );
   return gainToDb(
     calculateBiquadEqResponse({
       coefficients,
       sampleRate: SAMPLE_RATE,
       frequency: responseFrequency,
     }),
-  );
-}
-
-function createSignal({
-  frames,
-  frequency,
-}: {
-  frames: number;
-  frequency: number;
-}): Float32Array {
-  return Float32Array.from({ length: frames }, (_, i) =>
-    Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE),
   );
 }
 
@@ -263,32 +255,17 @@ function process(
   return output;
 }
 
-function measureResponse({
-  gain,
-  signalFrequency,
-  eqFrequency,
-  q,
-}: {
-  gain: number;
-  signalFrequency: number;
-  eqFrequency: number;
-  q: number;
-}): number {
-  const input = createSignal({
-    frames: SAMPLE_RATE,
-    frequency: signalFrequency,
-  });
+function measureResponse(
+  spec: BiquadFilterSpec,
+  signalFrequency: number,
+): number {
+  const input = createSine({ length: SAMPLE_RATE, frequency: signalFrequency });
   const output = process(
-    new BiquadEq({
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      frequency: eqFrequency,
-      gain,
-      q,
-      bypass: false,
-    }),
+    new BiquadEq({ sampleRate: SAMPLE_RATE, channelCount: 1 }, spec),
     input,
   );
+  // Measure only the last half second, after the transient from the sine's
+  // sudden start has died out.
   return (
     10 *
     Math.log10(
