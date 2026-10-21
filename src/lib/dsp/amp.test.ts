@@ -13,20 +13,40 @@ describe(Amp, () => {
   );
 
   it("sustains a decaying note more on high gain than on crunch", () => {
-    // Output level of a quiet note relative to a loud one: the closer to
-    // 0 dB, the less the drive lets a decaying note fade.
-    const fade = (preset: AmpParameters["preset"]) => {
-      const level = (amplitude: number) =>
-        measureRms(
-          runAmp(
-            { preset, cabinet: false },
-            createSine({ frequency: 220, amplitude }),
-          ).slice(2400),
-        );
-      return gainToDb(level(0.02) / level(0.5));
+    // A note at its attack (0.5) and late in its decay (0.02, 28 dB quieter).
+    // The drive has no time behavior of its own, so these two steady levels
+    // stand in for the note's envelope. Output levels are dBFS, rounded.
+    const level = (preset: AmpParameters["preset"], amplitude: number) =>
+      Math.round(
+        gainToDb(
+          measureRms(
+            runAmp(
+              { preset, cabinet: false },
+              createSine({ frequency: 220, amplitude }),
+            ).slice(2400),
+          ),
+        ),
+      );
+    const levels = {
+      crunch: [level("crunch", 0.5), level("crunch", 0.02)],
+      "high-gain": [level("high-gain", 0.5), level("high-gain", 0.02)],
     };
-    expect(fade("crunch")).toBeLessThan(-6);
-    expect(fade("high-gain")).toBeGreaterThan(-3);
+    expect(levels).toMatchInlineSnapshot(`
+      {
+        "crunch": [
+          -19,
+          -31,
+        ],
+        "high-gain": [
+          -18,
+          -20,
+        ],
+      }
+    `);
+    // Both reach about the same level on the attack, and high gain barely
+    // fades from it.
+    expect(levels.crunch[0] - levels.crunch[1]).toBeGreaterThan(6);
+    expect(levels["high-gain"][0] - levels["high-gain"][1]).toBeLessThan(3);
   });
 
   it("adds even harmonics through the shifted first stage", () => {
