@@ -232,9 +232,6 @@ export function calculateBiquadEqCoefficients(
     }
     case "low-pass":
     case "high-pass": {
-      // Both share the denominator 1 + α − 2cos ω·z⁻¹ + (1 − α)·z⁻², and
-      // their numerators put a double zero at z = 1 (high-pass, no DC) or
-      // z = −1 (low-pass, no Nyquist).
       const a0 = 1 + alpha;
       const highPass = spec.type === "high-pass";
       const edge = highPass ? (1 + cos) / 2 : (1 - cos) / 2;
