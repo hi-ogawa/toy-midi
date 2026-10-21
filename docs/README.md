@@ -7,7 +7,7 @@
 
 ## Concepts
 
-- [Digital filters](concepts/digital-filters/README.md): transfer functions, continuous and sampled dynamics, and analog-to-digital conversion, with peaking EQ as a worked design.
+- [Digital filters](concepts/digital-filters/README.md): transfer functions, continuous and sampled dynamics, and analog-to-digital conversion, with peaking EQ, low-pass, and high-pass as worked designs.
 - [What a MIDI file can encode](concepts/midi-file-model.md): tracks, channels, programs, events over time, and the tempo map in a Standard MIDI File.
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
 - [YIN pitch detection](concepts/yin-pitch-detection.md): YIN difference analysis, period selection, and frequency refinement.
