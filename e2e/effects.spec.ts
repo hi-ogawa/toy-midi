@@ -269,19 +269,14 @@ test("adds, persists, and removes a track's amp", async ({ page }) => {
     "true",
   );
   await expect(panel.getByRole("checkbox", { name: "Cabinet" })).toBeChecked();
-  await expect(panel.getByRole("textbox", { name: "Input trim" })).toHaveValue(
-    "0",
-  );
   await expect(toggle).toHaveAttribute(
     "title",
     "Close Audio 1 effects (amp on)",
   );
 
-  // Switch to High gain without the cabinet, and trim the input up.
+  // Switch to High gain without the cabinet.
   await panel.getByRole("button", { name: "High gain" }).click();
   await panel.getByRole("checkbox", { name: "Cabinet" }).uncheck();
-  await panel.getByRole("textbox", { name: "Input trim" }).fill("6");
-  await panel.getByRole("textbox", { name: "Input trim" }).press("Enter");
 
   // Save and reload, and the amp keeps its settings.
   const save = page.getByTestId("save-button");
@@ -295,9 +290,6 @@ test("adds, persists, and removes a track's amp", async ({ page }) => {
   await expect(
     panel.getByRole("checkbox", { name: "Cabinet" }),
   ).not.toBeChecked();
-  await expect(panel.getByRole("textbox", { name: "Input trim" })).toHaveValue(
-    "6",
-  );
 
   // Remove the amp, and the Add amp button comes back.
   await panel.getByRole("button", { name: "Remove amp" }).click();

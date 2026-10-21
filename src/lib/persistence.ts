@@ -1,5 +1,5 @@
-import type { TrackAmp } from "./audio-channel.ts";
 import { type AudioClip, createAudioClip } from "./audio-clip.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
@@ -112,7 +112,7 @@ export interface SerializedMidiTrackState extends Omit<
 interface SerializedAudioTrackState<ChannelData> {
   // 🟢 Optional for projects saved before per-track clip visibility.
   showClips?: boolean;
-  amp?: TrackAmp;
+  amp?: AmpParameters;
   // 🟢 Optional for projects saved before track EQ support.
   eq?: SerializedMultibandEq | EqParameters;
   id: string;

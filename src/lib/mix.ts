@@ -1,7 +1,8 @@
-import { AudioChannel, type TrackAmp } from "./audio-channel.ts";
+import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
 import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import type {
@@ -21,14 +22,14 @@ const MIDI_RELEASE_SECONDS = 2;
 
 interface Mix {
   tracks: {
-    amp?: TrackAmp;
+    amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
     regions: AudioPlaybackSource[];
   }[];
   midiTracks: {
-    amp?: TrackAmp;
+    amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;

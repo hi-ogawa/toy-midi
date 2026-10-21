@@ -1,7 +1,6 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
-import type { TrackAmp } from "../lib/audio-channel";
-import type { AmpPreset } from "../lib/dsp/amp";
+import type { AmpParameters, AmpPreset } from "../lib/dsp/amp";
 import { BUTTERWORTH_Q, isGainFilter } from "../lib/dsp/biquad-eq";
 import {
   type EqBandType,
@@ -46,14 +45,12 @@ export function useEffectsUi(projectUiStore: ProjectUiStore) {
   return { openEffects, toggleEffects, showEffects, closeEffects };
 }
 
-const DEFAULT_AMP: TrackAmp = { preset: "crunch", cabinet: true, inputGain: 1 };
+const DEFAULT_AMP: AmpParameters = { preset: "crunch", cabinet: true };
 
 const AMP_PRESET_LABELS: Record<AmpPreset, string> = {
   crunch: "Crunch",
   "high-gain": "High gain",
 };
-
-const INPUT_GAIN_DB_LIMITS = { min: -24, max: 24, step: 0.1 };
 
 export function Effects({
   label,
@@ -64,9 +61,9 @@ export function Effects({
   onClose,
 }: {
   label: string;
-  amp?: TrackAmp;
+  amp?: AmpParameters;
   eq: MultibandEqParameters;
-  onAmpChange: (amp: TrackAmp | undefined) => void;
+  onAmpChange: (amp: AmpParameters | undefined) => void;
   onChange: (eq: MultibandEqParameters) => void;
   onClose: () => void;
 }) {
@@ -122,8 +119,8 @@ function AmpSection({
   onChange,
   onRemove,
 }: {
-  amp: TrackAmp;
-  onChange: (amp: TrackAmp) => void;
+  amp: AmpParameters;
+  onChange: (amp: AmpParameters) => void;
   onRemove: () => void;
 }) {
   return (
@@ -151,27 +148,16 @@ function AmpSection({
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 items-end gap-3">
-        <NumericInput
-          label="Input trim"
-          unit="dB"
-          limits={INPUT_GAIN_DB_LIMITS}
-          value={gainToDb(amp.inputGain)}
-          onChange={(inputGainDb) =>
-            onChange({ ...amp, inputGain: dbToGain(inputGainDb) })
+      <label className="flex items-center gap-1.5 text-xs">
+        <input
+          type="checkbox"
+          checked={amp.cabinet}
+          onChange={(event) =>
+            onChange({ ...amp, cabinet: event.target.checked })
           }
         />
-        <label className="flex h-7 items-center gap-1.5 text-xs">
-          <input
-            type="checkbox"
-            checked={amp.cabinet}
-            onChange={(event) =>
-              onChange({ ...amp, cabinet: event.target.checked })
-            }
-          />
-          Cabinet
-        </label>
-      </div>
+        Cabinet
+      </label>
     </div>
   );
 }
@@ -358,7 +344,7 @@ export function EffectsContent({
             </select>
           </label>
           <div className="grid grid-cols-3 gap-3">
-            <NumericInput
+            <EqNumericInput
               label="Frequency"
               unit="Hz"
               limits={EQ_CONTROL_LIMITS.frequency}
@@ -368,7 +354,7 @@ export function EffectsContent({
               }
             />
             {hasGain && (
-              <NumericInput
+              <EqNumericInput
                 label="Gain"
                 unit="dB"
                 limits={EQ_CONTROL_LIMITS.gainDb}
@@ -378,7 +364,7 @@ export function EffectsContent({
                 }
               />
             )}
-            <NumericInput
+            <EqNumericInput
               label="Q"
               unit=""
               limits={EQ_CONTROL_LIMITS.q}
@@ -455,7 +441,7 @@ function formatFrequency(value: number): string {
 
 const formatParameter = (value: number) => String(Number(value.toFixed(2)));
 
-function NumericInput({
+function EqNumericInput({
   label,
   unit,
   limits,

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { deflateRawSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
-import type { TrackAmp } from "../src/lib/audio-channel";
+import type { AmpParameters } from "../src/lib/dsp/amp";
 import type { SharedProject } from "../src/lib/project-share";
 import {
   addAudio,
@@ -129,7 +129,7 @@ test("exports MIDI automation in the WAV", async ({ page }) => {
 
 test("exports a track's amp in the WAV", async ({ page }) => {
   // Export a shared project holding one guitar note, with and without the amp.
-  const render = async (amp?: TrackAmp) => {
+  const render = async (amp?: AmpParameters) => {
     const project: SharedProject = {
       title: "Amp",
       tempo: 120,
@@ -158,11 +158,7 @@ test("exports a track's amp in the WAV", async ({ page }) => {
     return decodeWav(await readFile(downloadPath));
   };
   const dry = await render();
-  const amped = await render({
-    preset: "high-gain",
-    cabinet: true,
-    inputGain: 1,
-  });
+  const amped = await render({ preset: "high-gain", cabinet: true });
 
   // Check the drive sustains the note: the dry note's tail falls away from its
   // attack, while the amp's tanh stages hold the tail near the attack's level.

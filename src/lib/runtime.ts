@@ -8,7 +8,6 @@ import { insertAtIndices } from "../utils/array.ts";
 import { createNumberedName } from "../utils/name.ts";
 import { createStore, shallowEqual } from "../utils/store.ts";
 import { StereoAnalyser } from "./audio-analyser.ts";
-import type { TrackAmp } from "./audio-channel.ts";
 import {
   createAudioClip,
   WAVEFORM_POINTS_PER_SECOND,
@@ -21,6 +20,7 @@ import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput, type CapturedAudio } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
 import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
@@ -66,7 +66,7 @@ export interface AudioTrackState {
   id: string;
   name: string;
   /** Guitar amp in front of the EQ, absent when off */
-  amp?: TrackAmp;
+  amp?: AmpParameters;
   eq: MultibandEqParameters;
   /** Row height in pixels, from 44 to 300 */
   height: number;
@@ -109,7 +109,7 @@ export interface MidiTrackState {
    * tails with CC 11 (expression) at 0 from just after a note-off to the next
    * note-on.
    */
-  amp?: TrackAmp;
+  amp?: AmpParameters;
   eq: MultibandEqParameters;
   /** Row height in pixels, from 44 to 800 */
   height: number;
@@ -709,7 +709,7 @@ export class EditorRuntime {
     });
   }
 
-  setTrackAmp({ id, amp }: { id: string; amp?: TrackAmp }): void {
+  setTrackAmp({ id, amp }: { id: string; amp?: AmpParameters }): void {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({ ...track, amp }));
       this.midiTrackPlaybacks.get(id)?.channel.setAmp(amp);
