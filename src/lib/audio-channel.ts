@@ -1,5 +1,5 @@
 import { StereoAnalyser } from "./audio-analyser.ts";
-import { AmpWorkletNode } from "./dsp/amp-worklet-node.ts";
+import { AmpNode } from "./dsp/amp-worklet-node.ts";
 import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { BiquadEqWorkletNode } from "./dsp/biquad-eq-worklet-node.ts";
@@ -9,7 +9,7 @@ export class AudioChannel {
   readonly input: GainNode;
   private readonly gain: GainNode;
   private readonly panner: StereoPannerNode;
-  private readonly amp: AmpWorkletNode;
+  private readonly amp: AmpNode;
   private readonly equalizer: BiquadEqWorkletNode;
   private analyser?: StereoAnalyser;
 
@@ -28,7 +28,7 @@ export class AudioChannel {
     gain: number;
     pan: number;
   }) {
-    this.amp = new AmpWorkletNode({ context, parameters: amp });
+    this.amp = new AmpNode({ context, parameters: amp });
     this.input = this.amp.input;
     this.gain = context.createGain();
     this.gain.gain.value = gain;

@@ -5,14 +5,44 @@ import { disposeWorklet } from "./worklet-disposal.ts";
 const PROCESSOR_NAME = "amp";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
+class AmpWorkletNode extends AudioWorkletNode {
+  constructor({
+    context,
+    channelCount,
+    parameters,
+  }: {
+    context: BaseAudioContext;
+    channelCount: number;
+    parameters: AmpParameters;
+  }) {
+    super(context, PROCESSOR_NAME, {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      channelCount,
+      channelCountMode: "explicit",
+      outputChannelCount: [channelCount],
+      processorOptions: { parameters },
+    });
+  }
+
+  setParameters(parameters: AmpParameters): void {
+    this.port.postMessage(parameters);
+  }
+
+  dispose(): void {
+    disposeWorklet(this);
+  }
+}
+
 /**
- * The amp between fixed input and output nodes. Without parameters it connects
- * them directly, so a dry track has no amp delay.
+ * Runs a track's amp between fixed input and output nodes, so a channel wires
+ * it once. Without an amp, the input connects straight to the output, and a
+ * dry track has no amp delay.
  */
-export class AmpWorkletNode {
+export class AmpNode {
   readonly input: GainNode;
   readonly output: GainNode;
-  private node?: AudioWorkletNode;
+  private worklet?: AmpWorkletNode;
 
   constructor({
     context,
@@ -27,8 +57,8 @@ export class AmpWorkletNode {
   }
 
   setParameters(parameters: AmpParameters | undefined): void {
-    if (parameters && this.node) {
-      this.node.port.postMessage(parameters);
+    if (parameters && this.worklet) {
+      this.worklet.setParameters(parameters);
       return;
     }
     this.disconnect();
@@ -45,23 +75,18 @@ export class AmpWorkletNode {
       this.input.connect(this.output);
       return;
     }
-    this.node = new AudioWorkletNode(this.input.context, PROCESSOR_NAME, {
-      numberOfInputs: 1,
-      numberOfOutputs: 1,
+    this.worklet = new AmpWorkletNode({
+      context: this.input.context,
       channelCount: 2,
-      channelCountMode: "explicit",
-      outputChannelCount: [2],
-      processorOptions: { parameters },
+      parameters,
     });
-    this.input.connect(this.node).connect(this.output);
+    this.input.connect(this.worklet).connect(this.output);
   }
 
   private disconnect(): void {
     this.input.disconnect();
-    if (this.node) {
-      disposeWorklet(this.node);
-      this.node = undefined;
-    }
+    this.worklet?.dispose();
+    this.worklet = undefined;
   }
 }
 
