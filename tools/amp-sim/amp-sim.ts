@@ -437,10 +437,10 @@ async function runAppAmp({
     bytes.byteLength / 4,
   );
   const output = new Float32Array(input.length);
-  new Amp({ sampleRate: rate, blockFrames: input.length, parameters }).process({
-    input: [input],
-    output: [output],
-  });
+  new Amp({ sampleRate: rate, blockFrames: input.length, parameters }).process(
+    [input],
+    [output],
+  );
   fs.writeFileSync(wet, output);
   await runFfmpeg([
     "-f",
