@@ -2,7 +2,7 @@ import { useCallback, useEffectEvent } from "react";
 import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
-  usesGain,
+  isGainFilter,
 } from "../lib/dsp/biquad-eq";
 import { type MultibandEqBand } from "../lib/dsp/biquad-eq-multiband";
 import { clamp, dbToGain, gainToDb } from "../lib/music";
@@ -203,7 +203,7 @@ function EqBandHandle({
 }) {
   // A handle whose band has no gain rides the 0 dB line and drags only its
   // cutoff.
-  const hasGain = usesGain(band.type);
+  const hasGain = isGainFilter(band.type);
   const x = frequencyToGraphX(band.frequency);
   const y = gainDbToGraphY(hasGain ? gainToDb(band.gain) : 0);
   const ref = usePointerGesture({

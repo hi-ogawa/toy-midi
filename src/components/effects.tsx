@@ -1,6 +1,6 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { BUTTERWORTH_Q, usesGain } from "../lib/dsp/biquad-eq";
+import { BUTTERWORTH_Q, isGainFilter } from "../lib/dsp/biquad-eq";
 import {
   type EqBandType,
   MAX_EQ_BANDS,
@@ -91,7 +91,7 @@ export function EffectsContent({
   const selectedBand =
     eq.bands.find((band) => band.id === selectedBandId) ?? eq.bands[0];
   const selectedIndex = selectedBand ? eq.bands.indexOf(selectedBand) : -1;
-  const hasGain = selectedBand && usesGain(selectedBand.type);
+  const hasGain = selectedBand && isGainFilter(selectedBand.type);
 
   const updateBand = (
     id: string,
@@ -110,7 +110,8 @@ export function EffectsContent({
     // below the cutoff, so a band becoming one starts flat.
     updateBand(band.id, {
       type,
-      ...(usesGain(band.type) && !usesGain(type) && { q: BUTTERWORTH_Q }),
+      ...(isGainFilter(band.type) &&
+        !isGainFilter(type) && { q: BUTTERWORTH_Q }),
     });
   };
 
