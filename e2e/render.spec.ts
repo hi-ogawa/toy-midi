@@ -1,12 +1,16 @@
 import { expect, test } from "@playwright/test";
 import type { AmpParameters } from "../src/lib/dsp/amp";
 import type { SharedProject } from "../src/lib/project-share";
-import { measureRmsDb, type Render, renderProject } from "./render-helpers";
+import {
+  measureRmsDb,
+  type RenderedMix,
+  renderProject,
+} from "./render-helpers";
 
 test("renders MIDI automation", async ({ page }) => {
-  // Render a held note that swells in from silence on expression (CC11),
+  // RenderedMix a held note that swells in from silence on expression (CC11),
   // reaching full level at beat 2, one second at 120 BPM.
-  const render = await renderProject(page, {
+  const mix = await renderProject(page, {
     title: "Swell",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
@@ -31,12 +35,12 @@ test("renders MIDI automation", async ({ page }) => {
 
   // Check the note is silent before the swell, below what a 16-bit WAV can
   // hold, and sounds after it.
-  expect(measureRmsDb(render, { start: 0, end: 0.9 })).toBeLessThan(-96);
-  expect(measureRmsDb(render, { start: 1, end: 2 })).toBeGreaterThan(-60);
+  expect(measureRmsDb(mix, { start: 0, end: 0.9 })).toBeLessThan(-96);
+  expect(measureRmsDb(mix, { start: 1, end: 2 })).toBeGreaterThan(-60);
 });
 
 test("renders a track's amp", async ({ page }) => {
-  // Render one guitar note with and without the amp.
+  // RenderedMix one guitar note with and without the amp.
   const createProject = (amp?: AmpParameters): SharedProject => ({
     title: "Amp",
     tempo: 120,
@@ -56,9 +60,9 @@ test("renders a track's amp", async ({ page }) => {
     createProject({ preset: "high-gain", cabinet: true }),
   );
 
-  // Check the amp changes the render: what it adds or removes is about as
+  // Check the amp changes the mix: what it adds or removes is about as
   // loud as the dry note itself.
-  const difference: Render = {
+  const difference: RenderedMix = {
     sampleRate: dry.sampleRate,
     channels: dry.channels.map((channel, index) =>
       channel.map((sample, frame) => amped.channels[index][frame] - sample),
