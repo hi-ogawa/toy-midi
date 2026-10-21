@@ -13,38 +13,34 @@ describe(Amp, () => {
   );
 
   it("sustains a decaying note more on high gain than on crunch", () => {
-    // A note at its attack (0.5) and late in its decay (0.02, 28 dB quieter).
-    // The drive has no time behavior of its own, so these two steady levels
-    // stand in for the note's envelope. Output levels are dBFS, rounded.
-    const level = (preset: AmpParameters["preset"], amplitude: number) =>
-      Math.round(
-        gainToDb(
-          measureRms(
-            runAmp(
-              { preset, cabinet: false },
-              createSine({ frequency: 220, amplitude }),
-            ).slice(2400),
-          ),
-        ),
-      );
+    // A note at its attack and late in its decay. The drive has no time
+    // behavior of its own, so these two steady levels stand in for the note's
+    // envelope. Levels are RMS in dBFS, rounded.
+    const attack = createSine({ frequency: 220, amplitude: 0.5 });
+    const decay = createSine({ frequency: 220, amplitude: 0.02 });
+    const measureDb = (samples: Float32Array) =>
+      Math.round(gainToDb(measureRms(samples.slice(2400))));
+    const runDrive = (preset: AmpParameters["preset"], input: Float32Array) =>
+      measureDb(runAmp({ preset, cabinet: false }, input));
     const levels = {
-      crunch: [level("crunch", 0.5), level("crunch", 0.02)],
-      "high-gain": [level("high-gain", 0.5), level("high-gain", 0.02)],
+      input: [measureDb(attack), measureDb(decay)],
+      crunch: [runDrive("crunch", attack), runDrive("crunch", decay)],
+      "high-gain": [
+        runDrive("high-gain", attack),
+        runDrive("high-gain", decay),
+      ],
     };
-    expect(levels).toMatchInlineSnapshot(`
-      {
-        "crunch": [
-          -19,
-          -31,
-        ],
-        "high-gain": [
-          -18,
-          -20,
-        ],
-      }
+    expect(
+      Object.entries(levels)
+        .map(([name, [from, to]]) => `${name}: ${from} → ${to}`)
+        .join("\n"),
+    ).toMatchInlineSnapshot(`
+      "input: -9 → -37
+      crunch: -19 → -31
+      high-gain: -18 → -20"
     `);
-    // Both reach about the same level on the attack, and high gain barely
-    // fades from it.
+    // The input fades 28 dB. Crunch passes much of that fade through, and high
+    // gain barely fades.
     expect(levels.crunch[0] - levels.crunch[1]).toBeGreaterThan(6);
     expect(levels["high-gain"][0] - levels["high-gain"][1]).toBeLessThan(3);
   });
