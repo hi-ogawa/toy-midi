@@ -259,7 +259,7 @@ function process(
   input: Float32Array,
 ): Float32Array {
   const output = new Float32Array(input.length);
-  eq.process({ input: [input], output: [output] });
+  eq.process([input], [output]);
   return output;
 }
 
