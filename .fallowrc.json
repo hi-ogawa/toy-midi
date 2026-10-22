@@ -4,6 +4,8 @@
     "packages/webmcp-bridge/src/extension/content.ts",
     "packages/webmcp-bridge/src/extension/background.ts",
     "packages/webmcp-bridge/src/extension/relay.ts",
-    "src/lib/api-types.ts"
+    "src/lib/api-types.ts",
+    "tools/reverb-ab/mix.ts",
+    "tools/reverb-ab/render-stems.ts"
   ]
 }
