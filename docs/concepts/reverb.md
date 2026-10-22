@@ -10,6 +10,8 @@ A click in a hall arrives in three stages. The direct sound comes first. A few m
 
 Each bounce loses a fixed fraction of the sound's energy to the walls and the air, so the late reverberation loses a fixed number of decibels per second, meaning its level is a straight line in dB. The usual measure of how long it lasts is the **decay time** $T_{60}$, the time to fall by 60 dB. A medium hall is around 1.8 s. Walls, seats, and air absorb high frequencies more than low ones, so highs fade sooner and the tail darkens as it decays.
 
+![A sketch of a hall's response to a click. In the first 300 ms, the direct sound is one spike, a handful of separate early reflections follow, and from about 100 ms the echoes overlap into noise. Over 2 s, its level falls in a straight line in dB, reaching −60 dB at 1.8 s](images/reverb-room-response.svg)
+
 Since a room is a filter, a sound $x$ reverberated by a room with impulse response $h$ is the convolution
 
 $$
@@ -52,7 +54,13 @@ w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=w[n-D]+g \cdot w[n],
 H(z)=\frac{g+z^{-D}}{1+g z^{-D}}.
 $$
 
-The numerator and denominator have the same magnitude for every $z$ on the unit circle, so $|H|=1$ at every frequency. Its impulse response is still a train of echoes, $g$ at once, then $1-g^2$ at $D$, then $-g(1-g^2)$ at $2D$, and so on, but because the echoes add up to a flat spectrum, it changes when the sound arrives without changing its tone. That's the property a reverb needs, because it scatters a sound in time without coloring it. Chaining all-passes multiplies their echoes, since each echo of the first becomes a whole train in the second, so a few short all-passes turn one click into a dense burst. Reverb designs call this **diffusion**.
+The numerator and denominator have the same magnitude for every $z$ on the unit circle, so $|H|=1$ at every frequency. Its impulse response is still a train of echoes, $g$ at once, then $1-g^2$ at $D$, then $-g(1-g^2)$ at $2D$, and so on, but because the echoes add up to a flat spectrum, it changes when the sound arrives without changing its tone. That's the property a reverb needs, because it scatters a sound in time without coloring it. With the same delay and gain, the feedback delay's echoes come with peaks and dips across the spectrum, while the all-pass's stay flat:
+
+![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
+
+Chaining all-passes multiplies their echoes, since each echo of the first becomes a whole train in the second, so a few short all-passes turn one click into a dense burst. Reverb designs call this **diffusion**. The plate's four input diffusers, below, take a click from 17 echoes after the first all-pass to more than a thousand after the fourth:
+
+![A click through the plate's input diffusers. After one all-pass it's a single train of echoes, after two the trains interleave, and after four the echoes have merged into a dense burst within about 30 ms](images/reverb-diffusers.svg)
 
 An all-pass delays a sound by $D$ samples on average across frequency, but not equally at every frequency. Its delay swings between $D(1-|g|)/(1+|g|)$ and $D(1+|g|)/(1-|g|)$, which for $g=0.5$ is from a third of $D$ to three times $D$. That matters below, where all-passes sit inside a loop.
 
