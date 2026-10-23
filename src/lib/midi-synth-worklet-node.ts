@@ -6,7 +6,10 @@ import type {
   TimelineNote,
 } from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
-import type { MidiSynth } from "./midi-synth-worklet.ts";
+import type {
+  MidiSynth,
+  MidiSynthProcessorOptions,
+} from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import type { RpcClient } from "./rpc/core.ts";
 import { createRpcClient } from "./rpc/endpoint.ts";
@@ -16,94 +19,160 @@ import {
   findSoundfont,
   GENERAL_USER_SOUNDFONT,
   type Soundfont,
+  SOUNDFONTS,
 } from "./soundfonts.ts";
 import { beatsToSeconds } from "./timeline.ts";
 
 const PROCESSOR_NAME = "midi-synth";
+// An AudioWorkletNode's output count is fixed at construction, so the synth
+// gets a fixed pool of channels, each with its own output.
+const CHANNEL_COUNT = 32;
+// The synth holds every SoundFont at once, so a channel picks one by bank. Each
+// bundled SoundFont sits at its own offset, clear of GeneralUser's banks (0-26,
+// 120, and 128 for drums). Until a SoundFont loads, its bank is missing, and
+// the synth substitutes GeneralUser's preset with the same program.
+const SOUNDFONT_BANK_OFFSET = 100;
 
+/** One synth shared by every MIDI track, so each SoundFont is parsed once. */
 export class MidiSynthWorkletNode {
-  readonly output: GainNode;
-  private node?: AudioWorkletNode;
-  private synth?: RpcClient<MidiSynth>;
+  private readonly usedChannels = new Set<number>();
 
-  constructor(private readonly context: BaseAudioContext) {
-    this.output = context.createGain();
-  }
-
-  async init(): Promise<void> {
-    await ensureMidiWorklet(this.context);
-    const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
+  static async create(
+    context: BaseAudioContext,
+  ): Promise<MidiSynthWorkletNode> {
+    await ensureMidiWorklet(context);
+    const processorOptions: MidiSynthProcessorOptions = {
+      channelCount: CHANNEL_COUNT,
+    };
+    const node = new AudioWorkletNode(context, PROCESSOR_NAME, {
       numberOfInputs: 0,
-      numberOfOutputs: 1,
-      outputChannelCount: [2],
+      numberOfOutputs: CHANNEL_COUNT,
+      outputChannelCount: Array(CHANNEL_COUNT).fill(2),
+      processorOptions,
     });
-    this.node = node;
-    node.connect(this.output);
-    this.synth = createRpcClient<MidiSynth>(node.port);
+    const synth = createRpcClient<MidiSynth>(node.port);
     try {
-      await this.synth.init();
+      await synth.init();
     } catch (error) {
+      disposeWorklet(node);
       throw new Error(`MIDI synth failed to load: ${(error as Error).message}`);
     }
+    return new MidiSynthWorkletNode(node, synth);
+  }
+
+  private constructor(
+    private readonly node: AudioWorkletNode,
+    private readonly synth: RpcClient<MidiSynth>,
+  ) {}
+
+  allocateChannel(): MidiSynthChannel {
+    const channel = Array.from({ length: CHANNEL_COUNT }, (_, i) => i).find(
+      (i) => !this.usedChannels.has(i),
+    );
+    if (channel === undefined) {
+      throw new Error(
+        `A project can have at most ${CHANNEL_COUNT} MIDI tracks.`,
+      );
+    }
+    this.usedChannels.add(channel);
+    return new MidiSynthChannel({
+      node: this.node,
+      synth: this.synth,
+      channel,
+      addSoundfont: this.addSoundfont,
+      onDispose: () => this.usedChannels.delete(channel),
+    });
+  }
+
+  dispose(): void {
+    disposeWorklet(this.node);
+  }
+
+  readonly addSoundfont = memo(async (soundfont: Soundfont): Promise<void> => {
+    const loaded = await loadSoundfont(soundfont);
+    await this.synth.addSoundfont({
+      id: soundfont.id,
+      bankOffset: getBankOffset(soundfont),
+      ...loaded,
+    });
+  });
+}
+
+/** One MIDI track's channel on the shared synth, with its own output. */
+export class MidiSynthChannel {
+  readonly output: GainNode;
+  private readonly synth: RpcClient<MidiSynth>;
+  private readonly channel: number;
+  private readonly addSoundfont: (soundfont: Soundfont) => Promise<void>;
+  private readonly onDispose: () => void;
+
+  constructor({
+    node,
+    synth,
+    channel,
+    addSoundfont,
+    onDispose,
+  }: {
+    node: AudioWorkletNode;
+    synth: RpcClient<MidiSynth>;
+    channel: number;
+    addSoundfont: (soundfont: Soundfont) => Promise<void>;
+    onDispose: () => void;
+  }) {
+    this.synth = synth;
+    this.channel = channel;
+    this.addSoundfont = addSoundfont;
+    this.onDispose = onDispose;
+    this.output = node.context.createGain();
+    node.connect(this.output, channel);
   }
 
   async setPreset(preset: MidiPreset): Promise<void> {
     const soundfont = preset.soundfont
       ? findSoundfont(preset.soundfont)
       : GENERAL_USER_SOUNDFONT;
-    await this.getSynth().setPreset({
-      soundfont: soundfont.id,
-      bank: preset.bank ?? 0,
+    await this.synth.setPreset({
+      channel: this.channel,
+      bank: getBankOffset(soundfont) + (preset.bank ?? 0),
       program: preset.program,
     });
     await this.addSoundfont(soundfont);
   }
 
   noteOn(pitch: number): void {
-    void this.getSynth().noteOn({ pitch, velocity: 100 });
+    void this.synth.noteOn({ channel: this.channel, pitch, velocity: 100 });
   }
 
   noteOff(pitch: number): void {
-    void this.getSynth().noteOff(pitch);
+    void this.synth.noteOff({ channel: this.channel, pitch });
   }
 
   setNotes(notes: TimelineNote[]): Promise<void> {
-    return this.getSynth().setNotes(notes);
+    return this.synth.setNotes({ channel: this.channel, notes });
   }
 
   setAutomation(automation: TimelineAutomation[]): Promise<void> {
-    return this.getSynth().setAutomation(automation);
+    return this.synth.setAutomation({ channel: this.channel, automation });
   }
 
   start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
-    return this.getSynth().start(playbackRunOptions);
+    return this.synth.start({ channel: this.channel, playbackRunOptions });
   }
 
   stop(): void {
-    void this.getSynth().stop();
+    void this.synth.stop(this.channel);
   }
 
   dispose(): void {
     this.output.disconnect();
-    if (this.node) {
-      disposeWorklet(this.node);
-      this.node = undefined;
-      this.synth = undefined;
-    }
+    void this.synth.release(this.channel);
+    this.onDispose();
   }
+}
 
-  readonly addSoundfont = memo(async (soundfont: Soundfont): Promise<void> => {
-    const loaded = await loadSoundfont(soundfont);
-    // The synth may have been disposed while the SoundFont loaded.
-    await this.synth?.addSoundfont({ id: soundfont.id, ...loaded });
-  });
-
-  private getSynth(): RpcClient<MidiSynth> {
-    if (!this.synth) {
-      throw new Error("MIDI synth is not initialized.");
-    }
-    return this.synth;
-  }
+function getBankOffset(soundfont: Soundfont): number {
+  const index = SOUNDFONTS.findIndex(({ id }) => id === soundfont.id);
+  return index === -1 ? 0 : SOUNDFONT_BANK_OFFSET + index;
 }
 
 /** Converts notes in beats to the synth's notes in seconds, sorted by start. */

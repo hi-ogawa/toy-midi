@@ -129,11 +129,16 @@ export async function renderMix({
           );
         }
       }
+      const midiSynth =
+        mix.midiTracks.length > 0
+          ? await MidiSynthWorkletNode.create(context)
+          : undefined;
+      if (midiSynth) {
+        cleanup.defer(() => midiSynth.dispose());
+      }
       await Promise.all(
         mix.midiTracks.map(async (track) => {
-          const synth = new MidiSynthWorkletNode(context);
-          cleanup.defer(() => synth.dispose());
-          await synth.init();
+          const synth = midiSynth!.allocateChannel();
           await synth.setPreset(track.preset);
           const channel = new AudioChannel({
             context,

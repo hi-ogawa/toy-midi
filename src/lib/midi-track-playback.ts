@@ -3,7 +3,8 @@ import { AudioChannel } from "./audio-channel.ts";
 import {
   convertToTimelineAutomation,
   convertToTimelineNotes,
-  MidiSynthWorkletNode,
+  type MidiSynthChannel,
+  type MidiSynthWorkletNode,
 } from "./midi-synth-worklet-node.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
 import { GENERAL_USER_SOUNDFONT } from "./soundfonts.ts";
@@ -17,35 +18,11 @@ export class MidiTrackPlayback implements TransportParticipant {
   private notes: Note[] = [];
   private automation: Automation[] = [];
   private tempo = 120;
-  private readonly synth: MidiSynthWorkletNode;
+  private readonly synth: MidiSynthChannel;
   private readonly unregister: () => void;
   private readonly transport: AudioContextTransport;
 
-  static async create({
-    transport,
-    output,
-    track,
-    tempo,
-  }: {
-    transport: AudioContextTransport;
-    output: AudioNode;
-    track: MidiTrackState;
-    tempo: number;
-  }): Promise<MidiTrackPlayback> {
-    const synth = new MidiSynthWorkletNode(transport.context);
-    try {
-      await synth.init();
-      // Play GeneralUser rather than wait for the track's SoundFont.
-      synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
-      synth.setPreset(track).catch(ignoreLoadFailure);
-      return new MidiTrackPlayback({ transport, output, track, tempo, synth });
-    } catch (error) {
-      synth.dispose();
-      throw error;
-    }
-  }
-
-  private constructor({
+  constructor({
     transport,
     output,
     track,
@@ -58,7 +35,10 @@ export class MidiTrackPlayback implements TransportParticipant {
     tempo: number;
     synth: MidiSynthWorkletNode;
   }) {
-    this.synth = synth;
+    this.synth = synth.allocateChannel();
+    // Play GeneralUser rather than wait for the track's SoundFont.
+    synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
+    this.setPreset(track);
     this.channel = new AudioChannel({
       context: transport.context,
       output,
@@ -67,7 +47,7 @@ export class MidiTrackPlayback implements TransportParticipant {
       gain: 0,
       pan: track.pan,
     });
-    synth.output.connect(this.channel.input);
+    this.synth.output.connect(this.channel.input);
     this.tempo = tempo;
     this.transport = transport;
     this.unregister = transport.register(this);
