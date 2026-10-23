@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useState } from "react";
 import type { ProjectUiStore } from "../lib/preferences";
 import type { EditorRuntime } from "../lib/runtime";
 import {
@@ -10,6 +10,7 @@ import {
   secondsToBeats,
 } from "../lib/timeline";
 import type { TimeSignature } from "../types";
+import { listenTouchPinch, type TouchPinch } from "../utils/touch-pinch";
 
 export function useTimeline({
   projectUiStore,
@@ -74,49 +75,84 @@ export function useTimeline({
     );
   }
 
-  const viewportRef = useCallback(
-    (viewport: HTMLDivElement | null) => {
-      if (!viewport) {
-        return;
-      }
-      const observer = new ResizeObserver(([entry]) => {
-        setViewportWidth(entry.contentRect.width);
-      });
-      observer.observe(viewport);
-      const wheelTarget = viewport.parentElement;
-      const handleWheel = (event: WheelEvent) => {
-        const rect = viewport.getBoundingClientRect();
-        if (event.clientX < rect.left) {
-          return;
-        }
-        event.preventDefault();
-        if (!event.ctrlKey) {
-          const delta = event.deltaX || event.deltaY;
-          setViewportStartBeat((value) =>
-            Math.max(0, value + delta / pixelsPerBeat),
-          );
-          return;
-        }
-        if (event.deltaY === 0) {
-          return;
-        }
-        const nextPixelsPerBeat = Math.max(
-          MIN_PIXELS_PER_BEAT,
-          Math.min(
-            MAX_PIXELS_PER_BEAT,
-            pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
-          ),
-        );
-        zoom(nextPixelsPerBeat, Math.max(0, event.clientX - rect.left));
-      };
-      wheelTarget?.addEventListener("wheel", handleWheel, { passive: false });
-      return () => {
-        observer.disconnect();
-        wheelTarget?.removeEventListener("wheel", handleWheel);
-      };
-    },
-    [pixelsPerBeat, viewportStartBeat],
-  );
+  function handleWheel(event: WheelEvent, viewport: HTMLElement) {
+    const rect = viewport.getBoundingClientRect();
+    if (event.clientX < rect.left) {
+      return;
+    }
+    event.preventDefault();
+    if (!event.ctrlKey) {
+      const delta = event.deltaX || event.deltaY;
+      setViewportStartBeat((value) =>
+        Math.max(0, value + delta / pixelsPerBeat),
+      );
+      return;
+    }
+    if (event.deltaY === 0) {
+      return;
+    }
+    const nextPixelsPerBeat = clampPixelsPerBeat(
+      pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
+    );
+    zoom(nextPixelsPerBeat, Math.max(0, event.clientX - rect.left));
+  }
+
+  // Pin the beat under the touch centroid, so one finger pans and two fingers
+  // pinch-zoom around their midpoint.
+  function startTouchNavigation(pinch: TouchPinch, viewport: HTMLElement) {
+    const anchorX = pinch.x - viewport.getBoundingClientRect().left;
+    return {
+      beat: viewportStartBeat + anchorX / pixelsPerBeat,
+      distance: pinch.distance,
+      pixelsPerBeat,
+    };
+  }
+
+  function moveTouchNavigation(
+    pinch: TouchPinch,
+    origin: ReturnType<typeof startTouchNavigation>,
+    viewport: HTMLElement,
+  ) {
+    const anchorX = pinch.x - viewport.getBoundingClientRect().left;
+    const nextPixelsPerBeat =
+      origin.distance > 0
+        ? clampPixelsPerBeat(
+            (origin.pixelsPerBeat * pinch.distance) / origin.distance,
+          )
+        : origin.pixelsPerBeat;
+    setPixelsPerBeat(nextPixelsPerBeat);
+    setViewportStartBeat(
+      Math.max(0, origin.beat - anchorX / nextPixelsPerBeat),
+    );
+  }
+
+  const onWheel = useEffectEvent(handleWheel);
+  const onTouchStart = useEffectEvent(startTouchNavigation);
+  const onTouchMove = useEffectEvent(moveTouchNavigation);
+
+  const viewportRef = useCallback((viewport: HTMLDivElement | null) => {
+    if (!viewport) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setViewportWidth(entry.contentRect.width);
+    });
+    observer.observe(viewport);
+    const target = viewport.parentElement!;
+    const handleWheel = (event: WheelEvent) => onWheel(event, viewport);
+    target.addEventListener("wheel", handleWheel, { passive: false });
+    const stopTouch = listenTouchPinch({
+      element: target,
+      accept: (event) => event.clientX >= viewport.getBoundingClientRect().left,
+      onStart: (pinch) => onTouchStart(pinch, viewport),
+      onMove: (pinch, origin) => onTouchMove(pinch, origin, viewport),
+    });
+    return () => {
+      observer.disconnect();
+      target.removeEventListener("wheel", handleWheel);
+      stopTouch();
+    };
+  }, []);
 
   return {
     gridDivision,
@@ -131,4 +167,8 @@ export function useTimeline({
     autoScrollEnabled,
     setAutoScrollEnabled,
   };
+}
+
+function clampPixelsPerBeat(value: number) {
+  return Math.max(MIN_PIXELS_PER_BEAT, Math.min(MAX_PIXELS_PER_BEAT, value));
 }

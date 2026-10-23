@@ -390,7 +390,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         />
         <section
           data-testid="track-scroll"
-          className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
+          className="relative isolate min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto scrollbar-thin"
         >
           <div
             ref={timeline.viewportRef}
