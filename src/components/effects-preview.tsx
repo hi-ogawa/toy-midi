@@ -8,6 +8,7 @@ const INITIAL_EQ: MultibandEqParameters = {
   bands: [
     {
       id: "low",
+      type: "peaking",
       frequency: 120,
       gain: dbToGain(5),
       q: 0.8,
@@ -15,6 +16,7 @@ const INITIAL_EQ: MultibandEqParameters = {
     },
     {
       id: "mid",
+      type: "peaking",
       frequency: 850,
       gain: dbToGain(-7),
       q: 2.4,
@@ -22,6 +24,7 @@ const INITIAL_EQ: MultibandEqParameters = {
     },
     {
       id: "high",
+      type: "peaking",
       frequency: 4800,
       gain: dbToGain(3.5),
       q: 1.4,

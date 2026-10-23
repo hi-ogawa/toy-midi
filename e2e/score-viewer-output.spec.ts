@@ -1,10 +1,7 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs";
-import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
+import { execFileAsync } from "../src/utils/exec";
 import { selectMenuItem } from "./helpers";
-
-const execFileAsync = promisify(execFile);
 
 test("capture score viewer sample cursor", async ({ page }) => {
   await page.goto("/score-viewer");
@@ -46,7 +43,8 @@ test("capture score video", async ({ baseURL }) => {
   const output = ".tmp/score-viewer-output-video.mp4";
   fs.rmSync(output, { force: true });
   await execFileAsync("node", [
-    "packages/score-video/bin/cli.js",
+    "packages/cli/bin/cli.js",
+    "score-video",
     "src/lib/musicxml/__snapshots__/five-string-tab.musicxml",
     output,
     "--url",

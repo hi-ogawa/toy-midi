@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { memo } from "../utils/memo.ts";
-import { createWorkerRpc } from "./rpc/worker.ts";
+import { createRpcClient } from "./rpc/endpoint.ts";
 import type { SoundfontDecoderWorkerHandlers } from "./soundfont-decoder-worker.ts";
 import { GENERAL_USER_SOUNDFONT, type Soundfont } from "./soundfonts.ts";
 
@@ -77,7 +77,7 @@ async function decodeSamples(soundfont: ArrayBuffer): Promise<Float32Array[]> {
     { type: "module" },
   );
   try {
-    return await createWorkerRpc<SoundfontDecoderWorkerHandlers>(
+    return await createRpcClient<SoundfontDecoderWorkerHandlers>(
       worker,
     ).decodeSamples({ soundfont });
   } finally {

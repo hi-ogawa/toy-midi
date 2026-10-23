@@ -1,11 +1,13 @@
-import type { Note } from "../types.ts";
+import type { Automation, Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
-import type {
-  MidiSynthChannel,
-  MidiSynthWorkletNode,
+import {
+  convertToTimelineAutomation,
+  convertToTimelineNotes,
+  type MidiSynthChannel,
+  type MidiSynthWorkletNode,
 } from "./midi-synth-worklet-node.ts";
 import type { MidiPreset, MidiTrackState } from "./runtime.ts";
-import { beatsToSeconds } from "./timeline.ts";
+import { GENERAL_USER_SOUNDFONT } from "./soundfonts.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -14,6 +16,7 @@ import type {
 export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
   private notes: Note[] = [];
+  private automation: Automation[] = [];
   private tempo = 120;
   private readonly synth: MidiSynthChannel;
   private readonly unregister: () => void;
@@ -32,10 +35,14 @@ export class MidiTrackPlayback implements TransportParticipant {
     tempo: number;
     synth: MidiSynthWorkletNode;
   }) {
-    this.synth = synth.allocateChannel(track);
+    this.synth = synth.allocateChannel();
+    // Play GeneralUser rather than wait for the track's SoundFont.
+    synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
+    this.setPreset(track);
     this.channel = new AudioChannel({
       context: transport.context,
       output,
+      amp: track.amp,
       eq: track.eq,
       gain: 0,
       pan: track.pan,
@@ -45,6 +52,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.transport = transport;
     this.unregister = transport.register(this);
     this.setNotes(track.notes);
+    this.setAutomation(track.automation);
     // A track added during playback joins the running playback.
     if (transport.store.get().isPlaying) {
       this.start();
@@ -56,13 +64,19 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.sendNotes();
   }
 
+  setAutomation(automation: Automation[]): void {
+    this.automation = automation;
+    this.sendAutomation();
+  }
+
   setTempo(tempo: number): void {
     this.tempo = tempo;
     this.sendNotes();
+    this.sendAutomation();
   }
 
   setPreset(preset: MidiPreset): void {
-    this.synth.setPreset(preset);
+    this.synth.setPreset(preset).catch(ignoreLoadFailure);
   }
 
   noteOn(pitch: number): void {
@@ -74,7 +88,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 
   start(): void {
-    this.synth.start(this.transport.playbackRun!.options);
+    void this.synth.start(this.transport.playbackRun!.options);
   }
 
   stop(): void {
@@ -92,15 +106,19 @@ export class MidiTrackPlayback implements TransportParticipant {
    * keep playing.
    */
   private sendNotes(): void {
-    this.synth.setNotes(
-      this.notes
-        .map((note) => ({
-          start: beatsToSeconds(note.start, this.tempo),
-          end: beatsToSeconds(note.start + note.duration, this.tempo),
-          pitch: note.pitch,
-          velocity: note.velocity,
-        }))
-        .sort((a, b) => a.start - b.start),
+    void this.synth.setNotes(convertToTimelineNotes(this.notes, this.tempo));
+  }
+
+  private sendAutomation(): void {
+    void this.synth.setAutomation(
+      convertToTimelineAutomation(this.automation, this.tempo),
     );
   }
 }
+
+/**
+ * A failed SoundFont should not interrupt editing. The loader already shows a
+ * toast naming it, and the track keeps sounding through whatever SoundFont the
+ * synth has, usually GeneralUser, so playback has nothing more to report.
+ */
+function ignoreLoadFailure(): void {}

@@ -62,22 +62,14 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-type HandlerParams<Handler> = Handler extends (
-  params: infer Params,
-) => Promise<unknown>
-  ? Params
-  : never;
+/** Handlers take at most one parameter, which may be omitted. */
+type RpcHandler = (params?: any) => Promise<unknown>;
 
-type HandlerResult<Handler> = Handler extends (
-  ...args: never[]
-) => Promise<infer Result>
-  ? Result
-  : never;
-
+/** Only async methods are callable, so a handler object can also keep synchronous methods for its own host. */
 export type RpcClient<Handlers> = {
-  [Method in keyof Handlers]: (
-    params: HandlerParams<Handlers[Method]>,
-  ) => Promise<HandlerResult<Handlers[Method]>>;
+  [Method in keyof Handlers as Handlers[Method] extends RpcHandler
+    ? Method
+    : never]: Handlers[Method];
 };
 
 export function createRpcProxy<Handlers>(

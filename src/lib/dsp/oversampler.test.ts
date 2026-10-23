@@ -1,0 +1,51 @@
+import { describe, expect, it } from "vitest";
+import { gainToDb } from "../music";
+import { createSine, measureRms, SAMPLE_RATE } from "./helper";
+import { Downsampler, OVERSAMPLING_FACTOR, Upsampler } from "./oversampler";
+
+describe(Upsampler, () => {
+  it("passes an audible sine through up and down unchanged but delayed", () => {
+    const input = createSine({ frequency: 1000, amplitude: 0.5 });
+    const output = runRoundTrip(input);
+    // The two low-passes delay by (96 − 1) / 2 high-rate samples each, and
+    // output n is the low-pass at high-rate sample 4n + 3.
+    const delay = (95 - 3) / OVERSAMPLING_FACTOR;
+    const expected = createSine({
+      frequency: 1000,
+      amplitude: 0.5,
+      phase: (-2 * Math.PI * 1000 * delay) / SAMPLE_RATE,
+    });
+    const settled = 1000;
+    // The low-pass's passband ripples by up to about 0.5 dB per pass.
+    const gain =
+      measureRms(output.slice(settled)) / measureRms(expected.slice(settled));
+    expect(Math.abs(gainToDb(gain))).toBeLessThan(1);
+    // Apart from that level, it's the same sine, delayed.
+    for (let i = settled; i < output.length; i++) {
+      expect(output[i] / gain).toBeCloseTo(expected[i], 3);
+    }
+  });
+
+  it("removes content above the original Nyquist frequency on the way down", () => {
+    const input = createSine({
+      frequency: 35000,
+      sampleRate: SAMPLE_RATE * OVERSAMPLING_FACTOR,
+      length: OVERSAMPLING_FACTOR * 4800,
+    });
+    const output = new Float32Array(4800);
+    new Downsampler().process(input, output);
+    // At 48 kHz, 35 kHz is above the 24 kHz Nyquist frequency and would alias
+    // to 13 kHz. The low-pass's gain stays under −30 dB above about 29 kHz.
+    expect(
+      gainToDb(measureRms(output.slice(1000)) / measureRms(input)),
+    ).toBeLessThan(-30);
+  });
+});
+
+function runRoundTrip(input: Float32Array): Float32Array {
+  const oversampled = new Float32Array(OVERSAMPLING_FACTOR * input.length);
+  new Upsampler().process(input, oversampled);
+  const output = new Float32Array(input.length);
+  new Downsampler().process(oversampled, output);
+  return output;
+}

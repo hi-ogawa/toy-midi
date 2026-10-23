@@ -22,13 +22,13 @@ import { importMidiNotes, parseMidiFile } from "../lib/midi-import";
 import { isBlackKey, MAX_PITCH } from "../lib/music";
 import { exportMusicXml } from "../lib/musicxml/render";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
-import type { MidiPreset, MidiTrackState, EditorRuntime } from "../lib/runtime";
+import type { MidiTrackState, EditorRuntime } from "../lib/runtime";
 import {
   getTabAnnotationDisplay,
   type TabAnnotationDisplay,
 } from "../lib/tab-annotation";
 import { getTimelineGridBackground } from "../lib/timeline-grid";
-import type { Note } from "../types";
+import type { Note, TimeSignature } from "../types";
 import { pluralCount } from "../utils/plural-count";
 import { openFilePicker } from "./file-drop-input";
 import { MidiInstrument } from "./midi-instrument";
@@ -67,7 +67,7 @@ export function MidiTrackRow({
   track,
   runtime,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
   subdivisionsPerBeat,
   viewportStartBeat,
   move,
@@ -80,7 +80,7 @@ export function MidiTrackRow({
   track: MidiTrackState;
   runtime: EditorRuntime;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
   move: TrackMoveControls;
@@ -91,10 +91,6 @@ export function MidiTrackRow({
   onScorePreview: () => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
-  const presetMutation = useMutation({
-    mutationFn: (preset: MidiPreset) =>
-      runtime.setMidiTrackPreset(track.id, preset),
-  });
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseMidiFile(file);
@@ -118,11 +114,11 @@ export function MidiTrackRow({
     mutationFn: async () => {
       const state = runtime.store.get();
       const data = exportMidi({
-        notes: track.notes,
+        title: state.title,
         tempo: state.tempo,
         timeSignature: state.timeSignature,
-        name: state.title,
-        trackName: track.name,
+        locators: state.locators,
+        tracks: [track],
       });
       downloadBlob(
         new Blob([new Uint8Array(data)], { type: "audio/midi" }),
@@ -214,7 +210,8 @@ export function MidiTrackRow({
           <MidiTrackOverview
             track={track}
             pixelsPerBeat={pixelsPerBeat}
-            beatsPerBar={beatsPerBar}
+            timeSignature={timeSignature}
+            subdivisionsPerBeat={subdivisionsPerBeat}
             viewportStartBeat={viewportStartBeat}
           />
         ) : (
@@ -223,7 +220,7 @@ export function MidiTrackRow({
             runtime={runtime}
             midiInteraction={midiInteraction}
             pixelsPerBeat={pixelsPerBeat}
-            beatsPerBar={beatsPerBar}
+            timeSignature={timeSignature}
             subdivisionsPerBeat={subdivisionsPerBeat}
             viewportStartBeat={viewportStartBeat}
           />
@@ -244,8 +241,9 @@ export function MidiTrackRow({
       >
         <MidiInstrument
           track={track}
-          presetPending={presetMutation.isPending}
-          onPresetChange={(preset) => presetMutation.mutate(preset)}
+          onPresetChange={(preset) =>
+            runtime.setMidiTrackPreset(track.id, preset)
+          }
           onSettingsChange={(settings) =>
             runtime.setMidiTrackSettings(track.id, settings)
           }
@@ -346,12 +344,14 @@ function MidiTrackActions({
 function MidiTrackOverview({
   track,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
+  subdivisionsPerBeat,
   viewportStartBeat,
 }: {
   track: MidiTrackState;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
+  subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
   return (
@@ -361,12 +361,10 @@ function MidiTrackOverview({
       aria-label={`${track.name} note overview, ${pluralCount(track.notes.length, "note")}`}
       className="relative col-start-2 row-start-1 overflow-hidden bg-neutral-900"
       style={getTimelineGridBackground({
-        beatsPerBar,
+        timeSignature,
         pixelsPerBeat,
         viewportStartBeat,
-        subdivisionsPerBeat: 1,
-        minimumPixelSpacing: 8,
-        colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
+        subdivisionsPerBeat,
       })}
     >
       {track.notes.length > 0 && (
@@ -473,7 +471,7 @@ function MidiTrackEditor({
   runtime,
   midiInteraction,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
   subdivisionsPerBeat,
   viewportStartBeat,
 }: {
@@ -481,7 +479,7 @@ function MidiTrackEditor({
   runtime: EditorRuntime;
   midiInteraction: ReturnType<typeof useMidiInteraction>;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
@@ -669,7 +667,7 @@ function MidiTrackEditor({
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
-        <div className="relative border-r border-neutral-700">
+        <div className="relative border-r-2 border-neutral-600">
           {PITCHES.map((pitch) => (
             <MidiPianoKey
               key={pitch}
@@ -697,16 +695,10 @@ function MidiTrackEditor({
           <div
             className="pointer-events-none absolute inset-0"
             style={getTimelineGridBackground({
-              beatsPerBar,
+              timeSignature,
               pixelsPerBeat,
               viewportStartBeat,
               subdivisionsPerBeat,
-              minimumPixelSpacing: 8,
-              colors: {
-                bar: "#525252",
-                beat: "#404040",
-                subdivision: "#333333",
-              },
             })}
           />
           {track.notes
@@ -850,7 +842,7 @@ function MidiGridRow({ pitch }: { pitch: number }) {
     <div
       className={cn(
         "pointer-events-none absolute inset-x-0 border-t",
-        pitch % 12 === 11 ? "border-[#666666]" : "border-[#333333]",
+        pitch % 12 === 11 ? "border-neutral-600" : "border-[#333333]",
         isBlackKey(pitch) ? "bg-[#111111]" : "bg-[#1a1a1a]",
       )}
       style={{

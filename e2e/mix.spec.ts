@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { addAudio, createProject } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
+import { decodeWav } from "./wav-helpers";
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
@@ -37,10 +38,10 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   const downloadPath = test.info().outputPath("mix.wav");
   await download.saveAs(downloadPath);
 
-  // Inspect the downloaded file as stereo 16-bit PCM WAV, not just a named blob.
-  const wav = await readFile(downloadPath);
-  expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
-  expect(wav.toString("ascii", 8, 12)).toBe("WAVE");
-  expect(wav.readUInt32LE(24)).toBe(48000);
+  // Check the file is stereo 16-bit PCM holding the 3 s backing audio.
+  const wav = decodeWav(await readFile(downloadPath));
+  expect(wav).toMatchObject({ channelCount: 2, sampleRate: 48000 });
+  expect(wav.duration).toBeCloseTo(3);
+  expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
   await expect(exportButton).toBeEnabled();
 });

@@ -1,9 +1,11 @@
 import { type AudioClip, createAudioClip } from "./audio-clip.ts";
-import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
-} from "./dsp/biquad-eq-worklet-node.ts";
+  type MultibandEqBand,
+  type MultibandEqParameters,
+} from "./dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
@@ -36,7 +38,7 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   // 🔴 Retained for projects saved with the Capture track outside audioTracks.
   recordingTrack?: {
     // 🟢 Optional for projects saved before track EQ support.
-    eq?: MultibandEqParameters | EqParameters;
+    eq?: SerializedMultibandEq | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -76,13 +78,25 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   };
 }
 
+export interface SerializedMultibandEq extends Omit<
+  MultibandEqParameters,
+  "bands"
+> {
+  bands: (Omit<MultibandEqBand, "type"> & {
+    // 🟢 Optional for bands saved before low-pass and high-pass.
+    type?: MultibandEqBand["type"];
+  })[];
+}
+
 export interface SerializedMidiTrackState extends Omit<
   MidiTrackState,
+  | "eq"
   | "tabAnnotationEnabled"
   | "tabOpenStringPitches"
   | "keySignature"
   | "viewMode"
   | "pan"
+  | "automation"
 > {
   tabAnnotationEnabled?: boolean;
   tabOpenStringPitches?: number[];
@@ -90,13 +104,17 @@ export interface SerializedMidiTrackState extends Omit<
   viewMode?: MidiTrackState["viewMode"];
   // 🟢 Optional for MIDI tracks saved before pan support.
   pan?: number;
+  // 🟢 Optional for MIDI tracks saved before automation support.
+  automation?: MidiTrackState["automation"];
+  eq: SerializedMultibandEq;
 }
 
 interface SerializedAudioTrackState<ChannelData> {
   // 🟢 Optional for projects saved before per-track clip visibility.
   showClips?: boolean;
+  amp?: AmpParameters;
   // 🟢 Optional for projects saved before track EQ support.
-  eq?: MultibandEqParameters | EqParameters;
+  eq?: SerializedMultibandEq | EqParameters;
   id: string;
   // 🟢 Optional for projects saved before audio track names.
   name?: string;
@@ -151,6 +169,7 @@ export function serializeEditorRuntimeState(
       id: track.id,
       name: track.name,
       height: track.height,
+      amp: track.amp,
       eq: track.eq,
       gain: track.gain,
       pan: track.pan,
@@ -202,6 +221,7 @@ export function deserializeEditorRuntimeState({
       clips: getTrackClips(track).map((clip, index) =>
         deserializeAudioClip({ context, clip, index }),
       ),
+      amp: track.amp,
       eq: deserializeEq(track.eq),
       gain: track.gain,
       pan: track.pan ?? 0,
@@ -212,6 +232,7 @@ export function deserializeEditorRuntimeState({
       ...track,
       viewMode: track.viewMode ?? "editor",
       pan: track.pan ?? 0,
+      automation: track.automation ?? [],
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,
@@ -321,13 +342,16 @@ function deserializeAudioClip({
 }
 
 function deserializeEq(
-  eq?: MultibandEqParameters | EqParameters,
+  eq?: SerializedMultibandEq | EqParameters,
 ): MultibandEqParameters {
   if (!eq) {
     return createDefaultMultibandEq();
   }
   if ("bands" in eq) {
-    return eq;
+    return {
+      ...eq,
+      bands: eq.bands.map((band) => ({ type: "peaking", ...band })),
+    };
   }
   return {
     bypass: false,

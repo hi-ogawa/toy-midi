@@ -1,18 +1,12 @@
 import type { Note } from "../types.ts";
 import type {
-  MultibandEqBand,
-  MultibandEqParameters,
-} from "./dsp/biquad-eq-multiband.ts";
-import type {
   SerializedEditorRuntimeState,
   SerializedMidiTrackState,
+  SerializedMultibandEq,
 } from "./persistence.ts";
 import { routes } from "./routes.ts";
-import {
-  createMidiTrackState,
-  type Locator,
-  MIN_TRACK_HEIGHT,
-} from "./runtime.ts";
+import type { Locator } from "./runtime.ts";
+import { createMidiTrackState, MIN_TRACK_HEIGHT } from "./track-state.ts";
 
 // A share link carries the project, deflated and base64url-encoded, in the
 // URL fragment. The browser never sends the fragment in a request, so the
@@ -55,8 +49,8 @@ interface SharedMidiTrack
       Omit<SerializedMidiTrackState, "id" | "name" | "program" | "notes" | "eq">
     > {
   notes: Omit<Note, "id">[];
-  eq?: Omit<MultibandEqParameters, "bands"> & {
-    bands: Omit<MultibandEqBand, "id">[];
+  eq?: Omit<SerializedMultibandEq, "bands"> & {
+    bands: Omit<SerializedMultibandEq["bands"][number], "id">[];
   };
 }
 
@@ -86,7 +80,7 @@ export async function fetchSharedProject(
     );
   }
   try {
-    return assignIds(await response.json());
+    return convertSharedProject(await response.json());
   } catch {
     throw new Error(`${src} does not hold a readable project.`);
   }
@@ -110,7 +104,7 @@ export async function decodeSharedProject(
       decodeBase64Url(payload),
       new DecompressionStream("deflate-raw"),
     );
-    return assignIds(JSON.parse(new TextDecoder().decode(bytes)));
+    return convertSharedProject(JSON.parse(new TextDecoder().decode(bytes)));
   } catch {
     throw new Error("The share link does not hold a readable project.");
   }
@@ -134,7 +128,9 @@ function omitIds({
   };
 }
 
-function assignIds(project: SharedProject): SerializedEditorRuntimeState {
+export function convertSharedProject(
+  project: SharedProject,
+): SerializedEditorRuntimeState {
   return {
     ...project,
     audioTracks: [],

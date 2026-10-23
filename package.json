@@ -20,7 +20,7 @@
     "test": "vitest",
     "test-e2e": "playwright test",
     "test-e2e-trace": "E2E_TRACE=1 playwright test",
-    "render-score-video": "node packages/score-video/bin/cli.js",
+    "toy-midi": "node packages/cli/bin/cli.js",
     "wsola": "tsx tools/wsola.ts"
   },
   "dependencies": {
@@ -35,6 +35,7 @@
     "@tanstack/react-query": "^5.90.16",
     "@tonejs/midi": "^2.0.28",
     "cmdk": "^1.1.1",
+    "core-js": "^3.50.0",
     "jszip": "^3.10.1",
     "lucide-react": "^1.33.0",
     "opensheetmusicdisplay": "^2.1.1",
@@ -53,6 +54,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.1.0",
     "fallow": "^2.50.0",
+    "midi-file": "^1.2.4",
     "pkg-pr-new": "0.0.75",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",

@@ -9,9 +9,11 @@ export const routes = route({
   preview: "/_preview",
   project: "/recorder/:projectId",
   draft: "/draft",
+  examples: "/examples",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
   scoreCapture: "/score-capture",
+  editorCli: "/editor-cli",
   legacyProject: "/project/:projectId",
   legacyProjectScore: "/project/:projectId/score",
 });

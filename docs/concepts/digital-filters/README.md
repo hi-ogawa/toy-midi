@@ -7,6 +7,7 @@ The intended reader is comfortable with complex waves and differential equations
 - [Waves, feedback, and transfer functions](transfer-functions.md) develops delays, natural modes, and the relationship between the continuous $s$-plane and sampled $z$-plane.
 - [Designing a peaking EQ](peaking-eq.md) constructs a response from center gain and bandwidth requirements.
 - [From an analog response to digital coefficients](bilinear-transform.md) explains the bilinear transform and frequency warping, then converts the peaking response into sample-loop coefficients.
+- [Designing low-pass and high-pass filters](low-pass-and-high-pass.md) constructs the Butterworth low-pass, mirrors it into a high-pass, converts both to sample-loop coefficients, and cascades sections for steeper rolloffs.
 
 Start with transfer functions for the foundations, or go directly to the peaking-EQ design if those ideas are familiar. The bilinear-transform article connects the response design to its digital implementation.
 
