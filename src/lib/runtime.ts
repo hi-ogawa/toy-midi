@@ -24,10 +24,7 @@ import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
-import {
-  ensureReverbWorklet,
-  ReverbWorkletNode,
-} from "./dsp/reverb-worklet-node.ts";
+import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
@@ -66,13 +63,13 @@ export const MIN_CLIP_DURATION = 0.01;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-export interface AudioTrackState {
+interface BaseTrackState {
   id: string;
   name: string;
   /** Guitar amp in front of the EQ, absent when off */
   amp?: AmpParameters;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 44 to 300 */
+  /** Row height in pixels, from 44 to 300 for audio tracks and 800 for MIDI tracks */
   height: number;
   /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
@@ -85,6 +82,9 @@ export interface AudioTrackState {
   reverbSend: number;
   muted: boolean;
   soloed: boolean;
+}
+
+export interface AudioTrackState extends BaseTrackState {
   /** Every take recorded or imported into the track */
   clips: AudioClip[];
   /** The parts of the takes that are heard, derived from `clips` */
@@ -93,9 +93,7 @@ export interface AudioTrackState {
   showClips: boolean;
 }
 
-export interface MidiTrackState {
-  id: string;
-  name: string;
+export interface MidiTrackState extends BaseTrackState {
   notes: Note[];
   automation: Automation[];
   /**
@@ -119,22 +117,8 @@ export interface MidiTrackState {
    * note-on.
    */
   amp?: AmpParameters;
-  eq: MultibandEqParameters;
-  /** Row height in pixels, from 44 to 800 */
-  height: number;
   /** Whether the row shows the note editor or a compact note overview */
   viewMode: "editor" | "overview";
-  /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
-  gain: number;
-  /** Stereo position from -1 (left) to 1 (right) */
-  pan: number;
-  /**
-   * Linear gain from 0 to 1 into the shared reverb, after the track's gain,
-   * mute, and solo. 0 is off.
-   */
-  reverbSend: number;
-  muted: boolean;
-  soloed: boolean;
   /** Shows tab annotation in the note editor and enables editing it */
   tabAnnotationEnabled: boolean;
   /** MIDI note numbers of the open strings, highest string first */
@@ -338,7 +322,7 @@ export class EditorRuntime {
   readonly context = new AudioContext();
   readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
-  private readonly reverbInput: GainNode;
+  private readonly reverb: ReverbNode;
   private masterAnalyser?: StereoAnalyser;
   readonly levelMeters = new LevelMeters({
     getAnalyser: (target) => this.getMeterAnalyser(target),
@@ -358,9 +342,10 @@ export class EditorRuntime {
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
-    // Tracks send here, and init connects it to the reverb once the
-    // reverb's worklet has loaded.
-    this.reverbInput = this.context.createGain();
+    this.reverb = new ReverbNode({
+      context: this.context,
+      output: this.masterOutput,
+    });
     this.metronome = new Metronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
@@ -380,11 +365,8 @@ export class EditorRuntime {
       ensurePitchShifterWorklet(this.context),
       ensureAmpWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
-      ensureReverbWorklet(this.context),
+      this.reverb.init(),
     ]);
-    this.reverbInput
-      .connect(new ReverbWorkletNode(this.context))
-      .connect(this.masterOutput);
   }
 
   async startInput({
@@ -533,7 +515,7 @@ export class EditorRuntime {
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
       output: this.masterOutput,
-      reverb: this.reverbInput,
+      reverb: this.reverb.input,
       track,
       tempo: state.tempo,
     });
@@ -572,13 +554,9 @@ export class EditorRuntime {
 
   setTrackMix(
     id: string,
-    update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
+    update: Partial<Pick<BaseTrackState, "gain" | "muted" | "soloed">>,
   ): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, ...update }));
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, ...update }));
-    }
+    this.updateBaseTrack(id, update);
     this.syncTrackMix();
   }
 
@@ -676,11 +654,7 @@ export class EditorRuntime {
   }
 
   setTrackName({ id, name }: { id: string; name: string }): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, name }));
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, name }));
-    }
+    this.updateBaseTrack(id, { name });
   }
 
   setTrackShowClips({
@@ -737,45 +711,29 @@ export class EditorRuntime {
   }
 
   setTrackAmp({ id, amp }: { id: string; amp?: AmpParameters }): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, amp }));
-      this.midiTrackPlaybacks.get(id)?.channel.setAmp(amp);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, amp }));
-      this.trackPlaybacks.get(id)?.channel.setAmp(amp);
-    }
+    this.updateBaseTrack(id, { amp });
+    this.trackPlaybacks.get(id)?.channel.setAmp(amp);
+    this.midiTrackPlaybacks.get(id)?.channel.setAmp(amp);
   }
 
   setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, eq }));
-      this.midiTrackPlaybacks.get(id)?.channel.setEq(eq);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, eq }));
-      this.trackPlaybacks.get(id)?.channel.setEq(eq);
-    }
+    this.updateBaseTrack(id, { eq });
+    this.trackPlaybacks.get(id)?.channel.setEq(eq);
+    this.midiTrackPlaybacks.get(id)?.channel.setEq(eq);
   }
 
   setTrackPan(id: string, pan: number): void {
     pan = clamp(pan, -1, 1);
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, pan }));
-      this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, pan }));
-      this.trackPlaybacks.get(id)?.channel.setPan(pan);
-    }
+    this.updateBaseTrack(id, { pan });
+    this.trackPlaybacks.get(id)?.channel.setPan(pan);
+    this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
   }
 
   setTrackReverbSend(id: string, reverbSend: number): void {
     reverbSend = clamp(reverbSend, 0, 1);
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, reverbSend }));
-      this.midiTrackPlaybacks.get(id)?.channel.setReverbSend(reverbSend);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, reverbSend }));
-      this.trackPlaybacks.get(id)?.channel.setReverbSend(reverbSend);
-    }
+    this.updateBaseTrack(id, { reverbSend });
+    this.trackPlaybacks.get(id)?.channel.setReverbSend(reverbSend);
+    this.midiTrackPlaybacks.get(id)?.channel.setReverbSend(reverbSend);
   }
 
   setMidiTrackPreset(id: string, preset: MidiPreset): void {
@@ -887,7 +845,7 @@ export class EditorRuntime {
       playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
-        reverb: this.reverbInput,
+        reverb: this.reverb.input,
         amp: track.amp,
         eq: track.eq,
         gain: 0,
@@ -898,6 +856,18 @@ export class EditorRuntime {
       this.syncTrackMix();
     }
     return playback;
+  }
+
+  /** Update a field both track kinds have, without knowing the track's kind */
+  private updateBaseTrack(
+    id: string,
+    update: Partial<Omit<BaseTrackState, "id">>,
+  ): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, ...update }));
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, ...update }));
+    }
   }
 
   private updateMidiTrack(
@@ -1269,7 +1239,7 @@ export class EditorRuntime {
       const playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
-        reverb: this.reverbInput,
+        reverb: this.reverb.input,
         amp: track.amp,
         eq: track.eq,
         gain: 0,
@@ -1285,7 +1255,7 @@ export class EditorRuntime {
         await MidiTrackPlayback.create({
           transport: this.transport,
           output: this.masterOutput,
-          reverb: this.reverbInput,
+          reverb: this.reverb.input,
           track,
           tempo: project.tempo,
         }),
