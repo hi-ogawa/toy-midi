@@ -90,7 +90,7 @@ async function encodeSharedProject(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
   const bytes = await transformBytes(
-    new TextEncoder().encode(JSON.stringify(omitIds(project))),
+    new TextEncoder().encode(JSON.stringify(createSharedProject(project))),
     new CompressionStream("deflate-raw"),
   );
   return encodeBase64Url(bytes);
@@ -110,7 +110,7 @@ export async function decodeSharedProject(
   }
 }
 
-function omitIds({
+export function createSharedProject({
   audioTracks: _audioTracks,
   trackOrder: _trackOrder,
   locators,
