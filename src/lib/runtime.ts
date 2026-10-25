@@ -62,13 +62,13 @@ export const MIN_CLIP_DURATION = 0.01;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-export interface AudioTrackState {
+interface BaseTrackState {
   id: string;
   name: string;
   /** Guitar amp in front of the EQ, absent when off */
   amp?: AmpParameters;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 44 to 300 */
+  /** Row height in pixels */
   height: number;
   /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
@@ -76,6 +76,9 @@ export interface AudioTrackState {
   pan: number;
   muted: boolean;
   soloed: boolean;
+}
+
+export interface AudioTrackState extends BaseTrackState {
   /** Every take recorded or imported into the track */
   clips: AudioClip[];
   /** The parts of the takes that are heard, derived from `clips` */
@@ -84,9 +87,7 @@ export interface AudioTrackState {
   showClips: boolean;
 }
 
-export interface MidiTrackState {
-  id: string;
-  name: string;
+export interface MidiTrackState extends BaseTrackState {
   notes: Note[];
   automation: Automation[];
   /**
@@ -110,17 +111,8 @@ export interface MidiTrackState {
    * note-on.
    */
   amp?: AmpParameters;
-  eq: MultibandEqParameters;
-  /** Row height in pixels, from 44 to 800 */
-  height: number;
   /** Whether the row shows the note editor or a compact note overview */
   viewMode: "editor" | "overview";
-  /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
-  gain: number;
-  /** Stereo position from -1 (left) to 1 (right) */
-  pan: number;
-  muted: boolean;
-  soloed: boolean;
   /** Shows tab annotation in the note editor and enables editing it */
   tabAnnotationEnabled: boolean;
   /** MIDI note numbers of the open strings, highest string first */
@@ -549,13 +541,9 @@ export class EditorRuntime {
 
   setTrackMix(
     id: string,
-    update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
+    update: Partial<Pick<BaseTrackState, "gain" | "muted" | "soloed">>,
   ): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, ...update }));
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, ...update }));
-    }
+    this.updateBaseTrack(id, update);
     this.syncTrackMix();
   }
 
@@ -653,11 +641,7 @@ export class EditorRuntime {
   }
 
   setTrackName({ id, name }: { id: string; name: string }): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, name }));
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, name }));
-    }
+    this.updateBaseTrack(id, { name });
   }
 
   setTrackShowClips({
@@ -714,34 +698,22 @@ export class EditorRuntime {
   }
 
   setTrackAmp({ id, amp }: { id: string; amp?: AmpParameters }): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, amp }));
-      this.midiTrackPlaybacks.get(id)?.channel.setAmp(amp);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, amp }));
-      this.trackPlaybacks.get(id)?.channel.setAmp(amp);
-    }
+    this.updateBaseTrack(id, { amp });
+    this.trackPlaybacks.get(id)?.channel.setAmp(amp);
+    this.midiTrackPlaybacks.get(id)?.channel.setAmp(amp);
   }
 
   setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, eq }));
-      this.midiTrackPlaybacks.get(id)?.channel.setEq(eq);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, eq }));
-      this.trackPlaybacks.get(id)?.channel.setEq(eq);
-    }
+    this.updateBaseTrack(id, { eq });
+    this.trackPlaybacks.get(id)?.channel.setEq(eq);
+    this.midiTrackPlaybacks.get(id)?.channel.setEq(eq);
   }
 
   setTrackPan(id: string, pan: number): void {
     pan = clamp(pan, -1, 1);
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, pan }));
-      this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, pan }));
-      this.trackPlaybacks.get(id)?.channel.setPan(pan);
-    }
+    this.updateBaseTrack(id, { pan });
+    this.trackPlaybacks.get(id)?.channel.setPan(pan);
+    this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
   }
 
   setMidiTrackPreset(id: string, preset: MidiPreset): void {
@@ -862,6 +834,18 @@ export class EditorRuntime {
       this.syncTrackMix();
     }
     return playback;
+  }
+
+  /** Update a field both track kinds have, without knowing the track's kind */
+  private updateBaseTrack(
+    id: string,
+    update: Partial<Omit<BaseTrackState, "id">>,
+  ): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, ...update }));
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, ...update }));
+    }
   }
 
   private updateMidiTrack(
