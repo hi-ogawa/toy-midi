@@ -1,6 +1,13 @@
 import type { ComponentProps, ReactNode } from "react";
 import { isEqActive } from "../lib/dsp/biquad-eq-multiband";
-import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
+import {
+  MAX_DB,
+  MIN_DB,
+  clamp,
+  dbToGain,
+  formatGainDb,
+  gainToDb,
+} from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
@@ -40,6 +47,10 @@ export function Mixer({
             key={entry.id}
             pan={track.pan}
             onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
+            reverbSend={track.reverbSend}
+            onReverbSendChange={(reverbSend) =>
+              runtime.setTrackReverbSend(track.id, reverbSend)
+            }
             effectsOpen={openEffects.has(track.id)}
             activeEffects={[
               ...(track.amp ? ["amp"] : []),
@@ -103,10 +114,12 @@ function TrackChannel({
   label,
   meter,
   pan,
+  reverbSend,
   gain,
   muted,
   soloed,
   onPanChange,
+  onReverbSendChange,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -117,10 +130,12 @@ function TrackChannel({
   label: string;
   meter: ReactNode;
   pan: number;
+  reverbSend: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
   onPanChange: (pan: number) => void;
+  onReverbSendChange: (reverbSend: number) => void;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -134,6 +149,13 @@ function TrackChannel({
       label={label}
       meter={meter}
       pan={<PanKnob label={label} pan={pan} onPanChange={onPanChange} />}
+      send={
+        <ReverbSendKnob
+          label={label}
+          reverbSend={reverbSend}
+          onReverbSendChange={onReverbSendChange}
+        />
+      }
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
@@ -185,6 +207,7 @@ function MixerChannel({
   label,
   meter,
   pan,
+  send,
   gain,
   onGainChange,
   inputProps,
@@ -194,6 +217,7 @@ function MixerChannel({
   label: string;
   meter?: ReactNode;
   pan?: ReactNode;
+  send?: ReactNode;
   gain: number;
   onGainChange: (gain: number) => void;
   inputProps: ComponentProps<"input">;
@@ -214,8 +238,9 @@ function MixerChannel({
       >
         {label}
       </span>
-      {/* Every channel reserves the pan row so faders stay aligned. */}
+      {/* Every channel reserves the pan and send rows so faders stay aligned. */}
       <div className="flex h-6 w-full items-center">{pan}</div>
+      <div className="flex h-6 w-full items-center">{send}</div>
       <div className="flex h-48 gap-[3px]">
         <GainSlider
           label={`${name} gain`}
@@ -294,6 +319,76 @@ function PanKnob({
           widening its column and the channel. */}
       <span className="w-0 font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
         {formatPan(pan)}
+      </span>
+    </div>
+  );
+}
+
+// The runtime clamps a send to unity gain.
+const MAX_SEND_DB = 0;
+
+function ReverbSendKnob({
+  label,
+  reverbSend,
+  onReverbSendChange,
+}: {
+  label: string;
+  reverbSend: number;
+  onReverbSendChange: (reverbSend: number) => void;
+}) {
+  const db = reverbSend === 0 ? MIN_DB : gainToDb(reverbSend);
+  const setDb = (value: number) => {
+    const next = clamp(Math.round(value), MIN_DB, MAX_SEND_DB);
+    // The lowest step is off rather than MIN_DB, so a send at the bottom
+    // sends nothing.
+    onReverbSendChange(next === MIN_DB ? 0 : dbToGain(next));
+  };
+  // About 200px of vertical drag covers the full range, like pan.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return db;
+    },
+    onMove: (_event, drag) =>
+      setDb(drag.data - (drag.deltaY * (MAX_SEND_DB - MIN_DB)) / 200),
+  });
+  const valueText = formatGainDb(reverbSend);
+  return (
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-1">
+      {/* Positioned out of flow, so the label doesn't widen its column and
+          push the knob off the fader's center. */}
+      <span className="relative self-stretch">
+        <span className="absolute top-1/2 right-0 -translate-y-1/2 font-mono text-[9px] text-neutral-500">
+          Rev
+        </span>
+      </span>
+      <Knob
+        ref={ref}
+        aria-label={`${label} reverb send`}
+        aria-valuetext={valueText}
+        title={`Reverb send ${valueText}, after the fader`}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 6 : 1;
+          const next = {
+            ArrowLeft: db - step,
+            ArrowDown: db - step,
+            ArrowRight: db + step,
+            ArrowUp: db + step,
+            Home: MIN_DB,
+            End: MAX_SEND_DB,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setDb(next);
+          }
+        }}
+        value={db}
+        min={MIN_DB}
+        max={MAX_SEND_DB}
+        className="col-start-2 cursor-ns-resize"
+      />
+      <span className="w-0 font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
+        {reverbSend === 0 ? "-∞" : Math.round(db)}
       </span>
     </div>
   );
