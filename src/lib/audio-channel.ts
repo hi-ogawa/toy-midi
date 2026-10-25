@@ -51,7 +51,8 @@ export class AudioChannel {
       .connect(this.panner)
       .connect(output);
     // The send taps after the fader, so the track's gain, mute, and solo apply
-    // to its reverb, and before the pan, which the mono reverb can't follow.
+    // to its reverb, and before the pan, since the reverb sums its input to
+    // mono and spreads every track across the same space.
     this.reverbSend = context.createGain();
     this.reverbSend.gain.value = reverbSend;
     this.gain.connect(this.reverbSend).connect(reverb);
