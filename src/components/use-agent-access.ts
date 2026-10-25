@@ -4,8 +4,8 @@ import {
 } from "@hiogawa/webmcp-bridge/client";
 import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 import { useEffect } from "react";
+import { toyMidiUtils } from "../lib/page-global";
 import type { EditorRuntime } from "../lib/runtime";
-import { toyMidiUtils } from "../lib/toy-midi-utils";
 import { createWebMcpTools } from "../lib/webmcp-tools";
 
 /**
