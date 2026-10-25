@@ -76,11 +76,13 @@ interface BaseTrackState {
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
   /**
-   * Linear gain from 0 to 1 into the shared reverb, a medium hall, after the
-   * track's gain, mute, and solo. 0 is off. A starting point by program, to
-   * adjust by ear: 0.4 (−8 dB) on synth leads and pads (80–95), 0.16 (−16 dB)
-   * on choir, brass, reeds, and pipes (52–54 and 56–79), and 0.08 (−22 dB) on
-   * everything else, bass and drums included.
+   * Linear gain from 0 to 1 into the shared reverb, which is a medium hall. The
+   * send is taken after the track's gain, mute, and solo, and 0 is off.
+   *
+   * Start from these sends by program, then adjust by ear:
+   * - Synth leads and pads (80–95): 0.4, about −8 dB
+   * - Choir, brass, reeds, and pipes (52–54 and 56–79): 0.16, about −16 dB
+   * - Everything else, including bass and drums: 0.08, about −22 dB
    */
   reverbSend: number;
   muted: boolean;
