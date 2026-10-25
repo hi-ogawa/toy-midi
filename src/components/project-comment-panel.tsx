@@ -37,7 +37,7 @@ export function ProjectCommentPanel({
           type="button"
           aria-pressed={preview}
           onClick={() => setPreview(!preview)}
-          className="flex h-6 items-center gap-1 rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-300 outline-none hover:bg-neutral-700 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+          className="flex h-6 items-center gap-1 rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-300 outline-none hover:bg-neutral-700/50 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
         >
           <EyeIcon className="size-3.5" aria-hidden="true" />
           Preview
