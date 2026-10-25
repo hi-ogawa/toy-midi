@@ -24,26 +24,32 @@ export class AudioTrackPlayback {
   constructor({
     transport,
     output,
+    reverb,
     amp,
     eq,
     gain,
     pan,
+    reverbSend,
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
+    reverb: AudioNode;
     amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
+    reverbSend?: number;
   }) {
     this.transport = transport;
     this.channel = new AudioChannel({
       context: transport.context,
       output,
+      reverb,
       amp,
       eq,
       gain,
       pan,
+      reverbSend,
     });
     this.playbackGain = transport.context.createGain();
     this.playbackGain.connect(this.channel.input);

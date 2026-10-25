@@ -24,6 +24,10 @@ import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
+import {
+  ensureReverbWorklet,
+  ReverbWorkletNode,
+} from "./dsp/reverb-worklet-node.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
@@ -74,6 +78,11 @@ export interface AudioTrackState {
   gain: number;
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
+  /**
+   * Linear gain from 0 to 1 into the shared reverb, after the track's gain,
+   * mute, and solo. Absent when off.
+   */
+  reverbSend?: number;
   muted: boolean;
   soloed: boolean;
   /** Every take recorded or imported into the track */
@@ -119,6 +128,11 @@ export interface MidiTrackState {
   gain: number;
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
+  /**
+   * Linear gain from 0 to 1 into the shared reverb, after the track's gain,
+   * mute, and solo. Absent when off.
+   */
+  reverbSend?: number;
   muted: boolean;
   soloed: boolean;
   /** Shows tab annotation in the note editor and enables editing it */
@@ -320,6 +334,7 @@ export class EditorRuntime {
   readonly context = new AudioContext();
   readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
+  private readonly reverbInput: GainNode;
   private masterAnalyser?: StereoAnalyser;
   readonly levelMeters = new LevelMeters({
     getAnalyser: (target) => this.getMeterAnalyser(target),
@@ -339,6 +354,9 @@ export class EditorRuntime {
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
+    // Tracks send here, and init connects it to the reverb once the
+    // reverb's worklet has loaded.
+    this.reverbInput = this.context.createGain();
     this.metronome = new Metronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
@@ -358,7 +376,11 @@ export class EditorRuntime {
       ensurePitchShifterWorklet(this.context),
       ensureAmpWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
+      ensureReverbWorklet(this.context),
     ]);
+    this.reverbInput
+      .connect(new ReverbWorkletNode(this.context))
+      .connect(this.masterOutput);
   }
 
   async startInput({
@@ -507,6 +529,7 @@ export class EditorRuntime {
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
       output: this.masterOutput,
+      reverb: this.reverbInput,
       track,
       tempo: state.tempo,
     });
@@ -740,6 +763,17 @@ export class EditorRuntime {
     }
   }
 
+  setTrackReverbSend(id: string, reverbSend: number): void {
+    reverbSend = clamp(reverbSend, 0, 1);
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, reverbSend }));
+      this.midiTrackPlaybacks.get(id)?.channel.setReverbSend(reverbSend);
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, reverbSend }));
+      this.trackPlaybacks.get(id)?.channel.setReverbSend(reverbSend);
+    }
+  }
+
   setMidiTrackPreset(id: string, preset: MidiPreset): void {
     this.midiTrackPlaybacks.get(id)?.setPreset(preset);
     this.updateMidiTrack(id, (track) => ({
@@ -849,10 +883,12 @@ export class EditorRuntime {
       playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
+        reverb: this.reverbInput,
         amp: track.amp,
         eq: track.eq,
         gain: 0,
         pan: track.pan,
+        reverbSend: track.reverbSend,
       });
       this.trackPlaybacks.set(id, playback);
       this.syncTrackMix();
@@ -1229,10 +1265,12 @@ export class EditorRuntime {
       const playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
+        reverb: this.reverbInput,
         amp: track.amp,
         eq: track.eq,
         gain: 0,
         pan: track.pan,
+        reverbSend: track.reverbSend,
       });
       playback.setSources(getClipSources(track.regions));
       this.trackPlaybacks.set(track.id, playback);
@@ -1243,6 +1281,7 @@ export class EditorRuntime {
         await MidiTrackPlayback.create({
           transport: this.transport,
           output: this.masterOutput,
+          reverb: this.reverbInput,
           track,
           tempo: project.tempo,
         }),
