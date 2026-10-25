@@ -68,7 +68,7 @@ interface BaseTrackState {
   /** Guitar amp in front of the EQ, absent when off */
   amp?: AmpParameters;
   eq: MultibandEqParameters;
-  /** Row height in pixels */
+  /** Row height in pixels, from 44 to 300 for audio tracks and 800 for MIDI tracks */
   height: number;
   /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
