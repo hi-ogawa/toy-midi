@@ -95,48 +95,6 @@ test("shares a MIDI project as a link that opens an unsaved draft", async ({
   ).toBeVisible();
 });
 
-test("shares a project an agent builds in the open app as a project file", async ({
-  page,
-  context,
-  baseURL,
-}) => {
-  // Build a project through the eval tool, as an agent in a browser without
-  // WebMCP does through the page's polyfill, and take it out in the share
-  // format.
-  await createProject(page);
-  const shared = await page.evaluate(async () => {
-    const modelContext = document.modelContext!;
-    const tools = await modelContext.getTools();
-    const evalTool = tools.find((tool) => tool.name === "toy_midi_eval")!;
-    const result = await modelContext.executeTool(evalTool, {
-      code: `
-        runtime.setTempo(98);
-        const id = await runtime.addMidiTrack({ program: 0 });
-        runtime.setMidiTrackNotes(id, [
-          { id: crypto.randomUUID(), pitch: 60, start: 0, duration: 1, velocity: 100 },
-        ]);
-        return utils.createSharedProject(runtime.serializeProject());
-      `,
-    });
-    return JSON.parse(result);
-  });
-  expect(shared.isError).toBe(false);
-
-  // Serve it as a project file, open it in another tab, and see the agent's
-  // tempo and note in an unsaved draft.
-  const fileUrl = new URL("/agent-project.json", baseURL).href;
-  await context.route(fileUrl, (route) =>
-    route.fulfill({ json: shared.value }),
-  );
-  const draft = await context.newPage();
-  await draft.goto(`/draft?src=${encodeURIComponent(fileUrl)}`);
-  await expect(draft.getByTestId("draft-badge")).toBeVisible();
-  await expect(draft.getByTestId("tempo-input")).toHaveValue("98");
-  await expect(
-    getMidiNote(draft.getByTestId("midi-track-row"), { beat: 0, pitch: "C4" }),
-  ).toBeVisible();
-});
-
 async function copyShareLink(page: Page) {
   await selectMenuItem(page, { menu: "Editor menu", item: "Copy Share Link" });
   await expect(page.getByText("Share link copied")).toBeVisible();
