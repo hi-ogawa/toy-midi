@@ -190,6 +190,7 @@ export type LocatorUpdate = {
 
 export interface EditorRuntimeState {
   title: string;
+  /** Markdown, rendered in the app's Comment panel */
   comment: string;
   locators: Locator[];
   isPlaying: boolean;
