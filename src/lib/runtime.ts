@@ -24,10 +24,7 @@ import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
-import {
-  ensureReverbWorklet,
-  ReverbWorkletNode,
-} from "./dsp/reverb-worklet-node.ts";
+import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
@@ -338,7 +335,7 @@ export class EditorRuntime {
   readonly context = new AudioContext();
   readonly transport = new AudioContextTransport(this.context);
   private readonly masterOutput: GainNode;
-  private readonly reverbInput: GainNode;
+  private readonly reverb: ReverbNode;
   private masterAnalyser?: StereoAnalyser;
   readonly levelMeters = new LevelMeters({
     getAnalyser: (target) => this.getMeterAnalyser(target),
@@ -358,9 +355,10 @@ export class EditorRuntime {
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
-    // Tracks send here, and init connects it to the reverb once the
-    // reverb's worklet has loaded.
-    this.reverbInput = this.context.createGain();
+    this.reverb = new ReverbNode({
+      context: this.context,
+      output: this.masterOutput,
+    });
     this.metronome = new Metronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
@@ -380,11 +378,8 @@ export class EditorRuntime {
       ensurePitchShifterWorklet(this.context),
       ensureAmpWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
-      ensureReverbWorklet(this.context),
+      this.reverb.init(),
     ]);
-    this.reverbInput
-      .connect(new ReverbWorkletNode(this.context))
-      .connect(this.masterOutput);
   }
 
   async startInput({
@@ -533,7 +528,7 @@ export class EditorRuntime {
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
       output: this.masterOutput,
-      reverb: this.reverbInput,
+      reverb: this.reverb.input,
       track,
       tempo: state.tempo,
     });
@@ -887,7 +882,7 @@ export class EditorRuntime {
       playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
-        reverb: this.reverbInput,
+        reverb: this.reverb.input,
         amp: track.amp,
         eq: track.eq,
         gain: 0,
@@ -1269,7 +1264,7 @@ export class EditorRuntime {
       const playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
-        reverb: this.reverbInput,
+        reverb: this.reverb.input,
         amp: track.amp,
         eq: track.eq,
         gain: 0,
@@ -1285,7 +1280,7 @@ export class EditorRuntime {
         await MidiTrackPlayback.create({
           transport: this.transport,
           output: this.masterOutput,
-          reverb: this.reverbInput,
+          reverb: this.reverb.input,
           track,
           tempo: project.tempo,
         }),

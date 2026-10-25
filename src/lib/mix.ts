@@ -5,10 +5,7 @@ import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
 import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
-import {
-  ensureReverbWorklet,
-  ReverbWorkletNode,
-} from "./dsp/reverb-worklet-node.ts";
+import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import type {
   TimelineAutomation,
   TimelineNote,
@@ -110,19 +107,18 @@ export async function renderMix({
       master.channelInterpretation = "speakers";
       master.connect(context.destination);
       using cleanup = new DisposableStack();
+      const reverb = new ReverbNode({ context, output: master });
+      cleanup.defer(() => reverb.dispose());
       await Promise.all([
         ensureAmpWorklet(context),
         ensureBiquadEqWorklet(context),
-        ensureReverbWorklet(context),
+        reverb.init(),
       ]);
-      const reverb = new ReverbWorkletNode(context);
-      cleanup.defer(() => reverb.dispose());
-      reverb.connect(master);
       for (const track of mix.tracks) {
         const channel = new AudioChannel({
           context,
           output: master,
-          reverb,
+          reverb: reverb.input,
           amp: track.amp,
           eq: track.eq,
           gain: track.gain,
@@ -152,7 +148,7 @@ export async function renderMix({
           const channel = new AudioChannel({
             context,
             output: master,
-            reverb,
+            reverb: reverb.input,
             amp: track.amp,
             eq: track.eq,
             gain: track.gain,
