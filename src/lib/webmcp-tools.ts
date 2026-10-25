@@ -1,5 +1,5 @@
 import type { WebMcpTool } from "@hiogawa/webmcp-bridge/webmcp";
-import { createAgentUtils } from "./agent-utils";
+import { createSharedProject } from "./project-share";
 import type { EditorRuntime } from "./runtime";
 
 const AsyncFunction = async function () {}.constructor as new (
@@ -11,7 +11,6 @@ const AsyncFunction = async function () {}.constructor as new (
  * shape.
  */
 export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
-  const utils = createAgentUtils(runtime);
   return [
     {
       name: "toy_midi_eval",
@@ -36,7 +35,7 @@ export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
         try {
           const value = await new AsyncFunction("runtime", "utils", code)(
             runtime,
-            utils,
+            agentUtils,
           );
           return JSON.parse(JSON.stringify({ isError: false, value }));
         } catch (error) {
@@ -52,3 +51,11 @@ export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
     },
   ];
 }
+
+/** Helpers in scope as `utils` in `toy_midi_eval`, beside the runtime. */
+const agentUtils = {
+  /** Converts `runtime.serializeProject()` to the format of share links and project files. */
+  createSharedProject,
+};
+
+export type AgentUtils = typeof agentUtils;

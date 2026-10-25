@@ -115,7 +115,7 @@ test("shares a project an agent builds in the open app as a project file", async
         runtime.setMidiTrackNotes(id, [
           { id: crypto.randomUUID(), pitch: 60, start: 0, duration: 1, velocity: 100 },
         ]);
-        return utils.getSharedProject();
+        return utils.createSharedProject(runtime.serializeProject());
       `,
     });
     return JSON.parse(result);

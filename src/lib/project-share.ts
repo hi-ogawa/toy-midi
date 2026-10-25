@@ -110,15 +110,18 @@ export async function decodeSharedProject(
   }
 }
 
-export function createSharedProject({
-  audioTracks: _audioTracks,
-  trackOrder: _trackOrder,
-  locators,
-  midiTracks,
-  ...project
-}: SerializedEditorRuntimeState): SharedProject {
+export function createSharedProject(
+  project: SerializedEditorRuntimeState,
+): SharedProject {
+  const {
+    audioTracks: _audioTracks,
+    trackOrder: _trackOrder,
+    locators,
+    midiTracks,
+    ...rest
+  } = project;
   return {
-    ...project,
+    ...rest,
     locators: locators?.map(({ id: _id, ...locator }) => locator),
     midiTracks: midiTracks?.map(({ id: _id, notes, eq, ...track }) => ({
       ...track,
