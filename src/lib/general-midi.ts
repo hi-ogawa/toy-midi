@@ -1,3 +1,5 @@
+import { clamp } from "./music.ts";
+
 // General MIDI Program Names (0-127)
 export const GM_PROGRAMS = [
   // Piano (0-7)
@@ -149,6 +151,24 @@ export const GM_PROGRAMS = [
 // SoundFont files keep their drum kits in this bank. In General MIDI, this is
 // the bank that synths play on channel 10, the drum channel.
 export const DRUM_KIT_BANK = 128;
+
+// The pitch-bend range in semitones each way, set through registered parameter
+// 0. An octave is wide enough for slides.
+export const PITCH_BEND_RANGE = 12;
+export const PITCH_WHEEL_CENTER = 8192;
+
+/** Convert a bend in semitones to a 14-bit pitch wheel value. */
+export function encodePitchBend(semitones: number): number {
+  // The value runs 8192 steps down from center but only 8191 up, so a bend
+  // of the full range up clamps to the end.
+  return clamp(
+    Math.round(
+      PITCH_WHEEL_CENTER + (semitones / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
+    ),
+    0,
+    2 * PITCH_WHEEL_CENTER - 1,
+  );
+}
 
 // The kits the bundled soundfont ships.
 export const DRUM_KITS = [

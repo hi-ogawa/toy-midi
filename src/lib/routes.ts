@@ -9,9 +9,11 @@ export const routes = route({
   preview: "/_preview",
   project: "/recorder/:projectId",
   draft: "/draft",
+  examples: "/examples",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",
   scoreCapture: "/score-capture",
+  editorCli: "/editor-cli",
   legacyProject: "/project/:projectId",
   legacyProjectScore: "/project/:projectId/score",
 });
@@ -39,10 +41,10 @@ export function matchRoute(url: string | URL) {
   return matcher.match(url) as RouteMatch | null;
 }
 
-/** What the editor route opens: a project from storage, or an in-memory draft that starts empty or from a share link's payload. */
+/** What the editor route opens: a project from storage, or an in-memory draft that starts empty, from a share link's payload, or from a project file's URL. */
 export type ProjectSource =
   | { type: "stored"; projectId: string }
-  | { type: "draft"; payload?: string };
+  | { type: "draft"; payload?: string; src?: string };
 
 export function getScoreHref(params: { projectId: string; trackId: string }) {
   return `${routes.scoreViewer.href()}?${new URLSearchParams(params)}`;

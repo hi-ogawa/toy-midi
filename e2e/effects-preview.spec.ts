@@ -8,12 +8,10 @@ test("iterates the multiband EQ preview", async ({ page }) => {
   await expect(panel.getByTestId("eq-response-point")).toHaveCount(3);
   await expect(panel.getByRole("heading", { name: "Band 1" })).toBeVisible();
 
-  // Select Band 2, then drag its handle to increase frequency and gain.
-  await panel.getByRole("button", { name: "Select band 2" }).click();
-  await expect(panel.getByRole("heading", { name: "Band 2" })).toBeVisible();
+  // Click Band 2's handle off its center, which selects the band without
+  // moving it.
   const frequencyInput = panel.getByRole("textbox", { name: "Frequency" });
   const gainInput = panel.getByRole("textbox", { name: "Gain", exact: true });
-  await expect(frequencyInput).toHaveValue("850");
   const point = await panel
     .getByTestId("eq-response-point")
     .nth(1)
@@ -23,6 +21,12 @@ test("iterates the multiband EQ preview", async ({ page }) => {
     x: point!.x + point!.width / 2,
     y: point!.y + point!.height / 2,
   };
+  await page.mouse.click(pointCenter.x + 6, pointCenter.y + 6);
+  await expect(panel.getByRole("heading", { name: "Band 2" })).toBeVisible();
+  await expect(frequencyInput).toHaveValue("850");
+  await expect(gainInput).toHaveValue("-7");
+
+  // Drag the handle to increase frequency and gain.
   await page.mouse.move(pointCenter.x, pointCenter.y);
   await page.mouse.down();
   await page.mouse.move(pointCenter.x + 30, pointCenter.y - 20);
@@ -45,6 +49,36 @@ test("iterates the multiband EQ preview", async ({ page }) => {
   await page.mouse.wheel(0, -100);
   await expect(qInput).toHaveValue("2.4");
   await expect(frequencyInput).toHaveValue(frequency);
+  await expect(gainInput).toHaveValue(gain);
+
+  // Switch Band 2 to low-pass, which hides its gain and redraws its curve.
+  const filterType = panel.getByRole("combobox", { name: "Filter type" });
+  const curve = panel.getByTestId("eq-band-curve").nth(1);
+  const peakingPath = await curve.getAttribute("d");
+  await filterType.selectOption("low-pass");
+  await expect(gainInput).toHaveCount(0);
+  await expect(curve).not.toHaveAttribute("d", peakingPath!);
+  const passPoint = panel.getByTestId("eq-response-point").nth(1);
+
+  // Drag the low-pass handle up and right, which moves only its cutoff.
+  const passBox = (await passPoint.boundingBox())!;
+  const passCenter = {
+    x: passBox.x + passBox.width / 2,
+    y: passBox.y + passBox.height / 2,
+  };
+  await page.mouse.move(passCenter.x, passCenter.y);
+  await page.mouse.down();
+  await page.mouse.move(passCenter.x + 20, passCenter.y - 20);
+  await page.mouse.up();
+  await expect
+    .poll(async () => Number(await frequencyInput.inputValue()))
+    .toBeGreaterThan(Number(frequency));
+  const draggedBox = (await passPoint.boundingBox())!;
+  expect(draggedBox.x).toBeGreaterThan(passBox.x);
+  expect(draggedBox.y).toBeCloseTo(passBox.y, 0);
+
+  // Switch back to peaking, and the band's gain is where it was.
+  await filterType.selectOption("peaking");
   await expect(gainInput).toHaveValue(gain);
 
   // Per-band and global bypass states update their response curves.

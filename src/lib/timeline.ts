@@ -25,8 +25,12 @@ export function beatsToSeconds(beats: number, tempo: number): number {
 }
 
 export function getBeatsPerBar(timeSignature: TimeSignature): number {
-  const { numerator, denominator } = timeSignature;
-  return numerator * (4 / denominator);
+  return timeSignature.numerator * getDenominatorNoteLength(timeSignature);
+}
+
+// In beats, such as 0.5 for the eighth note of 6/8
+export function getDenominatorNoteLength(timeSignature: TimeSignature): number {
+  return 4 / timeSignature.denominator;
 }
 
 export function formatBarBeat(bar: number, beat: number): string {
@@ -43,12 +47,13 @@ export function formatBarBeatAtTime({
   timeSignature: TimeSignature;
 }): string {
   const totalBeats = secondsToBeats(seconds, tempo);
-  const { numerator, denominator } = timeSignature;
   const beatsPerBar = getBeatsPerBar(timeSignature);
   const bar = Math.floor(totalBeats / beatsPerBar) + 1;
   const beat = Math.min(
-    numerator,
-    Math.floor((totalBeats % beatsPerBar) / (4 / denominator)) + 1,
+    timeSignature.numerator,
+    Math.floor(
+      (totalBeats % beatsPerBar) / getDenominatorNoteLength(timeSignature),
+    ) + 1,
   );
   return formatBarBeat(bar, beat);
 }

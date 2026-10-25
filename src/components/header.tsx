@@ -84,6 +84,7 @@ export function Header({
   onGridDivisionChange,
   onExportProject,
   onExportAudio,
+  onExportMidi,
   onShareLink,
   onReferenceVideoOpenChange,
   onMixerToggle,
@@ -127,6 +128,7 @@ export function Header({
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
   onExportAudio: () => void;
+  onExportMidi: () => void;
   onShareLink: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
@@ -150,7 +152,7 @@ export function Header({
     onTempoChange,
   });
   return (
-    <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
+    <header className="flex h-[53px] shrink-0 items-center gap-2 border-b-2 border-neutral-600 bg-neutral-800 px-4 shadow-sm">
       <Button
         data-testid="play-button"
         onClick={onPlayToggle}
@@ -444,6 +446,10 @@ export function Header({
           >
             <DownloadIcon />
             Export Audio
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onExportMidi}>
+            <DownloadIcon />
+            Export MIDI
           </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="export-project"

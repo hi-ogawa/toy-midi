@@ -1,15 +1,13 @@
-import {
-  type PointerEvent as ReactPointerEvent,
-  useCallback,
-  useEffectEvent,
-} from "react";
+import { useCallback, useEffectEvent } from "react";
 import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
+  isGainFilter,
 } from "../lib/dsp/biquad-eq";
 import { type MultibandEqBand } from "../lib/dsp/biquad-eq-multiband";
 import { clamp, dbToGain, gainToDb } from "../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
+import { usePointerGesture } from "./use-pointer-gesture";
 
 const GRAPH_SAMPLE_RATE = 48000;
 const FREQUENCY_TICKS = [20, 100, 1000, 10000, 20000];
@@ -47,21 +45,6 @@ export function EqResponseGraph({
     path: createResponsePath([band]),
   }));
   const combinedPath = createResponsePath(bands.filter((band) => !band.bypass));
-
-  // Pointer edits map the plot position back to frequency and gain.
-  const updateFromPointer = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-    id: string,
-  ) => {
-    const plot = event.currentTarget.parentElement!;
-    const bounds = plot.getBoundingClientRect();
-    const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
-    const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
-    const frequency = Math.round(graphXToFrequency(x));
-    const step = EQ_CONTROL_LIMITS.gainDb.step;
-    const gainDb = Math.round(graphYToGainDb(y) / step) * step;
-    onBandChange(id, { frequency, gain: dbToGain(gainDb) });
-  };
 
   // Wheel gestures adjust Q independently of the point position.
   const handleWheel = useEffectEvent((event: WheelEvent) => {
@@ -173,40 +156,16 @@ export function EqResponseGraph({
             vectorEffect="non-scaling-stroke"
           />
         </svg>
-        {bands.map((band, index) => {
-          const selected = band.id === selectedBandId;
-          return (
-            <button
-              key={band.id}
-              type="button"
-              data-testid="eq-response-point"
-              aria-label={`Select and edit band ${index + 1}`}
-              aria-pressed={selected}
-              onPointerDown={(event) => {
-                if (event.button !== 0) {
-                  return;
-                }
-                event.currentTarget.setPointerCapture(event.pointerId);
-                onSelectBand(band.id);
-                updateFromPointer(event, band.id);
-              }}
-              onPointerMove={(event) => {
-                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                  updateFromPointer(event, band.id);
-                }
-              }}
-              className="absolute flex size-5 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 bg-neutral-900 text-[9px] font-semibold text-neutral-100 shadow-sm outline-none hover:scale-110 focus-visible:ring-2 focus-visible:ring-white active:cursor-grabbing aria-pressed:scale-110"
-              style={{
-                left: `${frequencyToGraphX(band.frequency) * 100}%`,
-                top: `${gainDbToGraphY(gainToDb(band.gain)) * 100}%`,
-                borderColor: EQ_BAND_COLORS[index],
-                opacity: band.bypass ? 0.45 : 1,
-              }}
-            >
-              {index + 1}
-            </button>
-          );
-        })}
+        {bands.map((band, index) => (
+          <EqBandHandle
+            key={band.id}
+            band={band}
+            index={index}
+            selected={band.id === selectedBandId}
+            onSelect={() => onSelectBand(band.id)}
+            onChange={(update) => onBandChange(band.id, update)}
+          />
+        ))}
       </div>
       <div className="relative col-start-2">
         {FREQUENCY_TICKS.map((frequency) => (
@@ -223,15 +182,73 @@ export function EqResponseGraph({
   );
 }
 
+/**
+ * Pressing a handle selects its band without changing it. Dragging moves the
+ * band by the pointer's movement, so the band doesn't jump to the pointer.
+ */
+function EqBandHandle({
+  band,
+  index,
+  selected,
+  onSelect,
+  onChange,
+}: {
+  band: MultibandEqBand;
+  index: number;
+  selected: boolean;
+  onSelect: () => void;
+  onChange: (
+    update: Partial<Pick<MultibandEqBand, "frequency" | "gain">>,
+  ) => void;
+}) {
+  // A handle whose band has no gain rides the 0 dB line and drags only its
+  // cutoff.
+  const hasGain = isGainFilter(band.type);
+  const x = frequencyToGraphX(band.frequency);
+  const y = gainDbToGraphY(hasGain ? gainToDb(band.gain) : 0);
+  const ref = usePointerGesture({
+    onStart: (event) => {
+      onSelect();
+      const plot = (event.currentTarget as HTMLElement).parentElement!;
+      return { bounds: plot.getBoundingClientRect(), x, y };
+    },
+    onDragMove: (_event, { data, deltaX, deltaY }) => {
+      const nextX = clamp(data.x + deltaX / data.bounds.width, 0, 1);
+      const nextY = clamp(data.y + deltaY / data.bounds.height, 0, 1);
+      const frequency = Math.round(graphXToFrequency(nextX));
+      if (!hasGain) {
+        onChange({ frequency });
+        return;
+      }
+      const step = EQ_CONTROL_LIMITS.gainDb.step;
+      const gainDb = Math.round(graphYToGainDb(nextY) / step) * step;
+      onChange({ frequency, gain: dbToGain(gainDb) });
+    },
+  });
+  return (
+    <button
+      ref={ref}
+      type="button"
+      data-testid="eq-response-point"
+      aria-label={`Select and edit band ${index + 1}`}
+      aria-pressed={selected}
+      className="absolute flex size-5 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 bg-neutral-900 text-[9px] font-semibold text-neutral-100 shadow-sm outline-none hover:scale-110 focus-visible:ring-2 focus-visible:ring-white active:cursor-grabbing aria-pressed:scale-110"
+      style={{
+        left: `${x * 100}%`,
+        top: `${y * 100}%`,
+        borderColor: EQ_BAND_COLORS[index],
+        opacity: band.bypass ? 0.45 : 1,
+      }}
+    >
+      {index + 1}
+    </button>
+  );
+}
+
 function createResponsePath(bands: MultibandEqBand[]): string {
   // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
   const bandCoefficients = bands.map((band) =>
-    calculateBiquadEqCoefficients({
-      sampleRate: GRAPH_SAMPLE_RATE,
-      frequency: band.frequency,
-      gain: band.gain,
-      q: band.q,
-    }),
+    calculateBiquadEqCoefficients({ sampleRate: GRAPH_SAMPLE_RATE }, band),
   );
   return Array.from({ length: 161 }, (_, index) => {
     const x = index / 160;

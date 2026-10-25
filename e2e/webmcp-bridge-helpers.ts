@@ -1,9 +1,9 @@
-import { execFile, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { promisify } from "node:util";
 import { chromium, expect, test as base, type Page } from "@playwright/test";
+import { execFileAsync } from "../src/utils/exec";
 
 /** Playwright `test` with a `bridge` fixture, which runs a webmcp-bridge that accepts the app's origin. */
 export const test = base.extend<{
@@ -145,8 +145,6 @@ export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
     });
   },
 });
-
-const execFileAsync = promisify(execFile);
 
 const PACKAGE_PATH = "packages/webmcp-bridge";
 const CLI_PATH = `${PACKAGE_PATH}/bin/cli.js`;

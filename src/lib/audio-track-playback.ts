@@ -1,8 +1,9 @@
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
-import { createPitchShifterNode } from "./dsp/pitch-shifter-node.ts";
+import { createPitchShifterWorkletNode } from "./dsp/pitch-shifter-worklet-node.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
 import type { AudioContextTransport } from "./transport.ts";
 
@@ -23,12 +24,14 @@ export class AudioTrackPlayback {
   constructor({
     transport,
     output,
+    amp,
     eq,
     gain,
     pan,
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
+    amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
@@ -37,6 +40,7 @@ export class AudioTrackPlayback {
     this.channel = new AudioChannel({
       context: transport.context,
       output,
+      amp,
       eq,
       gain,
       pan,
@@ -129,7 +133,7 @@ class PitchCorrectionBus {
       this.input.connect(this.output);
       return;
     }
-    this.pitchShifter = createPitchShifterNode({
+    this.pitchShifter = createPitchShifterWorkletNode({
       context: this.context,
       channelCount: 2,
       pitchRatio: 1 / playbackRate,

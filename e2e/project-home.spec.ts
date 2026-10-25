@@ -132,3 +132,73 @@ test("Projects search follows the temporary legacy filter", async ({
     page.getByText("No projects yet", { exact: true }),
   ).toBeVisible();
 });
+
+test("opens an example project as a draft", async ({ page }) => {
+  // Serve the catalog and one piece's project file.
+  await page.route(
+    "https://raw.githubusercontent.com/**/catalog.json",
+    (route) =>
+      route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: [
+          {
+            name: "Slow Tide",
+            description: "Ambient waltz that drifts across the stereo field",
+            date: "2026-10-12",
+            tags: ["ambient"],
+            url: "https://raw.githubusercontent.com/test/slow-tide/slow-tide.json",
+            writeup: "https://github.com/test/slow-tide",
+          },
+          {
+            name: "Clichê",
+            description: "Bossa nova for flute, nylon guitar and brushes",
+            date: "2026-10-11",
+            tags: ["bossa nova"],
+            url: "https://raw.githubusercontent.com/test/cliche/cliche.json",
+            writeup: "https://github.com/test/cliche",
+          },
+        ],
+      }),
+  );
+  await page.route(
+    "https://raw.githubusercontent.com/**/slow-tide.json",
+    (route) =>
+      route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: {
+          title: "Slow Tide",
+          tempo: 66,
+          timeSignature: { numerator: 3, denominator: 4 },
+          midiTracks: [
+            { name: "Pad", program: 89, notes: [] },
+            { name: "Bells", program: 14, notes: [] },
+          ],
+        },
+      }),
+  );
+
+  // Follow the Examples link on home, and see the catalog listed.
+  await page.goto("/");
+  await page.getByRole("link", { name: "Examples" }).click();
+  await expect(page.getByRole("status")).toHaveText("2 examples");
+
+  // Filter by a tag, and see only that piece.
+  await page
+    .getByRole("group", { name: "Tags" })
+    .getByRole("button", { name: "ambient", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toHaveText("1 of 2 examples");
+  await expect(
+    page.getByRole("link", { name: "Clichê", exact: true }),
+  ).toBeHidden();
+
+  // Open the piece, and see it as an unsaved draft with its tracks.
+  await page.getByRole("link", { name: "Slow Tide", exact: true }).click();
+  await expect(page.getByTestId("draft-badge")).toBeVisible();
+  await expect(page.getByTestId("project-name")).toHaveText("Slow Tide");
+  await expect(page.getByTestId("midi-track-row")).toHaveCount(2);
+
+  // Go home, and see that opening the example stored nothing.
+  await page.goto("/");
+  await expect(page.getByText("No projects yet")).toBeVisible();
+});

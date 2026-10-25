@@ -13,7 +13,6 @@ import {
 // as the input hardware.
 
 const preferencesSchema = z.object({
-  defaultMidiProgram: z.number().int().min(0).max(127),
   takesNewestFirst: z.boolean(),
   input: z
     .object({
@@ -26,7 +25,6 @@ const preferencesSchema = z.object({
 type Preferences = z.infer<typeof preferencesSchema>;
 
 const DEFAULT_PREFERENCES: Preferences = {
-  defaultMidiProgram: 0,
   takesNewestFirst: true,
 };
 

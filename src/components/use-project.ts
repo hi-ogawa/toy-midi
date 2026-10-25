@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { serializeEditorRuntimeState } from "../lib/persistence";
 import type { ProjectUiStore } from "../lib/preferences";
-import { decodeSharedProject } from "../lib/project-share";
+import { decodeSharedProject, fetchSharedProject } from "../lib/project-share";
 import { projectStorage } from "../lib/project-storage";
 import { type ProjectSource, routes } from "../lib/routes";
 import { createDefaultEditorRuntimeState, EditorRuntime } from "../lib/runtime";
@@ -123,6 +123,9 @@ async function loadProject(source: ProjectSource) {
   }
   if (source.payload !== undefined) {
     return decodeSharedProject(source.payload);
+  }
+  if (source.src !== undefined) {
+    return fetchSharedProject(source.src);
   }
   return serializeEditorRuntimeState(createDefaultEditorRuntimeState());
 }

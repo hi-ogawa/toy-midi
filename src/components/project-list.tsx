@@ -74,6 +74,12 @@ export function ProjectList() {
             <div className="flex gap-2">
               <BrowserStorageDialog />
               <a
+                href={routes.examples.href()}
+                className="self-center px-2 text-sm text-neutral-300 underline underline-offset-4 transition-colors hover:text-emerald-400"
+              >
+                Examples
+              </a>
+              <a
                 data-testid="new-project-button"
                 href={routes.draft.href()}
                 className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"

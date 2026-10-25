@@ -1,0 +1,37 @@
+<svg xml:space="preserve" xmlns="http://www.w3.org/2000/svg" width="720" height="290" viewBox="0 0 720 290" font-family="sans-serif" font-size="13">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <text x="20" y="24" font-weight="bold" font-size="14">What you see in a piano roll vs what the file stores</text>
+  <!-- grid: 0..1920 ticks over x=120..680 -->
+  <g stroke="#ddd">
+    <line x1="120" y1="40" x2="120" y2="170"/><line x1="260" y1="40" x2="260" y2="170"/>
+    <line x1="400" y1="40" x2="400" y2="170"/><line x1="540" y1="40" x2="540" y2="170"/>
+    <line x1="680" y1="40" x2="680" y2="170"/>
+  </g>
+  <g fill="#666" font-size="11">
+    <text x="114" y="184">0</text><text x="248" y="184">480</text><text x="388" y="184">960</text>
+    <text x="526" y="184">1440</text><text x="666" y="184">1920</text>
+    <text x="300" y="198">ticks (480 per quarter note = one beat)</text>
+  </g>
+  <text x="20" y="64">G4 (67)</text><text x="20" y="94">E4 (64)</text><text x="20" y="124">C4 (60)</text>
+  <g fill="#9cc3ff" stroke="#3a6fc4">
+    <rect x="120" y="52" width="280" height="18"/>
+    <rect x="120" y="82" width="280" height="18"/>
+    <rect x="120" y="112" width="280" height="18"/>
+  </g>
+  <text x="140" y="155" fill="#3a6fc4">looks like one chord object lasting 2 beats</text>
+  <!-- event markers -->
+  <g fill="#c0392b"><circle cx="120" cy="61" r="4"/><circle cx="120" cy="91" r="4"/><circle cx="120" cy="121" r="4"/></g>
+  <g fill="#555"><circle cx="400" cy="61" r="4"/><circle cx="400" cy="91" r="4"/><circle cx="400" cy="121" r="4"/></g>
+  <!-- event list -->
+  <rect x="20" y="210" width="680" height="70" rx="5" fill="#fafafa" stroke="#bbb"/>
+  <g font-family="monospace" font-size="12">
+    <text x="32" y="230" fill="#c0392b">delta 0    Note On  ch1 key 60 vel 90</text>
+    <text x="32" y="248" fill="#c0392b">delta 0    Note On  ch1 key 64 vel 90</text>
+    <text x="32" y="266" fill="#c0392b">delta 0    Note On  ch1 key 67 vel 90</text>
+    <text x="370" y="230" fill="#555">delta 960  Note Off ch1 key 60</text>
+    <text x="370" y="248" fill="#555">delta 0    Note Off ch1 key 64</text>
+    <text x="370" y="266" fill="#555">delta 0    Note Off ch1 key 67</text>
+    <text x="325" y="248" fill="#999" font-family="sans-serif">then</text>
+  </g>
+</svg>
+

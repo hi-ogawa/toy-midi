@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldAlertIcon, ShieldCheckIcon, ShieldIcon } from "lucide-react";
+import {
+  DatabaseIcon,
+  ShieldAlertIcon,
+  ShieldCheckIcon,
+  ShieldIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
@@ -10,14 +15,15 @@ export function BrowserStorageDialog() {
 
   return (
     <>
-      <button
-        type="button"
+      <Button
         aria-haspopup="dialog"
+        title="Manage storage"
+        aria-label="Manage storage"
         onClick={() => setIsOpen(true)}
-        className="mr-2 self-center text-xs text-neutral-400 underline decoration-neutral-600 underline-offset-4 hover:text-neutral-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400"
+        className="size-9 border-transparent text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
       >
-        Manage storage
-      </button>
+        <DatabaseIcon className="size-4" />
+      </Button>
       <Dialog
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}

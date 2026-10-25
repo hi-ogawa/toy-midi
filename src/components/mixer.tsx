@@ -1,8 +1,10 @@
 import type { ComponentProps, ReactNode } from "react";
+import { isEqActive } from "../lib/dsp/biquad-eq-multiband";
 import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
+import { LevelMeter, MeterScale } from "./level-meter";
 import { MixToggle } from "./mix-toggle";
 import { Knob } from "./ui/knob";
 import { Slider } from "./ui/slider";
@@ -39,8 +41,19 @@ export function Mixer({
             pan={track.pan}
             onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
             effectsOpen={openEffects.has(track.id)}
+            activeEffects={[
+              ...(track.amp ? ["amp"] : []),
+              ...(isEqActive(track.eq) ? ["EQ"] : []),
+            ]}
             onEffectsToggle={() => onEffectsToggle(track.id)}
             label={track.name}
+            meter={
+              <LevelMeter
+                meters={runtime.levelMeters}
+                target={{ kind: "track", id: track.id }}
+                label={track.name}
+              />
+            }
             gain={track.gain}
             muted={track.muted}
             soloed={track.soloed}
@@ -74,6 +87,13 @@ export function Mixer({
         onGainChange={(gain) => runtime.setMasterGain(gain)}
         inputProps={masterInput.props}
         data-testid="mixer-master"
+        meter={
+          <LevelMeter
+            meters={runtime.levelMeters}
+            target={{ kind: "master" }}
+            label="Master"
+          />
+        }
       />
     </div>
   );
@@ -81,6 +101,7 @@ export function Mixer({
 
 function TrackChannel({
   label,
+  meter,
   pan,
   gain,
   muted,
@@ -90,9 +111,11 @@ function TrackChannel({
   onMutedChange,
   onSoloedChange,
   effectsOpen,
+  activeEffects,
   onEffectsToggle,
 }: {
   label: string;
+  meter: ReactNode;
   pan: number;
   gain: number;
   muted: boolean;
@@ -102,12 +125,14 @@ function TrackChannel({
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
   effectsOpen: boolean;
+  activeEffects: string[];
   onEffectsToggle: () => void;
 }) {
   const input = useGainInput(gain, onGainChange);
   return (
     <MixerChannel
       label={label}
+      meter={meter}
       pan={<PanKnob label={label} pan={pan} onPanChange={onPanChange} />}
       gain={gain}
       onGainChange={onGainChange}
@@ -132,6 +157,7 @@ function TrackChannel({
           <EffectsToggle
             label={label}
             open={effectsOpen}
+            activeEffects={activeEffects}
             onClick={onEffectsToggle}
             className="col-span-2 h-6"
           />
@@ -157,6 +183,7 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
 
 function MixerChannel({
   label,
+  meter,
   pan,
   gain,
   onGainChange,
@@ -165,6 +192,7 @@ function MixerChannel({
   action,
 }: {
   label: string;
+  meter?: ReactNode;
   pan?: ReactNode;
   gain: number;
   onGainChange: (gain: number) => void;
@@ -188,13 +216,20 @@ function MixerChannel({
       </span>
       {/* Every channel reserves the pan row so faders stay aligned. */}
       <div className="flex h-6 w-full items-center">{pan}</div>
-      <GainSlider
-        label={`${name} gain`}
-        gain={gain}
-        onGainChange={onGainChange}
-        orientation="vertical"
-        className="h-48"
-      />
+      <div className="flex h-48 gap-[3px]">
+        <GainSlider
+          label={`${name} gain`}
+          gain={gain}
+          onGainChange={onGainChange}
+          orientation="vertical"
+        />
+        {meter && (
+          <>
+            <MeterScale />
+            {meter}
+          </>
+        )}
+      </div>
       <input
         type="text"
         inputMode="decimal"

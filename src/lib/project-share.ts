@@ -1,18 +1,12 @@
 import type { Note } from "../types.ts";
 import type {
-  MultibandEqBand,
-  MultibandEqParameters,
-} from "./dsp/biquad-eq-multiband.ts";
-import type {
   SerializedEditorRuntimeState,
   SerializedMidiTrackState,
+  SerializedMultibandEq,
 } from "./persistence.ts";
 import { routes } from "./routes.ts";
-import {
-  createMidiTrackState,
-  type Locator,
-  MIN_TRACK_HEIGHT,
-} from "./runtime.ts";
+import type { Locator } from "./runtime.ts";
+import { createMidiTrackState, MIN_TRACK_HEIGHT } from "./track-state.ts";
 
 // A share link carries the project, deflated and base64url-encoded, in the
 // URL fragment. The browser never sends the fragment in a request, so the
@@ -23,6 +17,8 @@ import {
 
 // The fragment is keyed so a link can carry more than the project later.
 const PAYLOAD_PARAM = "p";
+
+const SOURCE_PARAM = "src";
 
 export async function createShareLink(
   project: SerializedEditorRuntimeState,
@@ -53,8 +49,8 @@ interface SharedMidiTrack
       Omit<SerializedMidiTrackState, "id" | "name" | "program" | "notes" | "eq">
     > {
   notes: Omit<Note, "id">[];
-  eq?: Omit<MultibandEqParameters, "bands"> & {
-    bands: Omit<MultibandEqBand, "id">[];
+  eq?: Omit<SerializedMultibandEq, "bands"> & {
+    bands: Omit<SerializedMultibandEq["bands"][number], "id">[];
   };
 }
 
@@ -63,6 +59,31 @@ export function getSharePayload(url: string): string | undefined {
     new URLSearchParams(new URL(url).hash.slice(1)).get(PAYLOAD_PARAM) ??
     undefined
   );
+}
+
+export function getShareSource(url: string): string | undefined {
+  return new URL(url).searchParams.get(SOURCE_PARAM) ?? undefined;
+}
+
+export async function fetchSharedProject(
+  src: string,
+): Promise<SerializedEditorRuntimeState> {
+  let response: Response;
+  try {
+    response = await fetch(src);
+  } catch {
+    throw new Error(`Could not fetch the project from ${src}.`);
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Could not fetch the project from ${src} (HTTP ${response.status}).`,
+    );
+  }
+  try {
+    return convertSharedProject(await response.json());
+  } catch {
+    throw new Error(`${src} does not hold a readable project.`);
+  }
 }
 
 async function encodeSharedProject(
@@ -83,7 +104,7 @@ export async function decodeSharedProject(
       decodeBase64Url(payload),
       new DecompressionStream("deflate-raw"),
     );
-    return assignIds(JSON.parse(new TextDecoder().decode(bytes)));
+    return convertSharedProject(JSON.parse(new TextDecoder().decode(bytes)));
   } catch {
     throw new Error("The share link does not hold a readable project.");
   }
@@ -107,7 +128,9 @@ function omitIds({
   };
 }
 
-function assignIds(project: SharedProject): SerializedEditorRuntimeState {
+export function convertSharedProject(
+  project: SharedProject,
+): SerializedEditorRuntimeState {
   return {
     ...project,
     audioTracks: [],
