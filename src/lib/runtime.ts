@@ -80,9 +80,9 @@ export interface AudioTrackState {
   pan: number;
   /**
    * Linear gain from 0 to 1 into the shared reverb, after the track's gain,
-   * mute, and solo. Absent when off.
+   * mute, and solo. 0 is off.
    */
-  reverbSend?: number;
+  reverbSend: number;
   muted: boolean;
   soloed: boolean;
   /** Every take recorded or imported into the track */
@@ -130,9 +130,9 @@ export interface MidiTrackState {
   pan: number;
   /**
    * Linear gain from 0 to 1 into the shared reverb, after the track's gain,
-   * mute, and solo. Absent when off.
+   * mute, and solo. 0 is off.
    */
-  reverbSend?: number;
+  reverbSend: number;
   muted: boolean;
   soloed: boolean;
   /** Shows tab annotation in the note editor and enables editing it */

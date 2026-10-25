@@ -32,7 +32,7 @@ export class AudioChannel {
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
-    reverbSend?: number;
+    reverbSend: number;
   }) {
     this.amp = new AmpNode({ context, parameters: amp });
     this.input = this.amp.input;
@@ -53,7 +53,7 @@ export class AudioChannel {
     // The send taps after the fader, so the track's gain, mute, and solo apply
     // to its reverb, and before the pan, which the mono reverb can't follow.
     this.reverbSend = context.createGain();
-    this.reverbSend.gain.value = reverbSend ?? 0;
+    this.reverbSend.gain.value = reverbSend;
     this.gain.connect(this.reverbSend).connect(reverb);
   }
 

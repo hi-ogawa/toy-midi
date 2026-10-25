@@ -30,7 +30,7 @@ interface Mix {
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
-    reverbSend?: number;
+    reverbSend: number;
     regions: AudioPlaybackSource[];
   }[];
   midiTracks: {
@@ -38,7 +38,7 @@ interface Mix {
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
-    reverbSend?: number;
+    reverbSend: number;
     preset: MidiPreset;
     notes: TimelineNote[];
     automation: TimelineAutomation[];

@@ -38,7 +38,7 @@ export class AudioTrackPlayback {
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
-    reverbSend?: number;
+    reverbSend: number;
   }) {
     this.transport = transport;
     this.channel = new AudioChannel({
