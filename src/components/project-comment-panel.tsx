@@ -6,8 +6,6 @@ import type { EditorRuntime } from "../lib/runtime";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 
-const markdown = new MarkdownIt();
-
 export function ProjectCommentPanel({
   projectUiStore,
   runtime,
@@ -67,6 +65,8 @@ export function ProjectCommentPanel({
     </Panel>
   );
 }
+
+const markdown = new MarkdownIt();
 
 function CommentPreview({ comment }: { comment: string }) {
   const html = useMemo(() => markdown.render(comment), [comment]);
