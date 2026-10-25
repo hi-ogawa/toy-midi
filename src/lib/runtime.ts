@@ -1171,11 +1171,7 @@ export class EditorRuntime {
     });
   }
 
-  /**
-   * The project in its saved format. Audio tracks carry their samples, so
-   * convert it with `utils.createSharedProject` rather than returning it from
-   * `toy_midi_eval`.
-   */
+  /** The project in its saved format, with each audio track's samples. */
   serializeProject(): SerializedEditorRuntimeState {
     return serializeEditorRuntimeState(this.store.get());
   }
