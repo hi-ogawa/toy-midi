@@ -1,6 +1,6 @@
 # Reverb
 
-A sound in a hall reaches a listener first along the straight line from its source and then, over the next second or two, along countless paths that bounce off the walls. Reverb is what those bounces add. For any one source and listener position, a room acts like a filter, so everything it does to a sound is captured by how it responds to a single click, which is its impulse response. Reverberating a sound means convolving it with that response. This document develops that picture and explains why [our implementation](../../src/lib/dsp/reverb.ts), Dattorro's plate, generates a convincing response from a small network of delays instead of storing one.
+A sound in a hall reaches a listener first along the straight line from its source and then, over the next second or two, along countless paths that bounce off the walls. Reverb is what those bounces add. For any one source and listener position, a room acts like a filter, so everything it does to a sound is captured by how it responds to a single click, which is its impulse response. Reverberating a sound means convolving it with that response. This document develops that picture and explains why [our implementation](../../src/lib/dsp/reverb.ts), Dattorro's plate, generates a convincing response from a small network of delays instead of storing one, and how a mix shares one reverb across its tracks.
 
 Throughout, $F_s$ is the sample rate, 48 kHz in the examples.
 
@@ -117,9 +117,19 @@ The damping low-pass in each half is a one-pole filter with its cutoff at 6 kHz.
 
 The lines are straight because each trip takes off the same number of dB, which is the exponential decay the single loop showed, now on a dense response.
 
-### Tap Two Uncorrelated Outputs
+### Tap Stereo Outputs from the Tank
 
-The input is mono, a send bus summed into one signal, and the stereo image comes from the tank. Each output adds up seven points along the tank's delays, from both halves, with alternating signs, and the left and right outputs use different points. They hear the same circulating sound, so they decay alike, but at any moment they sum different echoes, so their waveforms are unrelated. Measured on the impulse response from 50 ms on, their correlation is about 0. Two ears receiving the same decay with unrelated waveforms hear the reverb as surrounding them rather than coming from one point, which is what a real room's reflections do, arriving from every direction.
+The plate takes one input and makes two outputs, left and right. Each output adds up seven points along the tank's delays, from both halves, with alternating signs, and the two outputs use different points. They hear the same circulating sound, so they decay alike, but at any moment they sum different echoes.
+
+How alike two waveforms are is measured by their **correlation**, which is 1 for identical waveforms and 0 for unrelated ones. Identical left and right channels are heard as one point between the speakers, and unrelated ones as sound surrounding the listener. Measured on the impulse response from 50 ms on, the plate's outputs have a correlation of about 0, so its reverb surrounds the listener, as a room's late reverberation does, arriving from every direction.
+
+## Share One Reverb Across a Mix
+
+A room reverberates every source in it, and a mix gets the same effect from one reverb that every track feeds. One input is enough for that. Once the echoes overlap, the late reverberation arrives from every direction, whichever source started it, so it carries nothing about where the source stands. A listener locates a source from the direct sound and the first reflections, which arrive before it. The plate models only the late reverberation, and its pre-delay holds it back behind the direct sound, so summing every source into its one input loses nothing it could use.
+
+Each track feeds the reverb through a **send**, a copy of the track's signal at a level set per track, and the reverb's output, its **return**, joins the mix like another track. The send is taken after the track's fader, so turning a track down or muting it takes its reverb with it. It's taken before the track's pan, since the input is summed into one signal anyway and the direct sound already places the track. A guitar panned hard left then sits on the left inside a room that still surrounds the listener.
+
+The other place for an effect is an **insert**, in the track's own chain, as an EQ is. A reverb there reverberates only that track, and since a channel's pan comes after its inserts, the pan then acts on the reverb's stereo output. Panning a stereo signal works as a balance control, so panning the track moves its whole room to one side. A room doesn't reverberate from one side, so that's rarely what a mix wants, and it's an easy mistake to make when first putting a reverb on a single track. Sends avoid it, and one shared reverb also costs less than one per track.
 
 ## References
 
