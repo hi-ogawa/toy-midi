@@ -76,8 +76,9 @@ interface BaseTrackState {
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
   /**
-   * Linear gain from 0 to 1 into the shared reverb, which is a medium hall. The
-   * send is taken after the track's gain, mute, and solo, and 0 is off.
+   * Linear gain from 0 to 1 into the shared reverb, which is set to sound like a
+   * medium hall. The send is taken after the track's gain, mute, and solo, and 0
+   * is off.
    *
    * Start from these sends by program, then adjust by ear:
    * - Synth leads and pads (80–95): 0.4, about −8 dB
