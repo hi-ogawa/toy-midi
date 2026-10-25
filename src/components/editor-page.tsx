@@ -48,16 +48,16 @@ import {
 } from "./tracks";
 import { Tuner } from "./tuner";
 import { Dialog } from "./ui/dialog";
+import { useAgentAccess } from "./use-agent-access";
 import { useInput } from "./use-input";
 import { useInteraction } from "./use-interaction";
 import { useProject } from "./use-project";
 import { useTimeline } from "./use-timeline";
-import { useWebMcpBridge } from "./use-webmcp-bridge";
 import { useWindowEvent } from "./use-window-event";
 
 export function EditorPage({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
-  useWebMcpBridge(runtime);
+  useAgentAccess(runtime);
   const [projectUiStore] = useState(() => createProjectUiStore(source));
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] =

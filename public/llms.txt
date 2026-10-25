@@ -21,6 +21,8 @@ Write a share link when you cannot reach the user's browser, such as from a remo
 
 The app registers its tools with [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents, through `document.modelContext`. The runtime the tools act on is declared in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts), so you can read it before you reach the page.
 
+If you can run JavaScript in the page, as a browser automation tool does, use `window.toyMidi` instead of the tool. On a project page, it holds `runtime`, the open project, and `utils`, the same helpers `toy_midi_eval` has in scope, so code written for the tool runs after `const { runtime, utils } = window.toyMidi;`. They are declared in the same file as `EditorRuntime` and `ToyMidiUtils`.
+
 A browser or agent that supports WebMCP calls the tool directly. From a terminal, use [webmcp-bridge](https://github.com/hi-ogawa/toy-midi/tree/main/packages/webmcp-bridge), which connects you to a page open in the user's browser on the same machine. Install the command:
 
 ```sh
@@ -39,7 +41,7 @@ A share link is the site's `/draft` page with the project in the URL fragment:
 
 The payload is the project as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SharedProject` in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts).
 
-To share a project you built in the open app, get it in this format from `toy_midi_eval` with `utils.createSharedProject(runtime.serializeProject())`.
+To share a project you built in the open app, get it in this format with `utils.createSharedProject(runtime.serializeProject())`, in `toy_midi_eval` or on `window.toyMidi`.
 
 Composing doesn't need tab annotation, so leave `tabAnnotationEnabled` on tracks and `tabString` on notes unset.
 

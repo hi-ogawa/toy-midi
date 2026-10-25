@@ -1,6 +1,6 @@
 import type { WebMcpTool } from "@hiogawa/webmcp-bridge/webmcp";
-import { createSharedProject } from "./project-share";
 import type { EditorRuntime } from "./runtime";
+import { toyMidiUtils } from "./toy-midi-utils";
 
 const AsyncFunction = async function () {}.constructor as new (
   ...args: string[]
@@ -15,7 +15,7 @@ export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
     {
       name: "toy_midi_eval",
       description: [
-        "Run JavaScript against the open toy-midi project, with `runtime` (`EditorRuntime`) and `utils` (`AgentUtils`) in scope.",
+        "Run JavaScript against the open toy-midi project, with `runtime` (`EditorRuntime`) and `utils` (`ToyMidiUtils`) in scope.",
         `Both are declared in ${new URL("/llms/toy-midi.d.ts", window.location.origin)}. Read it before writing code.`,
       ].join("\n\n"),
       inputSchema: {
@@ -35,7 +35,7 @@ export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
         try {
           const value = await new AsyncFunction("runtime", "utils", code)(
             runtime,
-            agentUtils,
+            toyMidiUtils,
           );
           return JSON.parse(JSON.stringify({ isError: false, value }));
         } catch (error) {
@@ -51,11 +51,3 @@ export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
     },
   ];
 }
-
-/** Helpers in scope as `utils` in `toy_midi_eval`, beside the runtime. */
-const agentUtils = {
-  /** Converts `runtime.serializeProject()` to the format of share links and project files. */
-  createSharedProject,
-};
-
-export type AgentUtils = typeof agentUtils;
