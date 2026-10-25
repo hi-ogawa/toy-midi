@@ -59,7 +59,12 @@
   }
 }
 
-/* Tailwind's preflight resets these elements, so the rendered project comment restores spacing and structure. */
+/*
+ * Tailwind's preflight resets these elements, so the rendered project comment
+ * restores spacing and structure. The values loosely follow GitHub's Markdown
+ * styles, with a flatter heading scale and tighter spacing chosen by eye for a
+ * small panel at text-xs. Sizes are in em so they follow the panel's font size.
+ */
 .project-comment-markdown {
   & > * + * {
     margin-top: 0.75em;
