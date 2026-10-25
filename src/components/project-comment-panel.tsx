@@ -1,10 +1,12 @@
 import { EyeIcon } from "lucide-react";
+import MarkdownIt from "markdown-it";
 import { useMemo } from "react";
-import { renderMarkdown } from "../lib/markdown";
 import type { ProjectUiStore } from "../lib/preferences";
 import type { EditorRuntime } from "../lib/runtime";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
+
+const markdown = new MarkdownIt();
 
 export function ProjectCommentPanel({
   projectUiStore,
@@ -67,7 +69,7 @@ export function ProjectCommentPanel({
 }
 
 function CommentPreview({ comment }: { comment: string }) {
-  const html = useMemo(() => renderMarkdown(comment), [comment]);
+  const html = useMemo(() => markdown.render(comment), [comment]);
   if (!comment.trim()) {
     return (
       <p className="px-4 py-3 text-xs text-neutral-500">
