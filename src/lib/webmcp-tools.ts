@@ -15,7 +15,6 @@ export function createWebMcpTools(runtime: EditorRuntime): WebMcpTool[] {
       name: "toy_midi_eval",
       description: [
         "Run JavaScript against the open toy-midi project, with `runtime` in scope.",
-        "Use the project's `comment` to record and communicate your intent and decisions.",
         `The runtime's API is declared in ${new URL("/llms/toy-midi.d.ts", window.location.origin)}. Read it before writing code.`,
       ].join("\n\n"),
       inputSchema: {
