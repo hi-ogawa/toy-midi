@@ -84,5 +84,5 @@
 <text x="582.5" y="344" text-anchor="middle" font-size="10" fill="#52514e">C7</text>
 <text x="634.0625" y="344" text-anchor="middle" font-size="10" fill="#52514e">C8</text>
 <text x="685.625" y="344" text-anchor="middle" font-size="10" fill="#52514e">C9</text>
-<text x="445" y="364" text-anchor="middle" font-size="11" fill="#52514e">key (vertical axis: velocity 0 to 127; white gaps separate zones)</text>
+<text x="445" y="364" text-anchor="middle" font-size="11" fill="#52514e">Keys run along the bottom, velocity runs up from 0 to 127, and white gaps separate zones</text>
 </svg>
