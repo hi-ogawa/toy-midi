@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="378" viewBox="0 0 740 378" font-family="sans-serif" font-size="13">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="20" y="26" font-weight="bold" font-size="14">Splits and layers: which zone answers each key and velocity</text>
+<text x="20" y="58" font-weight="bold">33 Finger Bass</text>
+<text x="136.39999999999998" y="58" fill="#52514e" font-size="12">one layer, split between two instruments at key 93</text>
+<text x="140" y="84" text-anchor="end" font-size="12"></text>
+<text x="140" y="100" text-anchor="end" font-size="11" fill="#52514e"></text>
+<text x="166" y="79" text-anchor="end" font-size="10" fill="#52514e">127</text>
+<text x="166" y="134" text-anchor="end" font-size="10" fill="#52514e">0</text>
+<rect x="170" y="70" width="550" height="64" fill="#f4f4f2"/>
+<rect x="171.0" y="71.0" width="131.2" height="62.0" fill="#1baf7a"><title>Finger Bass: keys 0–30, velocity 0–127, sample Finger Bass-E0 (root 54)</title></rect>
+<rect x="304.2" y="71.0" width="19.5" height="62.0" fill="#1baf7a"><title>Finger Bass: keys 31–35, velocity 0–127, sample Finger Bass-A0 (root 60)</title></rect>
+<rect x="325.7" y="71.0" width="19.5" height="62.0" fill="#1baf7a"><title>Finger Bass: keys 36–40, velocity 0–127, sample Finger Bass-D1 (root 64)</title></rect>
+<rect x="347.2" y="71.0" width="221.4" height="62.0" fill="#1baf7a"><title>Finger Bass: keys 41–92, velocity 0–127, sample Finger Bass-G1 (root 69)</title></rect>
+<text x="369.8" y="106.0" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Finger Bass</text>
+<rect x="570.6" y="71.0" width="15.2" height="62.0" fill="#eb6834"><title>0 Ramp: keys 93–96, velocity 0–127, sample Wave_Ramp-093 (root 93)</title></rect>
+<rect x="587.8" y="71.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 97–102, velocity 0–127, sample Wave_Ramp-099 (root 99)</title></rect>
+<rect x="613.6" y="71.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 103–108, velocity 0–127, sample Wave_Ramp-105 (root 105)</title></rect>
+<rect x="639.4" y="71.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 109–114, velocity 0–127, sample Wave_Ramp-111 (root 111)</title></rect>
+<rect x="665.1" y="71.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 115–120, velocity 0–127, sample Wave_Ramp-117 (root 117)</title></rect>
+<rect x="690.9" y="71.0" width="28.1" height="62.0" fill="#eb6834"><title>0 Ramp: keys 121–127, velocity 0–127, sample Wave_Ramp-123 (root 123)</title></rect>
+<text x="644.8" y="106.0" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">0 Ramp</text>
+<text x="273.125" y="148" text-anchor="middle" font-size="10" fill="#52514e">C1</text>
+<text x="324.6875" y="148" text-anchor="middle" font-size="10" fill="#52514e">C2</text>
+<text x="376.25" y="148" text-anchor="middle" font-size="10" fill="#52514e">C3</text>
+<text x="427.8125" y="148" text-anchor="middle" font-size="10" fill="#52514e">C4</text>
+<text x="479.375" y="148" text-anchor="middle" font-size="10" fill="#52514e">C5</text>
+<text x="530.9375" y="148" text-anchor="middle" font-size="10" fill="#52514e">C6</text>
+<text x="582.5" y="148" text-anchor="middle" font-size="10" fill="#52514e">C7</text>
+<text x="634.0625" y="148" text-anchor="middle" font-size="10" fill="#52514e">C8</text>
+<text x="685.625" y="148" text-anchor="middle" font-size="10" fill="#52514e">C9</text>
+<text x="20" y="182" font-weight="bold">38 Synth Bass 1</text>
+<text x="144" y="182" fill="#52514e" font-size="12">two layers that sound together, each split every 6 keys</text>
+<text x="140" y="208" text-anchor="end" font-size="12">layer 1</text>
+<text x="140" y="224" text-anchor="end" font-size="11" fill="#52514e">pulse, 15% left</text>
+<text x="166" y="203" text-anchor="end" font-size="10" fill="#52514e">127</text>
+<text x="166" y="258" text-anchor="end" font-size="10" fill="#52514e">0</text>
+<rect x="170" y="194" width="550" height="64" fill="#f4f4f2"/>
+<rect x="171.0" y="195.0" width="157.0" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 0–36, velocity 0–127, sample Wave_Pulse3750-033 (root 33)</title></rect>
+<rect x="330.0" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 37–42, velocity 0–127, sample Wave_Pulse3750-039 (root 39)</title></rect>
+<rect x="355.8" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 43–48, velocity 0–127, sample Wave_Pulse3750-045 (root 45)</title></rect>
+<rect x="381.5" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 49–54, velocity 0–127, sample Wave_Pulse3750-051 (root 51)</title></rect>
+<rect x="407.3" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 55–60, velocity 0–127, sample Wave_Pulse3750-057 (root 57)</title></rect>
+<rect x="433.1" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 61–66, velocity 0–127, sample Wave_Pulse3750-063 (root 63)</title></rect>
+<rect x="458.9" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 67–72, velocity 0–127, sample Wave_Pulse3750-069 (root 69)</title></rect>
+<rect x="484.7" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 73–78, velocity 0–127, sample Wave_Pulse3750-075 (root 75)</title></rect>
+<rect x="510.5" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 79–84, velocity 0–127, sample Wave_Pulse3750-081 (root 81)</title></rect>
+<rect x="536.2" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 85–90, velocity 0–127, sample Wave_Pulse3750-087 (root 87)</title></rect>
+<rect x="562.0" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 91–96, velocity 0–127, sample Wave_Pulse3750-093 (root 93)</title></rect>
+<rect x="587.8" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 97–102, velocity 0–127, sample Wave_Pulse3750-099 (root 99)</title></rect>
+<rect x="613.6" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 103–108, velocity 0–127, sample Wave_Pulse3750-105 (root 105)</title></rect>
+<rect x="639.4" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 109–114, velocity 0–127, sample Wave_Pulse3750-111 (root 111)</title></rect>
+<rect x="665.1" y="195.0" width="23.8" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 115–120, velocity 0–127, sample Wave_Pulse3750-117 (root 117)</title></rect>
+<rect x="690.9" y="195.0" width="28.1" height="62.0" fill="#2a78d6"><title>0 Pulse 37.5%: keys 121–127, velocity 0–127, sample Wave_Pulse3750-123 (root 123)</title></rect>
+<text x="445.0" y="230.0" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">0 Pulse 37.5%</text>
+<text x="140" y="280" text-anchor="end" font-size="12">layer 2</text>
+<text x="140" y="296" text-anchor="end" font-size="11" fill="#52514e">saw, 15% right</text>
+<text x="166" y="275" text-anchor="end" font-size="10" fill="#52514e">127</text>
+<text x="166" y="330" text-anchor="end" font-size="10" fill="#52514e">0</text>
+<rect x="170" y="266" width="550" height="64" fill="#f4f4f2"/>
+<rect x="171.0" y="267.0" width="157.0" height="62.0" fill="#eb6834"><title>0 Ramp: keys 0–36, velocity 0–127, sample Wave_Ramp-033 (root 33)</title></rect>
+<rect x="330.0" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 37–42, velocity 0–127, sample Wave_Ramp-039 (root 39)</title></rect>
+<rect x="355.8" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 43–48, velocity 0–127, sample Wave_Ramp-045 (root 45)</title></rect>
+<rect x="381.5" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 49–54, velocity 0–127, sample Wave_Ramp-051 (root 51)</title></rect>
+<rect x="407.3" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 55–60, velocity 0–127, sample Wave_Ramp-057 (root 57)</title></rect>
+<rect x="433.1" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 61–66, velocity 0–127, sample Wave_Ramp-063 (root 63)</title></rect>
+<rect x="458.9" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 67–72, velocity 0–127, sample Wave_Ramp-069 (root 69)</title></rect>
+<rect x="484.7" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 73–78, velocity 0–127, sample Wave_Ramp-075 (root 75)</title></rect>
+<rect x="510.5" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 79–84, velocity 0–127, sample Wave_Ramp-081 (root 81)</title></rect>
+<rect x="536.2" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 85–90, velocity 0–127, sample Wave_Ramp-087 (root 87)</title></rect>
+<rect x="562.0" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 91–96, velocity 0–127, sample Wave_Ramp-093 (root 93)</title></rect>
+<rect x="587.8" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 97–102, velocity 0–127, sample Wave_Ramp-099 (root 99)</title></rect>
+<rect x="613.6" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 103–108, velocity 0–127, sample Wave_Ramp-105 (root 105)</title></rect>
+<rect x="639.4" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 109–114, velocity 0–127, sample Wave_Ramp-111 (root 111)</title></rect>
+<rect x="665.1" y="267.0" width="23.8" height="62.0" fill="#eb6834"><title>0 Ramp: keys 115–120, velocity 0–127, sample Wave_Ramp-117 (root 117)</title></rect>
+<rect x="690.9" y="267.0" width="28.1" height="62.0" fill="#eb6834"><title>0 Ramp: keys 121–127, velocity 0–127, sample Wave_Ramp-123 (root 123)</title></rect>
+<text x="445.0" y="302.0" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">0 Ramp</text>
+<text x="273.125" y="344" text-anchor="middle" font-size="10" fill="#52514e">C1</text>
+<text x="324.6875" y="344" text-anchor="middle" font-size="10" fill="#52514e">C2</text>
+<text x="376.25" y="344" text-anchor="middle" font-size="10" fill="#52514e">C3</text>
+<text x="427.8125" y="344" text-anchor="middle" font-size="10" fill="#52514e">C4</text>
+<text x="479.375" y="344" text-anchor="middle" font-size="10" fill="#52514e">C5</text>
+<text x="530.9375" y="344" text-anchor="middle" font-size="10" fill="#52514e">C6</text>
+<text x="582.5" y="344" text-anchor="middle" font-size="10" fill="#52514e">C7</text>
+<text x="634.0625" y="344" text-anchor="middle" font-size="10" fill="#52514e">C8</text>
+<text x="685.625" y="344" text-anchor="middle" font-size="10" fill="#52514e">C9</text>
+<text x="445" y="364" text-anchor="middle" font-size="11" fill="#52514e">key (vertical axis: velocity 0 to 127; white gaps separate zones)</text>
+</svg>

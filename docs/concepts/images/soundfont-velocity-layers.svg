@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="378" viewBox="0 0 740 378" font-family="sans-serif" font-size="13">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="20" y="26" font-weight="bold" font-size="14">Velocity layers: harder playing selects a different zone</text>
+<text x="20" y="58" font-weight="bold">4 Tine Electric Piano</text>
+<text x="189.6" y="58" fill="#52514e" font-size="12">three recordings, soft to hard, each split across the keys</text>
+<text x="140" y="84" text-anchor="end" font-size="12"></text>
+<text x="140" y="100" text-anchor="end" font-size="11" fill="#52514e"></text>
+<text x="166" y="79" text-anchor="end" font-size="10" fill="#52514e">127</text>
+<text x="166" y="134" text-anchor="end" font-size="10" fill="#52514e">0</text>
+<rect x="170" y="70" width="550" height="64" fill="#f4f4f2"/>
+<rect x="171.0" y="101.0" width="165.6" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 0–38, velocity 0–67, sample Rhodes-D1 P (root 38)</title></rect>
+<rect x="338.6" y="101.0" width="28.1" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 39–45, velocity 0–67, sample Rhodes-D1 P (root 38)</title></rect>
+<rect x="368.7" y="101.0" width="28.1" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 46–52, velocity 0–67, sample Rhodes-C2 P (root 48)</title></rect>
+<rect x="398.7" y="101.0" width="32.4" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 53–60, velocity 0–67, sample Rhodes-G2 P (root 55)</title></rect>
+<rect x="433.1" y="101.0" width="32.4" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 61–68, velocity 0–67, sample Rhodes-E3 P (root 64)</title></rect>
+<rect x="467.5" y="101.0" width="23.8" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 69–74, velocity 0–67, sample Rhodes-B3 P (root 71)</title></rect>
+<rect x="493.3" y="101.0" width="15.2" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 75–78, velocity 0–67, sample Rhodes-F4 P (root 77)</title></rect>
+<rect x="510.5" y="101.0" width="15.2" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 79–82, velocity 0–67, sample Rhodes-Ab4 P (root 80)</title></rect>
+<rect x="527.6" y="101.0" width="6.6" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 83–84, velocity 0–67, sample Rhodes-Ab4 P (root 80)</title></rect>
+<rect x="536.2" y="101.0" width="23.8" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 85–90, velocity 0–67, sample Rhodes-Eb5 P (root 87)</title></rect>
+<rect x="562.0" y="101.0" width="23.8" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 91–96, velocity 0–67, sample Rhodes-Bb5 P (root 94)</title></rect>
+<rect x="587.8" y="101.0" width="101.1" height="32.0" fill="#2a78d6"><title>Rhodes P: keys 97–120, velocity 0–67, sample Rhodes-Eb6 P (root 99)</title></rect>
+<text x="445.0" y="121.0" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Rhodes P</text>
+<rect x="171.0" y="82.0" width="165.6" height="17.0" fill="#eb6834"><title>Rhodes M: keys 0–38, velocity 68–105, sample Rhodes-F#1 M (root 42)</title></rect>
+<rect x="338.6" y="82.0" width="28.1" height="17.0" fill="#eb6834"><title>Rhodes M: keys 39–45, velocity 68–105, sample Rhodes-F#1 M (root 42)</title></rect>
+<rect x="368.7" y="82.0" width="28.1" height="17.0" fill="#eb6834"><title>Rhodes M: keys 46–52, velocity 68–105, sample Rhodes-C2 M (root 48)</title></rect>
+<rect x="398.7" y="82.0" width="32.4" height="17.0" fill="#eb6834"><title>Rhodes M: keys 53–60, velocity 68–105, sample Rhodes-G2 M (root 55)</title></rect>
+<rect x="433.1" y="82.0" width="32.4" height="17.0" fill="#eb6834"><title>Rhodes M: keys 61–68, velocity 68–105, sample Rhodes-E3 M (root 64)</title></rect>
+<rect x="433.1" y="82.0" width="32.4" height="17.0" fill="#eb6834"><title>Rhodes M: keys 61–68, velocity 68–105, sample overtones 11 (root 60)</title></rect>
+<rect x="467.5" y="82.0" width="23.8" height="17.0" fill="#eb6834"><title>Rhodes M: keys 69–74, velocity 68–105, sample Rhodes-B3 M (root 71)</title></rect>
+<rect x="493.3" y="82.0" width="15.2" height="17.0" fill="#eb6834"><title>Rhodes M: keys 75–78, velocity 68–105, sample Rhodes-F4 M (root 77)</title></rect>
+<rect x="510.5" y="82.0" width="15.2" height="17.0" fill="#eb6834"><title>Rhodes M: keys 79–82, velocity 68–105, sample Rhodes-Ab4 M (root 80)</title></rect>
+<rect x="527.6" y="82.0" width="6.6" height="17.0" fill="#eb6834"><title>Rhodes M: keys 83–84, velocity 68–105, sample Rhodes-Ab4 M (root 80)</title></rect>
+<rect x="536.2" y="82.0" width="23.8" height="17.0" fill="#eb6834"><title>Rhodes M: keys 85–90, velocity 68–105, sample Rhodes-Eb5 M (root 87)</title></rect>
+<rect x="562.0" y="82.0" width="23.8" height="17.0" fill="#eb6834"><title>Rhodes M: keys 91–96, velocity 68–105, sample Rhodes-Bb5 M (root 94)</title></rect>
+<rect x="587.8" y="82.0" width="101.1" height="17.0" fill="#eb6834"><title>Rhodes M: keys 97–120, velocity 68–105, sample Rhodes-Eb6 M (root 99)</title></rect>
+<text x="445.0" y="94.5" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Rhodes M</text>
+<rect x="171.0" y="71.0" width="165.6" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 0–38, velocity 106–127, sample Rhodes-F#1 F (root 42)</title></rect>
+<rect x="338.6" y="71.0" width="28.1" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 39–45, velocity 106–127, sample Rhodes-F#1 F (root 42)</title></rect>
+<rect x="368.7" y="71.0" width="28.1" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 46–52, velocity 106–127, sample Rhodes-C2 F (root 48)</title></rect>
+<rect x="398.7" y="71.0" width="32.4" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 53–60, velocity 106–127, sample Rhodes-G2 F (root 55)</title></rect>
+<rect x="433.1" y="71.0" width="32.4" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 61–68, velocity 106–127, sample Rhodes-E3 F (root 64)</title></rect>
+<rect x="467.5" y="71.0" width="23.8" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 69–74, velocity 106–127, sample Rhodes-B3 F (root 71)</title></rect>
+<rect x="493.3" y="71.0" width="15.2" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 75–78, velocity 106–127, sample Rhodes-F4 F (root 77)</title></rect>
+<rect x="510.5" y="71.0" width="23.8" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 79–84, velocity 106–127, sample Rhodes-Ab4 F (root 80)</title></rect>
+<rect x="536.2" y="71.0" width="23.8" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 85–90, velocity 106–127, sample Rhodes-Eb5 F (root 87)</title></rect>
+<rect x="562.0" y="71.0" width="23.8" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 91–96, velocity 106–127, sample Rhodes-Bb5 F (root 94)</title></rect>
+<rect x="587.8" y="71.0" width="101.1" height="9.0" fill="#1baf7a"><title>Rhodes F: keys 97–120, velocity 106–127, sample Rhodes-Eb6 F (root 99)</title></rect>
+<text x="445.0" y="79.5" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">Rhodes F</text>
+<text x="273.125" y="148" text-anchor="middle" font-size="10" fill="#52514e">C1</text>
+<text x="324.6875" y="148" text-anchor="middle" font-size="10" fill="#52514e">C2</text>
+<text x="376.25" y="148" text-anchor="middle" font-size="10" fill="#52514e">C3</text>
+<text x="427.8125" y="148" text-anchor="middle" font-size="10" fill="#52514e">C4</text>
+<text x="479.375" y="148" text-anchor="middle" font-size="10" fill="#52514e">C5</text>
+<text x="530.9375" y="148" text-anchor="middle" font-size="10" fill="#52514e">C6</text>
+<text x="582.5" y="148" text-anchor="middle" font-size="10" fill="#52514e">C7</text>
+<text x="634.0625" y="148" text-anchor="middle" font-size="10" fill="#52514e">C8</text>
+<text x="685.625" y="148" text-anchor="middle" font-size="10" fill="#52514e">C9</text>
+<text x="20" y="182" font-weight="bold">80 Square Lead</text>
+<text x="136.39999999999998" y="182" fill="#52514e" font-size="12">the same pulse wave in every band, filtered brighter as velocity rises</text>
+<text x="140" y="208" text-anchor="end" font-size="12">layer 1</text>
+<text x="140" y="224" text-anchor="end" font-size="11" fill="#52514e">+3 cents</text>
+<text x="166" y="203" text-anchor="end" font-size="10" fill="#52514e">127</text>
+<text x="166" y="258" text-anchor="end" font-size="10" fill="#52514e">0</text>
+<rect x="170" y="194" width="550" height="64" fill="#f4f4f2"/>
+<rect x="171.0" y="225.5" width="157.0" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 0–36, velocity 0–66, sample Wave_Pulse5000-033 (root 33)</title></rect>
+<rect x="330.0" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 37–42, velocity 0–66, sample Wave_Pulse5000-039 (root 39)</title></rect>
+<rect x="355.8" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 43–48, velocity 0–66, sample Wave_Pulse5000-045 (root 45)</title></rect>
+<rect x="381.5" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 49–54, velocity 0–66, sample Wave_Pulse5000-051 (root 51)</title></rect>
+<rect x="407.3" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 55–60, velocity 0–66, sample Wave_Pulse5000-057 (root 57)</title></rect>
+<rect x="433.1" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 61–66, velocity 0–66, sample Wave_Pulse5000-063 (root 63)</title></rect>
+<rect x="458.9" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 67–72, velocity 0–66, sample Wave_Pulse5000-069 (root 69)</title></rect>
+<rect x="484.7" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 73–78, velocity 0–66, sample Wave_Pulse5000-075 (root 75)</title></rect>
+<rect x="510.5" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 79–84, velocity 0–66, sample Wave_Pulse5000-081 (root 81)</title></rect>
+<rect x="536.2" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 85–90, velocity 0–66, sample Wave_Pulse5000-087 (root 87)</title></rect>
+<rect x="562.0" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 91–96, velocity 0–66, sample Wave_Pulse5000-093 (root 93)</title></rect>
+<rect x="587.8" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 97–102, velocity 0–66, sample Wave_Pulse5000-099 (root 99)</title></rect>
+<rect x="613.6" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 103–108, velocity 0–66, sample Wave_Pulse5000-105 (root 105)</title></rect>
+<rect x="639.4" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 109–114, velocity 0–66, sample Wave_Pulse5000-111 (root 111)</title></rect>
+<rect x="665.1" y="225.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 115–120, velocity 0–66, sample Wave_Pulse5000-117 (root 117)</title></rect>
+<rect x="690.9" y="225.5" width="28.1" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 121–127, velocity 0–66, sample Wave_Pulse5000-123 (root 123)</title></rect>
+<text x="445.0" y="245.3" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">cutoff 3.2 kHz</text>
+<rect x="171.0" y="214.5" width="157.0" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 0–36, velocity 67–88, sample Wave_Pulse5000-033 (root 33)</title></rect>
+<rect x="330.0" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 37–42, velocity 67–88, sample Wave_Pulse5000-039 (root 39)</title></rect>
+<rect x="355.8" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 43–48, velocity 67–88, sample Wave_Pulse5000-045 (root 45)</title></rect>
+<rect x="381.5" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 49–54, velocity 67–88, sample Wave_Pulse5000-051 (root 51)</title></rect>
+<rect x="407.3" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 55–60, velocity 67–88, sample Wave_Pulse5000-057 (root 57)</title></rect>
+<rect x="433.1" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 61–66, velocity 67–88, sample Wave_Pulse5000-063 (root 63)</title></rect>
+<rect x="458.9" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 67–72, velocity 67–88, sample Wave_Pulse5000-069 (root 69)</title></rect>
+<rect x="484.7" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 73–78, velocity 67–88, sample Wave_Pulse5000-075 (root 75)</title></rect>
+<rect x="510.5" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 79–84, velocity 67–88, sample Wave_Pulse5000-081 (root 81)</title></rect>
+<rect x="536.2" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 85–90, velocity 67–88, sample Wave_Pulse5000-087 (root 87)</title></rect>
+<rect x="562.0" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 91–96, velocity 67–88, sample Wave_Pulse5000-093 (root 93)</title></rect>
+<rect x="587.8" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 97–102, velocity 67–88, sample Wave_Pulse5000-099 (root 99)</title></rect>
+<rect x="613.6" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 103–108, velocity 67–88, sample Wave_Pulse5000-105 (root 105)</title></rect>
+<rect x="639.4" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 109–114, velocity 67–88, sample Wave_Pulse5000-111 (root 111)</title></rect>
+<rect x="665.1" y="214.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 115–120, velocity 67–88, sample Wave_Pulse5000-117 (root 117)</title></rect>
+<rect x="690.9" y="214.5" width="28.1" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 121–127, velocity 67–88, sample Wave_Pulse5000-123 (root 123)</title></rect>
+<text x="445.0" y="223.0" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">cutoff 3.4 kHz</text>
+<rect x="171.0" y="204.5" width="157.0" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 0–36, velocity 89–108, sample Wave_Pulse5000-033 (root 33)</title></rect>
+<rect x="330.0" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 37–42, velocity 89–108, sample Wave_Pulse5000-039 (root 39)</title></rect>
+<rect x="355.8" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 43–48, velocity 89–108, sample Wave_Pulse5000-045 (root 45)</title></rect>
+<rect x="381.5" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 49–54, velocity 89–108, sample Wave_Pulse5000-051 (root 51)</title></rect>
+<rect x="407.3" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 55–60, velocity 89–108, sample Wave_Pulse5000-057 (root 57)</title></rect>
+<rect x="433.1" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 61–66, velocity 89–108, sample Wave_Pulse5000-063 (root 63)</title></rect>
+<rect x="458.9" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 67–72, velocity 89–108, sample Wave_Pulse5000-069 (root 69)</title></rect>
+<rect x="484.7" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 73–78, velocity 89–108, sample Wave_Pulse5000-075 (root 75)</title></rect>
+<rect x="510.5" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 79–84, velocity 89–108, sample Wave_Pulse5000-081 (root 81)</title></rect>
+<rect x="536.2" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 85–90, velocity 89–108, sample Wave_Pulse5000-087 (root 87)</title></rect>
+<rect x="562.0" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 91–96, velocity 89–108, sample Wave_Pulse5000-093 (root 93)</title></rect>
+<rect x="587.8" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 97–102, velocity 89–108, sample Wave_Pulse5000-099 (root 99)</title></rect>
+<rect x="613.6" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 103–108, velocity 89–108, sample Wave_Pulse5000-105 (root 105)</title></rect>
+<rect x="639.4" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 109–114, velocity 89–108, sample Wave_Pulse5000-111 (root 111)</title></rect>
+<rect x="665.1" y="204.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 115–120, velocity 89–108, sample Wave_Pulse5000-117 (root 117)</title></rect>
+<rect x="690.9" y="204.5" width="28.1" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 121–127, velocity 89–108, sample Wave_Pulse5000-123 (root 123)</title></rect>
+<text x="445.0" y="212.5" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">cutoff 3.6 kHz</text>
+<rect x="171.0" y="195.0" width="157.0" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 0–36, velocity 109–127, sample Wave_Pulse5000-033 (root 33)</title></rect>
+<rect x="330.0" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 37–42, velocity 109–127, sample Wave_Pulse5000-039 (root 39)</title></rect>
+<rect x="355.8" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 43–48, velocity 109–127, sample Wave_Pulse5000-045 (root 45)</title></rect>
+<rect x="381.5" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 49–54, velocity 109–127, sample Wave_Pulse5000-051 (root 51)</title></rect>
+<rect x="407.3" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 55–60, velocity 109–127, sample Wave_Pulse5000-057 (root 57)</title></rect>
+<rect x="433.1" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 61–66, velocity 109–127, sample Wave_Pulse5000-063 (root 63)</title></rect>
+<rect x="458.9" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 67–72, velocity 109–127, sample Wave_Pulse5000-069 (root 69)</title></rect>
+<rect x="484.7" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 73–78, velocity 109–127, sample Wave_Pulse5000-075 (root 75)</title></rect>
+<rect x="510.5" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 79–84, velocity 109–127, sample Wave_Pulse5000-081 (root 81)</title></rect>
+<rect x="536.2" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 85–90, velocity 109–127, sample Wave_Pulse5000-087 (root 87)</title></rect>
+<rect x="562.0" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 91–96, velocity 109–127, sample Wave_Pulse5000-093 (root 93)</title></rect>
+<rect x="587.8" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 97–102, velocity 109–127, sample Wave_Pulse5000-099 (root 99)</title></rect>
+<rect x="613.6" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 103–108, velocity 109–127, sample Wave_Pulse5000-105 (root 105)</title></rect>
+<rect x="639.4" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 109–114, velocity 109–127, sample Wave_Pulse5000-111 (root 111)</title></rect>
+<rect x="665.1" y="195.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 115–120, velocity 109–127, sample Wave_Pulse5000-117 (root 117)</title></rect>
+<rect x="690.9" y="195.0" width="28.1" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 121–127, velocity 109–127, sample Wave_Pulse5000-123 (root 123)</title></rect>
+<text x="445.0" y="202.8" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">cutoff 3.8 kHz</text>
+<text x="140" y="280" text-anchor="end" font-size="12">layer 2</text>
+<text x="140" y="296" text-anchor="end" font-size="11" fill="#52514e">−3 cents, pitch dip</text>
+<text x="166" y="275" text-anchor="end" font-size="10" fill="#52514e">127</text>
+<text x="166" y="330" text-anchor="end" font-size="10" fill="#52514e">0</text>
+<rect x="170" y="266" width="550" height="64" fill="#f4f4f2"/>
+<rect x="171.0" y="297.5" width="157.0" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 0–36, velocity 0–66, sample Wave_Pulse5000-033 (root 33)</title></rect>
+<rect x="330.0" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 37–42, velocity 0–66, sample Wave_Pulse5000-039 (root 39)</title></rect>
+<rect x="355.8" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 43–48, velocity 0–66, sample Wave_Pulse5000-045 (root 45)</title></rect>
+<rect x="381.5" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 49–54, velocity 0–66, sample Wave_Pulse5000-051 (root 51)</title></rect>
+<rect x="407.3" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 55–60, velocity 0–66, sample Wave_Pulse5000-057 (root 57)</title></rect>
+<rect x="433.1" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 61–66, velocity 0–66, sample Wave_Pulse5000-063 (root 63)</title></rect>
+<rect x="458.9" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 67–72, velocity 0–66, sample Wave_Pulse5000-069 (root 69)</title></rect>
+<rect x="484.7" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 73–78, velocity 0–66, sample Wave_Pulse5000-075 (root 75)</title></rect>
+<rect x="510.5" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 79–84, velocity 0–66, sample Wave_Pulse5000-081 (root 81)</title></rect>
+<rect x="536.2" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 85–90, velocity 0–66, sample Wave_Pulse5000-087 (root 87)</title></rect>
+<rect x="562.0" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 91–96, velocity 0–66, sample Wave_Pulse5000-093 (root 93)</title></rect>
+<rect x="587.8" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 97–102, velocity 0–66, sample Wave_Pulse5000-099 (root 99)</title></rect>
+<rect x="613.6" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 103–108, velocity 0–66, sample Wave_Pulse5000-105 (root 105)</title></rect>
+<rect x="639.4" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 109–114, velocity 0–66, sample Wave_Pulse5000-111 (root 111)</title></rect>
+<rect x="665.1" y="297.5" width="23.8" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 115–120, velocity 0–66, sample Wave_Pulse5000-117 (root 117)</title></rect>
+<rect x="690.9" y="297.5" width="28.1" height="31.5" fill="#eda100"><title>0 Pulse 50%: keys 121–127, velocity 0–66, sample Wave_Pulse5000-123 (root 123)</title></rect>
+<text x="445.0" y="317.3" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">cutoff 3.2 kHz</text>
+<rect x="171.0" y="286.5" width="157.0" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 0–36, velocity 67–88, sample Wave_Pulse5000-033 (root 33)</title></rect>
+<rect x="330.0" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 37–42, velocity 67–88, sample Wave_Pulse5000-039 (root 39)</title></rect>
+<rect x="355.8" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 43–48, velocity 67–88, sample Wave_Pulse5000-045 (root 45)</title></rect>
+<rect x="381.5" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 49–54, velocity 67–88, sample Wave_Pulse5000-051 (root 51)</title></rect>
+<rect x="407.3" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 55–60, velocity 67–88, sample Wave_Pulse5000-057 (root 57)</title></rect>
+<rect x="433.1" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 61–66, velocity 67–88, sample Wave_Pulse5000-063 (root 63)</title></rect>
+<rect x="458.9" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 67–72, velocity 67–88, sample Wave_Pulse5000-069 (root 69)</title></rect>
+<rect x="484.7" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 73–78, velocity 67–88, sample Wave_Pulse5000-075 (root 75)</title></rect>
+<rect x="510.5" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 79–84, velocity 67–88, sample Wave_Pulse5000-081 (root 81)</title></rect>
+<rect x="536.2" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 85–90, velocity 67–88, sample Wave_Pulse5000-087 (root 87)</title></rect>
+<rect x="562.0" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 91–96, velocity 67–88, sample Wave_Pulse5000-093 (root 93)</title></rect>
+<rect x="587.8" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 97–102, velocity 67–88, sample Wave_Pulse5000-099 (root 99)</title></rect>
+<rect x="613.6" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 103–108, velocity 67–88, sample Wave_Pulse5000-105 (root 105)</title></rect>
+<rect x="639.4" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 109–114, velocity 67–88, sample Wave_Pulse5000-111 (root 111)</title></rect>
+<rect x="665.1" y="286.5" width="23.8" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 115–120, velocity 67–88, sample Wave_Pulse5000-117 (root 117)</title></rect>
+<rect x="690.9" y="286.5" width="28.1" height="9.0" fill="#eda100"><title>0 Pulse 50%: keys 121–127, velocity 67–88, sample Wave_Pulse5000-123 (root 123)</title></rect>
+<text x="445.0" y="295.0" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">cutoff 3.4 kHz</text>
+<rect x="171.0" y="276.5" width="157.0" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 0–36, velocity 89–108, sample Wave_Pulse5000-033 (root 33)</title></rect>
+<rect x="330.0" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 37–42, velocity 89–108, sample Wave_Pulse5000-039 (root 39)</title></rect>
+<rect x="355.8" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 43–48, velocity 89–108, sample Wave_Pulse5000-045 (root 45)</title></rect>
+<rect x="381.5" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 49–54, velocity 89–108, sample Wave_Pulse5000-051 (root 51)</title></rect>
+<rect x="407.3" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 55–60, velocity 89–108, sample Wave_Pulse5000-057 (root 57)</title></rect>
+<rect x="433.1" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 61–66, velocity 89–108, sample Wave_Pulse5000-063 (root 63)</title></rect>
+<rect x="458.9" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 67–72, velocity 89–108, sample Wave_Pulse5000-069 (root 69)</title></rect>
+<rect x="484.7" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 73–78, velocity 89–108, sample Wave_Pulse5000-075 (root 75)</title></rect>
+<rect x="510.5" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 79–84, velocity 89–108, sample Wave_Pulse5000-081 (root 81)</title></rect>
+<rect x="536.2" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 85–90, velocity 89–108, sample Wave_Pulse5000-087 (root 87)</title></rect>
+<rect x="562.0" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 91–96, velocity 89–108, sample Wave_Pulse5000-093 (root 93)</title></rect>
+<rect x="587.8" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 97–102, velocity 89–108, sample Wave_Pulse5000-099 (root 99)</title></rect>
+<rect x="613.6" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 103–108, velocity 89–108, sample Wave_Pulse5000-105 (root 105)</title></rect>
+<rect x="639.4" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 109–114, velocity 89–108, sample Wave_Pulse5000-111 (root 111)</title></rect>
+<rect x="665.1" y="276.5" width="23.8" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 115–120, velocity 89–108, sample Wave_Pulse5000-117 (root 117)</title></rect>
+<rect x="690.9" y="276.5" width="28.1" height="8.0" fill="#eda100"><title>0 Pulse 50%: keys 121–127, velocity 89–108, sample Wave_Pulse5000-123 (root 123)</title></rect>
+<text x="445.0" y="284.5" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">cutoff 3.6 kHz</text>
+<rect x="171.0" y="267.0" width="157.0" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 0–36, velocity 109–127, sample Wave_Pulse5000-033 (root 33)</title></rect>
+<rect x="330.0" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 37–42, velocity 109–127, sample Wave_Pulse5000-039 (root 39)</title></rect>
+<rect x="355.8" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 43–48, velocity 109–127, sample Wave_Pulse5000-045 (root 45)</title></rect>
+<rect x="381.5" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 49–54, velocity 109–127, sample Wave_Pulse5000-051 (root 51)</title></rect>
+<rect x="407.3" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 55–60, velocity 109–127, sample Wave_Pulse5000-057 (root 57)</title></rect>
+<rect x="433.1" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 61–66, velocity 109–127, sample Wave_Pulse5000-063 (root 63)</title></rect>
+<rect x="458.9" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 67–72, velocity 109–127, sample Wave_Pulse5000-069 (root 69)</title></rect>
+<rect x="484.7" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 73–78, velocity 109–127, sample Wave_Pulse5000-075 (root 75)</title></rect>
+<rect x="510.5" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 79–84, velocity 109–127, sample Wave_Pulse5000-081 (root 81)</title></rect>
+<rect x="536.2" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 85–90, velocity 109–127, sample Wave_Pulse5000-087 (root 87)</title></rect>
+<rect x="562.0" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 91–96, velocity 109–127, sample Wave_Pulse5000-093 (root 93)</title></rect>
+<rect x="587.8" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 97–102, velocity 109–127, sample Wave_Pulse5000-099 (root 99)</title></rect>
+<rect x="613.6" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 103–108, velocity 109–127, sample Wave_Pulse5000-105 (root 105)</title></rect>
+<rect x="639.4" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 109–114, velocity 109–127, sample Wave_Pulse5000-111 (root 111)</title></rect>
+<rect x="665.1" y="267.0" width="23.8" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 115–120, velocity 109–127, sample Wave_Pulse5000-117 (root 117)</title></rect>
+<rect x="690.9" y="267.0" width="28.1" height="7.5" fill="#eda100"><title>0 Pulse 50%: keys 121–127, velocity 109–127, sample Wave_Pulse5000-123 (root 123)</title></rect>
+<text x="445.0" y="274.8" text-anchor="middle" font-size="11" fill="#0b0b0b" stroke="#ffffff" stroke-width="3" paint-order="stroke">cutoff 3.8 kHz</text>
+<text x="273.125" y="344" text-anchor="middle" font-size="10" fill="#52514e">C1</text>
+<text x="324.6875" y="344" text-anchor="middle" font-size="10" fill="#52514e">C2</text>
+<text x="376.25" y="344" text-anchor="middle" font-size="10" fill="#52514e">C3</text>
+<text x="427.8125" y="344" text-anchor="middle" font-size="10" fill="#52514e">C4</text>
+<text x="479.375" y="344" text-anchor="middle" font-size="10" fill="#52514e">C5</text>
+<text x="530.9375" y="344" text-anchor="middle" font-size="10" fill="#52514e">C6</text>
+<text x="582.5" y="344" text-anchor="middle" font-size="10" fill="#52514e">C7</text>
+<text x="634.0625" y="344" text-anchor="middle" font-size="10" fill="#52514e">C8</text>
+<text x="685.625" y="344" text-anchor="middle" font-size="10" fill="#52514e">C9</text>
+<text x="445" y="364" text-anchor="middle" font-size="11" fill="#52514e">key (vertical axis: velocity 0 to 127; white gaps separate zones)</text>
+</svg>
