@@ -15,7 +15,7 @@ export const DEFAULT_SYNTH_PATCH: SynthPatch = { waveform: "sine" };
 // Short enough to sound immediate, long enough to keep note edges from clicking.
 const RAMP_SECONDS = 0.005;
 // Leaves headroom for chords at full velocity.
-const PEAK_GAIN = 0.2;
+export const PEAK_GAIN = 0.2;
 
 interface Voice {
   pitch: number;

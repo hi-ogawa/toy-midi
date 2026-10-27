@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
+  PEAK_GAIN,
   SubtractiveSynth,
   type Waveform,
   WAVEFORMS,
@@ -20,7 +21,11 @@ describe(SubtractiveSynth, () => {
     synth.render(buffers[0], buffers[1], 4800, 4800);
 
     // Past the attack ramp, the note matches a 440 Hz sine sample for sample.
-    const sine = createSine({ frequency: 440, amplitude: 0.2, length: 4800 });
+    const sine = createSine({
+      frequency: 440,
+      amplitude: PEAK_GAIN,
+      length: 4800,
+    });
     for (let i = RAMP_FRAMES; i < 4800; i++) {
       expect(buffers[0][i]).toBeCloseTo(sine[i], 5);
     }
@@ -90,11 +95,11 @@ describe(SubtractiveSynth, () => {
     synth.setPatch({ waveform: "square" });
     synth.render(buffers[0], buffers[1], 4800, 4800);
     expect(measureRms(buffers[0].subarray(RAMP_FRAMES, 4800))).toBeCloseTo(
-      0.2 / Math.SQRT2,
+      PEAK_GAIN / Math.SQRT2,
       3,
     );
     expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBeCloseTo(
-      0.2,
+      PEAK_GAIN,
       2,
     );
   });
