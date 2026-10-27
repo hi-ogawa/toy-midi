@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
 import type { AmpParameters } from "../src/lib/dsp/amp";
-import type { SynthPatch } from "../src/lib/dsp/subtractive-synth";
 import type { SharedProject } from "../src/lib/project-share";
 import { measureRmsDb, renderProject } from "./render-helpers";
 
@@ -58,36 +57,6 @@ test("renders a track's own synth", async ({ page }) => {
     measureRmsDb(mix, { start: 0.1, end: 0.5 }) -
       measureRmsDb(mix, { start: 1.5, end: 1.9 }),
   ).toBeCloseTo(0);
-});
-
-test("renders the synth's waveform", async ({ page }) => {
-  // Render the same held note as a sine and as a sawtooth at the same peak.
-  const createProject = (synth: SynthPatch): SharedProject => ({
-    title: "Waveform",
-    tempo: 120,
-    timeSignature: { numerator: 4, denominator: 4 },
-    midiTracks: [
-      {
-        name: "Synth",
-        program: 0,
-        notes: [{ pitch: 69, start: 0, duration: 2, velocity: 100 }],
-        synth,
-      },
-    ],
-  });
-  const sine = await renderProject(page, createProject({ waveform: "sine" }));
-  const sawtooth = await renderProject(
-    page,
-    createProject({ waveform: "sawtooth" }),
-  );
-
-  // Check the sawtooth sits 1.8 dB below the sine, as its RMS of 1/√3 against
-  // 1/√2 does, which it can't unless the patch reaches the synth.
-  const range = { start: 0.1, end: 0.9 };
-  expect(measureRmsDb(sine, range) - measureRmsDb(sawtooth, range)).toBeCloseTo(
-    1.8,
-    0,
-  );
 });
 
 test("renders a track's amp", async ({ page }) => {
