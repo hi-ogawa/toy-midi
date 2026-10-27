@@ -1,4 +1,6 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import midiPackage from "@tonejs/midi";
 import {
   createProject,
   dragBy,
@@ -10,6 +12,8 @@ import {
   selectMidiInstrument,
 } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
+
+const { Midi } = midiPackage;
 
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Add two MIDI tracks and verify each has its own timeline row.
@@ -205,6 +209,44 @@ test("plays a MIDI track on the Telecaster SoundFont and persists it", async ({
   );
 
   // Switch to the General MIDI program with the same number.
+  await selectMidiInstrument(instrument, {
+    option: "1: Bright Acoustic Piano",
+  });
+});
+
+test("plays a MIDI track on the own synth and persists it", async ({
+  page,
+}) => {
+  // Select a bass program, then switch the track to the own synth.
+  await createProject(page);
+  await addMidiTrack(page);
+  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
+  await selectMidiInstrument(instrument, {
+    option: "33: Electric Bass (finger)",
+  });
+  await selectMidiInstrument(instrument, { option: "Toy MIDI: Synth" });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+
+  // Save and reload, then verify the synth persists.
+  await saveProject(page);
+  await page.reload();
+  await openMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "Toy MIDI: Synth",
+  );
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+
+  // Export the track, and verify the bass program stands in for the synth.
+  const downloadPromise = page.waitForEvent("download");
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Export MIDI" });
+  const download = await downloadPromise;
+  const destination = test.info().outputPath("export.mid");
+  await download.saveAs(destination);
+  const exported = new Midi(await readFile(destination));
+  expect(exported.tracks.map((track) => track.instrument.number)).toEqual([33]);
+
+  // Switch back to a General MIDI program.
+  await openMidiInstrument(page, { name: "MIDI 1" });
   await selectMidiInstrument(instrument, {
     option: "1: Bright Acoustic Piano",
   });

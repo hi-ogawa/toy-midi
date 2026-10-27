@@ -15,6 +15,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "./ui/utils";
 
+const SYNTH_NAME = "Toy MIDI";
+
 // GM instrument groups for organized display
 const INSTRUMENT_GROUPS = [
   { label: "Piano", start: 0, end: 8 },
@@ -52,10 +54,12 @@ export function InstrumentCombobox({
 
   function renderItem(preset: MidiPreset) {
     const label = formatPresetLabel(preset);
-    const selected =
-      value.soundfont === preset.soundfont &&
-      (value.bank ?? 0) === (preset.bank ?? 0) &&
-      value.program === preset.program;
+    const selected = preset.synth
+      ? Boolean(value.synth)
+      : !value.synth &&
+        value.soundfont === preset.soundfont &&
+        (value.bank ?? 0) === (preset.bank ?? 0) &&
+        value.program === preset.program;
     return (
       <CommandItem
         key={label}
@@ -99,6 +103,15 @@ export function InstrumentCombobox({
           <CommandInput placeholder="Search instruments..." />
           <CommandList>
             <CommandEmpty>No instrument found.</CommandEmpty>
+            <CommandGroup heading={SYNTH_NAME}>
+              {/* Keep the SoundFont preset as the General MIDI stand-in for .mid export. */}
+              {renderItem({
+                soundfont: value.soundfont,
+                bank: value.bank,
+                program: value.program,
+                synth: {},
+              })}
+            </CommandGroup>
             {INSTRUMENT_GROUPS.map((group) => (
               <CommandGroup key={group.label} heading={group.label}>
                 {GM_PROGRAMS.slice(group.start, group.end).map((_, i) =>
@@ -125,7 +138,15 @@ export function InstrumentCombobox({
   );
 }
 
-function formatPresetLabel({ soundfont, bank, program }: MidiPreset): string {
+function formatPresetLabel({
+  soundfont,
+  bank,
+  program,
+  synth,
+}: MidiPreset): string {
+  if (synth) {
+    return `${SYNTH_NAME}: Synth`;
+  }
   if (soundfont) {
     const { name, presets } = findSoundfont(soundfont);
     const preset = presets.find((preset) => preset.program === program);
