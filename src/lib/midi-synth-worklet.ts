@@ -120,6 +120,9 @@ export class MidiSynth {
       this.engine!.stopAll();
       this.engine = engine;
     }
+    // TODO: Skip the chase when only the synth's patch changes, since the
+    // engine keeps its controller state. It matters once the synth honors
+    // controllers.
     this.scheduler.requestChase();
   }
 
