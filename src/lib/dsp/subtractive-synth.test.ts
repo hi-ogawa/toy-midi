@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
-import { SineSynth } from "./sine-synth";
+import { SubtractiveSynth } from "./subtractive-synth";
 
-describe(SineSynth, () => {
+describe(SubtractiveSynth, () => {
   it("plays a note as a sine at its pitch until note-off", () => {
-    const synth = new SineSynth(SAMPLE_RATE);
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
     const [left, right] = createBuffers(9600);
     synth.noteOn(69, 127);
     synth.render(left, right, 0, 4800);
@@ -23,7 +23,7 @@ describe(SineSynth, () => {
 
   it("scales a note's level with velocity", () => {
     const measureLevel = (velocity: number) => {
-      const synth = new SineSynth(SAMPLE_RATE);
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
       const [left, right] = createBuffers(4800);
       synth.noteOn(60, velocity);
       synth.render(left, right, 0, 4800);
@@ -33,7 +33,7 @@ describe(SineSynth, () => {
   });
 
   it("mixes into the buffers from the offset", () => {
-    const synth = new SineSynth(SAMPLE_RATE);
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
     const [left, right] = createBuffers(960);
     left.fill(1);
     synth.noteOn(69, 127);
@@ -46,7 +46,7 @@ describe(SineSynth, () => {
   });
 
   it("releases every note on stopAll", () => {
-    const synth = new SineSynth(SAMPLE_RATE);
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
     const [left, right] = createBuffers(4800);
     synth.noteOn(60, 100);
     synth.noteOn(64, 100);

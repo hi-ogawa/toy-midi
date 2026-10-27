@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { AmpParameters } from "../src/lib/dsp/amp";
-import type { SynthPatch } from "../src/lib/dsp/sine-synth";
+import type { SynthPatch } from "../src/lib/dsp/subtractive-synth";
 import type { SharedProject } from "../src/lib/project-share";
 import {
   measureRmsDb,

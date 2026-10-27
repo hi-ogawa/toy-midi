@@ -1,5 +1,5 @@
 import { DEFAULT_MIDI_CONTROLLERS } from "spessasynth_core";
-import { type SynthPatch, SineSynth } from "./dsp/sine-synth.ts";
+import { type SynthPatch, SubtractiveSynth } from "./dsp/subtractive-synth.ts";
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
 import { encodePitchBend, PITCH_WHEEL_CENTER } from "./general-midi.ts";
 import {
@@ -79,7 +79,7 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
 /** The synth's state, with its async methods called from the main thread. */
 export class MidiSynth {
   private soundfontSynth?: SoundfontSynth;
-  private sineSynth?: SineSynth;
+  private subtractiveSynth?: SubtractiveSynth;
   private engine?: SynthEngine;
   // Scheduling here rather than on a main-thread timer keeps a busy page from
   // dropping notes.
@@ -108,7 +108,7 @@ export class MidiSynth {
   async setPreset({ synth, ...preset }: SynthPreset): Promise<void> {
     this.soundfontSynth!.setPreset(preset);
     const engine = synth
-      ? (this.sineSynth ??= new SineSynth(sampleRate))
+      ? (this.subtractiveSynth ??= new SubtractiveSynth(sampleRate))
       : this.soundfontSynth!;
     if (engine !== this.engine) {
       this.engine!.stopAll();
