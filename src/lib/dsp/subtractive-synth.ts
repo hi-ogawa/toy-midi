@@ -1,4 +1,5 @@
 import type { SynthEngine } from "../midi-synth-worklet.ts";
+import { midiToHz } from "../music.ts";
 
 /**
  * Patch for Toy MIDI's own synth. The synth has no parameters yet, so a
@@ -36,7 +37,7 @@ export class SubtractiveSynth implements SynthEngine {
     this.noteOff(pitch);
     this.voices.push({
       pitch,
-      phaseIncrement: (440 * 2 ** ((pitch - 69) / 12)) / this.sampleRate,
+      phaseIncrement: midiToHz(pitch) / this.sampleRate,
       phase: 0,
       gain: 0,
       targetGain: PEAK_GAIN * (velocity / 127),
