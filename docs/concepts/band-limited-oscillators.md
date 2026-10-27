@@ -99,4 +99,3 @@ The triangle's corners can be corrected the same way. A corner is a change of sl
 - T. Stilson and J. Smith, [Alias-Free Digital Synthesis of Classic Analog Waveforms](https://ccrma.stanford.edu/~stilti/papers/blit.pdf), band-limited impulse trains, where the idea of building a waveform from band-limited discontinuities comes from
 - E. Brandt, [Hard Sync Without Aliasing](https://www.cs.cmu.edu/~eli/papers/icmc01-hardsync.pdf), the BLEP as a table of the band-limited step's difference from the naive one, added at each jump
 - V. Välimäki, J. Pekonen, and J. Nam, [Perceptually Informed Synthesis of Bandlimited Classical Waveforms Using Integrated Polynomial Interpolation](https://doi.org/10.1121/1.3651227), the polynomial BLEP and BLAMP corrections and how audible their remaining aliases are
-- [PolyBLEP discussion on KVR Audio](https://www.kvraudio.com/forum/viewtopic.php?t=375517), the two-sample form the synth follows

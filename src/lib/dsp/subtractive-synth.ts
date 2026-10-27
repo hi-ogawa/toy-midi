@@ -117,7 +117,7 @@ const OSCILLATORS: Record<
 /**
  * PolyBLEP correction for a unit step at phase 0, which rounds the jump over
  * the samples next to it so a sawtooth or square doesn't alias audibly.
- * https://www.kvraudio.com/forum/viewtopic.php?t=375517
+ * See [Band-limited oscillators](../../../docs/concepts/band-limited-oscillators.md).
  */
 function correctStep(phase: number, increment: number): number {
   if (phase < increment) {
