@@ -17,7 +17,7 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1$, w
 
 ![Two cycles of each waveform beside its first 16 harmonics. The sine has only its fundamental. The triangle has corners and odd harmonics that drop below −45 dB by the 15th. The sawtooth jumps once per cycle and the square twice, and their harmonics fall slowly, staying above −25 dB through the 16th](images/band-limited-waveforms.svg)
 
-**How fast the harmonics fall depends on the sharpest feature of the shape.** The sawtooth and square jump, and their harmonics fall as $1/n$, which is 6 dB per octave. The triangle never jumps, but its slope changes suddenly at each corner, and its harmonics fall as $1/n^2$, which is 12 dB per octave. The two are related by integration. The triangle's slope is a square wave, so the triangle is a square integrated, and integrating divides the $n$th harmonic by its frequency, which adds one more factor of $n$.
+**How fast the harmonics fall depends on the sharpest feature of the shape.** The sawtooth and square jump, and their harmonics fall as $1/n$, which is 6 dB per octave. The triangle never jumps, but its slope changes suddenly at each corner, and its harmonics fall as $1/n^2$, which is 12 dB per octave. The two are related by integration. The triangle's slope is a square wave, so the triangle is a square integrated, and integrating divides the $n$th harmonic by its frequency, which adds one more factor of $n$. The [appendix](#appendix-split-each-harmonic-at-the-jumps) derives both rates.
 
 **The harmonics never stop, so some always fold.** Computing the waveform sample by sample is the same as sampling the ideal waveform, so every harmonic above $F_s/2$ folds back as an alias. For a sawtooth at 1 kHz, the 25th harmonic, at 25 kHz, is the first past the 24 kHz Nyquist frequency, and it lands at 23 kHz only 28 dB below the fundamental, because $1/25$ is −28 dB. The harmonics near 48 kHz are still only about 34 dB down, and they fold to just above 0 Hz, where the ear is far more sensitive than near 24 kHz. The aliases don't fall on multiples of $f_0$, so they sound like inharmonic tones, and they move the wrong way when the pitch moves. The same 25th harmonic of a 1 kHz triangle is 56 dB down, since $1/25^2$ is −56 dB.
 
@@ -29,7 +29,7 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1$, w
 
 ## Replace Each Jump with a Band-Limited Step
 
-The sawtooth rises in a straight line from one jump to the next, and a straight line is perfectly smooth, so all of its high harmonics, and with them all the aliasing, come from the jumps. A jump is a step, and the step has a band-limited version, which is what a perfect low-pass at $F_s/2$ would turn it into. With $t$ counted in samples from the jump, that is the integral of the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating),
+The sawtooth rises in a straight line from one jump to the next, and a straight line is perfectly smooth, so all of its high harmonics, and with them all the aliasing, come from the jumps. The [appendix](#appendix-split-each-harmonic-at-the-jumps) shows this is exact, since the line's constant slope contributes nothing to any harmonic. A jump is a step, and the step has a band-limited version, which is what a perfect low-pass at $F_s/2$ would turn it into. With $t$ counted in samples from the jump, that is the integral of the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating),
 
 $$
 S(t)=\int_{-\infty}^{t}\text{sinc}(u)\,du,
@@ -101,3 +101,47 @@ The triangle's corners can be corrected the same way. A corner is a change of sl
 - T. Stilson and J. Smith, [Alias-Free Digital Synthesis of Classic Analog Waveforms](https://ccrma.stanford.edu/~stilti/papers/blit.pdf), band-limited impulse trains, where the idea of building a waveform from band-limited discontinuities comes from
 - E. Brandt, [Hard Sync Without Aliasing](https://www.cs.cmu.edu/~eli/papers/icmc01-hardsync.pdf), the BLEP as a table of the band-limited step's difference from the naive one, added at each jump
 - V. Välimäki, J. Pekonen, and J. Nam, [Perceptually Informed Synthesis of Bandlimited Classical Waveforms Using Integrated Polynomial Interpolation](https://doi.org/10.1121/1.3651227), the polynomial BLEP and BLAMP corrections and how audible their remaining aliases are
+
+## Appendix: Split Each Harmonic at the Jumps
+
+This appendix makes two claims from the main text exact: that a sawtooth's high harmonics come entirely from its jump, and that the sharpest feature of a shape sets how fast its harmonics fall.
+
+**Setup.** Let $x(\varphi)$ have period 1 and be smooth except at the phases $\varphi_1,\dots,\varphi_m$ in each cycle, where it may jump by $J_k=x(\varphi_k^+)-x(\varphi_k^-)$. Its $n$th Fourier coefficient is
+
+$$
+c_n=\int_0^1 x(\varphi)\,e^{-2\pi in\varphi}\,d\varphi,
+$$
+
+and for a real waveform the $n$th harmonic has amplitude $2|c_n|$.
+
+**Integrate by parts between the jumps.** On one smooth piece from $a$ to $b$,
+
+$$
+\int_a^b x(\varphi)\,e^{-2\pi in\varphi}\,d\varphi=\Big[\frac{x(\varphi)\,e^{-2\pi in\varphi}}{-2\pi in}\Big]_a^b+\frac{1}{2\pi in}\int_a^b x'(\varphi)\,e^{-2\pi in\varphi}\,d\varphi.
+$$
+
+Summing over the pieces of a cycle, each break $\varphi_k$ is the end of one piece and the start of the next, so its two boundary terms combine into $\big(x(\varphi_k^-)-x(\varphi_k^+)\big)e^{-2\pi in\varphi_k}/(-2\pi in)$, which is $J_ke^{-2\pi in\varphi_k}/(2\pi in)$. Where the waveform is continuous the two terms cancel, and periodicity joins the last piece to the first. So
+
+$$
+c_n=\frac{1}{2\pi in}\sum_{k=1}^{m}J_k\,e^{-2\pi in\varphi_k}+\frac{1}{2\pi in}\,c_n[x'],
+$$
+
+where $x'$ is the slope of the smooth pieces, without the jumps, and $c_n[x']$ is its $n$th coefficient. The first term comes from the jumps alone. Each jump contributes the same magnitude $|J_k|$ to every harmonic, so after the factor $1/(2\pi in)$ it falls as $1/n$. The second term comes from the smooth pieces alone.
+
+**The sawtooth is all jump.** The sawtooth $2\varphi-1$ has slope 2 everywhere, and a constant has no harmonics, since $\int_0^1 2\,e^{-2\pi in\varphi}\,d\varphi=0$ for every $n\neq0$. So the second term vanishes, and with its one jump $J=-2$ at $\varphi=0$,
+
+$$
+c_n=\frac{-2}{2\pi in},\qquad 2|c_n|=\frac{2}{\pi n},
+$$
+
+exactly, for every harmonic. All of the sawtooth's harmonics, and so all of its aliases, are the jump's. The square is the same, with $J=2$ at $\varphi=0$ and $J=-2$ at $\varphi=\tfrac12$ and no slope at all, so $c_n=2\big(1-e^{-i\pi n}\big)/(2\pi in)$, which is 0 for even $n$ and gives $2|c_n|=4/(\pi n)$ for odd $n$.
+
+**Repeating the split gives the falloff.** The second term is $c_n[x']$ divided by $2\pi in$, and $c_n[x']$ splits the same way at the jumps of $x'$, which are the corners of $x$. So jumps in $x$ give harmonics falling as $1/n$, corners give $1/n^2$, jumps in the curvature give $1/n^3$, and so on, and the lowest derivative that jumps sets the falloff. The triangle has no jumps, so its first term vanishes. Its slope is 4 for $\varphi$ from $-\tfrac14$ to $\tfrac14$ and −4 for the rest of the cycle, so the slope jumps by −8 at $\varphi=\tfrac14$ and by 8 at $\varphi=\tfrac34$, and has no slope of its own. Applying the formula to the slope,
+
+$$
+c_n[x']=\frac{8\big(e^{-3i\pi n/2}-e^{-i\pi n/2}\big)}{2\pi in},
+$$
+
+which is 0 for even $n$ and has magnitude $16/(2\pi n)$ for odd $n$. Dividing by $2\pi in$ once more gives $2|c_n|=8/(\pi^2n^2)$, the triangle's entry in the table.
+
+**The same split is what the corrections use.** It writes the waveform as a smooth part plus a step at each jump and a ramp at each corner. A BLEP replaces each step with its band-limited version, and a BLAMP does the same for each ramp. For the sawtooth and square, the smooth part has no harmonics, so replacing the steps leaves nothing that can alias. In the language of distributions, the split says that each jump puts an impulse of weight $J_k$ into the slope, and an impulse contains every frequency at equal strength.
