@@ -59,10 +59,11 @@ describe(SubtractiveSynth, () => {
 
   it("plays each waveform at the note's pitch", () => {
     // Levels are RMS in dBFS past the attack, and pitches count rising zero
-    // crossings over 0.9 s.
+    // crossings per second. Skipping 0.1 s leaves 0.9 s, a whole number of
+    // cycles at 440 Hz, so the count is exact.
     const describeWaveform = (waveform: Waveform) => {
-      const samples = renderNote({ waveform, pitch: 69, length: 48000 });
-      const steady = samples.subarray(4800);
+      const samples = renderNote({ waveform, pitch: 69, length: SAMPLE_RATE });
+      const steady = samples.subarray(SAMPLE_RATE * 0.1);
       let crossings = 0;
       for (let i = 1; i < steady.length; i++) {
         if (steady[i - 1] < 0 && steady[i] >= 0) {
@@ -70,7 +71,8 @@ describe(SubtractiveSynth, () => {
         }
       }
       const level = gainToDb(measureRms(steady)).toFixed(1);
-      return `${waveform}: ${level} dB, ${Math.round(crossings / 0.9)} Hz`;
+      const frequency = Math.round(crossings / (steady.length / SAMPLE_RATE));
+      return `${waveform}: ${level} dB, ${frequency} Hz`;
     };
     expect(WAVEFORMS.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
       "sine: -17.0 dB, 440 Hz
@@ -85,7 +87,7 @@ describe(SubtractiveSynth, () => {
     const measureLargestStep = (waveform: Waveform) => {
       const samples = renderNote({ waveform, pitch: 93, length: 4800 });
       let largest = 0;
-      for (let i = 481; i < samples.length; i++) {
+      for (let i = RAMP_FRAMES + 1; i < samples.length; i++) {
         largest = Math.max(largest, Math.abs(samples[i] - samples[i - 1]));
       }
       return largest / 0.2;
