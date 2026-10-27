@@ -21,7 +21,7 @@ const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
   "note-on": 2,
 };
 
-/** What plays a track's notes and automation, on one MIDI channel. */
+/** Plays a track's notes and automation as a single MIDI channel. */
 export interface SynthEngine {
   noteOn(pitch: number, velocity: number): void;
   noteOff(pitch: number): void;
@@ -38,7 +38,10 @@ export interface SynthEngine {
   stopAll(): void;
 }
 
-/** The track's SoundFont preset, played by its own synth when `synth` is set. */
+/**
+ * When `synth` is set, Toy MIDI's own synth plays the track instead of the
+ * SoundFont preset.
+ */
 type SynthPreset = SoundfontPreset & { synth?: SynthPatch };
 
 type QueuedEvent = ScheduledEvent & { frame: number };
