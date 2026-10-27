@@ -27,7 +27,7 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1$, w
 
 ## Replace Each Jump with a Band-Limited Step
 
-Between its jumps the sawtooth is a straight line, which has no high harmonics, so all the aliasing comes from the jumps. A jump is a step, and the step has a band-limited version, which is what a perfect low-pass at $F_s/2$ would turn it into. With $t$ counted in samples from the jump, that is the integral of the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating),
+The sawtooth rises in a straight line from one jump to the next, and a straight line is perfectly smooth, so all of its high harmonics, and with them all the aliasing, come from the jumps. A jump is a step, and the step has a band-limited version, which is what a perfect low-pass at $F_s/2$ would turn it into. With $t$ counted in samples from the jump, that is the integral of the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating),
 
 $$
 S(t)=\int_{-\infty}^{t}\text{sinc}(u)\,du,
