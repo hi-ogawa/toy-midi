@@ -107,9 +107,12 @@ export class MidiSynth {
 
   async setPreset({ synth, ...preset }: SynthPreset): Promise<void> {
     this.soundfontSynth!.setPreset(preset);
-    const engine = synth
-      ? (this.subtractiveSynth ??= new SubtractiveSynth(sampleRate))
-      : this.soundfontSynth!;
+    let engine: SynthEngine = this.soundfontSynth!;
+    if (synth) {
+      this.subtractiveSynth ??= new SubtractiveSynth(sampleRate);
+      this.subtractiveSynth.setPatch(synth);
+      engine = this.subtractiveSynth;
+    }
     if (engine !== this.engine) {
       this.engine!.stopAll();
       this.engine = engine;

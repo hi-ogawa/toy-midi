@@ -1,8 +1,11 @@
-/**
- * Patch for Toy MIDI's own synth. The synth has no parameters yet, so a
- * patch only selects the synth.
- */
-export type SynthPatch = Record<string, never>;
+export const WAVEFORMS = ["sine", "triangle", "sawtooth", "square"] as const;
+export type Waveform = (typeof WAVEFORMS)[number];
+
+/** Patch for Toy MIDI's own synth */
+export interface SynthPatch {
+  /** Oscillator shape, sine when absent */
+  waveform?: Waveform;
+}
 
 // Short enough to sound immediate, long enough to keep note edges from clicking.
 const RAMP_SECONDS = 0.005;
@@ -18,16 +21,19 @@ interface Voice {
   targetGain: number;
 }
 
-/**
- * Toy MIDI's own polyphonic synth. It plays each note as a sine for now and
- * ignores controllers.
- */
+/** Toy MIDI's own polyphonic synth. It ignores controllers for now. */
 export class SubtractiveSynth {
   private voices: Voice[] = [];
+  private waveform: Waveform = "sine";
   private readonly gainStep: number;
 
   constructor(private readonly sampleRate: number) {
     this.gainStep = PEAK_GAIN / (RAMP_SECONDS * sampleRate);
+  }
+
+  /** Applies to sounding notes too, so a change is heard while a note holds. */
+  setPatch(patch: SynthPatch): void {
+    this.waveform = patch.waveform ?? "sine";
   }
 
   noteOn(pitch: number, velocity: number): void {
@@ -60,6 +66,7 @@ export class SubtractiveSynth {
     offset: number,
     length: number,
   ): void {
+    const oscillate = OSCILLATORS[this.waveform];
     for (const voice of this.voices) {
       for (let i = offset; i < offset + length; i++) {
         const step = Math.min(
@@ -67,7 +74,8 @@ export class SubtractiveSynth {
           Math.abs(voice.targetGain - voice.gain),
         );
         voice.gain += voice.targetGain > voice.gain ? step : -step;
-        const sample = voice.gain * Math.sin(2 * Math.PI * voice.phase);
+        const sample =
+          voice.gain * oscillate(voice.phase, voice.phaseIncrement);
         left[i] += sample;
         right[i] += sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
@@ -83,4 +91,37 @@ export class SubtractiveSynth {
       voice.targetGain = 0;
     }
   }
+}
+
+/** Each takes the phase and the phase increment in cycles, with a peak of 1. */
+const OSCILLATORS: Record<
+  Waveform,
+  (phase: number, increment: number) => number
+> = {
+  sine: (phase) => Math.sin(2 * Math.PI * phase),
+  // Starts at 0 and rises, in phase with the sine. Its harmonics fall off
+  // fast enough that aliasing stays quiet without band-limiting.
+  triangle: (phase) => 4 * Math.abs(((phase + 0.75) % 1) - 0.5) - 1,
+  sawtooth: (phase, increment) => 2 * phase - 1 - correctStep(phase, increment),
+  square: (phase, increment) =>
+    (phase < 0.5 ? 1 : -1) +
+    correctStep(phase, increment) -
+    correctStep((phase + 0.5) % 1, increment),
+};
+
+/**
+ * PolyBLEP correction for a unit step at phase 0, which rounds the jump over
+ * the samples next to it so a sawtooth or square doesn't alias audibly.
+ * https://www.kvraudio.com/forum/viewtopic.php?t=375517
+ */
+function correctStep(phase: number, increment: number): number {
+  if (phase < increment) {
+    const t = phase / increment;
+    return 2 * t - t * t - 1;
+  }
+  if (phase > 1 - increment) {
+    const t = (phase - 1) / increment;
+    return t * t + 2 * t + 1;
+  }
+  return 0;
 }
