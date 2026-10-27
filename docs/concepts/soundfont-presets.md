@@ -110,6 +110,20 @@ The controller routes from SpessaSynth are bipolar around the controller's cente
 
 GeneralUser GS's instruments interact with these defaults on purpose. Its waveform and Rhodes instruments carry a velocity-to-attenuation modulator, which replaces the default, and two velocity-to-cutoff modulators with an amount of 0, which switch off the velocity-to-cutoff default in players that have one. They also raise the reverb and chorus sends, but Toy MIDI turns SpessaSynth's built-in effects off, so MIDI tracks stay dry and those routes do nothing.
 
+## Compare the Voice with a Subtractive Synth
+
+A SoundFont voice is a fixed subtractive synth voice whose oscillator is a sample player. It has a sample playing at the note's pitch, one resonant lowpass filter, an amp with a volume envelope, a second envelope wired to pitch and cutoff, and two LFOs. This is the design of sample-playback synths of the early 1990s, and SoundFont came from the same place, because E-mu and Creative designed it for the EMU8000 chip in the Sound Blaster AWE32, which runs this voice in hardware. A SoundFont file is close to a patch bank for that chip.
+
+Against a subtractive synth patched in a DAW, the format fixes a few things.
+
+- **The sample replaces the oscillator.** Pitch comes from resampling, so the timbre drifts away from the root key, which is why instruments split every few keys. Waveform choice, pulse width modulation, sync, and FM exist only if they are baked into the samples.
+- **Each voice has one filter, and it is always a lowpass.** There is no highpass, bandpass, or drive stage.
+- **Oscillators stack as whole voices.** Synth Bass 1's pulse and saw are two layers, each with its own filter and envelopes, where a Minimoog would mix two oscillators into one shared filter. That is how the preset can give the two layers different cutoffs and decays.
+- **Modulation sources are only what MIDI sends,** meaning velocity, key, controllers, pitch bend, and pressure. The LFOs and the modulation envelope reach their destinations through fixed depth generators, so an LFO cannot move pan, and an envelope cannot move an LFO's rate.
+- **The format has no glide or mono legato.** Portamento, where a player offers it, is MIDI behavior of the player rather than part of the preset.
+
+So for acoustic presets the synth part is mostly tone shaping around recordings. For GeneralUser GS's synth presets, whose samples are single-cycle waveforms, the samples are just oscillator shapes, and the preset really is a classic subtractive patch.
+
 ## Read a General MIDI Name as a Patch
 
 Put together, a General MIDI name like Synth Bass 1 stands for a patch that the name does not hint at, made of two detuned and panned oscillators, each a stack of single-cycle samples, through a lowpass filter whose envelope depth follows velocity, with a long fade, a vibrato waiting on the modulation wheel, and cutoff, resonance, and envelope times on CC71 to CC75. Another SoundFont's Synth Bass 1 can be built in a completely different way, because General MIDI only fixes the name. Knowing the structure explains why a preset reacts to velocity or a controller the way it does, and what an edit would have to change to make it react differently.
