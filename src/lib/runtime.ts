@@ -24,6 +24,7 @@ import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
+import type { SynthPatch } from "./dsp/sine-synth.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
@@ -105,6 +106,11 @@ export interface MidiTrackState extends BaseTrackState {
    */
   bank?: number;
   /**
+   * Toy MIDI's own synth, which plays the track instead of the SoundFont preset
+   * when present. The preset still stands in for it in `.mid` export.
+   */
+  synth?: SynthPatch;
+  /**
    * Guitar amp in front of the EQ, absent when off. The drive makes each
    * note's release tail loud enough to smear into the next note, so mute the
    * tails with CC 11 (expression) at 0 from just after a note-off to the next
@@ -120,7 +126,10 @@ export interface MidiTrackState extends BaseTrackState {
   keySignature: KeySignature;
 }
 
-export type MidiPreset = Pick<MidiTrackState, "soundfont" | "bank" | "program">;
+export type MidiPreset = Pick<
+  MidiTrackState,
+  "soundfont" | "bank" | "program" | "synth"
+>;
 
 export interface LoopRange {
   /** In beats from the start of the project */
@@ -723,6 +732,7 @@ export class EditorRuntime {
       soundfont: preset.soundfont,
       bank: preset.bank,
       program: preset.program,
+      synth: preset.synth,
     }));
   }
 
