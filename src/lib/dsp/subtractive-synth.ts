@@ -36,7 +36,6 @@ export class SubtractiveSynth implements SynthEngine {
     this.gainStep = PEAK_GAIN / (RAMP_SECONDS * sampleRate);
   }
 
-  /** Applies to sounding notes too, so a change is heard while a note holds. */
   setPatch(patch: SynthPatch): void {
     this.waveform = patch.waveform;
   }
