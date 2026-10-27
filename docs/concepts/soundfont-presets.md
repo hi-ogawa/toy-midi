@@ -30,7 +30,7 @@ Synth Bass 1 splits for a different reason. Its samples are single cycles, meani
 
 **Layers** are zones that cover the same rectangle, so one note plays all of them at once. Synth Bass 1 has two preset zones over the whole keyboard, one pointing to a 37.5% pulse and one to a saw (the instrument calls it a ramp). The pulse is tuned 3 cents flat and panned 15% left, and the saw 3 cents sharp and 15% right, so the two beat slowly against each other and spread in stereo. What a General MIDI name presents as one sound is, here, two oscillators in a classic detuned stack.
 
-![Tine Electric Piano switches between three recordings (soft, medium, and hard), switching at velocities 68 and 106. Square Lead has two layers, each split into four velocity bands of the same pulse wave, with the cutoff rising from 3.2 to 3.8 kHz](images/soundfont-velocity-layers.svg)
+![Tine Electric Piano has three recordings (soft, medium, and hard) that switch at velocities 68 and 106. Square Lead has two layers, each split into four velocity bands of the same pulse wave, with the cutoff rising from 3.2 to 3.8 kHz](images/soundfont-velocity-layers.svg)
 
 **Velocity layers** are zones stacked by velocity, so playing harder selects a different zone. Tine Electric Piano has three sets of recordings, played softly (velocity 0 to 67), medium (68 to 105), and hard (106 to 127), and each is split across the keyboard with its own samples. That is how a sampled piano gets brighter and more barky when struck harder, because a hard hit is a different recording, not a louder soft one.
 
