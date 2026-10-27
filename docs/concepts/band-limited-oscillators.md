@@ -1,6 +1,6 @@
 # Band-Limited Oscillators
 
-Toy MIDI's synth computes its waveforms from a formula, one sample at a time, and a sawtooth or square computed that way aliases, because its jumps carry harmonics far above what the sample rate can hold. This document shows where that aliasing comes from, why filtering or oversampling doesn't remove it, and how the [synth](../../src/lib/dsp/subtractive-synth.ts) rounds each jump with a correction called PolyBLEP. It builds on [See Why Clipping Aliases](oversampling.md#see-why-clipping-aliases), which explains how a frequency above the Nyquist frequency folds back below it.
+Toy MIDI's synth computes its waveforms from a formula, one sample at a time, and a sawtooth or square computed that way aliases, because its jumps carry harmonics far above what the sample rate can hold. A **band-limited** waveform has nothing above the Nyquist frequency, so sampling it doesn't alias, and an oscillator that produces one is band-limited too. This document shows where that aliasing comes from, why filtering or oversampling doesn't remove it, and how the [synth](../../src/lib/dsp/subtractive-synth.ts) rounds each jump with a correction called PolyBLEP. It builds on [See Why Clipping Aliases](oversampling.md#see-why-clipping-aliases), which explains how a frequency above the Nyquist frequency folds back below it.
 
 Throughout, $F_s$ is the sample rate, 48 kHz in the examples, $f_0$ is the note's frequency, and the oscillator's **phase** $\varphi$ runs from 0 to 1 over each cycle, advancing by $\Delta=f_0/F_s$ cycles per sample.
 
@@ -29,7 +29,7 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1$, w
 
 ## Replace Each Jump with a Band-Limited Step
 
-The sawtooth rises in a straight line from one jump to the next, and a straight line is perfectly smooth, so all of its high harmonics, and with them all the aliasing, come from the jumps. The [appendix](#appendix-split-each-harmonic-at-the-jumps) shows this is exact, since the line's constant slope contributes nothing to any harmonic. A jump is a step, and the step has a band-limited version, which is what a perfect low-pass at $F_s/2$ would turn it into. With $t$ counted in samples from the jump, that is the integral of the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating),
+The sawtooth rises in a straight line from one jump to the next, and a straight line is perfectly smooth, so all of its high harmonics, and with them all the aliasing, come from the jumps. The [appendix](#appendix-split-each-harmonic-at-the-jumps) shows this is exact, since the line's constant slope contributes nothing to any harmonic. A jump is a step, and the step has a band-limited version, as smooth as a perfect low-pass at $F_s/2$ would make it. With $t$ counted in samples from the jump, that is the integral of the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating),
 
 $$
 S(t)=\int_{-\infty}^{t}\text{sinc}(u)\,du,
