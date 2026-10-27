@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import { SubtractiveSynth } from "./subtractive-synth";
 
+// 10 ms, which covers a note's attack or release ramp.
+const RAMP_FRAMES = 480;
+
 describe(SubtractiveSynth, () => {
   it("plays a note as a sine at its pitch until note-off", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
@@ -13,12 +16,12 @@ describe(SubtractiveSynth, () => {
 
     // Past the attack ramp, the note matches a 440 Hz sine sample for sample.
     const sine = createSine({ frequency: 440, amplitude: 0.2, length: 4800 });
-    for (let i = 480; i < 4800; i++) {
+    for (let i = RAMP_FRAMES; i < 4800; i++) {
       expect(left[i]).toBeCloseTo(sine[i], 5);
     }
     expect(right).toEqual(left);
     // The release ramp has ended well before the second half's end.
-    expect(measureRms(left.subarray(4800 + 480))).toBe(0);
+    expect(measureRms(left.subarray(4800 + RAMP_FRAMES))).toBe(0);
   });
 
   it("scales a note's level with velocity", () => {
@@ -27,7 +30,7 @@ describe(SubtractiveSynth, () => {
       const [left, right] = createBuffers(4800);
       synth.noteOn(60, velocity);
       synth.render(left, right, 0, 4800);
-      return measureRms(left.subarray(480));
+      return measureRms(left.subarray(RAMP_FRAMES));
     };
     expect(measureLevel(64) / measureLevel(127)).toBeCloseTo(64 / 127, 2);
   });
@@ -53,7 +56,7 @@ describe(SubtractiveSynth, () => {
     synth.render(left, right, 0, 2400);
     synth.stopAll();
     synth.render(left, right, 2400, 2400);
-    expect(measureRms(left.subarray(2400 + 480))).toBe(0);
+    expect(measureRms(left.subarray(2400 + RAMP_FRAMES))).toBe(0);
   });
 });
 
