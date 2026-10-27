@@ -14,27 +14,7 @@ A SoundFont is three tables that point into each other.
 
 Playing a note walks down the chain. The synth finds every preset zone that contains the note's key and velocity, then, inside each zone's instrument, every instrument zone that contains them, and starts one voice for each match. A voice is one sample playing through its own filter and envelopes. So one key press can start several voices, and in Synth Bass 1 every key starts two.
 
-As a data model:
-
-```
-Preset               selected by bank and program number
-  global zone        settings shared by every zone below
-  zones: PresetZone[]
-    key range, velocity range
-    generators       added to the instrument's values
-    modulators
-    instrument ─┐
-                ▼
-Instrument
-  global zone        settings shared by every zone below
-  zones: InstrumentZone[]
-    key range, velocity range
-    generators       absolute values
-    modulators
-    sample ─┐
-            ▼
-Sample               audio frames, sample rate, root key, loop start and end
-```
+![A preset and an instrument each have a global zone and a list of zones. A zone holds a key range, a velocity range, generators, and modulators, and points to an instrument in a preset or to a sample in an instrument. Preset generators are added to the instrument's, and instrument generators are absolute. A sample holds audio frames, a sample rate, a root key, and loop points](images/soundfont-model.svg)
 
 An audio analogy is a sampler patch inside a rack. The instrument is a multisampled patch, meaning a key and velocity map of recordings with an envelope and a filter per zone. The preset is a rack with one chain per preset zone, where each chain has its own key and velocity zone and can offset the patch's knobs. Ableton's Instrument Rack, with key and velocity zones per chain, is close to the same shape.
 
