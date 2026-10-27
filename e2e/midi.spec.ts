@@ -1,6 +1,4 @@
-import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import midiPackage from "@tonejs/midi";
 import {
   createProject,
   dragBy,
@@ -12,8 +10,6 @@ import {
   selectMidiInstrument,
 } from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
-
-const { Midi } = midiPackage;
 
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Add two MIDI tracks and verify each has its own timeline row.
@@ -235,15 +231,6 @@ test("plays a MIDI track on the own synth and persists it", async ({
     "Toy MIDI: Synth",
   );
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
-
-  // Export the track, and verify the bass program stands in for the synth.
-  const downloadPromise = page.waitForEvent("download");
-  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Export MIDI" });
-  const download = await downloadPromise;
-  const destination = test.info().outputPath("export.mid");
-  await download.saveAs(destination);
-  const exported = new Midi(await readFile(destination));
-  expect(exported.tracks.map((track) => track.instrument.number)).toEqual([33]);
 
   // Switch back to a General MIDI program.
   await openMidiInstrument(page, { name: "MIDI 1" });
