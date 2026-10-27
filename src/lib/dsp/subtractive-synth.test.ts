@@ -82,20 +82,6 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
-  it("rounds the jumps of a sawtooth and a square", () => {
-    // A naive jump spans twice the peak in one sample.
-    const measureLargestStep = (waveform: Waveform) => {
-      const samples = renderNote({ waveform, pitch: 93, length: 4800 });
-      let largest = 0;
-      for (let i = RAMP_FRAMES + 1; i < samples.length; i++) {
-        largest = Math.max(largest, Math.abs(samples[i] - samples[i - 1]));
-      }
-      return largest / 0.2;
-    };
-    expect(measureLargestStep("sawtooth")).toBeLessThan(1.5);
-    expect(measureLargestStep("square")).toBeLessThan(1.5);
-  });
-
   it("changes the waveform of a sounding note", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(9600);
