@@ -96,16 +96,19 @@ describe(SubtractiveSynth, () => {
 
   it("changes the waveform of a sounding note", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const [left, right] = createBuffers(9600);
+    const buffers = createBuffers(9600);
     synth.noteOn(69, 127);
-    synth.render(left, right, 0, 4800);
+    synth.render(buffers[0], buffers[1], 0, 4800);
     synth.setPatch({ waveform: "square" });
-    synth.render(left, right, 4800, 4800);
-    expect(measureRms(left.subarray(480, 4800))).toBeCloseTo(
+    synth.render(buffers[0], buffers[1], 4800, 4800);
+    expect(measureRms(buffers[0].subarray(RAMP_FRAMES, 4800))).toBeCloseTo(
       0.2 / Math.SQRT2,
       3,
     );
-    expect(measureRms(left.subarray(5280))).toBeCloseTo(0.2, 2);
+    expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBeCloseTo(
+      0.2,
+      2,
+    );
   });
 
   it("releases every note on stopAll", () => {
@@ -131,10 +134,10 @@ function renderNote({
 }): Float32Array {
   const synth = new SubtractiveSynth(SAMPLE_RATE);
   synth.setPatch({ waveform });
-  const [left, right] = createBuffers(length);
+  const buffers = createBuffers(length);
   synth.noteOn(pitch, 127);
-  synth.render(left, right, 0, length);
-  return left;
+  synth.render(buffers[0], buffers[1], 0, length);
+  return buffers[0];
 }
 
 function createBuffers(length: number): [Float32Array, Float32Array] {
