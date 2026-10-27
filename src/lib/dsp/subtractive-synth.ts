@@ -1,3 +1,5 @@
+import type { SynthEngine } from "../midi-synth-worklet.ts";
+
 /**
  * Patch for Toy MIDI's own synth. The synth has no parameters yet, so a
  * patch only selects the synth.
@@ -22,7 +24,7 @@ interface Voice {
  * Toy MIDI's own polyphonic synth. It plays each note as a sine for now and
  * ignores controllers.
  */
-export class SubtractiveSynth {
+export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
   private readonly gainStep: number;
 
