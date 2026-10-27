@@ -62,7 +62,7 @@ export async function selectMidiInstrument(
       await program.click();
       await page
         .getByPlaceholder("Search instruments...")
-        .fill(option.split(": ")[1]);
+        .fill(option.split(": ").at(-1)!);
       await page.getByRole("option", { name: option, exact: true }).click();
       await expect(program).toContainText(option);
       await expect(program).toBeEnabled();

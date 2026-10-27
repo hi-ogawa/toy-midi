@@ -107,7 +107,7 @@ export interface MidiTrackState extends BaseTrackState {
   bank?: number;
   /**
    * Toy MIDI's own synth, which plays the track instead of the SoundFont preset
-   * when present. The preset still stands in for it in `.mid` export.
+   * when present
    */
   synth?: SynthPatch;
   /**

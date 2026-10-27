@@ -1,3 +1,6 @@
+import type { SynthEngine } from "../midi-synth-worklet.ts";
+import { midiToHz } from "../music.ts";
+
 export const WAVEFORMS = ["sine", "triangle", "sawtooth", "square"] as const;
 export type Waveform = (typeof WAVEFORMS)[number];
 
@@ -24,7 +27,7 @@ interface Voice {
 }
 
 /** Toy MIDI's own polyphonic synth. It ignores controllers for now. */
-export class SubtractiveSynth {
+export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
   private waveform = DEFAULT_SYNTH_PATCH.waveform;
   private readonly gainStep: number;
@@ -42,7 +45,7 @@ export class SubtractiveSynth {
     this.noteOff(pitch);
     this.voices.push({
       pitch,
-      phaseIncrement: (440 * 2 ** ((pitch - 69) / 12)) / this.sampleRate,
+      phaseIncrement: midiToHz(pitch) / this.sampleRate,
       phase: 0,
       gain: 0,
       targetGain: PEAK_GAIN * (velocity / 127),
