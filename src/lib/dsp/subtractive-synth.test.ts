@@ -65,7 +65,10 @@ describe(SubtractiveSynth, () => {
   it("plays each waveform at the note's pitch", () => {
     // Levels are RMS in dBFS past the attack, and pitches count rising zero
     // crossings per second. Skipping 0.1 s leaves 0.9 s, a whole number of
-    // cycles at 440 Hz, so the count is exact.
+    // cycles at 440 Hz, so the count is exact. At the full-velocity peak, a
+    // sine's RMS is the peak over √2, a triangle's and sawtooth's the peak over
+    // √3, and a square's the peak itself. The sawtooth and square sit about
+    // 0.1 dB lower because PolyBLEP rounds their jumps.
     const describeWaveform = (waveform: Waveform) => {
       const samples = renderNote({ waveform, pitch: 69, length: SAMPLE_RATE });
       const steady = samples.subarray(SAMPLE_RATE * 0.1);
