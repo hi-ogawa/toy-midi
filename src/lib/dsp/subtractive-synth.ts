@@ -3,9 +3,11 @@ export type Waveform = (typeof WAVEFORMS)[number];
 
 /** Patch for Toy MIDI's own synth */
 export interface SynthPatch {
-  /** Oscillator shape, sine when absent */
-  waveform?: Waveform;
+  /** Oscillator shape */
+  waveform: Waveform;
 }
+
+export const DEFAULT_SYNTH_PATCH: SynthPatch = { waveform: "sine" };
 
 // Short enough to sound immediate, long enough to keep note edges from clicking.
 const RAMP_SECONDS = 0.005;
@@ -24,7 +26,7 @@ interface Voice {
 /** Toy MIDI's own polyphonic synth. It ignores controllers for now. */
 export class SubtractiveSynth {
   private voices: Voice[] = [];
-  private waveform: Waveform = "sine";
+  private waveform = DEFAULT_SYNTH_PATCH.waveform;
   private readonly gainStep: number;
 
   constructor(private readonly sampleRate: number) {
@@ -33,7 +35,7 @@ export class SubtractiveSynth {
 
   /** Applies to sounding notes too, so a change is heard while a note holds. */
   setPatch(patch: SynthPatch): void {
-    this.waveform = patch.waveform ?? "sine";
+    this.waveform = patch.waveform;
   }
 
   noteOn(pitch: number, velocity: number): void {

@@ -8,7 +8,13 @@ const PROJECT: SharedProject = {
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 },
   midiTracks: [
-    { name: "Lead", program: 80, synth: {}, notes: [], viewMode: "editor" },
+    {
+      name: "Lead",
+      program: 80,
+      synth: { waveform: "sine" },
+      notes: [],
+      viewMode: "editor",
+    },
     { name: "Piano", program: 0, notes: [], viewMode: "editor" },
   ],
 };

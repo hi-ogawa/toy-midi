@@ -57,7 +57,7 @@ test("renders a track's own synth", async ({ page }) => {
     ],
   });
   const piano = await renderProject(page, createProject());
-  const sine = await renderProject(page, createProject({}));
+  const sine = await renderProject(page, createProject({ waveform: "sine" }));
 
   // Check the piano decays while the sine holds its level, and the sine stops
   // at the note's end, below what a 16-bit WAV can hold.
@@ -84,7 +84,7 @@ test("renders the synth's waveform", async ({ page }) => {
       },
     ],
   });
-  const sine = await renderProject(page, createProject({}));
+  const sine = await renderProject(page, createProject({ waveform: "sine" }));
   const sawtooth = await renderProject(
     page,
     createProject({ waveform: "sawtooth" }),
