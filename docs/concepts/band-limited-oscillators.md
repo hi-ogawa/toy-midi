@@ -41,11 +41,11 @@ $$
 
 which rises smoothly through the jump instead of all at once and ripples on both sides of it, as the blue curve in the figure below shows.
 
-So each jump in the naive waveform can be swapped for this step by adding the difference between them, which is the band-limited step minus the naive step. That difference is the **BLEP**, short for band-limited step. It's large next to the jump and dies away on either side, and adding it at every jump turns the naive waveform into the band-limited one. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after.
+This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**. Each jump in the naive waveform can be swapped for a BLEP by adding the difference between them, which is the BLEP minus the naive step and is called its **residual**. The residual is large next to the jump and dies away on either side, and adding it at every jump turns the naive waveform into the band-limited one. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after.
 
 ![The naive step jumps from −1 to 1 at the jump. The band-limited step rises smoothly through it and ripples on both sides, and the PolyBLEP step rises smoothly over one sample on each side with no ripple. Their differences from the naive step are largest next to the jump, where the PolyBLEP difference matches the band-limited one closely, and the band-limited difference ripples on for several samples](images/band-limited-steps.svg)
 
-The exact BLEP never ends, so a real oscillator needs an approximation. Tabulating a shortened BLEP is one way. It's accurate, but it needs a table and spreads each correction over many samples.
+The exact residual never ends, so a real oscillator needs an approximation. Tabulating a shortened residual is one way. It's accurate, but it needs a table and spreads each correction over many samples.
 
 ## Approximate the Step with Two Polynomial Pieces
 
@@ -58,7 +58,7 @@ S(t)=\begin{cases}
 \end{cases}
 $$
 
-and subtracting the naive step, 0 before the jump and 1 after it, leaves two pieces,
+and subtracting the naive step, 0 before the jump and 1 after it, leaves a residual of two pieces,
 
 $$
 r(t)=\begin{cases}
@@ -98,12 +98,12 @@ The square measures the same as the sawtooth or up to 5 dB lower. PolyBLEP, whic
 
 The triangle has no jumps, and its harmonics already fall as $1/n^2$, so the synth computes it without a correction. For low notes that's enough, but the table shows its limit. From about 1 kHz up, the uncorrected triangle has louder aliases below 5 kHz than the corrected sawtooth, and at 4 kHz it's 21 dB worse.
 
-The triangle's corners can be corrected the same way. A corner is a change of slope, which is a ramp, 0 before the corner and $t$ after it. Convolving the ramp with $b$, as with the step, gives the **BLAMP**, short for band-limited ramp. Its difference from the naive ramp is the integral of $r$, $\tfrac{1}{6}(1+t)^3$ before the corner and $\tfrac{1}{6}(1-t)^3$ after it, scaled by the change of slope per sample. The triangle's slope changes by $8\Delta$ at each corner, so the correction grows with the note's frequency, which matches where the uncorrected triangle falls behind. [The synth](../../src/lib/dsp/subtractive-synth.ts) doesn't apply it yet, and adding it is a TODO there.
+The triangle's corners can be corrected the same way. A corner is a change of slope, which is a ramp, 0 before the corner and $t$ after it. Convolving the ramp with $b$, as with the step, gives the **BLAMP**, from **B**and-**L**imited r**AMP**. Its residual, the difference from the naive ramp, is the integral of $r$, $\tfrac{1}{6}(1+t)^3$ before the corner and $\tfrac{1}{6}(1-t)^3$ after it, scaled by the change of slope per sample. The triangle's slope changes by $8\Delta$ at each corner, so the correction grows with the note's frequency, which matches where the uncorrected triangle falls behind. [The synth](../../src/lib/dsp/subtractive-synth.ts) doesn't apply it yet, and adding it is a TODO there.
 
 ## References
 
 - T. Stilson and J. Smith, [Alias-Free Digital Synthesis of Classic Analog Waveforms](https://ccrma.stanford.edu/~stilti/papers/blit.pdf), band-limited impulse trains, where the idea of building a waveform from band-limited discontinuities comes from
-- E. Brandt, [Hard Sync Without Aliasing](https://www.cs.cmu.edu/~eli/papers/icmc01-hardsync.pdf), the BLEP as a table of the band-limited step's difference from the naive one, added at each jump
+- E. Brandt, [Hard Sync Without Aliasing](https://www.cs.cmu.edu/~eli/papers/icmc01-hardsync.pdf), the BLEP residual as a table, added at each jump
 - V. Välimäki, J. Pekonen, and J. Nam, [Perceptually Informed Synthesis of Bandlimited Classical Waveforms Using Integrated Polynomial Interpolation](https://doi.org/10.1121/1.3651227), the polynomial BLEP and BLAMP corrections and how audible their remaining aliases are
 
 ## Appendix: Split Each Harmonic at the Jumps
@@ -148,4 +148,4 @@ $$
 
 which is 0 for even $n$ and has magnitude $16/(2\pi n)$ for odd $n$. Dividing by $2\pi in$ once more gives $2|c_n|=8/(\pi^2n^2)$, the triangle's entry in the table.
 
-**The same split is what the corrections use.** It writes the waveform as a smooth part plus a step at each jump and a ramp at each corner. A BLEP replaces each step with its band-limited version, and a BLAMP does the same for each ramp. For the sawtooth and square, the smooth part has no harmonics, so replacing the steps leaves nothing that can alias. In the language of distributions, the split says that each jump puts an impulse of weight $J_k$ into the slope, and an impulse contains every frequency at equal strength.
+**The same split is what the corrections use.** It writes the waveform as a smooth part plus a step at each jump and a ramp at each corner. Adding a BLEP residual replaces a step with its band-limited version, and adding a BLAMP residual does the same for a ramp. For the sawtooth and square, the smooth part has no harmonics, so replacing the steps leaves nothing that can alias. In the language of distributions, the split says that each jump puts an impulse of weight $J_k$ into the slope, and an impulse contains every frequency at equal strength.
