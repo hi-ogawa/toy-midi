@@ -15,8 +15,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "./ui/utils";
 
-const SYNTH_NAME = "Toy MIDI";
-
 // GM instrument groups for organized display
 const INSTRUMENT_GROUPS = [
   { label: "Piano", start: 0, end: 8 },
@@ -103,15 +101,6 @@ export function InstrumentCombobox({
           <CommandInput placeholder="Search instruments..." />
           <CommandList>
             <CommandEmpty>No instrument found.</CommandEmpty>
-            <CommandGroup heading={SYNTH_NAME}>
-              {/* Keep the SoundFont preset as the General MIDI stand-in for .mid export. */}
-              {renderItem({
-                soundfont: value.soundfont,
-                bank: value.bank,
-                program: value.program,
-                synth: {},
-              })}
-            </CommandGroup>
             {INSTRUMENT_GROUPS.map((group) => (
               <CommandGroup key={group.label} heading={group.label}>
                 {GM_PROGRAMS.slice(group.start, group.end).map((_, i) =>
@@ -131,6 +120,15 @@ export function InstrumentCombobox({
                 )}
               </CommandGroup>
             ))}
+            <CommandGroup heading="Toy MIDI Original">
+              {/* Keep the SoundFont preset as the General MIDI stand-in for .mid export. */}
+              {renderItem({
+                soundfont: value.soundfont,
+                bank: value.bank,
+                program: value.program,
+                synth: {},
+              })}
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
@@ -145,7 +143,7 @@ function formatPresetLabel({
   synth,
 }: MidiPreset): string {
   if (synth) {
-    return `${SYNTH_NAME}: Synth`;
+    return "Subtractive Synth";
   }
   if (soundfont) {
     const { name, presets } = findSoundfont(soundfont);

@@ -220,7 +220,7 @@ test("plays a MIDI track on the own synth and persists it", async ({
   await selectMidiInstrument(instrument, {
     option: "33: Electric Bass (finger)",
   });
-  await selectMidiInstrument(instrument, { option: "Toy MIDI: Synth" });
+  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Save and reload, then verify the synth persists.
@@ -228,7 +228,7 @@ test("plays a MIDI track on the own synth and persists it", async ({
   await page.reload();
   await openMidiInstrument(page, { name: "MIDI 1" });
   await expect(instrument.getByTestId("instrument-select")).toContainText(
-    "Toy MIDI: Synth",
+    "Subtractive Synth",
   );
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
