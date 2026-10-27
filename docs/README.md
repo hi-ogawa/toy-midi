@@ -15,6 +15,7 @@
 - [WSOLA time stretching](concepts/wsola-time-stretching.md): derive source-window selection, waveform similarity, and complementary fades from the goal of changing duration while preserving pitch.
 - [Guitar amp simulation](concepts/guitar-amp-simulation.md): gain stages as soft clippers, why chaining them sustains a decaying note, the filters around them, and oversampling against aliasing.
 - [Oversampling](concepts/oversampling.md): why clipping aliases, upsampling and downsampling around it, the windowed-sinc low-pass they share, and the polyphase shortcut.
+- [Band-limited oscillators](concepts/band-limited-oscillators.md): why a sawtooth's jumps alias, why filtering or oversampling doesn't fix it, and how PolyBLEP rounds each jump over two samples.
 
 ## Bass Pitch
 

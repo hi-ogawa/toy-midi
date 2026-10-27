@@ -103,8 +103,9 @@ const OSCILLATORS: Record<
   (phase: number, increment: number) => number
 > = {
   sine: (phase) => Math.sin(2 * Math.PI * phase),
-  // Starts at 0 and rises, in phase with the sine. Its harmonics fall off
-  // fast enough that aliasing stays quiet without band-limiting.
+  // Starts at 0 and rises, in phase with the sine. It has no jumps to correct,
+  // but from about 1 kHz its corners alias more than a corrected sawtooth.
+  // TODO: Round the corners with a BLAMP correction.
   triangle: (phase) => 4 * Math.abs(((phase + 0.75) % 1) - 0.5) - 1,
   sawtooth: (phase, increment) => 2 * phase - 1 - correctStep(phase, increment),
   square: (phase, increment) =>
