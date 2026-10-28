@@ -128,21 +128,3 @@ $$
 the sawtooth at twice the rate and half the height. That matches the $1/n$ falloff, in which the $2m$-th harmonic is half as loud as the $m$-th.
 
 **This is a different question from odd and even functions.** Whether $x(-\varphi)=\pm x(\varphi)$ decides whether the harmonics are cosines or sines, not which harmonics are present. The sawtooth is an odd function, since $x(-\varphi)=x(1-\varphi)=-x(\varphi)$, so its harmonics are all sines, and it still has every one. The amp's clipper is odd as a function of the signal's value, which is what carries the input's half-wave symmetry through to its output.
-
-## Use the Same Picture for Sampled Signals
-
-A frame of $N$ samples is a vector in $\mathbb{C}^N$, and the sampled tones $e_k[m]=e^{2\pi ikm/N}$ for $k=0,\dots,N-1$ are $N$ perpendicular vectors, each with $\langle e_k,e_k\rangle=N$, so they form a basis without any completeness theorem. The discrete Fourier transform reads the coordinates, which the FFT computes quickly, and the frame is their sum:
-
-$$
-X(k)=\langle x,e_k\rangle=\sum_{m=0}^{N-1}x[m]e^{-2\pi ikm/N},\qquad x=\frac{1}{N}\sum_{k=0}^{N-1}X(k)e_k.
-$$
-
-Expanding $\langle x,x\rangle$ in this basis, the cross terms vanish, which is **Parseval's theorem**:
-
-$$
-\sum_{m=0}^{N-1}|x[m]|^2=\frac{1}{N^2}\sum_{k,j}X(k)\overline{X(j)}\langle e_k,e_j\rangle=\frac{1}{N}\sum_{k=0}^{N-1}|X(k)|^2.
-$$
-
-That is what lets [onset detection](../bass-pitch/onset-detection.md) measure power in a frequency band by summing squared FFT magnitudes.
-
-Only $N$ tones are distinct, because $e_{k+N}[m]=e_k[m]$ at every sample. A harmonic past the Nyquist frequency is therefore indistinguishable from a lower one once sampled, which is the aliasing that [oversampling](oversampling.md) works around.
