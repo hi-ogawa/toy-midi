@@ -27,4 +27,4 @@ Read relevant examples in [docs/concepts](../../../docs/concepts) for calibratio
 
 ## Known Math Rendering Issues
 
-In GitHub Markdown math, `\,`, `\;`, and `\!` have rendered as literal punctuation. Use `\cdot` for explicit multiplication and `\quad` for extra spacing, and leave negative spacing out. GitHub also rejects `\operatorname`, so write a named function such as sech or sinc with `\text{sech}`. A `$` directly followed by a letter or digit doesn't close inline math, so `$n$th` renders as plain text. Write an ordinal as `` $`n`$th `` instead.
+In GitHub Markdown math, `\,`, `\;`, and `\!` have rendered as literal punctuation. Use `\cdot` for explicit multiplication and `\quad` for extra spacing, and leave negative spacing out. GitHub also rejects `\operatorname`, so write a named function such as sech or sinc with `\text{sech}`. A `$` directly followed by a letter or digit doesn't close inline math, so `$n$th` renders as plain text. Write an ordinal as ``$`n`$th`` instead.
