@@ -48,7 +48,7 @@ The [Rust core](../../crates/bass-pitch/src/lib.rs) analyzes mono audio at 22.05
 | Pitch        | Weighted vote over voiced frames in each region.                                                                              | `calculate_pyin_frames`, `assign_region_pitches`        |
 | Output       | Convert project-time notes to MIDI ticks and expose intermediate decisions.                                                   | `midi_bytes`, `diagnostics_csv`                         |
 
-Pitch voting currently uses weight $0.1+0.9v\vphantom{}$ for voiced probability $v$, and ties choose the lower MIDI note. The 0.1 floor is a heuristic that retains a small contribution from every eligible frame.
+Pitch voting currently uses weight $0.1+0.9v\mathrm{}$ for voiced probability $v$, and ties choose the lower MIDI note. The 0.1 floor is a heuristic that retains a small contribution from every eligible frame.
 
 While pYIN’s Viterbi decoder optimizes a pitch-and-voicing path over the entire input sequence, its transition model expresses continuity between neighboring frames rather than long-range musical structure. This motivates decoding roughly 10-second chunks to bound working memory and provide regular progress updates, then checking whether the shorter context changes the transcription. Each chunk includes 32 extra context frames on each side to support decisions near its boundaries, then discards those context outputs. In the original full Ring comparison, chunked and whole-excerpt analysis differed in just one frame record out of 14,022 and produced identical note decisions.
 

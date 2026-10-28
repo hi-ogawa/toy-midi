@@ -48,11 +48,11 @@ D'(0) = 7.9 \text{sech}^2 b \cdot 2.0 \approx 15.5 \quad (24\text{ dB}), \qquad
 7.9 \text{sech}^2 b \cdot 5.0 \cdot 3.2 \approx 123 \quad (42\text{ dB}),
 $$
 
-and an input well above $1/D'(0)\vphantom{}$, which is $0.06\vphantom{}$ for crunch and $0.008\vphantom{}$ for high gain, comes out nearly square:
+and an input well above $1/D'(0)\mathrm{}$, which is $0.06\mathrm{}$ for crunch and $0.008\mathrm{}$ for high gain, comes out nearly square:
 
 ![Drive curves: crunch rises steeply, high gain almost straight up to ±1](images/amp-drive-curves.svg)
 
-A guitar's peaks, about $0.3\vphantom{}$ to $0.6\vphantom{}$, are far above both, so every stroke's attack comes out nearly square. The drives differ on a decaying note. At $x = 0.05 \sin t$, the note is below crunch's $0.06\vphantom{}$ but far above high gain's $0.008\vphantom{}$, so crunch only rounds it while high gain still squares it. A string's decay barely changes the output of high gain, which is why it sustains:
+A guitar's peaks, about $0.3\mathrm{}$ to $0.6\mathrm{}$, are far above both, so every stroke's attack comes out nearly square. The drives differ on a decaying note. At $x = 0.05 \sin t$, the note is below crunch's $0.06\mathrm{}$ but far above high gain's $0.008\mathrm{}$, so crunch only rounds it while high gain still squares it. A string's decay barely changes the output of high gain, which is why it sustains:
 
 ![A quiet sine through each drive: crunch rounded, high gain nearly square](images/amp-drive-waves.svg)
 
@@ -86,7 +86,7 @@ The structure follows common amp design, but the values were picked by ear in an
 
 A signal sampled at $f_s$ can't hold frequencies above $f_s/2$, which is its Nyquist frequency, and clipping adds harmonics above it. Computed sample by sample at $f_s$, a harmonic at $f > f_s/2$ folds back to $f_s - f$. At 48 kHz, a 27 kHz harmonic lands at 21 kHz, which is no longer a multiple of the note, and these folded tones sound like inharmonic fizz.
 
-So the drive runs at $4 f_s\vphantom{}$, between an upsampler and a downsampler, and the filters before and after it stay at $f_s$. [Oversampling](oversampling.md) develops the up- and downsampling and their low-pass filter, and measures the aliasing with and without it.
+So the drive runs at $4 f_s\mathrm{}$, between an upsampler and a downsampler, and the filters before and after it stay at $f_s$. [Oversampling](oversampling.md) develops the up- and downsampling and their low-pass filter, and measures the aliasing with and without it.
 
 ## References
 

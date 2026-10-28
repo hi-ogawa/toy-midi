@@ -117,7 +117,7 @@ For example, stretch a recording to twice its duration with WSOLA, keeping its l
 
 The colors track reused source regions schematically. They do not represent individual WSOLA windows or their overlap fades.
 
-More generally, for a desired pitch multiplier $p$, use WSOLA at playback rate $1/p\vphantom{}$ to multiply duration by $p$, then resample at rate $p$. The two duration changes cancel, while only resampling changes pitch:
+More generally, for a desired pitch multiplier $p$, use WSOLA at playback rate $1/p\mathrm{}$ to multiply duration by $p$, then resample at rate $p$. The two duration changes cancel, while only resampling changes pitch:
 
 $$
 \text{duration factor}=p\cdot\frac{1}{p}=1,
@@ -131,7 +131,7 @@ Our player uses this fixed-duration pitch shifter to compensate for the pitch ch
 
 At half-speed playback, for example, the buffer source produces audio twice as long and an octave lower. The pitch shifter raises it by an octave without changing that longer duration. In this use case, the diagram's original signal is the already slowed input to the pitch shifter, and its final signal is the pitch-corrected slow playback.
 
-More generally, the [buffer source](../../src/lib/audio-buffer-playback.ts) plays at rate $r$, which changes duration by $1/r\vphantom{}$ and pitch by $r$. The [pitch-shift bus](../../src/lib/audio-track-playback.ts) requests the inverse pitch multiplier $p=1/r$. Internally, [`StreamingPitchShifter`](../../src/lib/dsp/pitch-shifter.ts) performs the WSOLA-and-resampling combination above, preserving the already changed duration while restoring pitch because $r\cdot(1/r)=1$.
+More generally, the [buffer source](../../src/lib/audio-buffer-playback.ts) plays at rate $r$, which changes duration by $1/r\mathrm{}$ and pitch by $r$. The [pitch-shift bus](../../src/lib/audio-track-playback.ts) requests the inverse pitch multiplier $p=1/r$. Internally, [`StreamingPitchShifter`](../../src/lib/dsp/pitch-shifter.ts) performs the WSOLA-and-resampling combination above, preserving the already changed duration while restoring pitch because $r\cdot(1/r)=1$.
 
 ## How Much Audio Must Be Available?
 
@@ -141,7 +141,7 @@ $$
 \text{lookahead scale}\approx\frac{W+S/2}{F_s}.
 $$
 
-With a 20 ms window and a 30 ms search region, this gives $20+30/2=35\vphantom{}$ ms.
+With a 20 ms window and a 30 ms search region, this gives $20+30/2=35\mathrm{}$ ms.
 
 The natural-continuation window must also be available as the comparison reference. During slow playback it can reach slightly farther ahead, so the implementation reserves extra audio. This is source lookahead, while the complete pitch shifter's latency also depends on resampling and block buffering.
 
