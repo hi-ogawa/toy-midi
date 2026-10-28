@@ -10,14 +10,14 @@ Throughout, $F_s$ is the sample rate, 48 kHz in the examples, $f_0$ is the note'
 
 ## See Why a Jump Aliases
 
-The oscillator reads each waveform at its phase. The sawtooth is $$, which rises from −1 to 1 and then jumps back down, and the square is 1 for the first half of the cycle and −1 for the second. Written as sums of sines, the waveforms have these harmonics:
+The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1\mathrm{}$, which rises from −1 to 1 and then jumps back down, and the square is 1 for the first half of the cycle and −1 for the second. Written as sums of sines, the waveforms have these harmonics:
 
 | Waveform | Harmonics            | Amplitude of the $n$-th |
 | -------- | -------------------- | ----------------------- |
 | Sine     | the fundamental only |                         |
-| Triangle | odd                  | $$                      |
-| Sawtooth | every one            | $$                      |
-| Square   | odd                  | $$                      |
+| Triangle | odd                  | $8/(\pi^2n^2)\mathrm{}$ |
+| Sawtooth | every one            | $2/(\pi n)\mathrm{}$    |
+| Square   | odd                  | $4/(\pi n)\mathrm{}$    |
 
 ![Two cycles of each waveform beside its first 16 harmonics. The sine has only its fundamental. The triangle has corners and odd harmonics that drop below −45 dB by the 15th. The sawtooth jumps once per cycle and the square twice, and their harmonics fall slowly, staying above −25 dB through the 16th](images/band-limited-waveforms.svg)
 
@@ -98,7 +98,7 @@ The square measures the same as the sawtooth or up to 5 dB lower. PolyBLEP, whic
 
 The triangle has no jumps, and its harmonics already fall as $1/n^2\mathrm{}$, so the synth computes it without a correction. For low notes that's enough, but the table shows its limit. From about 1 kHz up, the uncorrected triangle has louder aliases below 5 kHz than the corrected sawtooth, and at 4 kHz it's 21 dB worse.
 
-The triangle's corners can be corrected the same way. A corner is a change of slope, which is a ramp, 0 before the corner and $t$ after it. Convolving the ramp with $b$, as with the step, gives the **BLAMP**, from **B**and-**L**imited r**AMP**. Its residual, the difference from the naive ramp, is the integral of $r$, $\tfrac{1}{6}(1+t)^3$ before the corner and $\tfrac{1}{6}(1-t)^3$ after it, scaled by the change of slope per sample. The triangle's slope changes by $$ at each corner, so the correction grows with the note's frequency, which matches where the uncorrected triangle falls behind. [The synth](../../src/lib/dsp/subtractive-synth.ts) doesn't apply it yet, and adding it is a TODO there.
+The triangle's corners can be corrected the same way. A corner is a change of slope, which is a ramp, 0 before the corner and $t$ after it. Convolving the ramp with $b$, as with the step, gives the **BLAMP**, from **B**and-**L**imited r**AMP**. Its residual, the difference from the naive ramp, is the integral of $r$, $\tfrac{1}{6}(1+t)^3$ before the corner and $\tfrac{1}{6}(1-t)^3$ after it, scaled by the change of slope per sample. The triangle's slope changes by $8\Delta\mathrm{}$ at each corner, so the correction grows with the note's frequency, which matches where the uncorrected triangle falls behind. [The synth](../../src/lib/dsp/subtractive-synth.ts) doesn't apply it yet, and adding it is a TODO there.
 
 ## References
 
@@ -130,23 +130,23 @@ $$
 c_n=\frac{1}{2\pi in}\sum_{k=1}^{m}J_k\,e^{-2\pi in\varphi_k}+\frac{1}{2\pi in}\,c_n[x'],
 $$
 
-where $x'$ is the slope of the smooth pieces, without the jumps, and $c_n[x']$ is its $n$-th coefficient. The first term comes from the jumps alone. Each jump contributes the same magnitude $|J_k|$ to every harmonic, so after the factor $$ it falls as $1/n\mathrm{}$. The second term comes from the smooth pieces alone.
+where $x'$ is the slope of the smooth pieces, without the jumps, and $c_n[x']$ is its $n$-th coefficient. The first term comes from the jumps alone. Each jump contributes the same magnitude $|J_k|$ to every harmonic, so after the factor $1/(2\pi in)\mathrm{}$ it falls as $1/n\mathrm{}$. The second term comes from the smooth pieces alone.
 
-**The sawtooth is all jump.** The sawtooth $$ has slope 2 everywhere, and a constant has no harmonics, since $\int_0^1 2\,e^{-2\pi in\varphi}\,d\varphi=0$ for every $n\neq0$. So the second term vanishes, and with its one jump $J=-2$ at $\varphi=0$,
+**The sawtooth is all jump.** The sawtooth $2\varphi-1\mathrm{}$ has slope 2 everywhere, and a constant has no harmonics, since $\int_0^1 2\,e^{-2\pi in\varphi}\,d\varphi=0$ for every $n\neq0$. So the second term vanishes, and with its one jump $J=-2$ at $\varphi=0$,
 
 $$
 c_n=\frac{-2}{2\pi in},\qquad 2|c_n|=\frac{2}{\pi n},
 $$
 
-exactly, for every harmonic. All of the sawtooth's harmonics, and so all of its aliases, are the jump's. The square is the same, with $J=2$ at $\varphi=0$ and $J=-2$ at $\varphi=\tfrac12$ and no slope at all, so $c_n=2\big(1-e^{-i\pi n}\big)/(2\pi in)$, which is 0 for even $n$ and gives $$ for odd $n$.
+exactly, for every harmonic. All of the sawtooth's harmonics, and so all of its aliases, are the jump's. The square is the same, with $J=2$ at $\varphi=0$ and $J=-2$ at $\varphi=\tfrac12$ and no slope at all, so $c_n=2\big(1-e^{-i\pi n}\big)/(2\pi in)$, which is 0 for even $n$ and gives $2|c_n|=4/(\pi n)\mathrm{}$ for odd $n$.
 
-**Repeating the split gives the falloff.** The second term is $c_n[x']$ divided by $$, and $c_n[x']$ splits the same way at the jumps of $x'$, which are the corners of $x$. So jumps in $x$ give harmonics falling as $1/n\mathrm{}$, corners give $1/n^2\mathrm{}$, jumps in the curvature give $1/n^3\mathrm{}$, and so on, and the lowest derivative that jumps sets the falloff. In the usual terms, a function is called $C^k$ when it and its first $k$ derivatives are continuous, and **piecewise smooth** when it's smooth between finitely many breaks. A piecewise smooth waveform that is $C^{k-1}$ but whose $k$-th derivative jumps has harmonics falling as $1/n^{k+1}\mathrm{}$. The sawtooth and square aren't even $C^0$, so theirs fall as $1/n\mathrm{}$, the triangle is $C^0$ but not $C^1$, so its fall as $1/n^2\mathrm{}$, and a $C^\infty$ waveform's fall faster than any power of $n$. The triangle has no jumps, so its first term vanishes. Its slope is 4 for $\varphi$ from $-\tfrac14$ to $\tfrac14$ and −4 for the rest of the cycle, so the slope jumps by −8 at $\varphi=\tfrac14$ and by 8 at $\varphi=\tfrac34$, and has no slope of its own. Applying the formula to the slope,
+**Repeating the split gives the falloff.** The second term is $c_n[x']$ divided by $2\pi in\mathrm{}$, and $c_n[x']$ splits the same way at the jumps of $x'$, which are the corners of $x$. So jumps in $x$ give harmonics falling as $1/n\mathrm{}$, corners give $1/n^2\mathrm{}$, jumps in the curvature give $1/n^3\mathrm{}$, and so on, and the lowest derivative that jumps sets the falloff. In the usual terms, a function is called $C^k$ when it and its first $k$ derivatives are continuous, and **piecewise smooth** when it's smooth between finitely many breaks. A piecewise smooth waveform that is $C^{k-1}$ but whose $k$-th derivative jumps has harmonics falling as $1/n^{k+1}\mathrm{}$. The sawtooth and square aren't even $C^0$, so theirs fall as $1/n\mathrm{}$, the triangle is $C^0$ but not $C^1$, so its fall as $1/n^2\mathrm{}$, and a $C^\infty$ waveform's fall faster than any power of $n$. The triangle has no jumps, so its first term vanishes. Its slope is 4 for $\varphi$ from $-\tfrac14$ to $\tfrac14$ and −4 for the rest of the cycle, so the slope jumps by −8 at $\varphi=\tfrac14$ and by 8 at $\varphi=\tfrac34$, and has no slope of its own. Applying the formula to the slope,
 
 $$
 c_n[x']=\frac{8\big(e^{-3i\pi n/2}-e^{-i\pi n/2}\big)}{2\pi in},
 $$
 
-which is 0 for even $n$ and has magnitude $$ for odd $n$. Dividing by $$ once more gives $$, the triangle's entry in the table.
+which is 0 for even $n$ and has magnitude $16/(2\pi n)\mathrm{}$ for odd $n$. Dividing by $2\pi in\mathrm{}$ once more gives $2|c_n|=8/(\pi^2n^2)\mathrm{}$, the triangle's entry in the table.
 
 **The same split is what the corrections use.** It writes the waveform as a smooth part plus a step at each jump and a ramp at each corner. Adding a BLEP residual replaces a step with its band-limited version, and adding a BLAMP residual does the same for a ramp. For the sawtooth and square, the smooth part has no harmonics, so replacing the steps leaves nothing that can alias. In the language of distributions, the split says that each jump puts an impulse of weight $J_k$ into the slope, and an impulse contains every frequency at equal strength.
 
@@ -170,8 +170,8 @@ $$
 x(\varphi)=\underbrace{\frac{x(\varphi)-x(\varphi+\frac12)}{2}}_{\text{half-wave symmetric}}+\underbrace{\frac{x(\varphi)+x(\varphi+\frac12)}{2}}_{\text{repeats every half cycle}}.
 $$
 
-The first part is half-wave symmetric, so it holds the odd harmonics. The second repeats every half cycle, so it's a waveform an octave up, and its harmonics are the even harmonics of $x$. For the sawtooth, the second part works out to a sawtooth an octave up at half the height, $\tfrac12\big(2(2\varphi \bmod 1)-1\big)$, which matches its even harmonics, since the $2m\mathrm{}$-th harmonic's amplitude $$ is half of the $m$-th.
+The first part is half-wave symmetric, so it holds the odd harmonics. The second repeats every half cycle, so it's a waveform an octave up, and its harmonics are the even harmonics of $x$. For the sawtooth, the second part works out to a sawtooth an octave up at half the height, $\tfrac12\big(2(2\varphi \bmod 1)-1\big)$, which matches its even harmonics, since the $2m\mathrm{}$-th harmonic's amplitude $2/(2\pi m)\mathrm{}$ is half of the $m$-th.
 
-**This is a different question from odd and even functions.** Whether $x(-\varphi)=x(\varphi)$ or $x(-\varphi)=-x(\varphi)$ decides whether the harmonics are cosines or sines, measured from $\varphi=0$, not which harmonics are present. The sawtooth $$ is an odd function, since $x(1-\varphi)=-x(\varphi)$, and it still has every harmonic. The [amp's clipper](guitar-amp-simulation.md#appendix-why-an-odd-clipper-adds-only-odd-harmonics) is odd in another sense, as a function of the signal's value, and that oddness does matter, because it carries the input sine's half-wave symmetry through to its output.
+**This is a different question from odd and even functions.** Whether $x(-\varphi)=x(\varphi)$ or $x(-\varphi)=-x(\varphi)$ decides whether the harmonics are cosines or sines, measured from $\varphi=0$, not which harmonics are present. The sawtooth $2\varphi-1\mathrm{}$ is an odd function, since $x(1-\varphi)=-x(\varphi)$, and it still has every harmonic. The [amp's clipper](guitar-amp-simulation.md#appendix-why-an-odd-clipper-adds-only-odd-harmonics) is odd in another sense, as a function of the signal's value, and that oddness does matter, because it carries the input sine's half-wave symmetry through to its output.
 
 **Missing even harmonics sound hollow.** The second harmonic is the octave above the note and the fourth is two octaves above, so a waveform without even harmonics has none of the octaves that reinforce its pitch. The square and triangle sound hollow and reedy for that reason, and the sawtooth, with every harmonic, sounds full and bright. A clarinet has a similar spectrum in its low register. Its bore is a cylinder closed at the reed end, which resonates at odd multiples of its lowest frequency, so its low notes are mostly odd harmonics. A bowed string moves in a sawtooth-like way and has every harmonic, which is part of why a sawtooth makes a natural string or brass sound.
