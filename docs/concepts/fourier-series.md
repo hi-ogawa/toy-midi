@@ -6,17 +6,17 @@ Measure time in cycles, so a waveform $x(\varphi)$ has period 1 in its phase $\v
 
 ## Treat a Waveform as a Vector
 
-The waveforms with finite length, the square-integrable ones, form the space $L^2$. Its inner product is the dot product with the sum over entries turned into an integral over phase:
+The square-integrable waveforms, those with $\int_0^1|x|^2d\varphi$ finite, form the space $L^2$. Its inner product is the dot product with the sum over entries turned into an integral over phase:
 
 $$
-\langle x,y\rangle=\int_0^1 x(\varphi)\overline{y(\varphi)}d\varphi,\qquad \|x\|^2=\int_0^1|x(\varphi)|^2d\varphi.
+\langle x,y\rangle=\int_0^1 x(\varphi)\overline{y(\varphi)}d\varphi,
 $$
 
-So the length of a waveform is its RMS level.
+so $\langle x,x\rangle$ is the mean square of $x$ over a cycle.
 
 ## Read Each Harmonic with an Inner Product
 
-Write the $n$-th harmonic as the complex tone $e_n(\varphi)=e^{2\pi in\varphi}$, for every integer $n$, including negative ones. Two different harmonics are perpendicular, and each has length 1:
+Write the $n$-th harmonic as the complex tone $e_n(\varphi)=e^{2\pi in\varphi}$, for every integer $n$, including negative ones. Two different harmonics are perpendicular, and each has mean square 1:
 
 $$
 \langle e_n,e_m\rangle=\int_0^1 e^{2\pi i(n-m)\varphi}d\varphi=
@@ -29,10 +29,10 @@ $$
 x=\sum_{n=-\infty}^{\infty}c_n e_n,\qquad c_n=\langle x,e_n\rangle=\int_0^1 x(\varphi)e^{-2\pi in\varphi}d\varphi.
 $$
 
-Perpendicular axes give two more facts. Keeping only the harmonics up to $N$ gives the closest such sum to $x$ in RMS, and Pythagoras splits the squared length across the harmonics, which is **Parseval's theorem**:
+Perpendicular axes give two more facts. Keeping only the harmonics up to $N$ gives the smallest mean-square error among such sums, and Pythagoras splits the mean square across the harmonics, which is **Parseval's theorem**:
 
 $$
-\|x\|^2=\sum_{n=-\infty}^{\infty}|c_n|^2.
+\langle x,x\rangle=\sum_{n=-\infty}^{\infty}|c_n|^2.
 $$
 
 For real $x$, conjugating the coefficient formula gives $c_{-n}=\overline{c_n}$, so each pair adds up to one real sinusoid:
@@ -105,7 +105,7 @@ The first part holds the odd harmonics of $x$, and the second is a waveform an o
 
 ## Use the Same Picture for Sampled Signals
 
-A frame of $N$ samples is a vector in $\mathbb{C}^N$, and the sampled tones $e_k[m]=e^{2\pi ikm/N}$ for $k=0,\dots,N-1$ are $N$ perpendicular vectors, each with squared length $N$, so they form a basis without any completeness theorem. The discrete Fourier transform reads the coordinates, which the FFT computes quickly, and Parseval's theorem divides by the axes' squared length:
+A frame of $N$ samples is a vector in $\mathbb{C}^N$, and the sampled tones $e_k[m]=e^{2\pi ikm/N}$ for $k=0,\dots,N-1$ are $N$ perpendicular vectors, each with $\langle e_k,e_k\rangle=N$, so they form a basis without any completeness theorem. The discrete Fourier transform reads the coordinates, which the FFT computes quickly, and Parseval's theorem divides by that $N$:
 
 $$
 X(k)=\sum_{m=0}^{N-1}x[m]e^{-2\pi ikm/N},\qquad\sum_{m=0}^{N-1}|x[m]|^2=\frac{1}{N}\sum_{k=0}^{N-1}|X(k)|^2.
