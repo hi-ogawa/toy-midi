@@ -22,7 +22,7 @@ $$
 
 ![Equally spaced FFT bins grouped into three illustrative frequency bands. Summing the bin powers produces one value per band, with totals 7, 7, and 13.](images/fft-bins-and-bands.svg)
 
-Summing before comparing frames lets redistribution within a band cancel. Two bins changing from $(10,2)$ to $(8,4)$ retain band power $12$, although counting positive bin changes separately would report an increase of $2$.
+Summing before comparing frames lets redistribution within a band cancel. Two bins changing from $(10,2)$ to $(8,4)$ retain band power $12\relax$, although counting positive bin changes separately would report an increase of $2\relax$.
 
 ## Measure Relative Growth and Discard Decay
 

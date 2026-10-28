@@ -10,17 +10,17 @@ YIN selects the first trough below a fixed threshold. pYIN keeps several possibl
 
 ![YIN selects one pitch from a difference-curve trough. pYIN retains both illustrated pitches, 110 Hz and 55 Hz, with separate weights.](images/yin-pyin-candidates.svg)
 
-This example uses troughs at $T$ and $2T$, corresponding to 110 Hz and 55 Hz, with mismatch depths 0.12 and 0.04. Their octave relationship is a common ambiguity, not a restriction on the possible pitches. Other trough locations give other frequencies. We call each possible pitch a **candidate**.
+This example uses troughs at $T$ and $2T\relax$, corresponding to 110 Hz and 55 Hz, with mismatch depths 0.12 and 0.04. Their octave relationship is a common ambiguity, not a restriction on the possible pitches. Other trough locations give other frequencies. We call each possible pitch a **candidate**.
 
 ### Assign Weights to the Possible Pitches
 
-For a trough depth $d$ between 0 and 1, the simple confidence rule $1-d$ has a useful interpretation. It is the area above $d$ under a uniform probability density on $[0,1]$. More generally, define its **acceptance probability** by
+For a trough depth $d$ between 0 and 1, the simple confidence rule $1-d\relax$ has a useful interpretation. It is the area above $d$ under a uniform probability density on $[0,1]$. More generally, define its **acceptance probability** by
 
 $$
 a(d)=\int_d^1 p(\theta) d\theta,\qquad 0\le d\le1.
 $$
 
-Deeper troughs have smaller $d$ and receive more area. The implementation makes the specific modeling choice of a Beta(2, 18) density, replacing the linear $1-d$ mapping with a curve that favors low mismatch depths. Depths at or above 1 receive zero acceptance probability.
+Deeper troughs have smaller $d$ and receive more area. The implementation makes the specific modeling choice of a Beta(2, 18) density, replacing the linear $1-d\relax$ mapping with a curve that favors low mismatch depths. Depths at or above 1 receive zero acceptance probability.
 
 Here $\theta$ represents possible YIN acceptance cutoffs: a trough passes whenever $d<\theta$. The tail area averages that decision over the chosen density.
 
@@ -28,7 +28,7 @@ Here $\theta$ represents possible YIN acceptance cutoffs: a trough passes whenev
 
 Tail-area weights alone favor the deepest trough, which can represent a multiple of the fundamental period. YIN instead prefers the first sufficiently good match. We want to retain that shorter-period preference without discarding the other possible pitches.
 
-The accepted sets are nested: any cutoff that accepts the shallower trough also accepts the deeper one. In our example, the interval from 0.04 to 0.12 accepts only $2T$, while the tail above 0.12 accepts both. To express the shorter-period preference, distribute each cutoff’s probability mass among its accepted troughs, giving larger shares to earlier ones and normalizing the shares to sum to one.
+The accepted sets are nested: any cutoff that accepts the shallower trough also accepts the deeper one. In our example, the interval from 0.04 to 0.12 accepts only $2T\relax$, while the tail above 0.12 accepts both. To express the shorter-period preference, distribute each cutoff’s probability mass among its accepted troughs, giving larger shares to earlier ones and normalizing the shares to sum to one.
 
 The implementation computes these shares over 100 equal intervals. Each strip contributes its area
 
@@ -43,7 +43,7 @@ q_{i,k}=\frac{e^{-\lambda r_{i,k}}}{\sum_{j\text{ qualifying}}e^{-\lambda r_{j,k
 \qquad \lambda=2.
 $$
 
-When both example troughs qualify, $T$ receives about 88.1% of the strip’s mass and $2T$ receives 11.9%. Where only $2T$ qualifies, it receives the full strip. The rank is among qualifying troughs, so it can change with the cutoff.
+When both example troughs qualify, $T$ receives about 88.1% of the strip’s mass and $2T\relax$ receives 11.9%. Where only $2T\relax$ qualifies, it receives the full strip. The rank is among qualifying troughs, so it can change with the cutoff.
 
 Nonqualifying candidates receive zero. If none qualifies, our implementation gives just 1% of that bin's mass to the deepest trough and leaves the rest unassigned. With those rules included in $q_{i,k}$, average the shares over the threshold distribution to obtain each candidate’s weight
 

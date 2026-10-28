@@ -20,7 +20,7 @@ $$
 \frac{I}{x}=\frac{T}{2}\frac{1+z^{-1}}{1-z^{-1}}.
 $$
 
-The continuous integrator has multiplier $1/s$. Equating the two gives the **bilinear substitution** and its inverse:
+The continuous integrator has multiplier $1/s\relax$. Equating the two gives the **bilinear substitution** and its inverse:
 
 $$
 s\leftarrow\frac{2}{T}\frac{1-z^{-1}}{1+z^{-1}},
@@ -77,7 +77,7 @@ $$
 
 This choice is called **prewarping**. At low frequencies, $\tan(\omega_0/2)\approx\omega_0/2$, so the correction is small, but near Nyquist it becomes substantial.
 
-The peaking prototype uses normalized rate $u=s/\Omega_0$. Substituting the mapping and prewarped center cancels $2/T$:
+The peaking prototype uses normalized rate $u=s/\Omega_0$. Substituting the mapping and prewarped center cancels $2/T\relax$:
 
 $$
 u\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
