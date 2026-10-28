@@ -29,19 +29,31 @@ $$
 x=\sum_{n=-\infty}^{\infty}c_n e_n,\qquad c_n=\langle x,e_n\rangle=\int_0^1 x(\varphi)e^{-2\pi in\varphi}d\varphi.
 $$
 
-Perpendicular axes give two more facts. Keeping only the harmonics up to $N$ gives the smallest mean-square error among such sums, and Pythagoras splits the mean square across the harmonics, which is **Parseval's theorem**:
+**Pythagoras splits the mean square across the harmonics.** Expanding $\langle x,x\rangle$ in the basis, the cross terms vanish:
 
 $$
-\langle x,x\rangle=\sum_{n=-\infty}^{\infty}|c_n|^2.
+\langle x,x\rangle=\sum_{n,m}c_n\overline{c_m}\langle e_n,e_m\rangle=\sum_n|c_n|^2.
 $$
 
-For real $x$, conjugating the coefficient formula gives $c_{-n}=\overline{c_n}$, so each pair adds up to one real sinusoid:
+This is **Parseval's theorem**. Applied to the error of any sum $\sum_{|n|\le N}a_ne_n$, it gives
 
 $$
-c_n e^{2\pi in\varphi}+c_{-n}e^{-2\pi in\varphi}=2|c_n|\cos(2\pi n\varphi+\arg c_n),
+\Big\langle x-\sum_{|n|\le N}a_ne_n,x-\sum_{|n|\le N}a_ne_n\Big\rangle=\sum_{|n|\le N}|c_n-a_n|^2+\sum_{|n|>N}|c_n|^2,
 $$
 
-and $|c_n|$ sets how loud the $n$-th harmonic is, while $c_0$ is the DC offset.
+which is smallest at $a_n=c_n$. So keeping the harmonics up to $N$ is the best approximation with them in mean square, and the error is the mean square of the harmonics left out.
+
+**A real waveform's harmonics are real sinusoids.** For real $x$, the coefficient formula at $-n$ and at $0$ gives
+
+$$
+c_{-n}=\int_0^1 x(\varphi)e^{2\pi in\varphi}d\varphi=\overline{c_n},\qquad c_0=\int_0^1 x(\varphi)d\varphi.
+$$
+
+So $c_0$ is the waveform's average, its DC offset, and each pair adds up to one real sinusoid with amplitude $2|c_n|$ and phase $\arg c_n$:
+
+$$
+c_n e^{2\pi in\varphi}+\overline{c_n}e^{-2\pi in\varphi}=2\text{Re}\big(c_n e^{2\pi in\varphi}\big)=2|c_n|\cos(2\pi n\varphi+\arg c_n).
+$$
 
 ## Shift, Filter, and Differentiate One Coefficient at a Time
 
@@ -55,7 +67,13 @@ $$
 (h*x)(\varphi)=\int_0^1 h(s)x(\varphi-s)ds\quad\Longrightarrow\quad c_n[h*x]=\int_0^1 h(s)e^{-2\pi ins}ds\cdot c_n=h_n c_n.
 $$
 
-The kernel's own coefficients $h_n$ are the filter's gain at each harmonic, and a shift is the kernel with all its weight at one delay. For a signal that isn't periodic, the whole numbers $n$ become every frequency $f$ and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc. The roles also swap. Multiplying by $e_k$ moves every coefficient up by $k$, so multiplying two waveforms convolves their coefficients.
+The kernel's own coefficients $h_n$ are the filter's gain at each harmonic, and a shift is the kernel with all its weight at one delay. For a signal that isn't periodic, the whole numbers $n$ become every frequency $f$ and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc.
+
+**Multiplication convolves the coefficients.** The roles swap. Multiplying by $e_k$ moves every coefficient up by $k$, and a waveform $y$ is a sum of such tones, so
+
+$$
+c_n[e_kx]=\int_0^1 x(\varphi)e^{-2\pi i(n-k)\varphi}d\varphi=c_{n-k},\qquad c_n[yx]=\sum_k y_kc_{n-k}.
+$$
 
 **A derivative multiplies each coefficient by $2\pi in$.** Integrating by parts over one cycle,
 
@@ -99,7 +117,13 @@ $$
 x(\varphi)=\underbrace{\frac{x(\varphi)-x(\varphi+\frac12)}{2}}_{\text{half-wave symmetric}}+\underbrace{\frac{x(\varphi)+x(\varphi+\frac12)}{2}}_{\text{repeats every half cycle}}.
 $$
 
-The first part holds the odd harmonics of $x$, and the second is a waveform an octave up that holds the even ones. For the sawtooth, the second part is a sawtooth an octave up at half the height, matching its $1/n$ falloff, in which the $2m$-th harmonic is half as loud as the $m$-th.
+Shifting the first part by half a cycle negates it, and shifting the second leaves it unchanged, so by the shift rule the first keeps only the odd harmonics of $x$ and the second only the even ones. The second repeats every half cycle, so it's a waveform an octave up. For the sawtooth on $[0,\tfrac12)$, it is
+
+$$
+\tfrac12\big((2\varphi-1)+(2(\varphi+\tfrac12)-1)\big)=\tfrac12\big(2(2\varphi)-1\big),
+$$
+
+the sawtooth at twice the rate and half the height. That matches the $1/n$ falloff, in which the $2m$-th harmonic is half as loud as the $m$-th.
 
 **This is a different question from odd and even functions.** Whether $x(-\varphi)=\pm x(\varphi)$ decides whether the harmonics are cosines or sines, not which harmonics are present. The sawtooth is an odd function, since $x(-\varphi)=x(1-\varphi)=-x(\varphi)$, so its harmonics are all sines, and it still has every one. The amp's clipper is odd as a function of the signal's value, which is what carries the input's half-wave symmetry through to its output.
 

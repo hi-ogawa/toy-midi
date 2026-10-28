@@ -9,7 +9,7 @@ Aim for compact explanations that make a mechanism or design reconstructable. Us
 
 ## Narrative
 
-Write for a physicist or mathematician doing a guided back-of-envelope calculation for an audio application. Use the field's standard vocabulary where it names the idea the argument relies on, and leave out exact constants, convergence caveats, and side results that nothing in the application builds on. When a claim stays, show its derivation as a short equation rather than asserting it in words, since an equation is quicker to check while skimming.
+Write for a physicist or mathematician doing a guided back-of-envelope calculation for an audio application. A math doc exists to derive the claims the application would otherwise take on faith, so let a short equation arrive at each claim and name the result once the equation shows it, rather than stating the claim and attaching math afterwards. An equation is also quicker to check while skimming than a sentence is to believe. When a derivation is too heavy for the main text, rely on an intuition that holds on its own, move the derivation to an appendix, or leave a TODO. Use the field's standard vocabulary where it names the idea the argument relies on, and leave out exact constants, convergence caveats, and side results that nothing in the application builds on.
 
 Separate mathematical fluency from domain familiarity. Motivate unfamiliar constructions through simple examples, then trust the reader with familiar algebra. Let the subject determine the approach rather than imposing a derivation template.
 
