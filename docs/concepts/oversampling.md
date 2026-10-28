@@ -40,7 +40,7 @@ It's also 1 at its own sample and 0 at every other one, but it's smooth and spre
 
 ![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
 
-**On the finer grid, each output is a convolution.** The upsampler needs $x(t)$ only at $t=m/L$. Read the same sum from the output's side: each output point takes a weighted sum of the input samples near it, with the bump's values at their distances as the weights, which is a convolution. On the finer grid the samples sit at every $L$th point, and there's nothing to weigh at the points between them, so the input written at the new rate is the samples with $L-1$ zeros after each,
+**On the finer grid, each output is a convolution.** The upsampler needs $x(t)$ only at $t=m/L$. Read the same sum from the output's side: each output point takes a weighted sum of the input samples near it, with the bump's values at their distances as the weights, which is a convolution. On the finer grid the samples sit at every $`L`$th point, and there's nothing to weigh at the points between them, so the input written at the new rate is the samples with $L-1$ zeros after each,
 
 $$
 v[m]=\begin{cases}x[m/L] & L\mid m,\\ 0 & \text{otherwise,}\end{cases}
@@ -66,7 +66,7 @@ So the zeros aren't a separate trick. They're what the input looks like at the n
 
 > 🚧 TODO: not yet internalized by the author.
 
-**The zeros add images above $F_s/2$, and the low-pass removes them.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
+**The zeros add images above $F_s/2$, and the low-pass removes them.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $`L`$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
 
 $$
 c[m]=\frac{1}{L}\sum_{k=0}^{L-1}e^{j2\pi km/L},
@@ -86,9 +86,9 @@ The box's and triangle's spectra fall gradually instead, so they dull the top of
 
 This low-pass is a different kind of filter from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), and it's designed from the sinc rather than from those articles, as the [appendix](#appendix-a-low-pass-without-feedback) explains.
 
-### Downsample by Filtering and Keeping Every $L$th Sample
+### Downsample by Filtering and Keeping Every $`L`$th Sample
 
-Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$ in the processed signal would alias by the same rule as above. A low-pass at the original Nyquist frequency removes it first, and then every $L$th sample is kept.
+Keeping every $`L`$th sample is sampling again at $F_s$, so anything above $F_s/2$ in the processed signal would alias by the same rule as above. A low-pass at the original Nyquist frequency removes it first, and then every $`L`$th sample is kept.
 
 ## Design the Low-Pass Kernel
 
@@ -164,7 +164,7 @@ Applied directly, both filters would spend most of their multiplications on noth
 
 ![Upsampling: each of the four outputs of x5 slides the low-pass one step, and every one meets the same samples x5, x4, x3, at taps p, p + 4, p + 8. Downsampling: only every 4th output is computed, so the low-pass jumps four steps between them](images/oversampling-polyphase.svg)
 
-In the upsampler, each of the $L$ outputs after an input sample slides the low-pass one step further, but the real samples under it stay the same until the next input sample arrives. So output $p$, counting from 0, is a short filter over the last $N/L=24$ input samples that uses every $L$th tap starting at tap $p$, and the $L$ outputs together use each tap once. In the downsampler, every sample is real, but only one output in $L$ is kept, so the low-pass runs only there and jumps $L$ steps from one kept output to the next. Either way, each original sample costs $N=96$ multiplications instead of $4N$. The [implementation](../../src/lib/dsp/oversampler.ts) keeps only the real samples, newest first like the figure, so each of its sums reads the colored cells of a row left to right at full size.
+In the upsampler, each of the $L$ outputs after an input sample slides the low-pass one step further, but the real samples under it stay the same until the next input sample arrives. So output $p$, counting from 0, is a short filter over the last $N/L=24$ input samples that uses every $`L`$th tap starting at tap $p$, and the $L$ outputs together use each tap once. In the downsampler, every sample is real, but only one output in $L$ is kept, so the low-pass runs only there and jumps $L$ steps from one kept output to the next. Either way, each original sample costs $N=96$ multiplications instead of $4N$. The [implementation](../../src/lib/dsp/oversampler.ts) keeps only the real samples, newest first like the figure, so each of its sums reads the colored cells of a row left to right at full size.
 
 ## Account for the Delay
 
