@@ -15,6 +15,7 @@
 - [WSOLA time stretching](concepts/wsola-time-stretching.md): derive source-window selection, waveform similarity, and complementary fades from the goal of changing duration while preserving pitch.
 - [Guitar amp simulation](concepts/guitar-amp-simulation.md): gain stages as soft clippers, why chaining them sustains a decaying note, the filters around them, and oversampling against aliasing.
 - [Oversampling](concepts/oversampling.md): why clipping aliases, upsampling and downsampling around it, the windowed-sinc low-pass they share, and the polyphase shortcut.
+- [Reverb](concepts/reverb.md): reverb as convolution with a room's impulse response, and how Dattorro's plate generates a dense, decaying one from delays and all-passes.
 
 ## Bass Pitch
 
