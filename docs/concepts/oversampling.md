@@ -22,7 +22,7 @@ If the clipper runs at $L F_s$, its Nyquist frequency is $L F_s/2$, 96 kHz at $L
 
 ### Upsample by Interpolating
 
-Running the clipper at $L F_s$ needs values between the original samples, $L-1$ new ones after each. What they should be is the band-limited signal through the samples, read on the finer grid, which this section writes as $\tilde x[m]=x(m/L)$ with $t$ counted in original samples. The upsampler starts from what it has, the samples with $L-1$ zeros after each,
+Running the clipper at $L F_s$ needs values between the original samples, $L-1$ new ones after each. What they should be is the band-limited signal through the samples, read on the finer grid, which this section writes as $\tilde x[m]=x(m/L)$. The upsampler starts from what it has, the samples with $L-1$ zeros after each,
 
 $$
 v[m]=\begin{cases}x[m/L] & L\mid m,\\ 0 & \text{otherwise.}\end{cases}
@@ -44,27 +44,51 @@ $$
 
 The first term is the wanted signal at $1/L$ of its level, and the others are **images** of it around $F_s$, $2F_s$, and so on, all above $F_s/2$. So upsampling comes down to a **low-pass** at $F_s/2$ that keeps the first term and removes every image, followed by a gain of $L$.
 
-**The ideal low-pass convolves with the sinc.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) passes each tone through scaled by the kernel's spectrum, and the ideal low-pass's spectrum is a box, 1 up to $F_s/2$ and 0 above. So its kernel is that box's tones added up. With frequency $f$ in units of $F_s$,
+**A kernel scales each tone by its spectrum.** Measure time $t$ in original samples and frequency $f$ in units of $F_s$, so the original Nyquist frequency is $f=\tfrac12$. A filter that convolves with a kernel $h$, $(h*x)(t)=\int h(s)x(t-s)ds$, passes a tone through as the [Fourier doc](fourier-series.md#filter-by-convolving-with-a-kernel) shows,
 
 $$
-\int_{-1/2}^{1/2}e^{j2\pi ft}df=\frac{e^{j\pi t}-e^{-j\pi t}}{j2\pi t}=\frac{\sin\pi t}{\pi t}=\text{sinc}(t),
+\int h(s)e^{j2\pi f(t-s)}ds=H(f) \cdot e^{j2\pi ft},\qquad H(f)=\int h(s)e^{-j2\pi fs}ds,
 $$
 
-every tone up to $F_s/2$ at equal strength. On the finer grid, the kernel's weights are $\text{sinc}(j/L)$, scaled by $1/L$ to pass DC at unity, and with the gain of $L$ the upsampler computes
+the same tone scaled by the kernel's **spectrum** $H(f)$, its gain at that frequency.
+
+**The goal is a kernel whose spectrum is a box.** The low-pass should pass every tone below $F_s/2$ unchanged and stop every tone above, which is
+
+$$
+H(f)=\begin{cases}1 & |f|\lt\tfrac12,\\ 0 & |f|\gt\tfrac12.\end{cases}
+$$
+
+**Feed the filter an impulse to find its kernel.** A unit impulse $\delta$ at $t=0$ comes out as the kernel itself, $(h*\delta)(t)=h(t)$. The impulse is every tone at strength 1, all peaking together at $t=0$ and cancelling everywhere else, $\delta(t)=\int e^{j2\pi ft}df$, and the filter scales each of those tones by $H(f)$. So the kernel is the tones weighted by the spectrum,
+
+$$
+h(t)=\int H(f) \cdot e^{j2\pi ft}df,
+$$
+
+and for the box it's every tone up to $F_s/2$ at equal strength:
+
+$$
+h(t)=\int_{-1/2}^{1/2}e^{j2\pi ft}df=\frac{e^{j\pi t}-e^{-j\pi t}}{j2\pi t}=\frac{\sin\pi t}{\pi t}=\text{sinc}(t).
+$$
+
+**Each sample places a sinc bump, which is interpolation.** Write the samples as impulses at their times, $\sum_n x[n] \cdot \delta(t-n)$. Each impulse comes out of the low-pass as a copy of the kernel, so the low-passed samples are
+
+$$
+x(t)=\sum_n x[n] \cdot \text{sinc}(t-n),
+$$
+
+a sinc centered on each sample and scaled by its value. The sum of tones that built the sinc shows what this curve does. At $t=0$ every tone peaks, and they add up to the band's width, 1. At a nonzero integer $t$, the phase $2\pi ft$ turns through exactly $t$ whole turns as $f$ crosses the band, so the tones point evenly in every direction and cancel to 0. So each bump is 1 at its own sample and 0 at the others, the curve passes through every sample, and it holds nothing above $F_s/2$, because every bump is built from tones below it. That's the sampling theorem, under conditions the [appendix](#appendix-the-statements-behind-the-pictures) states: a signal with nothing above $F_s/2$ is determined by its samples, and the sinc rebuilds it.
+
+![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
+
+**On the finer grid, the same low-pass fills in the zeros.** The upsampler needs the curve only at $t=m/L$. On the finer grid the impulses become the zero-stuffed $v$, and the convolution becomes a sum with the kernel's weights $\text{sinc}(j/L)$, which scaled by $1/L$ pass DC at unity and with the gain of $L$ give
 
 $$
 \tilde x[m]=\sum_j\text{sinc}(j/L) \cdot v[m-j]=\sum_n x[n] \cdot \text{sinc}\Big(\frac{m}{L}-n\Big),
 $$
 
-because $v$ is zero except at $m-j=nL$, where it's $x[n]$:
+because $v$ is zero except at $m-j=nL$, where it's $x[n]$. The low-pass removes the images, and the zeros aren't a separate trick. They're what the input looks like at the new rate, and the low-pass does the interpolating:
 
 ![The zero-stuffed sine has its 9 kHz component at a quarter of its level and copies at 39, 57, and 87 kHz; after the low-pass and ×4 only the 9 kHz component remains, at full level](images/oversampling-images.svg)
-
-**Each sample places a sinc bump, which is interpolation.** Read the last sum from the samples' side. Each sample places a sinc centered on itself, scaled by its value, and the bumps add up to $x(t)=\sum_n x[n] \cdot \text{sinc}(t-n)$ at $t=m/L$. The sum of tones that built the sinc shows what this curve does. At $t=0$ every tone peaks, and they add up to the band's width, 1. At a nonzero integer $t$, the phase $2\pi ft$ turns through exactly $t$ whole turns as $f$ crosses the band, so the tones point evenly in every direction and cancel to 0. So each bump is 1 at its own sample and 0 at the others, the curve passes through every sample, and it holds nothing above $F_s/2$, because every bump is built from tones below it. That's the sampling theorem, under conditions the [appendix](#appendix-the-statements-behind-the-pictures) states: a signal with nothing above $F_s/2$ is determined by its samples, and the sinc rebuilds it.
-
-![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
-
-So the zeros aren't a separate trick. They're what the input looks like at the new rate, and the low-pass does the interpolating:
 
 ![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
 
