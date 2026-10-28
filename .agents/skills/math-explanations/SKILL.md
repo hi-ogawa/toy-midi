@@ -29,4 +29,6 @@ Read relevant examples in [docs/concepts](../../../docs/concepts) for calibratio
 
 In GitHub Markdown math, `\,`, `\;`, and `\!` have rendered as literal punctuation. Use `\cdot` for explicit multiplication and `\quad` for extra spacing, and leave negative spacing out. GitHub also rejects `\operatorname`, so write a named function such as sech or sinc with `\text{sech}`. A `$` directly followed by a letter or digit doesn't close inline math, so `$n$th` renders as plain text. Write an ordinal as `$n$-th` instead.
 
-Claude's Markdown preview also reads a `$` followed by two letters as a variable such as `$HOME`, so `$LF_s$` stays plain text there. Put a space between the first two letters, as in `$L F_s$`, which renders the same everywhere else.
+Claude's Markdown preview also reads a `$` followed by two letters as a variable such as `$HOME`, so `$LF_s$` stays plain text there. Put a space between the first two letters, as in `$L F_s$`, which renders the same everywhere else. The preview doesn't render GitHub's ``$`…`$`` form either, so write plain `$…$`.
+
+An underscore right after a `}` can pair with a later one as Markdown emphasis, so in `$\mathbf{x}_0$ and $\mathbf{x}_\tau$` the text between them turns italic. Leave out the braces, as in `$\mathbf x_0$`.
