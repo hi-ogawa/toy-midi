@@ -40,6 +40,14 @@ It's also 1 at its own sample and 0 at every other one, but it's smooth and spre
 
 ![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
 
+**The sinc is every tone up to $F_s/2$ at equal strength.** With frequency $f$ in units of $F_s$, it's the sum of the tones from $-1/2$ to $1/2$, where each negative frequency pairs with its positive one into a cosine,
+
+$$
+\text{sinc}(t)=\int_{-1/2}^{1/2}e^{j2\pi ft}df,
+$$
+
+and integrating gives $\frac{e^{j\pi t}-e^{-j\pi t}}{j2\pi t}=\frac{\sin \pi t}{\pi t}$. Two facts can be read off this form without computing anything. First, the bump has nothing above $F_s/2$ by construction, so neither does any sum of shifted copies of it. Second, at $t=0$ all the tones peak together and add up to the band's width, which is 1. At a nonzero integer $t$, the phase $2\pi ft$ runs through exactly $t$ whole turns as $f$ crosses the band, so the tones point evenly in every direction and cancel to 0. So the sinc is 1 at its own sample and 0 at the others, and the sum of the bumps is a curve with nothing above $F_s/2$ that passes through every sample. The samples determine such a curve, so it's the signal itself. Summing whole-numbered harmonics at equal strength instead gives the periodic counterpart, the Dirichlet kernel, which peaks once per period with nothing above its top harmonic, and Stilson and Smith use it as a band-limited impulse train for oscillators.
+
 **On the finer grid, each output is a convolution.** The upsampler needs $x(t)$ only at $t=m/L$. Read the same sum from the output's side: each output point takes a weighted sum of the input samples near it, with the bump's values at their distances as the weights, which is a convolution. On the finer grid the samples sit at every $L$-th point, and there's nothing to weigh at the points between them, so the input written at the new rate is the samples with $L-1$ zeros after each,
 
 $$
@@ -56,7 +64,13 @@ So the zeros aren't a separate trick. They're what the input looks like at the n
 
 ![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
 
-**In frequency, the sinc bump is a low-pass.** Convolving in time multiplies in frequency, so the bump's spectrum is the upsampler's frequency response, how much of each frequency comes through. Shapes in time and in frequency come in pairs, and the sinc pairs with a box, flat up to $F_s/2$ and zero above. So the sinc bump is a **low-pass** at the original Nyquist frequency by its shape alone. The [appendix](#appendix-the-statements-behind-the-pictures) states the convolution theorem and the sinc's spectrum precisely and proves that this low-pass reproduces the ideal signal exactly. The simple bumps pair the other way around, since a box in time has a sinc spectrum, and a triangle is the box convolved with itself, so its spectrum is that sinc squared:
+**In frequency, the sinc bump is a low-pass.** Convolving with a bump treats each tone on its own, because a tone $e^{j2\pi ft}$ comes out as
+
+$$
+\int b(\tau) \cdot e^{j2\pi f(t-\tau)}d\tau=e^{j2\pi ft}\int b(\tau) \cdot e^{-j2\pi f\tau}d\tau=B(f) \cdot e^{j2\pi ft},
+$$
+
+the same tone scaled by a number $B(f)$ that depends only on its frequency. That number is the bump's spectrum, so convolving in time multiplies in frequency, and the bump's spectrum is the upsampler's frequency response, meaning how much of each frequency comes through. The sinc was built from every tone up to $F_s/2$ at strength 1 and none above, so its spectrum is a box, flat up to $F_s/2$ and zero above. So the sinc bump is a **low-pass** at the original Nyquist frequency by its shape alone. The [appendix](#appendix-the-statements-behind-the-pictures) states the convolution theorem and the sinc's spectrum precisely and proves that this low-pass reproduces the ideal signal exactly. The simple bumps pair the other way around, since a box in time has a sinc spectrum, and a triangle is the box convolved with itself, so its spectrum is that sinc squared:
 
 | Interpolator         | Bump                        | Spectrum, roughly           |
 | -------------------- | --------------------------- | --------------------------- |
@@ -174,6 +188,7 @@ Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays b
 
 - C. E. Shannon, [Communication in the Presence of Noise](https://doi.org/10.1109/JRPROC.1949.232969), the sampling theorem and the sinc that rebuilds a signal from its samples
 - R. E. Crochiere and L. R. Rabiner, [Interpolation and Decimation of Digital Signals: A Tutorial Review](https://doi.org/10.1109/PROC.1981.11969), the upsampler that inserts zeros and filters, the images it removes, and the polyphase split
+- T. Stilson and J. Smith, [Alias-Free Digital Synthesis of Classic Analog Waveforms](https://ccrma.stanford.edu/~stilti/papers/blit.pdf), the band-limited impulse train, which is the periodic counterpart of the sinc
 - A. V. Oppenheim and R. W. Schafer, _Discrete-Time Signal Processing_, the textbook treatment of changing the sample rate and of designing a low-pass with a window, including Kaiser's formulas
 - J. F. Kaiser, "Nonrecursive Digital Filter Design Using the I0-sinh Window Function", Proceedings of the 1974 IEEE International Symposium on Circuits and Systems, where the window and its formulas for $\beta$ and the length come from
 - [`scipy.signal.kaiserord`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.kaiserord.html), the same formulas as a function, which is a quick way to check the numbers above
@@ -213,7 +228,7 @@ $$
 
 The copies at $k\ne0$ are the images. The left side of the claim is $(s*b)(t)$, with transform $S \cdot B$. Each copy $X(f-k)$ vanishes outside $|f-k|\lt1/2$, so the box keeps the $k=0$ copy whole and removes every other, which leaves $S \cdot B=X$. $\blacksquare$
 
-The box's inverse transform is $\int_{-1/2}^{1/2}e^{j2\pi ft}df=\sin(\pi t)/(\pi t)$, which is why the exact bump is the sinc and why it's a low-pass. The same proof works for any bump whose transform is 1 on $|f|\lt1/2$ and 0 on every other copy, and fails by exactly how far $B$ is from that.
+The box's inverse transform is $\int_{-1/2}^{1/2}e^{j2\pi ft}df=\sin(\pi t)/(\pi t)$, the sum of tones [Upsample by Interpolating](#upsample-by-interpolating) builds the sinc from, which is why the exact bump is the sinc and why it's a low-pass. The same proof works for any bump whose transform is 1 on $|f|\lt1/2$ and 0 on every other copy, and fails by exactly how far $B$ is from that.
 
 **The simple bumps.** Repeating each sample uses a box in time, $b=1$ on $[0,1)$, whose transform is $e^{-j\pi f} \cdot \text{sinc}(f)$. Linear interpolation uses the triangle on $[-1,1]$, the centered box convolved with itself, whose transform is $\text{sinc}^2(f)$. In continuous time these are exact, and the table's magnitudes $\text{sinc}(f/F_s)$ and $\text{sinc}^2(f/F_s)$ follow. They are 1 only at $f=0$ and fall through the band, and they are small but nonzero on the images.
 
