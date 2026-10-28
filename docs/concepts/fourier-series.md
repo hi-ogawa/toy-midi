@@ -55,13 +55,13 @@ Each of these sends a harmonic to itself times a factor that depends only on $n$
 
 **A shift rotates each coefficient.** Substituting into the coefficient formula, $x(\varphi-s)$, which is $x$ delayed by $s$, has coefficients $e^{-2\pi ins}c_n$. The same delay turns the $n$-th harmonic's phase $n$ times as far as the fundamental's.
 
-**Convolution multiplies each coefficient by the kernel's.** Convolving with a kernel $h$ of period 1 averages delayed copies of $x$ with weights $h(s)$, so it averages their rotations:
+**A filter passes each harmonic through with its own gain.** A filter that convolves with a kernel $h$ of period 1 outputs a weighted average of delayed copies of its input, $(h*x)(\varphi)=\int_0^1 h(s)x(\varphi-s)ds$. Feed it one harmonic, and the same harmonic comes out, scaled:
 
 $$
-(h*x)(\varphi)=\int_0^1 h(s)x(\varphi-s)ds\quad\Longrightarrow\quad c_n[h*x]=\int_0^1 h(s)e^{-2\pi ins}ds\cdot c_n=h_n c_n.
+(h*e_n)(\varphi)=\int_0^1 h(s)e^{2\pi in(\varphi-s)}ds=\underbrace{\int_0^1 h(s)e^{-2\pi ins}ds}_{h_n}\cdot e_n(\varphi).
 $$
 
-The kernel's own coefficients $h_n$ are the filter's gain at each harmonic, and a shift is the kernel with all its weight at one delay. For a signal that isn't periodic, the whole numbers $n$ become every frequency $f$ and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc.
+The factor is the kernel's own $n$-th coefficient, so the kernel's harmonics are the filter's gain at each harmonic. Since $x=\sum c_ne_n$, the output is $\sum h_nc_ne_n$, so convolving multiplies each coefficient by $h_n$. A shift is the kernel with all its weight at one delay. For a signal that isn't periodic, the same computation works for a tone at every frequency $f$, and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc.
 
 **Multiplication convolves the coefficients.** The roles swap. Multiplying by $e_k$ moves every coefficient up by $k$, and a waveform $y$ is a sum of such tones, so
 
