@@ -44,30 +44,10 @@ $$
 
 The first term is the wanted signal at $1/L$ of its level, and the others are **images** of it around $F_s$, $2F_s$, and so on, all above $F_s/2$. So upsampling comes down to a **low-pass** at $F_s/2$ that keeps the first term and removes every image, followed by a gain of $L$.
 
-**A kernel scales each tone by its spectrum.** Measure time $t$ in original samples and frequency $f$ in units of $F_s$, so the original Nyquist frequency is $f=\tfrac12$. A filter that convolves with a kernel $h$, $(h*x)(t)=\int h(s)x(t-s)ds$, passes a tone through as the [Fourier doc](fourier-series.md#filter-by-convolving-with-a-kernel) shows,
+**The ideal low-pass convolves with the sinc.** Measure time $t$ in original samples and frequency $f$ in units of $F_s$. The ideal low-pass passes every tone below $F_s/2$ unchanged and stops every tone above, so its spectrum is a box, and the kernel with that spectrum is every tone up to $F_s/2$ at equal strength, as the [appendix](#appendix-find-the-kernel-of-the-ideal-low-pass) derives:
 
 $$
-\int h(s)e^{j2\pi f(t-s)}ds=H(f) \cdot e^{j2\pi ft},\qquad H(f)=\int h(s)e^{-j2\pi fs}ds,
-$$
-
-the same tone scaled by the kernel's **spectrum** $H(f)$, its gain at that frequency.
-
-**The goal is a kernel whose spectrum is a box.** The low-pass should pass every tone below $F_s/2$ unchanged and stop every tone above, which is
-
-$$
-H(f)=\begin{cases}1 & |f|\lt\tfrac12,\\ 0 & |f|\gt\tfrac12.\end{cases}
-$$
-
-**Feed the filter an impulse to find its kernel.** A unit impulse $\delta$ at $t=0$ comes out as the kernel itself, $(h*\delta)(t)=h(t)$. The impulse is every tone at strength 1, all peaking together at $t=0$ and cancelling everywhere else, $\delta(t)=\int e^{j2\pi ft}df$, and the filter scales each of those tones by $H(f)$. So the kernel is the tones weighted by the spectrum,
-
-$$
-h(t)=\int H(f) \cdot e^{j2\pi ft}df,
-$$
-
-and for the box it's every tone up to $F_s/2$ at equal strength:
-
-$$
-h(t)=\int_{-1/2}^{1/2}e^{j2\pi ft}df=\frac{e^{j\pi t}-e^{-j\pi t}}{j2\pi t}=\frac{\sin\pi t}{\pi t}=\text{sinc}(t).
+\text{sinc}(t)=\int_{-1/2}^{1/2}e^{j2\pi ft}df=\frac{\sin\pi t}{\pi t}.
 $$
 
 **Each sample places a sinc bump, which is interpolation.** Write the samples as impulses at their times, $\sum_n x[n] \cdot \delta(t-n)$. Each impulse comes out of the low-pass as a copy of the kernel, so the low-passed samples are
@@ -92,13 +72,7 @@ because $v$ is zero except at $m-j=nL$, where it's $x[n]$. The low-pass removes 
 
 ![A 9 kHz sine: its samples at 48 kHz, the same samples with three zeros after each, and the upsampler's output, whose new samples lie on the sine](images/oversampling-zero-stuffing.svg)
 
-**The simple interpolators are cruder low-passes.** Repeating each sample and drawing straight lines between samples also place a bump at each sample, $x(t)=\sum_n x[n] \cdot b(t-n)$, with a box one sample wide and a triangle two samples wide. Each is 1 at its own sample and 0 at the others, so the curve passes through every sample, but their spectra aren't the box. They come from the same integral with time and frequency swapped. A box one sample wide, centered on its sample, has the spectrum
-
-$$
-\int_{-1/2}^{1/2}e^{-j2\pi ft}dt=\text{sinc}(f),
-$$
-
-and the repeat's box, which starts at its sample instead, differs only by a half-sample delay, which changes the phase and not the magnitude. The triangle is the box convolved with itself, so a tone passing through it is scaled by the box's spectrum twice, which gives $\text{sinc}^2(f)$. Both are zero at every nonzero multiple of $F_s$, where $\sin\pi f=0$:
+**The simple interpolators are cruder low-passes.** Repeating each sample and drawing straight lines between samples also place a bump at each sample, $x(t)=\sum_n x[n] \cdot b(t-n)$, with a box one sample wide and a triangle two samples wide. Each is 1 at its own sample and 0 at the others, so the curve passes through every sample, but their spectra aren't the box. The [appendix](#appendix-find-the-kernel-of-the-ideal-low-pass) finds them from the same integral, $\text{sinc}(f)$ for the box and $\text{sinc}^2(f)$ for the triangle, both zero at every nonzero multiple of $F_s$:
 
 | Interpolator         | Bump                        | Spectrum, roughly           |
 | -------------------- | --------------------------- | --------------------------- |
@@ -108,7 +82,7 @@ and the repeat's box, which starts at its sample instead, differs only by a half
 
 Their spectra fall gradually, so they dull the top of the wanted band and only partly remove the images. In front of a clipper both matter, because the leftover images are clipped along with the signal, which mixes them into new tones, and the dulled top changes what gets clipped. [Compare with Simple Interpolation](#compare-with-simple-interpolation) measures how far apart they are.
 
-This low-pass is a different kind of filter from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md). It's a finite list of weights with no feedback, designed from the sinc.
+This low-pass is a different kind of filter from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), and it's designed from the sinc rather than from those articles, as the [appendix](#appendix-a-low-pass-without-feedback) explains.
 
 ### Downsample by Filtering and Keeping Every $L$-th Sample
 
@@ -204,6 +178,44 @@ Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays b
 - J. O. Smith, [Kaiser Window](https://ccrma.stanford.edu/~jos/sasp/Kaiser_Window.html), the window's trade between transition width and stopband attenuation
 - J. O. Smith, [Digital Audio Resampling Home Page](https://ccrma.stanford.edu/~jos/resample/), interpolation with a windowed sinc as audio resamplers do it
 - [FFmpeg resampler options](https://ffmpeg.org/ffmpeg-resampler.html), the resampler the [amp prototype](https://github.com/hi-ogawa/toy-midi/pull/963) oversampled with, whose default filter is a longer Kaiser-windowed sinc
+
+## Appendix: Find the Kernel of the Ideal Low-Pass
+
+The claim is that the kernel whose spectrum is the box up to $F_s/2$ is the sinc. Measure time $t$ in original samples and frequency $f$ in units of $F_s$, so the original Nyquist frequency is $f=\tfrac12$.
+
+**A kernel scales each tone by its spectrum.** A filter that convolves with a kernel $h$, $(h*x)(t)=\int h(s)x(t-s)ds$, passes a tone through as the [Fourier doc](fourier-series.md#filter-by-convolving-with-a-kernel) shows,
+
+$$
+\int h(s)e^{j2\pi f(t-s)}ds=H(f) \cdot e^{j2\pi ft},\qquad H(f)=\int h(s)e^{-j2\pi fs}ds,
+$$
+
+the same tone scaled by the kernel's **spectrum** $H(f)$, its gain at that frequency.
+
+**The goal is a kernel whose spectrum is a box.** The low-pass should pass every tone below $F_s/2$ unchanged and stop every tone above, which is
+
+$$
+H(f)=\begin{cases}1 & |f|\lt\tfrac12,\\ 0 & |f|\gt\tfrac12.\end{cases}
+$$
+
+**Feed the filter an impulse to find its kernel.** A unit impulse $\delta$ at $t=0$ comes out as the kernel itself, $(h*\delta)(t)=h(t)$. The impulse is every tone at strength 1, all peaking together at $t=0$ and cancelling everywhere else, $\delta(t)=\int e^{j2\pi ft}df$, and the filter scales each of those tones by $H(f)$. So the kernel is the tones weighted by the spectrum,
+
+$$
+h(t)=\int H(f) \cdot e^{j2\pi ft}df,
+$$
+
+and for the box it's every tone up to $F_s/2$ at equal strength:
+
+$$
+h(t)=\int_{-1/2}^{1/2}e^{j2\pi ft}df=\frac{e^{j\pi t}-e^{-j\pi t}}{j2\pi t}=\frac{\sin\pi t}{\pi t}=\text{sinc}(t).
+$$
+
+**The simple bumps' spectra come from the same integral with time and frequency swapped.** A box one sample wide, centered on its sample, has the spectrum
+
+$$
+\int_{-1/2}^{1/2}e^{-j2\pi ft}dt=\text{sinc}(f),
+$$
+
+and the repeat's box, which starts at its sample instead, differs only by a half-sample delay, which changes the phase and not the magnitude. The triangle is the box convolved with itself, so a tone passing through it is scaled by the box's spectrum twice, which gives $\text{sinc}^2(f)$. Both are zero at every nonzero integer $f$, which is every nonzero multiple of $F_s$, where $\sin\pi f=0$.
 
 ## Appendix: The Statements Behind the Pictures
 
