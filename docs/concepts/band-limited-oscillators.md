@@ -140,7 +140,7 @@ $$
 
 exactly, for every harmonic. All of the sawtooth's harmonics, and so all of its aliases, are the jump's. The square is the same, with $J=2$ at $\varphi=0$ and $J=-2$ at $\varphi=\tfrac12$ and no slope at all, so $c_n=2\big(1-e^{-i\pi n}\big)/(2\pi in)$, which is 0 for even $n$ and gives $2|c_n|=4/(\pi n)$ for odd $n$.
 
-**Repeating the split gives the falloff.** The second term is $c_n[x']$ divided by $2\pi in$, and $c_n[x']$ splits the same way at the jumps of $x'$, which are the corners of $x$. So jumps in $x$ give harmonics falling as $1/n$, corners give $1/n^2$, jumps in the curvature give $1/n^3$, and so on, and the lowest derivative that jumps sets the falloff. The triangle has no jumps, so its first term vanishes. Its slope is 4 for $\varphi$ from $-\tfrac14$ to $\tfrac14$ and −4 for the rest of the cycle, so the slope jumps by −8 at $\varphi=\tfrac14$ and by 8 at $\varphi=\tfrac34$, and has no slope of its own. Applying the formula to the slope,
+**Repeating the split gives the falloff.** The second term is $c_n[x']$ divided by $2\pi in$, and $c_n[x']$ splits the same way at the jumps of $x'$, which are the corners of $x$. So jumps in $x$ give harmonics falling as $1/n$, corners give $1/n^2$, jumps in the curvature give $1/n^3$, and so on, and the lowest derivative that jumps sets the falloff. In the usual terms, a function is called $C^k$ when it and its first $k$ derivatives are continuous, and **piecewise smooth** when it's smooth between finitely many breaks. A piecewise smooth waveform that is $C^{k-1}$ but whose $k$-th derivative jumps has harmonics falling as $1/n^{k+1}$. The sawtooth and square aren't even $C^0$, so theirs fall as $1/n$, the triangle is $C^0$ but not $C^1$, so its fall as $1/n^2$, and a $C^\infty$ waveform's fall faster than any power of $n$. The triangle has no jumps, so its first term vanishes. Its slope is 4 for $\varphi$ from $-\tfrac14$ to $\tfrac14$ and −4 for the rest of the cycle, so the slope jumps by −8 at $\varphi=\tfrac14$ and by 8 at $\varphi=\tfrac34$, and has no slope of its own. Applying the formula to the slope,
 
 $$
 c_n[x']=\frac{8\big(e^{-3i\pi n/2}-e^{-i\pi n/2}\big)}{2\pi in},
@@ -149,3 +149,29 @@ $$
 which is 0 for even $n$ and has magnitude $16/(2\pi n)$ for odd $n$. Dividing by $2\pi in$ once more gives $2|c_n|=8/(\pi^2n^2)$, the triangle's entry in the table.
 
 **The same split is what the corrections use.** It writes the waveform as a smooth part plus a step at each jump and a ramp at each corner. Adding a BLEP residual replaces a step with its band-limited version, and adding a BLAMP residual does the same for a ramp. For the sawtooth and square, the smooth part has no harmonics, so replacing the steps leaves nothing that can alias. In the language of distributions, the split says that each jump puts an impulse of weight $J_k$ into the slope, and an impulse contains every frequency at equal strength.
+
+## Appendix: Read Odd Harmonics from Half-Wave Symmetry
+
+The square and triangle have only odd harmonics, while the sawtooth has every one. The jump formula shows this by computation, but the shapes tell it directly.
+
+**Shifting by half a cycle flips the odd harmonics.** The $n$-th harmonic completes $n$ of its own cycles in each period, so half a period is $n/2$ of its cycles. Delaying the waveform by half a cycle therefore multiplies the $n$-th coefficient by $e^{-i\pi n}=(-1)^n$, which leaves the even harmonics unchanged and flips the sign of the odd ones.
+
+**Half-wave symmetry means odd harmonics only.** A waveform is called **half-wave symmetric** when its second half-cycle is its first upside down,
+
+$$
+x(\varphi+\tfrac12)=-x(\varphi).
+$$
+
+Comparing coefficients on both sides gives $(-1)^nc_n=-c_n$ for every $n$, which holds exactly when $c_n=0$ for every even $n$. The square is half-wave symmetric, because its 1 becomes −1, and so is the triangle, whose fall mirrors its rise, and the sine. The sawtooth isn't, because it keeps rising through both halves of the cycle. In the jump formula, the symmetry pairs each jump with an opposite one half a cycle later, and the pair contributes $J\big(1-(-1)^n\big)e^{-2\pi in\varphi_k}$, which cancels for even $n$, as the square's two jumps showed.
+
+**Every waveform splits into an odd part and an octave-up part.** Write
+
+$$
+x(\varphi)=\underbrace{\frac{x(\varphi)-x(\varphi+\frac12)}{2}}_{\text{half-wave symmetric}}+\underbrace{\frac{x(\varphi)+x(\varphi+\frac12)}{2}}_{\text{repeats every half cycle}}.
+$$
+
+The first part is half-wave symmetric, so it holds the odd harmonics. The second repeats every half cycle, so it's a waveform an octave up, and its harmonics are the even harmonics of $x$. For the sawtooth, the second part works out to a sawtooth an octave up at half the height, $\tfrac12\big(2(2\varphi \bmod 1)-1\big)$, which matches its even harmonics, since the $2m$-th harmonic's amplitude $2/(2\pi m)$ is half of the $m$-th.
+
+**This is a different question from odd and even functions.** Whether $x(-\varphi)=x(\varphi)$ or $x(-\varphi)=-x(\varphi)$ decides whether the harmonics are cosines or sines, measured from $\varphi=0$, not which harmonics are present. The sawtooth $2\varphi-1$ is an odd function, since $x(1-\varphi)=-x(\varphi)$, and it still has every harmonic.
+
+**Missing even harmonics sound hollow.** The second harmonic is the octave above the note and the fourth is two octaves above, so a waveform without even harmonics has none of the octaves that reinforce its pitch. The square and triangle sound hollow and reedy for that reason, and the sawtooth, with every harmonic, sounds full and bright. A clarinet has a similar spectrum in its low register. Its bore is a cylinder closed at the reed end, which resonates at odd multiples of its lowest frequency, so its low notes are mostly odd harmonics. A bowed string moves in a sawtooth-like way and has every harmonic, which is part of why a sawtooth makes a natural string or brass sound.
