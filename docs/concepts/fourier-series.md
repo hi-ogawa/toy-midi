@@ -12,13 +12,7 @@ $$
 \langle x,y\rangle=\int_0^1 x(\varphi)\overline{y(\varphi)}d\varphi,\qquad \|x\|^2=\int_0^1|x(\varphi)|^2d\varphi.
 $$
 
-**The length is the RMS level, which measures power.** A voltage $x$ across a 1 Ω resistor dissipates power $x^2$, so $\|x\|^2$ is the average power over a cycle, and $\|x\|$ is the steady DC voltage that would dissipate the same power. At the same peak of 1,
-
-$$
-\|\text{square}\|^2=1,\qquad\|\text{sine}\|^2=\tfrac12,\qquad\|\text{sawtooth}\|^2=\|\text{triangle}\|^2=\tfrac13,
-$$
-
-so the square carries 3 dB more power than the sine, and the sawtooth and triangle 1.8 dB less.
+So the length of a waveform is its RMS level.
 
 ## Read Each Harmonic with an Inner Product
 
@@ -35,7 +29,7 @@ $$
 x=\sum_{n=-\infty}^{\infty}c_n e_n,\qquad c_n=\langle x,e_n\rangle=\int_0^1 x(\varphi)e^{-2\pi in\varphi}d\varphi.
 $$
 
-Perpendicular axes give two more facts. Keeping only the harmonics up to $N$ gives the closest such sum to $x$ in RMS, and Pythagoras splits the power across the harmonics, which is **Parseval's theorem**:
+Perpendicular axes give two more facts. Keeping only the harmonics up to $N$ gives the closest such sum to $x$ in RMS, and Pythagoras splits the squared length across the harmonics, which is **Parseval's theorem**:
 
 $$
 \|x\|^2=\sum_{n=-\infty}^{\infty}|c_n|^2.
