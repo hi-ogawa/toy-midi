@@ -49,9 +49,25 @@ $$
 c_n e^{2\pi in\varphi}+\overline{c_n}e^{-2\pi in\varphi}=2\text{Re}\big(c_n e^{2\pi in\varphi}\big)=2|c_n|\cos(2\pi n\varphi+\arg c_n).
 $$
 
-## Feed One Harmonic Through a Delay, a Filter, and a Derivative
+## Filter by Convolving with a Kernel
 
-A delay, a filter, and a derivative are all linear, so feeding in one harmonic at a time shows what each does to $x=\sum c_ne_n$.
+A filter that convolves with a kernel $h$ of period 1 outputs a weighted average of delayed copies of its input, $(h*x)(\varphi)=\int_0^1 h(s)x(\varphi-s)ds$. Feed it one harmonic, and the same harmonic comes out, scaled:
+
+$$
+(h*e_n)(\varphi)=\int_0^1 h(s)e^{2\pi in(\varphi-s)}ds=\underbrace{\int_0^1 h(s)e^{-2\pi ins}ds}_{h_n}\cdot e_n(\varphi).
+$$
+
+The factor is the kernel's own $n$-th coefficient, so the kernel's harmonics are the filter's gain at each harmonic. Since $x=\sum c_ne_n$, the output is $\sum h_nc_ne_n$, so convolving multiplies each coefficient by $h_n$. For a signal that isn't periodic, the same computation works for a tone at every frequency $f$, and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc.
+
+**Multiplying waveforms convolves their coefficients.** The roles also swap. Multiplying by $e_k$ moves every coefficient up by $k$, and a waveform $y$ is a sum of such tones, so
+
+$$
+c_n[e_kx]=\int_0^1 x(\varphi)e^{-2\pi i(n-k)\varphi}d\varphi=c_{n-k},\qquad c_n[yx]=\sum_k y_kc_{n-k}.
+$$
+
+## Feed One Harmonic Through a Delay and a Derivative
+
+A delay and a derivative are linear too, so feeding in one harmonic shows what each does to $x=\sum c_ne_n$.
 
 **Delay.** Delaying one harmonic by $s$ gives
 
@@ -60,20 +76,6 @@ e_n(\varphi-s)=e^{-2\pi ins}e_n(\varphi),
 $$
 
 the same harmonic with its phase turned by $2\pi ns$. So a delay multiplies each coefficient by $e^{-2\pi ins}$, which is the **shift rule**, and turns the $n$-th harmonic $n$ times as far as the fundamental.
-
-**Filter.** A filter that convolves with a kernel $h$ of period 1 outputs a weighted average of delayed copies of its input, $(h*x)(\varphi)=\int_0^1 h(s)x(\varphi-s)ds$. Feed it one harmonic, and the same harmonic comes out, scaled:
-
-$$
-(h*e_n)(\varphi)=\int_0^1 h(s)e^{2\pi in(\varphi-s)}ds=\underbrace{\int_0^1 h(s)e^{-2\pi ins}ds}_{h_n}\cdot e_n(\varphi).
-$$
-
-The factor is the kernel's own $n$-th coefficient, so the kernel's harmonics are the filter's gain at each harmonic. Since $x=\sum c_ne_n$, the output is $\sum h_nc_ne_n$, so convolving multiplies each coefficient by $h_n$. A delay is the kernel with all its weight at one point. For a signal that isn't periodic, the same computation works for a tone at every frequency $f$, and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc.
-
-**Multiplication.** The roles swap. Multiplying by $e_k$ moves every coefficient up by $k$, and a waveform $y$ is a sum of such tones, so
-
-$$
-c_n[e_kx]=\int_0^1 x(\varphi)e^{-2\pi i(n-k)\varphi}d\varphi=c_{n-k},\qquad c_n[yx]=\sum_k y_kc_{n-k}.
-$$
 
 **Derivative.** Differentiating one harmonic gives $e_n'=2\pi in\cdot e_n$. Checking this on the coefficients by integrating by parts over one cycle,
 
