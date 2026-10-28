@@ -49,33 +49,39 @@ $$
 c_n e^{2\pi in\varphi}+\overline{c_n}e^{-2\pi in\varphi}=2\text{Re}\big(c_n e^{2\pi in\varphi}\big)=2|c_n|\cos(2\pi n\varphi+\arg c_n).
 $$
 
-## Shift, Filter, and Differentiate One Coefficient at a Time
+## Feed One Harmonic Through a Delay, a Filter, and a Derivative
 
-Each of these sends a harmonic to itself times a factor that depends only on $n$, so it multiplies each coefficient by that factor.
+A delay, a filter, and a derivative are all linear, so feeding in one harmonic at a time shows what each does to $x=\sum c_ne_n$.
 
-**A shift rotates each coefficient.** Substituting into the coefficient formula, $x(\varphi-s)$, which is $x$ delayed by $s$, has coefficients $e^{-2\pi ins}c_n$. The same delay turns the $n$-th harmonic's phase $n$ times as far as the fundamental's.
+**Delay.** Delaying one harmonic by $s$ gives
 
-**A filter passes each harmonic through with its own gain.** A filter that convolves with a kernel $h$ of period 1 outputs a weighted average of delayed copies of its input, $(h*x)(\varphi)=\int_0^1 h(s)x(\varphi-s)ds$. Feed it one harmonic, and the same harmonic comes out, scaled:
+$$
+e_n(\varphi-s)=e^{-2\pi ins}e_n(\varphi),
+$$
+
+the same harmonic with its phase turned by $2\pi ns$. So a delay multiplies each coefficient by $e^{-2\pi ins}$, which is the **shift rule**, and turns the $n$-th harmonic $n$ times as far as the fundamental.
+
+**Filter.** A filter that convolves with a kernel $h$ of period 1 outputs a weighted average of delayed copies of its input, $(h*x)(\varphi)=\int_0^1 h(s)x(\varphi-s)ds$. Feed it one harmonic, and the same harmonic comes out, scaled:
 
 $$
 (h*e_n)(\varphi)=\int_0^1 h(s)e^{2\pi in(\varphi-s)}ds=\underbrace{\int_0^1 h(s)e^{-2\pi ins}ds}_{h_n}\cdot e_n(\varphi).
 $$
 
-The factor is the kernel's own $n$-th coefficient, so the kernel's harmonics are the filter's gain at each harmonic. Since $x=\sum c_ne_n$, the output is $\sum h_nc_ne_n$, so convolving multiplies each coefficient by $h_n$. A shift is the kernel with all its weight at one delay. For a signal that isn't periodic, the same computation works for a tone at every frequency $f$, and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc.
+The factor is the kernel's own $n$-th coefficient, so the kernel's harmonics are the filter's gain at each harmonic. Since $x=\sum c_ne_n$, the output is $\sum h_nc_ne_n$, so convolving multiplies each coefficient by $h_n$. A delay is the kernel with all its weight at one point. For a signal that isn't periodic, the same computation works for a tone at every frequency $f$, and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc.
 
-**Multiplication convolves the coefficients.** The roles swap. Multiplying by $e_k$ moves every coefficient up by $k$, and a waveform $y$ is a sum of such tones, so
+**Multiplication.** The roles swap. Multiplying by $e_k$ moves every coefficient up by $k$, and a waveform $y$ is a sum of such tones, so
 
 $$
 c_n[e_kx]=\int_0^1 x(\varphi)e^{-2\pi i(n-k)\varphi}d\varphi=c_{n-k},\qquad c_n[yx]=\sum_k y_kc_{n-k}.
 $$
 
-**A derivative multiplies each coefficient by $2\pi in$.** Integrating by parts over one cycle,
+**Derivative.** Differentiating one harmonic gives $e_n'=2\pi in\cdot e_n$. Checking this on the coefficients by integrating by parts over one cycle,
 
 $$
 c_n[x']=\Big[x(\varphi)e^{-2\pi in\varphi}\Big]_0^1+2\pi in\int_0^1 x(\varphi)e^{-2\pi in\varphi}d\varphi=2\pi in\cdot c_n,
 $$
 
-where the boundary term vanishes because $x(1)=x(0)$. Read the other way, integrating divides the $n$-th coefficient by $2\pi in$, so the high harmonics fall faster.
+where the boundary term vanishes because $x(1)=x(0)$. So a derivative multiplies each coefficient by $2\pi in$. Read the other way, integrating divides the $n$-th coefficient by $2\pi in$, so the high harmonics fall faster.
 
 ## Read the Falloff from Jumps and Corners
 
