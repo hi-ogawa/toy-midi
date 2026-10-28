@@ -12,16 +12,16 @@ Throughout, $F_s$ is the sample rate, 48 kHz in the examples, $f_0$ is the note'
 
 The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1$, which rises from −1 to 1 and then jumps back down, and the square is 1 for the first half of the cycle and −1 for the second. Written as sums of sines, the waveforms have these harmonics:
 
-| Waveform | Harmonics            | Amplitude of the $n$th |
-| -------- | -------------------- | ---------------------- |
-| Sine     | the fundamental only |                        |
-| Triangle | odd                  | $8/(\pi^2n^2)$         |
-| Sawtooth | every one            | $2/(\pi n)$            |
-| Square   | odd                  | $4/(\pi n)$            |
+| Waveform | Harmonics            | Amplitude of the $`n`$th |
+| -------- | -------------------- | ------------------------ |
+| Sine     | the fundamental only |                          |
+| Triangle | odd                  | $8/(\pi^2n^2)$           |
+| Sawtooth | every one            | $2/(\pi n)$              |
+| Square   | odd                  | $4/(\pi n)$              |
 
 ![Two cycles of each waveform beside its first 16 harmonics. The sine has only its fundamental. The triangle has corners and odd harmonics that drop below −45 dB by the 15th. The sawtooth jumps once per cycle and the square twice, and their harmonics fall slowly, staying above −25 dB through the 16th](images/band-limited-waveforms.svg)
 
-**How fast the harmonics fall depends on the sharpest feature of the shape.** The sawtooth and square jump, and their harmonics fall as $1/n$, which is 6 dB per octave. The triangle never jumps, but its slope changes suddenly at each corner, and its harmonics fall as $1/n^2$, which is 12 dB per octave. The two are related by integration. The triangle's slope is a square wave, so the triangle is a square integrated, and integrating divides the $n$th harmonic by its frequency, which adds one more factor of $n$. The [appendix](#appendix-split-each-harmonic-at-the-jumps) derives both rates.
+**How fast the harmonics fall depends on the sharpest feature of the shape.** The sawtooth and square jump, and their harmonics fall as $1/n$, which is 6 dB per octave. The triangle never jumps, but its slope changes suddenly at each corner, and its harmonics fall as $1/n^2$, which is 12 dB per octave. The two are related by integration. The triangle's slope is a square wave, so the triangle is a square integrated, and integrating divides the $`n`$th harmonic by its frequency, which adds one more factor of $n$. The [appendix](#appendix-split-each-harmonic-at-the-jumps) derives both rates.
 
 **The harmonics never stop, so some always fold.** Computing the waveform sample by sample is the same as sampling the ideal waveform, so every harmonic above $F_s/2$ folds back as an alias. For a sawtooth at 1 kHz, the 25th harmonic, at 25 kHz, is the first past the 24 kHz Nyquist frequency, and it lands at 23 kHz only 28 dB below the fundamental, because $1/25$ is −28 dB. The harmonics near 48 kHz are still only about 34 dB down, and they fold to just above 0 Hz, where the ear is far more sensitive than near 24 kHz. The aliases don't fall on multiples of $f_0$, so they sound like inharmonic tones, and they move the wrong way when the pitch moves. The same 25th harmonic of a 1 kHz triangle is 56 dB down, since $1/25^2$ is −56 dB.
 
@@ -110,13 +110,13 @@ The triangle's corners can be corrected the same way. A corner is a change of sl
 
 This appendix makes two claims from the main text exact: that a sawtooth's high harmonics come entirely from its jump, and that the sharpest feature of a shape sets how fast its harmonics fall.
 
-**Setup.** Let $x(\varphi)$ have period 1 and be smooth except at the phases $\varphi_1,\dots,\varphi_m$ in each cycle, where it may jump by $J_k=x(\varphi_k^+)-x(\varphi_k^-)$. Its $n$th Fourier coefficient is
+**Setup.** Let $x(\varphi)$ have period 1 and be smooth except at the phases $\varphi_1,\dots,\varphi_m$ in each cycle, where it may jump by $J_k=x(\varphi_k^+)-x(\varphi_k^-)$. Its $`n`$th Fourier coefficient is
 
 $$
 c_n=\int_0^1 x(\varphi)\,e^{-2\pi in\varphi}\,d\varphi,
 $$
 
-and for a real waveform the $n$th harmonic has amplitude $2|c_n|$.
+and for a real waveform the $`n`$th harmonic has amplitude $2|c_n|$.
 
 **Integrate by parts between the jumps.** On one smooth piece from $a$ to $b$,
 
@@ -130,7 +130,7 @@ $$
 c_n=\frac{1}{2\pi in}\sum_{k=1}^{m}J_k\,e^{-2\pi in\varphi_k}+\frac{1}{2\pi in}\,c_n[x'],
 $$
 
-where $x'$ is the slope of the smooth pieces, without the jumps, and $c_n[x']$ is its $n$th coefficient. The first term comes from the jumps alone. Each jump contributes the same magnitude $|J_k|$ to every harmonic, so after the factor $1/(2\pi in)$ it falls as $1/n$. The second term comes from the smooth pieces alone.
+where $x'$ is the slope of the smooth pieces, without the jumps, and $c_n[x']$ is its $`n`$th coefficient. The first term comes from the jumps alone. Each jump contributes the same magnitude $|J_k|$ to every harmonic, so after the factor $1/(2\pi in)$ it falls as $1/n$. The second term comes from the smooth pieces alone.
 
 **The sawtooth is all jump.** The sawtooth $2\varphi-1$ has slope 2 everywhere, and a constant has no harmonics, since $\int_0^1 2\,e^{-2\pi in\varphi}\,d\varphi=0$ for every $n\neq0$. So the second term vanishes, and with its one jump $J=-2$ at $\varphi=0$,
 
