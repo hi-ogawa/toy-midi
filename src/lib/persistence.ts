@@ -96,6 +96,7 @@ export interface SerializedMidiTrackState extends Omit<
   | "keySignature"
   | "viewMode"
   | "pan"
+  | "reverbSend"
   | "automation"
 > {
   tabAnnotationEnabled?: boolean;
@@ -104,6 +105,8 @@ export interface SerializedMidiTrackState extends Omit<
   viewMode?: MidiTrackState["viewMode"];
   // 🟢 Optional for MIDI tracks saved before pan support.
   pan?: number;
+  // 🟢 Optional for MIDI tracks saved before reverb sends.
+  reverbSend?: number;
   // 🟢 Optional for MIDI tracks saved before automation support.
   automation?: MidiTrackState["automation"];
   eq: SerializedMultibandEq;
@@ -122,6 +125,8 @@ interface SerializedAudioTrackState<ChannelData> {
   gain: number;
   // 🟢 Optional for tracks saved before pan support.
   pan?: number;
+  // 🟢 Optional for tracks saved before reverb sends.
+  reverbSend?: number;
   muted: boolean;
   soloed: boolean;
   // 🟢 Optional for tracks saved before they could record takes.
@@ -173,6 +178,7 @@ export function serializeEditorRuntimeState(
       eq: track.eq,
       gain: track.gain,
       pan: track.pan,
+      reverbSend: track.reverbSend,
       muted: track.muted,
       soloed: track.soloed,
       nextTakeNumber: track.nextTakeNumber,
@@ -225,6 +231,7 @@ export function deserializeEditorRuntimeState({
       eq: deserializeEq(track.eq),
       gain: track.gain,
       pan: track.pan ?? 0,
+      reverbSend: track.reverbSend ?? 0,
       muted: track.muted,
       soloed: track.soloed,
     })),
@@ -232,6 +239,7 @@ export function deserializeEditorRuntimeState({
       ...track,
       viewMode: track.viewMode ?? "editor",
       pan: track.pan ?? 0,
+      reverbSend: track.reverbSend ?? 0,
       automation: track.automation ?? [],
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
