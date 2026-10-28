@@ -51,7 +51,13 @@ $$
 
 ## Filter by Convolving with a Kernel
 
-A filter that convolves with a kernel $h$ outputs a weighted average of delayed copies of its input, with weight $h(s)$ on the copy delayed by $s$. The kernel lives on all time, like the sinc of [oversampling](oversampling.md) or PolyBLEP's triangle. Measure time $t$ in the same cycles as $\varphi$ and feed in one tone $e^{2\pi ift}$ at any frequency $f$. The same tone comes out, scaled:
+A filter that convolves with a kernel $h$ outputs a weighted average of delayed copies of its input, with weight $h(s)$ on the copy delayed by $s$. Measuring time $t$ in the same cycles as $\varphi$, that's the **convolution**
+
+$$
+(h*x)(t)=\int_{-\infty}^{\infty}h(s)x(t-s)ds.
+$$
+
+The kernel lives on all time, like the sinc of [oversampling](oversampling.md) or PolyBLEP's triangle. Feed in one tone $e^{2\pi ift}$ at any frequency $f$. The same tone comes out, scaled:
 
 $$
 \int_{-\infty}^{\infty}h(s)e^{2\pi if(t-s)}ds=\underbrace{\int_{-\infty}^{\infty}h(s)e^{-2\pi ifs}ds}_{H(f)}\cdot e^{2\pi ift}.
