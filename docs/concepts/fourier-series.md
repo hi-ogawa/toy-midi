@@ -6,7 +6,7 @@ Measure time in cycles, so a waveform $x(\varphi)$ has period 1 in its phase $\v
 
 ## Treat a Waveform as a Vector
 
-Waveforms add and scale like vectors, so give them the geometry of vectors too. [WSOLA](wsola-time-stretching.md#score-the-candidate-matches) compares windows of samples with an inner product, a sum of products of matching samples. A continuous waveform has a value at every phase, so the sum becomes an integral over one cycle:
+Waveforms add and scale like vectors, so give them the geometry of vectors too. Two vectors' dot product is the sum of the products of their matching entries, and a frame of samples is a vector with one entry per sample. A continuous waveform has a value at every phase, so the sum becomes an integral over one cycle:
 
 $$
 \langle x,y\rangle=\int_0^1 x(\varphi)\overline{y(\varphi)}d\varphi.
