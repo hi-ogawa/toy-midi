@@ -51,13 +51,13 @@ $$
 
 ## Filter by Convolving with a Kernel
 
-A filter that convolves with a kernel $h$ of period 1 outputs a weighted average of delayed copies of its input, $(h*x)(\varphi)=\int_0^1 h(s)x(\varphi-s)ds$. Feed it one harmonic, and the same harmonic comes out, scaled:
+A filter that convolves with a kernel $h$ outputs a weighted average of delayed copies of its input, with weight $h(s)$ on the copy delayed by $s$. The kernel lives on all time, like the sinc of [oversampling](oversampling.md) or PolyBLEP's triangle. Measure time $t$ in the same cycles as $\varphi$ and feed in one tone $e^{2\pi ift}$ at any frequency $f$. The same tone comes out, scaled:
 
 $$
-(h*e_n)(\varphi)=\int_0^1 h(s)e^{2\pi in(\varphi-s)}ds=\underbrace{\int_0^1 h(s)e^{-2\pi ins}ds}_{h_n}\cdot e_n(\varphi).
+\int_{-\infty}^{\infty}h(s)e^{2\pi if(t-s)}ds=\underbrace{\int_{-\infty}^{\infty}h(s)e^{-2\pi ifs}ds}_{H(f)}\cdot e^{2\pi ift}.
 $$
 
-The factor is the kernel's own $n$-th coefficient, so the kernel's harmonics are the filter's gain at each harmonic. Since $x=\sum c_ne_n$, the output is $\sum h_nc_ne_n$, so convolving multiplies each coefficient by $h_n$. For a signal that isn't periodic, the same computation works for a tone at every frequency $f$, and $h_n$ becomes $h$'s spectrum, which is how [oversampling](oversampling.md) reads its low-pass off the sinc.
+The factor $H(f)$ is the kernel's spectrum, and it's the filter's gain at frequency $f$. A periodic waveform has tones only at the harmonics $f=n$, so since $x=\sum c_ne_n$, the output is $\sum H(n)c_ne_n$, and convolving multiplies each coefficient by $H(n)$. A signal that isn't periodic has tones at every frequency, and each is scaled by $H(f)$ in the same way, which is how oversampling reads its low-pass off the sinc's spectrum.
 
 **Multiplying waveforms convolves their coefficients.** The roles also swap. Multiplying by $e_k$ moves every coefficient up by $k$, and a waveform $y$ is a sum of such tones, so
 
