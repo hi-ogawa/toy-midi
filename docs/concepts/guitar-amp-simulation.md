@@ -106,7 +106,7 @@ $$
 y(t + T/2) = f\big(x(t + T/2)\big) = f\big(-x(t)\big) = -f\big(x(t)\big) = -y(t).
 $$
 
-Write $y$ as a Fourier series. Shifting by $T/2$ multiplies the $`n`$th term by $e^{i n \pi} = (-1)^n$:
+Write $y$ as a Fourier series. Shifting by $T/2$ multiplies the $n$-th term by $e^{i n \pi} = (-1)^n$:
 
 $$
 y(t) = \sum_n c_n e^{i n \omega t}, \qquad y(t + T/2) = \sum_n (-1)^n c_n e^{i n \omega t}.
