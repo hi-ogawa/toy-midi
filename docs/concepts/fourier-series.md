@@ -31,7 +31,13 @@ $$
 
 The coefficient formula is the same as reading a coordinate in 3D with a dot product against an axis. Because the axes are perpendicular, each coordinate comes out on its own, so finding one harmonic needs no knowledge of the others, and keeping only the harmonics up to some $N$ gives the closest such sum to $x$ in RMS.
 
-A real waveform uses $e_n$ and $e_{-n}$ together as one real sinusoid, with $|c_{-n}|=|c_n|$, so read $|c_n|$ for $n>0$ as how loud the $n$-th harmonic is, and $c_0$ as the DC offset.
+For real $x$, conjugating the coefficient formula gives $c_{-n}=\overline{c_n}$, so each pair adds up to one real sinusoid:
+
+$$
+c_n e^{2\pi in\varphi}+c_{-n}e^{-2\pi in\varphi}=2|c_n|\cos(2\pi n\varphi+\arg c_n),
+$$
+
+and $|c_n|$ sets how loud the $n$-th harmonic is, while $c_0$ is the DC offset.
 
 ## Shift, Filter, and Differentiate One Coefficient at a Time
 
