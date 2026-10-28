@@ -34,7 +34,7 @@ $$
 H_a(s)=\frac{c_1s+d_0}{s^2+d_1s+d_0}.
 $$
 
-The endpoints alone do not fix the rate of attenuation. If $c_1\ne0$, then $H_a(s)$ behaves like $c_1/s$ at high frequency, so it reaches zero only as fast as $1/|s|\relax$. To make the magnitude fall as $1/|s|^2\relax$, which is a 12 dB drop per octave, we additionally require $c_1=0$:
+The endpoints alone do not fix the rate of attenuation. If $c_1\ne0$, then $H_a(s)$ behaves like $c_1/s$ at high frequency, so it reaches zero only as fast as $1/|s|\vphantom{}$. To make the magnitude fall as $1/|s|^2\vphantom{}$, which is a 12 dB drop per octave, we additionally require $c_1=0$:
 
 $$
 H_a(s)=\frac{d_0}{s^2+d_1s+d_0}.
@@ -100,13 +100,13 @@ Unlike the peaking EQ, this filter has no independent center-gain control. Its m
 
 ## Mirror It into a High-Pass Response
 
-A high-pass filter wants the opposite: unity at high frequency and zero at zero frequency. Rather than repeat the construction, swap the roles of low and high frequencies. Replacing $u$ by $1/u\relax$ sends $\nu$ to $1/\nu$ on the frequency axis, so whatever the low-pass did near zero, the result does near infinity, and the reverse:
+A high-pass filter wants the opposite: unity at high frequency and zero at zero frequency. Rather than repeat the construction, swap the roles of low and high frequencies. Replacing $u$ by $1/u\vphantom{}$ sends $\nu$ to $1/\nu$ on the frequency axis, so whatever the low-pass did near zero, the result does near infinity, and the reverse:
 
 $$
 H_{\text{HP}}(u)=H_{\text{LP}}(1/u)=\frac{1}{u^{-2}+u^{-1}/Q+1}=\frac{u^2}{u^2+u/Q+1}.
 $$
 
-It keeps the low-pass's denominator, so its natural frequency and damping are the same, and only the numerator changes, from $1\relax$ to $u^2$. Its magnitude is the low-pass's read at $1/\nu$,
+It keeps the low-pass's denominator, so its natural frequency and damping are the same, and only the numerator changes, from $1\vphantom{}$ to $u^2$. Its magnitude is the low-pass's read at $1/\nu$,
 
 $$
 |H_{\text{HP}}(j\nu)|^2=\frac{1}{1+(Q^{-2}-2)\nu^{-2}+\nu^{-4}},
@@ -134,7 +134,7 @@ $$
 P(d)=p_2K^2(1-d)^2+p_1K(1-d)(1+d)+p_0(1+d)^2.
 $$
 
-Multiplying by the common scale $2/(K^2+1)\relax$ and using the half-angle identities
+Multiplying by the common scale $2/(K^2+1)\vphantom{}$ and using the half-angle identities
 
 $$
 \frac{K^2}{K^2+1}=\frac{1+\cos\omega_0}{2},
@@ -179,7 +179,7 @@ $$
 (b_0,b_1,b_2)_{\text{HP}}=\frac{1+\cos\omega_0}{2}(1,-2,1).
 $$
 
-The numerators place each filter's zeros. The weights $(b_0,b_1,b_2)$ are the coefficients of $b_0+b_1d+b_2d^2$, and a tone at frequency $\omega$ sits at $z=e^{j\omega}$, so zero frequency is $z=1$ and the Nyquist frequency is $z=-1$. The low-pass's $(1,2,1)$ gives $1+2d+d^2=(1+d)^2\relax$, which has a double zero at $z=-1$, and the high-pass's $(1,-2,1)$ gives $1-2d+d^2=(1-d)^2\relax$, which has a double zero at $z=1$. This is why each response reaches zero at its end of the spectrum.
+The numerators place each filter's zeros. The weights $(b_0,b_1,b_2)$ are the coefficients of $b_0+b_1d+b_2d^2$, and a tone at frequency $\omega$ sits at $z=e^{j\omega}$, so zero frequency is $z=1$ and the Nyquist frequency is $z=-1$. The low-pass's $(1,2,1)$ gives $1+2d+d^2=(1+d)^2\vphantom{}$, which has a double zero at $z=-1$, and the high-pass's $(1,-2,1)$ gives $1-2d+d^2=(1-d)^2\vphantom{}$, which has a double zero at $z=1$. This is why each response reaches zero at its end of the spectrum.
 
 ## Cascade Sections for a Steeper Rolloff
 
@@ -191,7 +191,7 @@ $$
 |H(j\nu)|^2=\frac{1}{(1+\nu^4)^2}=\frac{1}{1+2\nu^4+\nu^8},
 $$
 
-whose uncancelled $2\nu^4$ term makes it $-6$ dB at $f_0$ rather than $-3$, with a softer knee. That combination is the 4th-order **Linkwitz–Riley** filter. A 4th-order filter keeps the Butterworth property only if its two sections have different $Q$, about $0.54\relax$ and $1.31\relax$, chosen so the cross terms cancel and the product is $1/(1+\nu^8)$.
+whose uncancelled $2\nu^4$ term makes it $-6$ dB at $f_0$ rather than $-3$, with a softer knee. That combination is the 4th-order **Linkwitz–Riley** filter. A 4th-order filter keeps the Butterworth property only if its two sections have different $Q$, about $0.54\vphantom{}$ and $1.31\vphantom{}$, chosen so the cross terms cancel and the product is $1/(1+\nu^8)$.
 
 ## References
 

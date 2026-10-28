@@ -46,7 +46,7 @@ At lag 1, the numerator and denominator are identical, giving 1 whenever the mis
 
 ## Choose the First Convincing Trough
 
-Even after normalization, selecting the deepest trough can give the wrong period. If the waveform repeats after $T$ samples, it also repeats after $2T\relax$ and $3T\relax$. A later match can be deeper because of noise or changes between cycles, but selecting $2T\relax$ would report half the frequency.
+Even after normalization, selecting the deepest trough can give the wrong period. If the waveform repeats after $T$ samples, it also repeats after $2T\vphantom{}$ and $3T\vphantom{}$. A later match can be deeper because of noise or changes between cycles, but selecting $2T\vphantom{}$ would report half the frequency.
 
 YIN instead scans from shorter to longer candidate lags and takes the first trough below a threshold. Our tuner uses
 
@@ -57,7 +57,7 @@ $$
 
 ![A schematic normalized mismatch curve selects the first trough below 0.15 even though a later trough is deeper](images/yin-first-trough.svg)
 
-Crossing the threshold identifies a promising dip. The scan then follows it downhill to its local minimum. For values $0.20,0.12,0.06,0.08\relax$, it crosses at $0.12\relax$ and selects $0.06\relax$. It stops there even if a later trough is deeper.
+Crossing the threshold identifies a promising dip. The scan then follows it downhill to its local minimum. For values $0.20,0.12,0.06,0.08\vphantom{}$, it crosses at $0.12\vphantom{}$ and selects $0.06\vphantom{}$. It stops there even if a later trough is deeper.
 
 This favors the shortest period supported by convincing evidence. The threshold is a practical choice, and complex waveforms can still produce misleading matches.
 

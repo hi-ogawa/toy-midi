@@ -14,7 +14,7 @@ $$
 
 So every frequency above the **Nyquist frequency** $F_s/2$ has a twin below it, and a sample sequence can only represent frequencies up to $F_s/2$. A frequency $f$ above it shows up as its **alias** $F_s-f$, and more generally as $|f-mF_s|$ for the integer $m$ that lands it in $[0,F_s/2]$.
 
-A linear filter never creates frequencies, so this only matters when something new is made. Clipping a note at $f_0$ makes harmonics at $k f_0$ for $k=2,3,\dots$, and a hard-driven clipper makes many of them. For a 1318 Hz lead note, the 19th harmonic is at 25 kHz, past the 24 kHz Nyquist frequency, and computing the clipper sample by sample at 48 kHz puts it at $48-25=23\relax$ kHz instead. The 21st, at 27.7 kHz, lands at 20.3 kHz, and so on down. These folded tones aren't multiples of $f_0$, so they sound like inharmonic fizz, and on a bend they move the wrong way, falling as the note rises.
+A linear filter never creates frequencies, so this only matters when something new is made. Clipping a note at $f_0$ makes harmonics at $k f_0$ for $k=2,3,\dots$, and a hard-driven clipper makes many of them. For a 1318 Hz lead note, the 19th harmonic is at 25 kHz, past the 24 kHz Nyquist frequency, and computing the clipper sample by sample at 48 kHz puts it at $48-25=23\vphantom{}$ kHz instead. The 21st, at 27.7 kHz, lands at 20.3 kHz, and so on down. These folded tones aren't multiples of $f_0$, so they sound like inharmonic fizz, and on a bend they move the wrong way, falling as the note rises.
 
 ## Raise the Rate, Process, and Come Back
 
@@ -66,7 +66,7 @@ So the zeros aren't a separate trick. They're what the input looks like at the n
 
 > 🚧 TODO: not yet internalized by the author.
 
-**The zeros add images above $F_s/2$, and the low-pass removes them.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$-th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0\relax$ otherwise. The comb is an average of $L$ tones,
+**The zeros add images above $F_s/2$, and the low-pass removes them.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$-th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0\vphantom{}$ otherwise. The comb is an average of $L$ tones,
 
 $$
 c[m]=\frac{1}{L}\sum_{k=0}^{L-1}e^{j2\pi km/L},
@@ -78,7 +78,7 @@ $$
 v=\frac{1}{L}\tilde x+\frac{1}{L}\sum_{k=1}^{L-1}\big(\tilde x \text{ shifted up by } kF_s\big).
 $$
 
-The first term is the wanted signal at $1/L\relax$ of its level, and the others are **images** of it around $F_s$, $2F_s\relax$, and so on, all above $F_s/2$. The sinc's low-pass keeps the first term and removes every image. Scaled to pass DC at unity like any low-pass, its weights become $b(j/L)/L$, so the upsampler multiplies the result by $L$ to restore the level:
+The first term is the wanted signal at $1/L\vphantom{}$ of its level, and the others are **images** of it around $F_s$, $2F_s\vphantom{}$, and so on, all above $F_s/2$. The sinc's low-pass keeps the first term and removes every image. Scaled to pass DC at unity like any low-pass, its weights become $b(j/L)/L$, so the upsampler multiplies the result by $L$ to restore the level:
 
 ![The zero-stuffed sine has its 9 kHz component at a quarter of its level and copies at 39, 57, and 87 kHz; after the low-pass and ×4 only the 9 kHz component remains, at full level](images/oversampling-images.svg)
 
@@ -137,7 +137,7 @@ $$
 N-1\approx\frac{A-8}{2.285 \cdot \Delta\omega}.
 $$
 
-With $A=80$ dB, $\beta=7.86$, and with $N=96$ taps at the high rate, the same length as ours, $\Delta\omega\approx72/(2.285\cdot95)\approx0.33$ rad at the high rate, about $0.21F_s\relax$ wide. Centered on the original Nyquist frequency, at 48 kHz that filter is flat to about 19 kHz and 80 dB down from about 29 kHz, and what still folds back from inside its transition band lands above 19 kHz, where little of a guitar's sound is. The window trades the transition band for that depth. The unwindowed kernel falls from the passband within about 2 kHz of the cutoff but stays only 21 to 30 dB down, while the Kaiser kernel takes 10 kHz to fall and then stays about 75 dB down.
+With $A=80$ dB, $\beta=7.86$, and with $N=96$ taps at the high rate, the same length as ours, $\Delta\omega\approx72/(2.285\cdot95)\approx0.33$ rad at the high rate, about $0.21F_s\vphantom{}$ wide. Centered on the original Nyquist frequency, at 48 kHz that filter is flat to about 19 kHz and 80 dB down from about 29 kHz, and what still folds back from inside its transition band lands above 19 kHz, where little of a guitar's sound is. The window trades the transition band for that depth. The unwindowed kernel falls from the passband within about 2 kHz of the cutoff but stays only 21 to 30 dB down, while the Kaiser kernel takes 10 kHz to fall and then stays about 75 dB down.
 
 ### Compare with Simple Interpolation
 
@@ -158,11 +158,11 @@ The simple interpolators lose up to 5 dB at the top of the wanted band and leave
 
 Measured with a steady sine at 0.3 through the amp's drive, without the cabinet, the energy between the note's harmonics from 20 Hz to 24 kHz, which is aliasing, falls this far below the note. The spectrum is taken over 65,536 samples with a Blackman–Harris window, leaving out 20 Hz on either side of each harmonic, and the measurement's own floor is about −100 dB:
 
-| Drive, note        | At $F_s$ | At $4F_s\relax$, ours | At $4F_s\relax$, Kaiser |
-| ------------------ | -------- | --------------------- | ----------------------- |
-| High gain, 330 Hz  | −55 dB   | −68 dB                | −66 dB                  |
-| High gain, 1318 Hz | −19 dB   | −46 dB                | −39 dB                  |
-| Crunch, 1318 Hz    | −45 dB   | −71 dB                | −60 dB                  |
+| Drive, note        | At $F_s$ | At $4F_s\vphantom{}$, ours | At $4F_s\vphantom{}$, Kaiser |
+| ------------------ | -------- | -------------------------- | ---------------------------- |
+| High gain, 330 Hz  | −55 dB   | −68 dB                     | −66 dB                       |
+| High gain, 1318 Hz | −19 dB   | −46 dB                     | −39 dB                       |
+| Crunch, 1318 Hz    | −45 dB   | −71 dB                     | −60 dB                       |
 
 Oversampling lowers the aliasing by 13 to 27 dB. Over the full band, the unwindowed kernel does as well as the Kaiser one or better, because its narrow transition band lets less of what lies just above 24 kHz fold back to just below it. Below 19 kHz, where the Kaiser kernel's wide transition band doesn't reach, it does better, reaching the floor on high gain at 330 Hz and on crunch, where ours stays at −80 and −83 dB.
 
@@ -172,7 +172,7 @@ Applied directly, both filters would spend most of their multiplications on noth
 
 ![Upsampling: each of the four outputs of x5 slides the low-pass one step, and every one meets the same samples x5, x4, x3, at taps p, p + 4, p + 8. Downsampling: only every 4th output is computed, so the low-pass jumps four steps between them](images/oversampling-polyphase.svg)
 
-In the upsampler, each of the $L$ outputs after an input sample slides the low-pass one step further, but the real samples under it stay the same until the next input sample arrives. So output $p$, counting from 0, is a short filter over the last $N/L=24$ input samples that uses every $L$-th tap starting at tap $p$, and the $L$ outputs together use each tap once. In the downsampler, every sample is real, but only one output in $L$ is kept, so the low-pass runs only there and jumps $L$ steps from one kept output to the next. Either way, each original sample costs $N=96$ multiplications instead of $4N\relax$. The [implementation](../../src/lib/dsp/oversampler.ts) keeps only the real samples, newest first like the figure, so each of its sums reads the colored cells of a row left to right at full size.
+In the upsampler, each of the $L$ outputs after an input sample slides the low-pass one step further, but the real samples under it stay the same until the next input sample arrives. So output $p$, counting from 0, is a short filter over the last $N/L=24$ input samples that uses every $L$-th tap starting at tap $p$, and the $L$ outputs together use each tap once. In the downsampler, every sample is real, but only one output in $L$ is kept, so the low-pass runs only there and jumps $L$ steps from one kept output to the next. Either way, each original sample costs $N=96$ multiplications instead of $4N\vphantom{}$. The [implementation](../../src/lib/dsp/oversampler.ts) keeps only the real samples, newest first like the figure, so each of its sums reads the colored cells of a row left to right at full size.
 
 ## Account for the Delay
 
@@ -205,7 +205,7 @@ $$
 
 Both hold for the impulses here in the sense of distributions.
 
-**Claim.** Let $b=\text{sinc}$, whose transform is the box $B(f)=1$ for $|f|\lt1/2$ and $0\relax$ for $|f|\gt1/2$. Then
+**Claim.** Let $b=\text{sinc}$, whose transform is the box $B(f)=1$ for $|f|\lt1/2$ and $0\vphantom{}$ for $|f|\gt1/2$. Then
 
 $$
 \sum_n x[n] \cdot b(t-n)=x(t)
@@ -225,7 +225,7 @@ The box's inverse transform is $\int_{-1/2}^{1/2}e^{j2\pi ft}df=\sin(\pi t)/(\pi
 
 **The simple bumps.** Repeating each sample uses a box in time, $b=1$ on $[0,1)$, whose transform is $e^{-j\pi f} \cdot \text{sinc}(f)$. Linear interpolation uses the triangle on $[-1,1]$, the centered box convolved with itself, whose transform is $\text{sinc}^2(f)$. In continuous time these are exact, and the table's magnitudes $\text{sinc}(f/F_s)$ and $\text{sinc}^2(f/F_s)$ follow. They are 1 only at $f=0$ and fall through the band, and they are small but nonzero on the images.
 
-**On the finer grid.** The upsampler evaluates the claim at $t=m/L$ with discrete sums, and two things change, both from sampling at spacing $1/L\relax$. Poisson summation again shows that sampling a function $g$ at spacing $1/L\relax$ gives the discrete spectrum $L\sum_k G(f-kL)$, which repeats every $f=L$, the high rate.
+**On the finer grid.** The upsampler evaluates the claim at $t=m/L$ with discrete sums, and two things change, both from sampling at spacing $1/L\vphantom{}$. Poisson summation again shows that sampling a function $g$ at spacing $1/L\vphantom{}$ gives the discrete spectrum $L\sum_k G(f-kL)$, which repeats every $f=L$, the high rate.
 
 - The zero-filled $v$ is $s$ on the finer grid, the impulses at the samples and nothing between them. Its discrete spectrum is $\sum_n x[n] \cdot e^{-j2\pi fn}=S(f)$ itself, and of its infinitely many copies, the wanted one and the $L-1$ images at $f=1,\dots,L-1$, that is $F_s,\dots,(L-1)F_s$, fit in one period. That's the comb identity of the main text.
 - The weights $b(j/L)$ have the discrete spectrum $L\sum_k B(f-kL)$. The sinc's box lies inside $|f|\lt L/2$, so its copies don't overlap, and within one period the weights act as $L$ times the box. The discrete sum $\sum_j b(j/L) \cdot v[m-j]$ therefore has spectrum $L \cdot X(f)$ on the period, which is the discrete spectrum of $\tilde x$, so it equals $\tilde x[m]$ exactly, and the low-pass with weights $h[j]=b(j/L)/L$, scaled to pass DC at unity, gets the same after multiplying by $L$.

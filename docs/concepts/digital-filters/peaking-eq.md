@@ -137,6 +137,6 @@ $$
 H_a(\Omega_0u)=\frac{u^2+(A/Q)u+1}{u^2+u/(AQ)+1}.
 $$
 
-Replacing $M$ with $1/M\relax$ swaps numerator and denominator. A matching boost and cut are therefore exact inverses for fixed parameters, while keeping the same analog halfway bandwidth. This is the peaking-EQ $Q$ convention used by the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).
+Replacing $M$ with $1/M\vphantom{}$ swaps numerator and denominator. A matching boost and cut are therefore exact inverses for fixed parameters, while keeping the same analog halfway bandwidth. This is the peaking-EQ $Q$ convention used by the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).
 
 Next, [convert this response to a digital filter](bilinear-transform.md). The conversion preserves center gain but warps frequency, so the bandwidth interpretation changes.
