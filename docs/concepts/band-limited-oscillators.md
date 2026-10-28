@@ -154,15 +154,29 @@ which is 0 for even $n$ and has magnitude $16/(2\pi n)\mathrm{}$ for odd $n$. Di
 
 The square and triangle have only odd harmonics, while the sawtooth has every one. The jump formula shows this by computation, but the shapes tell it directly.
 
-**Shifting by half a cycle flips the odd harmonics.** The $n$-th harmonic completes $n$ of its own cycles in each period, so half a period is $n/2$ of its cycles. Delaying the waveform by half a cycle therefore multiplies the $n$-th coefficient by $e^{-i\pi n}=(-1)^n$, which leaves the even harmonics unchanged and flips the sign of the odd ones.
-
-**Half-wave symmetry means odd harmonics only.** A waveform is called **half-wave symmetric** when its second half-cycle is its first upside down,
+**Half-wave symmetry is a property of the shape.** A waveform is called **half-wave symmetric** when its second half-cycle is its first upside down,
 
 $$
 x(\varphi+\tfrac12)=-x(\varphi).
 $$
 
-Comparing coefficients on both sides gives $(-1)^nc_n=-c_n$ for every $n$, which holds exactly when $c_n=0$ for every even $n$. The square is half-wave symmetric, because its 1 becomes −1, and so is the triangle, whose fall mirrors its rise, and the sine. The sawtooth isn't, because it keeps rising through both halves of the cycle. In the jump formula, the symmetry pairs each jump with an opposite one half a cycle later, and the pair contributes $J\big(1-(-1)^n\big)e^{-2\pi in\varphi_k}$, which cancels for even $n$, as the square's two jumps showed.
+The square is half-wave symmetric, because its 1 becomes −1, and so is the triangle, whose fall mirrors its rise, and the sine. The sawtooth isn't, because it keeps rising through both halves of the cycle.
+
+**Split the coefficient at the half cycle.** Write $c_n$ as the integral over the first half plus the integral over the second, and move the second half back onto the first by substituting $\varphi=\psi+\tfrac12$:
+
+$$
+c_n=\int_0^{1/2}x(\psi)\,e^{-2\pi in\psi}\,d\psi+\int_0^{1/2}x(\psi+\tfrac12)\,e^{-2\pi in(\psi+\frac12)}\,d\psi.
+$$
+
+In the second integral, the symmetry turns $x(\psi+\tfrac12)$ into $-x(\psi)$, and the exponential splits into $e^{-2\pi in\psi}$ times the constant $e^{-i\pi n}=(-1)^n$. So the second integral is $-(-1)^n$ times the first, and
+
+$$
+c_n=\big(1-(-1)^n\big)\int_0^{1/2}x(\psi)\,e^{-2\pi in\psi}\,d\psi.
+$$
+
+**Even harmonics cancel and odd ones double.** The factor is 0 for even $n$ and 2 for odd $n$. Half a cycle of the fundamental is $n/2$ cycles of the $n$-th harmonic, which is $n\pi$ radians. An even harmonic is shifted by whole cycles of its own, so it's the same in both halves, and the waveform's sign flip makes the two halves cancel. An odd harmonic is shifted by an odd number of half cycles, so it flips sign too, the two flips undo each other, and the halves add. So a half-wave symmetric waveform has only odd harmonics, and each is twice the integral over the first half cycle. The converse holds too, because the half-cycle shift multiplies every odd harmonic by $(-1)^n=-1$, so a waveform with only odd harmonics satisfies $x(\varphi+\tfrac12)=-x(\varphi)$.
+
+In the jump formula, the symmetry pairs each jump with an opposite one half a cycle later, and the pair contributes $J\big(1-(-1)^n\big)e^{-2\pi in\varphi_k}$, which cancels for even $n$, as the square's two jumps showed.
 
 **Every waveform splits into an odd part and an octave-up part.** Write
 
