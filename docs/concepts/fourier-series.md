@@ -31,29 +31,7 @@ $$
 
 The coefficient formula is the same as reading a coordinate in 3D with a dot product against an axis. Because the axes are perpendicular, each coordinate comes out on its own, so finding one harmonic needs no knowledge of the others, and keeping only the harmonics up to some $N$ gives the closest such sum to $x$ in RMS.
 
-**A real waveform pairs each harmonic with its negative.** For real $x$, $c_{-n}=\overline{c_n}$, so the two terms add up to one real sinusoid:
-
-$$
-c_n e^{2\pi in\varphi}+c_{-n}e^{-2\pi in\varphi}=2|c_n|\cos(2\pi n\varphi+\arg c_n).
-$$
-
-The $n$-th harmonic has amplitude $2|c_n|$ and phase $\arg c_n$, and $c_0$ is the DC offset.
-
-**The sum converges in RMS, not at every point.** The RMS of the error between $x$ and the sum of its harmonics up to $N$ goes to 0 as $N$ grows. At a jump, though, every partial sum overshoots by about 9% of the jump, which is the **Gibbs phenomenon**, and the overshoot only narrows. The coefficients themselves are plain integrals, so arguments about them don't depend on this.
-
-## Split the Energy Across Harmonics
-
-Pythagoras holds for perpendicular axes, so the squared length is the sum of the squared coordinates. This is **Parseval's theorem**:
-
-$$
-\|x\|^2=\sum_{n=-\infty}^{\infty}|c_n|^2.
-$$
-
-In audio terms, the mean square of a waveform is the sum of its harmonics' mean squares. A real harmonic of amplitude $A_n=2|c_n|$ has mean square $A_n^2/2$, which is $|c_n|^2+|c_{-n}|^2$. For example, the sawtooth $2\varphi-1$ has mean square $1/3$, and its harmonics have amplitudes $2/(\pi n)$, so
-
-$$
-\sum_{n=1}^{\infty}\frac{1}{2}\Big(\frac{2}{\pi n}\Big)^2=\frac{2}{\pi^2}\sum_{n=1}^{\infty}\frac{1}{n^2}=\frac{2}{\pi^2}\cdot\frac{\pi^2}{6}=\frac{1}{3}.
-$$
+A real waveform uses $e_n$ and $e_{-n}$ together as one real sinusoid, with $|c_{-n}|=|c_n|$, so read $|c_n|$ for $n>0$ as how loud the $n$-th harmonic is, and $c_0$ as the DC offset.
 
 ## Shift, Filter, and Differentiate One Coefficient at a Time
 
@@ -95,7 +73,7 @@ $$
 
 where $x'$ is the slope of the smooth pieces, without the jumps, and $c_n[x']$ is its $n$-th coefficient. The first term comes from the jumps alone. Each jump adds the same magnitude $|J_k|$ to every harmonic, so after the division by $2\pi in$ it falls as $1/n$. The second term comes from the smooth pieces alone.
 
-**The sawtooth is all jump.** The sawtooth $2\varphi-1$ has slope 2 everywhere, and a constant has no harmonics, so the second term vanishes. With its one jump $J=-2$ at $\varphi=0$, $c_n=-2/(2\pi in)$, and the $n$-th harmonic has amplitude $2|c_n|=2/(\pi n)$ exactly. Every harmonic of the sawtooth comes from its jump.
+**The sawtooth is all jump.** The sawtooth $2\varphi-1$ has slope 2 everywhere, and a constant has no harmonics, so the second term vanishes. With its one jump $J=-2$ at $\varphi=0$, $c_n=-2/(2\pi in)$, so its harmonics fall exactly as $1/n$. Every harmonic of the sawtooth comes from its jump.
 
 **The lowest derivative that jumps sets the falloff.** The second term splits the same way at the jumps of $x'$, which are the corners of $x$, so corners give harmonics falling as $1/n^2$, jumps in the curvature give $1/n^3$, and so on. A function is called $C^k$ when it and its first $k$ derivatives are continuous, and **piecewise smooth** when it's smooth between finitely many breaks. A piecewise smooth waveform that is $C^{k-1}$ but whose $k$-th derivative jumps has harmonics falling as $1/n^{k+1}$. The sawtooth and square aren't even $C^0$, so theirs fall as $1/n$. The triangle is $C^0$ but not $C^1$, so its harmonics fall as $1/n^2$. A $C^\infty$ waveform's harmonics fall faster than any power of $n$.
 
@@ -119,13 +97,13 @@ $$
 x(\varphi)=\underbrace{\frac{x(\varphi)-x(\varphi+\frac12)}{2}}_{\text{half-wave symmetric}}+\underbrace{\frac{x(\varphi)+x(\varphi+\frac12)}{2}}_{\text{repeats every half cycle}}.
 $$
 
-The first part is half-wave symmetric, so it holds the odd harmonics of $x$. The second repeats every half cycle, so it's a waveform an octave up, and its harmonics are the even harmonics of $x$. For the sawtooth, the second part is a sawtooth an octave up at half the height, which matches its even harmonics, since the $2m$-th harmonic's amplitude $2/(2\pi m)$ is half of the $m$-th.
+The first part is half-wave symmetric, so it holds the odd harmonics of $x$. The second repeats every half cycle, so it's a waveform an octave up, and its harmonics are the even harmonics of $x$. For the sawtooth, the second part is a sawtooth an octave up at half the height, which matches its even harmonics, since with harmonics falling as $1/n$, the $2m$-th is half as loud as the $m$-th.
 
 **This is a different question from odd and even functions.** Whether $x(-\varphi)=x(\varphi)$ or $x(-\varphi)=-x(\varphi)$ decides whether the harmonics are cosines or sines, measured from $\varphi=0$, not which harmonics are present. The sawtooth $2\varphi-1$ is an odd function, since $x(-\varphi)=x(1-\varphi)=-x(\varphi)$, so its harmonics are all sines, and it still has every one. The amp's clipper is odd in another sense, as a function of the signal's value, and that oddness does matter, because it carries the input's half-wave symmetry through to its output.
 
 ## Use the Same Picture for Sampled Signals
 
-A frame of $N$ samples is a vector in $\mathbb{C}^N$, with the inner product $\langle x,y\rangle=\sum_m x[m]\overline{y[m]}$. The sampled tones $e_k[m]=e^{2\pi ikm/N}$ for $k=0,\dots,N-1$ are perpendicular, each with squared length $N$, and there are $N$ of them, so they form a basis without any theorem about completeness. The discrete Fourier transform reads the coordinates, $X(k)=\langle x,e_k\rangle$, which the FFT computes quickly, and Parseval's theorem becomes
+A frame of $N$ samples is a vector in $\mathbb{C}^N$, with the inner product $\langle x,y\rangle=\sum_m x[m]\overline{y[m]}$. The sampled tones $e_k[m]=e^{2\pi ikm/N}$ for $k=0,\dots,N-1$ are perpendicular, each with squared length $N$, and there are $N$ of them, so they form a basis without any theorem about completeness. The discrete Fourier transform reads the coordinates, $X(k)=\langle x,e_k\rangle$, which the FFT computes quickly. Pythagoras holds for perpendicular axes, so the squared length is the sum of the squared coordinates, each divided by its axis's squared length $N$. This is **Parseval's theorem**:
 
 $$
 \sum_{m=0}^{N-1}|x[m]|^2=\frac{1}{N}\sum_{k=0}^{N-1}|X(k)|^2,

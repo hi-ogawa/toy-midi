@@ -9,6 +9,8 @@ Aim for compact explanations that make a mechanism or design reconstructable. Us
 
 ## Narrative
 
+Write for a physicist or mathematician doing a guided back-of-envelope calculation for an audio application. Use the field's standard vocabulary where it names the idea the argument relies on, and leave out exact constants, convergence caveats, and side results that nothing in the application builds on.
+
 Separate mathematical fluency from domain familiarity. Motivate unfamiliar constructions through simple examples, then trust the reader with familiar algebra. Let the subject determine the approach rather than imposing a derivation template.
 
 Order the argument from the question a reader would ask and the computation the code performs, rather than the field's standard construction order, and introduce the standard term once the reasoning arrives at it. When revising a passage after feedback, reread the surrounding argument as a whole, since a patched sentence can keep a framing the new material no longer fits.
