@@ -65,31 +65,33 @@ $$
 c_n[e_kx]=\int_0^1 x(\varphi)e^{-2\pi i(n-k)\varphi}d\varphi=c_{n-k},\qquad c_n[yx]=\sum_k y_kc_{n-k}.
 $$
 
-## Feed One Harmonic Through a Delay and a Derivative
+## Differentiate a Waveform
 
-A delay and a derivative are linear too, so feeding in one harmonic shows what each does to $x=\sum c_ne_n$.
-
-**Delay.** Delaying one harmonic by $s$ gives
-
-$$
-e_n(\varphi-s)=e^{-2\pi ins}e_n(\varphi),
-$$
-
-the same harmonic with its phase turned by $2\pi ns$. So a delay multiplies each coefficient by $e^{-2\pi ins}$, which is the **shift rule**, and turns the $n$-th harmonic $n$ times as far as the fundamental.
-
-**Derivative.** Differentiating one harmonic gives $e_n'=2\pi in\cdot e_n$. Checking this on the coefficients by integrating by parts over one cycle,
+Differentiating one harmonic gives $e_n'=2\pi in\cdot e_n$, so a derivative should multiply each coefficient by $2\pi in$. Integrating by parts over one cycle confirms it on the coefficients,
 
 $$
 c_n[x']=\Big[x(\varphi)e^{-2\pi in\varphi}\Big]_0^1+2\pi in\int_0^1 x(\varphi)e^{-2\pi in\varphi}d\varphi=2\pi in\cdot c_n,
 $$
 
-where the boundary term vanishes because $x(1)=x(0)$. So a derivative multiplies each coefficient by $2\pi in$. Read the other way, integrating divides the $n$-th coefficient by $2\pi in$, so the high harmonics fall faster.
+where the boundary term vanishes because $x(1)=x(0)$. Read the other way, integrating divides the $n$-th coefficient by $2\pi in$, so the high harmonics fall faster.
 
 ## Read the Falloff from Jumps and Corners
 
 The boundary term vanishes only if $x$ is continuous around the whole cycle. Keeping it when $x$ jumps shows where the high harmonics come from.
 
-**Integrate by parts between the jumps.** Let $x$ be smooth except at the phases $\varphi_k$, where it jumps by $J_k=x(\varphi_k^+)-x(\varphi_k^-)$. Integrating by parts on each smooth piece, the boundary terms cancel wherever $x$ is continuous and leave $J_k$ at each jump:
+**Integrate by parts between the jumps.** Let $x$ be smooth except at the phases $\varphi_1,\dots,\varphi_m$ in each cycle, where it jumps by $J_k=x(\varphi_k^+)-x(\varphi_k^-)$. On one smooth piece from $a$ to $b$,
+
+$$
+\int_a^b x(\varphi)e^{-2\pi in\varphi}d\varphi=\Big[\frac{x(\varphi)e^{-2\pi in\varphi}}{-2\pi in}\Big]_a^b+\frac{1}{2\pi in}\int_a^b x'(\varphi)e^{-2\pi in\varphi}d\varphi.
+$$
+
+Summing over the pieces of a cycle, each break $\varphi_k$ is the end of one piece and the start of the next, so its two boundary terms combine into
+
+$$
+\frac{x(\varphi_k^-)-x(\varphi_k^+)}{-2\pi in}e^{-2\pi in\varphi_k}=\frac{J_k}{2\pi in}e^{-2\pi in\varphi_k}.
+$$
+
+Where $x$ is continuous the two terms cancel, and periodicity joins the last piece to the first. So
 
 $$
 c_n=\frac{1}{2\pi in}\sum_k J_k e^{-2\pi in\varphi_k}+\frac{1}{2\pi in}c_n[x'],
@@ -105,13 +107,21 @@ where $x'$ is the slope of the smooth pieces. Each jump puts magnitude $|J_k|/(2
 
 The square and triangle have only odd harmonics, while the sawtooth has every one. Their shapes show which.
 
-**Half-wave symmetry means exactly odd harmonics.** A waveform is **half-wave symmetric** when its second half-cycle is its first upside down. By the shift rule,
+**Half-wave symmetry means exactly odd harmonics.** A waveform is **half-wave symmetric** when its second half-cycle is its first upside down, $x(\varphi+\tfrac12)=-x(\varphi)$. Split $c_n$ at the half cycle and move the second half onto the first by substituting $\varphi=\psi+\tfrac12$:
 
 $$
-x(\varphi+\tfrac12)=-x(\varphi)\quad\Longleftrightarrow\quad(-1)^nc_n=-c_n\text{ for every }n\quad\Longleftrightarrow\quad c_n=0\text{ for every even }n.
+c_n=\int_0^{1/2}x(\psi)e^{-2\pi in\psi}d\psi+\int_0^{1/2}x(\psi+\tfrac12)e^{-2\pi in\psi}e^{-i\pi n}d\psi.
 $$
 
-Half a cycle of the fundamental is $n/2$ cycles of the $n$-th harmonic, so an odd harmonic flips along with the waveform, while an even one repeats unchanged and can't. The square, triangle, and sine are half-wave symmetric, and the sawtooth isn't, because it keeps rising through both halves. An odd clipper driven by a sine keeps the sine's symmetry, which is how the [amp doc](guitar-amp-simulation.md#appendix-why-an-odd-clipper-adds-only-odd-harmonics) shows that a symmetric drive adds only odd harmonics.
+The symmetry turns $x(\psi+\tfrac12)$ into $-x(\psi)$, and $e^{-i\pi n}=(-1)^n$, so
+
+$$
+c_n=\big(1-(-1)^n\big)\int_0^{1/2}x(\psi)e^{-2\pi in\psi}d\psi,
+$$
+
+which is 0 for every even $n$ and twice the first half's integral for every odd $n$. Half a cycle of the fundamental is $n/2$ cycles of the $n$-th harmonic, so an even harmonic is the same in both halves and the waveform's flip cancels it, while an odd harmonic flips too and the halves add. The converse also holds, because each odd harmonic has $e_n(\varphi+\tfrac12)=(-1)^ne_n(\varphi)=-e_n(\varphi)$, so a sum of odd harmonics is half-wave symmetric.
+
+The square, triangle, and sine are half-wave symmetric, and the sawtooth isn't, because it keeps rising through both halves. An odd clipper driven by a sine keeps the sine's symmetry, which is how the [amp doc](guitar-amp-simulation.md#appendix-why-an-odd-clipper-adds-only-odd-harmonics) shows that a symmetric drive adds only odd harmonics.
 
 **Every waveform splits into an odd part and an octave-up part.**
 
@@ -119,7 +129,7 @@ $$
 x(\varphi)=\underbrace{\frac{x(\varphi)-x(\varphi+\frac12)}{2}}_{\text{half-wave symmetric}}+\underbrace{\frac{x(\varphi)+x(\varphi+\frac12)}{2}}_{\text{repeats every half cycle}}.
 $$
 
-Shifting the first part by half a cycle negates it, and shifting the second leaves it unchanged, so by the shift rule the first keeps only the odd harmonics of $x$ and the second only the even ones. The second repeats every half cycle, so it's a waveform an octave up. For the sawtooth on $[0,\tfrac12)$, it is
+The first part is half-wave symmetric, so it keeps only the odd harmonics of $x$. The second repeats every half cycle, $g(\varphi+\tfrac12)=g(\varphi)$, so the same split gives $c_n[g]=\big(1+(-1)^n\big)\int_0^{1/2}g(\psi)e^{-2\pi in\psi}d\psi$, which keeps only the even harmonics, and it's a waveform an octave up. For the sawtooth on $[0,\tfrac12)$, it is
 
 $$
 \tfrac12\big((2\varphi-1)+(2(\varphi+\tfrac12)-1)\big)=\tfrac12\big(2(2\varphi)-1\big),

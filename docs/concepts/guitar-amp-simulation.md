@@ -114,7 +114,7 @@ $$
 
 Matching coefficients with $-y(t)$ gives $(-1)^n c_n = -c_n$, so $c_n = 0$ for every even $n$. $\blacksquare$
 
-The property the proof uses, $y(t + T/2) = -y(t)$, is called half-wave symmetry. [Band-limited oscillators](band-limited-oscillators.md#appendix-read-odd-harmonics-from-half-wave-symmetry) uses it to read a waveform's odd harmonics from its shape.
+The property the proof uses, $y(t + T/2) = -y(t)$, is called half-wave symmetry. The [Fourier series doc](fourier-series.md#read-odd-harmonics-from-half-wave-symmetry) derives it for any waveform, and [band-limited oscillators](band-limited-oscillators.md#appendix-read-odd-harmonics-from-half-wave-symmetry) uses it to read the square's and triangle's odd harmonics from their shapes.
 
 The same shows through powers. An odd $f$ has only odd powers in its Taylor series, as in $\tanh u = u - u^3/3 + 2u^5/15 - \cdots$, and odd powers of a sine hold only odd harmonics, for example $\sin^3 t = \tfrac{3}{4} \sin t - \tfrac{1}{4} \sin 3t$, while even powers hold even harmonics and a constant, as in $\sin^2 t = \tfrac{1}{2} - \tfrac{1}{2} \cos 2t$.
 
