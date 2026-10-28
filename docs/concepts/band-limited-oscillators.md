@@ -12,12 +12,12 @@ Throughout, $F_s$ is the sample rate, 48 kHz in the examples, $f_0$ is the note'
 
 The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1\mathrm{}$, which rises from −1 to 1 and then jumps back down, and the square is 1 for the first half of the cycle and −1 for the second. Written as sums of sines, the waveforms have these harmonics:
 
-| Waveform | Harmonics            | Amplitude of the $n$-th |
-| -------- | -------------------- | ----------------------- |
-| Sine     | the fundamental only |                         |
-| Triangle | odd                  | $8/(\pi^2n^2)\mathrm{}$ |
-| Sawtooth | every one            | $2/(\pi n)\mathrm{}$    |
-| Square   | odd                  | $4/(\pi n)\mathrm{}$    |
+| Waveform | Harmonics            | Falloff of the $n$-th |
+| -------- | -------------------- | --------------------- |
+| Sine     | the fundamental only |                       |
+| Triangle | odd                  | $1/n^2\mathrm{}$      |
+| Sawtooth | every one            | $1/n\mathrm{}$        |
+| Square   | odd                  | $1/n\mathrm{}$        |
 
 ![Two cycles of each waveform beside its first 16 harmonics. The sine has only its fundamental. The triangle has corners and odd harmonics that drop below −45 dB by the 15th. The sawtooth jumps once per cycle and the square twice, and their harmonics fall slowly, staying above −25 dB through the 16th](images/band-limited-waveforms.svg)
 
@@ -47,33 +47,33 @@ This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**.
 
 The exact residual never ends, so a real oscillator needs an approximation. Tabulating a shortened residual is one way. It's accurate, but it needs a table and spreads each correction over many samples.
 
-## Approximate the Step with Two Polynomial Pieces
+## Low-Pass the Ideal Waveform with a Short Triangle
 
-**PolyBLEP builds the step from linear interpolation's bump instead of the sinc.** The triangle two samples wide, $b(t)=1-|t|$ for $|t|\lt1$, is the bump of [linear interpolation](oversampling.md#upsample-by-interpolating), a much cruder low-pass than the sinc, but it's short. Its integral gives a step that rises over one sample on each side of the jump,
+PolyBLEP instead swaps the sinc for the bump of [linear interpolation](oversampling.md#upsample-by-interpolating), the triangle two samples wide, $b(t)=1-|t|$ for $|t|\lt1$. It's a much cruder low-pass than the sinc, but it reaches only one sample on each side. PolyBLEP's output is the ideal waveform convolved with $b$, then sampled.
+
+**Convolve each piece of the sawtooth with $b$.** With $t$ in samples, the ideal sawtooth is a line rising by $2\Delta$ per sample plus a step of −2 at every wrap time $t_k$. Write $u$ for the unit step, 0 before 0 and 1 after. The bump is symmetric and sums to 1, so it returns a line unchanged, and it turns $u$ into its integral, a step that rises over one sample on each side:
 
 $$
-S(t)=\begin{cases}
+(b*\ell)(t)=\ell(t),\qquad (b*u)(t)=\int_{-\infty}^{t}b(s)ds=S(t)=\begin{cases}
+0 & t\le-1,\\
 \tfrac{1}{2}(1+t)^2 & -1\le t\le0,\\
-1-\tfrac{1}{2}(1-t)^2 & 0\le t\le1,
+1-\tfrac{1}{2}(1-t)^2 & 0\le t\le1,\\
+1 & t\ge1.
 \end{cases}
 $$
 
-and subtracting the naive step, 0 before the jump and 1 after it, leaves a residual of two pieces,
+So the low-passed sawtooth is the ideal one with every step $u$ replaced by $S$, which is the ideal sawtooth plus the residual $r=S-u$ at each jump, scaled by the jump:
 
 $$
-r(t)=\begin{cases}
+b*\text{sawtooth}=\text{sawtooth}-2\sum_k r(t-t_k),\qquad r(t)=\begin{cases}
 \tfrac{1}{2}(1+t)^2 & -1\lt t\le0,\\
--\tfrac{1}{2}(1-t)^2 & 0\le t\lt1.
+-\tfrac{1}{2}(1-t)^2 & 0\le t\lt1,
 \end{cases}
 $$
 
-**Only the two samples next to a jump change.** The pieces are zero beyond one sample from the jump, so only the last sample before it and the first sample after it need correcting. The phase gives their distance from the jump. A sample whose phase is $\varphi\lt\Delta$ is $t=\varphi/\Delta$ samples after the wrap, and one with $\varphi\gt1-\Delta$ is $t=(\varphi-1)/\Delta$ samples before it, which is negative.
+and 0 farther than one sample from the jump. The residual is two quadratic pieces, which is where PolyBLEP, a **poly**nomial BLEP, gets its name. The samples of the ideal sawtooth are the naive samples, so sampling this gives the naive samples plus a correction near each jump. The square is made of steps alone, so the same holds for it.
 
-**The synth's correction is this difference, for a jump of 2.** The sawtooth and square jump between −1 and 1, which is twice the unit step, so the correction is $2r(t)\mathrm{}$. That's $(1+t)^2=t^2+2t+1$ before the jump and $-(1-t)^2=2t-t^2-1$ after it, the two branches in the code. The sawtooth jumps down at $\varphi=0$, so it subtracts the correction. The square jumps up at $\varphi=0$ and down at $\varphi=\tfrac{1}{2}$, so it adds the correction at its phase and subtracts it half a cycle later:
-
-![A 4 kHz sawtooth sampled at 48 kHz. Every sample sits on the naive sawtooth except the two on either side of each jump, which move toward the middle of the jump](images/band-limited-sawtooth.svg)
-
-**The corrected waveform is the ideal one passed through the triangle's low-pass, then sampled.** This is exact rather than approximate. The naive sawtooth is an endlessly rising line plus a step down at every wrap. Convolving a straight line with a symmetric bump that sums to 1 gives back the same line, and convolving a step with $b$ gives the step $S$ above. So the ideal sawtooth convolved with $b$ is the naive one plus $-2r$ at every jump, which is the corrected sawtooth, and the same holds for the square, which is made of steps alone. In frequency, that means each harmonic is scaled by the triangle's spectrum, $\text{sinc}^2(f/F_s)$, before the waveform is sampled, and two consequences follow:
+**In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum, and the triangle's is $\text{sinc}^2(f/F_s)$, as [oversampling](oversampling.md#upsample-by-interpolating) shows. So every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled, and two consequences follow:
 
 - **Aliases that would land at low frequencies nearly vanish.** The triangle's spectrum is zero at every multiple of $F_s$, so the harmonics near 48 kHz and 96 kHz, which would fold to just above 0 Hz, are cut deeply before they fold. Below 5 kHz, the correction lowers the loudest alias by about 40 dB.
 - **Aliases close to 24 kHz and the top harmonics are cut only a little.** The spectrum is about 0.4 at $F_s/2$, which is −7.8 dB, so harmonics just past 24 kHz fold back to just below it only about 8 dB quieter. The same factor dulls the waveform's own top, by 1.2 dB at 10 kHz and 5.3 dB at 20 kHz, which the spectrum of the corrected sawtooth shows as harmonics falling below their ideal $1/n\mathrm{}$ level.
@@ -81,6 +81,14 @@ $$
 ![The naive 1 kHz sawtooth has aliases everywhere between its harmonics, from 30 to 50 dB below the fundamental. After the correction, the aliases below a few kHz are 70 dB or more down and grow toward 24 kHz, while the harmonics fall below their ideal level near the top](images/band-limited-spectrum.svg)
 
 So the aliasing that remains sits near the top of the band, where the ear is least sensitive.
+
+## Correct the Two Samples Next to Each Jump
+
+**Only the two samples next to a jump change.** The residual is zero beyond one sample from the jump, so only the last sample before it and the first sample after it need correcting. The phase gives their distance from the jump. A sample whose phase is $\varphi\lt\Delta$ is $t=\varphi/\Delta$ samples after the wrap, and one with $\varphi\gt1-\Delta$ is $t=(\varphi-1)/\Delta$ samples before it, which is negative.
+
+**The synth's correction is the residual for a jump of 2.** The sawtooth and square jump between −1 and 1, which is twice the unit step, so the correction is $2r(t)\mathrm{}$. That's $(1+t)^2=t^2+2t+1$ before the jump and $-(1-t)^2=2t-t^2-1$ after it, the two branches in the code. The sawtooth jumps down at $\varphi=0$, so it subtracts the correction. The square jumps up at $\varphi=0$ and down at $\varphi=\tfrac{1}{2}$, so it adds the correction at its phase and subtracts it half a cycle later:
+
+![A 4 kHz sawtooth sampled at 48 kHz. Every sample sits on the naive sawtooth except the two on either side of each jump, which move toward the middle of the jump](images/band-limited-sawtooth.svg)
 
 ## Measure the Aliasing
 
@@ -146,7 +154,7 @@ $$
 c_n[x']=\frac{8\big(e^{-3i\pi n/2}-e^{-i\pi n/2}\big)}{2\pi in},
 $$
 
-which is 0 for even $n$ and has magnitude $16/(2\pi n)\mathrm{}$ for odd $n$. Dividing by $2\pi in\mathrm{}$ once more gives $2|c_n|=8/(\pi^2n^2)\mathrm{}$, the triangle's entry in the table.
+which is 0 for even $n$ and has magnitude $16/(2\pi n)\mathrm{}$ for odd $n$. Dividing by $2\pi in\mathrm{}$ once more gives $2|c_n|=8/(\pi^2n^2)\mathrm{}$, the $1/n^2\mathrm{}$ falloff in the table.
 
 **The same split is what the corrections use.** It writes the waveform as a smooth part plus a step at each jump and a ramp at each corner. Adding a BLEP residual replaces a step with its band-limited version, and adding a BLAMP residual does the same for a ramp. For the sawtooth and square, the smooth part has no harmonics, so replacing the steps leaves nothing that can alias. In the language of distributions, the split says that each jump puts an impulse of weight $J_k$ into the slope, and an impulse contains every frequency at equal strength.
 
