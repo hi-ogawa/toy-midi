@@ -6,11 +6,17 @@ export type Waveform = (typeof WAVEFORMS)[number];
 
 /** Patch for Toy MIDI's own synth */
 export interface SynthPatch {
-  /** Oscillator shape */
-  waveform: Waveform;
+  /** Voice paths that each note plays at once, summed */
+  layers: SynthLayer[];
 }
 
-export const DEFAULT_SYNTH_PATCH: SynthPatch = { waveform: "sine" };
+export interface SynthLayer {
+  oscillator: { waveform: Waveform };
+}
+
+export const DEFAULT_SYNTH_PATCH: SynthPatch = {
+  layers: [{ oscillator: { waveform: "sine" } }],
+};
 
 // Short enough to sound immediate, long enough to keep note edges from clicking.
 const RAMP_SECONDS = 0.005;
@@ -32,7 +38,7 @@ interface Voice {
 
 export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
-  private waveform = DEFAULT_SYNTH_PATCH.waveform;
+  private layers = DEFAULT_SYNTH_PATCH.layers;
   private readonly gainStep: number;
 
   constructor(private readonly sampleRate: number) {
@@ -40,7 +46,7 @@ export class SubtractiveSynth implements SynthEngine {
   }
 
   setPatch(patch: SynthPatch): void {
-    this.waveform = patch.waveform;
+    this.layers = patch.layers;
   }
 
   noteOn(pitch: number, velocity: number): void {
@@ -73,7 +79,9 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    const oscillate = OSCILLATORS[this.waveform];
+    const oscillators = this.layers.map(
+      (layer) => OSCILLATORS[layer.oscillator.waveform],
+    );
     for (const voice of this.voices) {
       for (let i = offset; i < offset + length; i++) {
         const step = Math.min(
@@ -81,8 +89,13 @@ export class SubtractiveSynth implements SynthEngine {
           Math.abs(voice.targetGain - voice.gain),
         );
         voice.gain += voice.targetGain > voice.gain ? step : -step;
-        const sample =
-          voice.gain * oscillate(voice.phase, voice.phaseIncrement);
+        // Every layer plays at the note's pitch for now, so they share the
+        // voice's phase.
+        let sample = 0;
+        for (const oscillate of oscillators) {
+          sample += oscillate(voice.phase, voice.phaseIncrement);
+        }
+        sample *= voice.gain;
         left[i] += sample;
         right[i] += sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;

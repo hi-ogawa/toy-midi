@@ -4,6 +4,7 @@ import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
   PEAK_GAIN,
   SubtractiveSynth,
+  type SynthPatch,
   type Waveform,
   WAVEFORMS,
 } from "./subtractive-synth";
@@ -95,7 +96,7 @@ describe(SubtractiveSynth, () => {
     const buffers = createBuffers(9600);
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.setPatch({ waveform: "square" });
+    synth.setPatch(createPatch(["square"]));
     synth.render(buffers[0], buffers[1], 4800, 4800);
     expect(measureRms(buffers[0].subarray(RAMP_FRAMES, 4800))).toBeCloseTo(
       PEAK_GAIN / Math.SQRT2,
@@ -104,6 +105,18 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBeCloseTo(
       PEAK_GAIN,
       2,
+    );
+  });
+
+  it("sums the layers of a note", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const buffers = createBuffers(4800);
+    synth.setPatch(createPatch(["sine", "sine"]));
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 4800);
+    expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
+      (2 * PEAK_GAIN) / Math.SQRT2,
+      3,
     );
   });
 
@@ -129,11 +142,17 @@ function renderNote({
   length: number;
 }): Float32Array {
   const synth = new SubtractiveSynth(SAMPLE_RATE);
-  synth.setPatch({ waveform });
+  synth.setPatch(createPatch([waveform]));
   const buffers = createBuffers(length);
   synth.noteOn(pitch, 127);
   synth.render(buffers[0], buffers[1], 0, length);
   return buffers[0];
+}
+
+function createPatch(waveforms: Waveform[]): SynthPatch {
+  return {
+    layers: waveforms.map((waveform) => ({ oscillator: { waveform } })),
+  };
 }
 
 function createBuffers(length: number): [Float32Array, Float32Array] {

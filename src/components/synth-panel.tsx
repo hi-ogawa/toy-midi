@@ -29,6 +29,7 @@ export function useSynthPanelUi() {
   return { openTracks, open, close };
 }
 
+// The panel shows and edits only the first layer for now.
 export function SynthPanel({
   label,
   patch,
@@ -70,8 +71,20 @@ export function SynthPanel({
             <button
               key={option}
               type="button"
-              aria-pressed={patch.waveform === option}
-              onClick={() => onChange({ ...patch, waveform: option })}
+              aria-pressed={patch.layers[0].oscillator.waveform === option}
+              onClick={() =>
+                onChange({
+                  ...patch,
+                  layers: patch.layers.map((layer, i) =>
+                    i === 0
+                      ? {
+                          ...layer,
+                          oscillator: { ...layer.oscillator, waveform: option },
+                        }
+                      : layer,
+                  ),
+                })
+              }
               className="h-7 flex-1 bg-neutral-900 text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
             >
               {WAVEFORM_LABELS[option]}
