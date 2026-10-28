@@ -2,7 +2,7 @@
 
 A periodic waveform is a sum of harmonics, which are sinusoids at whole multiples of its fundamental frequency. Several docs lean on that fact and a few consequences of it. This one states them with the intuition behind them: waveforms are vectors, the harmonics are perpendicular axes, and each harmonic's amount is read off with an inner product.
 
-Measure time in cycles, so a waveform $x(\varphi)$ has period 1 in its phase $\varphi$. A waveform with period $T$ in seconds is the same with $\varphi=t/T$, and its $`n`$th harmonic is at $n/T$ Hz.
+Measure time in cycles, so a waveform $x(\varphi)$ has period 1 in its phase $\varphi$. A waveform with period $T$ in seconds is the same with $\varphi=t/T$, and its $n$-th harmonic is at $n/T$ Hz.
 
 ## Treat a Waveform as a Vector
 
@@ -16,7 +16,7 @@ The conjugate keeps $\langle x,x\rangle$ real and nonnegative when the values ar
 
 ## Read Each Harmonic with an Inner Product
 
-Write the $`n`$th harmonic as the complex tone $e_n(\varphi)=e^{2\pi in\varphi}$, for every integer $n$, including negative ones. Two different harmonics are perpendicular, and each has length 1:
+Write the $n$-th harmonic as the complex tone $e_n(\varphi)=e^{2\pi in\varphi}$, for every integer $n$, including negative ones. Two different harmonics are perpendicular, and each has length 1:
 
 $$
 \langle e_n,e_m\rangle=\int_0^1 e^{2\pi i(n-m)\varphi}d\varphi=
@@ -37,7 +37,7 @@ $$
 c_n e^{2\pi in\varphi}+c_{-n}e^{-2\pi in\varphi}=2|c_n|\cos(2\pi n\varphi+\arg c_n).
 $$
 
-The $`n`$th harmonic has amplitude $2|c_n|$ and phase $\arg c_n$, and $c_0$ is the DC offset.
+The $n$-th harmonic has amplitude $2|c_n|$ and phase $\arg c_n$, and $c_0$ is the DC offset.
 
 **The sum converges in RMS, not at every point.** The RMS of the error between $x$ and the sum of its harmonics up to $N$ goes to 0 as $N$ grows. At a jump, though, every partial sum overshoots by about 9% of the jump, which is the **Gibbs phenomenon**, and the overshoot only narrows. The coefficients themselves are plain integrals, so arguments about them don't depend on this.
 
@@ -67,7 +67,7 @@ $$
 \int_0^1 x'(\varphi)e^{-2\pi in\varphi}d\varphi=\Big[x(\varphi)e^{-2\pi in\varphi}\Big]_0^1+2\pi in\int_0^1 x(\varphi)e^{-2\pi in\varphi}d\varphi=2\pi in\cdot c_n,
 $$
 
-where the boundary term vanishes because $x(1)=x(0)$. Read the other way, integrating a waveform divides the $`n`$th coefficient by $2\pi in$, so its high harmonics fall faster.
+where the boundary term vanishes because $x(1)=x(0)$. Read the other way, integrating a waveform divides the $n$-th coefficient by $2\pi in$, so its high harmonics fall faster.
 
 **Smoother shapes have faster-falling harmonics.** The boundary term vanishes only if $x$ is continuous around the whole cycle. Each jump leaves a term of the jump's size that doesn't shrink with $n$, so after the division by $2\pi in$, a waveform with a jump has harmonics falling as $1/n$, like the sawtooth. A waveform without jumps but with corners has a slope that jumps, so the same argument applied to the slope gives $1/n^2$, like the triangle. Each further derivative that stays continuous adds another factor of $1/n$.
 
