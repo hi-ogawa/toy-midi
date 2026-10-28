@@ -29,19 +29,25 @@ $$
 x=\sum_{n=-\infty}^{\infty}c_n e_n,\qquad c_n=\langle x,e_n\rangle=\int_0^1 x(\varphi)e^{-2\pi in\varphi}d\varphi.
 $$
 
-**Each coefficient is one harmonic's amplitude and phase.** For real $x$, the coefficient formula at $-n$ and at $0$ gives
+Each term of the sum is one harmonic,
+
+$$
+c_ne_n(\varphi)=|c_n|e^{i(2\pi n\varphi+\arg c_n)},
+$$
+
+a tone of size $|c_n|$ starting at phase $\arg c_n$, so $c_n$ is the $n$-th harmonic's complex amplitude.
+
+**A real waveform pairs each harmonic with its negative.** For real $x$, the coefficient formula at $-n$ and at $0$ gives
 
 $$
 c_{-n}=\int_0^1 x(\varphi)e^{2\pi in\varphi}d\varphi=\overline{c_n},\qquad c_0=\int_0^1 x(\varphi)d\varphi.
 $$
 
-So $c_0$ is the waveform's average, its DC offset, and each pair adds up to one real sinusoid:
+So $c_0$ is the waveform's average, its DC offset, and each pair adds up to one real sinusoid of amplitude $2|c_n|$:
 
 $$
 c_n e^{2\pi in\varphi}+\overline{c_n}e^{-2\pi in\varphi}=2\text{Re}\big(c_n e^{2\pi in\varphi}\big)=2|c_n|\cos(2\pi n\varphi+\arg c_n).
 $$
-
-The $n$-th harmonic has amplitude $2|c_n|$ and phase $\arg c_n$, so $c_n$ is that harmonic's complex amplitude, and $x$ is the sum of its harmonics with those amplitudes.
 
 ## Shift, Filter, and Differentiate One Coefficient at a Time
 
