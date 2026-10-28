@@ -14,7 +14,7 @@ To compare broader frequency intervals, called **bands**, choose boundaries on t
 
 Our implementation uses 128 equal steps in $m(f)=2595\log_{10}(1+f/700)$, from zero to Nyquist. The figure shows ten for clarity. Unlike a pure log scale, this curve becomes approximately linear at low frequencies.
 
-Within each band, sum squared Fourier magnitudes. This is the frequency-domain version of summing squared samples, connected by Parseval’s identity. For FFT coefficients $X_t(k)$ in frame $t$ and the set of bins $\mathcal{B}_b$ in band $b$, define **band power** on a common FFT scale:
+Within each band, sum squared Fourier magnitudes. This is the frequency-domain version of summing squared samples, connected by [Parseval’s identity](../concepts/fourier-series.md#use-the-same-picture-for-sampled-signals). For FFT coefficients $X_t(k)$ in frame $t$ and the set of bins $\mathcal{B}_b$ in band $b$, define **band power** on a common FFT scale:
 
 $$
 P_t(b)=\sum_{k\in\mathcal{B}_b}|X_t(k)|^2.
