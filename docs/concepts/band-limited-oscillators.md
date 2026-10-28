@@ -33,45 +33,45 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1\mat
 
 ## Replace Each Jump with a Band-Limited Step
 
-The sawtooth rises in a straight line from one jump to the next, and a straight line is perfectly smooth, so all of its high harmonics, and with them all the aliasing, come from the jumps. The [appendix](#appendix-split-each-harmonic-at-the-jumps) shows this is exact, since the line's constant slope contributes nothing to any harmonic. A jump is a step, and the step has a band-limited version, as smooth as a perfect low-pass at $F_s/2$ would make it. With $t$ counted in samples from the jump, that is the integral of the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating),
+The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. That low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above. Work out what any such kernel $h$ does to the sawtooth, as long as it's symmetric and sums to 1, as the sinc does.
+
+**Convolve each piece of the sawtooth with $h$.** With $t$ in samples, the ideal sawtooth is a line $\ell$ rising by $2\Delta$ per sample plus a step of −2 at every wrap time $t_k$. Write $u$ for the unit step, 0 before 0 and 1 after. A symmetric kernel that sums to 1 returns a line unchanged, and it turns $u$ into its running integral $S_h$:
 
 $$
-S(t)=\int_{-\infty}^{t}\text{sinc}(u)\,du,
+(h*\ell)(t)=\ell(t),\qquad (h*u)(t)=\int_{-\infty}^{t}h(s)ds=S_h(t).
 $$
 
-which rises smoothly through the jump instead of all at once and ripples on both sides of it, as the blue curve in the figure below shows.
+So the low-passed sawtooth is the ideal one with every step $u$ replaced by $S_h$, which is the ideal sawtooth plus the **residual** $r_h=S_h-u$ at each jump, scaled by the jump:
 
-This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**. Each jump in the naive waveform can be swapped for a BLEP by adding the difference between them, which is the BLEP minus the naive step and is called its **residual**. The residual is large next to the jump and dies away on either side, and adding it at every jump turns the naive waveform into the band-limited one. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after.
+$$
+h*\text{sawtooth}=\text{sawtooth}-2\sum_k r_h(t-t_k).
+$$
+
+Two things follow. The line passes through untouched, so all of the high harmonics, and with them all the aliasing, come from the jumps, which the [appendix](#appendix-split-each-harmonic-at-the-jumps) shows exactly. And the samples of the ideal sawtooth are the naive samples, so the oscillator only has to add the residual near each jump. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after. The square is made of steps alone, so the same holds for it.
+
+**With the sinc, the step becomes a BLEP.** For the perfect low-pass, $S_h$ is the integral of the sinc, which rises smoothly through the jump instead of all at once and ripples on both sides of it, as the blue curve in the figure below shows. This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**, and its residual is large next to the jump and dies away on either side.
 
 ![The naive step jumps from −1 to 1 at the jump. The band-limited step rises smoothly through it and ripples on both sides, and the PolyBLEP step rises smoothly over one sample on each side with no ripple. Their differences from the naive step are largest next to the jump, where the PolyBLEP difference matches the band-limited one closely, and the band-limited difference ripples on for several samples](images/band-limited-steps.svg)
 
-The exact residual never ends, so a real oscillator needs an approximation. Tabulating a shortened residual is one way. It's accurate, but it needs a table and spreads each correction over many samples.
+The sinc never ends, so neither does its residual, and a real oscillator needs an approximation. Tabulating a shortened residual is one way. It's accurate, but it needs a table and spreads each correction over many samples.
 
 ## Low-Pass the Ideal Waveform with a Short Triangle
 
-PolyBLEP instead swaps the sinc for the bump of [linear interpolation](oversampling.md#upsample-by-interpolating), the triangle two samples wide, $b(t)=1-|t|$ for $|t|\lt1$. It's a much cruder low-pass than the sinc, but it reaches only one sample on each side. PolyBLEP's output is the ideal waveform convolved with $b$, then sampled.
-
-**Convolve each piece of the sawtooth with $b$.** With $t$ in samples, the ideal sawtooth is a line rising by $2\Delta$ per sample plus a step of −2 at every wrap time $t_k$. Write $u$ for the unit step, 0 before 0 and 1 after. The bump is symmetric and sums to 1, so it returns a line unchanged, and it turns $u$ into its integral, a step that rises over one sample on each side:
+PolyBLEP instead swaps the sinc for the bump of [linear interpolation](oversampling.md#upsample-by-interpolating), the triangle two samples wide, $b(t)=1-|t|$ for $|t|\lt1$. It's a much cruder low-pass than the sinc, but it reaches only one sample on each side. It's symmetric and sums to 1, so the derivation above applies with $h=b$, and integrating $b$ gives a step that rises over one sample on each side, with a residual of two pieces:
 
 $$
-(b*\ell)(t)=\ell(t),\qquad (b*u)(t)=\int_{-\infty}^{t}b(s)ds=S(t)=\begin{cases}
+S_b(t)=\begin{cases}
 0 & t\le-1,\\
 \tfrac{1}{2}(1+t)^2 & -1\le t\le0,\\
 1-\tfrac{1}{2}(1-t)^2 & 0\le t\le1,\\
-1 & t\ge1.
-\end{cases}
-$$
-
-So the low-passed sawtooth is the ideal one with every step $u$ replaced by $S$, which is the ideal sawtooth plus the residual $r=S-u$ at each jump, scaled by the jump:
-
-$$
-b*\text{sawtooth}=\text{sawtooth}-2\sum_k r(t-t_k),\qquad r(t)=\begin{cases}
+1 & t\ge1,
+\end{cases}\qquad r(t)=S_b(t)-u(t)=\begin{cases}
 \tfrac{1}{2}(1+t)^2 & -1\lt t\le0,\\
 -\tfrac{1}{2}(1-t)^2 & 0\le t\lt1,
 \end{cases}
 $$
 
-and 0 farther than one sample from the jump. The residual is two quadratic pieces, which is where PolyBLEP, a **poly**nomial BLEP, gets its name. The samples of the ideal sawtooth are the naive samples, so sampling this gives the naive samples plus a correction near each jump. The square is made of steps alone, so the same holds for it.
+and $r$ is 0 farther than one sample from the jump. The residual is two quadratic pieces, which is where PolyBLEP, a **poly**nomial BLEP, gets its name.
 
 **In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum, and the triangle's is $\text{sinc}^2(f/F_s)$, as [oversampling](oversampling.md#upsample-by-interpolating) shows. So every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled, and two consequences follow:
 
