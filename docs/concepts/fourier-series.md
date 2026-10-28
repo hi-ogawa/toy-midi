@@ -29,31 +29,19 @@ $$
 x=\sum_{n=-\infty}^{\infty}c_n e_n,\qquad c_n=\langle x,e_n\rangle=\int_0^1 x(\varphi)e^{-2\pi in\varphi}d\varphi.
 $$
 
-**Pythagoras splits the mean square across the harmonics.** Expanding $\langle x,x\rangle$ in the basis, the cross terms vanish:
-
-$$
-\langle x,x\rangle=\sum_{n,m}c_n\overline{c_m}\langle e_n,e_m\rangle=\sum_n|c_n|^2.
-$$
-
-This is **Parseval's theorem**. Applied to the error of any sum $\sum_{|n|\le N}a_ne_n$, it gives
-
-$$
-\Big\langle x-\sum_{|n|\le N}a_ne_n,x-\sum_{|n|\le N}a_ne_n\Big\rangle=\sum_{|n|\le N}|c_n-a_n|^2+\sum_{|n|>N}|c_n|^2,
-$$
-
-which is smallest at $a_n=c_n$. So keeping the harmonics up to $N$ is the best approximation with them in mean square, and the error is the mean square of the harmonics left out.
-
-**A real waveform's harmonics are real sinusoids.** For real $x$, the coefficient formula at $-n$ and at $0$ gives
+**Each coefficient is one harmonic's amplitude and phase.** For real $x$, the coefficient formula at $-n$ and at $0$ gives
 
 $$
 c_{-n}=\int_0^1 x(\varphi)e^{2\pi in\varphi}d\varphi=\overline{c_n},\qquad c_0=\int_0^1 x(\varphi)d\varphi.
 $$
 
-So $c_0$ is the waveform's average, its DC offset, and each pair adds up to one real sinusoid with amplitude $2|c_n|$ and phase $\arg c_n$:
+So $c_0$ is the waveform's average, its DC offset, and each pair adds up to one real sinusoid:
 
 $$
 c_n e^{2\pi in\varphi}+\overline{c_n}e^{-2\pi in\varphi}=2\text{Re}\big(c_n e^{2\pi in\varphi}\big)=2|c_n|\cos(2\pi n\varphi+\arg c_n).
 $$
+
+The $n$-th harmonic has amplitude $2|c_n|$ and phase $\arg c_n$, so $c_n$ is that harmonic's complex amplitude, and $x$ is the sum of its harmonics with those amplitudes.
 
 ## Shift, Filter, and Differentiate One Coefficient at a Time
 
@@ -129,10 +117,16 @@ the sawtooth at twice the rate and half the height. That matches the $1/n$ fallo
 
 ## Use the Same Picture for Sampled Signals
 
-A frame of $N$ samples is a vector in $\mathbb{C}^N$, and the sampled tones $e_k[m]=e^{2\pi ikm/N}$ for $k=0,\dots,N-1$ are $N$ perpendicular vectors, each with $\langle e_k,e_k\rangle=N$, so they form a basis without any completeness theorem. The discrete Fourier transform reads the coordinates, which the FFT computes quickly, and Parseval's theorem divides by that $N$:
+A frame of $N$ samples is a vector in $\mathbb{C}^N$, and the sampled tones $e_k[m]=e^{2\pi ikm/N}$ for $k=0,\dots,N-1$ are $N$ perpendicular vectors, each with $\langle e_k,e_k\rangle=N$, so they form a basis without any completeness theorem. The discrete Fourier transform reads the coordinates, which the FFT computes quickly, and the frame is their sum:
 
 $$
-X(k)=\sum_{m=0}^{N-1}x[m]e^{-2\pi ikm/N},\qquad\sum_{m=0}^{N-1}|x[m]|^2=\frac{1}{N}\sum_{k=0}^{N-1}|X(k)|^2.
+X(k)=\langle x,e_k\rangle=\sum_{m=0}^{N-1}x[m]e^{-2\pi ikm/N},\qquad x=\frac{1}{N}\sum_{k=0}^{N-1}X(k)e_k.
+$$
+
+Expanding $\langle x,x\rangle$ in this basis, the cross terms vanish, which is **Parseval's theorem**:
+
+$$
+\sum_{m=0}^{N-1}|x[m]|^2=\frac{1}{N^2}\sum_{k,j}X(k)\overline{X(j)}\langle e_k,e_j\rangle=\frac{1}{N}\sum_{k=0}^{N-1}|X(k)|^2.
 $$
 
 That is what lets [onset detection](../bass-pitch/onset-detection.md) measure power in a frequency band by summing squared FFT magnitudes.
