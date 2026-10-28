@@ -102,7 +102,15 @@ $$
 h_\text{ideal}[n]=\frac{1}{L}\text{sinc}\frac{n}{L}.
 $$
 
-The frequency side reaches the same kernel. Measured in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, $\omega=2\pi f/(LF_s)$, the high rate's Nyquist frequency $L F_s/2$ is $\pi$ and the cutoff $F_s/2$ is $\omega_c=\pi/L$. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response $\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}\,d\omega=\frac{\sin(\omega_c n)}{\pi n}$, which is $\frac{1}{L}\text{sinc}\frac{n}{L}$ again. Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. Tapering the taps by a **window** $w[n]$ lowers it:
+The frequency side reaches the same kernel. Measured in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, $\omega=2\pi f/(LF_s)$, the high rate's Nyquist frequency $L F_s/2$ is $\pi$ and the cutoff $F_s/2$ is $\omega_c=\pi/L$. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response
+
+$$
+\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}d\omega=\frac{\sin(\omega_c n)}{\pi n},
+$$
+
+which is $\frac{1}{L}\text{sinc}\frac{n}{L}$ again.
+
+Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. Tapering the taps by a **window** $w[n]$ lowers it:
 
 $$
 h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)} \cdot w[n],
