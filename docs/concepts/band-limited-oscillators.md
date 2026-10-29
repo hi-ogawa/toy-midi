@@ -96,13 +96,13 @@ and $r$ is 0 farther than one sample from the jump. The residual is two quadrati
 
 ![The PolyBLEP step rises over one sample on each side of the jump with no ripple, and next to the jump it follows the band-limited step closely. Its residual matches the band-limited one there and is exactly 0 beyond one sample, where the band-limited residual keeps rippling](images/band-limited-steps.svg)
 
-**In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum $H(f)=\int h(s)e^{-2\pi ifs}ds$. Measure $f$ in units of $F_s$. The box that is 1 for $|t|\lt\tfrac12$ has the spectrum
+**In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum $H(f)=\int h(s)e^{-2\pi ifs}ds$. Measure $f$ in units of $F_s$ and write $a=2\pi f$. The triangle $b$ is even, so only the cosine part of $e^{-2\pi ifs}$ survives, and one integration by parts gives
 
 $$
-\int_{-1/2}^{1/2}e^{-2\pi ifs}ds=\frac{\sin\pi f}{\pi f}=\text{sinc}(f),
+H(f)=2\int_0^1(1-s)\cos(as)ds=2\Big[\frac{(1-s)\sin as}{a}\Big]_0^1+\frac{2}{a}\int_0^1\sin(as)ds=\frac{2(1-\cos a)}{a^2}=\Big(\frac{\sin\pi f}{\pi f}\Big)^2=\text{sinc}^2(f).
 $$
 
-and the triangle is that box convolved with itself, so a tone passes through the box twice, and the triangle's spectrum is $\text{sinc}^2(f)$. With $f$ back in Hz, every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled, and two consequences follow:
+The bracket is 0 at both ends, and the last step uses $1-\cos a=2\sin^2(a/2)$. With $f$ back in Hz, every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled, and two consequences follow:
 
 - **Aliases that would land at low frequencies nearly vanish.** The triangle's spectrum is zero at every multiple of $F_s$, so the harmonics near 48 kHz and 96 kHz, which would fold to just above 0 Hz, are cut deeply before they fold. Below 5 kHz, the correction lowers the loudest alias by about 40 dB.
 - **Aliases close to 24 kHz and the top harmonics are cut only a little.** The spectrum is about 0.4 at $F_s/2$, which is −7.8 dB, so harmonics just past 24 kHz fold back to just below it only about 8 dB quieter. The same factor dulls the waveform's own top, by 1.2 dB at 10 kHz and 5.3 dB at 20 kHz, which the spectrum of the corrected sawtooth shows as harmonics falling below their ideal $1/n\mathrm{}$ level.
