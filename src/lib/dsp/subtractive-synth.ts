@@ -21,6 +21,10 @@ interface Voice {
   pitch: number;
   /** Cycles per sample */
   phaseIncrement: number;
+  /**
+   * Cycles in [0, 1). Advancing by the increment instead of tracking time
+   * keeps the waveform continuous when the frequency changes.
+   */
   phase: number;
   gain: number;
   targetGain: number;
@@ -107,26 +111,28 @@ const OSCILLATORS: Record<
   // but from about 1 kHz its corners alias more than a corrected sawtooth.
   // TODO: Round the corners with a BLAMP correction.
   triangle: (phase) => 4 * Math.abs(((phase + 0.75) % 1) - 0.5) - 1,
-  sawtooth: (phase, increment) => 2 * phase - 1 - correctStep(phase, increment),
+  sawtooth: (phase, increment) =>
+    2 * phase - 1 - 2 * correctStep(phase, increment),
   square: (phase, increment) =>
     (phase < 0.5 ? 1 : -1) +
-    correctStep(phase, increment) -
-    correctStep((phase + 0.5) % 1, increment),
+    2 * correctStep(phase, increment) -
+    2 * correctStep((phase + 0.5) % 1, increment),
 };
 
 /**
- * PolyBLEP correction for a unit step at phase 0, which rounds the jump over
+ * PolyBLEP residual for a unit step at phase 0, which rounds the jump over
  * the samples next to it so a sawtooth or square doesn't alias audibly.
+ * Scale it by the size of the jump.
  * See [Band-limited oscillators](../../../docs/concepts/band-limited-oscillators.md).
  */
 function correctStep(phase: number, increment: number): number {
   if (phase < increment) {
     const t = phase / increment;
-    return 2 * t - t * t - 1;
+    return -((1 - t) ** 2) / 2;
   }
   if (phase > 1 - increment) {
     const t = (phase - 1) / increment;
-    return t * t + 2 * t + 1;
+    return (1 + t) ** 2 / 2;
   }
   return 0;
 }
