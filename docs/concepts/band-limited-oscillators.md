@@ -113,6 +113,8 @@ The bracket is 0 at both ends, and the last step uses $1-\cos a=2\sin^2(a/2)$. W
 | 46 kHz    | 0.96    | 0.002 | −55  | folds to 2 kHz              |
 | 48 kHz    | 1       | 0     |      | folds to 0 Hz               |
 
+![The triangle's spectrum falls smoothly from 1 at 0 Hz to about 0.4 at 24 kHz, where harmonics stop staying and start folding back. Past 24 kHz it keeps falling to 0 at 48 kHz, rises to a small bump, and returns to 0 at 96 kHz](images/band-limited-gain.svg)
+
 - **Aliases that land low nearly vanish.** The gain falls to 0 at $F_s$, so harmonics that would fold below 5 kHz are cut by 38 dB or more before they fold, close to the 40 dB the measurement shows.
 - **Aliases near 24 kHz and the top harmonics are cut only a little.** Just past $F_s/2$, the gain is still about −8 dB. The same factor dulls the waveform's own harmonics, so the spectrum of the corrected sawtooth falls below its ideal $1/n\mathrm{}$ level near the top.
 
