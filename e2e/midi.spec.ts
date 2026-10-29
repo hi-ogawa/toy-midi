@@ -210,6 +210,35 @@ test("plays a MIDI track on the Telecaster SoundFont and persists it", async ({
   });
 });
 
+test("plays a MIDI track on the own synth and persists it", async ({
+  page,
+}) => {
+  // Select a bass program, then switch the track to the own synth.
+  await createProject(page);
+  await addMidiTrack(page);
+  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
+  await selectMidiInstrument(instrument, {
+    option: "33: Electric Bass (finger)",
+  });
+  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+
+  // Save and reload, then verify the synth persists.
+  await saveProject(page);
+  await page.reload();
+  await openMidiInstrument(page, { name: "MIDI 1" });
+  await expect(instrument.getByTestId("instrument-select")).toContainText(
+    "Subtractive Synth",
+  );
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+
+  // Switch back to a General MIDI program.
+  await openMidiInstrument(page, { name: "MIDI 1" });
+  await selectMidiInstrument(instrument, {
+    option: "1: Bright Acoustic Piano",
+  });
+});
+
 test("scrolls the instrument picker list with the mouse wheel", async ({
   page,
 }) => {

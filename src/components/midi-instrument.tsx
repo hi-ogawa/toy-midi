@@ -26,6 +26,7 @@ export function MidiInstrument({
             soundfont: track.soundfont,
             bank: track.bank,
             program: track.program,
+            synth: track.synth,
           }}
           onValueChange={onPresetChange}
         />

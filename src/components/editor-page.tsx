@@ -33,6 +33,7 @@ import { Panel } from "./panel";
 import { ProjectCommentPanel } from "./project-comment-panel";
 import { ReferenceVideoPanel } from "./reference-video";
 import { ScorePanel, useScorePanelUi } from "./score-panel";
+import { SynthPanel, useSynthPanelUi } from "./synth-panel";
 import {
   ReferenceTimelineRow,
   TimelineHeader,
@@ -105,6 +106,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
   const { clipInteraction, locatorInteraction, midiInteraction } = interaction;
   const transcriptions = useAudioToMidiUi();
   const scoreUi = useScorePanelUi();
+  const synthUi = useSynthPanelUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -644,9 +646,11 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                       timeSignature={timeline.timeSignature}
                       subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                       viewportStartBeat={timeline.viewportStartBeat}
+                      onSynthOpen={() => synthUi.open(track.id)}
                       onEffectsOpen={() => effects.showEffects(track.id)}
                       onRemove={() => {
                         runtime.removeMidiTrack(track.id);
+                        synthUi.close(track.id);
                         effects.closeEffects(track.id);
                         transcriptions.closeTranscription(track.id);
                         scoreUi.close(track.id);
@@ -710,6 +714,26 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+        {orderedMidiTracks.map(
+          (track) =>
+            track.synth &&
+            synthUi.openTracks.has(track.id) && (
+              <SynthPanel
+                key={track.id}
+                label={track.name}
+                patch={track.synth}
+                onChange={(synth) =>
+                  runtime.setMidiTrackPreset(track.id, {
+                    soundfont: track.soundfont,
+                    bank: track.bank,
+                    program: track.program,
+                    synth,
+                  })
+                }
+                onClose={() => synthUi.close(track.id)}
+              />
+            ),
+        )}
         {effects.openEffects.size > 0 && (
           <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
             {trackEntries.map((entry) => {
