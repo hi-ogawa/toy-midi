@@ -35,10 +35,23 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1\mat
 
 The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. That low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above. Work out what any such kernel $h$ does to the sawtooth, as long as it's symmetric and sums to 1, as the sinc does.
 
-**Convolve each piece of the sawtooth with $h$.** With $t$ in samples, the ideal sawtooth is a line $\ell$ rising by $2\Delta$ per sample plus a step of −2 at every wrap time $t_k$. Write $u$ for the unit step, 0 before 0 and 1 after. A symmetric kernel that sums to 1 returns a line unchanged, and it turns $u$ into its running integral $S_h$:
+**Convolve each piece of the sawtooth with $h$.** With $t$ in samples, the ideal sawtooth is a line rising by $2\Delta$ per sample, with a unit step $u$ scaled by −2 at every wrap time $t_k$:
 
 $$
-(h*\ell)(t)=\ell(t),\qquad (h*u)(t)=\int_{-\infty}^{t}h(s)ds=S_h(t).
+\text{sawtooth}(t)=\ell(t)-2\sum_k u(t-t_k),\qquad \ell(t)=\ell(0)+2\Delta t,\qquad u(t)=\begin{cases}
+0 & t\lt0,\\
+1 & t\ge0.
+\end{cases}
+$$
+
+The line uses both properties of $h$: it sums to 1, and being symmetric, it weighs $s$ and $-s$ equally, so $\int s\cdot h(s)ds=0$. The step keeps only the part of $h$ before $t$, its running integral $S_h$:
+
+$$
+(h*\ell)(t)=\int h(s)\cdot\ell(t-s)ds=\ell(t)\int h(s)ds-2\Delta\int s\cdot h(s)ds=\ell(t),
+$$
+
+$$
+(h*u)(t)=\int h(s)\cdot u(t-s)ds=\int_{-\infty}^{t}h(s)ds=S_h(t).
 $$
 
 So the low-passed sawtooth is the ideal one with every step $u$ replaced by $S_h$, which is the ideal sawtooth plus the **residual** $r_h=S_h-u$ at each jump, scaled by the jump:
