@@ -72,7 +72,7 @@ $$
 
 **The literature calls $S_h$ a BLEP.** $S_h=h*u$ is the band-limited version of the unit step, in the sense of the introduction, so it's named **BLEP**, from **B**and-**L**imited st**EP**. It rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. Its residual $r_h$ is large next to the jump and dies away on either side.
 
-**Only the jumps need correcting.** The line passes through untouched, so all of the high harmonics, and with them all the aliasing, come from the jumps, which the [appendix](#appendix-split-each-harmonic-at-the-jumps) shows exactly. And the samples of the ideal sawtooth are the naive samples, so the oscillator only has to add the residual near each jump. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after. The square is made of steps alone, so the same holds for it.
+**The oscillator only adds the residual near each jump.** The ideal sawtooth's samples are the naive ones, so the band-limited samples are the naive samples plus $-2r_h$ at each jump. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after. The square is made of steps alone, so the same holds for it.
 
 The sinc never ends, so neither does its residual, and a real oscillator needs an approximation. Tabulating a shortened residual is one way. It's accurate, but it needs a table and spreads each correction over many samples.
 
