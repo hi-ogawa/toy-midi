@@ -70,7 +70,7 @@ $$
 h*\text{sawtooth}=\ell(t)-2\sum_k S_h(t-t_k)=\ell(t)-2\sum_k (u+r_h)(t-t_k)=\text{sawtooth}(t)-2\sum_k r_h(t-t_k).
 $$
 
-**The step becomes a BLEP.** The sinc's running integral $S_h$ rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**, and its residual is large next to the jump and dies away on either side.
+**The literature calls $S_h$ a BLEP.** $S_h=h*u$ is the band-limited version of the unit step, in the sense of the introduction, so it's named **BLEP**, from **B**and-**L**imited st**EP**. It rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. Its residual $r_h$ is large next to the jump and dies away on either side.
 
 **Only the jumps need correcting.** The line passes through untouched, so all of the high harmonics, and with them all the aliasing, come from the jumps, which the [appendix](#appendix-split-each-harmonic-at-the-jumps) shows exactly. And the samples of the ideal sawtooth are the naive samples, so the oscillator only has to add the residual near each jump. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after. The square is made of steps alone, so the same holds for it.
 
