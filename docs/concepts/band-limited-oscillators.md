@@ -44,6 +44,8 @@ $$
 \end{cases}
 $$
 
+![The sawtooth follows the line ℓ for its first cycle, then falls 2 below it at each wrap, so the gap grows to 2, then 4. The steps below drop by 2 at each wrap time, and adding them to the line gives the sawtooth](images/band-limited-line-and-steps.svg)
+
 The line uses both properties of $h$: it sums to 1, and being symmetric, it weighs $s$ and $-s$ equally, so $\int s\cdot h(s)ds=0$. The step keeps only the part of $h$ before $t$, its running integral $S_h$:
 
 $$
