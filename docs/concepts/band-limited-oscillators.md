@@ -10,7 +10,7 @@ Throughout, $F_s$ is the sample rate, 48 kHz in the examples, $f_0$ is the note'
 
 ## See Why a Jump Aliases
 
-The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1\mathrm{}$, which rises from −1 to 1 and then jumps back down, and the square is 1 for the first half of the cycle and −1 for the second. Written as sums of sines, the waveforms have these harmonics:
+The oscillator reads each waveform at its phase. Written as sums of sines, the waveforms have these harmonics:
 
 | Waveform | Harmonics            | Falloff of the $n$-th |
 | -------- | -------------------- | --------------------- |
@@ -35,13 +35,13 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1\mat
 
 The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. That low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above. Call that kernel $h$ and work out what it does to the sawtooth.
 
-**Convolve each piece of the sawtooth with $h$.** With $t$ in samples and the phase at 0 when $t=0$, the phase is $\Delta t$ less its whole cycles, so the sawtooth $2\varphi-1$ splits into a line and a staircase:
+**Convolve each piece of the sawtooth with $h$.** With $t$ in samples, the sawtooth rises by $2\Delta$ per sample and drops by 2 at each wrap, once every $1/\Delta$ samples. So it's a line minus a staircase:
 
 $$
-\varphi=\Delta t-\lfloor\Delta t\rfloor,\qquad \text{sawtooth}(t)=\ell(t)-2\lfloor\Delta t\rfloor,\qquad \ell(t)=2\Delta t-1.
+\text{sawtooth}(t)=\ell(t)-2\lfloor\Delta t\rfloor,\qquad \ell(t)=2\Delta t-1.
 $$
 
-The line $\ell$ is the sawtooth of a phase that never wraps. The floor counts the wraps, so it rises by the unit step $u$ at each wrap time $t_k=k/\Delta$:
+The line $\ell$ is the sawtooth without its wraps. The floor counts the wraps, so it rises by the unit step $u$ at each wrap time $t_k=k/\Delta$:
 
 $$
 u(t)=\begin{cases}
