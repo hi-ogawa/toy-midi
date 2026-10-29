@@ -33,12 +33,18 @@ The oscillator reads each waveform at its phase. Written as sums of sines, the w
 
 ## Low-Pass the Ideal Waveform with the Sinc
 
-The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. That low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above. Call that kernel $h$ and work out what it does to the sawtooth.
-
-**Convolve each piece of the sawtooth with $h$.** With $t$ in samples, the sawtooth rises by $2\Delta$ per sample and drops by 2 at each wrap, once every $1/\Delta$ samples. So it's a line minus a step of 2 at each wrap time $t_k=k/\Delta$:
+The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. With time $t$ in seconds, that low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above:
 
 $$
-\text{sawtooth}(t)=\ell(t)-2\sum_k u(t-t_k),\qquad \ell(t)=2\Delta t-1.
+h(t)=F_s\cdot\text{sinc}(F_st),\qquad \text{sinc}(x)=\frac{\sin\pi x}{\pi x}.
+$$
+
+The factor $F_s$ in the argument puts the sinc's zeros at every nonzero multiple of $1/F_s$, the sampling interval, and the factor in front makes it sum to 1. Work out what $h$ does to the sawtooth.
+
+**Convolve each piece of the sawtooth with $h$.** The sawtooth rises with slope $2f_0$ and drops by 2 at each wrap, once per cycle. So it's a line minus a step of 2 at each wrap time $t_k=k/f_0$:
+
+$$
+\text{sawtooth}(t)=\ell(t)-2\sum_k u(t-t_k),\qquad \ell(t)=2f_0t-1.
 $$
 
 The line $\ell$ is the sawtooth without its wraps, and $u$ is the unit step:
@@ -52,57 +58,65 @@ $$
 
 ![The sawtooth follows the line ℓ for its first cycle, then falls 2 below it at each wrap, so the gap grows to 2, then 4. The staircase below drops by 2 at each wrap time, and adding it to the line gives the sawtooth](images/band-limited-line-and-steps.svg)
 
-Since $\ell(t-s)=\ell(t)-2\Delta s$, the line comes through on two properties of the sinc. It sums to 1, because its spectrum is 1 at 0 Hz, and it's even, so it weighs $s$ and $-s$ equally and $\int s\cdot h(s)ds=0$. The step keeps only the part of $h$ before $t$, its running integral $S_h$:
+Since $\ell(t-s)=\ell(t)-2f_0s$, the line comes through on two properties of the sinc. It sums to 1, because its spectrum is 1 at 0 Hz, and it's even, so it weighs $s$ and $-s$ equally and $\int s\cdot h(s)ds=0$. The step keeps only the part of $h$ before $t$, and substituting $x=F_ss$ cancels the factor $F_s$ in front against $ds$:
 
 $$
-(h*\ell)(t)=\int h(s)\cdot\ell(t-s)ds=\ell(t)\int h(s)ds-2\Delta\int s\cdot h(s)ds=\ell(t),
+(h*\ell)(t)=\int h(s)\cdot\ell(t-s)ds=\ell(t)\int h(s)ds-2f_0\int s\cdot h(s)ds=\ell(t),
 $$
 
 $$
-(h*u)(t)=\int h(s)\cdot u(t-s)ds=\int_{-\infty}^{t}h(s)ds=S_h(t).
+(h*u)(t)=\int h(s)\cdot u(t-s)ds=\int_{-\infty}^{t}F_s\cdot\text{sinc}(F_ss)ds=\int_{-\infty}^{F_st}\text{sinc}(x)dx=S_h(F_st).
 $$
+
+So the band-limited step is one fixed shape $S_h$, the running integral of the sinc, read at $x=F_st$. The sample rate only sets the scale of its time axis, and $x$ is the time from the jump in sampling intervals.
 
 ![The unit step jumps from 0 to 1 at the jump. The band-limited step rises smoothly through it, passing 0.5 at the jump, and ripples on both sides. Their difference is ±0.5 right at the jump and ripples away over several samples on either side](images/band-limited-blep.svg)
 
 Convolving is linear, so each piece goes through on its own, and every step $u$ becomes $S_h$. Write the band-limited step as the naive step plus a **residual**, $S_h=u+r_h$, and the line with the naive steps gives back the sawtooth:
 
 $$
-h*\text{sawtooth}=\ell(t)-2\sum_k S_h(t-t_k)=\ell(t)-2\sum_k (u+r_h)(t-t_k)=\text{sawtooth}(t)-2\sum_k r_h(t-t_k).
+h*\text{sawtooth}=\ell(t)-2\sum_k S_h\big(F_s(t-t_k)\big)=\text{sawtooth}(t)-2\sum_k r_h\big(F_s(t-t_k)\big).
 $$
 
 The square is a flat line plus steps, so its band-limited version has the same form.
 
-**The literature calls $S_h$ a BLEP.** $S_h=h*u$ is the band-limited version of the unit step, in the sense of the introduction, so it's named **BLEP**, from **B**and-**L**imited st**EP**. It rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. Its residual $r_h$ is large next to the jump and dies away on either side.
+**The literature calls $S_h$ a BLEP.** $h*u$, which is $S_h$ read at $x=F_st$, is the band-limited version of the unit step, in the sense of the introduction, so it's named **BLEP**, from **B**and-**L**imited st**EP**. It rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. Its residual $r_h$ is large next to the jump and dies away on either side.
 
 The sinc never ends, so neither does its residual, and a real oscillator needs an approximation. Tabulating a shortened residual is one way. It's accurate, but it needs a table and spreads each correction over many samples.
 
 ## Low-Pass the Ideal Waveform with a Short Triangle
 
-PolyBLEP instead swaps the sinc for the bump of [linear interpolation](oversampling.md#upsample-by-interpolating), the triangle two samples wide, $b(t)=1-|t|$ for $|t|\lt1$. It's a much cruder low-pass than the sinc, but it reaches only one sample on each side. It's even and sums to 1, the two properties the line needed, so the derivation above applies with $h=b$, and integrating $b$ gives a step that rises over one sample on each side, with a residual of two pieces:
+PolyBLEP instead swaps the sinc for a triangle with the same main lobe, the bump of [linear interpolation](oversampling.md#upsample-by-interpolating):
 
 $$
-S_b(t)=\begin{cases}
-0 & t\le-1,\\
-\tfrac{1}{2}(1+t)^2 & -1\le t\le0,\\
-1-\tfrac{1}{2}(1-t)^2 & 0\le t\le1,\\
-1 & t\ge1,
-\end{cases}\qquad r(t)=S_b(t)-u(t)=\begin{cases}
-\tfrac{1}{2}(1+t)^2 & -1\lt t\le0,\\
--\tfrac{1}{2}(1-t)^2 & 0\le t\lt1,
+b(t)=F_s\cdot(1-|F_st|)\quad\text{for}\quad|F_st|\lt1.
+$$
+
+It peaks at $t=0$ and reaches 0 one sampling interval on each side, where the sinc has its first zeros, and it drops the sinc's endless ripples. It's a much cruder low-pass, but it's even and sums to 1, the two properties the line needed, so the derivation above applies with $h=b$. The same substitution gives a step $S_b(x)$ at $x=F_st$ that rises over one sampling interval on each side, with a residual of two pieces:
+
+$$
+S_b(x)=\begin{cases}
+0 & x\le-1,\\
+\tfrac{1}{2}(1+x)^2 & -1\le x\le0,\\
+1-\tfrac{1}{2}(1-x)^2 & 0\le x\le1,\\
+1 & x\ge1,
+\end{cases}\qquad r(x)=S_b(x)-u(x)=\begin{cases}
+\tfrac{1}{2}(1+x)^2 & -1\lt x\le0,\\
+-\tfrac{1}{2}(1-x)^2 & 0\le x\lt1,
 \end{cases}
 $$
 
-and $r$ is 0 farther than one sample from the jump. The residual is two quadratic pieces, which is where PolyBLEP, a **poly**nomial BLEP, gets its name.
+and $r$ is 0 farther than one sampling interval from the jump. The residual is two quadratic pieces, which is where PolyBLEP, a **poly**nomial BLEP, gets its name.
 
 ![The PolyBLEP step rises over one sample on each side of the jump with no ripple, and next to the jump it follows the band-limited step closely. Its residual matches the band-limited one there and is exactly 0 beyond one sample, where the band-limited residual keeps rippling](images/band-limited-steps.svg)
 
-**In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum $H(f)=\int h(s)e^{-2\pi ifs}ds$. Measure $f$ in units of $F_s$ and write $a=2\pi f$. The triangle $b$ is even, so only the cosine part of $e^{-2\pi ifs}$ survives, and one integration by parts gives
+**In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum $H(f)=\int h(s)e^{-2\pi ifs}ds$. For the triangle, substitute $x=F_ss$ again, which cancels the factor $F_s$ and leaves the frequency as $f/F_s$. Write $a=2\pi f/F_s$. The triangle is even, so only the cosine part survives, and one integration by parts gives
 
 $$
-H(f)=2\int_0^1(1-s)\cos(as)ds=2\Big[\frac{(1-s)\sin as}{a}\Big]_0^1+\frac{2}{a}\int_0^1\sin(as)ds=\frac{2(1-\cos a)}{a^2}=\Big(\frac{\sin\pi f}{\pi f}\Big)^2=\text{sinc}^2(f).
+H(f)=2\int_0^1(1-x)\cos(ax)dx=2\Big[\frac{(1-x)\sin ax}{a}\Big]_0^1+\frac{2}{a}\int_0^1\sin(ax)dx=\frac{2(1-\cos a)}{a^2}=\text{sinc}^2(f/F_s).
 $$
 
-The bracket is 0 at both ends, and the last step uses $1-\cos a=2\sin^2(a/2)$. With $f$ back in Hz, every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled. At 48 kHz, that gain is:
+The bracket is 0 at both ends, and the last step uses $1-\cos a=2\sin^2(a/2)$. So every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled. At 48 kHz, that gain is:
 
 | Frequency | $f/F_s$ | Gain  | dB   | Where it ends up            |
 | --------- | ------- | ----- | ---- | --------------------------- |
@@ -124,9 +138,15 @@ So the aliasing that remains sits near the top of the band, where the ear is lea
 
 ## Correct the Two Samples Next to Each Jump
 
-**Only the two samples next to a jump change.** The residual is zero beyond one sample from the jump, so only the last sample before it and the first sample after it need correcting. The phase gives their distance from the jump. A sample whose phase is $\varphi\lt\Delta$ is $t=\varphi/\Delta$ samples after the wrap, and one with $\varphi\gt1-\Delta$ is $t=(\varphi-1)/\Delta$ samples before it, which is negative.
+**Only the two samples next to a jump change.** The residual is zero beyond one sampling interval from the jump, so only the last sample before it and the first sample after it need correcting. The residual needs their distance from the jump as $x=F_s(t-t_k)$, and the phase gives it. A sample with phase $\varphi$ is $\varphi/f_0$ seconds after the wrap, so
 
-**The synth's correction is the residual for a jump of 2.** The sawtooth and square jump between −1 and 1, which is twice the unit step, so the correction is $2r(t)\mathrm{}$. That's $(1+t)^2=t^2+2t+1$ before the jump and $-(1-t)^2=2t-t^2-1$ after it, the two branches in the code. The sawtooth jumps down at $\varphi=0$, so it subtracts the correction. The square jumps up at $\varphi=0$ and down at $\varphi=\tfrac{1}{2}$, so it adds the correction at its phase and subtracts it half a cycle later:
+$$
+x=\frac{F_s\varphi}{f_0}=\frac{\varphi}{\Delta},
+$$
+
+which is less than 1 when $\varphi\lt\Delta$. A sample with $\varphi\gt1-\Delta$ is $1-\varphi$ cycles before the next wrap, so $x=(\varphi-1)/\Delta$, which is negative.
+
+**The synth's correction is the residual for a jump of 2.** The sawtooth and square jump between −1 and 1, which is twice the unit step, so the correction is $2r(x)\mathrm{}$. That's $(1+x)^2=x^2+2x+1$ before the jump and $-(1-x)^2=2x-x^2-1$ after it, the two branches in the code. The sawtooth jumps down at $\varphi=0$, so it subtracts the correction. The square jumps up at $\varphi=0$ and down at $\varphi=\tfrac{1}{2}$, so it adds the correction at its phase and subtracts it half a cycle later:
 
 ![A 4 kHz sawtooth sampled at 48 kHz. Every sample sits on the naive sawtooth except the two on either side of each jump, which move toward the middle of the jump](images/band-limited-sawtooth.svg)
 
