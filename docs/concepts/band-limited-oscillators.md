@@ -6,8 +6,6 @@ A continuous waveform is called **band-limited** when it has no frequencies abov
 
 This document shows where the aliasing comes from, why filtering or oversampling doesn't remove it, and how the [synth](../../src/lib/dsp/subtractive-synth.ts) rounds each jump with PolyBLEP. It builds on [See Why Clipping Aliases](oversampling.md#see-why-clipping-aliases), which explains how a frequency above the Nyquist frequency folds back below it.
 
-Throughout, $F_s$ is the sample rate, 48 kHz in the examples, $f_0$ is the note's frequency, and the oscillator's **phase** $\varphi$ runs from 0 to 1 over each cycle, advancing by $\Delta=f_0/F_s$ cycles per sample.
-
 ## See Why a Jump Aliases
 
 The oscillator reads each waveform at its phase. Written as sums of sines, the waveforms have these harmonics:
@@ -23,7 +21,7 @@ The oscillator reads each waveform at its phase. Written as sums of sines, the w
 
 **How fast the harmonics fall depends on the sharpest feature of the shape.** The sawtooth and square jump, and their harmonics fall as $1/n\mathrm{}$, which is 6 dB per octave. The triangle never jumps, but its slope changes suddenly at each corner, and its harmonics fall as $1/n^2\mathrm{}$, which is 12 dB per octave. The two are related by integration. The triangle's slope is a square wave, so the triangle is a square integrated, and integrating divides the $n$-th harmonic by its frequency, which adds one more factor of $n$. The [appendix](#appendix-split-each-harmonic-at-the-jumps) derives both rates.
 
-**The harmonics never stop, so some always fold.** Computing the waveform sample by sample is the same as sampling the ideal waveform, so every harmonic above $F_s/2$ folds back as an alias. For a sawtooth at 1 kHz, the 25th harmonic, at 25 kHz, is the first past the 24 kHz Nyquist frequency, and it lands at 23 kHz only 28 dB below the fundamental, because $1/25\mathrm{}$ is −28 dB. The harmonics near 48 kHz are still only about 34 dB down, and they fold to just above 0 Hz, where the ear is far more sensitive than near 24 kHz. The aliases don't fall on multiples of $f_0$, so they sound like inharmonic tones, and they move the wrong way when the pitch moves. The same 25th harmonic of a 1 kHz triangle is 56 dB down, since $1/25^2\mathrm{}$ is −56 dB.
+**The harmonics never stop, so some always fold.** Computing the waveform sample by sample is the same as sampling the ideal waveform, so every harmonic above $F_s/2$, half the sample rate $F_s$, folds back as an alias. For a sawtooth at 1 kHz, the 25th harmonic, at 25 kHz, is the first past the 24 kHz Nyquist frequency, and it lands at 23 kHz only 28 dB below the fundamental, because $1/25\mathrm{}$ is −28 dB. The harmonics near 48 kHz are still only about 34 dB down, and they fold to just above 0 Hz, where the ear is far more sensitive than near 24 kHz. The aliases don't fall on multiples of $f_0$, so they sound like inharmonic tones, and they move the wrong way when the pitch moves. The same 25th harmonic of a 1 kHz triangle is 56 dB down, since $1/25^2\mathrm{}$ is −56 dB.
 
 ## Rule Out Filtering Afterwards and Oversampling
 
@@ -41,7 +39,7 @@ $$
 
 The factor $F_s$ in the argument puts the sinc's zeros at every nonzero multiple of $1/F_s$, the sampling interval, and the factor in front makes it sum to 1. Work out what $h$ does to the sawtooth.
 
-**Convolve each piece of the sawtooth with $h$.** The sawtooth rises with slope $2f_0$ and drops by 2 at each wrap, once per cycle. So it's a line minus a step of 2 at each wrap time $t_k=k/f_0$:
+**Convolve each piece of the sawtooth with $h$.** A sawtooth at frequency $f_0$ rises with slope $2f_0$ and drops by 2 at each wrap, once per cycle. So it's a line minus a step of 2 at each wrap time $t_k=k/f_0$:
 
 $$
 \text{sawtooth}(t)=\ell(t)-2\sum_k u(t-t_k),\qquad \ell(t)=2f_0t-1.
@@ -138,7 +136,7 @@ So the aliasing that remains sits near the top of the band, where the ear is lea
 
 ## Correct the Two Samples Next to Each Jump
 
-**Only the two samples next to a jump change.** The residual is zero beyond one sampling interval from the jump, so only the last sample before it and the first sample after it need correcting. The residual needs their distance from the jump as $x=F_s(t-t_k)$, and the phase gives it. A sample with phase $\varphi$ is $\varphi/f_0$ seconds after the wrap, so
+**Only the two samples next to a jump change.** The residual is zero beyond one sampling interval from the jump, so only the last sample before it and the first sample after it need correcting. The residual needs their distance from the jump as $x=F_s(t-t_k)$, and the phase gives it. The oscillator tracks its place in the cycle as a **phase** $\varphi$ from 0 to 1, which advances by $\Delta=f_0/F_s$ per sample. A sample with phase $\varphi$ is $\varphi/f_0$ seconds after the wrap, so
 
 $$
 x=\frac{F_s\varphi}{f_0}=\frac{\varphi}{\Delta},
@@ -178,7 +176,7 @@ The triangle's corners can be corrected the same way. A corner is a change of sl
 
 This appendix makes two claims from the main text exact: that a sawtooth's high harmonics come entirely from its jump, and that the sharpest feature of a shape sets how fast its harmonics fall.
 
-**Setup.** Let $x(\varphi)$ have period 1 and be smooth except at the phases $\varphi_1,\dots,\varphi_m$ in each cycle, where it may jump by $J_k=x(\varphi_k^+)-x(\varphi_k^-)$. Its $n$-th Fourier coefficient is
+**Setup.** Let $x(\varphi)$ be a waveform over its phase $\varphi$, with period 1, smooth except at the phases $\varphi_1,\dots,\varphi_m$ in each cycle, where it may jump by $J_k=x(\varphi_k^+)-x(\varphi_k^-)$. Its $n$-th Fourier coefficient is
 
 $$
 c_n=\int_0^1 x(\varphi)\,e^{-2\pi in\varphi}\,d\varphi,
