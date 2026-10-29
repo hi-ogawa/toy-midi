@@ -35,10 +35,10 @@ The oscillator reads each waveform at its phase. Written as sums of sines, the w
 
 The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. That low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above. Call that kernel $h$ and work out what it does to the sawtooth.
 
-**Convolve each piece of the sawtooth with $h$.** With $t$ in samples, the sawtooth rises by $2\Delta$ per sample and jumps by $J=-2$ at each wrap, once every $1/\Delta$ samples. So it's a line plus a step of $J$ at each wrap time $t_k=k/\Delta$:
+**Convolve each piece of the sawtooth with $h$.** With $t$ in samples, the sawtooth rises by $2\Delta$ per sample and drops by 2 at each wrap, once every $1/\Delta$ samples. So it's a line minus a step of 2 at each wrap time $t_k=k/\Delta$:
 
 $$
-\text{sawtooth}(t)=\ell(t)+J\sum_k u(t-t_k),\qquad \ell(t)=2\Delta t-1.
+\text{sawtooth}(t)=\ell(t)-2\sum_k u(t-t_k),\qquad \ell(t)=2\Delta t-1.
 $$
 
 The line $\ell$ is the sawtooth without its wraps, and $u$ is the unit step:
@@ -64,10 +64,10 @@ $$
 
 ![The unit step jumps from 0 to 1 at the jump. The band-limited step rises smoothly through it, passing 0.5 at the jump, and ripples on both sides. Their difference is ±0.5 right at the jump and ripples away over several samples on either side](images/band-limited-blep.svg)
 
-Convolving is linear, so each piece goes through on its own, and every step $u$ becomes $S_h$. Write the band-limited step as the naive step plus a **residual**, $S_h=u+r_h$, and the naive steps add back up to the sawtooth:
+Convolving is linear, so each piece goes through on its own, and every step $u$ becomes $S_h$. Write the band-limited step as the naive step plus a **residual**, $S_h=u+r_h$, and the line with the naive steps gives back the sawtooth:
 
 $$
-h*\text{sawtooth}=\ell(t)+J\sum_k S_h(t-t_k)=\text{sawtooth}(t)+J\sum_k r_h(t-t_k).
+h*\text{sawtooth}=\ell(t)-2\sum_k S_h(t-t_k)=\ell(t)-2\sum_k (u+r_h)(t-t_k)=\text{sawtooth}(t)-2\sum_k r_h(t-t_k).
 $$
 
 **The step becomes a BLEP.** The sinc's running integral $S_h$ rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**, and its residual is large next to the jump and dies away on either side.
