@@ -52,10 +52,12 @@ export function InstrumentCombobox({
 
   function renderItem(preset: MidiPreset) {
     const label = formatPresetLabel(preset);
-    const selected =
-      value.soundfont === preset.soundfont &&
-      (value.bank ?? 0) === (preset.bank ?? 0) &&
-      value.program === preset.program;
+    const selected = preset.synth
+      ? Boolean(value.synth)
+      : !value.synth &&
+        value.soundfont === preset.soundfont &&
+        (value.bank ?? 0) === (preset.bank ?? 0) &&
+        value.program === preset.program;
     return (
       <CommandItem
         key={label}
@@ -118,6 +120,15 @@ export function InstrumentCombobox({
                 )}
               </CommandGroup>
             ))}
+            <CommandGroup heading="Toy MIDI Original">
+              {/* Keep the SoundFont preset as the General MIDI stand-in for .mid export. */}
+              {renderItem({
+                soundfont: value.soundfont,
+                bank: value.bank,
+                program: value.program,
+                synth: {},
+              })}
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
@@ -125,7 +136,15 @@ export function InstrumentCombobox({
   );
 }
 
-function formatPresetLabel({ soundfont, bank, program }: MidiPreset): string {
+function formatPresetLabel({
+  soundfont,
+  bank,
+  program,
+  synth,
+}: MidiPreset): string {
+  if (synth) {
+    return "Subtractive Synth";
+  }
   if (soundfont) {
     const { name, presets } = findSoundfont(soundfont);
     const preset = presets.find((preset) => preset.program === program);
