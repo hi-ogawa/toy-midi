@@ -31,13 +31,13 @@ The oscillator reads each waveform at its phase. Written as sums of sines, the w
 
 ## Low-Pass the Ideal Waveform with the Sinc
 
-The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. With time $t$ in seconds, that low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above:
+The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. It [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with a kernel $h$ whose spectrum is 1 below $F_s/2$ and 0 above, so with time $t$ in seconds, $h$ is every tone below $F_s/2$ at equal strength:
 
 $$
-h(t)=F_s\cdot\text{sinc}(F_st),\qquad \text{sinc}(x)=\frac{\sin\pi x}{\pi x}.
+h(t)=\int_{-F_s/2}^{F_s/2}e^{2\pi ift}df=\frac{\sin\pi F_st}{\pi t}=F_s\cdot\text{sinc}(F_st),\qquad \text{sinc}(x)=\frac{\sin\pi x}{\pi x}.
 $$
 
-The factor $F_s$ in the argument puts the sinc's zeros at every nonzero multiple of $1/F_s$, the sampling interval, and the factor in front makes it sum to 1. Work out what $h$ does to the sawtooth.
+The factor $F_s$ in the argument puts the sinc's zeros at every nonzero multiple of $1/F_s$, the sampling interval. The one in front comes from the width of the band. Work out what $h$ does to the sawtooth.
 
 **Convolve each piece of the sawtooth with $h$.** A sawtooth at frequency $f_0$ rises with slope $2f_0$ and drops by 2 at each wrap, once per cycle. So it's a line minus a step of 2 at each wrap time $t_k=k/f_0$:
 
@@ -84,7 +84,7 @@ The sinc never ends, so neither does its residual, and a real oscillator needs a
 
 ## Low-Pass the Ideal Waveform with a Short Triangle
 
-PolyBLEP instead swaps the sinc for a triangle with the same main lobe, the bump of [linear interpolation](oversampling.md#upsample-by-interpolating):
+PolyBLEP instead swaps the sinc for a triangle with the same main lobe:
 
 $$
 b(t)=F_s\cdot(1-|F_st|)\quad\text{for}\quad|F_st|\lt1.
