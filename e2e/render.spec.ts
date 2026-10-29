@@ -35,6 +35,30 @@ test("renders MIDI automation", async ({ page }) => {
   expect(measureRmsDb(mix, { start: 1, end: 2 })).toBeGreaterThan(-60);
 });
 
+test("renders a track's own synth", async ({ page }) => {
+  // Render a held piano program on the synth.
+  const mix = await renderProject(page, {
+    title: "Synth",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    midiTracks: [
+      {
+        name: "Synth",
+        program: 0,
+        notes: [{ pitch: 69, start: 0, duration: 4, velocity: 100 }],
+        synth: {},
+      },
+    ],
+  });
+
+  // Check the note holds its level, as a sine does and a SoundFont piano
+  // doesn't.
+  expect(
+    measureRmsDb(mix, { start: 0.1, end: 0.5 }) -
+      measureRmsDb(mix, { start: 1.5, end: 1.9 }),
+  ).toBeCloseTo(0);
+});
+
 test("renders a track's amp", async ({ page }) => {
   // Render one guitar note with and without the amp.
   const createProject = (amp?: AmpParameters): SharedProject => ({
