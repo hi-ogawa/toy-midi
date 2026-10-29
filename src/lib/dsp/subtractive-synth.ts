@@ -30,7 +30,6 @@ interface Voice {
   targetGain: number;
 }
 
-/** Toy MIDI's own polyphonic synth. It ignores controllers for now. */
 export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
   private waveform = DEFAULT_SYNTH_PATCH.waveform;
