@@ -62,15 +62,15 @@ $$
 (h*u)(t)=\int h(s)\cdot u(t-s)ds=\int_{-\infty}^{t}h(s)ds=S_h(t).
 $$
 
+![The unit step jumps from 0 to 1 at the jump. The band-limited step rises smoothly through it, passing 0.5 at the jump, and ripples on both sides. Their difference is ±0.5 right at the jump and ripples away over several samples on either side](images/band-limited-blep.svg)
+
 So the low-passed sawtooth is the ideal one with every step $u$ replaced by $S_h$, which is the ideal sawtooth plus the **residual** $r_h=S_h-u$ at each jump, scaled by the jump:
 
 $$
 h*\text{sawtooth}=\text{sawtooth}-2\sum_k r_h(t-t_k).
 $$
 
-**The step becomes a BLEP.** The sinc's running integral $S_h$ rises smoothly through the jump instead of all at once and ripples on both sides of it, as the blue curve in the figure below shows. This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**, and its residual is large next to the jump and dies away on either side.
-
-![The naive step jumps from −1 to 1 at the jump. The band-limited step rises smoothly through it and ripples on both sides, and the PolyBLEP step rises smoothly over one sample on each side with no ripple. Their differences from the naive step are largest next to the jump, where the PolyBLEP difference matches the band-limited one closely, and the band-limited difference ripples on for several samples](images/band-limited-steps.svg)
+**The step becomes a BLEP.** The sinc's running integral $S_h$ rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**, and its residual is large next to the jump and dies away on either side.
 
 **Only the jumps need correcting.** The line passes through untouched, so all of the high harmonics, and with them all the aliasing, come from the jumps, which the [appendix](#appendix-split-each-harmonic-at-the-jumps) shows exactly. And the samples of the ideal sawtooth are the naive samples, so the oscillator only has to add the residual near each jump. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after. The square is made of steps alone, so the same holds for it.
 
@@ -93,6 +93,8 @@ S_b(t)=\begin{cases}
 $$
 
 and $r$ is 0 farther than one sample from the jump. The residual is two quadratic pieces, which is where PolyBLEP, a **poly**nomial BLEP, gets its name.
+
+![The PolyBLEP step rises over one sample on each side of the jump with no ripple, and next to the jump it follows the band-limited step closely. Its residual matches the band-limited one there and is exactly 0 beyond one sample, where the band-limited residual keeps rippling](images/band-limited-steps.svg)
 
 **In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum, and the triangle's is $\text{sinc}^2(f/F_s)$, as [oversampling](oversampling.md#upsample-by-interpolating) shows. So every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled, and two consequences follow:
 
