@@ -46,7 +46,7 @@ test("renders a track's own synth", async ({ page }) => {
         name: "Synth",
         program: 0,
         notes: [{ pitch: 69, start: 0, duration: 4, velocity: 100 }],
-        synth: {},
+        synth: { waveform: "sine" },
       },
     ],
   });

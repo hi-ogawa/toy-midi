@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
-import { SubtractiveSynth } from "./subtractive-synth";
+import {
+  PEAK_GAIN,
+  SubtractiveSynth,
+  type Waveform,
+  WAVEFORMS,
+} from "./subtractive-synth";
 
 // 10 ms, which covers a note's attack or release ramp.
 const RAMP_FRAMES = 480;
@@ -15,7 +21,11 @@ describe(SubtractiveSynth, () => {
     synth.render(buffers[0], buffers[1], 4800, 4800);
 
     // Past the attack ramp, the note matches a 440 Hz sine sample for sample.
-    const sine = createSine({ frequency: 440, amplitude: 0.2, length: 4800 });
+    const sine = createSine({
+      frequency: 440,
+      amplitude: PEAK_GAIN,
+      length: 4800,
+    });
     for (let i = RAMP_FRAMES; i < 4800; i++) {
       expect(buffers[0][i]).toBeCloseTo(sine[i], 5);
     }
@@ -52,6 +62,51 @@ describe(SubtractiveSynth, () => {
     }
   });
 
+  it("plays each waveform at the note's pitch", () => {
+    // Levels are RMS in dBFS past the attack, and pitches count rising zero
+    // crossings per second. Skipping 0.1 s leaves 0.9 s, a whole number of
+    // cycles at 440 Hz, so the count is exact. At the full-velocity peak, a
+    // sine's RMS is the peak over √2, a triangle's and sawtooth's the peak over
+    // √3, and a square's the peak itself. The sawtooth and square sit about
+    // 0.1 dB lower because PolyBLEP rounds their jumps.
+    const describeWaveform = (waveform: Waveform) => {
+      const samples = renderNote({ waveform, pitch: 69, length: SAMPLE_RATE });
+      const steady = samples.subarray(SAMPLE_RATE * 0.1);
+      let crossings = 0;
+      for (let i = 1; i < steady.length; i++) {
+        if (steady[i - 1] < 0 && steady[i] >= 0) {
+          crossings++;
+        }
+      }
+      const level = gainToDb(measureRms(steady)).toFixed(1);
+      const frequency = Math.round(crossings / (steady.length / SAMPLE_RATE));
+      return `${waveform}: ${level} dB, ${frequency} Hz`;
+    };
+    expect(WAVEFORMS.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
+      "sine: -17.0 dB, 440 Hz
+      triangle: -18.8 dB, 440 Hz
+      sawtooth: -18.9 dB, 440 Hz
+      square: -14.1 dB, 440 Hz"
+    `);
+  });
+
+  it("changes the waveform of a sounding note", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const buffers = createBuffers(9600);
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 4800);
+    synth.setPatch({ waveform: "square" });
+    synth.render(buffers[0], buffers[1], 4800, 4800);
+    expect(measureRms(buffers[0].subarray(RAMP_FRAMES, 4800))).toBeCloseTo(
+      PEAK_GAIN / Math.SQRT2,
+      3,
+    );
+    expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBeCloseTo(
+      PEAK_GAIN,
+      2,
+    );
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
@@ -63,6 +118,23 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(buffers[0].subarray(2400 + RAMP_FRAMES))).toBe(0);
   });
 });
+
+function renderNote({
+  waveform,
+  pitch,
+  length,
+}: {
+  waveform: Waveform;
+  pitch: number;
+  length: number;
+}): Float32Array {
+  const synth = new SubtractiveSynth(SAMPLE_RATE);
+  synth.setPatch({ waveform });
+  const buffers = createBuffers(length);
+  synth.noteOn(pitch, 127);
+  synth.render(buffers[0], buffers[1], 0, length);
+  return buffers[0];
+}
 
 function createBuffers(length: number): [Float32Array, Float32Array] {
   return [new Float32Array(length), new Float32Array(length)];

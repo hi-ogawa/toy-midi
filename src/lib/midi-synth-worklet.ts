@@ -110,13 +110,19 @@ export class MidiSynth {
 
   async setPreset({ synth, ...preset }: SynthPreset): Promise<void> {
     this.soundfontSynth!.setPreset(preset);
-    const engine = synth
-      ? (this.subtractiveSynth ??= new SubtractiveSynth(sampleRate))
-      : this.soundfontSynth!;
+    let engine: SynthEngine = this.soundfontSynth!;
+    if (synth) {
+      this.subtractiveSynth ??= new SubtractiveSynth(sampleRate);
+      this.subtractiveSynth.setPatch(synth);
+      engine = this.subtractiveSynth;
+    }
     if (engine !== this.engine) {
       this.engine!.stopAll();
       this.engine = engine;
     }
+    // TODO: Skip the chase when only the synth's patch changes, since the
+    // engine keeps its controller state. It matters once the synth honors
+    // controllers.
     this.scheduler.requestChase();
   }
 

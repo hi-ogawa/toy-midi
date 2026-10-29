@@ -1,36 +1,46 @@
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { midiToHz } from "../music.ts";
 
-/**
- * Patch for Toy MIDI's own synth. The synth has no parameters yet, so a
- * patch only selects the synth.
- */
-export type SynthPatch = Record<string, never>;
+export const WAVEFORMS = ["sine", "triangle", "sawtooth", "square"] as const;
+export type Waveform = (typeof WAVEFORMS)[number];
+
+/** Patch for Toy MIDI's own synth */
+export interface SynthPatch {
+  /** Oscillator shape */
+  waveform: Waveform;
+}
+
+export const DEFAULT_SYNTH_PATCH: SynthPatch = { waveform: "sine" };
 
 // Short enough to sound immediate, long enough to keep note edges from clicking.
 const RAMP_SECONDS = 0.005;
 // Leaves headroom for chords at full velocity.
-const PEAK_GAIN = 0.2;
+export const PEAK_GAIN = 0.2;
 
 interface Voice {
   pitch: number;
   /** Cycles per sample */
   phaseIncrement: number;
+  /**
+   * Cycles in [0, 1). Advancing by the increment instead of tracking time
+   * keeps the waveform continuous when the frequency changes.
+   */
   phase: number;
   gain: number;
   targetGain: number;
 }
 
-/**
- * Toy MIDI's own polyphonic synth. It plays each note as a sine for now and
- * ignores controllers.
- */
 export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
+  private waveform = DEFAULT_SYNTH_PATCH.waveform;
   private readonly gainStep: number;
 
   constructor(private readonly sampleRate: number) {
     this.gainStep = PEAK_GAIN / (RAMP_SECONDS * sampleRate);
+  }
+
+  setPatch(patch: SynthPatch): void {
+    this.waveform = patch.waveform;
   }
 
   noteOn(pitch: number, velocity: number): void {
@@ -63,6 +73,7 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
+    const oscillate = OSCILLATORS[this.waveform];
     for (const voice of this.voices) {
       for (let i = offset; i < offset + length; i++) {
         const step = Math.min(
@@ -70,7 +81,8 @@ export class SubtractiveSynth implements SynthEngine {
           Math.abs(voice.targetGain - voice.gain),
         );
         voice.gain += voice.targetGain > voice.gain ? step : -step;
-        const sample = voice.gain * Math.sin(2 * Math.PI * voice.phase);
+        const sample =
+          voice.gain * oscillate(voice.phase, voice.phaseIncrement);
         left[i] += sample;
         right[i] += sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
@@ -86,4 +98,40 @@ export class SubtractiveSynth implements SynthEngine {
       voice.targetGain = 0;
     }
   }
+}
+
+/** Each takes the phase and the phase increment in cycles, with a peak of 1. */
+const OSCILLATORS: Record<
+  Waveform,
+  (phase: number, increment: number) => number
+> = {
+  sine: (phase) => Math.sin(2 * Math.PI * phase),
+  // Starts at 0 and rises, in phase with the sine. It has no jumps to correct,
+  // but from about 1 kHz its corners alias more than a corrected sawtooth.
+  // TODO: Round the corners with a BLAMP correction.
+  triangle: (phase) => 4 * Math.abs(((phase + 0.75) % 1) - 0.5) - 1,
+  sawtooth: (phase, increment) =>
+    2 * phase - 1 - 2 * computePolyBlep(phase, increment),
+  square: (phase, increment) =>
+    (phase < 0.5 ? 1 : -1) +
+    2 * computePolyBlep(phase, increment) -
+    2 * computePolyBlep((phase + 0.5) % 1, increment),
+};
+
+/**
+ * PolyBLEP residual for a unit step at phase 0, which rounds the jump over
+ * the samples next to it so a sawtooth or square doesn't alias audibly.
+ * Scale it by the size of the jump.
+ * See [Band-limited oscillators](../../../docs/concepts/band-limited-oscillators.md).
+ */
+function computePolyBlep(phase: number, increment: number): number {
+  if (phase < increment) {
+    const t = phase / increment;
+    return -((1 - t) ** 2) / 2;
+  }
+  if (phase > 1 - increment) {
+    const t = (phase - 1) / increment;
+    return (1 + t) ** 2 / 2;
+  }
+  return 0;
 }
