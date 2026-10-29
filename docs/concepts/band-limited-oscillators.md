@@ -70,9 +70,9 @@ $$
 h*\text{sawtooth}=\ell(t)-2\sum_k S_h(t-t_k)=\ell(t)-2\sum_k (u+r_h)(t-t_k)=\text{sawtooth}(t)-2\sum_k r_h(t-t_k).
 $$
 
-**The literature calls $S_h$ a BLEP.** $S_h=h*u$ is the band-limited version of the unit step, in the sense of the introduction, so it's named **BLEP**, from **B**and-**L**imited st**EP**. It rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. Its residual $r_h$ is large next to the jump and dies away on either side.
+The square is a flat line plus steps, so its band-limited version has the same form.
 
-**The oscillator only adds the residual near each jump.** The ideal sawtooth's samples are the naive ones, so the band-limited samples are the naive samples plus $-2r_h$ at each jump. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after. The square is made of steps alone, so the same holds for it.
+**The literature calls $S_h$ a BLEP.** $S_h=h*u$ is the band-limited version of the unit step, in the sense of the introduction, so it's named **BLEP**, from **B**and-**L**imited st**EP**. It rises smoothly through the jump instead of all at once and ripples on both sides of it, as the figure above shows. Its residual $r_h$ is large next to the jump and dies away on either side.
 
 The sinc never ends, so neither does its residual, and a real oscillator needs an approximation. Tabulating a shortened residual is one way. It's accurate, but it needs a table and spreads each correction over many samples.
 
