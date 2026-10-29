@@ -35,18 +35,24 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1\mat
 
 The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. That low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above. Work out what any such kernel $h$ does to the sawtooth, as long as it's symmetric and sums to 1, as the sinc does.
 
-**Convolve each piece of the sawtooth with $h$.** With $t$ in samples, the ideal sawtooth is a line rising by $2\Delta$ per sample, with a unit step $u$ scaled by −2 at every wrap time $t_k$:
+**Convolve each piece of the sawtooth with $h$.** With $t$ in samples and the phase at 0 when $t=0$, the phase is $\Delta t$ less its whole cycles, so the sawtooth $2\varphi-1$ splits into a line and a staircase:
 
 $$
-\text{sawtooth}(t)=\ell(t)-2\sum_k u(t-t_k),\qquad \ell(t)=\ell(0)+2\Delta t,\qquad u(t)=\begin{cases}
+\varphi=\Delta t-\lfloor\Delta t\rfloor,\qquad \text{sawtooth}(t)=\ell(t)-2\lfloor\Delta t\rfloor,\qquad \ell(t)=2\Delta t-1.
+$$
+
+The line $\ell$ is the sawtooth of a phase that never wraps. The floor counts the wraps, so it rises by the unit step $u$ at each wrap time $t_k=k/\Delta$:
+
+$$
+u(t)=\begin{cases}
 0 & t\lt0,\\
 1 & t\ge0.
 \end{cases}
 $$
 
-![The sawtooth follows the line ℓ for its first cycle, then falls 2 below it at each wrap, so the gap grows to 2, then 4. The steps below drop by 2 at each wrap time, and adding them to the line gives the sawtooth](images/band-limited-line-and-steps.svg)
+![The sawtooth follows the line ℓ for its first cycle, then falls 2 below it at each wrap, so the gap grows to 2, then 4. The staircase below drops by 2 at each wrap time, and adding it to the line gives the sawtooth](images/band-limited-line-and-steps.svg)
 
-The line uses both properties of $h$: it sums to 1, and being symmetric, it weighs $s$ and $-s$ equally, so $\int s\cdot h(s)ds=0$. The step keeps only the part of $h$ before $t$, its running integral $S_h$:
+The line uses both properties of $h$, since $\ell(t-s)=\ell(t)-2\Delta s$: $h$ sums to 1, and being symmetric, it weighs $s$ and $-s$ equally, so $\int s\cdot h(s)ds=0$. The step keeps only the part of $h$ before $t$, its running integral $S_h$:
 
 $$
 (h*\ell)(t)=\int h(s)\cdot\ell(t-s)ds=\ell(t)\int h(s)ds-2\Delta\int s\cdot h(s)ds=\ell(t),
