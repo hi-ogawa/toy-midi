@@ -102,10 +102,19 @@ $$
 H(f)=2\int_0^1(1-s)\cos(as)ds=2\Big[\frac{(1-s)\sin as}{a}\Big]_0^1+\frac{2}{a}\int_0^1\sin(as)ds=\frac{2(1-\cos a)}{a^2}=\Big(\frac{\sin\pi f}{\pi f}\Big)^2=\text{sinc}^2(f).
 $$
 
-The bracket is 0 at both ends, and the last step uses $1-\cos a=2\sin^2(a/2)$. With $f$ back in Hz, every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled, and two consequences follow:
+The bracket is 0 at both ends, and the last step uses $1-\cos a=2\sin^2(a/2)$. With $f$ back in Hz, every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled. At 48 kHz, that gain is:
 
-- **Aliases that would land at low frequencies nearly vanish.** The triangle's spectrum is zero at every multiple of $F_s$, so the harmonics near 48 kHz and 96 kHz, which would fold to just above 0 Hz, are cut deeply before they fold. Below 5 kHz, the correction lowers the loudest alias by about 40 dB.
-- **Aliases close to 24 kHz and the top harmonics are cut only a little.** The spectrum is about 0.4 at $F_s/2$, which is −7.8 dB, so harmonics just past 24 kHz fold back to just below it only about 8 dB quieter. The same factor dulls the waveform's own top, by 1.2 dB at 10 kHz and 5.3 dB at 20 kHz, which the spectrum of the corrected sawtooth shows as harmonics falling below their ideal $1/n\mathrm{}$ level.
+| Frequency | $f/F_s$ | Gain  | dB   | Where it ends up            |
+| --------- | ------- | ----- | ---- | --------------------------- |
+| 10 kHz    | 0.21    | 0.87  | −1.3 | a harmonic, slightly dulled |
+| 20 kHz    | 0.42    | 0.55  | −5.3 | a harmonic, dulled          |
+| 25 kHz    | 0.52    | 0.37  | −8.6 | folds to 23 kHz             |
+| 43 kHz    | 0.90    | 0.013 | −38  | folds to 5 kHz              |
+| 46 kHz    | 0.96    | 0.002 | −55  | folds to 2 kHz              |
+| 48 kHz    | 1       | 0     |      | folds to 0 Hz               |
+
+- **Aliases that land low nearly vanish.** The gain falls to 0 at $F_s$, so harmonics that would fold below 5 kHz are cut by 38 dB or more before they fold, close to the 40 dB the measurement shows.
+- **Aliases near 24 kHz and the top harmonics are cut only a little.** Just past $F_s/2$, the gain is still about −8 dB. The same factor dulls the waveform's own harmonics, so the spectrum of the corrected sawtooth falls below its ideal $1/n\mathrm{}$ level near the top.
 
 ![The naive 1 kHz sawtooth has aliases everywhere between its harmonics, from 30 to 50 dB below the fundamental. After the correction, the aliases below a few kHz are 70 dB or more down and grow toward 24 kHz, while the harmonics fall below their ideal level near the top](images/band-limited-spectrum.svg)
 
