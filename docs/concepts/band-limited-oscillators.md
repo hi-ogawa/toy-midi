@@ -102,7 +102,7 @@ $$
 \int_{-1/2}^{1/2}e^{-2\pi ifs}ds=\frac{\sin\pi f}{\pi f}=\text{sinc}(f),
 $$
 
-and the triangle is that box convolved with itself, so a tone passes through the box twice, and the triangle's spectrum is $\text{sinc}^2(f)$. So every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled, and two consequences follow:
+and the triangle is that box convolved with itself, so a tone passes through the box twice, and the triangle's spectrum is $\text{sinc}^2(f)$. With $f$ back in Hz, every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled, and two consequences follow:
 
 - **Aliases that would land at low frequencies nearly vanish.** The triangle's spectrum is zero at every multiple of $F_s$, so the harmonics near 48 kHz and 96 kHz, which would fold to just above 0 Hz, are cut deeply before they fold. Below 5 kHz, the correction lowers the loudest alias by about 40 dB.
 - **Aliases close to 24 kHz and the top harmonics are cut only a little.** The spectrum is about 0.4 at $F_s/2$, which is −7.8 dB, so harmonics just past 24 kHz fold back to just below it only about 8 dB quieter. The same factor dulls the waveform's own top, by 1.2 dB at 10 kHz and 5.3 dB at 20 kHz, which the spectrum of the corrected sawtooth shows as harmonics falling below their ideal $1/n\mathrm{}$ level.
