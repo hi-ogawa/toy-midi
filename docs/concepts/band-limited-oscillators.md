@@ -31,13 +31,13 @@ The oscillator reads each waveform at its phase. Written as sums of sines, the w
 
 ## Low-Pass the Ideal Waveform with the Sinc
 
-The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. With time $t$ in seconds, that low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc kernel
+The band-limited version of a waveform keeps its harmonics below $F_s/2$ and removes the rest. With time $t$ in seconds, that is [convolving](fourier-series.md#filter-by-convolving-with-a-kernel) it with the sinc kernel
 
 $$
 h(t)=F_s\cdot\text{sinc}(F_st),\qquad \text{sinc}(x)=\frac{\sin\pi x}{\pi x},
 $$
 
-whose zeros fall at every nonzero multiple of $1/F_s$, the sampling interval. The [appendix](#appendix-find-the-perfect-low-pass-kernel) shows where it comes from and checks that its spectrum is 1 below $F_s/2$ and 0 above. Work out what $h$ does to the sawtooth.
+whose zeros fall at every nonzero multiple of $1/F_s$, the sampling interval. The [appendix](#appendix-find-the-perfect-low-pass-kernel) derives this kernel and checks that its spectrum is 1 below $F_s/2$ and 0 above.
 
 **Convolve each piece of the sawtooth with $h$.** A sawtooth at frequency $f_0$ rises with slope $2f_0$ and drops by 2 at each wrap, once per cycle. So it's a line minus a step of 2 at each wrap time $t_k=k/f_0$:
 
