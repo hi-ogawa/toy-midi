@@ -33,7 +33,7 @@ The oscillator reads each waveform at its phase. The sawtooth is $2\varphi-1\mat
 
 ## Replace Each Jump with a Band-Limited Step
 
-The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. That low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above. Work out what any such kernel $h$ does to the sawtooth, as long as it's symmetric and sums to 1, as the sinc does.
+The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. That low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc from [Upsample by Interpolating](oversampling.md#upsample-by-interpolating), whose spectrum is 1 up to $F_s/2$ and 0 above. Call that kernel $h$ and work out what it does to the sawtooth.
 
 **Convolve each piece of the sawtooth with $h$.** With $t$ in samples and the phase at 0 when $t=0$, the phase is $\Delta t$ less its whole cycles, so the sawtooth $2\varphi-1$ splits into a line and a staircase:
 
@@ -52,7 +52,7 @@ $$
 
 ![The sawtooth follows the line ℓ for its first cycle, then falls 2 below it at each wrap, so the gap grows to 2, then 4. The staircase below drops by 2 at each wrap time, and adding it to the line gives the sawtooth](images/band-limited-line-and-steps.svg)
 
-The line uses both properties of $h$, since $\ell(t-s)=\ell(t)-2\Delta s$: $h$ sums to 1, and being symmetric, it weighs $s$ and $-s$ equally, so $\int s\cdot h(s)ds=0$. The step keeps only the part of $h$ before $t$, its running integral $S_h$:
+Since $\ell(t-s)=\ell(t)-2\Delta s$, the line comes through on two properties of the sinc. It sums to 1, because its spectrum is 1 at 0 Hz, and it's even, so it weighs $s$ and $-s$ equally and $\int s\cdot h(s)ds=0$. The step keeps only the part of $h$ before $t$, its running integral $S_h$:
 
 $$
 (h*\ell)(t)=\int h(s)\cdot\ell(t-s)ds=\ell(t)\int h(s)ds-2\Delta\int s\cdot h(s)ds=\ell(t),
@@ -70,7 +70,7 @@ $$
 
 Two things follow. The line passes through untouched, so all of the high harmonics, and with them all the aliasing, come from the jumps, which the [appendix](#appendix-split-each-harmonic-at-the-jumps) shows exactly. And the samples of the ideal sawtooth are the naive samples, so the oscillator only has to add the residual near each jump. The oscillator knows a jump is coming, because the phase says when it will wrap, so it can correct the samples before the jump as well as after. The square is made of steps alone, so the same holds for it.
 
-**With the sinc, the step becomes a BLEP.** For the perfect low-pass, $S_h$ is the integral of the sinc, which rises smoothly through the jump instead of all at once and ripples on both sides of it, as the blue curve in the figure below shows. This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**, and its residual is large next to the jump and dies away on either side.
+**The step becomes a BLEP.** The sinc's running integral $S_h$ rises smoothly through the jump instead of all at once and ripples on both sides of it, as the blue curve in the figure below shows. This band-limited step is called a **BLEP**, from **B**and-**L**imited st**EP**, and its residual is large next to the jump and dies away on either side.
 
 ![The naive step jumps from −1 to 1 at the jump. The band-limited step rises smoothly through it and ripples on both sides, and the PolyBLEP step rises smoothly over one sample on each side with no ripple. Their differences from the naive step are largest next to the jump, where the PolyBLEP difference matches the band-limited one closely, and the band-limited difference ripples on for several samples](images/band-limited-steps.svg)
 
@@ -78,7 +78,7 @@ The sinc never ends, so neither does its residual, and a real oscillator needs a
 
 ## Low-Pass the Ideal Waveform with a Short Triangle
 
-PolyBLEP instead swaps the sinc for the bump of [linear interpolation](oversampling.md#upsample-by-interpolating), the triangle two samples wide, $b(t)=1-|t|$ for $|t|\lt1$. It's a much cruder low-pass than the sinc, but it reaches only one sample on each side. It's symmetric and sums to 1, so the derivation above applies with $h=b$, and integrating $b$ gives a step that rises over one sample on each side, with a residual of two pieces:
+PolyBLEP instead swaps the sinc for the bump of [linear interpolation](oversampling.md#upsample-by-interpolating), the triangle two samples wide, $b(t)=1-|t|$ for $|t|\lt1$. It's a much cruder low-pass than the sinc, but it reaches only one sample on each side. It's even and sums to 1, the two properties the line needed, so the derivation above applies with $h=b$, and integrating $b$ gives a step that rises over one sample on each side, with a residual of two pieces:
 
 $$
 S_b(t)=\begin{cases}
