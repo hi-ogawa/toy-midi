@@ -111,11 +111,11 @@ const OSCILLATORS: Record<
   // TODO: Round the corners with a BLAMP correction.
   triangle: (phase) => 4 * Math.abs(((phase + 0.75) % 1) - 0.5) - 1,
   sawtooth: (phase, increment) =>
-    2 * phase - 1 - 2 * correctStep(phase, increment),
+    2 * phase - 1 - 2 * computePolyBlep(phase, increment),
   square: (phase, increment) =>
     (phase < 0.5 ? 1 : -1) +
-    2 * correctStep(phase, increment) -
-    2 * correctStep((phase + 0.5) % 1, increment),
+    2 * computePolyBlep(phase, increment) -
+    2 * computePolyBlep((phase + 0.5) % 1, increment),
 };
 
 /**
@@ -124,7 +124,7 @@ const OSCILLATORS: Record<
  * Scale it by the size of the jump.
  * See [Band-limited oscillators](../../../docs/concepts/band-limited-oscillators.md).
  */
-function correctStep(phase: number, increment: number): number {
+function computePolyBlep(phase: number, increment: number): number {
   if (phase < increment) {
     const t = phase / increment;
     return -((1 - t) ** 2) / 2;
