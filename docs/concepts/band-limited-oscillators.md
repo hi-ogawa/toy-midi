@@ -31,13 +31,13 @@ The oscillator reads each waveform at its phase. Written as sums of sines, the w
 
 ## Low-Pass the Ideal Waveform with the Sinc
 
-The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. It [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with a kernel $h$ whose spectrum is 1 below $F_s/2$ and 0 above, so with time $t$ in seconds, $h$ is every tone below $F_s/2$ at equal strength:
+The band-limited version of a waveform is the waveform passed through a perfect low-pass at $F_s/2$. With time $t$ in seconds, that low-pass [convolves](fourier-series.md#filter-by-convolving-with-a-kernel) with the sinc kernel
 
 $$
-h(t)=\int_{-F_s/2}^{F_s/2}e^{2\pi ift}df=\frac{\sin\pi F_st}{\pi t}=F_s\cdot\text{sinc}(F_st),\qquad \text{sinc}(x)=\frac{\sin\pi x}{\pi x}.
+h(t)=F_s\cdot\text{sinc}(F_st),\qquad \text{sinc}(x)=\frac{\sin\pi x}{\pi x},
 $$
 
-The factor $F_s$ in the argument puts the sinc's zeros at every nonzero multiple of $1/F_s$, the sampling interval. The one in front comes from the width of the band. Work out what $h$ does to the sawtooth.
+whose zeros fall at every nonzero multiple of $1/F_s$, the sampling interval. The [appendix](#appendix-find-the-perfect-low-pass-kernel) shows where it comes from and checks that its spectrum is 1 below $F_s/2$ and 0 above. Work out what $h$ does to the sawtooth.
 
 **Convolve each piece of the sawtooth with $h$.** A sawtooth at frequency $f_0$ rises with slope $2f_0$ and drops by 2 at each wrap, once per cycle. So it's a line minus a step of 2 at each wrap time $t_k=k/f_0$:
 
@@ -108,10 +108,10 @@ and $r$ is 0 farther than one sampling interval from the jump. The residual is t
 
 ![The PolyBLEP step rises over one sample on each side of the jump with no ripple, and next to the jump it follows the band-limited step closely. Its residual matches the band-limited one there and is exactly 0 beyond one sample, where the band-limited residual keeps rippling](images/band-limited-steps.svg)
 
-**In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum $H(f)=\int h(s)e^{-2\pi ifs}ds$. For the triangle, substitute $x=F_ss$ again, which cancels the factor $F_s$ and leaves the frequency as $f/F_s$. Write $a=2\pi f/F_s$. The triangle is even, so only the cosine part survives, and one integration by parts gives
+**In frequency, each harmonic is scaled by the triangle's spectrum.** [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum $H(f)=\int h(s)e^{-2\pi ifs}ds$. Substitute $x=F_ss$ and write $a=2\pi f/F_s$. The triangle is even, so only the cosine part survives, and one integration by parts gives
 
 $$
-H(f)=2\int_0^1(1-x)\cos(ax)dx=2\Big[\frac{(1-x)\sin ax}{a}\Big]_0^1+\frac{2}{a}\int_0^1\sin(ax)dx=\frac{2(1-\cos a)}{a^2}=\text{sinc}^2(f/F_s).
+H(f)=\int F_s\cdot(1-|F_ss|)e^{-2\pi ifs}ds=2\int_0^1(1-x)\cos(ax)dx=2\Big[\frac{(1-x)\sin ax}{a}\Big]_0^1+\frac{2}{a}\int_0^1\sin(ax)dx=\frac{2(1-\cos a)}{a^2}=\text{sinc}^2(f/F_s).
 $$
 
 The bracket is 0 at both ends, and the last step uses $1-\cos a=2\sin^2(a/2)$. So every harmonic is scaled by $\text{sinc}^2(f/F_s)$ before the waveform is sampled. At 48 kHz, that gain is:
@@ -171,6 +171,34 @@ The triangle's corners can be corrected the same way. A corner is a change of sl
 - T. Stilson and J. Smith, [Alias-Free Digital Synthesis of Classic Analog Waveforms](https://ccrma.stanford.edu/~stilti/papers/blit.pdf), band-limited impulse trains, where the idea of building a waveform from band-limited discontinuities comes from
 - E. Brandt, [Hard Sync Without Aliasing](https://www.cs.cmu.edu/~eli/papers/icmc01-hardsync.pdf), the BLEP residual as a table, added at each jump
 - V. Välimäki, J. Pekonen, and J. Nam, [Perceptually Informed Synthesis of Bandlimited Classical Waveforms Using Integrated Polynomial Interpolation](https://doi.org/10.1121/1.3651227), the polynomial BLEP and BLAMP corrections and how audible their remaining aliases are
+
+## Appendix: Find the Perfect Low-Pass Kernel
+
+This appendix finds the kernel of the perfect low-pass at $F_s/2$ and checks its spectrum. [Convolving](fourier-series.md#filter-by-convolving-with-a-kernel) scales each tone by the kernel's spectrum $H(f)=\int h(s)e^{-2\pi ifs}ds$, so the perfect low-pass is the kernel whose spectrum is 1 below $F_s/2$ and 0 above.
+
+**Add up every tone the filter passes.** The filter passes each tone below $F_s/2$ at the same strength and nothing above, so the natural guess for its kernel is all of those tones at equal strength:
+
+$$
+h(t)=\int_{-F_s/2}^{F_s/2}e^{2\pi ift}df=\frac{\sin\pi F_st}{\pi t}=F_s\cdot\text{sinc}(F_st).
+$$
+
+The factor $F_s$ in the argument comes from the band's edge at $F_s/2$, and the one in front from its width. Feeding a tone through this sum directly asks how much tone $f$ overlaps tone $g$ over all time, $\int e^{2\pi i(f-g)s}ds$, which doesn't converge. So check the guess the other way, by computing its spectrum.
+
+**Its spectrum is the box.** Substitute $x=F_ss$ and write $\nu=f/F_s$. The sinc is even, so only the cosine survives, and a product-to-sum identity splits it:
+
+$$
+H(f)=\int F_s\cdot\text{sinc}(F_ss)e^{-2\pi ifs}ds=\int\frac{\sin\pi x}{\pi x}\cos(2\pi\nu x)dx=\frac{1}{2}\int\frac{\sin\pi(1+2\nu)x+\sin\pi(1-2\nu)x}{\pi x}dx=\frac{\text{sign}(1+2\nu)+\text{sign}(1-2\nu)}{2}.
+$$
+
+That's 1 below $F_s/2$, where $|\nu|\lt\tfrac12$, and 0 above, so the guess is right. The last step uses the integral below.
+
+**The Dirichlet integral.** Writing $1/x=\int_0^\infty e^{-xu}du$ and swapping the order of integration gives
+
+$$
+\int_0^\infty\frac{\sin x}{x}dx=\int_0^\infty\Big(\int_0^\infty\sin x\cdot e^{-xu}dx\Big)du=\int_0^\infty\frac{du}{1+u^2}=\frac{\pi}{2},
+$$
+
+where the inner integral is $1/(1+u^2)$ by integrating by parts twice. The integrand is even, so the integral over all $x$ is $\pi$, and substituting $ax$ gives $\int\frac{\sin ax}{\pi x}dx=\text{sign}(a)$. The swap needs care, because $\sin x/x$ is not absolutely integrable, and it holds as a limit.
 
 ## Appendix: Split Each Harmonic at the Jumps
 
