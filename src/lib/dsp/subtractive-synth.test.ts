@@ -11,6 +11,9 @@ import {
 
 // 10 ms, which covers a note's attack or release ramp.
 const RAMP_FRAMES = 480;
+// A full-velocity note's peak at the default CC7 volume of 100, about 4 dB
+// below the synth's peak gain
+const PEAK = PEAK_GAIN * (100 / 127) ** 2;
 
 describe(SubtractiveSynth, () => {
   it("plays a note as a sine at its pitch until note-off", () => {
@@ -24,7 +27,7 @@ describe(SubtractiveSynth, () => {
     // Past the attack ramp, the note matches a 440 Hz sine sample for sample.
     const sine = createSine({
       frequency: 440,
-      amplitude: PEAK_GAIN,
+      amplitude: PEAK,
       length: 4800,
     });
     for (let i = RAMP_FRAMES; i < 4800; i++) {
@@ -84,10 +87,10 @@ describe(SubtractiveSynth, () => {
       return `${waveform}: ${level} dB, ${frequency} Hz`;
     };
     expect(WAVEFORMS.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
-      "sine: -17.0 dB, 440 Hz
-      triangle: -18.8 dB, 440 Hz
-      sawtooth: -18.9 dB, 440 Hz
-      square: -14.1 dB, 440 Hz"
+      "sine: -21.1 dB, 440 Hz
+      triangle: -22.9 dB, 440 Hz
+      sawtooth: -23.0 dB, 440 Hz
+      square: -18.2 dB, 440 Hz"
     `);
   });
 
@@ -99,11 +102,11 @@ describe(SubtractiveSynth, () => {
     synth.setPatch(createPatch(["square"]));
     synth.render(buffers[0], buffers[1], 4800, 4800);
     expect(measureRms(buffers[0].subarray(RAMP_FRAMES, 4800))).toBeCloseTo(
-      PEAK_GAIN / Math.SQRT2,
+      PEAK / Math.SQRT2,
       3,
     );
     expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBeCloseTo(
-      PEAK_GAIN,
+      PEAK,
       2,
     );
   });
@@ -115,9 +118,24 @@ describe(SubtractiveSynth, () => {
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
     expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
-      (2 * PEAK_GAIN) / Math.SQRT2,
+      (2 * PEAK) / Math.SQRT2,
       3,
     );
+  });
+
+  it("scales the level with CC7 volume and CC11 expression", () => {
+    const measureLevel = (volume: number, expression: number) => {
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      const buffers = createBuffers(4800);
+      synth.controller(7, volume);
+      synth.controller(11, expression);
+      synth.noteOn(69, 127);
+      synth.render(buffers[0], buffers[1], 0, 4800);
+      return measureRms(buffers[0].subarray(RAMP_FRAMES));
+    };
+    const full = measureLevel(127, 127);
+    expect(measureLevel(64, 127) / full).toBeCloseTo((64 / 127) ** 2, 2);
+    expect(measureLevel(64, 64) / full).toBeCloseTo((64 / 127) ** 4, 2);
   });
 
   it("scales each layer by its gain", () => {
@@ -132,7 +150,7 @@ describe(SubtractiveSynth, () => {
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
     expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
-      (1.5 * PEAK_GAIN) / Math.SQRT2,
+      (1.5 * PEAK) / Math.SQRT2,
       3,
     );
   });
