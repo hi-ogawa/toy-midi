@@ -79,6 +79,8 @@ Run JavaScript against the open toy-midi project, with `toyMidi`, the page's `wi
 
 Its API is declared as `ToyMidiGlobal` in https://toy-midi.hiro18181.workers.dev/llms/toy-midi.d.ts. Read it before writing code.
 
+The guide for agents at https://toy-midi.hiro18181.workers.dev/llms.txt explains how to work with a project.
+
 ## Input schema
 
 {
