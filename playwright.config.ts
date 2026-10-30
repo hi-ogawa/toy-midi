@@ -7,10 +7,12 @@ if (server !== "build" && server !== "dev") {
   throw new Error(`Invalid E2E_SERVER: ${server}. Expected build or dev.`);
 }
 
-// Resolve the port once and share it with Playwright workers.
+// Resolve the port once and share it with Playwright workers. The server binds
+// it only after the build, and Playwright accepts any server that answers on it
+// by then, so concurrent runs from other worktrees must not share a preferred port.
 const port = process.env.E2E_PORT
   ? Number(process.env.E2E_PORT)
-  : await getFreePort(5183);
+  : await getFreePort();
 process.env.E2E_PORT = String(port);
 
 const traceEnabled =
@@ -58,17 +60,11 @@ export default defineConfig({
   ],
 });
 
-function getFreePort(preferred: number): Promise<number> {
+function getFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
-    server.once("error", (error: NodeJS.ErrnoException) => {
-      if (error.code === "EADDRINUSE" && preferred !== 0) {
-        resolve(getFreePort(0));
-      } else {
-        reject(error);
-      }
-    });
-    server.listen(preferred, () => {
+    server.once("error", reject);
+    server.listen(0, () => {
       const port = (server.address() as net.AddressInfo).port;
       server.close((error) => {
         if (error) {
