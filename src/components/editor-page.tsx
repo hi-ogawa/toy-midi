@@ -58,7 +58,13 @@ import { useWindowEvent } from "./use-window-event";
 
 export function EditorPage({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
-  useWebMcpBridge(runtime);
+  useEffect(() => {
+    window.toyMidi.runtime = runtime;
+    return () => {
+      delete window.toyMidi.runtime;
+    };
+  }, [runtime]);
+  useWebMcpBridge();
   const [projectUiStore] = useState(() => createProjectUiStore(source));
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] =

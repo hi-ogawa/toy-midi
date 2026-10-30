@@ -15,8 +15,12 @@ export interface SynthLayer {
   oscillator: { waveform: Waveform };
 }
 
+export const DEFAULT_SYNTH_LAYER: SynthLayer = {
+  oscillator: { waveform: "sine" },
+};
+
 export const DEFAULT_SYNTH_PATCH: SynthPatch = {
-  layers: [{ oscillator: { waveform: "sine" } }],
+  layers: [DEFAULT_SYNTH_LAYER],
 };
 
 // Short enough to sound immediate, long enough to keep note edges from clicking.
