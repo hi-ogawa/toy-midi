@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { encodePitchBend } from "../general-midi";
 import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
@@ -64,23 +65,15 @@ describe(SubtractiveSynth, () => {
   });
 
   it("plays each waveform at the note's pitch", () => {
-    // Levels are RMS in dBFS past the attack, and pitches count rising zero
-    // crossings per second. Skipping 0.1 s leaves 0.9 s, a whole number of
-    // cycles at 440 Hz, so the count is exact. At the full-velocity peak, a
+    // Levels are RMS in dBFS past the attack. At the full-velocity peak, a
     // sine's RMS is the peak over √2, a triangle's and sawtooth's the peak over
     // √3, and a square's the peak itself. The sawtooth and square sit about
     // 0.1 dB lower because PolyBLEP rounds their jumps.
     const describeWaveform = (waveform: Waveform) => {
       const samples = renderNote({ waveform, pitch: 69, length: SAMPLE_RATE });
       const steady = samples.subarray(SAMPLE_RATE * 0.1);
-      let crossings = 0;
-      for (let i = 1; i < steady.length; i++) {
-        if (steady[i - 1] < 0 && steady[i] >= 0) {
-          crossings++;
-        }
-      }
       const level = gainToDb(measureRms(steady)).toFixed(1);
-      const frequency = Math.round(crossings / (steady.length / SAMPLE_RATE));
+      const frequency = measureFrequency(steady);
       return `${waveform}: ${level} dB, ${frequency} Hz`;
     };
     expect(WAVEFORMS.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
@@ -120,6 +113,39 @@ describe(SubtractiveSynth, () => {
     );
   });
 
+  it("bends every sounding note by the wheel value", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const buffers = createBuffers(SAMPLE_RATE * 1.8);
+    synth.noteOn(57, 127);
+    synth.noteOn(69, 127);
+    const measureChord = (index: number) => {
+      const start = SAMPLE_RATE * 0.6 * index;
+      synth.render(buffers[0], buffers[1], start, SAMPLE_RATE * 0.6);
+      return measureFrequency(
+        buffers[0].subarray(
+          start + SAMPLE_RATE * 0.1,
+          start + SAMPLE_RATE * 0.6,
+        ),
+      );
+    };
+    // Two notes an octave apart cross zero upward at the higher frequency.
+    const frequencies = [measureChord(0)];
+    synth.pitchBend(encodePitchBend(12));
+    frequencies.push(measureChord(1));
+    synth.pitchBend(encodePitchBend(-12));
+    frequencies.push(measureChord(2));
+    expect(frequencies).toEqual([440, 880, 220]);
+  });
+
+  it("starts a note at the current bend", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const buffers = createBuffers(SAMPLE_RATE);
+    synth.pitchBend(encodePitchBend(-12));
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, SAMPLE_RATE);
+    expect(measureFrequency(buffers[0].subarray(SAMPLE_RATE * 0.1))).toBe(220);
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
@@ -131,6 +157,21 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(buffers[0].subarray(2400 + RAMP_FRAMES))).toBe(0);
   });
 });
+
+/**
+ * Measures the frequency in hertz, rounded, from the span between the first and
+ * last rising zero crossings, interpolated between samples.
+ */
+function measureFrequency(samples: Float32Array): number {
+  const crossings: number[] = [];
+  for (let i = 1; i < samples.length; i++) {
+    if (samples[i - 1] < 0 && samples[i] >= 0) {
+      crossings.push(i - 1 + samples[i - 1] / (samples[i - 1] - samples[i]));
+    }
+  }
+  const span = crossings.at(-1)! - crossings[0];
+  return Math.round((crossings.length - 1) / (span / SAMPLE_RATE));
+}
 
 function renderNote({
   waveform,
