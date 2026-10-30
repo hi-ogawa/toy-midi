@@ -1181,7 +1181,6 @@ export class EditorRuntime {
     });
   }
 
-  /** @internal */
   serializeProject(): SerializedEditorRuntimeState {
     return serializeEditorRuntimeState(this.store.get());
   }

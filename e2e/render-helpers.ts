@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import type {} from "../src/lib/cli-api";
+import type {} from "../src/api";
 import type { SharedProject } from "../src/lib/project-share";
 
 export type RenderedMix = { sampleRate: number; channels: Float32Array[] };
@@ -10,11 +10,11 @@ export async function renderProject(
   project: SharedProject,
 ): Promise<RenderedMix> {
   await page.goto("/editor-cli");
-  await page.waitForFunction(() => window.__toyMidiCli?.editor);
+  await page.waitForFunction(() => window.toyMidi.runtime);
   const { sampleRate, channels } = await page.evaluate(async (project) => {
-    const { editor: runtime, editorUtils: utils } = window.__toyMidiCli!;
+    const { runtime, utils } = window.toyMidi;
     await runtime!.init();
-    await runtime!.deserializeProject(utils!.convertSharedProject(project));
+    await runtime!.deserializeProject(utils.convertSharedProject(project));
     const buffer = await runtime!.renderMix();
     return {
       sampleRate: buffer.sampleRate,
