@@ -9,6 +9,7 @@ import {
 } from "../lib/dsp/subtractive-synth";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
+import { WaveformIcon } from "./waveform-icon";
 
 const WAVEFORM_LABELS: Record<Waveform, string> = {
   sine: "Sine",
@@ -192,8 +193,9 @@ function SynthLayerRow({
                     oscillator: { ...layer.oscillator, waveform: option },
                   })
                 }
-                className="h-7 flex-1 bg-neutral-900 text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                className="flex flex-1 flex-col items-center gap-px bg-neutral-900 px-1.5 pt-1 pb-px text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
               >
+                <WaveformIcon waveform={option} />
                 {WAVEFORM_LABELS[option]}
               </button>
             ))}
