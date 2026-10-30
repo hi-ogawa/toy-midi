@@ -18,6 +18,8 @@ export interface SynthPatch {
 
 export interface SynthLayer {
   oscillator: { waveform: Waveform };
+  /** Linear multiplier on the layer's output */
+  gain: number;
   amp?: {
     envelope?: Envelope;
     /**
@@ -28,8 +30,13 @@ export interface SynthLayer {
   };
 }
 
+export const DEFAULT_SYNTH_LAYER: SynthLayer = {
+  oscillator: { waveform: "sine" },
+  gain: 1,
+};
+
 export const DEFAULT_SYNTH_PATCH: SynthPatch = {
-  layers: [{ oscillator: { waveform: "sine" } }],
+  layers: [DEFAULT_SYNTH_LAYER],
 };
 
 // A gate whose 5 ms edges are short enough to sound immediate and long enough
@@ -47,6 +54,7 @@ export const PEAK_GAIN = 0.2;
 
 interface ResolvedLayer {
   oscillate: Oscillator;
+  gain: number;
   ampEnvelope: EnvelopeCurves;
   ampVelocity: number;
 }
@@ -80,6 +88,7 @@ export class SubtractiveSynth implements SynthEngine {
   private resolveLayers(patch: SynthPatch): ResolvedLayer[] {
     return patch.layers.map((layer) => ({
       oscillate: OSCILLATORS[layer.oscillator.waveform],
+      gain: layer.gain,
       ampEnvelope: computeEnvelopeCurves(
         layer.amp?.envelope ?? DEFAULT_AMP_ENVELOPE,
         this.sampleRate,
@@ -124,9 +133,11 @@ export class SubtractiveSynth implements SynthEngine {
         this.layers.length,
         voice.ampEnvelopes.length,
       );
-      const velocityGains = this.layers.map(
+      const layerGains = this.layers.map(
         (layer) =>
-          PEAK_GAIN * (1 - layer.ampVelocity * (1 - voice.velocity / 127)),
+          PEAK_GAIN *
+          layer.gain *
+          (1 - layer.ampVelocity * (1 - voice.velocity / 127)),
       );
       for (let i = offset; i < offset + length; i++) {
         // Every layer plays at the note's pitch for now, so they share the
@@ -136,7 +147,7 @@ export class SubtractiveSynth implements SynthEngine {
           const layer = this.layers[l];
           sample +=
             layer.oscillate(voice.phase, voice.phaseIncrement) *
-            velocityGains[l] *
+            layerGains[l] *
             voice.ampEnvelopes[l].advance(layer.ampEnvelope);
         }
         left[i] += sample;

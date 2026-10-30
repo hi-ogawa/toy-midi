@@ -90,7 +90,7 @@ async function encodeSharedProject(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
   const bytes = await transformBytes(
-    new TextEncoder().encode(JSON.stringify(omitIds(project))),
+    new TextEncoder().encode(JSON.stringify(createSharedProject(project))),
     new CompressionStream("deflate-raw"),
   );
   return encodeBase64Url(bytes);
@@ -110,15 +110,19 @@ export async function decodeSharedProject(
   }
 }
 
-function omitIds({
-  audioTracks: _audioTracks,
-  trackOrder: _trackOrder,
-  locators,
-  midiTracks,
-  ...project
-}: SerializedEditorRuntimeState): SharedProject {
+/** Converts `runtime.serializeProject()` to the format of share links and project files. */
+export function createSharedProject(
+  project: SerializedEditorRuntimeState,
+): SharedProject {
+  const {
+    audioTracks: _audioTracks,
+    trackOrder: _trackOrder,
+    locators,
+    midiTracks,
+    ...rest
+  } = project;
   return {
-    ...project,
+    ...rest,
     locators: locators?.map(({ id: _id, ...locator }) => locator),
     midiTracks: midiTracks?.map(({ id: _id, notes, eq, ...track }) => ({
       ...track,
@@ -139,7 +143,7 @@ export function convertSharedProject(
       id: crypto.randomUUID(),
     })),
     midiTracks: project.midiTracks?.map(({ notes, eq, ...track }) => ({
-      ...createMidiTrackState({ name: track.name, preset: track }),
+      ...createMidiTrackState(),
       // Collapse tracks so a whole arrangement fits on screen when it opens.
       viewMode: "overview",
       height: MIN_TRACK_HEIGHT,

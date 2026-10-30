@@ -51,7 +51,11 @@ describe(SubtractiveSynth, () => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch({
         layers: [
-          { oscillator: { waveform: "sine" }, amp: { velocity: depth } },
+          {
+            oscillator: { waveform: "sine" },
+            gain: 1,
+            amp: { velocity: depth },
+          },
         ],
       });
       const buffers = createBuffers(4800);
@@ -70,12 +74,14 @@ describe(SubtractiveSynth, () => {
       layers: [
         {
           oscillator: { waveform: "sine" },
+          gain: 1,
           amp: {
             envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 },
           },
         },
         {
           oscillator: { waveform: "sine" },
+          gain: 1,
           amp: {
             envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.1 },
           },
@@ -171,6 +177,23 @@ describe(SubtractiveSynth, () => {
     );
   });
 
+  it("scales each layer by its gain", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const buffers = createBuffers(4800);
+    synth.setPatch({
+      layers: [
+        { oscillator: { waveform: "sine" }, gain: 1 },
+        { oscillator: { waveform: "sine" }, gain: 0.5 },
+      ],
+    });
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 4800);
+    expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
+      (1.5 * PEAK_GAIN) / Math.SQRT2,
+      3,
+    );
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
@@ -202,7 +225,10 @@ function renderNote({
 
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
-    layers: waveforms.map((waveform) => ({ oscillator: { waveform } })),
+    layers: waveforms.map((waveform) => ({
+      oscillator: { waveform },
+      gain: 1,
+    })),
   };
 }
 
