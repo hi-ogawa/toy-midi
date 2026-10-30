@@ -2,8 +2,6 @@ import { ChevronDownIcon, ChevronRightIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
-  DEFAULT_AMP_ENVELOPE,
-  DEFAULT_AMP_VELOCITY,
   DEFAULT_SYNTH_LAYER,
   type SynthLayer,
   type SynthPatch,
@@ -151,8 +149,7 @@ function SynthLayerRow({
   onToggle: () => void;
   onRemove: () => void;
 }) {
-  const envelope = layer.amp?.envelope ?? DEFAULT_AMP_ENVELOPE;
-  const velocity = layer.amp?.velocity ?? DEFAULT_AMP_VELOCITY;
+  const { envelope, velocity } = layer.amp;
 
   function updateEnvelope(update: Partial<Envelope>) {
     onChange({

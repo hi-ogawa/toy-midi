@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
+  DEFAULT_SYNTH_LAYER,
   PEAK_GAIN,
   SubtractiveSynth,
   type SynthPatch,
@@ -55,9 +56,8 @@ describe(SubtractiveSynth, () => {
       synth.setPatch({
         layers: [
           {
-            oscillator: { waveform: "sine" },
-            gain: 1,
-            amp: { velocity: depth },
+            ...DEFAULT_SYNTH_LAYER,
+            amp: { ...DEFAULT_SYNTH_LAYER.amp, velocity: depth },
           },
         ],
       });
@@ -76,17 +76,17 @@ describe(SubtractiveSynth, () => {
     synth.setPatch({
       layers: [
         {
-          oscillator: { waveform: "sine" },
-          gain: 1,
+          ...DEFAULT_SYNTH_LAYER,
           amp: {
             envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 },
+            velocity: 1,
           },
         },
         {
-          oscillator: { waveform: "sine" },
-          gain: 1,
+          ...DEFAULT_SYNTH_LAYER,
           amp: {
             envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.1 },
+            velocity: 1,
           },
         },
       ],
@@ -199,10 +199,7 @@ describe(SubtractiveSynth, () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
     synth.setPatch({
-      layers: [
-        { oscillator: { waveform: "sine" }, gain: 1 },
-        { oscillator: { waveform: "sine" }, gain: 0.5 },
-      ],
+      layers: [DEFAULT_SYNTH_LAYER, { ...DEFAULT_SYNTH_LAYER, gain: 0.5 }],
     });
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
@@ -244,8 +241,8 @@ function renderNote({
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
     layers: waveforms.map((waveform) => ({
+      ...DEFAULT_SYNTH_LAYER,
       oscillator: { waveform },
-      gain: 1,
     })),
   };
 }

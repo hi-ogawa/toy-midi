@@ -20,35 +20,32 @@ export interface SynthLayer {
   oscillator: { waveform: Waveform };
   /** Linear multiplier on the layer's output */
   gain: number;
-  amp?: {
-    envelope?: Envelope;
+  amp: {
+    envelope: Envelope;
     /**
      * How much velocity scales the level, from 0, where every note plays at
      * full level, to 1, where the level is velocity / 127
      */
-    velocity?: number;
+    velocity: number;
   };
 }
 
 export const DEFAULT_SYNTH_LAYER: SynthLayer = {
   oscillator: { waveform: "sine" },
   gain: 1,
+  amp: {
+    // A gate whose 5 ms edges are short enough to sound immediate and long
+    // enough to keep notes from clicking. The decay only matters once the
+    // sustain is lowered.
+    envelope: { attack: 0.005, decay: 0.3, sustain: 1, release: 0.005 },
+    velocity: 1,
+  },
 };
 
 export const DEFAULT_SYNTH_PATCH: SynthPatch = {
   layers: [DEFAULT_SYNTH_LAYER],
 };
 
-// A gate whose 5 ms edges are short enough to sound immediate and long enough
-// to keep notes from clicking. The decay only matters once the sustain is
-// lowered.
-export const DEFAULT_AMP_ENVELOPE: Envelope = {
-  attack: 0.005,
-  decay: 0.3,
-  sustain: 1,
-  release: 0.005,
-};
-export const DEFAULT_AMP_VELOCITY = 1;
 // Leaves headroom for chords at full velocity.
 export const PEAK_GAIN = 0.2;
 
@@ -106,11 +103,8 @@ export class SubtractiveSynth implements SynthEngine {
     return patch.layers.map((layer) => ({
       oscillate: OSCILLATORS[layer.oscillator.waveform],
       gain: layer.gain,
-      ampEnvelope: computeEnvelopeCurves(
-        layer.amp?.envelope ?? DEFAULT_AMP_ENVELOPE,
-        this.sampleRate,
-      ),
-      ampVelocity: layer.amp?.velocity ?? DEFAULT_AMP_VELOCITY,
+      ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, this.sampleRate),
+      ampVelocity: layer.amp.velocity,
     }));
   }
 
