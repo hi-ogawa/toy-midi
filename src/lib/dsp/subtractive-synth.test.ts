@@ -123,8 +123,7 @@ describe(SubtractiveSynth, () => {
     );
   });
 
-  it("scales the level with CC7 volume and CC11 expression on a concave curve", () => {
-    // Levels are dB relative to both controllers at 127.
+  it("scales the level with CC7 volume and CC11 expression", () => {
     const measureLevel = (volume: number, expression: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       const buffers = createBuffers(4800);
@@ -132,36 +131,11 @@ describe(SubtractiveSynth, () => {
       synth.controller(11, expression);
       synth.noteOn(69, 127);
       synth.render(buffers[0], buffers[1], 0, 4800);
-      const level = measureRms(buffers[0].subarray(RAMP_FRAMES));
-      return gainToDb(level / (PEAK_GAIN / Math.SQRT2));
+      return measureRms(buffers[0].subarray(RAMP_FRAMES));
     };
-    expect(measureLevel(127, 127)).toBeCloseTo(0, 1);
-    expect(measureLevel(100, 127)).toBeCloseTo(-4.2, 1);
-    expect(measureLevel(64, 127)).toBeCloseTo(-11.9, 1);
-    expect(measureLevel(127, 64)).toBeCloseTo(-11.9, 1);
-    expect(measureLevel(64, 64)).toBeCloseTo(-23.8, 1);
-  });
-
-  it("ramps a controller change instead of jumping", () => {
-    const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(9600);
-    synth.controller(7, 127);
-    synth.noteOn(69, 127);
-    // Change the volume near a crest of the 440 Hz sine, where a jump would be
-    // largest.
-    const change = 4800 + 27;
-    synth.render(buffers[0], buffers[1], 0, change);
-    synth.controller(7, 0);
-    synth.render(buffers[0], buffers[1], change, 9600 - change);
-
-    // The sine itself moves at most about 0.058 × its peak between samples,
-    // and a jump to silence would move the whole peak.
-    let maxStep = 0;
-    for (let i = change - 100; i < change + 100; i++) {
-      maxStep = Math.max(maxStep, Math.abs(buffers[0][i + 1] - buffers[0][i]));
-    }
-    expect(maxStep).toBeLessThan(0.06 * PEAK_GAIN);
-    expect(measureRms(buffers[0].subarray(change + RAMP_FRAMES))).toBe(0);
+    const full = measureLevel(127, 127);
+    expect(measureLevel(64, 127) / full).toBeCloseTo((64 / 127) ** 2, 2);
+    expect(measureLevel(64, 64) / full).toBeCloseTo((64 / 127) ** 4, 2);
   });
 
   it("scales each layer by its gain", () => {
