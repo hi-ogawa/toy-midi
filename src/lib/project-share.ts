@@ -143,10 +143,7 @@ export function convertSharedProject(
       id: crypto.randomUUID(),
     })),
     midiTracks: project.midiTracks?.map(({ notes, eq, ...track }) => ({
-      ...createMidiTrackState({
-        name: track.name,
-        preset: { program: track.program },
-      }),
+      ...createMidiTrackState(),
       // Collapse tracks so a whole arrangement fits on screen when it opens.
       viewMode: "overview",
       height: MIN_TRACK_HEIGHT,
