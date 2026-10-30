@@ -153,7 +153,7 @@ function SynthLayerRow({
       aria-label={name}
       className="overflow-hidden rounded border border-neutral-700"
     >
-      <div className="flex h-7 items-center gap-1 bg-neutral-900 pr-1">
+      <div className="flex h-8 items-center gap-1 bg-neutral-900 pr-1">
         <button
           type="button"
           aria-expanded={!collapsed}
