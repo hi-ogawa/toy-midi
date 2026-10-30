@@ -15,7 +15,7 @@ export function createWebMcpTools(): WebMcpTool[] {
       description: [
         "Run JavaScript against the open toy-midi project, with `toyMidi`, the page's `window.toyMidi`, in scope.",
         `Its API is declared as \`ToyMidiGlobal\` in ${new URL("/llms/toy-midi.d.ts", window.location.origin)}. Read it before writing code.`,
-        `The guide for agents at ${new URL("/llms.txt", window.location.origin)} explains how to work with a project, such as opening one you wrote as a file.`,
+        `The guide for agents at ${new URL("/llms.txt", window.location.origin)} explains how to work with a project.`,
       ].join("\n\n"),
       inputSchema: {
         type: "object",
