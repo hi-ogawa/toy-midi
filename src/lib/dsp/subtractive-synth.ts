@@ -136,8 +136,6 @@ export class SubtractiveSynth implements SynthEngine {
         mix += voice.gain * sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
       }
-      // Automation holds each value until the next, so the channel gain moves
-      // to a new value over a short ramp instead of jumping, which would click.
       const channelStep = Math.min(
         this.channelGainStep,
         Math.abs(this.targetChannelGain - this.channelGain),
