@@ -1187,11 +1187,6 @@ export class EditorRuntime {
     return serializeEditorRuntimeState(this.store.get());
   }
 
-  /**
-   * Replace the open project, such as with a `SharedProject` converted by
-   * `toyMidi.utils.convertSharedProject`. It stays unsaved until someone
-   * saves, and undo history starts empty.
-   */
   async deserializeProject(
     project: SerializedEditorRuntimeState,
   ): Promise<void> {
