@@ -164,6 +164,23 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(buffers[0].subarray(change + RAMP_FRAMES))).toBe(0);
   });
 
+  it("scales each layer by its gain", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const buffers = createBuffers(4800);
+    synth.setPatch({
+      layers: [
+        { oscillator: { waveform: "sine" }, gain: 1 },
+        { oscillator: { waveform: "sine" }, gain: 0.5 },
+      ],
+    });
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 4800);
+    expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
+      (1.5 * PEAK) / Math.SQRT2,
+      3,
+    );
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
@@ -195,7 +212,10 @@ function renderNote({
 
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
-    layers: waveforms.map((waveform) => ({ oscillator: { waveform } })),
+    layers: waveforms.map((waveform) => ({
+      oscillator: { waveform },
+      gain: 1,
+    })),
   };
 }
 

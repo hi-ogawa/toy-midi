@@ -12,10 +12,13 @@ export interface SynthPatch {
 
 export interface SynthLayer {
   oscillator: { waveform: Waveform };
+  /** Linear multiplier on the layer's output */
+  gain: number;
 }
 
 export const DEFAULT_SYNTH_LAYER: SynthLayer = {
   oscillator: { waveform: "sine" },
+  gain: 1,
 };
 
 export const DEFAULT_SYNTH_PATCH: SynthPatch = {
@@ -113,9 +116,10 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    const oscillators = this.layers.map(
-      (layer) => OSCILLATORS[layer.oscillator.waveform],
-    );
+    const oscillators = this.layers.map((layer) => ({
+      oscillate: OSCILLATORS[layer.oscillator.waveform],
+      gain: layer.gain,
+    }));
     const channelGains = this.rampChannelGain(length);
     for (const voice of this.voices) {
       for (let i = offset; i < offset + length; i++) {
@@ -127,8 +131,8 @@ export class SubtractiveSynth implements SynthEngine {
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
-        for (const oscillate of oscillators) {
-          sample += oscillate(voice.phase, voice.phaseIncrement);
+        for (const { oscillate, gain } of oscillators) {
+          sample += gain * oscillate(voice.phase, voice.phaseIncrement);
         }
         sample *= voice.gain * channelGains[i - offset];
         left[i] += sample;

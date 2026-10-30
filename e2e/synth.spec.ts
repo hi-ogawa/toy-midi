@@ -47,6 +47,13 @@ test("changes a synth track's waveform in its Synth panel", async ({
     "aria-pressed",
     "false",
   );
+
+  // Turn the layer's gain down from 0 dB with the keyboard.
+  const gain = panel.getByRole("slider", { name: "Layer 1 gain" });
+  await expect(gain).toHaveAttribute("aria-valuetext", "0.0 dB");
+  await gain.focus();
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(gain).toHaveAttribute("aria-valuetext", "-6.0 dB");
 });
 
 test("adds, collapses, and removes layers in the Synth panel", async ({
