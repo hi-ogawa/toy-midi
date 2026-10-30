@@ -47,6 +47,33 @@ export function SynthPanel({
     initialSize: { width: 320, height: 240 },
     minSize: { width: 320, height: 120 },
   });
+
+  return (
+    <Panel
+      title={`${label} Synth`}
+      closeLabel={`Close ${label} Synth`}
+      onClose={onClose}
+      data-testid="synth-panel"
+      className="pointer-events-auto relative flex max-h-[calc(100vh-48px)] shrink-0 flex-col"
+      contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
+      style={size}
+    >
+      <PanelResizeHandle
+        handleRef={handleRef}
+        label={`Resize ${label} Synth`}
+      />
+      <SynthPanelContent patch={patch} onChange={onChange} />
+    </Panel>
+  );
+}
+
+function SynthPanelContent({
+  patch,
+  onChange,
+}: {
+  patch: SynthPatch;
+  onChange: (patch: SynthPatch) => void;
+}) {
   // Indexed like the patch's layers. Collapsing is a view of the panel, so
   // the patch doesn't save it.
   const [collapsed, setCollapsed] = useState<boolean[]>([]);
@@ -76,41 +103,27 @@ export function SynthPanel({
   }
 
   return (
-    <Panel
-      title={`${label} Synth`}
-      closeLabel={`Close ${label} Synth`}
-      onClose={onClose}
-      data-testid="synth-panel"
-      className="pointer-events-auto relative flex max-h-[calc(100vh-48px)] shrink-0 flex-col"
-      contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
-      style={size}
-    >
-      <PanelResizeHandle
-        handleRef={handleRef}
-        label={`Resize ${label} Synth`}
-      />
-      <div className="space-y-2">
-        {patch.layers.map((layer, i) => (
-          <SynthLayerRow
-            key={i}
-            name={`Layer ${i + 1}`}
-            layer={layer}
-            collapsed={collapsed[i] ?? false}
-            removeDisabled={patch.layers.length === 1}
-            onChange={(layer) => updateLayer(i, layer)}
-            onToggle={() => toggleLayer(i)}
-            onRemove={() => removeLayer(i)}
-          />
-        ))}
-        <button
-          type="button"
-          onClick={addLayer}
-          className="h-7 w-full rounded border border-dashed border-neutral-600 text-xs text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
-        >
-          + Layer
-        </button>
-      </div>
-    </Panel>
+    <div className="space-y-2">
+      {patch.layers.map((layer, i) => (
+        <SynthLayerRow
+          key={i}
+          name={`Layer ${i + 1}`}
+          layer={layer}
+          collapsed={collapsed[i] ?? false}
+          removeDisabled={patch.layers.length === 1}
+          onChange={(layer) => updateLayer(i, layer)}
+          onToggle={() => toggleLayer(i)}
+          onRemove={() => removeLayer(i)}
+        />
+      ))}
+      <button
+        type="button"
+        onClick={addLayer}
+        className="h-7 w-full rounded border border-dashed border-neutral-600 text-xs text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
+      >
+        + Layer
+      </button>
+    </div>
   );
 }
 
