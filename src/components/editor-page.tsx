@@ -17,7 +17,6 @@ import { getScoreHref, type ProjectSource, routes } from "../lib/routes";
 import { EditorRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
 import { beatsToSeconds, secondsToBeats } from "../lib/timeline";
 import { resolveTrackOrder } from "../lib/track-order";
-import { toyMidiUtils } from "../page-global";
 import { parseTimeSignature } from "../types";
 import { AudioToMidi, useAudioToMidiUi } from "./audio-to-midi";
 import { Effects, useEffectsUi } from "./effects";
@@ -60,9 +59,9 @@ import { useWindowEvent } from "./use-window-event";
 export function EditorPage({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
   useEffect(() => {
-    window.toyMidi = { runtime, utils: toyMidiUtils };
+    window.toyMidi.runtime = runtime;
     return () => {
-      delete window.toyMidi;
+      delete window.toyMidi.runtime;
     };
   }, [runtime]);
   useWebMcpBridge();

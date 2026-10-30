@@ -9,6 +9,7 @@ import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
 import "./e2e";
+import "./page-global";
 
 function main() {
   // Keep a same-origin utility page for E2E setup without initializing the app.

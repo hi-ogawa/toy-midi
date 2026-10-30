@@ -73,14 +73,14 @@ export async function runRenderAudio(args: string[]) {
     page.waitForEvent("download", { timeout: 0 }),
     page.evaluate(
       async ({ inputUrl, isSharedProject }) => {
-        const { runtime, utils } = window.toyMidi!;
+        const { runtime, utils } = window.toyMidi;
         const response = await fetch(inputUrl);
         const project = isSharedProject
-          ? utils!.convertSharedProject(await response.json())
-          : await utils!.readProjectArchive(await response.blob());
+          ? utils.convertSharedProject(await response.json())
+          : await utils.readProjectArchive(await response.blob());
         await runtime!.init();
         await runtime!.deserializeProject(project);
-        const wav = utils!.encodeWav(await runtime!.renderMix());
+        const wav = utils.encodeWav(await runtime!.renderMix());
         const link = document.createElement("a");
         link.href = URL.createObjectURL(wav);
         link.download = "output.wav";

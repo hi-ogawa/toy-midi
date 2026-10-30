@@ -10,11 +10,11 @@ export async function renderProject(
   project: SharedProject,
 ): Promise<RenderedMix> {
   await page.goto("/editor-cli");
-  await page.waitForFunction(() => window.toyMidi?.runtime);
+  await page.waitForFunction(() => window.toyMidi.runtime);
   const { sampleRate, channels } = await page.evaluate(async (project) => {
-    const { runtime, utils } = window.toyMidi!;
+    const { runtime, utils } = window.toyMidi;
     await runtime!.init();
-    await runtime!.deserializeProject(utils!.convertSharedProject(project));
+    await runtime!.deserializeProject(utils.convertSharedProject(project));
     const buffer = await runtime!.renderMix();
     return {
       sampleRate: buffer.sampleRate,

@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { EditorRuntime } from "../lib/runtime";
-import { toyMidiUtils } from "../page-global";
 
 // Bare editor runtime for commands in packages/cli.
 export function EditorCliPage() {
   const [runtime] = useState(() => new EditorRuntime());
   useEffect(() => {
-    window.toyMidi = { runtime, utils: toyMidiUtils };
+    window.toyMidi.runtime = runtime;
     return () => {
-      delete window.toyMidi;
+      delete window.toyMidi.runtime;
     };
   }, [runtime]);
   return null;

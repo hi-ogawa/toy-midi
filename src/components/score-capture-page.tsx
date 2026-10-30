@@ -16,9 +16,9 @@ export function ScoreCapturePage() {
   );
   useEffect(() => {
     runtime.attach(rootRef.current!);
-    window.toyMidi = { scoreViewer: runtime };
+    window.toyMidi.scoreViewer = runtime;
     return () => {
-      delete window.toyMidi;
+      delete window.toyMidi.scoreViewer;
       runtime.dispose();
     };
   }, [runtime]);
