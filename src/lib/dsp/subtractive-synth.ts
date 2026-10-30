@@ -59,6 +59,16 @@ interface ResolvedLayer {
   ampVelocity: number;
 }
 
+// Short enough to follow automation, long enough to keep CC7 and CC11 steps
+// from clicking.
+const CHANNEL_GAIN_RAMP_SECONDS = 0.005;
+const VOLUME_CONTROLLER = 7;
+const EXPRESSION_CONTROLLER = 11;
+// MIDI's defaults. A track without automation for a controller never sends
+// it, so the synth starts from these.
+const DEFAULT_VOLUME = 100;
+const DEFAULT_EXPRESSION = 127;
+
 interface Voice {
   pitch: number;
   /** Cycles per sample */
@@ -76,9 +86,16 @@ interface Voice {
 export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
   private layers: ResolvedLayer[];
+  private volume = DEFAULT_VOLUME;
+  private expression = DEFAULT_EXPRESSION;
+  /** CC7 volume times CC11 expression, applied to the summed voices */
+  private channelGain = computeChannelGain(DEFAULT_VOLUME, DEFAULT_EXPRESSION);
+  private targetChannelGain = this.channelGain;
+  private readonly channelGainStep: number;
 
   constructor(private readonly sampleRate: number) {
     this.layers = this.resolveLayers(DEFAULT_SYNTH_PATCH);
+    this.channelGainStep = 1 / (CHANNEL_GAIN_RAMP_SECONDS * sampleRate);
   }
 
   setPatch(patch: SynthPatch): void {
@@ -116,7 +133,22 @@ export class SubtractiveSynth implements SynthEngine {
     }
   }
 
-  controller(_controller: number, _value: number): void {}
+  controller(controller: number, value: number): void {
+    switch (controller) {
+      case VOLUME_CONTROLLER: {
+        this.volume = value;
+        break;
+      }
+      case EXPRESSION_CONTROLLER: {
+        this.expression = value;
+        break;
+      }
+      default: {
+        return;
+      }
+    }
+    this.targetChannelGain = computeChannelGain(this.volume, this.expression);
+  }
 
   pitchBend(_value: number): void {}
 
@@ -127,19 +159,20 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    for (const voice of this.voices) {
+    const voices = this.voices.map((voice) => ({
+      voice,
       // Layers that a patch change adds play from the next note.
-      const layerCount = Math.min(
-        this.layers.length,
-        voice.ampEnvelopes.length,
-      );
-      const layerGains = this.layers.map(
+      layerCount: Math.min(this.layers.length, voice.ampEnvelopes.length),
+      layerGains: this.layers.map(
         (layer) =>
           PEAK_GAIN *
           layer.gain *
           (1 - layer.ampVelocity * (1 - voice.velocity / 127)),
-      );
-      for (let i = offset; i < offset + length; i++) {
+      ),
+    }));
+    for (let i = offset; i < offset + length; i++) {
+      let mix = 0;
+      for (const { voice, layerCount, layerGains } of voices) {
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
@@ -150,10 +183,18 @@ export class SubtractiveSynth implements SynthEngine {
             layerGains[l] *
             voice.ampEnvelopes[l].advance(layer.ampEnvelope);
         }
-        left[i] += sample;
-        right[i] += sample;
+        mix += sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
       }
+      const channelStep = Math.min(
+        this.channelGainStep,
+        Math.abs(this.targetChannelGain - this.channelGain),
+      );
+      this.channelGain +=
+        this.targetChannelGain > this.channelGain ? channelStep : -channelStep;
+      mix *= this.channelGain;
+      left[i] += mix;
+      right[i] += mix;
     }
     this.voices = this.voices.filter((voice) =>
       voice.ampEnvelopes
@@ -173,6 +214,15 @@ function releaseVoice(voice: Voice): void {
   for (const envelope of voice.ampEnvelopes) {
     envelope.release();
   }
+}
+
+/**
+ * Follows SoundFont's default concave curve for each controller, which makes
+ * the gain proportional to the square of the value. The two multiply, so
+ * automation moves the synth by the same amount as a SoundFont preset.
+ */
+function computeChannelGain(volume: number, expression: number): number {
+  return ((volume / 127) * (expression / 127)) ** 2;
 }
 
 /** Takes the phase and the phase increment in cycles, with a peak of 1. */
