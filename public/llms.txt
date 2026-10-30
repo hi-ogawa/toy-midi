@@ -6,6 +6,7 @@ Projects live in the browser's own storage. The app has no server, no accounts, 
 
 - `/`, the project list.
 - `/recorder/<projectId>`, a project saved in this browser.
+- `/draft`, a new empty project, where you start a song from scratch. It opens unsaved until someone saves it.
 - `/draft#p=<payload>`, a project carried in a share link. It opens unsaved, so the person who opens it can edit it and then save their own copy.
 - `/draft?src=<url>`, a project fetched from a JSON file at that URL. It opens unsaved in the same way.
 
