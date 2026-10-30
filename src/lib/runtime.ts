@@ -278,7 +278,7 @@ type EditorRuntimeClipsState = Pick<
 >;
 
 export function createDefaultEditorRuntimeState(): EditorRuntimeState {
-  const audioTrack = createAudioTrackState({ name: "Audio 1" });
+  const audioTrack = { ...createAudioTrackState(), name: "Audio 1" };
   return {
     title: "Untitled",
     comment: "",
@@ -450,12 +450,13 @@ export class EditorRuntime {
   addAudioTrack(): string {
     const { audioTracks } = this.store.get();
     const audioTrackNames = audioTracks.map((track) => track.name);
-    const track = createAudioTrackState({
+    const track = {
+      ...createAudioTrackState(),
       name: createNumberedName({
         names: audioTrackNames,
         prefix: "Audio",
       }),
-    });
+    };
     this.updateTrackLists({ audioTracks: [...audioTracks, track] });
     return track.id;
   }
@@ -487,13 +488,14 @@ export class EditorRuntime {
 
   async addMidiTrack(preset: MidiPreset): Promise<string> {
     const state = this.store.get();
-    const track = createMidiTrackState({
+    const track = {
+      ...createMidiTrackState(),
       name: createNumberedName({
         names: state.midiTracks.map((track) => track.name),
         prefix: "MIDI",
       }),
-      preset,
-    });
+      ...preset,
+    };
     await this.insertMidiTrack({ track });
     const index = this.store.get().trackOrder.indexOf(track.id);
     this.history.pushMidiTrack({ track, index });

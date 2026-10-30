@@ -1,7 +1,7 @@
 import { createDefaultMultibandEq } from "./dsp/biquad-eq-multiband.ts";
 import { clamp } from "./music.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
-import type { AudioTrackState, MidiPreset, MidiTrackState } from "./runtime.ts";
+import type { AudioTrackState, MidiTrackState } from "./runtime.ts";
 import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
 
 // Fits the track header with its gain slider row below the title row.
@@ -14,15 +14,10 @@ const MAX_TRACK_HEIGHT = 300;
 // Tall enough for several octaves of piano roll.
 export const MAX_MIDI_TRACK_HEIGHT = 800;
 
-export function createAudioTrackState({
-  name,
-}: {
-  name: string;
-}): AudioTrackState {
+export function createAudioTrackState(): Omit<AudioTrackState, "name"> {
   return {
     eq: createDefaultMultibandEq(),
     id: crypto.randomUUID(),
-    name,
     nextTakeNumber: 1,
     showClips: false,
     height: DEFAULT_TRACK_HEIGHT,
@@ -35,19 +30,14 @@ export function createAudioTrackState({
   };
 }
 
-export function createMidiTrackState({
-  name,
-  preset,
-}: {
-  name: string;
-  preset: MidiPreset;
-}): MidiTrackState {
+export function createMidiTrackState(): Omit<
+  MidiTrackState,
+  "name" | "program"
+> {
   return {
     id: crypto.randomUUID(),
-    name,
     notes: [],
     automation: [],
-    ...preset,
     eq: createDefaultMultibandEq(),
     height: 300,
     viewMode: "editor",
