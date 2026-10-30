@@ -1,9 +1,9 @@
 import JSZip from "jszip";
-import type { ScoreViewerRuntime } from "../components/score-viewer-runtime";
-import { readProjectArchive } from "./project-archive";
-import { convertSharedProject } from "./project-share";
-import type { EditorRuntime } from "./runtime";
-import { encodeWav } from "./wav";
+import type { ScoreViewerRuntime } from "./components/score-viewer-runtime";
+import { readProjectArchive } from "./lib/project-archive";
+import { convertSharedProject } from "./lib/project-share";
+import type { EditorRuntime } from "./lib/runtime";
+import { encodeWav } from "./lib/wav";
 
 // Agents that run page script, and the CLI in packages/cli in headless
 // Chromium, drive the app through this global. Each page sets only the

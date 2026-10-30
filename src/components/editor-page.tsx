@@ -17,6 +17,7 @@ import { getScoreHref, type ProjectSource, routes } from "../lib/routes";
 import { EditorRuntime, REFERENCE_VIDEO_CLIP_ID } from "../lib/runtime";
 import { beatsToSeconds, secondsToBeats } from "../lib/timeline";
 import { resolveTrackOrder } from "../lib/track-order";
+import { toyMidiUtils } from "../page-global";
 import { parseTimeSignature } from "../types";
 import { AudioToMidi, useAudioToMidiUi } from "./audio-to-midi";
 import { Effects, useEffectsUi } from "./effects";
@@ -49,16 +50,23 @@ import {
 } from "./tracks";
 import { Tuner } from "./tuner";
 import { Dialog } from "./ui/dialog";
-import { useAgentAccess } from "./use-agent-access";
 import { useInput } from "./use-input";
 import { useInteraction } from "./use-interaction";
 import { useProject } from "./use-project";
 import { useTimeline } from "./use-timeline";
+import { useWebMcpBridge } from "./use-webmcp-bridge";
 import { useWindowEvent } from "./use-window-event";
 
 export function EditorPage({ source }: { source: ProjectSource }) {
   const [runtime] = useState(() => new EditorRuntime());
-  useAgentAccess(runtime);
+  const [toyMidi] = useState(() => ({ runtime, utils: toyMidiUtils }));
+  useEffect(() => {
+    window.toyMidi = toyMidi;
+    return () => {
+      delete window.toyMidi;
+    };
+  }, [toyMidi]);
+  useWebMcpBridge(toyMidi);
   const [projectUiStore] = useState(() => createProjectUiStore(source));
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] =

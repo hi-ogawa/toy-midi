@@ -21,7 +21,7 @@ Write a share link when you cannot reach the user's browser, such as from a remo
 
 The app registers its tools with [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents, through `document.modelContext`. The runtime the tools act on is declared in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts), so you can read it before you reach the page.
 
-If you can run JavaScript in the page, as a browser automation tool does, use `window.toyMidi` instead of the tool. On a project page, it holds `runtime`, the open project, and `utils`, helpers to compose with it, so code written for the tool runs after `const { runtime } = window.toyMidi;`. Its type is `ToyMidiGlobal` in the same file.
+If you can run JavaScript in the page, as a browser automation tool does, use `window.toyMidi` instead of the tool. On a project page, it holds `runtime`, the open project, and `utils`, helpers to compose with it. The tool puts the same entries in scope, so code written for it runs after `const { runtime, utils } = window.toyMidi;`. Its type is `ToyMidiGlobal` in the same file.
 
 A browser or agent that supports WebMCP calls the tool directly. From a terminal, use [webmcp-bridge](https://github.com/hi-ogawa/toy-midi/tree/main/packages/webmcp-bridge), which connects you to a page open in the user's browser on the same machine. Install the command:
 

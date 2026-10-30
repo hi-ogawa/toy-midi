@@ -4,25 +4,22 @@ import {
 } from "@hiogawa/webmcp-bridge/client";
 import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 import { useEffect } from "react";
-import { toyMidiUtils } from "../lib/page-global";
-import type { EditorRuntime } from "../lib/runtime";
 import { createWebMcpTools } from "../lib/webmcp-tools";
+import type { ToyMidiGlobal } from "../page-global";
 
 /**
- * Exposes the open project to agents in two ways. An agent that runs page
- * script reads `window.toyMidi`. Otherwise it calls the WebMCP tools, which
- * this registers with `document.modelContext`, installing a polyfill in
- * browsers without WebMCP, so the webmcp-bridge extension can expose them.
- * With `?webmcp-bridge` or `?webmcp-bridge=<port>` in the page URL, the page
- * also exposes them to the local webmcp-bridge itself.
+ * Registers WebMCP tools over the page's `window.toyMidi` entries with
+ * `document.modelContext`, installing a polyfill in browsers without WebMCP,
+ * so the webmcp-bridge extension can expose them. With `?webmcp-bridge` or
+ * `?webmcp-bridge=<port>` in the page URL, the page also exposes them to the
+ * local webmcp-bridge itself.
  */
-export function useAgentAccess(runtime: EditorRuntime) {
+export function useWebMcpBridge(toyMidi: ToyMidiGlobal) {
   useEffect(() => {
-    window.toyMidi = { runtime, utils: toyMidiUtils };
     const modelContext = (document.modelContext ??=
       createModelContextPolyfill());
     const controller = new AbortController();
-    for (const tool of createWebMcpTools(runtime)) {
+    for (const tool of createWebMcpTools(toyMidi)) {
       void modelContext.registerTool(tool, { signal: controller.signal });
     }
     const params = new URL(window.location.href).searchParams;
@@ -35,9 +32,8 @@ export function useAgentAccess(runtime: EditorRuntime) {
       });
     }
     return () => {
-      delete window.toyMidi;
       controller.abort();
       dispose?.();
     };
-  }, [runtime]);
+  }, [toyMidi]);
 }
