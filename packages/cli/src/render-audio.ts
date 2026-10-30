@@ -77,7 +77,7 @@ export async function runRenderAudio(args: string[]) {
         const response = await fetch(inputUrl);
         const project = isSharedProject
           ? utils.convertSharedProject(await response.json())
-          : await utils.readProjectArchive(await response.blob());
+          : await utils.readProjectArchiveBlob(await response.blob());
         await runtime!.init();
         await runtime!.deserializeProject(project);
         const wav = utils.encodeWav(await runtime!.renderMix());

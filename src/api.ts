@@ -23,7 +23,7 @@ declare global {
 /** Helpers to compose with the runtime, kept off its API. */
 const toyMidiUtils = {
   convertSharedProject,
-  readProjectArchive: readProjectArchiveBlob,
+  readProjectArchiveBlob,
   encodeWav,
 };
 
