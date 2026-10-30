@@ -55,8 +55,11 @@ export class MidiSynthWorkletNode {
       soundfont: soundfont.id,
       bank: preset.bank ?? 0,
       program: preset.program,
+      synth: preset.synth,
     });
-    await this.addSoundfont(soundfont);
+    if (!preset.synth) {
+      await this.addSoundfont(soundfont);
+    }
   }
 
   noteOn(pitch: number): void {

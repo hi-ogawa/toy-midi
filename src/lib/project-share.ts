@@ -110,6 +110,7 @@ export async function decodeSharedProject(
   }
 }
 
+/** Converts `runtime.serializeProject()` to the format of share links and project files. */
 export function createSharedProject(
   project: SerializedEditorRuntimeState,
 ): SharedProject {

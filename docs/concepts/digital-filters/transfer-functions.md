@@ -94,7 +94,7 @@ y[n]=-a_1y[n-1]-a_2y[n-2]
 z^2+a_1z+a_2=0.
 $$
 
-A conjugate pair of roots $re^{\pm j\theta}$ gives real motion
+A conjugate pair of roots $r e^{\pm j\theta}$ gives real motion
 
 $$
 y[n]=Cr^n\cos(n\theta+\phi).

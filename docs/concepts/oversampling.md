@@ -2,7 +2,7 @@
 
 A nonlinear process such as clipping creates frequencies its input didn't have, and some of them can be higher than the sample rate can hold. Computed at the original rate, those frequencies don't disappear but fold back as tones that were never in the music. Oversampling runs the process at a higher rate, where the new frequencies fit, and filters them out on the way back. This document develops that picture and the filters used in [our implementation](../../src/lib/dsp/oversampler.ts), which the [guitar amp](guitar-amp-simulation.md) runs its drive inside.
 
-Throughout, $F_s$ is the original sample rate, 48 kHz in the examples, and $L=4$ is the oversampling factor, so the process runs at the **high rate** $LF_s$, 192 kHz.
+Throughout, $F_s$ is the original sample rate, 48 kHz in the examples, and $L=4$ is the oversampling factor, so the process runs at the **high rate** $L F_s$, 192 kHz.
 
 ## See Why Clipping Aliases
 
@@ -14,15 +14,15 @@ $$
 
 So every frequency above the **Nyquist frequency** $F_s/2$ has a twin below it, and a sample sequence can only represent frequencies up to $F_s/2$. A frequency $f$ above it shows up as its **alias** $F_s-f$, and more generally as $|f-mF_s|$ for the integer $m$ that lands it in $[0,F_s/2]$.
 
-A linear filter never creates frequencies, so this only matters when something new is made. Clipping a note at $f_0$ makes harmonics at $kf_0$ for $k=2,3,\dots$, and a hard-driven clipper makes many of them. For a 1318 Hz lead note, the 19th harmonic is at 25 kHz, past the 24 kHz Nyquist frequency, and computing the clipper sample by sample at 48 kHz puts it at $48-25=23$ kHz instead. The 21st, at 27.7 kHz, lands at 20.3 kHz, and so on down. These folded tones aren't multiples of $f_0$, so they sound like inharmonic fizz, and on a bend they move the wrong way, falling as the note rises.
+A linear filter never creates frequencies, so this only matters when something new is made. Clipping a note at $f_0$ makes harmonics at $k f_0$ for $k=2,3,\dots$, and a hard-driven clipper makes many of them. For a 1318 Hz lead note, the 19th harmonic is at 25 kHz, past the 24 kHz Nyquist frequency, and computing the clipper sample by sample at 48 kHz puts it at $48-25=23$ kHz instead. The 21st, at 27.7 kHz, lands at 20.3 kHz, and so on down. These folded tones aren't multiples of $f_0$, so they sound like inharmonic fizz, and on a bend they move the wrong way, falling as the note rises.
 
 ## Raise the Rate, Process, and Come Back
 
-If the clipper runs at $LF_s$, its Nyquist frequency is $LF_s/2$, 96 kHz at $L=4$, and harmonics up to there are represented correctly. Only harmonics above 96 kHz still fold, and a clipper's harmonics are weak that high. Afterwards everything above the original $F_s/2$ is removed before returning to $F_s$, so those harmonics are cut instead of folded.
+If the clipper runs at $L F_s$, its Nyquist frequency is $L F_s/2$, 96 kHz at $L=4$, and harmonics up to there are represented correctly. Only harmonics above 96 kHz still fold, and a clipper's harmonics are weak that high. Afterwards everything above the original $F_s/2$ is removed before returning to $F_s$, so those harmonics are cut instead of folded.
 
 ### Upsample by Interpolating
 
-Running the clipper at $LF_s$ needs values between the original samples, $L-1$ new ones after each. Filling them in is interpolation, and the obvious ways are to repeat each sample or to draw straight lines between samples. Both work the same way, because each sample places a bump centered on itself, scaled by its value, and the bumps add up. With $t$ counted in original samples,
+Running the clipper at $L F_s$ needs values between the original samples, $L-1$ new ones after each. Filling them in is interpolation, and the obvious ways are to repeat each sample or to draw straight lines between samples. Both work the same way, because each sample places a bump centered on itself, scaled by its value, and the bumps add up. With $t$ counted in original samples,
 
 $$
 x(t)=\sum_n x[n] \cdot b(t-n),
@@ -40,7 +40,7 @@ It's also 1 at its own sample and 0 at every other one, but it's smooth and spre
 
 ![Each sample's sinc bump is zero at all the other samples, and the bumps add up to a smooth curve through every sample](images/oversampling-sinc-bumps.svg)
 
-**On the finer grid, each output is a convolution.** The upsampler needs $x(t)$ only at $t=m/L$. Read the same sum from the output's side: each output point takes a weighted sum of the input samples near it, with the bump's values at their distances as the weights, which is a convolution. On the finer grid the samples sit at every $L$th point, and there's nothing to weigh at the points between them, so the input written at the new rate is the samples with $L-1$ zeros after each,
+**On the finer grid, each output is a convolution.** The upsampler needs $x(t)$ only at $t=m/L$. Read the same sum from the output's side: each output point takes a weighted sum of the input samples near it, with the bump's values at their distances as the weights, which is a convolution. On the finer grid the samples sit at every $L$-th point, and there's nothing to weigh at the points between them, so the input written at the new rate is the samples with $L-1$ zeros after each,
 
 $$
 v[m]=\begin{cases}x[m/L] & L\mid m,\\ 0 & \text{otherwise,}\end{cases}
@@ -66,13 +66,13 @@ So the zeros aren't a separate trick. They're what the input looks like at the n
 
 > 🚧 TODO: not yet internalized by the author.
 
-**The zeros add images above $F_s/2$, and the low-pass removes them.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
+**The zeros add images above $F_s/2$, and the low-pass removes them.** Write $\tilde x[m]=x(m/L)$ for the ideal signal on the finer grid. Inserting zeros keeps every $L$-th value of it and zeroes the rest, so $v=\tilde x \cdot c$ with the comb $c[m]=1$ when $L\mid m$ and $0$ otherwise. The comb is an average of $L$ tones,
 
 $$
 c[m]=\frac{1}{L}\sum_{k=0}^{L-1}e^{j2\pi km/L},
 $$
 
-since the terms all equal 1 when $L$ divides $m$ and otherwise are evenly spaced around the unit circle and cancel. At the high rate $LF_s$, the tone $e^{j2\pi km/L}$ has frequency $kF_s$, and multiplying by it shifts a spectrum up by $kF_s$. So
+since the terms all equal 1 when $L$ divides $m$ and otherwise are evenly spaced around the unit circle and cancel. At the high rate $L F_s$, the tone $e^{j2\pi km/L}$ has frequency $k F_s$, and multiplying by it shifts a spectrum up by $k F_s$. So
 
 $$
 v=\frac{1}{L}\tilde x+\frac{1}{L}\sum_{k=1}^{L-1}\big(\tilde x \text{ shifted up by } kF_s\big).
@@ -86,9 +86,9 @@ The box's and triangle's spectra fall gradually instead, so they dull the top of
 
 This low-pass is a different kind of filter from the amp's [low-passes and high-passes](digital-filters/low-pass-and-high-pass.md), and it's designed from the sinc rather than from those articles, as the [appendix](#appendix-a-low-pass-without-feedback) explains.
 
-### Downsample by Filtering and Keeping Every $L$th Sample
+### Downsample by Filtering and Keeping Every $L$-th Sample
 
-Keeping every $L$th sample is sampling again at $F_s$, so anything above $F_s/2$ in the processed signal would alias by the same rule as above. A low-pass at the original Nyquist frequency removes it first, and then every $L$th sample is kept.
+Keeping every $L$-th sample is sampling again at $F_s$, so anything above $F_s/2$ in the processed signal would alias by the same rule as above. A low-pass at the original Nyquist frequency removes it first, and then every $L$-th sample is kept.
 
 ## Design the Low-Pass Kernel
 
@@ -102,7 +102,7 @@ $$
 h_\text{ideal}[n]=\frac{1}{L}\text{sinc}\frac{n}{L}.
 $$
 
-The frequency side reaches the same kernel. Measured in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, $\omega=2\pi f/(LF_s)$, the high rate's Nyquist frequency $LF_s/2$ is $\pi$ and the cutoff $F_s/2$ is $\omega_c=\pi/L$. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response $\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}\,d\omega=\frac{\sin(\omega_c n)}{\pi n}$, which is $\frac{1}{L}\text{sinc}\frac{n}{L}$ again. Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. Tapering the taps by a **window** $w[n]$ lowers it:
+The frequency side reaches the same kernel. Measured in [radians per sample](digital-filters/transfer-functions.md#represent-gain-and-phase-with-one-multiplier) at the high rate, $\omega=2\pi f/(LF_s)$, the high rate's Nyquist frequency $L F_s/2$ is $\pi$ and the cutoff $F_s/2$ is $\omega_c=\pi/L$. The ideal low-pass has a gain of 1 for $|\omega|\lt\omega_c$ and 0 above, and transforming that box back to time gives its impulse response $\frac{1}{2\pi}\int_{-\omega_c}^{\omega_c}e^{j\omega n}\,d\omega=\frac{\sin(\omega_c n)}{\pi n}$, which is $\frac{1}{L}\text{sinc}\frac{n}{L}$ again. Either way, the kernel is infinitely long. Cutting it to $N$ taps, centered at $c=(N-1)/2$ so the filter delays every frequency equally by $c$ samples, makes it usable. Cutting it abruptly makes the response ripple on both sides of the cutoff, which is known as the Gibbs phenomenon. The largest stopband ripple, just above the cutoff, is only about 21 dB below the passband, and adding taps doesn't lower it, because a longer cut only packs the ripples closer to the cutoff. Tapering the taps by a **window** $w[n]$ lowers it:
 
 $$
 h[n]=\frac{\sin\big(\omega_c(n-c)\big)}{\pi(n-c)} \cdot w[n],
@@ -164,11 +164,11 @@ Applied directly, both filters would spend most of their multiplications on noth
 
 ![Upsampling: each of the four outputs of x5 slides the low-pass one step, and every one meets the same samples x5, x4, x3, at taps p, p + 4, p + 8. Downsampling: only every 4th output is computed, so the low-pass jumps four steps between them](images/oversampling-polyphase.svg)
 
-In the upsampler, each of the $L$ outputs after an input sample slides the low-pass one step further, but the real samples under it stay the same until the next input sample arrives. So output $p$, counting from 0, is a short filter over the last $N/L=24$ input samples that uses every $L$th tap starting at tap $p$, and the $L$ outputs together use each tap once. In the downsampler, every sample is real, but only one output in $L$ is kept, so the low-pass runs only there and jumps $L$ steps from one kept output to the next. Either way, each original sample costs $N=96$ multiplications instead of $4N$. The [implementation](../../src/lib/dsp/oversampler.ts) keeps only the real samples, newest first like the figure, so each of its sums reads the colored cells of a row left to right at full size.
+In the upsampler, each of the $L$ outputs after an input sample slides the low-pass one step further, but the real samples under it stay the same until the next input sample arrives. So output $p$, counting from 0, is a short filter over the last $N/L=24$ input samples that uses every $L$-th tap starting at tap $p$, and the $L$ outputs together use each tap once. In the downsampler, every sample is real, but only one output in $L$ is kept, so the low-pass runs only there and jumps $L$ steps from one kept output to the next. Either way, each original sample costs $N=96$ multiplications instead of $4N$. The [implementation](../../src/lib/dsp/oversampler.ts) keeps only the real samples, newest first like the figure, so each of its sums reads the colored cells of a row left to right at full size.
 
 ## Account for the Delay
 
-Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays by 95. The downsampler's output $n$ is computed at high-rate sample $Ln+L-1$, the last of its block, so the round trip delays by $(95-3)/4=23$ original samples, about half a millisecond at 48 kHz.
+Each low-pass delays by $c=(N-1)/2=47.5$ high-rate samples, so the pair delays by 95. The downsampler's output $n$ is computed at high-rate sample $L n+L-1$, the last of its block, so the round trip delays by $(95-3)/4=23$ original samples, about half a millisecond at 48 kHz.
 
 ## References
 
