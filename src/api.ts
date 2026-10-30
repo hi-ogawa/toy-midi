@@ -1,6 +1,6 @@
 import type { ScoreViewerRuntime } from "./components/score-viewer-runtime";
 import { readProjectArchiveBlob } from "./lib/project-archive";
-import { convertSharedProject } from "./lib/project-share";
+import { convertSharedProject, createSharedProject } from "./lib/project-share";
 import type { EditorRuntime } from "./lib/runtime";
 import { encodeWav } from "./lib/wav";
 
@@ -19,6 +19,7 @@ export type ToyMidiGlobal = {
 
 const toyMidiUtils = {
   convertSharedProject,
+  createSharedProject,
   readProjectArchiveBlob,
   encodeWav,
 };
