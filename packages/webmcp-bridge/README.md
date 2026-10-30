@@ -75,7 +75,9 @@ Describes the page's tools. Each comes with its description and input schema, wh
 $ webmcp-bridge get-tools
 # toy_midi_eval
 
-Run JavaScript against the open toy-midi project. `runtime` owns the project state and playback. Read state with `runtime.store.get()` and change it only through runtime methods.
+Run JavaScript against the open toy-midi project, with `toyMidi`, the page's `window.toyMidi`, in scope.
+
+Its API is declared as `ToyMidiGlobal` in https://toy-midi.hiro18181.workers.dev/llms/toy-midi.d.ts. Read it before writing code.
 
 ## Input schema
 
@@ -84,7 +86,7 @@ Run JavaScript against the open toy-midi project. `runtime` owns the project sta
   "properties": {
     "code": {
       "type": "string",
-      "description": "Body of an async function with `runtime` in scope. Return a JSON-serializable value."
+      "description": "Body of an async function with `toyMidi` in scope. Return a JSON-serializable value."
     }
   },
   "required": [
@@ -98,7 +100,7 @@ Run JavaScript against the open toy-midi project. `runtime` owns the project sta
 Runs a tool with the JSON input, `{}` by default, and prints the result as JSON, or as is when it is a string. When the result is `{ isError, value }` or `{ isError, error }`, as described in [Exposing Tools from an App](#exposing-tools-from-an-app), the command prints the value, or fails with the error:
 
 ```console
-$ webmcp-bridge execute-tool toy_midi_eval --arg code='return runtime.store.get().tempo'
+$ webmcp-bridge execute-tool toy_midi_eval --arg code='return toyMidi.runtime.store.get().tempo'
 120
 ```
 
@@ -106,6 +108,7 @@ $ webmcp-bridge execute-tool toy_midi_eval --arg code='return runtime.store.get(
 
 ```console
 $ webmcp-bridge execute-tool toy_midi_eval --arg code=- <<'JS'
+const { runtime } = toyMidi;
 await runtime.addMidiTrack({ program: 33 });
 const id = runtime.store.get().midiTracks.at(-1).id;
 runtime.setMidiTrackNotes(id, [
@@ -125,8 +128,8 @@ JS
 A tool that fails prints its error to standard error:
 
 ```console
-$ webmcp-bridge execute-tool toy_midi_eval --arg code='return runtime.nope()'
-TypeError: runtime.nope is not a function
+$ webmcp-bridge execute-tool toy_midi_eval --arg code='return toyMidi.runtime.nope()'
+TypeError: toyMidi.runtime.nope is not a function
     at eval (eval at execute (…/src/lib/webmcp-tools.ts:23:25), <anonymous>:3:16)
     …
 $ echo $?
