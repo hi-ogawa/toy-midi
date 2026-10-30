@@ -48,3 +48,59 @@ test("changes a synth track's waveform in its Synth panel", async ({
     "false",
   );
 });
+
+test("adds, collapses, and removes layers in the Synth panel", async ({
+  page,
+}) => {
+  // Open a synth track's panel, and see its one layer with removal disabled.
+  await createProject(page);
+  await addMidiTrack(page);
+  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
+  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
+  await instrument.getByRole("button", { name: "Close", exact: true }).click();
+  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Synth…" });
+  const panel = page.getByTestId("synth-panel");
+  const layer1 = panel.getByRole("group", { name: "Layer 1" });
+  const layer2 = panel.getByRole("group", { name: "Layer 2" });
+  await expect(
+    layer1.getByRole("button", { name: "Remove Layer 1" }),
+  ).toBeDisabled();
+
+  // Add a layer, and see it start from the default sine.
+  await panel.getByRole("button", { name: "+ Layer" }).click();
+  await expect(layer2.getByRole("button", { name: "Sine" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(
+    layer1.getByRole("button", { name: "Remove Layer 1" }),
+  ).toBeEnabled();
+
+  // Switch the second layer to square, and see the first layer keep sine.
+  await layer2.getByRole("button", { name: "Square" }).click();
+  await expect(layer2.getByRole("button", { name: "Square" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(layer1.getByRole("button", { name: "Sine" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  // Collapse the first layer to its header, and see the second stay open.
+  await layer1.getByRole("button", { name: "Layer 1", exact: true }).click();
+  await expect(layer1.getByRole("group", { name: "Waveform" })).toHaveCount(0);
+  await expect(layer2.getByRole("group", { name: "Waveform" })).toBeVisible();
+
+  // Remove the first layer, and see the square layer move up, open, as the
+  // only layer.
+  await layer1.getByRole("button", { name: "Remove Layer 1" }).click();
+  await expect(layer2).toHaveCount(0);
+  await expect(layer1.getByRole("button", { name: "Square" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(
+    layer1.getByRole("button", { name: "Remove Layer 1" }),
+  ).toBeDisabled();
+});
