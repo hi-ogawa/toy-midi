@@ -1,5 +1,4 @@
 import type { WebMcpTool } from "@hiogawa/webmcp-bridge/webmcp";
-import type { ToyMidiGlobal } from "../page-global";
 
 const AsyncFunction = async function () {}.constructor as new (
   ...args: string[]
@@ -9,7 +8,7 @@ const AsyncFunction = async function () {}.constructor as new (
  * Tools for an agent to act on the open project, in the WebMCP tool
  * shape.
  */
-export function createWebMcpTools(toyMidi: ToyMidiGlobal): WebMcpTool[] {
+export function createWebMcpTools(): WebMcpTool[] {
   return [
     {
       name: "toy_midi_eval",
@@ -32,7 +31,7 @@ export function createWebMcpTools(toyMidi: ToyMidiGlobal): WebMcpTool[] {
         // Serialize here, so a non-JSON value becomes an error the agent can
         // read.
         try {
-          const value = await new AsyncFunction("toyMidi", code)(toyMidi);
+          const value = await new AsyncFunction(code)();
           return JSON.parse(JSON.stringify({ isError: false, value }));
         } catch (error) {
           return {

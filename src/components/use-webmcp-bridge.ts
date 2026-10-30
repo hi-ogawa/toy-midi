@@ -5,21 +5,20 @@ import {
 import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 import { useEffect } from "react";
 import { createWebMcpTools } from "../lib/webmcp-tools";
-import type { ToyMidiGlobal } from "../page-global";
 
 /**
- * Registers WebMCP tools over the page's `window.toyMidi` entries with
- * `document.modelContext`, installing a polyfill in browsers without WebMCP,
- * so the webmcp-bridge extension can expose them. With `?webmcp-bridge` or
- * `?webmcp-bridge=<port>` in the page URL, the page also exposes them to the
- * local webmcp-bridge itself.
+ * Registers the open project's WebMCP tools with `document.modelContext`,
+ * installing a polyfill in browsers without WebMCP, so the webmcp-bridge
+ * extension can expose them. With `?webmcp-bridge` or `?webmcp-bridge=<port>`
+ * in the page URL, the page also exposes them to the local webmcp-bridge
+ * itself.
  */
-export function useWebMcpBridge(toyMidi: ToyMidiGlobal) {
+export function useWebMcpBridge() {
   useEffect(() => {
     const modelContext = (document.modelContext ??=
       createModelContextPolyfill());
     const controller = new AbortController();
-    for (const tool of createWebMcpTools(toyMidi)) {
+    for (const tool of createWebMcpTools()) {
       void modelContext.registerTool(tool, { signal: controller.signal });
     }
     const params = new URL(window.location.href).searchParams;
@@ -35,5 +34,5 @@ export function useWebMcpBridge(toyMidi: ToyMidiGlobal) {
       controller.abort();
       dispose?.();
     };
-  }, [toyMidi]);
+  }, []);
 }
