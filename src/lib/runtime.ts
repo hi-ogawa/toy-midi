@@ -1181,7 +1181,6 @@ export class EditorRuntime {
     });
   }
 
-  /** The project in its saved format, with each audio track's samples. */
   serializeProject(): SerializedEditorRuntimeState {
     return serializeEditorRuntimeState(this.store.get());
   }
