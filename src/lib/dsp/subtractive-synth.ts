@@ -1,5 +1,11 @@
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { midiToHz } from "../music.ts";
+import {
+  computeEnvelopeCurves,
+  type Envelope,
+  type EnvelopeCurves,
+  EnvelopeState,
+} from "./envelope.ts";
 
 export const WAVEFORMS = ["sine", "triangle", "sawtooth", "square"] as const;
 export type Waveform = (typeof WAVEFORMS)[number];
@@ -12,16 +18,38 @@ export interface SynthPatch {
 
 export interface SynthLayer {
   oscillator: { waveform: Waveform };
+  amp?: {
+    envelope?: Envelope;
+    /**
+     * How much velocity scales the level, from 0, where every note plays at
+     * full level, to 1, where the level is velocity / 127
+     */
+    velocity?: number;
+  };
 }
 
 export const DEFAULT_SYNTH_PATCH: SynthPatch = {
   layers: [{ oscillator: { waveform: "sine" } }],
 };
 
-// Short enough to sound immediate, long enough to keep note edges from clicking.
-const RAMP_SECONDS = 0.005;
+// A gate whose 5 ms edges are short enough to sound immediate and long enough
+// to keep notes from clicking. The decay only matters once the sustain is
+// lowered.
+export const DEFAULT_AMP_ENVELOPE: Envelope = {
+  attack: 0.005,
+  decay: 0.3,
+  sustain: 1,
+  release: 0.005,
+};
+export const DEFAULT_AMP_VELOCITY = 1;
 // Leaves headroom for chords at full velocity.
 export const PEAK_GAIN = 0.2;
+
+interface ResolvedLayer {
+  oscillate: Oscillator;
+  ampEnvelope: EnvelopeCurves;
+  ampVelocity: number;
+}
 
 interface Voice {
   pitch: number;
@@ -32,21 +60,32 @@ interface Voice {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
-  gain: number;
-  targetGain: number;
+  velocity: number;
+  /** One per layer */
+  ampEnvelopes: EnvelopeState[];
 }
 
 export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
-  private layers = DEFAULT_SYNTH_PATCH.layers;
-  private readonly gainStep: number;
+  private layers: ResolvedLayer[];
 
   constructor(private readonly sampleRate: number) {
-    this.gainStep = PEAK_GAIN / (RAMP_SECONDS * sampleRate);
+    this.layers = this.resolveLayers(DEFAULT_SYNTH_PATCH);
   }
 
   setPatch(patch: SynthPatch): void {
-    this.layers = patch.layers;
+    this.layers = this.resolveLayers(patch);
+  }
+
+  private resolveLayers(patch: SynthPatch): ResolvedLayer[] {
+    return patch.layers.map((layer) => ({
+      oscillate: OSCILLATORS[layer.oscillator.waveform],
+      ampEnvelope: computeEnvelopeCurves(
+        layer.amp?.envelope ?? DEFAULT_AMP_ENVELOPE,
+        this.sampleRate,
+      ),
+      ampVelocity: layer.amp?.velocity ?? DEFAULT_AMP_VELOCITY,
+    }));
   }
 
   noteOn(pitch: number, velocity: number): void {
@@ -55,15 +94,15 @@ export class SubtractiveSynth implements SynthEngine {
       pitch,
       phaseIncrement: midiToHz(pitch) / this.sampleRate,
       phase: 0,
-      gain: 0,
-      targetGain: PEAK_GAIN * (velocity / 127),
+      velocity,
+      ampEnvelopes: this.layers.map(() => new EnvelopeState()),
     });
   }
 
   noteOff(pitch: number): void {
     for (const voice of this.voices) {
       if (voice.pitch === pitch) {
-        voice.targetGain = 0;
+        releaseVoice(voice);
       }
     }
   }
@@ -79,45 +118,56 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    const oscillators = this.layers.map(
-      (layer) => OSCILLATORS[layer.oscillator.waveform],
-    );
     for (const voice of this.voices) {
+      // Layers that a patch change adds play from the next note.
+      const layerCount = Math.min(
+        this.layers.length,
+        voice.ampEnvelopes.length,
+      );
+      const velocityGains = this.layers.map(
+        (layer) =>
+          PEAK_GAIN * (1 - layer.ampVelocity * (1 - voice.velocity / 127)),
+      );
       for (let i = offset; i < offset + length; i++) {
-        const step = Math.min(
-          this.gainStep,
-          Math.abs(voice.targetGain - voice.gain),
-        );
-        voice.gain += voice.targetGain > voice.gain ? step : -step;
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
-        for (const oscillate of oscillators) {
-          sample += oscillate(voice.phase, voice.phaseIncrement);
+        for (let l = 0; l < layerCount; l++) {
+          const layer = this.layers[l];
+          sample +=
+            layer.oscillate(voice.phase, voice.phaseIncrement) *
+            velocityGains[l] *
+            voice.ampEnvelopes[l].advance(layer.ampEnvelope);
         }
-        sample *= voice.gain;
         left[i] += sample;
         right[i] += sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
       }
     }
-    this.voices = this.voices.filter(
-      (voice) => voice.gain > 0 || voice.targetGain > 0,
+    this.voices = this.voices.filter((voice) =>
+      voice.ampEnvelopes
+        .slice(0, this.layers.length)
+        .some((envelope) => envelope.stage !== "idle"),
     );
   }
 
   stopAll(): void {
     for (const voice of this.voices) {
-      voice.targetGain = 0;
+      releaseVoice(voice);
     }
   }
 }
 
-/** Each takes the phase and the phase increment in cycles, with a peak of 1. */
-const OSCILLATORS: Record<
-  Waveform,
-  (phase: number, increment: number) => number
-> = {
+function releaseVoice(voice: Voice): void {
+  for (const envelope of voice.ampEnvelopes) {
+    envelope.release();
+  }
+}
+
+/** Takes the phase and the phase increment in cycles, with a peak of 1. */
+type Oscillator = (phase: number, increment: number) => number;
+
+const OSCILLATORS: Record<Waveform, Oscillator> = {
   sine: (phase) => Math.sin(2 * Math.PI * phase),
   // Starts at 0 and rises, in phase with the sine. It has no jumps to correct,
   // but from about 1 kHz its corners alias more than a corrected sawtooth.

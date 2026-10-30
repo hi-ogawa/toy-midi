@@ -46,6 +46,57 @@ describe(SubtractiveSynth, () => {
     expect(measureLevel(64) / measureLevel(127)).toBeCloseTo(64 / 127, 2);
   });
 
+  it("scales a note's level with velocity by the layer's depth", () => {
+    const measureLevel = (velocity: number, depth: number) => {
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch({
+        layers: [
+          { oscillator: { waveform: "sine" }, amp: { velocity: depth } },
+        ],
+      });
+      const buffers = createBuffers(4800);
+      synth.noteOn(60, velocity);
+      synth.render(buffers[0], buffers[1], 0, 4800);
+      return measureRms(buffers[0].subarray(RAMP_FRAMES));
+    };
+    expect(measureLevel(64, 0) / measureLevel(127, 0)).toBeCloseTo(1, 3);
+    expect(measureLevel(0, 0.5) / measureLevel(127, 0.5)).toBeCloseTo(0.5, 3);
+  });
+
+  it("plays each layer through its own amp envelope", () => {
+    // The first layer holds at half level, and the second decays away.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      layers: [
+        {
+          oscillator: { waveform: "sine" },
+          amp: {
+            envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 },
+          },
+        },
+        {
+          oscillator: { waveform: "sine" },
+          amp: {
+            envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.1 },
+          },
+        },
+      ],
+    });
+    const buffers = createBuffers(SAMPLE_RATE);
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 0.5 * SAMPLE_RATE);
+    synth.noteOff(69);
+    synth.render(buffers[0], buffers[1], 0.5 * SAMPLE_RATE, 0.5 * SAMPLE_RATE);
+    expect(
+      measureRms(buffers[0].subarray(0.1 * SAMPLE_RATE, 0.5 * SAMPLE_RATE)),
+    ).toBeCloseTo((0.5 * PEAK_GAIN) / Math.SQRT2, 4);
+    // Releasing from half level ends a little before the release time.
+    expect(measureRms(buffers[0].subarray(0.59 * SAMPLE_RATE))).toBeGreaterThan(
+      0,
+    );
+    expect(measureRms(buffers[0].subarray(0.6 * SAMPLE_RATE))).toBe(0);
+  });
+
   it("mixes into the buffers from the offset", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(960);
