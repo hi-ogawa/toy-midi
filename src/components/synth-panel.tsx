@@ -74,8 +74,7 @@ function SynthPanelContent({
   patch: SynthPatch;
   onChange: (patch: SynthPatch) => void;
 }) {
-  // Indexed like the patch's layers. Collapsing is a view of the panel, so
-  // the patch doesn't save it.
+  // `collapsed[i]` is the flag for `patch.layers[i]`
   const [collapsed, setCollapsed] = useState<boolean[]>([]);
 
   function updateLayer(index: number, layer: SynthLayer) {
