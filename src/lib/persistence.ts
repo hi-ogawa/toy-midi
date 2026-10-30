@@ -259,8 +259,7 @@ export function deserializeEditorRuntimeState({
       synth: track.synth && {
         ...track.synth,
         layers: track.synth.layers.map((layer) => ({
-          gain: 1,
-          amp: DEFAULT_SYNTH_LAYER.amp,
+          ...DEFAULT_SYNTH_LAYER,
           ...layer,
         })),
       },
