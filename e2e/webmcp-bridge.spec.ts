@@ -26,7 +26,7 @@ extensionTest(
       "execute-tool",
       "toy_midi_eval",
       "--arg",
-      "code=return runtime.store.get().tempo",
+      "code=return toyMidi.runtime.store.get().tempo",
     ]);
     expect(tempo).toEqual({ code: 0, stdout: "120\n", stderr: "" });
 
@@ -34,6 +34,7 @@ extensionTest(
     const edit = await bridge.run(
       ["execute-tool", "toy_midi_eval", "--arg", "code=-"],
       `
+      const { runtime } = toyMidi;
       runtime.setTempo(98);
       const id = await runtime.addMidiTrack({ program: 33 });
       runtime.setMidiTrackNotes(id, [
@@ -92,7 +93,7 @@ test("connects the open project to the bridge from the URL parameter", async ({
     "execute-tool",
     "toy_midi_eval",
     "--arg",
-    "code=return runtime.store.get().tempo",
+    "code=return toyMidi.runtime.store.get().tempo",
   ]);
   expect(tempo).toEqual({ code: 0, stdout: "120\n", stderr: "" });
 
