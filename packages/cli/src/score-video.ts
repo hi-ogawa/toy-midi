@@ -111,7 +111,7 @@ async function renderVideo({
       await page.evaluate(
         ({ workerStartFrame, fps }) => {
           for (let frame = 0; frame < workerStartFrame; frame++) {
-            window.__toyMidiCli!.scoreViewer!.seek(frame / fps);
+            window.toyMidi.scoreViewer!.seek(frame / fps);
           }
         },
         { workerStartFrame: startFrame + worker, fps: options.fps },
@@ -120,7 +120,7 @@ async function renderVideo({
       // shorter than that, but real scores have no such systems.
       for (let frame = worker; frame < frameCount; frame += options.workers) {
         await page.evaluate(
-          (seconds) => window.__toyMidiCli!.scoreViewer!.seek(seconds),
+          (seconds) => window.toyMidi.scoreViewer!.seek(seconds),
           (startFrame + frame) / options.fps,
         );
         const { data } = await cdp.send("Page.captureScreenshot", {
@@ -159,7 +159,7 @@ async function openScorePage({
     viewport: { width: options.width, height: options.height },
   });
   const duration = await page.evaluate(async (score) => {
-    const viewer = window.__toyMidiCli!.scoreViewer!;
+    const viewer = window.toyMidi.scoreViewer!;
     // The composition adds its own title, so the score layer omits it.
     await viewer.load({
       score,

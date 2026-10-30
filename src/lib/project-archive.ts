@@ -41,6 +41,12 @@ export async function exportProjectArchive(
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
+export async function readProjectArchiveBlob(
+  archive: Blob,
+): Promise<SerializedEditorRuntimeState> {
+  return readProjectArchive(await JSZip.loadAsync(archive));
+}
+
 export async function readProjectArchive(
   zip: JSZip,
 ): Promise<SerializedEditorRuntimeState> {

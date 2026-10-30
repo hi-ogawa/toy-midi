@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { type Browser, chromium, type ViewportSize } from "playwright-core";
-import type { CliApi } from "../../../src/lib/cli-api";
+import type { ToyMidiGlobal } from "../../../src/api";
 
 export const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
 
@@ -31,7 +31,7 @@ export async function openCliPage({
   browser: Browser;
   url: string;
   pathname: string;
-  api: keyof CliApi;
+  api: keyof ToyMidiGlobal;
   viewport?: ViewportSize;
 }) {
   const page = await browser.newPage({ viewport });
@@ -39,7 +39,7 @@ export async function openCliPage({
   await page.goto(pageUrl);
   // The deployed app may predate the page, so fail with a clear message.
   try {
-    await page.waitForFunction((api) => window.__toyMidiCli?.[api], api, {
+    await page.waitForFunction((api) => window.toyMidi?.[api], api, {
       timeout: 10_000,
     });
   } catch {

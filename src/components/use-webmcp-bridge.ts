@@ -4,7 +4,6 @@ import {
 } from "@hiogawa/webmcp-bridge/client";
 import { createModelContextPolyfill } from "@hiogawa/webmcp-bridge/model-context-polyfill";
 import { useEffect } from "react";
-import type { EditorRuntime } from "../lib/runtime";
 import { createWebMcpTools } from "../lib/webmcp-tools";
 
 /**
@@ -14,12 +13,12 @@ import { createWebMcpTools } from "../lib/webmcp-tools";
  * in the page URL, the page also exposes them to the local webmcp-bridge
  * itself.
  */
-export function useWebMcpBridge(runtime: EditorRuntime) {
+export function useWebMcpBridge() {
   useEffect(() => {
     const modelContext = (document.modelContext ??=
       createModelContextPolyfill());
     const controller = new AbortController();
-    for (const tool of createWebMcpTools(runtime)) {
+    for (const tool of createWebMcpTools()) {
       void modelContext.registerTool(tool, { signal: controller.signal });
     }
     const params = new URL(window.location.href).searchParams;
@@ -35,5 +34,5 @@ export function useWebMcpBridge(runtime: EditorRuntime) {
       controller.abort();
       dispose?.();
     };
-  }, [runtime]);
+  }, []);
 }
