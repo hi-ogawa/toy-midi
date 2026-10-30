@@ -30,14 +30,12 @@ export function createAudioTrackState(): Omit<AudioTrackState, "name"> {
   };
 }
 
-export function createMidiTrackState(): Omit<
-  MidiTrackState,
-  "name" | "program"
-> {
+export function createMidiTrackState(): Omit<MidiTrackState, "name"> {
   return {
     id: crypto.randomUUID(),
     notes: [],
     automation: [],
+    program: 0,
     eq: createDefaultMultibandEq(),
     height: 300,
     viewMode: "editor",
