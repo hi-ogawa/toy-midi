@@ -60,7 +60,6 @@ export class SubtractiveSynth implements SynthEngine {
   private channelGain = computeChannelGain(DEFAULT_VOLUME, DEFAULT_EXPRESSION);
   private targetChannelGain = this.channelGain;
   private readonly channelGainStep: number;
-  private channelGains = new Float32Array(128);
 
   constructor(private readonly sampleRate: number) {
     this.gainStep = PEAK_GAIN / (RAMP_SECONDS * sampleRate);
@@ -120,9 +119,9 @@ export class SubtractiveSynth implements SynthEngine {
       oscillate: OSCILLATORS[layer.oscillator.waveform],
       gain: layer.gain,
     }));
-    const channelGains = this.rampChannelGain(length);
-    for (const voice of this.voices) {
-      for (let i = offset; i < offset + length; i++) {
+    for (let i = offset; i < offset + length; i++) {
+      let mix = 0;
+      for (const voice of this.voices) {
         const step = Math.min(
           this.gainStep,
           Math.abs(voice.targetGain - voice.gain),
@@ -134,11 +133,20 @@ export class SubtractiveSynth implements SynthEngine {
         for (const { oscillate, gain } of oscillators) {
           sample += gain * oscillate(voice.phase, voice.phaseIncrement);
         }
-        sample *= voice.gain * channelGains[i - offset];
-        left[i] += sample;
-        right[i] += sample;
+        mix += voice.gain * sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
       }
+      // Automation holds each value until the next, so the channel gain moves
+      // to a new value over a short ramp instead of jumping, which would click.
+      const channelStep = Math.min(
+        this.channelGainStep,
+        Math.abs(this.targetChannelGain - this.channelGain),
+      );
+      this.channelGain +=
+        this.targetChannelGain > this.channelGain ? channelStep : -channelStep;
+      mix *= this.channelGain;
+      left[i] += mix;
+      right[i] += mix;
     }
     this.voices = this.voices.filter(
       (voice) => voice.gain > 0 || voice.targetGain > 0,
@@ -149,27 +157,6 @@ export class SubtractiveSynth implements SynthEngine {
     for (const voice of this.voices) {
       voice.targetGain = 0;
     }
-  }
-
-  /**
-   * Returns the channel gain for each of the next `length` frames. Automation
-   * holds each value until the next, so the gain moves to a new value over a
-   * short ramp instead of jumping, which would click.
-   */
-  private rampChannelGain(length: number): Float32Array {
-    if (this.channelGains.length < length) {
-      this.channelGains = new Float32Array(length);
-    }
-    for (let i = 0; i < length; i++) {
-      const step = Math.min(
-        this.channelGainStep,
-        Math.abs(this.targetChannelGain - this.channelGain),
-      );
-      this.channelGain +=
-        this.targetChannelGain > this.channelGain ? step : -step;
-      this.channelGains[i] = this.channelGain;
-    }
-    return this.channelGains;
   }
 }
 
