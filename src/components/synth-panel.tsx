@@ -168,7 +168,7 @@ function SynthLayerRow({
         </button>
         <GainKnob
           label={`${name} gain`}
-          gain={layer.gain ?? 1}
+          gain={layer.gain}
           onGainChange={(gain) => onChange({ ...layer, gain })}
         />
         <button

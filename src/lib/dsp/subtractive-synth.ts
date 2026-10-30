@@ -12,12 +12,13 @@ export interface SynthPatch {
 
 export interface SynthLayer {
   oscillator: { waveform: Waveform };
-  /** Linear multiplier on the layer's output, 1 by default */
-  gain?: number;
+  /** Linear multiplier on the layer's output */
+  gain: number;
 }
 
 export const DEFAULT_SYNTH_LAYER: SynthLayer = {
   oscillator: { waveform: "sine" },
+  gain: 1,
 };
 
 export const DEFAULT_SYNTH_PATCH: SynthPatch = {
@@ -87,7 +88,7 @@ export class SubtractiveSynth implements SynthEngine {
   ): void {
     const oscillators = this.layers.map((layer) => ({
       oscillate: OSCILLATORS[layer.oscillator.waveform],
-      gain: layer.gain ?? 1,
+      gain: layer.gain,
     }));
     for (const voice of this.voices) {
       for (let i = offset; i < offset + length; i++) {

@@ -125,7 +125,7 @@ describe(SubtractiveSynth, () => {
     const buffers = createBuffers(4800);
     synth.setPatch({
       layers: [
-        { oscillator: { waveform: "sine" } },
+        { oscillator: { waveform: "sine" }, gain: 1 },
         { oscillator: { waveform: "sine" }, gain: 0.5 },
       ],
     });
@@ -168,7 +168,10 @@ function renderNote({
 
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
-    layers: waveforms.map((waveform) => ({ oscillator: { waveform } })),
+    layers: waveforms.map((waveform) => ({
+      oscillator: { waveform },
+      gain: 1,
+    })),
   };
 }
 
