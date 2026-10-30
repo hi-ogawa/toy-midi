@@ -1,6 +1,5 @@
-import JSZip from "jszip";
 import type { ScoreViewerRuntime } from "./components/score-viewer-runtime";
-import { readProjectArchive } from "./lib/project-archive";
+import { readProjectArchiveBlob } from "./lib/project-archive";
 import { convertSharedProject } from "./lib/project-share";
 import type { EditorRuntime } from "./lib/runtime";
 import { encodeWav } from "./lib/wav";
@@ -24,8 +23,7 @@ declare global {
 /** Helpers to compose with the runtime, kept off its API. */
 const toyMidiUtils = {
   convertSharedProject,
-  readProjectArchive: async (archive: Blob) =>
-    readProjectArchive(await JSZip.loadAsync(archive)),
+  readProjectArchive: readProjectArchiveBlob,
   encodeWav,
 };
 
