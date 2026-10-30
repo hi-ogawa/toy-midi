@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
+import type {} from "../src/api";
 import type { SharedProject } from "../src/lib/project-share";
-import type {} from "../src/page-global";
 
 export type RenderedMix = { sampleRate: number; channels: Float32Array[] };
 

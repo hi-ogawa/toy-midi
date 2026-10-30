@@ -2,4 +2,4 @@
 // agent guide and the eval tool's description point to.
 export type { EditorRuntime } from "./lib/runtime.ts";
 export type { SharedProject } from "./lib/project-share.ts";
-export type { ToyMidiGlobal, ToyMidiUtils } from "./page-global.ts";
+export type { ToyMidiGlobal, ToyMidiUtils } from "./api.ts";

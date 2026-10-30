@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { type Browser, chromium, type ViewportSize } from "playwright-core";
-import type { ToyMidiGlobal } from "../../../src/page-global";
+import type { ToyMidiGlobal } from "../../../src/api";
 
 export const DEFAULT_URL = "https://toy-midi.hiro18181.workers.dev";
 
