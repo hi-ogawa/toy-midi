@@ -113,10 +113,12 @@ export interface SerializedMidiTrackState extends Omit<
 }
 
 interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
-  layers: (Omit<SynthLayer, "gain"> & {
-    // 🟢 Optional for layers saved before per-layer gain.
-    gain?: number;
-  })[];
+  layers: SerializedSynthLayer[];
+}
+
+interface SerializedSynthLayer extends Omit<SynthLayer, "gain"> {
+  // 🟢 Optional for layers saved before per-layer gain.
+  gain?: number;
 }
 
 interface SerializedAudioTrackState<ChannelData> {
