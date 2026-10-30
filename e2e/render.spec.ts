@@ -59,6 +59,38 @@ test("renders a track's own synth", async ({ page }) => {
   ).toBeCloseTo(0);
 });
 
+test("renders volume automation on a track's own synth", async ({ page }) => {
+  // Render a held sine on the synth that drops from the default volume of 100
+  // to 64 on CC7 at beat 2, one second at 120 BPM.
+  const mix = await renderProject(page, {
+    title: "Synth volume",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    midiTracks: [
+      {
+        name: "Synth",
+        program: 0,
+        notes: [{ pitch: 69, start: 0, duration: 4, velocity: 100 }],
+        synth: { layers: [{ oscillator: { waveform: "sine" } }] },
+        automation: [
+          {
+            type: "controller",
+            controller: 7,
+            points: [{ beat: 2, value: 64 }],
+          },
+        ],
+      },
+    ],
+  });
+
+  // Check the level falls by the square of the volume ratio, 20 log10((64 /
+  // 100)²) ≈ -7.8 dB.
+  expect(
+    measureRmsDb(mix, { start: 1.1, end: 1.9 }) -
+      measureRmsDb(mix, { start: 0.1, end: 0.9 }),
+  ).toBeCloseTo(-7.8, 1);
+});
+
 test("renders a track's amp", async ({ page }) => {
   // Render one guitar note with and without the amp.
   const createProject = (amp?: AmpParameters): SharedProject => ({
