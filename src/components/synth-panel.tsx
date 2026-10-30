@@ -7,8 +7,11 @@ import {
   type Waveform,
   WAVEFORMS,
 } from "../lib/dsp/subtractive-synth";
+import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
+import { Knob } from "./ui/knob";
+import { usePointerDrag } from "./use-pointer-drag";
 import { WaveformIcon } from "./waveform-icon";
 
 const WAVEFORM_LABELS: Record<Waveform, string> = {
@@ -150,7 +153,7 @@ function SynthLayerRow({
       aria-label={name}
       className="overflow-hidden rounded border border-neutral-700"
     >
-      <div className="flex h-7 items-center gap-1 bg-neutral-900 pr-1">
+      <div className="flex h-8 items-center gap-1 bg-neutral-900 pr-1">
         <button
           type="button"
           aria-expanded={!collapsed}
@@ -164,6 +167,11 @@ function SynthLayerRow({
           )}
           {name}
         </button>
+        <GainKnob
+          label={`${name} gain`}
+          gain={layer.gain}
+          onGainChange={(gain) => onChange({ ...layer, gain })}
+        />
         <button
           type="button"
           aria-label={`Remove ${name}`}
@@ -202,6 +210,62 @@ function SynthLayerRow({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function GainKnob({
+  label,
+  gain,
+  onGainChange,
+}: {
+  label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
+}) {
+  const db = gainToDb(gain);
+  const setDb = (value: number) =>
+    onGainChange(dbToGain(clamp(Math.round(value * 10) / 10, MIN_DB, MAX_DB)));
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return db;
+    },
+    onMove: (_event, drag) =>
+      setDb(drag.data - (drag.deltaY / 200) * (MAX_DB - MIN_DB)),
+  });
+  const valueText = `${db.toFixed(1)} dB`;
+  return (
+    <div className="flex items-center gap-2">
+      <Knob
+        ref={ref}
+        aria-label={label}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 6 : 0.5;
+          const next = {
+            ArrowLeft: db - step,
+            ArrowDown: db - step,
+            ArrowRight: db + step,
+            ArrowUp: db + step,
+            Home: MIN_DB,
+            End: MAX_DB,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setDb(next);
+          }
+        }}
+        value={db}
+        min={MIN_DB}
+        max={MAX_DB}
+        origin={0}
+        className="cursor-ns-resize"
+      />
+      <span className="w-14 font-mono text-xs text-muted-foreground tabular-nums">
+        {valueText}
+      </span>
     </div>
   );
 }

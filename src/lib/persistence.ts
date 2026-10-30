@@ -7,6 +7,7 @@ import {
   type MultibandEqParameters,
 } from "./dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
+import type { SynthLayer, SynthPatch } from "./dsp/subtractive-synth.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
   type PersistableEditorRuntimeState,
@@ -97,6 +98,7 @@ export interface SerializedMidiTrackState extends Omit<
   | "viewMode"
   | "pan"
   | "automation"
+  | "synth"
 > {
   tabAnnotationEnabled?: boolean;
   tabOpenStringPitches?: number[];
@@ -106,7 +108,17 @@ export interface SerializedMidiTrackState extends Omit<
   pan?: number;
   // 🟢 Optional for MIDI tracks saved before automation support.
   automation?: MidiTrackState["automation"];
+  synth?: SerializedSynthPatch;
   eq: SerializedMultibandEq;
+}
+
+interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
+  layers: SerializedSynthLayer[];
+}
+
+interface SerializedSynthLayer extends Omit<SynthLayer, "gain"> {
+  // 🟢 Optional for layers saved before per-layer gain.
+  gain?: number;
 }
 
 interface SerializedAudioTrackState<ChannelData> {
@@ -238,6 +250,10 @@ export function deserializeEditorRuntimeState({
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,
       ],
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
+      synth: track.synth && {
+        ...track.synth,
+        layers: track.synth.layers.map((layer) => ({ gain: 1, ...layer })),
+      },
       eq: deserializeEq(track.eq),
     })),
     // The runtime fills in tracks missing from older or partial orders.
