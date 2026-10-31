@@ -24,7 +24,7 @@ import { WaveformIcon } from "./waveform-icon";
 
 const MIN_OCTAVE = -3;
 const MAX_OCTAVE = 3;
-// Half a semitone
+// Limit to half a semitone
 const MAX_DETUNE_CENTS = 50;
 
 const WAVEFORM_LABELS: Record<Waveform, string> = {
