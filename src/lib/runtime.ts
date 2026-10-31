@@ -117,7 +117,12 @@ export interface MidiTrackState extends BaseTrackState {
    * note-on.
    */
   amp?: AmpParameters;
-  /** Whether the row shows the note editor or a compact note overview */
+  /**
+   * Whether the row shows the note editor or a compact note overview. Keep
+   * tracks in `"overview"` so the whole arrangement fits on screen, and use
+   * `"editor"` for a track someone is about to edit by hand. `addMidiTrack`
+   * opens a track in the editor.
+   */
   viewMode: "editor" | "overview";
   /** Shows tab annotation in the note editor and enables editing it */
   tabAnnotationEnabled: boolean;
