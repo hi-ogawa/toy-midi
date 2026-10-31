@@ -24,8 +24,7 @@ import { WaveformIcon } from "./waveform-icon";
 
 const MIN_OCTAVE = -3;
 const MAX_OCTAVE = 3;
-// Enough for the slow beating of thick layers. A semitone or more would put a
-// layer off key.
+// Half a semitone
 const MAX_DETUNE_CENTS = 50;
 
 const WAVEFORM_LABELS: Record<Waveform, string> = {
