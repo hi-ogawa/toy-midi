@@ -74,7 +74,7 @@ const EXPRESSION_CONTROLLER = 11;
 const DEFAULT_VOLUME = 100;
 const DEFAULT_EXPRESSION = 127;
 // SoundFont's default modulator maps CC1 linearly onto the vibrato LFO's pitch
-// depth, up to this many cents.
+// depth, up to this many cents each way, half a semitone.
 const MAX_VIBRATO_CENTS = 50;
 // Chosen by ear
 const VIBRATO_RATE = 5.5;
