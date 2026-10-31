@@ -47,7 +47,7 @@ $$
 x(t)=T+(x_0-T)\cdot e^{-t/\tau},
 $$
 
-where the **time constant** $\tau$ is how long the distance takes to shrink by a factor of $e$. The curve has two free numbers, its target and its time constant, and a stage fixes only one condition, reaching its end level $E$ at the stage's time $t_\text{stage}$. Aiming at $E$ itself fails, since an exponential never arrives. So each stage aims an **overshoot** $o$ past its end level in the direction it moves, $T=E\pm o$, above for the rising attack and below for a falling decay or release, a choice that sets the curve's shape, and the stage ends when $x$ crosses $E$. The end condition then fixes $\tau$. Over a full swing the distance starts at $1+o$ and must reach $o$ at $t_\text{stage}$:
+where the **time constant** $\tau$ is how long the distance takes to shrink by a factor of $e$. The curve has two free numbers, its target and its time constant, and a stage fixes only one condition, reaching its end level $E$ at the stage's time $t_\text{stage}$. Aiming at $E$ itself fails, since an exponential never arrives. So each stage aims an **overshoot** $o$ past its end level in the direction it moves, $T=E\pm o$, above for the rising attack and below for a falling decay or release, a choice that sets the curve's shape, and the stage ends when $x$ crosses $E$. The end condition then fixes $\tau$. A stage's time is how long it takes to cross the whole range between 0 and 1, so the distance starts at $1+o$ and must reach $o$ at $t_\text{stage}$:
 
 $$
 e^{-t_\text{stage}/\tau}=\frac{o}{1+o}
@@ -79,9 +79,17 @@ too quiet to hear, so the release sounds like an even fade to silence. An oversh
 
 ## Read a Time as the Stage's Length
 
-Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the time constant $\tau$ itself. This envelope's $\tau$ is the stage's time divided by $\ln\big((1+o)/o\big)$, which is $\ln10001\approx9.2$ for a release, so a 100 ms release has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
+Synths disagree on what an envelope time means. Here a time is how long the stage takes to cross the whole range between 0 and 1, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the time constant $\tau$ itself. This envelope's $\tau$ is the stage's time divided by $\ln\big((1+o)/o\big)$, which is $\ln10001\approx9.2$ for a release, so a 100 ms release has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. This convention makes the number on a slider match what you hear.
 
-Times are also rates. A stage's $c$ is set for the full swing, so a decay or release that covers only part of it, such as a decay to the sustain level or a release from it, falls at the same speed and ends sooner, as on analog envelopes. Because an exponential's tail passes quickly, falling half the swing still takes about 92% of the time. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
+Times are also rates. A stage's $c$ is set for the whole range, so a decay or release that covers only part of it, such as a decay to the sustain level or a release from it, keeps the same time constant and ends sooner, as on analog envelopes. The stage ends when its distance shrinks to $o$, and the time that takes grows only with the logarithm of the starting distance, so falling half the range still takes
+
+$$
+\frac{\ln\big((0.5+o)/o\big)}{\ln\big((1+o)/o\big)}=\frac{\ln5001}{\ln10001}\approx92\%
+$$
+
+of the time. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
+
+![Two decays with the same 100 ms decay time, one to sustain 0 and one to sustain 0.5. Both shrink their distance to the sustain level by the same factor each sample, so the second is the first scaled into the upper half. It reaches 0.5 at about 92 ms, while the first reaches 0 at 100 ms](images/adsr-partial-decay.svg)
 
 ## References
 
