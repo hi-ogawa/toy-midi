@@ -29,9 +29,6 @@ export const DEFAULT_SYNTH_LAYER: SynthLayer = {
   oscillator: { waveform: "sine" },
   gain: 1,
   amp: {
-    // A gate whose 5 ms edges are short enough to sound immediate and long
-    // enough to keep notes from clicking. The decay only matters once the
-    // sustain is lowered.
     envelope: { attack: 0.005, decay: 0.3, sustain: 1, release: 0.005 },
   },
 };
