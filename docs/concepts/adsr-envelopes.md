@@ -43,7 +43,7 @@ $$
 x_{n+1}=T+c\cdot(x_n-T),
 $$
 
-so the distance to the target shrinks by a factor $c$ per sample, like a capacitor charging toward a voltage. This is a one-pole curve, and it never reaches its target. So each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. The distance then starts at $1+o$ over a full swing and ends at $o$. For a stage time of $N$ samples,
+so the distance to the target shrinks by a factor $c$ per sample. This one-pole curve is a level relaxing toward its target, sampled exactly, as the [appendix](#appendix-sample-a-first-order-relaxation-exactly) derives, and it never reaches the target. So each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. The distance then starts at $1+o$ over a full swing and ends at $o$. For a stage time of $N$ samples,
 
 $$
 (1+o)\cdot c^N=o,\qquad c=\left(\frac{o}{1+o}\right)^{1/N}.
@@ -73,7 +73,7 @@ of the decay time, which is 92% for $s=0.5$, because an exponential's tail passe
 
 ## Read a Time as the Stage's Length
 
-Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the curve's **time constant** $\tau$, in which the distance to the target shrinks by a factor of $e$. Then falling 60 dB takes $\ln1000\cdot\tau\approx6.9\tau$, so the same 100 ms setting rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
+Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the curve's [time constant](#appendix-sample-a-first-order-relaxation-exactly) $\tau$, in which the distance to the target shrinks by a factor of $e$. Then falling 60 dB takes $\ln1000\cdot\tau\approx6.9\tau$, so the same 100 ms setting rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
 
 Times are also rates. A decay or release that covers only part of the swing, such as falling from the sustain level instead of from 1, falls at the same speed and ends sooner, as on analog envelopes. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
 
@@ -81,3 +81,33 @@ Times are also rates. A decay or release that covers only part of the swing, suc
 
 - [Envelope generators—ADSR code](https://www.earlevel.com/main/2013/06/03/envelope-generators-adsr-code/) (EarLevel Engineering) builds an ADSR from one-pole curves that aim past their ends, the same construction as here.
 - [Envelope (music)](<https://en.wikipedia.org/wiki/Envelope_(music)>) (Wikipedia) surveys the ADSR and its variants.
+
+## Appendix: Sample a First-Order Relaxation Exactly
+
+The simplest way for a level to move toward a target is at a speed proportional to the distance left,
+
+$$
+\frac{dx}{dt}=\frac{T-x}{\tau},
+$$
+
+where $\tau$ is the **time constant**. A capacitor charging through a resistor toward a supply voltage follows this equation. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
+
+$$
+T-x(t)=\big(T-x(0)\big)\cdot e^{-t/\tau}.
+$$
+
+Over one sample, $1/F_s$ seconds, the distance shrinks by the same factor whatever came before, which gives the recurrence of [Shape Each Stage as a Curve](#shape-each-stage-as-a-curve):
+
+$$
+x_{n+1}=T+c\cdot(x_n-T),\qquad c=e^{-1/(\tau F_s)}.
+$$
+
+So the recurrence is the continuous curve sampled exactly, not a step-by-step approximation of it. Forward Euler, which moves $x$ at its current speed for one sample, would give $c=1-1/(\tau F_s)$ instead, which comes close only when $\tau$ spans many samples.
+
+Putting this $c$ into the main text's $(1+o)\cdot c^N=o$ gives the time constant of a stage that lasts $N/F_s$ seconds:
+
+$$
+\tau=\frac{N/F_s}{\ln\big((1+o)/o\big)}.
+$$
+
+A decay or release, with $o=0.0001$, has a time constant of its time divided by 9.2, so a 100 ms release has $\tau\approx11$ ms. The attack, with $o=0.3$, has a time constant of its time divided by 1.47. Under the time-constant convention, a release set to 100 ms would have $\tau=100$ ms and take 9.2 times as long, about 0.92 s, to fall the same 80 dB.
