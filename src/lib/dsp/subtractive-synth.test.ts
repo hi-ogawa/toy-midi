@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { encodePitchBend } from "../general-midi";
 import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
@@ -264,6 +265,71 @@ describe(SubtractiveSynth, () => {
     );
   });
 
+  it("bends sounding and new notes by the wheel value", () => {
+    // Bend a held A4 up and then down an octave, and start the next note while
+    // the bend is held.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createPatch(["sine"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.pitchBend(encodePitchBend(12)),
+        0.2: () => synth.pitchBend(encodePitchBend(-12)),
+        0.3: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeFrequencies(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  440 Hz
+       50 ms  440 Hz
+      100 ms  880 Hz
+      150 ms  880 Hz
+      200 ms  220 Hz
+      250 ms  220 Hz
+      300 ms  220 Hz
+      350 ms  220 Hz
+      "
+    `);
+  });
+
+  it("adds vibrato with CC1 modulation, up to 50 cents", () => {
+    // Hold a note with the wheel at rest, then raise it to full, which swings
+    // the pitch 50 cents each way, between 428 Hz and 453 Hz, at 5.5 Hz.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createPatch(["sine"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.3,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.controller(1, 127),
+      },
+    });
+    expect(describeFrequencies(samples, { windowSeconds: 0.02 }))
+      .toMatchInlineSnapshot(`
+        "
+          0 ms  440 Hz
+         20 ms  440 Hz
+         40 ms  440 Hz
+         60 ms  440 Hz
+         80 ms  440 Hz
+        100 ms  433 Hz
+        120 ms  428 Hz
+        140 ms  429 Hz
+        160 ms  435 Hz
+        180 ms  444 Hz
+        200 ms  451 Hz
+        220 ms  453 Hz
+        240 ms  449 Hz
+        260 ms  441 Hz
+        280 ms  433 Hz
+        "
+      `);
+  });
+
   it("scales each layer by its gain", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
@@ -369,6 +435,35 @@ function describeLevels(samples: Float32Array): string {
     const level = db === -Infinity ? "-inf" : db.toFixed(1);
     const bar = "█".repeat(Math.max(0, Math.round(db + 60)));
     rows.push(`${time.padStart(6)}  ${level.padStart(5)} dB  ${bar}`.trimEnd());
+  }
+  // Starts and ends on a line break, so rows align in an inline snapshot.
+  return ["", ...rows, ""].join("\n");
+}
+
+/**
+ * Lists the frequency of each window, 50 ms by default, from the cycles between the
+ * window's first and last rising zero crossings, each interpolated between
+ * samples.
+ */
+function describeFrequencies(
+  samples: Float32Array,
+  options?: { windowSeconds?: number },
+): string {
+  const window = (options?.windowSeconds ?? 0.05) * SAMPLE_RATE;
+  const rows: string[] = [];
+  for (let start = 0; start < samples.length; start += window) {
+    const crossings: number[] = [];
+    for (let i = start + 1; i < start + window; i++) {
+      if (samples[i - 1] < 0 && samples[i] >= 0) {
+        crossings.push(i - samples[i] / (samples[i] - samples[i - 1]));
+      }
+    }
+    const frequency = Math.round(
+      ((crossings.length - 1) * SAMPLE_RATE) /
+        (crossings.at(-1)! - crossings[0]),
+    );
+    const time = `${Math.round((start / SAMPLE_RATE) * 1000)} ms`;
+    rows.push(`${time.padStart(6)}  ${String(frequency).padStart(3)} Hz`);
   }
   // Starts and ends on a line break, so rows align in an inline snapshot.
   return ["", ...rows, ""].join("\n");
