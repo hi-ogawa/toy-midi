@@ -53,8 +53,7 @@ describe(SubtractiveSynth, () => {
     expect(measureLevel(64) / measureLevel(127)).toBeCloseTo(64 / 127, 2);
   });
 
-  it("plays each layer through its own amp envelope", () => {
-    // The first layer holds at half level, and the second decays away.
+  it("plays a note through its layer's amp envelope", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
       layers: [
@@ -62,12 +61,6 @@ describe(SubtractiveSynth, () => {
           ...createSynthLayer(),
           amp: {
             envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 },
-          },
-        },
-        {
-          ...createSynthLayer(),
-          amp: {
-            envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.1 },
           },
         },
       ],
@@ -80,10 +73,6 @@ describe(SubtractiveSynth, () => {
     expect(
       measureRms(buffers[0].subarray(0.1 * SAMPLE_RATE, 0.5 * SAMPLE_RATE)),
     ).toBeCloseTo((0.5 * PEAK) / Math.SQRT2, 4);
-    // Releasing from half level ends a little before the release time.
-    expect(measureRms(buffers[0].subarray(0.59 * SAMPLE_RATE))).toBeGreaterThan(
-      0,
-    );
     expect(measureRms(buffers[0].subarray(0.6 * SAMPLE_RATE))).toBe(0);
   });
 

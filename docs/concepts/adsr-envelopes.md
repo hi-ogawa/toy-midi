@@ -55,6 +55,18 @@ e^{-t_\text{stage}/\tau}=\frac{o}{1+o}
 \tau=\frac{t_\text{stage}}{\ln\big((1+o)/o\big)}.
 $$
 
+A stage that covers only a distance $d$ of the range, such as a decay from 1 to the sustain level $S$ ($d=1-S$) or a release from the sustain level ($d=S$), keeps the same $\tau$. Its distance to the target starts at $d+o$ and must reach $o$, so it ends sooner:
+
+$$
+e^{-t_\text{end}/\tau}=\frac{o}{d+o}
+\quad\Longrightarrow\quad
+\frac{t_\text{end}}{t_\text{stage}}=\frac{\ln\big((d+o)/o\big)}{\ln\big((1+o)/o\big)},
+$$
+
+which is 1 at $d=1$. The time grows only with the logarithm of the distance. With the decay's overshoot of 0.0001, chosen below, falling half the range takes $\ln5001/\ln10001\approx92\%$ of the time, and even a tenth of it takes about 75%.
+
+![Two decays with the same 100 ms decay time, one to sustain 0 and one to sustain 0.5. Both shrink their distance to the sustain level with the same time constant, so the second is the first scaled into the upper half. It reaches 0.5 at about 92 ms, while the first reaches 0 at 100 ms](images/adsr-partial-decay.svg)
+
 Sampled at the sample rate $F_s$, at $t=n/F_s$, the distance shrinks by the same factor every sample:
 
 $$
@@ -67,7 +79,7 @@ where $N=t_\text{stage}F_s$ is the stage's length in samples. The synth computes
 
 The overshoot decides how much of the exponential a stage uses, so each stage gets its own.
 
-**The decay and release aim 0.0001 past their ends.** A small overshoot uses nearly the whole exponential, so the level falls evenly in decibels. Near the end, where the level is close to $o$, the $-o$ term takes over and the level drops to its end faster than the exponential would. That starts around
+**The decay and release aim 0.0001 past their ends.** A small overshoot uses nearly the whole exponential, so a release, or a decay to sustain 0, falls evenly in decibels. A decay to a higher sustain levels off at the sustain's decibels instead. Near the end, where the level is close to $o$, the $-o$ term takes over and the level drops to its end faster than the exponential would. That starts around
 
 $$
 20\log_{10}o=-80\ \text{dB},
@@ -81,15 +93,7 @@ too quiet to hear, so the release sounds like an even fade to silence. An oversh
 
 Synths disagree on what an envelope time means. Here a time is how long the stage takes to cross the whole range between 0 and 1, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the time constant $\tau$ itself. This envelope's $\tau$ is the stage's time divided by $\ln\big((1+o)/o\big)$, which is $\ln10001\approx9.2$ for a release, so a 100 ms release has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. This convention makes the number on a slider match what you hear.
 
-Times are also rates. A stage's $c$ is set for the whole range, so a decay or release that covers only part of it, such as a decay to the sustain level or a release from it, keeps the same time constant and ends sooner, as on analog envelopes. The stage ends when its distance shrinks to $o$, and the time that takes grows only with the logarithm of the starting distance, so falling half the range still takes
-
-$$
-\frac{\ln\big((0.5+o)/o\big)}{\ln\big((1+o)/o\big)}=\frac{\ln5001}{\ln10001}\approx92\%
-$$
-
-of the time. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
-
-![Two decays with the same 100 ms decay time, one to sustain 0 and one to sustain 0.5. Both shrink their distance to the sustain level by the same factor each sample, so the second is the first scaled into the upper half. It reaches 0.5 at about 92 ms, while the first reaches 0 at 100 ms](images/adsr-partial-decay.svg)
+Times are also rates, as on analog envelopes. There each stage's time knob sets a resistor, so the stage's time constant $\tau=RC$ is fixed by the knob, and the circuit has no way to know how far the capacitor has left to go. A stage that covers only part of the range keeps its $\tau$ and ends sooner, as derived above. Deriving $\tau$ from each stage's actual distance would land every stage exactly on its time instead, but a higher sustain would then flatten the decay, and a release after an early note-off would linger for the full release time.
 
 ## References
 
@@ -104,7 +108,7 @@ $$
 \frac{dx}{dt}=\frac{T-x}{\tau},
 $$
 
-with the time constant $\tau$ set by the resistor and the capacitor. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
+with the time constant $\tau=RC$ set by the resistor and the capacitor, where the stage's time knob turns the resistor. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
 
 $$
 T-x(t)=\big(T-x(0)\big)\cdot e^{-t/\tau}.
