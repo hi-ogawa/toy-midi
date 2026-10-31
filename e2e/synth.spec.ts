@@ -8,7 +8,7 @@ import {
 } from "./editor-helpers";
 import { getMenuItem, selectMenuItem } from "./helpers";
 
-test("changes a synth track's waveform and amp envelope in its Synth panel", async ({
+test("changes a synth track's oscillator and amp envelope in its Synth panel", async ({
   page,
 }) => {
   // Add two MIDI tracks, and switch the first to the synth.
@@ -48,6 +48,27 @@ test("changes a synth track's waveform and amp envelope in its Synth panel", asy
     "aria-pressed",
     "false",
   );
+
+  // Click the octave stepper down to a sub octave, then step it up past the
+  // note's octave with the keyboard.
+  const octave = panel.getByRole("spinbutton", { name: "Octave" });
+  await expect(octave).toHaveAttribute("aria-valuetext", "0");
+  await octave.locator("button").first().click();
+  await expect(octave).toHaveAttribute("aria-valuetext", "-1");
+  await octave.focus();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+  await expect(octave).toHaveAttribute("aria-valuetext", "+1");
+
+  // Detune the layer by cents with the keyboard, in fine and coarse steps.
+  const detune = panel.getByRole("slider", { name: "Detune" });
+  await expect(detune).toHaveAttribute("aria-valuetext", "0 cents");
+  await detune.focus();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+  await expect(detune).toHaveAttribute("aria-valuetext", "+2 cents");
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(detune).toHaveAttribute("aria-valuetext", "-8 cents");
 
   // See the amp envelope start as a 5 ms gate.
   const attack = panel.getByRole("slider", { name: "Attack" });
