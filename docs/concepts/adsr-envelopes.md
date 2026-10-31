@@ -106,6 +106,8 @@ $$
 
 So the recurrence is the continuous curve sampled exactly, not a step-by-step approximation of it. Forward Euler, which moves $x$ at its current speed for one sample, would give $c=1-1/(\tau F_s)$ instead, which comes close only when $\tau$ spans many samples.
 
+Smoothing a measured level toward each new reading, as a meter does, steps the same equation with a target that changes every step. There the recurrence is required, because the target isn't known ahead of time. Here it's a convenience, since each stage's start, end, and time are known and a closed form would draw the same curve.
+
 Putting this $c$ into the main text's $(1+o)\cdot c^N=o$ gives the time constant of a stage that lasts $N/F_s$ seconds:
 
 $$
