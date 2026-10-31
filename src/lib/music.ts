@@ -91,6 +91,24 @@ export function dbToPercent(db: number): number {
   return gainToPercent(dbToGain(clamp(db, MIN_DB, MAX_DB)));
 }
 
+/**
+ * Maps a value in a range to a position from 0 to 1, so that equal ratios get
+ * equal distances: (log(value) - log(min)) / (log(max) - log(min)).
+ */
+export function valueToLogPosition(
+  value: number,
+  { min, max }: { min: number; max: number },
+): number {
+  return Math.log(value / min) / Math.log(max / min);
+}
+
+export function logPositionToValue(
+  position: number,
+  { min, max }: { min: number; max: number },
+): number {
+  return min * (max / min) ** position;
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

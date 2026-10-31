@@ -9,7 +9,12 @@ import {
   type MultibandEqParameters,
 } from "../lib/dsp/biquad-eq-multiband";
 import { createDefaultEqBand } from "../lib/dsp/biquad-eq-multiband";
-import { dbToGain, gainToDb } from "../lib/music";
+import {
+  dbToGain,
+  gainToDb,
+  logPositionToValue,
+  valueToLogPosition,
+} from "../lib/music";
 import type { ProjectUiStore } from "../lib/preferences";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
@@ -499,7 +504,6 @@ function EqSlider({
     toParameterValue: (value: number) => value,
   };
   if (scale === "logarithmic") {
-    const logRange = Math.log(limits.max / limits.min);
     config = {
       min: 0,
       max: 1,
@@ -509,11 +513,9 @@ function EqSlider({
       // (max / min)^(n * step) = 2, so n * step * log(max / min) = log(2).
       // Thus n = log(2) / (0.001 * log(20000 / 20)) ≈ 100.
       step: 0.001,
-      // (log(value) - log(min)) / (log(max) - log(min))
-      // = log(value / min) / log(max / min); solve for value for the inverse.
-      toSliderValue: (value: number) => Math.log(value / limits.min) / logRange,
+      toSliderValue: (value: number) => valueToLogPosition(value, limits),
       toParameterValue: (position: number) =>
-        Number((limits.min * Math.exp(position * logRange)).toFixed(2)),
+        Number(logPositionToValue(position, limits).toFixed(2)),
     };
   }
   const valueText = `${formatParameter(value)} ${unit}`.trim();
