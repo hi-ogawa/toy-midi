@@ -2,6 +2,7 @@ import { routes } from "../lib/routes";
 import { BrowserStoragePreview } from "./browser-storage-preview";
 import { EffectsPreview } from "./effects-preview";
 import { HelpPreview } from "./help-preview";
+import { SynthPreview } from "./synth-preview";
 import { TunerPreview } from "./tuner-preview";
 
 const PREVIEWS = [
@@ -16,6 +17,10 @@ const PREVIEWS = [
   {
     label: "Help dialog",
     component: HelpPreview,
+  },
+  {
+    label: "Synth",
+    component: SynthPreview,
   },
   {
     label: "Tuner",
