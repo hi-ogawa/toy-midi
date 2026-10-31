@@ -92,6 +92,11 @@ export class SubtractiveSynth implements SynthEngine {
   }
 
   setPatch(patch: SynthPatch): void {
+    // Voices hold one envelope per layer, so they can't follow a change in
+    // layers.
+    if (patch.layers.length !== this.layers.length) {
+      this.voices = [];
+    }
     this.layers = resolveLayers(patch, this.sampleRate);
   }
 
@@ -143,15 +148,10 @@ export class SubtractiveSynth implements SynthEngine {
     for (let i = offset; i < offset + length; i++) {
       let mix = 0;
       for (const voice of this.voices) {
-        // Layers that a patch change adds play from the next note.
-        const layerCount = Math.min(
-          this.layers.length,
-          voice.ampEnvelopes.length,
-        );
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
-        for (let l = 0; l < layerCount; l++) {
+        for (let l = 0; l < this.layers.length; l++) {
           const layer = this.layers[l];
           sample +=
             layer.oscillate(voice.phase, voice.phaseIncrement) *
@@ -172,9 +172,7 @@ export class SubtractiveSynth implements SynthEngine {
       right[i] += mix;
     }
     this.voices = this.voices.filter((voice) =>
-      voice.ampEnvelopes
-        .slice(0, this.layers.length)
-        .some((envelope) => envelope.stage !== "idle"),
+      voice.ampEnvelopes.some((envelope) => envelope.stage !== "idle"),
     );
   }
 

@@ -146,6 +146,16 @@ describe(SubtractiveSynth, () => {
     );
   });
 
+  it("stops sounding notes when a patch change adds a layer", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const buffers = createBuffers(9600);
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 4800);
+    synth.setPatch(createPatch(["sine", "sine"]));
+    synth.render(buffers[0], buffers[1], 4800, 4800);
+    expect(measureRms(buffers[0].subarray(4800))).toBe(0);
+  });
+
   it("sums the layers of a note", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
