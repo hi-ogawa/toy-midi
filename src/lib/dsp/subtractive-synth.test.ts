@@ -21,11 +21,13 @@ describe(SubtractiveSynth, () => {
   it("plays a note as a sine at its pitch until note-off", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createSynthPatch());
-    const buffers = createBuffers(9600);
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.noteOff(69);
-    synth.render(buffers[0], buffers[1], 4800, 4800);
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(69, 127),
+        0.1: () => synth.noteOff(69),
+      },
+    });
 
     // Past the attack ramp, the note matches a 440 Hz sine sample for sample.
     const sine = createSine({
@@ -34,21 +36,21 @@ describe(SubtractiveSynth, () => {
       length: 4800,
     });
     for (let i = RAMP_FRAMES; i < 4800; i++) {
-      expect(buffers[0][i]).toBeCloseTo(sine[i], 5);
+      expect(samples[i]).toBeCloseTo(sine[i], 5);
     }
-    expect(buffers[1]).toEqual(buffers[0]);
     // The release ramp has ended well before the second half's end.
-    expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBe(0);
+    expect(measureRms(samples.subarray(4800 + RAMP_FRAMES))).toBe(0);
   });
 
   it("scales a note's level with velocity", () => {
     const measureLevel = (velocity: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch(createSynthPatch());
-      const buffers = createBuffers(4800);
-      synth.noteOn(60, velocity);
-      synth.render(buffers[0], buffers[1], 0, 4800);
-      return measureRms(buffers[0].subarray(RAMP_FRAMES));
+      const samples = renderSynth(synth, {
+        seconds: 0.1,
+        at: { 0: () => synth.noteOn(60, velocity) },
+      });
+      return measureRms(samples.subarray(RAMP_FRAMES));
     };
     expect(measureLevel(64) / measureLevel(127)).toBeCloseTo(64 / 127, 2);
   });
@@ -66,7 +68,7 @@ describe(SubtractiveSynth, () => {
         },
       ],
     });
-    const samples = play(synth, {
+    const samples = renderSynth(synth, {
       seconds: 0.35,
       at: {
         0: () => synth.noteOn(69, 127),
@@ -110,7 +112,12 @@ describe(SubtractiveSynth, () => {
     // √3, and a square's the peak itself. The sawtooth and square sit about
     // 0.1 dB lower because PolyBLEP rounds their jumps.
     const describeWaveform = (waveform: Waveform) => {
-      const samples = renderNote({ waveform, pitch: 69, length: SAMPLE_RATE });
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch(createPatch([waveform]));
+      const samples = renderSynth(synth, {
+        seconds: 1,
+        at: { 0: () => synth.noteOn(69, 127) },
+      });
       const steady = samples.subarray(SAMPLE_RATE * 0.1);
       let crossings = 0;
       for (let i = 1; i < steady.length; i++) {
@@ -135,7 +142,7 @@ describe(SubtractiveSynth, () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const layer = createSynthLayer();
     synth.setPatch({ layers: [layer] });
-    const samples = play(synth, {
+    const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
         0: () => synth.noteOn(69, 127),
@@ -165,7 +172,7 @@ describe(SubtractiveSynth, () => {
     };
     const holding = createSynthLayer();
     synth.setPatch({ layers: [decaying, holding] });
-    const samples = play(synth, {
+    const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
         0: () => synth.noteOn(69, 127),
@@ -186,7 +193,7 @@ describe(SubtractiveSynth, () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const patch = createSynthPatch();
     synth.setPatch(patch);
-    const samples = play(synth, {
+    const samples = renderSynth(synth, {
       seconds: 0.3,
       at: {
         0: () => synth.noteOn(69, 127),
@@ -207,11 +214,12 @@ describe(SubtractiveSynth, () => {
 
   it("sums the layers of a note", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(4800);
     synth.setPatch(createPatch(["sine", "sine"]));
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
+    const samples = renderSynth(synth, {
+      seconds: 0.1,
+      at: { 0: () => synth.noteOn(69, 127) },
+    });
+    expect(measureRms(samples.subarray(RAMP_FRAMES))).toBeCloseTo(
       (2 * PEAK) / Math.SQRT2,
       3,
     );
@@ -221,12 +229,17 @@ describe(SubtractiveSynth, () => {
     const measureLevel = (volume: number, expression: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch(createSynthPatch());
-      const buffers = createBuffers(4800);
-      synth.controller(7, volume);
-      synth.controller(11, expression);
-      synth.noteOn(69, 127);
-      synth.render(buffers[0], buffers[1], 0, 4800);
-      return measureRms(buffers[0].subarray(RAMP_FRAMES));
+      const samples = renderSynth(synth, {
+        seconds: 0.1,
+        at: {
+          0: () => {
+            synth.controller(7, volume);
+            synth.controller(11, expression);
+            synth.noteOn(69, 127);
+          },
+        },
+      });
+      return measureRms(samples.subarray(RAMP_FRAMES));
     };
     const full = measureLevel(127, 127);
     expect(measureLevel(64, 127) / full).toBeCloseTo((64 / 127) ** 2, 2);
@@ -235,13 +248,14 @@ describe(SubtractiveSynth, () => {
 
   it("scales each layer by its gain", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(4800);
     synth.setPatch({
       layers: [createSynthLayer(), { ...createSynthLayer(), gain: 0.5 }],
     });
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
+    const samples = renderSynth(synth, {
+      seconds: 0.1,
+      at: { 0: () => synth.noteOn(69, 127) },
+    });
+    expect(measureRms(samples.subarray(RAMP_FRAMES))).toBeCloseTo(
       (1.5 * PEAK) / Math.SQRT2,
       3,
     );
@@ -250,7 +264,7 @@ describe(SubtractiveSynth, () => {
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createSynthPatch());
-    const samples = play(synth, {
+    const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
         0: () => {
@@ -273,7 +287,7 @@ describe(SubtractiveSynth, () => {
  * Renders the synth for `seconds`, running each action at its time in
  * seconds, and returns the left channel.
  */
-function play(
+function renderSynth(
   synth: SubtractiveSynth,
   { seconds, at }: { seconds: number; at: Record<number, () => void> },
 ): Float32Array {
@@ -308,23 +322,6 @@ function describeLevels(samples: Float32Array): string {
     rows.push(`${time.padStart(6)}  ${level.padStart(5)} dB  ${bar}`.trimEnd());
   }
   return rows.join("\n");
-}
-
-function renderNote({
-  waveform,
-  pitch,
-  length,
-}: {
-  waveform: Waveform;
-  pitch: number;
-  length: number;
-}): Float32Array {
-  const synth = new SubtractiveSynth(SAMPLE_RATE);
-  synth.setPatch(createPatch([waveform]));
-  const buffers = createBuffers(length);
-  synth.noteOn(pitch, 127);
-  synth.render(buffers[0], buffers[1], 0, length);
-  return buffers[0];
 }
 
 function createPatch(waveforms: Waveform[]): SynthPatch {
