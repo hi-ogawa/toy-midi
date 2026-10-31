@@ -172,6 +172,34 @@ describe(SubtractiveSynth, () => {
     expect(measureLevel(64, 64) / full).toBeCloseTo((64 / 127) ** 4, 2);
   });
 
+  it("adds vibrato with CC1 modulation, up to 50 cents", () => {
+    // Measures the widest pitch swing in cents over 1 s, from the intervals
+    // between rising zero crossings, each interpolated between samples.
+    const measureVibratoCents = (modulation: number) => {
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      const buffers = createBuffers(SAMPLE_RATE);
+      synth.controller(1, modulation);
+      synth.noteOn(69, 127);
+      synth.render(buffers[0], buffers[1], 0, SAMPLE_RATE);
+      const samples = buffers[0];
+      const crossings: number[] = [];
+      for (let i = 1; i < samples.length; i++) {
+        if (samples[i - 1] < 0 && samples[i] >= 0) {
+          crossings.push(i - samples[i] / (samples[i] - samples[i - 1]));
+        }
+      }
+      let swing = 0;
+      for (let i = 1; i < crossings.length; i++) {
+        const frequency = SAMPLE_RATE / (crossings[i] - crossings[i - 1]);
+        swing = Math.max(swing, Math.abs(1200 * Math.log2(frequency / 440)));
+      }
+      return swing;
+    };
+    expect(measureVibratoCents(0)).toBeCloseTo(0, 1);
+    expect(measureVibratoCents(64)).toBeCloseTo((64 / 127) * 50, 0);
+    expect(measureVibratoCents(127)).toBeCloseTo(50, 0);
+  });
+
   it("scales each layer by its gain", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
