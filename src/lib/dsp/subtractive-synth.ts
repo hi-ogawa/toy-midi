@@ -158,7 +158,6 @@ export class SubtractiveSynth implements SynthEngine {
     for (let i = offset; i < offset + length; i++) {
       let mix = 0;
       for (const voice of this.voices) {
-        // Cycles per sample
         const phaseIncrement =
           midiToHz(voice.pitch + this.bend) / this.sampleRate;
         // Every layer plays at the note's pitch for now, so they share the
