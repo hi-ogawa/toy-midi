@@ -1187,7 +1187,6 @@ export class EditorRuntime {
     return serializeEditorRuntimeState(this.store.get());
   }
 
-  /** @internal */
   async deserializeProject(
     project: SerializedEditorRuntimeState,
   ): Promise<void> {
