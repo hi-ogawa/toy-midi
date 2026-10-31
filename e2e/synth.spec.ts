@@ -2,12 +2,13 @@ import { expect, test } from "@playwright/test";
 import {
   addMidiTrack,
   createProject,
+  dragBy,
   openMidiInstrument,
   selectMidiInstrument,
 } from "./editor-helpers";
 import { getMenuItem, selectMenuItem } from "./helpers";
 
-test("changes a synth track's waveform in its Synth panel", async ({
+test("changes a synth track's waveform and amp envelope in its Synth panel", async ({
   page,
 }) => {
   // Add two MIDI tracks, and switch the first to the synth.
@@ -47,6 +48,30 @@ test("changes a synth track's waveform in its Synth panel", async ({
     "aria-pressed",
     "false",
   );
+
+  // See the amp envelope start as a 5 ms gate.
+  const attack = panel.getByRole("slider", { name: "Attack" });
+  await expect(attack).toHaveAttribute("aria-valuetext", "5 ms");
+  const sustain = panel.getByRole("slider", { name: "Sustain" });
+  await expect(sustain).toHaveAttribute("aria-valuetext", "100%");
+
+  // Lengthen the release by two decades with the keyboard.
+  const release = panel.getByRole("slider", { name: "Release" });
+  await release.focus();
+  await page.keyboard.press("Shift+ArrowUp");
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(release).toHaveAttribute("aria-valuetext", "500 ms");
+
+  // Drag the decay handle halfway down the graph, which lowers the sustain to
+  // about half and leaves the attack alone.
+  const decay = panel.getByTestId("envelope-decay-handle");
+  const decayBox = (await decay.boundingBox())!;
+  const releaseBox = (await panel
+    .getByTestId("envelope-release-handle")
+    .boundingBox())!;
+  await dragBy(page, decay, 0, { deltaY: (releaseBox.y - decayBox.y) / 2 });
+  await expect(sustain).toHaveAttribute("aria-valuetext", "50%");
+  await expect(attack).toHaveAttribute("aria-valuetext", "5 ms");
 
   // Turn the layer's gain down from 0 dB with the keyboard.
   const gain = panel.getByRole("slider", { name: "Layer 1 gain" });

@@ -3,58 +3,100 @@ import { encodePitchBend } from "../general-midi";
 import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
+  createSynthLayer,
   PEAK_GAIN,
   SubtractiveSynth,
+  type SynthLayer,
   type SynthPatch,
   type Waveform,
   WAVEFORMS,
 } from "./subtractive-synth";
 
-// 10 ms, which covers a note's attack or release ramp.
-const RAMP_FRAMES = 480;
 // A full-velocity note's peak at the default CC7 volume of 100, about 4 dB
 // below the synth's peak gain
 const PEAK = PEAK_GAIN * (100 / 127) ** 2;
+// 440 Hz
+const A4 = 69;
+const FULL_VELOCITY = 127;
 
 describe(SubtractiveSynth, () => {
   it("plays a note as a sine at its pitch until note-off", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(9600);
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.noteOff(69);
-    synth.render(buffers[0], buffers[1], 4800, 4800);
+    synth.setPatch(createPatch(["sine"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.noteOff(A4),
+      },
+    });
 
-    // Past the attack ramp, the note matches a 440 Hz sine sample for sample.
+    // The note matches a 440 Hz sine sample for sample, and stops at note-off.
     const sine = createSine({
       frequency: 440,
       amplitude: PEAK,
       length: 4800,
     });
-    for (let i = RAMP_FRAMES; i < 4800; i++) {
-      expect(buffers[0][i]).toBeCloseTo(sine[i], 5);
+    for (let i = 0; i < 4800; i++) {
+      expect(samples[i]).toBeCloseTo(sine[i], 5);
     }
-    expect(buffers[1]).toEqual(buffers[0]);
-    // The release ramp has ended well before the second half's end.
-    expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBe(0);
+    expect(measureRms(samples.subarray(4800))).toBe(0);
   });
 
   it("scales a note's level with velocity", () => {
-    const measureLevel = (velocity: number) => {
+    const measureRmsAtVelocity = (velocity: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
-      const buffers = createBuffers(4800);
-      synth.noteOn(60, velocity);
-      synth.render(buffers[0], buffers[1], 0, 4800);
-      return measureRms(buffers[0].subarray(RAMP_FRAMES));
+      synth.setPatch(createPatch(["sine"]));
+      const samples = renderSynth(synth, {
+        seconds: 0.1,
+        at: { 0: () => synth.noteOn(60, velocity) },
+      });
+      return measureRms(samples);
     };
-    expect(measureLevel(64) / measureLevel(127)).toBeCloseTo(64 / 127, 2);
+    expect(
+      measureRmsAtVelocity(64) / measureRmsAtVelocity(FULL_VELOCITY),
+    ).toBeCloseTo(64 / FULL_VELOCITY, 2);
+  });
+
+  it("plays a note through its layer's amp envelope", () => {
+    // Decay to half level, 6 dB down, hold it, and release after note-off.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      layers: [
+        {
+          ...createSynthLayer(),
+          amp: {
+            envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 },
+          },
+        },
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.35,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.2: () => synth.noteOff(A4),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -26.1 dB  ██████████████████████████████████
+       50 ms  -27.2 dB  █████████████████████████████████
+      100 ms  -27.2 dB  █████████████████████████████████
+      150 ms  -27.2 dB  █████████████████████████████████
+      200 ms  -36.8 dB  ███████████████████████
+      250 ms  -77.2 dB
+      300 ms   -inf dB
+      "
+    `);
   });
 
   it("mixes into the buffers from the offset", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createPatch(["sine"]));
     const buffers = createBuffers(960);
     buffers[0].fill(1);
-    synth.noteOn(69, 127);
+    synth.noteOn(A4, FULL_VELOCITY);
     synth.render(buffers[0], buffers[1], 480, 480);
     expect(buffers[0].subarray(0, 480).every((sample) => sample === 1)).toBe(
       true,
@@ -68,15 +110,29 @@ describe(SubtractiveSynth, () => {
   });
 
   it("plays each waveform at the note's pitch", () => {
-    // Levels are RMS in dBFS past the attack. At the full-velocity peak, a
+    // Levels are RMS in dBFS, and pitches count the cycles between the first
+    // and last rising zero crossings. At the full-velocity peak, a
     // sine's RMS is the peak over √2, a triangle's and sawtooth's the peak over
     // √3, and a square's the peak itself. The sawtooth and square sit about
     // 0.1 dB lower because PolyBLEP rounds their jumps.
     const describeWaveform = (waveform: Waveform) => {
-      const samples = renderNote({ waveform, pitch: 69, length: SAMPLE_RATE });
-      const steady = samples.subarray(SAMPLE_RATE * 0.1);
-      const level = gainToDb(measureRms(steady)).toFixed(1);
-      const frequency = measureFrequency(steady);
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch(createPatch([waveform]));
+      const samples = renderSynth(synth, {
+        seconds: 1,
+        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+      });
+      const crossings: number[] = [];
+      for (let i = 1; i < samples.length; i++) {
+        if (samples[i - 1] < 0 && samples[i] >= 0) {
+          crossings.push(i);
+        }
+      }
+      const level = gainToDb(measureRms(samples)).toFixed(1);
+      const frequency = Math.round(
+        ((crossings.length - 1) * SAMPLE_RATE) /
+          (crossings.at(-1)! - crossings[0]),
+      );
       return `${waveform}: ${level} dB, ${frequency} Hz`;
     };
     expect(WAVEFORMS.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
@@ -88,149 +144,276 @@ describe(SubtractiveSynth, () => {
   });
 
   it("changes the waveform of a sounding note", () => {
+    // A square at the same peak is 3 dB louder than a sine.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(9600);
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.setPatch(createPatch(["square"]));
-    synth.render(buffers[0], buffers[1], 4800, 4800);
-    expect(measureRms(buffers[0].subarray(RAMP_FRAMES, 4800))).toBeCloseTo(
-      PEAK / Math.SQRT2,
-      3,
-    );
-    expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBeCloseTo(
-      PEAK,
-      2,
-    );
+    const layer = createGateLayer();
+    synth.setPatch({ layers: [layer] });
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () =>
+          synth.setPatch({
+            layers: [{ ...layer, oscillator: { waveform: "square" } }],
+          }),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -21.1 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -18.2 dB  ██████████████████████████████████████████
+      150 ms  -18.2 dB  ██████████████████████████████████████████
+      "
+    `);
+  });
+
+  it("keeps each layer's envelope on a sounding note when a layer is removed", () => {
+    // The first layer has decayed to silence and the second holds, so the
+    // second keeps playing at full level once the first is gone.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const decaying = {
+      ...createSynthLayer(),
+      amp: {
+        envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.1 },
+      },
+    };
+    const holding = createGateLayer();
+    synth.setPatch({ layers: [decaying, holding] });
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.setPatch({ layers: [holding] }),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -20.1 dB  ████████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -21.1 dB  ███████████████████████████████████████
+      150 ms  -21.1 dB  ███████████████████████████████████████
+      "
+    `);
+  });
+
+  it("plays a layer that a patch change adds from the next note", () => {
+    // The held note stays at one layer's level, and the next note sums both,
+    // 6 dB louder.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const patch = createPatch(["sine"]);
+    synth.setPatch(patch);
+    const samples = renderSynth(synth, {
+      seconds: 0.3,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () =>
+          synth.setPatch({ layers: [...patch.layers, createGateLayer()] }),
+        0.2: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -21.1 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -21.1 dB  ███████████████████████████████████████
+      150 ms  -21.1 dB  ███████████████████████████████████████
+      200 ms  -15.1 dB  █████████████████████████████████████████████
+      250 ms  -15.1 dB  █████████████████████████████████████████████
+      "
+    `);
   });
 
   it("sums the layers of a note", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(4800);
     synth.setPatch(createPatch(["sine", "sine"]));
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
-      (2 * PEAK) / Math.SQRT2,
-      3,
-    );
-  });
-
-  it("bends every sounding note by the wheel value", () => {
-    const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(SAMPLE_RATE * 1.8);
-    synth.noteOn(57, 127);
-    synth.noteOn(69, 127);
-    const measureChord = (index: number) => {
-      const start = SAMPLE_RATE * 0.6 * index;
-      synth.render(buffers[0], buffers[1], start, SAMPLE_RATE * 0.6);
-      return measureFrequency(
-        buffers[0].subarray(
-          start + SAMPLE_RATE * 0.1,
-          start + SAMPLE_RATE * 0.6,
-        ),
-      );
-    };
-    // Two notes an octave apart cross zero upward at the higher frequency.
-    const frequencies = [measureChord(0)];
-    synth.pitchBend(encodePitchBend(12));
-    frequencies.push(measureChord(1));
-    synth.pitchBend(encodePitchBend(-12));
-    frequencies.push(measureChord(2));
-    expect(frequencies).toEqual([440, 880, 220]);
-  });
-
-  it("starts a note at the current bend", () => {
-    const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(SAMPLE_RATE);
-    synth.pitchBend(encodePitchBend(-12));
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, SAMPLE_RATE);
-    expect(measureFrequency(buffers[0].subarray(SAMPLE_RATE * 0.1))).toBe(220);
+    const samples = renderSynth(synth, {
+      seconds: 0.1,
+      at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+    });
+    expect(measureRms(samples)).toBeCloseTo((2 * PEAK) / Math.SQRT2, 3);
   });
 
   it("scales the level with CC7 volume and CC11 expression", () => {
-    const measureLevel = (volume: number, expression: number) => {
+    const measureRmsAtControllers = (volume: number, expression: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
-      const buffers = createBuffers(4800);
-      synth.controller(7, volume);
-      synth.controller(11, expression);
-      synth.noteOn(69, 127);
-      synth.render(buffers[0], buffers[1], 0, 4800);
-      return measureRms(buffers[0].subarray(RAMP_FRAMES));
+      synth.setPatch(createPatch(["sine"]));
+      // The controllers ramp to their level before the note starts.
+      const samples = renderSynth(synth, {
+        seconds: 0.11,
+        at: {
+          0: () => {
+            synth.controller(7, volume);
+            synth.controller(11, expression);
+          },
+          0.01: () => synth.noteOn(A4, FULL_VELOCITY),
+        },
+      });
+      return measureRms(samples);
     };
-    const full = measureLevel(127, 127);
-    expect(measureLevel(64, 127) / full).toBeCloseTo((64 / 127) ** 2, 2);
-    expect(measureLevel(64, 64) / full).toBeCloseTo((64 / 127) ** 4, 2);
+    const full = measureRmsAtControllers(127, 127);
+    expect(measureRmsAtControllers(64, 127) / full).toBeCloseTo(
+      (64 / 127) ** 2,
+      2,
+    );
+    expect(measureRmsAtControllers(64, 64) / full).toBeCloseTo(
+      (64 / 127) ** 4,
+      2,
+    );
+  });
+
+  it("bends sounding and new notes by the wheel value", () => {
+    // Bend a held A4 up and then down an octave, and start the next note while
+    // the bend is held.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createPatch(["sine"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.pitchBend(encodePitchBend(12)),
+        0.2: () => synth.pitchBend(encodePitchBend(-12)),
+        0.3: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeFrequencies(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  440 Hz
+       50 ms  440 Hz
+      100 ms  880 Hz
+      150 ms  880 Hz
+      200 ms  220 Hz
+      250 ms  220 Hz
+      300 ms  220 Hz
+      350 ms  220 Hz
+      "
+    `);
   });
 
   it("scales each layer by its gain", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(4800);
     synth.setPatch({
-      layers: [
-        { oscillator: { waveform: "sine" }, gain: 1 },
-        { oscillator: { waveform: "sine" }, gain: 0.5 },
-      ],
+      layers: [createGateLayer(), { ...createGateLayer(), gain: 0.5 }],
     });
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    expect(measureRms(buffers[0].subarray(RAMP_FRAMES))).toBeCloseTo(
-      (1.5 * PEAK) / Math.SQRT2,
-      3,
-    );
+    const samples = renderSynth(synth, {
+      seconds: 0.1,
+      at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+    });
+    expect(measureRms(samples)).toBeCloseTo((1.5 * PEAK) / Math.SQRT2, 3);
   });
 
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    const buffers = createBuffers(4800);
-    synth.noteOn(60, 100);
-    synth.noteOn(64, 100);
-    synth.render(buffers[0], buffers[1], 0, 2400);
-    synth.stopAll();
-    synth.render(buffers[0], buffers[1], 2400, 2400);
-    expect(measureRms(buffers[0].subarray(2400 + RAMP_FRAMES))).toBe(0);
+    synth.setPatch(createPatch(["sine"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => {
+          synth.noteOn(60, 100);
+          synth.noteOn(64, 100);
+        },
+        0.1: () => synth.stopAll(),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -20.1 dB  ████████████████████████████████████████
+       50 ms  -20.6 dB  ███████████████████████████████████████
+      100 ms   -inf dB
+      150 ms   -inf dB
+      "
+    `);
   });
 });
 
 /**
- * Measures the frequency in hertz, rounded, from the span between the first and
- * last rising zero crossings, interpolated between samples.
+ * Renders the synth for `seconds`, running each action at its time in
+ * seconds, and returns the left channel.
  */
-function measureFrequency(samples: Float32Array): number {
-  const crossings: number[] = [];
-  for (let i = 1; i < samples.length; i++) {
-    if (samples[i - 1] < 0 && samples[i] >= 0) {
-      crossings.push(i - 1 + samples[i - 1] / (samples[i - 1] - samples[i]));
-    }
+function renderSynth(
+  synth: SubtractiveSynth,
+  { seconds, at }: { seconds: number; at: Record<number, () => void> },
+): Float32Array {
+  const buffers = createBuffers(Math.round(seconds * SAMPLE_RATE));
+  const times = Object.keys(at)
+    .map(Number)
+    .sort((a, b) => a - b);
+  let rendered = 0;
+  for (const [i, time] of times.entries()) {
+    at[time]();
+    const end = Math.round((times[i + 1] ?? seconds) * SAMPLE_RATE);
+    synth.render(buffers[0], buffers[1], rendered, end - rendered);
+    rendered = end;
   }
-  const span = crossings.at(-1)! - crossings[0];
-  return Math.round((crossings.length - 1) / (span / SAMPLE_RATE));
+  return buffers[0];
 }
 
-function renderNote({
-  waveform,
-  pitch,
-  length,
-}: {
-  waveform: Waveform;
-  pitch: number;
-  length: number;
-}): Float32Array {
-  const synth = new SubtractiveSynth(SAMPLE_RATE);
-  synth.setPatch(createPatch([waveform]));
-  const buffers = createBuffers(length);
-  synth.noteOn(pitch, 127);
-  synth.render(buffers[0], buffers[1], 0, length);
-  return buffers[0];
+/**
+ * Lists the RMS level of each 50 ms window in dBFS, with a bar of one block
+ * per dB above -60 dB. A window holds a whole number of 440 Hz cycles, so a
+ * steady A4 reads the same in every row.
+ */
+function describeLevels(samples: Float32Array): string {
+  const window = 0.05 * SAMPLE_RATE;
+  const rows: string[] = [];
+  for (let start = 0; start < samples.length; start += window) {
+    const db =
+      20 * Math.log10(measureRms(samples.subarray(start, start + window)));
+    const time = `${Math.round((start / SAMPLE_RATE) * 1000)} ms`;
+    const level = db === -Infinity ? "-inf" : db.toFixed(1);
+    const bar = "█".repeat(Math.max(0, Math.round(db + 60)));
+    rows.push(`${time.padStart(6)}  ${level.padStart(5)} dB  ${bar}`.trimEnd());
+  }
+  // Starts and ends on a line break, so rows align in an inline snapshot.
+  return ["", ...rows, ""].join("\n");
+}
+
+/**
+ * Lists the frequency of each 50 ms window, from the cycles between the
+ * window's first and last rising zero crossings, each interpolated between
+ * samples.
+ */
+function describeFrequencies(samples: Float32Array): string {
+  const window = 0.05 * SAMPLE_RATE;
+  const rows: string[] = [];
+  for (let start = 0; start < samples.length; start += window) {
+    const crossings: number[] = [];
+    for (let i = start + 1; i < start + window; i++) {
+      if (samples[i - 1] < 0 && samples[i] >= 0) {
+        crossings.push(i - samples[i] / (samples[i] - samples[i - 1]));
+      }
+    }
+    const frequency = Math.round(
+      ((crossings.length - 1) * SAMPLE_RATE) /
+        (crossings.at(-1)! - crossings[0]),
+    );
+    const time = `${Math.round((start / SAMPLE_RATE) * 1000)} ms`;
+    rows.push(`${time.padStart(6)}  ${String(frequency).padStart(3)} Hz`);
+  }
+  // Starts and ends on a line break, so rows align in an inline snapshot.
+  return ["", ...rows, ""].join("\n");
 }
 
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
     layers: waveforms.map((waveform) => ({
+      ...createGateLayer(),
       oscillator: { waveform },
-      gain: 1,
     })),
+  };
+}
+
+/** A layer that starts and stops instantly, so its level holds from the first sample */
+function createGateLayer(): SynthLayer {
+  return {
+    ...createSynthLayer(),
+    amp: { envelope: { attack: 0, decay: 0, sustain: 1, release: 0 } },
   };
 }
 
