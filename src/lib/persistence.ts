@@ -8,7 +8,7 @@ import {
 } from "./dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
 import {
-  DEFAULT_SYNTH_LAYER,
+  createSynthLayer,
   type SynthLayer,
   type SynthPatch,
 } from "./dsp/subtractive-synth.ts";
@@ -120,7 +120,7 @@ interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
   layers: SerializedSynthLayer[];
 }
 
-interface SerializedSynthLayer extends Omit<SynthLayer, "gain" | "amp"> {
+interface SerializedSynthLayer extends Omit<SynthLayer, "id" | "gain" | "amp"> {
   // 🟢 Optional for layers saved before per-layer gain.
   gain?: number;
   // 🟢 Optional for layers saved before the amp envelope.
@@ -197,7 +197,13 @@ export function serializeEditorRuntimeState(
       showClips: track.showClips,
       clips: track.clips.map(serializeAudioClip),
     })),
-    midiTracks: state.midiTracks,
+    midiTracks: state.midiTracks.map((track) => ({
+      ...track,
+      synth: track.synth && {
+        ...track.synth,
+        layers: track.synth.layers.map(({ id: _id, ...layer }) => layer),
+      },
+    })),
     trackOrder: state.trackOrder,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
@@ -259,7 +265,7 @@ export function deserializeEditorRuntimeState({
       synth: track.synth && {
         ...track.synth,
         layers: track.synth.layers.map((layer) => ({
-          ...DEFAULT_SYNTH_LAYER,
+          ...createSynthLayer(),
           ...layer,
         })),
       },

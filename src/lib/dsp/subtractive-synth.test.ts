@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
-  DEFAULT_SYNTH_LAYER,
+  createSynthLayer,
+  createSynthPatch,
   PEAK_GAIN,
   SubtractiveSynth,
   type SynthPatch,
@@ -19,6 +20,7 @@ const PEAK = PEAK_GAIN * (100 / 127) ** 2;
 describe(SubtractiveSynth, () => {
   it("plays a note as a sine at its pitch until note-off", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createSynthPatch());
     const buffers = createBuffers(9600);
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
@@ -42,6 +44,7 @@ describe(SubtractiveSynth, () => {
   it("scales a note's level with velocity", () => {
     const measureLevel = (velocity: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch(createSynthPatch());
       const buffers = createBuffers(4800);
       synth.noteOn(60, velocity);
       synth.render(buffers[0], buffers[1], 0, 4800);
@@ -55,7 +58,7 @@ describe(SubtractiveSynth, () => {
     synth.setPatch({
       layers: [
         {
-          ...DEFAULT_SYNTH_LAYER,
+          ...createSynthLayer(),
           amp: {
             envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 },
           },
@@ -75,6 +78,7 @@ describe(SubtractiveSynth, () => {
 
   it("mixes into the buffers from the offset", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createSynthPatch());
     const buffers = createBuffers(960);
     buffers[0].fill(1);
     synth.noteOn(69, 127);
@@ -120,10 +124,14 @@ describe(SubtractiveSynth, () => {
 
   it("changes the waveform of a sounding note", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const layer = createSynthLayer();
+    synth.setPatch({ layers: [layer] });
     const buffers = createBuffers(9600);
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.setPatch(createPatch(["square"]));
+    synth.setPatch({
+      layers: [{ ...layer, oscillator: { waveform: "square" } }],
+    });
     synth.render(buffers[0], buffers[1], 4800, 4800);
     expect(measureRms(buffers[0].subarray(RAMP_FRAMES, 4800))).toBeCloseTo(
       PEAK / Math.SQRT2,
@@ -135,14 +143,42 @@ describe(SubtractiveSynth, () => {
     );
   });
 
-  it("stops sounding notes when a patch change adds a layer", () => {
+  it("keeps each layer's envelope on a sounding note when a layer is removed", () => {
+    // The first layer has decayed to silence and the second holds, so the
+    // second keeps playing at full level once the first is gone.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const decaying = {
+      ...createSynthLayer(),
+      amp: {
+        envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.1 },
+      },
+    };
+    const holding = createSynthLayer();
+    synth.setPatch({ layers: [decaying, holding] });
     const buffers = createBuffers(9600);
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.setPatch(createPatch(["sine", "sine"]));
+    synth.setPatch({ layers: [holding] });
     synth.render(buffers[0], buffers[1], 4800, 4800);
-    expect(measureRms(buffers[0].subarray(4800))).toBe(0);
+    expect(measureRms(buffers[0].subarray(4800))).toBeCloseTo(
+      PEAK / Math.SQRT2,
+      3,
+    );
+  });
+
+  it("plays a layer that a patch change adds from the next note", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const patch = createSynthPatch();
+    synth.setPatch(patch);
+    const buffers = createBuffers(9600);
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 4800);
+    synth.setPatch({ layers: [...patch.layers, createSynthLayer()] });
+    synth.render(buffers[0], buffers[1], 4800, 4800);
+    expect(measureRms(buffers[0].subarray(4800))).toBeCloseTo(
+      PEAK / Math.SQRT2,
+      3,
+    );
   });
 
   it("sums the layers of a note", () => {
@@ -160,6 +196,7 @@ describe(SubtractiveSynth, () => {
   it("scales the level with CC7 volume and CC11 expression", () => {
     const measureLevel = (volume: number, expression: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch(createSynthPatch());
       const buffers = createBuffers(4800);
       synth.controller(7, volume);
       synth.controller(11, expression);
@@ -176,7 +213,7 @@ describe(SubtractiveSynth, () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
     synth.setPatch({
-      layers: [DEFAULT_SYNTH_LAYER, { ...DEFAULT_SYNTH_LAYER, gain: 0.5 }],
+      layers: [createSynthLayer(), { ...createSynthLayer(), gain: 0.5 }],
     });
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
@@ -188,6 +225,7 @@ describe(SubtractiveSynth, () => {
 
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createSynthPatch());
     const buffers = createBuffers(4800);
     synth.noteOn(60, 100);
     synth.noteOn(64, 100);
@@ -218,7 +256,7 @@ function renderNote({
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
     layers: waveforms.map((waveform) => ({
-      ...DEFAULT_SYNTH_LAYER,
+      ...createSynthLayer(),
       oscillator: { waveform },
     })),
   };
