@@ -207,7 +207,7 @@ function SynthLayerRow({
           onGainChange={(gain) => onChange({ ...layer, gain })}
         />
         <PanKnob
-          label={`${name} pan`}
+          label={name}
           pan={layer.pan}
           onPanChange={(pan) => onChange({ ...layer, pan })}
         />
@@ -485,7 +485,7 @@ function PanKnob({
     <div className="flex items-center gap-2">
       <Knob
         ref={ref}
-        aria-label={label}
+        aria-label={`${label} pan`}
         aria-valuetext={valueText}
         onKeyDown={(event) => {
           const step = event.shiftKey ? 0.1 : 0.01;
