@@ -169,8 +169,13 @@ describe(SubtractiveSynth, () => {
   });
 
   it("beats two layers detuned apart", () => {
-    // Layers 10 cents apart at A4 differ by 2.5 Hz, so their sum swells and
-    // cancels once every 0.4 s, starting in phase.
+    // Two sines sum to a tone at their average pitch inside a slower
+    // envelope, which swells and cancels at their difference, the beat:
+    //   sin(2π f1 t) + sin(2π f2 t) = 2 cos(π (f2 − f1) t) · sin(π (f1 + f2) t)
+    //   f1 = 440 Hz, layer 1 at A4
+    //   f2 = 440 · 2^(10/1200) ≈ 442.5 Hz, layer 2 detuned 10 cents
+    //   f2 − f1 ≈ 2.5 Hz, so the envelope peaks at 0 s and 0.39 s, where the
+    //   layers are in phase, and reaches 0 at 0.2 s, where they're opposite.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const layer = createGateLayer();
     synth.setPatch({
