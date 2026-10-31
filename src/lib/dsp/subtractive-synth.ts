@@ -178,7 +178,6 @@ export class SubtractiveSynth implements SynthEngine {
       for (const voice of this.voices) {
         const vibrato =
           this.vibratoDepth * Math.sin(2 * Math.PI * voice.vibratoPhase);
-        // Cycles per sample
         const phaseIncrement =
           midiToHz(voice.pitch + this.bend + vibrato / 100) / this.sampleRate;
         // Every layer plays at the note's pitch for now, so they share the
