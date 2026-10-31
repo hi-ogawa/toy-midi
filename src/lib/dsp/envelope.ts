@@ -16,7 +16,7 @@ interface Stage {
   coefficient: number;
 }
 
-/** Per-sample curves for an envelope, shared by every voice that plays it */
+/** Per-sample curves for an envelope */
 export interface EnvelopeCurves {
   attack: Stage;
   decay: Stage;
@@ -61,7 +61,11 @@ function computeCoefficient(samples: number, overshoot: number): number {
   return Math.exp(-Math.log((1 + overshoot) / overshoot) / samples);
 }
 
-/** One note's position on an envelope, from attack to idle */
+/**
+ * One note's position on an envelope, from attack to idle. It takes the curves
+ * on each sample instead of keeping its own, so an envelope edit reaches notes
+ * already sounding.
+ */
 export class EnvelopeState {
   stage: "attack" | "decay" | "sustain" | "release" | "idle" = "attack";
   level = 0;
