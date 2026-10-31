@@ -1,5 +1,11 @@
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { midiToHz } from "../music.ts";
+import {
+  computeEnvelopeCurves,
+  type Envelope,
+  type EnvelopeCurves,
+  EnvelopeState,
+} from "./envelope.ts";
 
 export const WAVEFORMS = ["sine", "triangle", "sawtooth", "square"] as const;
 export type Waveform = (typeof WAVEFORMS)[number];
@@ -14,21 +20,39 @@ export interface SynthLayer {
   oscillator: { waveform: Waveform };
   /** Linear multiplier on the layer's output */
   gain: number;
+  amp: {
+    envelope: Envelope;
+  };
 }
+
+// Short ramp to avoid clicks
+const RAMP_SECONDS = 0.005;
 
 export const DEFAULT_SYNTH_LAYER: SynthLayer = {
   oscillator: { waveform: "sine" },
   gain: 1,
+  amp: {
+    envelope: {
+      attack: RAMP_SECONDS,
+      decay: 0.3,
+      sustain: 1,
+      release: RAMP_SECONDS,
+    },
+  },
 };
 
 export const DEFAULT_SYNTH_PATCH: SynthPatch = {
   layers: [DEFAULT_SYNTH_LAYER],
 };
 
-// Short enough to sound immediate, long enough to keep note edges from clicking.
-const RAMP_SECONDS = 0.005;
 // Leaves headroom for chords at full velocity.
 export const PEAK_GAIN = 0.2;
+
+interface ResolvedLayer {
+  oscillate: Oscillator;
+  gain: number;
+  ampEnvelope: EnvelopeCurves;
+}
 
 const VOLUME_CONTROLLER = 7;
 const EXPRESSION_CONTROLLER = 11;
@@ -46,14 +70,15 @@ interface Voice {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
+  /** Peak gain scaled by the note's velocity */
   gain: number;
-  targetGain: number;
+  /** One per layer */
+  ampEnvelopes: EnvelopeState[];
 }
 
 export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
-  private layers = DEFAULT_SYNTH_PATCH.layers;
-  private readonly gainStep: number;
+  private layers: ResolvedLayer[];
   private volume = DEFAULT_VOLUME;
   private expression = DEFAULT_EXPRESSION;
   /** CC7 volume times CC11 expression, applied to the summed voices */
@@ -62,12 +87,19 @@ export class SubtractiveSynth implements SynthEngine {
   private readonly channelGainStep: number;
 
   constructor(private readonly sampleRate: number) {
-    this.gainStep = PEAK_GAIN / (RAMP_SECONDS * sampleRate);
+    this.layers = resolveLayers(DEFAULT_SYNTH_PATCH, sampleRate);
     this.channelGainStep = 1 / (RAMP_SECONDS * sampleRate);
   }
 
   setPatch(patch: SynthPatch): void {
-    this.layers = patch.layers;
+    // Voices match their envelopes to layers by index, so they can't follow
+    // an added or removed layer and are cut instead.
+    // TODO: Give layers ids, as tracks have, so held notes keep their
+    // envelopes across layer changes.
+    if (patch.layers.length !== this.layers.length) {
+      this.voices = [];
+    }
+    this.layers = resolveLayers(patch, this.sampleRate);
   }
 
   noteOn(pitch: number, velocity: number): void {
@@ -76,15 +108,15 @@ export class SubtractiveSynth implements SynthEngine {
       pitch,
       phaseIncrement: midiToHz(pitch) / this.sampleRate,
       phase: 0,
-      gain: 0,
-      targetGain: PEAK_GAIN * (velocity / 127),
+      gain: PEAK_GAIN * (velocity / 127),
+      ampEnvelopes: this.layers.map(() => new EnvelopeState()),
     });
   }
 
   noteOff(pitch: number): void {
     for (const voice of this.voices) {
       if (voice.pitch === pitch) {
-        voice.targetGain = 0;
+        releaseVoice(voice);
       }
     }
   }
@@ -115,23 +147,18 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    const oscillators = this.layers.map((layer) => ({
-      oscillate: OSCILLATORS[layer.oscillator.waveform],
-      gain: layer.gain,
-    }));
     for (let i = offset; i < offset + length; i++) {
       let mix = 0;
       for (const voice of this.voices) {
-        const step = Math.min(
-          this.gainStep,
-          Math.abs(voice.targetGain - voice.gain),
-        );
-        voice.gain += voice.targetGain > voice.gain ? step : -step;
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
-        for (const { oscillate, gain } of oscillators) {
-          sample += gain * oscillate(voice.phase, voice.phaseIncrement);
+        for (let l = 0; l < this.layers.length; l++) {
+          const layer = this.layers[l];
+          sample +=
+            layer.oscillate(voice.phase, voice.phaseIncrement) *
+            layer.gain *
+            voice.ampEnvelopes[l].advance(layer.ampEnvelope);
         }
         mix += voice.gain * sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
@@ -146,15 +173,29 @@ export class SubtractiveSynth implements SynthEngine {
       left[i] += mix;
       right[i] += mix;
     }
-    this.voices = this.voices.filter(
-      (voice) => voice.gain > 0 || voice.targetGain > 0,
+    this.voices = this.voices.filter((voice) =>
+      voice.ampEnvelopes.some((envelope) => envelope.stage !== "idle"),
     );
   }
 
   stopAll(): void {
     for (const voice of this.voices) {
-      voice.targetGain = 0;
+      releaseVoice(voice);
     }
+  }
+}
+
+function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
+  return patch.layers.map((layer) => ({
+    oscillate: OSCILLATORS[layer.oscillator.waveform],
+    gain: layer.gain,
+    ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
+  }));
+}
+
+function releaseVoice(voice: Voice): void {
+  for (const envelope of voice.ampEnvelopes) {
+    envelope.release();
   }
 }
 
@@ -167,11 +208,10 @@ function computeChannelGain(volume: number, expression: number): number {
   return ((volume / 127) * (expression / 127)) ** 2;
 }
 
-/** Each takes the phase and the phase increment in cycles, with a peak of 1. */
-const OSCILLATORS: Record<
-  Waveform,
-  (phase: number, increment: number) => number
-> = {
+/** Takes the phase and the phase increment in cycles, with a peak of 1. */
+type Oscillator = (phase: number, increment: number) => number;
+
+const OSCILLATORS: Record<Waveform, Oscillator> = {
   sine: (phase) => Math.sin(2 * Math.PI * phase),
   // Starts at 0 and rises, in phase with the sine. It has no jumps to correct,
   // but from about 1 kHz its corners alias more than a corrected sawtooth.

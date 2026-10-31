@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
+  DEFAULT_SYNTH_LAYER,
   PEAK_GAIN,
   SubtractiveSynth,
   type SynthPatch,
@@ -47,6 +48,29 @@ describe(SubtractiveSynth, () => {
       return measureRms(buffers[0].subarray(RAMP_FRAMES));
     };
     expect(measureLevel(64) / measureLevel(127)).toBeCloseTo(64 / 127, 2);
+  });
+
+  it("plays a note through its layer's amp envelope", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      layers: [
+        {
+          ...DEFAULT_SYNTH_LAYER,
+          amp: {
+            envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 },
+          },
+        },
+      ],
+    });
+    const buffers = createBuffers(SAMPLE_RATE);
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 0.5 * SAMPLE_RATE);
+    synth.noteOff(69);
+    synth.render(buffers[0], buffers[1], 0.5 * SAMPLE_RATE, 0.5 * SAMPLE_RATE);
+    expect(
+      measureRms(buffers[0].subarray(0.1 * SAMPLE_RATE, 0.5 * SAMPLE_RATE)),
+    ).toBeCloseTo((0.5 * PEAK) / Math.SQRT2, 4);
+    expect(measureRms(buffers[0].subarray(0.6 * SAMPLE_RATE))).toBe(0);
   });
 
   it("mixes into the buffers from the offset", () => {
@@ -111,6 +135,16 @@ describe(SubtractiveSynth, () => {
     );
   });
 
+  it("stops sounding notes when a patch change adds a layer", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const buffers = createBuffers(9600);
+    synth.noteOn(69, 127);
+    synth.render(buffers[0], buffers[1], 0, 4800);
+    synth.setPatch(createPatch(["sine", "sine"]));
+    synth.render(buffers[0], buffers[1], 4800, 4800);
+    expect(measureRms(buffers[0].subarray(4800))).toBe(0);
+  });
+
   it("sums the layers of a note", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
@@ -142,10 +176,7 @@ describe(SubtractiveSynth, () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const buffers = createBuffers(4800);
     synth.setPatch({
-      layers: [
-        { oscillator: { waveform: "sine" }, gain: 1 },
-        { oscillator: { waveform: "sine" }, gain: 0.5 },
-      ],
+      layers: [DEFAULT_SYNTH_LAYER, { ...DEFAULT_SYNTH_LAYER, gain: 0.5 }],
     });
     synth.noteOn(69, 127);
     synth.render(buffers[0], buffers[1], 0, 4800);
@@ -187,8 +218,8 @@ function renderNote({
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
     layers: waveforms.map((waveform) => ({
+      ...DEFAULT_SYNTH_LAYER,
       oscillator: { waveform },
-      gain: 1,
     })),
   };
 }

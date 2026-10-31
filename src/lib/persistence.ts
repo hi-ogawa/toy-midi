@@ -7,7 +7,11 @@ import {
   type MultibandEqParameters,
 } from "./dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
-import type { SynthLayer, SynthPatch } from "./dsp/subtractive-synth.ts";
+import {
+  DEFAULT_SYNTH_LAYER,
+  type SynthLayer,
+  type SynthPatch,
+} from "./dsp/subtractive-synth.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
   type PersistableEditorRuntimeState,
@@ -116,9 +120,11 @@ interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
   layers: SerializedSynthLayer[];
 }
 
-interface SerializedSynthLayer extends Omit<SynthLayer, "gain"> {
+interface SerializedSynthLayer extends Omit<SynthLayer, "gain" | "amp"> {
   // 🟢 Optional for layers saved before per-layer gain.
   gain?: number;
+  // 🟢 Optional for layers saved before the amp envelope.
+  amp?: SynthLayer["amp"];
 }
 
 interface SerializedAudioTrackState<ChannelData> {
@@ -252,7 +258,10 @@ export function deserializeEditorRuntimeState({
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       synth: track.synth && {
         ...track.synth,
-        layers: track.synth.layers.map((layer) => ({ gain: 1, ...layer })),
+        layers: track.synth.layers.map((layer) => ({
+          ...DEFAULT_SYNTH_LAYER,
+          ...layer,
+        })),
       },
       eq: deserializeEq(track.eq),
     })),
