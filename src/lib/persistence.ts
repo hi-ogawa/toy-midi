@@ -122,8 +122,13 @@ interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
 
 interface SerializedSynthLayer extends Omit<
   SynthLayer,
-  "id" | "gain" | "pan" | "amp"
+  "id" | "oscillator" | "gain" | "pan" | "amp"
 > {
+  oscillator: Pick<SynthLayer["oscillator"], "waveform"> & {
+    // 🟢 Optional for layers saved before octave and detune.
+    octave?: number;
+    detune?: number;
+  };
   // 🟢 Optional for layers saved before per-layer gain.
   gain?: number;
   // 🟢 Optional for layers saved before per-layer pan.
@@ -269,10 +274,14 @@ export function deserializeEditorRuntimeState({
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       synth: track.synth && {
         ...track.synth,
-        layers: track.synth.layers.map((layer) => ({
-          ...createSynthLayer(),
-          ...layer,
-        })),
+        layers: track.synth.layers.map((layer) => {
+          const defaults = createSynthLayer();
+          return {
+            ...defaults,
+            ...layer,
+            oscillator: { ...defaults.oscillator, ...layer.oscillator },
+          };
+        }),
       },
       eq: deserializeEq(track.eq),
     })),

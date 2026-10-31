@@ -8,19 +8,28 @@ import { SynthPanelContent } from "./synth-panel";
 
 function createInitialPatch(): SynthPatch {
   const saw = createSynthLayer();
-  const square = createSynthLayer();
+  const detunedSaw = createSynthLayer();
+  const sub = createSynthLayer();
+  const envelope = { attack: 0.01, decay: 0.4, sustain: 0.6, release: 0.2 };
   return {
     layers: [
       {
         ...saw,
         oscillator: { ...saw.oscillator, waveform: "sawtooth" },
-        amp: {
-          envelope: { attack: 0.01, decay: 0.4, sustain: 0.6, release: 0.2 },
-        },
+        amp: { envelope },
       },
       {
-        ...square,
-        oscillator: { ...square.oscillator, waveform: "square" },
+        ...detunedSaw,
+        oscillator: {
+          ...detunedSaw.oscillator,
+          waveform: "sawtooth",
+          detune: 7,
+        },
+        amp: { envelope },
+      },
+      {
+        ...sub,
+        oscillator: { ...sub.oscillator, waveform: "square", octave: -1 },
         gain: dbToGain(-6),
       },
     ],

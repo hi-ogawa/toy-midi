@@ -1,4 +1,10 @@
-import { ChevronDownIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  MinusIcon,
+  PlusIcon,
+  XIcon,
+} from "lucide-react";
 import { useState } from "react";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
@@ -22,6 +28,11 @@ import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
 import { usePointerDrag } from "./use-pointer-drag";
 import { WaveformIcon } from "./waveform-icon";
+
+const MIN_OCTAVE = -3;
+const MAX_OCTAVE = 3;
+// Limit to half a semitone
+const MAX_DETUNE_CENTS = 50;
 
 const WAVEFORM_LABELS: Record<Waveform, string> = {
   sine: "Sine",
@@ -239,6 +250,26 @@ function SynthLayerRow({
               ))}
             </div>
           </div>
+          <div className="flex items-center gap-4">
+            <OctaveStepper
+              octave={layer.oscillator.octave}
+              onOctaveChange={(octave) =>
+                onChange({
+                  ...layer,
+                  oscillator: { ...layer.oscillator, octave },
+                })
+              }
+            />
+            <DetuneKnob
+              detune={layer.oscillator.detune}
+              onDetuneChange={(detune) =>
+                onChange({
+                  ...layer,
+                  oscillator: { ...layer.oscillator, detune },
+                })
+              }
+            />
+          </div>
           <h3 className="pt-1 text-xs font-medium">Amp</h3>
           <EnvelopeEditor
             label="Amp envelope"
@@ -247,6 +278,129 @@ function SynthLayerRow({
           />
         </div>
       )}
+    </div>
+  );
+}
+
+function OctaveStepper({
+  octave,
+  onOctaveChange,
+}: {
+  octave: number;
+  onOctaveChange: (octave: number) => void;
+}) {
+  const setOctave = (value: number) =>
+    onOctaveChange(clamp(value, MIN_OCTAVE, MAX_OCTAVE));
+  const valueText = octave > 0 ? `+${octave}` : String(octave);
+  const buttonClassName =
+    "flex h-full w-5 items-center justify-center text-neutral-400 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40";
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-neutral-400">Octave</span>
+      <div
+        role="spinbutton"
+        tabIndex={0}
+        aria-label="Octave"
+        aria-valuenow={octave}
+        aria-valuemin={MIN_OCTAVE}
+        aria-valuemax={MAX_OCTAVE}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const next = {
+            ArrowLeft: octave - 1,
+            ArrowDown: octave - 1,
+            ArrowRight: octave + 1,
+            ArrowUp: octave + 1,
+            Home: MIN_OCTAVE,
+            End: MAX_OCTAVE,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setOctave(next);
+          }
+        }}
+        className="flex h-6 items-center rounded border border-neutral-600 bg-neutral-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+      >
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden
+          disabled={octave <= MIN_OCTAVE}
+          onClick={() => setOctave(octave - 1)}
+          className={buttonClassName}
+        >
+          <MinusIcon className="size-3" />
+        </button>
+        <span className="w-5 text-center font-mono text-xs tabular-nums">
+          {valueText}
+        </span>
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden
+          disabled={octave >= MAX_OCTAVE}
+          onClick={() => setOctave(octave + 1)}
+          className={buttonClassName}
+        >
+          <PlusIcon className="size-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DetuneKnob({
+  detune,
+  onDetuneChange,
+}: {
+  detune: number;
+  onDetuneChange: (detune: number) => void;
+}) {
+  const setDetune = (value: number) =>
+    onDetuneChange(
+      clamp(Math.round(value), -MAX_DETUNE_CENTS, MAX_DETUNE_CENTS),
+    );
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return detune;
+    },
+    onMove: (_event, drag) =>
+      setDetune(drag.data - (drag.deltaY / 200) * (2 * MAX_DETUNE_CENTS)),
+  });
+  const signed = detune > 0 ? `+${detune}` : String(detune);
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-neutral-400">Detune</span>
+      <Knob
+        ref={ref}
+        aria-label="Detune"
+        aria-valuetext={`${signed} cents`}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 10 : 1;
+          const next = {
+            ArrowLeft: detune - step,
+            ArrowDown: detune - step,
+            ArrowRight: detune + step,
+            ArrowUp: detune + step,
+            Home: -MAX_DETUNE_CENTS,
+            End: MAX_DETUNE_CENTS,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setDetune(next);
+          }
+        }}
+        value={detune}
+        min={-MAX_DETUNE_CENTS}
+        max={MAX_DETUNE_CENTS}
+        origin={0}
+        className="cursor-ns-resize"
+      />
+      <span className="w-12 font-mono text-xs text-muted-foreground tabular-nums">
+        {signed} ct
+      </span>
     </div>
   );
 }

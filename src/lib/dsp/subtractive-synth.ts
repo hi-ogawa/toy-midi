@@ -24,7 +24,13 @@ export interface SynthLayer {
    * to a layer.
    */
   id: string;
-  oscillator: { waveform: Waveform };
+  oscillator: {
+    waveform: Waveform;
+    /** Whole octaves from the note */
+    octave: number;
+    /** Cents from the note */
+    detune: number;
+  };
   /** Linear multiplier on the layer's output */
   gain: number;
   /** From -1, hard left, to 1, hard right */
@@ -38,7 +44,7 @@ export interface SynthLayer {
 const RAMP_SECONDS = 0.005;
 
 const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
-  oscillator: { waveform: "sine" },
+  oscillator: { waveform: "sine", octave: 0, detune: 0 },
   gain: 1,
   pan: 0,
   amp: {
@@ -65,6 +71,8 @@ export const PEAK_GAIN = 0.2;
 interface ResolvedLayer {
   id: string;
   oscillate: Oscillator;
+  /** The layer's frequency over the note's */
+  frequencyRatio: number;
   /** The layer's gain on each channel, with its pan */
   leftGain: number;
   rightGain: number;
@@ -86,17 +94,21 @@ const VIBRATO_RATE = 5.5;
 
 interface Voice {
   pitch: number;
-  /**
-   * Cycles in [0, 1). Advancing by the increment instead of tracking time
-   * keeps the waveform continuous when the frequency changes.
-   */
-  phase: number;
   /** The vibrato LFO's cycles in [0, 1), from 0 at note-on */
   vibratoPhase: number;
   /** Peak gain scaled by the note's velocity */
   gain: number;
   /** Keyed by layer id */
-  ampEnvelopes: Map<string, EnvelopeState>;
+  layers: Map<string, VoiceLayer>;
+}
+
+interface VoiceLayer {
+  /**
+   * Cycles in [0, 1). Advancing by the increment instead of tracking time
+   * keeps the waveform continuous when the frequency changes.
+   */
+  phase: number;
+  ampEnvelope: EnvelopeState;
 }
 
 export class SubtractiveSynth implements SynthEngine {
@@ -128,11 +140,13 @@ export class SubtractiveSynth implements SynthEngine {
     this.noteOff(pitch);
     this.voices.push({
       pitch,
-      phase: 0,
       vibratoPhase: 0,
       gain: PEAK_GAIN * (velocity / 127),
-      ampEnvelopes: new Map(
-        this.layers.map((layer) => [layer.id, new EnvelopeState()]),
+      layers: new Map(
+        this.layers.map((layer) => [
+          layer.id,
+          { phase: 0, ampEnvelope: new EnvelopeState() },
+        ]),
       ),
     });
   }
@@ -184,26 +198,25 @@ export class SubtractiveSynth implements SynthEngine {
       for (const voice of this.voices) {
         const vibrato =
           this.vibratoDepth * Math.sin(2 * Math.PI * voice.vibratoPhase);
-        const phaseIncrement =
+        const notePhaseIncrement =
           midiToHz(voice.pitch + this.bend + vibrato / 100) / this.sampleRate;
-        // Every layer plays at the note's pitch for now, so they share the
-        // voice's phase.
         let sampleLeft = 0;
         let sampleRight = 0;
         for (const layer of this.layers) {
           // A layer that a patch change adds plays from the next note.
-          const envelope = voice.ampEnvelopes.get(layer.id);
-          if (envelope) {
+          const state = voice.layers.get(layer.id);
+          if (state) {
+            const phaseIncrement = notePhaseIncrement * layer.frequencyRatio;
             const sample =
-              layer.oscillate(voice.phase, phaseIncrement) *
-              envelope.advance(layer.ampEnvelope);
+              layer.oscillate(state.phase, phaseIncrement) *
+              state.ampEnvelope.advance(layer.ampEnvelope);
             sampleLeft += sample * layer.leftGain;
             sampleRight += sample * layer.rightGain;
+            state.phase = (state.phase + phaseIncrement) % 1;
           }
         }
         mixLeft += voice.gain * sampleLeft;
         mixRight += voice.gain * sampleRight;
-        voice.phase = (voice.phase + phaseIncrement) % 1;
         voice.vibratoPhase =
           (voice.vibratoPhase + this.vibratoPhaseIncrement) % 1;
       }
@@ -218,7 +231,7 @@ export class SubtractiveSynth implements SynthEngine {
     }
     this.voices = this.voices.filter((voice) =>
       this.layers.some((layer) => {
-        const stage = voice.ampEnvelopes.get(layer.id)?.stage;
+        const stage = voice.layers.get(layer.id)?.ampEnvelope.stage;
         return stage !== undefined && stage !== "idle";
       }),
     );
@@ -237,6 +250,8 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
     return {
       id: layer.id,
       oscillate: OSCILLATORS[layer.oscillator.waveform],
+      frequencyRatio:
+        2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
       leftGain: layer.gain * pan.left,
       rightGain: layer.gain * pan.right,
       ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
@@ -258,8 +273,8 @@ function computePanGains(pan: number): { left: number; right: number } {
 }
 
 function releaseVoice(voice: Voice): void {
-  for (const envelope of voice.ampEnvelopes.values()) {
-    envelope.release();
+  for (const state of voice.layers.values()) {
+    state.ampEnvelope.release();
   }
 }
 
