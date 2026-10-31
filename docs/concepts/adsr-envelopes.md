@@ -93,7 +93,7 @@ too quiet to hear, so the release sounds like an even fade to silence. An oversh
 
 Synths disagree on what an envelope time means. Here a time is how long the stage takes to cross the whole range between 0 and 1, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the time constant $\tau$ itself. This envelope's $\tau$ is the stage's time divided by $\ln\big((1+o)/o\big)$, which is $\ln10001\approx9.2$ for a release, so a 100 ms release has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. This convention makes the number on a slider match what you hear.
 
-Times are also rates. A stage that covers only part of the range keeps its time constant and ends sooner, as derived above and as on analog envelopes. The other choice, finishing every stage in its time whatever the distance, would make the decay's time constant change when the sustain changes.
+Times are also rates, as on analog envelopes. There each stage's time knob sets a resistor, so the stage's time constant $\tau=RC$ is fixed by the knob, and the circuit has no way to know how far the capacitor has left to go. A stage that covers only part of the range keeps its $\tau$ and ends sooner, as derived above. Deriving $\tau$ from each stage's actual distance would land every stage exactly on its time instead, but a higher sustain would then flatten the decay, and a release after an early note-off would linger for the full release time.
 
 ## References
 
@@ -108,7 +108,7 @@ $$
 \frac{dx}{dt}=\frac{T-x}{\tau},
 $$
 
-with the time constant $\tau$ set by the resistor and the capacitor. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
+with the time constant $\tau=RC$ set by the resistor and the capacitor, where the stage's time knob turns the resistor. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
 
 $$
 T-x(t)=\big(T-x(0)\big)\cdot e^{-t/\tau}.
