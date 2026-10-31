@@ -79,6 +79,13 @@ test("changes a synth track's waveform and amp envelope in its Synth panel", asy
   await gain.focus();
   await page.keyboard.press("Shift+ArrowDown");
   await expect(gain).toHaveAttribute("aria-valuetext", "-6.0 dB");
+
+  // Pan the layer from the center to the left with the keyboard.
+  const pan = panel.getByRole("slider", { name: "Layer 1 pan" });
+  await expect(pan).toHaveAttribute("aria-valuetext", "C");
+  await pan.focus();
+  await page.keyboard.press("Shift+ArrowLeft");
+  await expect(pan).toHaveAttribute("aria-valuetext", "L10");
 });
 
 test("adds, collapses, and removes layers in the Synth panel", async ({

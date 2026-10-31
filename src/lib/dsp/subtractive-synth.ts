@@ -26,6 +26,8 @@ export interface SynthLayer {
   oscillator: { waveform: Waveform };
   /** Linear multiplier on the layer's output */
   gain: number;
+  /** From -1, hard left, to 1, hard right */
+  pan: number;
   amp: {
     envelope: Envelope;
   };
@@ -37,6 +39,7 @@ const RAMP_SECONDS = 0.005;
 const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
   oscillator: { waveform: "sine" },
   gain: 1,
+  pan: 0,
   amp: {
     envelope: {
       attack: RAMP_SECONDS,
@@ -61,7 +64,9 @@ export const PEAK_GAIN = 0.2;
 interface ResolvedLayer {
   id: string;
   oscillate: Oscillator;
-  gain: number;
+  /** The layer's gain on each channel, with its pan */
+  leftGain: number;
+  rightGain: number;
   ampEnvelope: EnvelopeCurves;
 }
 
@@ -153,22 +158,26 @@ export class SubtractiveSynth implements SynthEngine {
     length: number,
   ): void {
     for (let i = offset; i < offset + length; i++) {
-      let mix = 0;
+      let mixLeft = 0;
+      let mixRight = 0;
       for (const voice of this.voices) {
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
-        let sample = 0;
+        let sampleLeft = 0;
+        let sampleRight = 0;
         for (const layer of this.layers) {
           // A layer that a patch change adds plays from the next note.
           const envelope = voice.ampEnvelopes.get(layer.id);
           if (envelope) {
-            sample +=
+            const sample =
               layer.oscillate(voice.phase, voice.phaseIncrement) *
-              layer.gain *
               envelope.advance(layer.ampEnvelope);
+            sampleLeft += sample * layer.leftGain;
+            sampleRight += sample * layer.rightGain;
           }
         }
-        mix += voice.gain * sample;
+        mixLeft += voice.gain * sampleLeft;
+        mixRight += voice.gain * sampleRight;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
       }
       const channelStep = Math.min(
@@ -177,9 +186,8 @@ export class SubtractiveSynth implements SynthEngine {
       );
       this.channelGain +=
         this.targetChannelGain > this.channelGain ? channelStep : -channelStep;
-      mix *= this.channelGain;
-      left[i] += mix;
-      right[i] += mix;
+      left[i] += mixLeft * this.channelGain;
+      right[i] += mixRight * this.channelGain;
     }
     this.voices = this.voices.filter((voice) =>
       this.layers.some((layer) => {
@@ -197,12 +205,30 @@ export class SubtractiveSynth implements SynthEngine {
 }
 
 function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
-  return patch.layers.map((layer) => ({
-    id: layer.id,
-    oscillate: OSCILLATORS[layer.oscillator.waveform],
-    gain: layer.gain,
-    ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
-  }));
+  return patch.layers.map((layer) => {
+    const pan = computePanGains(layer.pan);
+    return {
+      id: layer.id,
+      oscillate: OSCILLATORS[layer.oscillator.waveform],
+      leftGain: layer.gain * pan.left,
+      rightGain: layer.gain * pan.right,
+      ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
+    };
+  });
+}
+
+/**
+ * Pans the way the track's `StereoPannerNode` pans the synth's output, so a
+ * layer pan sounds like the same track pan. The node pans a stereo input by
+ * fading the far channel into the near one, which for the synth's identical
+ * channels keeps both at unity at the center and folds them into one, twice
+ * the level, at a hard side.
+ * See the [StereoPannerNode algorithm](https://webaudio.github.io/web-audio-api/#stereopanner-algorithm).
+ */
+function computePanGains(pan: number): { left: number; right: number } {
+  const near = 1 + Math.sin((Math.abs(pan) * Math.PI) / 2);
+  const far = Math.cos((pan * Math.PI) / 2);
+  return pan < 0 ? { left: near, right: far } : { left: far, right: near };
 }
 
 function releaseVoice(voice: Voice): void {

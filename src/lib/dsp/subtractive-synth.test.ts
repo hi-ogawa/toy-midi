@@ -276,6 +276,30 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(samples)).toBeCloseTo((1.5 * PEAK) / Math.SQRT2, 3);
   });
 
+  it("pans each layer the way a track pan pans the synth", () => {
+    // Unity on both sides at the center, and the far side folded into the
+    // near one at a hard side
+    const measurePan = (pan: number) => {
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch({ layers: [{ ...createGateLayer(), pan }] });
+      const [left, right] = renderSynthChannels(synth, {
+        seconds: 0.1,
+        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+      });
+      const center = PEAK / Math.SQRT2;
+      return [measureRms(left) / center, measureRms(right) / center];
+    };
+    const expectGains = (pan: number, [left, right]: number[]) => {
+      const [measuredLeft, measuredRight] = measurePan(pan);
+      expect(measuredLeft).toBeCloseTo(left, 3);
+      expect(measuredRight).toBeCloseTo(right, 3);
+    };
+    expectGains(0, [1, 1]);
+    expectGains(-1, [2, 0]);
+    expectGains(1, [0, 2]);
+    expectGains(0.5, [Math.SQRT1_2, 1 + Math.SQRT1_2]);
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createPatch(["sine"]));
@@ -300,14 +324,22 @@ describe(SubtractiveSynth, () => {
   });
 });
 
-/**
- * Renders the synth for `seconds`, running each action at its time in
- * seconds, and returns the left channel.
- */
+/** Renders the synth like `renderSynthChannels` and returns the left channel. */
 function renderSynth(
   synth: SubtractiveSynth,
-  { seconds, at }: { seconds: number; at: Record<number, () => void> },
+  options: { seconds: number; at: Record<number, () => void> },
 ): Float32Array {
+  return renderSynthChannels(synth, options)[0];
+}
+
+/**
+ * Renders the synth for `seconds`, running each action at its time in
+ * seconds, and returns both channels.
+ */
+function renderSynthChannels(
+  synth: SubtractiveSynth,
+  { seconds, at }: { seconds: number; at: Record<number, () => void> },
+): [Float32Array, Float32Array] {
   const buffers = createBuffers(Math.round(seconds * SAMPLE_RATE));
   const times = Object.keys(at)
     .map(Number)
@@ -319,7 +351,7 @@ function renderSynth(
     synth.render(buffers[0], buffers[1], rendered, end - rendered);
     rendered = end;
   }
-  return buffers[0];
+  return buffers;
 }
 
 /**
