@@ -39,6 +39,7 @@ export function SynthPreview() {
         patch={patch}
         onChange={setPatch}
         onClose={() => {}}
+        initialSize={{ width: 480, height: 720 }}
       />
     </div>
   );
