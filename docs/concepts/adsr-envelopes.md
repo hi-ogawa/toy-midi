@@ -37,13 +37,15 @@ The sustain level decides which of the other settings matter.
 
 ## Shape Each Stage as a Curve
 
-The synth moves the level $x$ toward a **target** $T$ by the same fraction every sample,
+A stage's start level, end level, and time leave its shape open, and the shape is chosen by ear. Loudness is heard roughly in decibels, so a straight fade from 1 to 0 seems to hang near full level and then drop away, since halfway through its time it has fallen only 6 dB. A fade that falls by the same factor every sample, an exponential, loses the same number of decibels in each stretch of time and sounds even. Analog envelopes, which charge and discharge a capacitor, make this shape too, so it's the one synth players expect. The attack is the exception, because a rise of this shape sounds sluggish, so it's pushed close to a straight line.
+
+The synth draws every stage with one rule. Each sample, it moves the level $x$ toward a **target** $T$ by the same fraction,
 
 $$
 x_{n+1}=T+c\cdot(x_n-T),
 $$
 
-so the distance to the target shrinks by a factor $c$ per sample. This one-pole curve is a level relaxing toward its target, sampled exactly, as the [appendix](#appendix-sample-a-first-order-relaxation-exactly) derives, and it never reaches the target. So each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. The distance then starts at $1+o$ over a full swing and ends at $o$. For a stage time of $N$ samples,
+so the distance to the target shrinks by a factor $c$ per sample. This is the exponential sampled exactly, as the [appendix](#appendix-sample-a-first-order-relaxation-exactly) shows, and it costs one multiply-add per sample. Because each step starts from the current level, a stage that starts partway, such as a release after an early note-off, needs nothing extra. The curve never reaches its target, so each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. The distance then starts at $1+o$ over a full swing and ends at $o$. For a stage time of $N$ samples,
 
 $$
 (1+o)\cdot c^N=o,\qquad c=\left(\frac{o}{1+o}\right)^{1/N}.
@@ -84,7 +86,7 @@ Times are also rates. A decay or release that covers only part of the swing, suc
 
 ## Appendix: Sample a First-Order Relaxation Exactly
 
-The simplest way for a level to move toward a target is at a speed proportional to the distance left,
+The stage curve is the motion of a level that moves toward its target at a speed proportional to the distance left,
 
 $$
 \frac{dx}{dt}=\frac{T-x}{\tau},
