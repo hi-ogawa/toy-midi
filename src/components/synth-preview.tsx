@@ -4,7 +4,7 @@ import {
   type SynthPatch,
 } from "../lib/dsp/subtractive-synth";
 import { dbToGain } from "../lib/music";
-import { SynthPanel } from "./synth-panel";
+import { SynthPanelContent } from "./synth-panel";
 
 function createInitialPatch(): SynthPatch {
   const saw = createSynthLayer();
@@ -30,17 +30,11 @@ function createInitialPatch(): SynthPatch {
 export function SynthPreview() {
   const [patch, setPatch] = useState(createInitialPatch);
 
-  // The panel resizes from its top-left corner, so it sits at the bottom
-  // right, where the app docks it, below the rest of the viewport to grow into.
+  // Resizable down to the panel's 320 px minimum width, where its layer headers
+  // are tightest
   return (
-    <div className="flex h-[calc(100vh-7rem)] items-end justify-end">
-      <SynthPanel
-        label="Bass"
-        patch={patch}
-        onChange={setPatch}
-        onClose={() => {}}
-        initialSize={{ width: 480, height: 720 }}
-      />
+    <div className="h-[720px] max-h-[calc(100vh-7rem)] min-h-40 w-[480px] min-w-80 resize overflow-auto rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl">
+      <SynthPanelContent patch={patch} onChange={setPatch} />
     </div>
   );
 }

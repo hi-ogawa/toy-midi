@@ -43,16 +43,14 @@ export function SynthPanel({
   patch,
   onChange,
   onClose,
-  initialSize = { width: 320, height: 320 },
 }: {
   label: string;
   patch: SynthPatch;
   onChange: (patch: SynthPatch) => void;
   onClose: () => void;
-  initialSize?: { width: number; height: number };
 }) {
   const { size, handleRef } = usePanelResize({
-    initialSize,
+    initialSize: { width: 320, height: 320 },
     minSize: { width: 320, height: 120 },
   });
 
@@ -75,7 +73,7 @@ export function SynthPanel({
   );
 }
 
-function SynthPanelContent({
+export function SynthPanelContent({
   patch,
   onChange,
 }: {
