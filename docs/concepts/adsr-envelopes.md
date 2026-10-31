@@ -37,33 +37,29 @@ The sustain level decides which of the other settings matter.
 
 ## Shape Each Stage as a Curve
 
-A stage's start level, end level, and time leave its shape open, and the shape is chosen by ear. Loudness is heard roughly in decibels, so a straight fade from 1 to 0 seems to hang near full level and then drop away, since halfway through its time it has fallen only 6 dB. A fade that falls by the same factor every sample, an exponential, loses the same number of decibels in each stretch of time and sounds even. Analog envelopes, which charge and discharge a capacitor, make this shape too, so it's the one synth players expect. The attack is the exception. A rise that is even in decibels would spend most of its time inaudibly low and then shoot up, which sounds sluggish, so the attack rises like a charging capacitor instead, quickly at first and easing into its peak.
+A stage's start level, end level, and time leave its shape open, and the shape is chosen by ear. Loudness is heard roughly in decibels, so a straight fade from 1 to 0 seems to hang near full level and then drop away, since halfway through its time it has fallen only 6 dB. A fade that falls by the same factor every sample, an exponential, loses the same number of decibels in each stretch of time and sounds even. Analog envelopes, which charge and discharge a capacitor, make this shape too, as the [appendix](#appendix-derive-the-curve-from-a-charging-capacitor) shows, so it's the one synth players expect. The attack is the exception. A rise that is even in decibels would spend most of its time inaudibly low and then shoot up, which sounds sluggish, so the attack rises like a charging capacitor instead, quickly at first and easing into its peak.
 
 ![A 100 ms attack and release, each in level and in decibels, against a straight ramp over the same time. In level, the attack rises just above the ramp and the release drops well below it. In decibels, the attack climbs out of silence within a few milliseconds, the release falls in a straight line until it bends down near −80 dB, and the straight fade stays near 0 dB until it plunges at the end](images/adsr-curves.svg)
 
-The synth draws every stage as a level $x$ relaxing toward a **target** $T$ at a speed proportional to the distance left,
+Each stage's level after $n$ samples is an exponential in its distance to a **target** $T$,
 
 $$
-\frac{dx}{dt}=\frac{T-x}{\tau},
+x_n=T+(x_0-T)\cdot c^n,
 $$
 
-where the **time constant** $\tau$ is how long the distance takes to shrink by a factor of $e$. Sampled exactly at the sample rate $F_s$, as the [appendix](#appendix-sample-a-first-order-relaxation-exactly) derives, that is
+so the distance shrinks by a factor $c$ every sample. An exponential never reaches its target, so each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. Over a full swing the distance starts at $1+o$ and must reach $o$ after the stage's $N$ samples, so
 
 $$
-x_{n+1}=T+c\cdot(x_n-T),\qquad c=e^{-1/(\tau F_s)},
+c^N=\frac{o}{1+o},\qquad c=\exp\left(-\frac{1}{N}\ln\frac{1+o}{o}\right).
 $$
 
-so the distance to the target shrinks by a factor $c$ per sample, for one multiply-add. Because each step starts from the current level, a stage that starts partway, such as a release after an early note-off, needs nothing extra.
-
-The relaxation never reaches its target, so each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. The stage's time then sets $\tau$. Over a full swing the distance starts at $1+o$ and must reach $o$ after the stage's $N$ samples:
+Comparing consecutive samples gives the same curve one step at a time,
 
 $$
-e^{-N/(\tau F_s)}=\frac{o}{1+o}
-\quad\Longrightarrow\quad
-\tau F_s=\frac{N}{\ln\big((1+o)/o\big)},
-\qquad
-c=\exp\left(-\frac{1}{N}\ln\frac{1+o}{o}\right).
+x_{n+1}=T+c\cdot(x_n-T),
 $$
+
+which is how the synth computes it, for one multiply-add per sample. Each step needs only the current level, so a stage that starts partway, such as a release after an early note-off, continues from wherever the level is.
 
 The overshoot decides how much of the exponential a stage uses, so each stage gets its own.
 
@@ -79,7 +75,13 @@ too quiet to hear, so the release sounds like an even fade to silence. An oversh
 
 ## Read a Time as the Stage's Length
 
-Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms, and its time constant is $100/\ln10001\approx11$ ms. Another common convention takes the time as the time constant $\tau$ itself. Then falling 60 dB takes $\ln1000\cdot\tau\approx6.9\tau$, so a 100 ms setting rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
+Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the curve's **time constant** $\tau$, in which the distance to the target shrinks by a factor of $e$, so that $c=e^{-1/(\tau F_s)}$ at the sample rate $F_s$. Setting this equal to the $c$ above gives
+
+$$
+\tau=\frac{N/F_s}{\ln\big((1+o)/o\big)},
+$$
+
+the stage's time divided by $\ln10001\approx9.2$ for a release, so a 100 ms release here has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
 
 Times are also rates. A stage's $c$ is set for the full swing, so a decay or release that covers only part of it, such as a decay to the sustain level or a release from it, falls at the same speed and ends sooner, as on analog envelopes. Because an exponential's tail passes quickly, falling half the swing still takes about 92% of the time. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
 
@@ -88,20 +90,20 @@ Times are also rates. A stage's $c$ is set for the full swing, so a decay or rel
 - [Envelope generators—ADSR code](https://www.earlevel.com/main/2013/06/03/envelope-generators-adsr-code/) (EarLevel Engineering) builds an ADSR from one-pole curves that aim past their ends, the same construction as here.
 - [Envelope (music)](<https://en.wikipedia.org/wiki/Envelope_(music)>) (Wikipedia) surveys the ADSR and its variants.
 
-## Appendix: Sample a First-Order Relaxation Exactly
+## Appendix: Derive the Curve from a Charging Capacitor
 
-A capacitor charging through a resistor toward a supply voltage follows the stage's equation, $dx/dt=(T-x)/\tau$. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
+An analog envelope charges a capacitor through a resistor toward a voltage $T$. The current, and so the speed of the capacitor's voltage $x$, is proportional to the distance left,
+
+$$
+\frac{dx}{dt}=\frac{T-x}{\tau},
+$$
+
+with the time constant $\tau$ set by the resistor and the capacitor. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
 
 $$
 T-x(t)=\big(T-x(0)\big)\cdot e^{-t/\tau}.
 $$
 
-Over one sample, $1/F_s$ seconds, the distance shrinks by the same factor whatever came before, which gives the recurrence of [Shape Each Stage as a Curve](#shape-each-stage-as-a-curve):
-
-$$
-x_{n+1}=T+c\cdot(x_n-T),\qquad c=e^{-1/(\tau F_s)}.
-$$
-
-So the recurrence is the continuous curve sampled exactly, not a step-by-step approximation of it. Forward Euler, which moves $x$ at its current speed for one sample, would give $c=1-1/(\tau F_s)$ instead, which comes close only when $\tau$ spans many samples.
+Read every $1/F_s$ seconds, this is the stage's curve with $c=e^{-1/(\tau F_s)}$, the time constant of [Read a Time as the Stage's Length](#read-a-time-as-the-stages-length). The samples lie exactly on the continuous curve. Forward Euler, which moves $x$ at its current speed for one sample, would give $c=1-1/(\tau F_s)$ instead, which comes close only when $\tau$ spans many samples.
 
 Smoothing a measured level toward each new reading, as the [level meters](../../src/lib/level-meters.ts) do, steps the same equation with a target that changes every step. There the recurrence is required, because the target isn't known ahead of time. Here it's a convenience, since each stage's start, end, and time are known and a closed form would draw the same curve.
