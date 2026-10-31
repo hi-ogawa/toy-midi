@@ -27,7 +27,9 @@ export const GENERAL_USER_SOUNDFONT: Soundfont = {
  * - `"flamestudios-telecaster-neck"`: the same guitar's neck pickup. Warmer and
  *   rounder.
  *
- * Both have a Muted preset for muted strokes and ghost notes.
+ * Both have a Muted preset for muted strokes and ghost notes. Their presets
+ * cover only a guitar in standard tuning, E2 to C6 (MIDI 40-84). Notes outside
+ * that range are silent, so transpose a lower tuning such as drop D up into it.
  */
 export const SOUNDFONTS = [
   {
