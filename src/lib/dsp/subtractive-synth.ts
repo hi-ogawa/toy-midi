@@ -92,8 +92,10 @@ export class SubtractiveSynth implements SynthEngine {
   }
 
   setPatch(patch: SynthPatch): void {
-    // Voices hold one envelope per layer, so they can't follow a change in
-    // layers.
+    // Voices match their envelopes to layers by index, so they can't follow
+    // an added or removed layer and are cut instead.
+    // TODO: Give layers ids, as tracks have, so held notes keep their
+    // envelopes across layer changes.
     if (patch.layers.length !== this.layers.length) {
       this.voices = [];
     }
