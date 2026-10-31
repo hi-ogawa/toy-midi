@@ -181,7 +181,8 @@ function TimeReadout({
           : `${Number(value.toPrecision(2))} s`
       }
       position={timeToPosition(value)}
-      // A tenth of a decade, which stays above the rounding to two digits.
+      // A tenth of a decade, log(10^0.1) / log(10 / 0.001) = 0.025 of the range,
+      // which stays above the rounding to two digits.
       step={0.025}
       onChange={(position) => onChange(positionToTime(position))}
     />
