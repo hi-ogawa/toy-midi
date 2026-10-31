@@ -80,12 +80,6 @@ const MAX_VIBRATO_CENTS = 50;
 const VIBRATO_RATE = 5.5;
 
 interface Voice {
-  /** The key that started the voice, which its note-off matches */
-  note: number;
-  /**
-   * Fractional MIDI pitch before synth-wide offsets such as bend. Render adds
-   * them on every call, so a change to either reaches a sounding note.
-   */
   pitch: number;
   /**
    * Cycles in [0, 1). Advancing by the increment instead of tracking time
@@ -128,7 +122,6 @@ export class SubtractiveSynth implements SynthEngine {
   noteOn(pitch: number, velocity: number): void {
     this.noteOff(pitch);
     this.voices.push({
-      note: pitch,
       pitch,
       phase: 0,
       vibratoPhase: 0,
@@ -141,7 +134,7 @@ export class SubtractiveSynth implements SynthEngine {
 
   noteOff(pitch: number): void {
     for (const voice of this.voices) {
-      if (voice.note === pitch) {
+      if (voice.pitch === pitch) {
         releaseVoice(voice);
       }
     }
