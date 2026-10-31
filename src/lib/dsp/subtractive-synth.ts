@@ -70,7 +70,8 @@ interface Voice {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
-  velocity: number;
+  /** Peak gain scaled by the note's velocity */
+  gain: number;
   /** One per layer */
   ampEnvelopes: EnvelopeState[];
 }
@@ -100,7 +101,7 @@ export class SubtractiveSynth implements SynthEngine {
       pitch,
       phaseIncrement: midiToHz(pitch) / this.sampleRate,
       phase: 0,
-      velocity,
+      gain: PEAK_GAIN * (velocity / 127),
       ampEnvelopes: this.layers.map(() => new EnvelopeState()),
     });
   }
@@ -139,17 +140,14 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    const voices = this.voices.map((voice) => ({
-      voice,
-      // Layers that a patch change adds play from the next note.
-      layerCount: Math.min(this.layers.length, voice.ampEnvelopes.length),
-      layerGains: this.layers.map(
-        (layer) => PEAK_GAIN * layer.gain * (voice.velocity / 127),
-      ),
-    }));
     for (let i = offset; i < offset + length; i++) {
       let mix = 0;
-      for (const { voice, layerCount, layerGains } of voices) {
+      for (const voice of this.voices) {
+        // Layers that a patch change adds play from the next note.
+        const layerCount = Math.min(
+          this.layers.length,
+          voice.ampEnvelopes.length,
+        );
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
@@ -157,10 +155,10 @@ export class SubtractiveSynth implements SynthEngine {
           const layer = this.layers[l];
           sample +=
             layer.oscillate(voice.phase, voice.phaseIncrement) *
-            layerGains[l] *
+            layer.gain *
             voice.ampEnvelopes[l].advance(layer.ampEnvelope);
         }
-        mix += sample;
+        mix += voice.gain * sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
       }
       const channelStep = Math.min(
