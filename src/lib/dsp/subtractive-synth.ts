@@ -84,20 +84,12 @@ export class SubtractiveSynth implements SynthEngine {
   private readonly channelGainStep: number;
 
   constructor(private readonly sampleRate: number) {
-    this.layers = this.resolveLayers(DEFAULT_SYNTH_PATCH);
+    this.layers = resolveLayers(DEFAULT_SYNTH_PATCH, sampleRate);
     this.channelGainStep = 1 / (CHANNEL_GAIN_RAMP_SECONDS * sampleRate);
   }
 
   setPatch(patch: SynthPatch): void {
-    this.layers = this.resolveLayers(patch);
-  }
-
-  private resolveLayers(patch: SynthPatch): ResolvedLayer[] {
-    return patch.layers.map((layer) => ({
-      oscillate: OSCILLATORS[layer.oscillator.waveform],
-      gain: layer.gain,
-      ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, this.sampleRate),
-    }));
+    this.layers = resolveLayers(patch, this.sampleRate);
   }
 
   noteOn(pitch: number, velocity: number): void {
@@ -191,6 +183,14 @@ export class SubtractiveSynth implements SynthEngine {
       releaseVoice(voice);
     }
   }
+}
+
+function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
+  return patch.layers.map((layer) => ({
+    oscillate: OSCILLATORS[layer.oscillator.waveform],
+    gain: layer.gain,
+    ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
+  }));
 }
 
 function releaseVoice(voice: Voice): void {
