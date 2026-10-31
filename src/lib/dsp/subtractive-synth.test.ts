@@ -342,9 +342,9 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(samples)).toBeCloseTo((1.5 * PEAK) / Math.SQRT2, 3);
   });
 
-  it("pans each layer the way a track pan pans the synth", () => {
-    // Unity on both sides at the center, and the far side folded into the
-    // near one at a hard side
+  it("pans each layer at constant power", () => {
+    // Unity on both sides at the center, and √2 on the near side at a hard
+    // side, so left² + right² stays 2 wherever the layer sits
     const measurePan = (pan: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch({ layers: [{ ...createGateLayer(), pan }] });
@@ -361,9 +361,12 @@ describe(SubtractiveSynth, () => {
       expect(measuredRight).toBeCloseTo(right, 3);
     };
     expectGains(0, [1, 1]);
-    expectGains(-1, [2, 0]);
-    expectGains(1, [0, 2]);
-    expectGains(0.5, [Math.SQRT1_2, 1 + Math.SQRT1_2]);
+    expectGains(-1, [Math.SQRT2, 0]);
+    expectGains(1, [0, Math.SQRT2]);
+    expectGains(0.5, [
+      Math.SQRT2 * Math.cos((3 * Math.PI) / 8),
+      Math.SQRT2 * Math.sin((3 * Math.PI) / 8),
+    ]);
   });
 
   it("releases every note on stopAll", () => {

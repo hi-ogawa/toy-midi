@@ -245,17 +245,16 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
 }
 
 /**
- * Pans the way the track's `StereoPannerNode` pans the synth's output, so a
- * layer pan sounds like the same track pan. The node pans a stereo input by
- * fading the far channel into the near one, which for the synth's identical
- * channels keeps both at unity at the center and folds them into one, twice
- * the level, at a hard side.
- * See the [StereoPannerNode algorithm](https://webaudio.github.io/web-audio-api/#stereopanner-algorithm).
+ * Pans a layer, a mono source, at constant power, as a DAW pans a mono track,
+ * so moving a layer doesn't change its loudness. The √2 scale keeps both sides
+ * at unity at the center, where layers saved before pan sit.
  */
 function computePanGains(pan: number): { left: number; right: number } {
-  const near = 1 + Math.sin((Math.abs(pan) * Math.PI) / 2);
-  const far = Math.cos((pan * Math.PI) / 2);
-  return pan < 0 ? { left: near, right: far } : { left: far, right: near };
+  const angle = ((pan + 1) * Math.PI) / 4;
+  return {
+    left: Math.SQRT2 * Math.cos(angle),
+    right: Math.SQRT2 * Math.sin(angle),
+  };
 }
 
 function releaseVoice(voice: Voice): void {
