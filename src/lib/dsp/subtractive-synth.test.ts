@@ -82,13 +82,15 @@ describe(SubtractiveSynth, () => {
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
-      "  0 ms  -26.1 dB  ██████████████████████████████████
+      "
+        0 ms  -26.1 dB  ██████████████████████████████████
        50 ms  -27.2 dB  █████████████████████████████████
       100 ms  -27.2 dB  █████████████████████████████████
       150 ms  -27.2 dB  █████████████████████████████████
       200 ms  -36.8 dB  ███████████████████████
       250 ms  -77.2 dB
-      300 ms   -inf dB"
+      300 ms   -inf dB
+      "
     `);
   });
 
@@ -159,10 +161,12 @@ describe(SubtractiveSynth, () => {
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
-      "  0 ms  -21.4 dB  ███████████████████████████████████████
+      "
+        0 ms  -21.4 dB  ███████████████████████████████████████
        50 ms  -21.1 dB  ███████████████████████████████████████
       100 ms  -18.2 dB  ██████████████████████████████████████████
-      150 ms  -18.2 dB  ██████████████████████████████████████████"
+      150 ms  -18.2 dB  ██████████████████████████████████████████
+      "
     `);
   });
 
@@ -186,10 +190,12 @@ describe(SubtractiveSynth, () => {
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
-      "  0 ms  -20.5 dB  ███████████████████████████████████████
+      "
+        0 ms  -20.5 dB  ███████████████████████████████████████
        50 ms  -21.1 dB  ███████████████████████████████████████
       100 ms  -21.1 dB  ███████████████████████████████████████
-      150 ms  -21.1 dB  ███████████████████████████████████████"
+      150 ms  -21.1 dB  ███████████████████████████████████████
+      "
     `);
   });
 
@@ -209,12 +215,14 @@ describe(SubtractiveSynth, () => {
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
-      "  0 ms  -21.4 dB  ███████████████████████████████████████
+      "
+        0 ms  -21.4 dB  ███████████████████████████████████████
        50 ms  -21.1 dB  ███████████████████████████████████████
       100 ms  -21.1 dB  ███████████████████████████████████████
       150 ms  -21.1 dB  ███████████████████████████████████████
       200 ms  -15.3 dB  █████████████████████████████████████████████
-      250 ms  -15.1 dB  █████████████████████████████████████████████"
+      250 ms  -15.1 dB  █████████████████████████████████████████████
+      "
     `);
   });
 
@@ -281,10 +289,12 @@ describe(SubtractiveSynth, () => {
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
-      "  0 ms  -20.5 dB  ████████████████████████████████████████
+      "
+        0 ms  -20.5 dB  ████████████████████████████████████████
        50 ms  -20.6 dB  ███████████████████████████████████████
       100 ms  -41.5 dB  ██████████████████
-      150 ms   -inf dB"
+      150 ms   -inf dB
+      "
     `);
   });
 });
@@ -327,7 +337,8 @@ function describeLevels(samples: Float32Array): string {
     const bar = "█".repeat(Math.max(0, Math.round(db + 60)));
     rows.push(`${time.padStart(6)}  ${level.padStart(5)} dB  ${bar}`.trimEnd());
   }
-  return rows.join("\n");
+  // Starts and ends on a line break, so rows align in an inline snapshot.
+  return ["", ...rows, ""].join("\n");
 }
 
 function createPatch(waveforms: Waveform[]): SynthPatch {
