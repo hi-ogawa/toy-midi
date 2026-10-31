@@ -60,11 +60,6 @@ export function computeEnvelopeCurves(
   };
 }
 
-/**
- * Coefficient for a curve that crosses the whole range from 0 to 1 in `samples`, aiming
- * `overshoot` past its end. The distance to the target shrinks from
- * 1 + overshoot to overshoot, by the coefficient each sample.
- */
 function computeCoefficient(samples: number, overshoot: number): number {
   if (samples <= 0) {
     return 0;
