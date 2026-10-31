@@ -208,7 +208,10 @@ describe(SubtractiveSynth, () => {
         0: () => synth.noteOn(A4, FULL_VELOCITY),
         0.1: () =>
           synth.setPatch({ layers: [...patch.layers, createGateLayer()] }),
-        0.2: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.2: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
