@@ -88,6 +88,9 @@ export class MidiSynth {
   // dropping notes.
   private readonly scheduler = new MidiNoteScheduler();
   private automation: ScheduledAutomation[] = [];
+  // Set by `stop()` so release tails keep the values they stopped at. Playback
+  // chases its own values at start, so only a live note needs the reset.
+  private automationResetPending = false;
   // Sorted by frame, then note-offs, controller changes, and note-ons on the
   // same frame, so a controller change applies to the note starting with it.
   private events: QueuedEvent[] = [];
@@ -133,6 +136,10 @@ export class MidiSynth {
     pitch: number;
     velocity: number;
   }): Promise<void> {
+    if (this.automationResetPending) {
+      this.automationResetPending = false;
+      this.resetAutomation(this.automation);
+    }
     this.engine!.noteOn(pitch, velocity);
   }
 
@@ -163,6 +170,7 @@ export class MidiSynth {
   }
 
   async start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
+    this.automationResetPending = false;
     this.scheduler.start(playbackRunOptions);
   }
 
@@ -171,7 +179,7 @@ export class MidiSynth {
     this.scheduler.stop();
     this.events = [];
     this.engine!.stopAll();
-    this.resetAutomation(this.automation);
+    this.automationResetPending = true;
   }
 
   /**
