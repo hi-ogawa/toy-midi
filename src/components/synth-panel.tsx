@@ -2,7 +2,7 @@ import { ChevronDownIcon, ChevronRightIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
-  DEFAULT_SYNTH_LAYER,
+  createSynthLayer,
   type SynthLayer,
   type SynthPatch,
   type Waveform,
@@ -80,29 +80,34 @@ function SynthPanelContent({
   patch: SynthPatch;
   onChange: (patch: SynthPatch) => void;
 }) {
-  // `collapsed[i]` is the flag for `patch.layers[i]`
-  const [collapsed, setCollapsed] = useState<boolean[]>([]);
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 
-  function updateLayer(index: number, layer: SynthLayer) {
+  function updateLayer(layer: SynthLayer) {
     onChange({
       ...patch,
-      layers: patch.layers.map((current, i) => (i === index ? layer : current)),
+      layers: patch.layers.map((current) =>
+        current.id === layer.id ? layer : current,
+      ),
     });
   }
 
   function addLayer() {
-    onChange({ ...patch, layers: [...patch.layers, DEFAULT_SYNTH_LAYER] });
+    onChange({ ...patch, layers: [...patch.layers, createSynthLayer()] });
   }
 
-  function removeLayer(index: number) {
-    onChange({ ...patch, layers: patch.layers.filter((_, i) => i !== index) });
-    setCollapsed((current) => current.filter((_, i) => i !== index));
+  function removeLayer(id: string) {
+    onChange({
+      ...patch,
+      layers: patch.layers.filter((layer) => layer.id !== id),
+    });
   }
 
-  function toggleLayer(index: number) {
+  function toggleLayer(id: string) {
     setCollapsed((current) => {
-      const next = [...current];
-      next[index] = !next[index];
+      const next = new Set(current);
+      if (!next.delete(id)) {
+        next.add(id);
+      }
       return next;
     });
   }
@@ -111,14 +116,14 @@ function SynthPanelContent({
     <div className="space-y-2">
       {patch.layers.map((layer, i) => (
         <SynthLayerRow
-          key={i}
+          key={layer.id}
           name={`Layer ${i + 1}`}
           layer={layer}
-          collapsed={collapsed[i] ?? false}
+          collapsed={collapsed.has(layer.id)}
           removeDisabled={patch.layers.length === 1}
-          onChange={(layer) => updateLayer(i, layer)}
-          onToggle={() => toggleLayer(i)}
-          onRemove={() => removeLayer(i)}
+          onChange={updateLayer}
+          onToggle={() => toggleLayer(layer.id)}
+          onRemove={() => removeLayer(layer.id)}
         />
       ))}
       <button

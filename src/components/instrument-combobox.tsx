@@ -1,6 +1,6 @@
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { useState } from "react";
-import { DEFAULT_SYNTH_PATCH } from "../lib/dsp/subtractive-synth";
+import { createSynthPatch } from "../lib/dsp/subtractive-synth";
 import { DRUM_KIT_BANK, DRUM_KITS, GM_PROGRAMS } from "../lib/general-midi";
 import type { MidiPreset } from "../lib/runtime";
 import { findSoundfont, SOUNDFONTS } from "../lib/soundfonts";
@@ -127,7 +127,7 @@ export function InstrumentCombobox({
                 soundfont: value.soundfont,
                 bank: value.bank,
                 program: value.program,
-                synth: value.synth ?? DEFAULT_SYNTH_PATCH,
+                synth: value.synth ?? createSynthPatch(),
               })}
             </CommandGroup>
           </CommandList>
