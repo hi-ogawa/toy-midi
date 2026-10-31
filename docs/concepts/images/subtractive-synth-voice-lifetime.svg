@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="230" viewBox="0 0 760 230" font-family="sans-serif" font-size="13">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e34948"/></marker><marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#52514e"/></marker></defs>
+<text x="20" y="26" font-size="14" fill="#1f1f1d" text-anchor="start" font-weight="bold">A voice starts at the note-on and outlives the note by its release</text>
+<text x="20" y="74" font-size="12" fill="#52514e" text-anchor="start">note</text>
+<rect x="110" y="60" width="360" height="20" rx="4" fill="#2a78d6" stroke="none" fill-opacity="0.25"/>
+<text x="20" y="144" font-size="12" fill="#52514e" text-anchor="start">envelope</text>
+<line x1="90" y1="170" x2="700" y2="170" stroke="#d9d8d4"/>
+<polyline points="110.0,170.0 140.0,110.0 230.0,134.0 470.0,134.0 478.5,147.3 487.0,155.7 495.5,161.0 504.0,164.3 512.5,166.4 521.0,167.7 529.5,168.6 538.0,169.1 546.5,169.4 555.0,169.6 563.5,169.8 572.0,169.9 580.5,169.9 589.0,169.9 597.5,170.0 606.0,170.0 614.5,170.0 623.0,170.0 631.5,170.0 640.0,170.0" fill="none" stroke="#52514e" stroke-width="1.5"/>
+<line x1="110" y1="48" x2="110" y2="170" stroke="#d9d8d4" stroke-dasharray="4 3"/>
+<text x="110" y="42" font-size="11" fill="#52514e" text-anchor="middle">note-on</text>
+<line x1="470" y1="48" x2="470" y2="170" stroke="#d9d8d4" stroke-dasharray="4 3"/>
+<text x="470" y="42" font-size="11" fill="#52514e" text-anchor="middle">note-off</text>
+<line x1="640" y1="48" x2="640" y2="170" stroke="#d9d8d4" stroke-dasharray="4 3"/>
+<text x="640" y="42" font-size="11" fill="#52514e" text-anchor="middle">release ends</text>
+<line x1="110" y1="200" x2="640" y2="200" stroke="#2a78d6" stroke-width="2"/>
+<line x1="110" y1="194" x2="110" y2="206" stroke="#2a78d6" stroke-width="2"/>
+<line x1="640" y1="194" x2="640" y2="206" stroke="#2a78d6" stroke-width="2"/>
+<text x="375.0" y="220" font-size="12" fill="#2a78d6" text-anchor="middle" font-weight="bold">voice</text>
+</svg>
