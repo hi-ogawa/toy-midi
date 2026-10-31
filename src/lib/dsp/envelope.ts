@@ -1,3 +1,5 @@
+// See [ADSR envelopes](../../../docs/concepts/adsr-envelopes.md).
+
 /** ADSR settings, with times in seconds and sustain as a level from 0 to 1 */
 export interface Envelope {
   attack: number;
