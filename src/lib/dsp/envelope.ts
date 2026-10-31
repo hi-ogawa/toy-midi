@@ -97,7 +97,11 @@ export class EnvelopeState {
         }
         break;
       }
-      case "sustain":
+      case "sustain": {
+        // A held note keeps the level it reached, so dragging the sustain
+        // slider doesn't make held notes jump.
+        break;
+      }
       case "idle": {
         break;
       }
