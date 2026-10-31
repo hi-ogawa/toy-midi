@@ -39,6 +39,8 @@ The sustain level decides which of the other settings matter.
 
 A stage's start level, end level, and time leave its shape open, and the shape is chosen by ear. Loudness is heard roughly in decibels, so a straight fade from 1 to 0 seems to hang near full level and then drop away, since halfway through its time it has fallen only 6 dB. A fade that falls by the same factor every sample, an exponential, loses the same number of decibels in each stretch of time and sounds even. Analog envelopes, which charge and discharge a capacitor, make this shape too, so it's the one synth players expect. The attack is the exception. A rise that is even in decibels would spend most of its time inaudibly low and then shoot up, which sounds sluggish, so the attack rises like a charging capacitor instead, quickly at first and easing into its peak.
 
+![A 100 ms attack and release, each in level and in decibels, against a straight ramp over the same time. In level, the attack rises just above the ramp and the release drops well below it. In decibels, the attack climbs out of silence within a few milliseconds, the release falls in a straight line until it bends down near −80 dB, and the straight fade stays near 0 dB until it plunges at the end](images/adsr-curves.svg)
+
 The synth draws every stage with one rule. Each sample, it moves the level $x$ toward a **target** $T$ by the same fraction,
 
 $$
@@ -52,8 +54,6 @@ $$
 $$
 
 The overshoot decides how much of the exponential a stage uses, so each stage gets its own.
-
-![Left: a 100 ms attack, plotted in level, rises quickly at first and eases into its peak, close to a straight line. Right: a 100 ms release from 1, plotted in decibels, falls in a straight line and bends down to silence near its end](images/adsr-curves.svg)
 
 **The decay and release aim 0.0001 past their ends.** A small overshoot uses nearly the whole exponential, so the level falls evenly in decibels. Near the end, where the level is close to $o$, the $-o$ term takes over and the level drops to its end faster than the exponential would. That starts around
 
