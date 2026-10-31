@@ -26,6 +26,7 @@ export interface SynthLayer {
   oscillator: { waveform: Waveform };
   /** Linear multiplier on the layer's output */
   gain: number;
+  muted: boolean;
   amp: {
     envelope: Envelope;
   };
@@ -37,6 +38,7 @@ const RAMP_SECONDS = 0.005;
 const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
   oscillator: { waveform: "sine" },
   gain: 1,
+  muted: false,
   amp: {
     envelope: {
       attack: RAMP_SECONDS,
@@ -196,13 +198,17 @@ export class SubtractiveSynth implements SynthEngine {
   }
 }
 
+// A muted layer is left out rather than skipped while rendering, so a voice
+// ends once its sounding layers do.
 function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
-  return patch.layers.map((layer) => ({
-    id: layer.id,
-    oscillate: OSCILLATORS[layer.oscillator.waveform],
-    gain: layer.gain,
-    ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
-  }));
+  return patch.layers
+    .filter((layer) => !layer.muted)
+    .map((layer) => ({
+      id: layer.id,
+      oscillate: OSCILLATORS[layer.oscillator.waveform],
+      gain: layer.gain,
+      ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
+    }));
 }
 
 function releaseVoice(voice: Voice): void {

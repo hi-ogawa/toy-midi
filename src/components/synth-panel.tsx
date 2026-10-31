@@ -10,9 +10,11 @@ import {
 } from "../lib/dsp/subtractive-synth";
 import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
 import { EnvelopeEditor } from "./envelope-editor";
+import { MixToggle } from "./mix-toggle";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
+import { cn } from "./ui/utils";
 import { usePointerDrag } from "./use-pointer-drag";
 import { WaveformIcon } from "./waveform-icon";
 
@@ -174,7 +176,10 @@ function SynthLayerRow({
           type="button"
           aria-expanded={!collapsed}
           onClick={onToggle}
-          className="flex h-full flex-1 items-center gap-1.5 px-2 text-xs font-semibold text-neutral-300 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset"
+          className={cn(
+            "flex h-full flex-1 items-center gap-1.5 px-2 text-xs font-semibold text-neutral-300 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset",
+            layer.muted && "opacity-50",
+          )}
         >
           {collapsed ? (
             <ChevronRightIcon className="size-3.5 text-neutral-400" />
@@ -183,6 +188,13 @@ function SynthLayerRow({
           )}
           {name}
         </button>
+        <MixToggle
+          active={layer.muted}
+          kind="mute"
+          onClick={() => onChange({ ...layer, muted: !layer.muted })}
+          aria-label={`Toggle ${name} mute`}
+          className="h-6 min-w-6 px-1"
+        />
         <GainKnob
           label={`${name} gain`}
           gain={layer.gain}
@@ -199,7 +211,12 @@ function SynthLayerRow({
         </button>
       </div>
       {!collapsed && (
-        <div className="space-y-2 border-t border-neutral-700 px-3 py-2">
+        <div
+          className={cn(
+            "space-y-2 border-t border-neutral-700 px-3 py-2",
+            layer.muted && "opacity-50",
+          )}
+        >
           <h3 className="text-xs font-medium">Oscillator</h3>
           <div
             role="group"

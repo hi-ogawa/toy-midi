@@ -276,6 +276,34 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(samples)).toBeCloseTo((1.5 * PEAK) / Math.SQRT2, 3);
   });
 
+  it("silences a layer that a patch change mutes", () => {
+    // Muting one of two layers drops the held note by 6 dB, and the note
+    // still ends at note-off.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const kept = createGateLayer();
+    const muted = createGateLayer();
+    synth.setPatch({ layers: [kept, muted] });
+    const samples = renderSynth(synth, {
+      seconds: 0.3,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () =>
+          synth.setPatch({ layers: [kept, { ...muted, muted: true }] }),
+        0.2: () => synth.noteOff(A4),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -15.1 dB  █████████████████████████████████████████████
+       50 ms  -15.1 dB  █████████████████████████████████████████████
+      100 ms  -21.1 dB  ███████████████████████████████████████
+      150 ms  -21.1 dB  ███████████████████████████████████████
+      200 ms   -inf dB
+      250 ms   -inf dB
+      "
+    `);
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createPatch(["sine"]));
