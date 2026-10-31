@@ -200,29 +200,32 @@ function SynthLayerRow({
       </div>
       {!collapsed && (
         <div className="space-y-2 border-t border-neutral-700 px-3 py-2">
-          <h3 className="text-xs font-medium">Oscillator</h3>
-          <div
-            role="group"
-            aria-label="Waveform"
-            className="flex overflow-hidden rounded border border-neutral-600"
-          >
-            {WAVEFORMS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={layer.oscillator.waveform === option}
-                onClick={() =>
-                  onChange({
-                    ...layer,
-                    oscillator: { ...layer.oscillator, waveform: option },
-                  })
-                }
-                className="flex flex-1 flex-col items-center gap-px bg-neutral-900 px-1.5 pt-1 pb-px text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
-              >
-                <WaveformIcon waveform={option} />
-                {WAVEFORM_LABELS[option]}
-              </button>
-            ))}
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-medium">Oscillator</h3>
+            <div
+              role="group"
+              aria-label="Waveform"
+              className="flex overflow-hidden rounded border border-neutral-600"
+            >
+              {WAVEFORMS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-label={WAVEFORM_LABELS[option]}
+                  title={WAVEFORM_LABELS[option]}
+                  aria-pressed={layer.oscillator.waveform === option}
+                  onClick={() =>
+                    onChange({
+                      ...layer,
+                      oscillator: { ...layer.oscillator, waveform: option },
+                    })
+                  }
+                  className="flex h-6 items-center justify-center bg-neutral-900 px-1.5 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                >
+                  <WaveformIcon waveform={option} />
+                </button>
+              ))}
+            </div>
           </div>
           <h3 className="pt-1 text-xs font-medium">Amp</h3>
           <EnvelopeEditor
