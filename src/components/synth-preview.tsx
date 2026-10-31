@@ -31,9 +31,9 @@ export function SynthPreview() {
   const [patch, setPatch] = useState(createInitialPatch);
 
   // The panel resizes from its top-left corner, so it sits at the bottom
-  // right, where the app docks it.
+  // right, where the app docks it, below the rest of the viewport to grow into.
   return (
-    <div className="flex h-[640px] items-end justify-end">
+    <div className="flex h-[calc(100vh-7rem)] items-end justify-end">
       <SynthPanel
         label="Bass"
         patch={patch}
