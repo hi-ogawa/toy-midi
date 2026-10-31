@@ -54,8 +54,8 @@ test("changes a synth track's waveform and amp envelope in its Synth panel", asy
   const sustain = panel.getByRole("slider", { name: "Sustain" });
   await expect(sustain).toHaveAttribute("aria-valuetext", "1.00");
 
-  // Lengthen the release to 1 s, three of the slider's four decades up from
-  // 1 ms, and lower the sustain to half.
+  // Lengthen the release to 1 s, three quarters of the way along the slider's
+  // log range from 1 ms to 10 s, and lower the sustain to half.
   const release = panel.getByRole("slider", { name: "Release" });
   await setSliderValue(release, [0.75]);
   await expect(release).toHaveAttribute("aria-valuetext", "1 s");

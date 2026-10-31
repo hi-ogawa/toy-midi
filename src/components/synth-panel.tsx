@@ -306,8 +306,8 @@ const MIN_TIME = 0.001;
 const MAX_TIME = 10;
 const LOG_TIME_RANGE = Math.log(MAX_TIME / MIN_TIME);
 
-// A logarithmic slider gives each decade of time the same travel, so short
-// attacks get as much room as long releases.
+// Logarithmic, so short attacks get as much travel as long releases. A log
+// scale can't reach 0, so the shortest time is 1 ms.
 function TimeSlider({
   label,
   value,
