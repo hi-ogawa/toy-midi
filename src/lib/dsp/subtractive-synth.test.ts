@@ -16,6 +16,9 @@ const RAMP_FRAMES = 480;
 // A full-velocity note's peak at the default CC7 volume of 100, about 4 dB
 // below the synth's peak gain
 const PEAK = PEAK_GAIN * (100 / 127) ** 2;
+// 440 Hz
+const A4 = 69;
+const FULL_VELOCITY = 127;
 
 describe(SubtractiveSynth, () => {
   it("plays a note as a sine at its pitch until note-off", () => {
@@ -24,8 +27,8 @@ describe(SubtractiveSynth, () => {
     const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
-        0: () => synth.noteOn(69, 127),
-        0.1: () => synth.noteOff(69),
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.noteOff(A4),
       },
     });
 
@@ -52,7 +55,10 @@ describe(SubtractiveSynth, () => {
       });
       return measureRms(samples.subarray(RAMP_FRAMES));
     };
-    expect(measureLevel(64) / measureLevel(127)).toBeCloseTo(64 / 127, 2);
+    expect(measureLevel(64) / measureLevel(FULL_VELOCITY)).toBeCloseTo(
+      64 / FULL_VELOCITY,
+      2,
+    );
   });
 
   it("plays a note through its layer's amp envelope", () => {
@@ -71,8 +77,8 @@ describe(SubtractiveSynth, () => {
     const samples = renderSynth(synth, {
       seconds: 0.35,
       at: {
-        0: () => synth.noteOn(69, 127),
-        0.2: () => synth.noteOff(69),
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.2: () => synth.noteOff(A4),
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
@@ -91,7 +97,7 @@ describe(SubtractiveSynth, () => {
     synth.setPatch(createSynthPatch());
     const buffers = createBuffers(960);
     buffers[0].fill(1);
-    synth.noteOn(69, 127);
+    synth.noteOn(A4, FULL_VELOCITY);
     synth.render(buffers[0], buffers[1], 480, 480);
     expect(buffers[0].subarray(0, 480).every((sample) => sample === 1)).toBe(
       true,
@@ -116,7 +122,7 @@ describe(SubtractiveSynth, () => {
       synth.setPatch(createPatch([waveform]));
       const samples = renderSynth(synth, {
         seconds: 1,
-        at: { 0: () => synth.noteOn(69, 127) },
+        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
       });
       const steady = samples.subarray(SAMPLE_RATE * 0.1);
       let crossings = 0;
@@ -145,7 +151,7 @@ describe(SubtractiveSynth, () => {
     const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
-        0: () => synth.noteOn(69, 127),
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
         0.1: () =>
           synth.setPatch({
             layers: [{ ...layer, oscillator: { waveform: "square" } }],
@@ -175,7 +181,7 @@ describe(SubtractiveSynth, () => {
     const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
-        0: () => synth.noteOn(69, 127),
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
         0.1: () => synth.setPatch({ layers: [holding] }),
       },
     });
@@ -196,10 +202,10 @@ describe(SubtractiveSynth, () => {
     const samples = renderSynth(synth, {
       seconds: 0.3,
       at: {
-        0: () => synth.noteOn(69, 127),
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
         0.1: () =>
           synth.setPatch({ layers: [...patch.layers, createSynthLayer()] }),
-        0.2: () => synth.noteOn(69, 127),
+        0.2: () => synth.noteOn(A4, FULL_VELOCITY),
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
@@ -217,7 +223,7 @@ describe(SubtractiveSynth, () => {
     synth.setPatch(createPatch(["sine", "sine"]));
     const samples = renderSynth(synth, {
       seconds: 0.1,
-      at: { 0: () => synth.noteOn(69, 127) },
+      at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
     });
     expect(measureRms(samples.subarray(RAMP_FRAMES))).toBeCloseTo(
       (2 * PEAK) / Math.SQRT2,
@@ -235,7 +241,7 @@ describe(SubtractiveSynth, () => {
           0: () => {
             synth.controller(7, volume);
             synth.controller(11, expression);
-            synth.noteOn(69, 127);
+            synth.noteOn(A4, FULL_VELOCITY);
           },
         },
       });
@@ -253,7 +259,7 @@ describe(SubtractiveSynth, () => {
     });
     const samples = renderSynth(synth, {
       seconds: 0.1,
-      at: { 0: () => synth.noteOn(69, 127) },
+      at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
     });
     expect(measureRms(samples.subarray(RAMP_FRAMES))).toBeCloseTo(
       (1.5 * PEAK) / Math.SQRT2,
