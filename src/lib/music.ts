@@ -91,6 +91,34 @@ export function dbToPercent(db: number): number {
   return gainToPercent(dbToGain(clamp(db, MIN_DB, MAX_DB)));
 }
 
+/**
+ * Maps a value in a range to a position from 0 to 1, so that equal ratios get
+ * equal distances, as on a frequency axis.
+ *
+ * A log scale is linear in log(value), so
+ *   position = (log(value) - log(min)) / (log(max) - log(min))
+ *            = log(value / min) / log(max / min).
+ * Solving for value gives the inverse, value = min * (max / min)^position.
+ *
+ * Moving the position by d therefore multiplies the value by (max / min)^d.
+ * A ratio r, such as 2 for an octave or 10 for a decade, spans
+ *   d = log(r) / log(max / min)
+ * of the range wherever it starts.
+ */
+export function valueToLogPosition(
+  value: number,
+  { min, max }: { min: number; max: number },
+): number {
+  return Math.log(value / min) / Math.log(max / min);
+}
+
+export function logPositionToValue(
+  position: number,
+  { min, max }: { min: number; max: number },
+): number {
+  return min * (max / min) ** position;
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
