@@ -143,6 +143,63 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
+  it("plays a layer at its octave, and follows a change on a sounding note", () => {
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const layer = createGateLayer();
+    const setOctave = (octave: number) =>
+      synth.setPatch({
+        layers: [{ ...layer, oscillator: { ...layer.oscillator, octave } }],
+      });
+    setOctave(-1);
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => setOctave(1),
+      },
+    });
+    expect(describeFrequencies(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  220 Hz
+       50 ms  220 Hz
+      100 ms  880 Hz
+      150 ms  880 Hz
+      "
+    `);
+  });
+
+  it("beats two layers detuned apart", () => {
+    // Layers 10 cents apart at A4 differ by 2.5 Hz, so their sum swells and
+    // cancels once every 0.4 s, starting in phase.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const layer = createGateLayer();
+    synth.setPatch({
+      layers: [
+        layer,
+        {
+          ...createGateLayer(),
+          oscillator: { ...layer.oscillator, detune: 10 },
+        },
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -15.4 dB  █████████████████████████████████████████████
+       50 ms  -16.8 dB  ███████████████████████████████████████████
+      100 ms  -20.4 dB  ████████████████████████████████████████
+      150 ms  -29.0 dB  ███████████████████████████████
+      200 ms  -27.0 dB  █████████████████████████████████
+      250 ms  -19.6 dB  ████████████████████████████████████████
+      300 ms  -16.5 dB  ████████████████████████████████████████████
+      350 ms  -15.3 dB  █████████████████████████████████████████████
+      "
+    `);
+  });
+
   it("changes the waveform of a sounding note", () => {
     // A square at the same peak is 3 dB louder than a sine.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
@@ -154,7 +211,12 @@ describe(SubtractiveSynth, () => {
         0: () => synth.noteOn(A4, FULL_VELOCITY),
         0.1: () =>
           synth.setPatch({
-            layers: [{ ...layer, oscillator: { waveform: "square" } }],
+            layers: [
+              {
+                ...layer,
+                oscillator: { ...layer.oscillator, waveform: "square" },
+              },
+            ],
           }),
       },
     });
@@ -439,10 +501,10 @@ function describeFrequencies(
 
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
-    layers: waveforms.map((waveform) => ({
-      ...createGateLayer(),
-      oscillator: { waveform },
-    })),
+    layers: waveforms.map((waveform) => {
+      const layer = createGateLayer();
+      return { ...layer, oscillator: { ...layer.oscillator, waveform } };
+    }),
   };
 }
 
