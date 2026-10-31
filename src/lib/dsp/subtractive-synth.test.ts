@@ -43,7 +43,7 @@ describe(SubtractiveSynth, () => {
   });
 
   it("scales a note's level with velocity", () => {
-    const measureLevel = (velocity: number) => {
+    const measureRmsAtVelocity = (velocity: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch(createPatch(["sine"]));
       const samples = renderSynth(synth, {
@@ -52,10 +52,9 @@ describe(SubtractiveSynth, () => {
       });
       return measureRms(samples);
     };
-    expect(measureLevel(64) / measureLevel(FULL_VELOCITY)).toBeCloseTo(
-      64 / FULL_VELOCITY,
-      2,
-    );
+    expect(
+      measureRmsAtVelocity(64) / measureRmsAtVelocity(FULL_VELOCITY),
+    ).toBeCloseTo(64 / FULL_VELOCITY, 2);
   });
 
   it("plays a note through its layer's amp envelope", () => {
@@ -235,7 +234,7 @@ describe(SubtractiveSynth, () => {
   });
 
   it("scales the level with CC7 volume and CC11 expression", () => {
-    const measureLevel = (volume: number, expression: number) => {
+    const measureRmsAtControllers = (volume: number, expression: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch(createPatch(["sine"]));
       // The controllers ramp to their level before the note starts.
@@ -251,9 +250,15 @@ describe(SubtractiveSynth, () => {
       });
       return measureRms(samples);
     };
-    const full = measureLevel(127, 127);
-    expect(measureLevel(64, 127) / full).toBeCloseTo((64 / 127) ** 2, 2);
-    expect(measureLevel(64, 64) / full).toBeCloseTo((64 / 127) ** 4, 2);
+    const full = measureRmsAtControllers(127, 127);
+    expect(measureRmsAtControllers(64, 127) / full).toBeCloseTo(
+      (64 / 127) ** 2,
+      2,
+    );
+    expect(measureRmsAtControllers(64, 64) / full).toBeCloseTo(
+      (64 / 127) ** 4,
+      2,
+    );
   });
 
   it("scales each layer by its gain", () => {
