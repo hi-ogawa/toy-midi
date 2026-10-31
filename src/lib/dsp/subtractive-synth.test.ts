@@ -296,6 +296,40 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
+  it("adds vibrato with CC1 modulation, up to 50 cents", () => {
+    // Hold a note with the wheel at rest, then raise it to full, which swings
+    // the pitch 50 cents each way, between 428 Hz and 453 Hz, at 5.5 Hz.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createPatch(["sine"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.3,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.controller(1, 127),
+      },
+    });
+    expect(describeFrequencies(samples, { windowSeconds: 0.02 }))
+      .toMatchInlineSnapshot(`
+        "
+          0 ms  440 Hz
+         20 ms  440 Hz
+         40 ms  440 Hz
+         60 ms  440 Hz
+         80 ms  440 Hz
+        100 ms  433 Hz
+        120 ms  428 Hz
+        140 ms  429 Hz
+        160 ms  435 Hz
+        180 ms  444 Hz
+        200 ms  451 Hz
+        220 ms  453 Hz
+        240 ms  449 Hz
+        260 ms  441 Hz
+        280 ms  433 Hz
+        "
+      `);
+  });
+
   it("scales each layer by its gain", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
@@ -375,12 +409,15 @@ function describeLevels(samples: Float32Array): string {
 }
 
 /**
- * Lists the frequency of each 50 ms window, from the cycles between the
+ * Lists the frequency of each window, 50 ms by default, from the cycles between the
  * window's first and last rising zero crossings, each interpolated between
  * samples.
  */
-function describeFrequencies(samples: Float32Array): string {
-  const window = 0.05 * SAMPLE_RATE;
+function describeFrequencies(
+  samples: Float32Array,
+  options?: { windowSeconds?: number },
+): string {
+  const window = (options?.windowSeconds ?? 0.05) * SAMPLE_RATE;
   const rows: string[] = [];
   for (let start = 0; start < samples.length; start += window) {
     const crossings: number[] = [];

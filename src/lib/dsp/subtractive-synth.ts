@@ -66,12 +66,18 @@ interface ResolvedLayer {
   ampEnvelope: EnvelopeCurves;
 }
 
+const MODULATION_CONTROLLER = 1;
 const VOLUME_CONTROLLER = 7;
 const EXPRESSION_CONTROLLER = 11;
 // MIDI's defaults. A track without automation for a controller never sends
 // it, so the synth starts from these.
 const DEFAULT_VOLUME = 100;
 const DEFAULT_EXPRESSION = 127;
+// SoundFont's default modulator maps CC1 linearly onto the vibrato LFO's pitch
+// depth, up to this many cents each way, half a semitone.
+const MAX_VIBRATO_CENTS = 50;
+// Chosen by ear
+const VIBRATO_RATE = 5.5;
 
 interface Voice {
   pitch: number;
@@ -80,6 +86,8 @@ interface Voice {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
+  /** The vibrato LFO's cycles in [0, 1), from 0 at note-on */
+  vibratoPhase: number;
   /** Peak gain scaled by the note's velocity */
   gain: number;
   /** Keyed by layer id */
@@ -91,15 +99,20 @@ export class SubtractiveSynth implements SynthEngine {
   private layers: ResolvedLayer[] = [];
   /** Semitones */
   private bend = 0;
+  /** Cents */
+  private vibratoDepth = 0;
   private volume = DEFAULT_VOLUME;
   private expression = DEFAULT_EXPRESSION;
   /** CC7 volume times CC11 expression, applied to the summed voices */
   private channelGain = computeChannelGain(DEFAULT_VOLUME, DEFAULT_EXPRESSION);
   private targetChannelGain = this.channelGain;
   private readonly channelGainStep: number;
+  /** Cycles per sample */
+  private readonly vibratoPhaseIncrement: number;
 
   constructor(private readonly sampleRate: number) {
     this.channelGainStep = 1 / (RAMP_SECONDS * sampleRate);
+    this.vibratoPhaseIncrement = VIBRATO_RATE / sampleRate;
   }
 
   setPatch(patch: SynthPatch): void {
@@ -111,6 +124,7 @@ export class SubtractiveSynth implements SynthEngine {
     this.voices.push({
       pitch,
       phase: 0,
+      vibratoPhase: 0,
       gain: PEAK_GAIN * (velocity / 127),
       ampEnvelopes: new Map(
         this.layers.map((layer) => [layer.id, new EnvelopeState()]),
@@ -128,6 +142,10 @@ export class SubtractiveSynth implements SynthEngine {
 
   controller(controller: number, value: number): void {
     switch (controller) {
+      case MODULATION_CONTROLLER: {
+        this.vibratoDepth = (value / 127) * MAX_VIBRATO_CENTS;
+        return;
+      }
       case VOLUME_CONTROLLER: {
         this.volume = value;
         break;
@@ -158,8 +176,10 @@ export class SubtractiveSynth implements SynthEngine {
     for (let i = offset; i < offset + length; i++) {
       let mix = 0;
       for (const voice of this.voices) {
+        const vibrato =
+          this.vibratoDepth * Math.sin(2 * Math.PI * voice.vibratoPhase);
         const phaseIncrement =
-          midiToHz(voice.pitch + this.bend) / this.sampleRate;
+          midiToHz(voice.pitch + this.bend + vibrato / 100) / this.sampleRate;
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
@@ -175,6 +195,8 @@ export class SubtractiveSynth implements SynthEngine {
         }
         mix += voice.gain * sample;
         voice.phase = (voice.phase + phaseIncrement) % 1;
+        voice.vibratoPhase =
+          (voice.vibratoPhase + this.vibratoPhaseIncrement) % 1;
       }
       const channelStep = Math.min(
         this.channelGainStep,
