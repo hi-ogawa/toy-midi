@@ -5,7 +5,7 @@ import {
   openMidiInstrument,
   selectMidiInstrument,
 } from "./editor-helpers";
-import { getMenuItem, selectMenuItem, setSliderValue } from "./helpers";
+import { getMenuItem, selectMenuItem } from "./helpers";
 
 test("changes a synth track's waveform and amp envelope in its Synth panel", async ({
   page,
@@ -52,15 +52,29 @@ test("changes a synth track's waveform and amp envelope in its Synth panel", asy
   const attack = panel.getByRole("slider", { name: "Attack" });
   await expect(attack).toHaveAttribute("aria-valuetext", "5 ms");
   const sustain = panel.getByRole("slider", { name: "Sustain" });
-  await expect(sustain).toHaveAttribute("aria-valuetext", "1.00");
+  await expect(sustain).toHaveAttribute("aria-valuetext", "100%");
 
-  // Lengthen the release to 1 s, three of the slider's four decades up from
-  // 1 ms, and lower the sustain to half.
+  // Lengthen the release by two decades with the keyboard.
   const release = panel.getByRole("slider", { name: "Release" });
-  await setSliderValue(release, [0.75]);
-  await expect(release).toHaveAttribute("aria-valuetext", "1 s");
-  await setSliderValue(sustain, [0.5]);
-  await expect(sustain).toHaveAttribute("aria-valuetext", "0.50");
+  await release.focus();
+  await page.keyboard.press("Shift+ArrowUp");
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(release).toHaveAttribute("aria-valuetext", "500 ms");
+
+  // Drag the decay handle halfway down the graph, which lowers the sustain to
+  // about half and leaves the attack alone.
+  const handle = panel.getByTestId("envelope-decay-handle");
+  const box = (await handle.boundingBox())!;
+  const plot = (await panel
+    .getByTestId("envelope-release-handle")
+    .boundingBox())!;
+  const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const height = plot.y - box.y;
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  await page.mouse.move(center.x, center.y + height / 2);
+  await page.mouse.up();
+  await expect(sustain).toHaveAttribute("aria-valuetext", "50%");
   await expect(attack).toHaveAttribute("aria-valuetext", "5 ms");
 
   // Turn the layer's gain down from 0 dB with the keyboard.

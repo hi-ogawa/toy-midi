@@ -9,10 +9,10 @@ import {
   WAVEFORMS,
 } from "../lib/dsp/subtractive-synth";
 import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
+import { EnvelopeEditor } from "./envelope-editor";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
-import { Slider } from "./ui/slider";
 import { usePointerDrag } from "./use-pointer-drag";
 import { WaveformIcon } from "./waveform-icon";
 
@@ -50,7 +50,7 @@ export function SynthPanel({
   onClose: () => void;
 }) {
   const { size, handleRef } = usePanelResize({
-    initialSize: { width: 320, height: 480 },
+    initialSize: { width: 320, height: 320 },
     minSize: { width: 320, height: 120 },
   });
 
@@ -220,25 +220,10 @@ function SynthLayerRow({
             ))}
           </div>
           <h3 className="pt-1 text-xs font-medium">Amp</h3>
-          <TimeSlider
-            label="Attack"
-            value={envelope.attack}
-            onChange={(attack) => updateEnvelope({ attack })}
-          />
-          <TimeSlider
-            label="Decay"
-            value={envelope.decay}
-            onChange={(decay) => updateEnvelope({ decay })}
-          />
-          <LevelSlider
-            label="Sustain"
-            value={envelope.sustain}
-            onChange={(sustain) => updateEnvelope({ sustain })}
-          />
-          <TimeSlider
-            label="Release"
-            value={envelope.release}
-            onChange={(release) => updateEnvelope({ release })}
+          <EnvelopeEditor
+            label="Amp envelope"
+            envelope={envelope}
+            onChange={updateEnvelope}
           />
         </div>
       )}
@@ -298,99 +283,6 @@ function GainKnob({
       <span className="w-14 font-mono text-xs text-muted-foreground tabular-nums">
         {valueText}
       </span>
-    </div>
-  );
-}
-
-const MIN_TIME = 0.001;
-const MAX_TIME = 10;
-const LOG_TIME_RANGE = Math.log(MAX_TIME / MIN_TIME);
-
-// A logarithmic slider gives each decade of time the same travel, so short
-// attacks get as much room as long releases.
-function TimeSlider({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <ParameterSlider
-      label={label}
-      valueText={
-        value < 1
-          ? `${Number((value * 1000).toPrecision(2))} ms`
-          : `${Number(value.toPrecision(2))} s`
-      }
-      min={0}
-      max={1}
-      step={0.001}
-      value={Math.log(value / MIN_TIME) / LOG_TIME_RANGE}
-      onChange={(position) =>
-        onChange(
-          Number(
-            (MIN_TIME * Math.exp(position * LOG_TIME_RANGE)).toPrecision(2),
-          ),
-        )
-      }
-    />
-  );
-}
-
-function LevelSlider({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <ParameterSlider
-      label={label}
-      valueText={value.toFixed(2)}
-      min={0}
-      max={1}
-      step={0.01}
-      value={value}
-      onChange={onChange}
-    />
-  );
-}
-
-function ParameterSlider({
-  label,
-  valueText,
-  value,
-  onChange,
-  ...limits
-}: {
-  label: string;
-  valueText: string;
-  min: number;
-  max: number;
-  step: number;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{label}</span>
-        <span className="font-mono">{valueText}</span>
-      </div>
-      <Slider
-        className="h-4"
-        aria-label={label}
-        aria-valuetext={valueText}
-        {...limits}
-        value={[value]}
-        onValueChange={([next]) => onChange(next)}
-      />
     </div>
   );
 }
