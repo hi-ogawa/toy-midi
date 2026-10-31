@@ -41,25 +41,29 @@ A stage's start level, end level, and time leave its shape open, and the shape i
 
 ![A 100 ms attack and release, each in level and in decibels, against a straight ramp over the same time. In level, the attack rises just above the ramp and the release drops well below it. In decibels, the attack climbs out of silence within a few milliseconds, the release falls in a straight line until it bends down near −80 dB, and the straight fade stays near 0 dB until it plunges at the end](images/adsr-curves.svg)
 
-Each stage's level after $n$ samples is an exponential in its distance to a **target** $T$,
+Each stage's level is an exponential in its distance to a **target** $T$,
 
 $$
-x_n=T+(x_0-T)\cdot c^n,
+x(t)=T+(x_0-T)\cdot e^{-t/\tau},
 $$
 
-so the distance shrinks by a factor $c$ every sample. An exponential never reaches its target, so each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. Over a full swing the distance starts at $1+o$ and must reach $o$ after the stage's $N$ samples, so
+where the **time constant** $\tau$ is how long the distance takes to shrink by a factor of $e$. An exponential never reaches its target, so each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. Over a full swing the distance starts at $1+o$ and must reach $o$ at the stage's time $t_\text{stage}$, which sets the time constant:
 
 $$
-c^N=\frac{o}{1+o},\qquad c=\exp\left(-\frac{1}{N}\ln\frac{1+o}{o}\right).
+e^{-t_\text{stage}/\tau}=\frac{o}{1+o}
+\quad\Longrightarrow\quad
+\tau=\frac{t_\text{stage}}{\ln\big((1+o)/o\big)}.
 $$
 
-Comparing consecutive samples gives the same curve one step at a time,
+Sampled at the sample rate $F_s$, at $t=n/F_s$, the distance shrinks by the same factor every sample:
 
 $$
 x_{n+1}=T+c\cdot(x_n-T),
+\qquad
+c=e^{-1/(\tau F_s)}=\exp\left(-\frac{1}{N}\ln\frac{1+o}{o}\right),
 $$
 
-which is how the synth computes it, for one multiply-add per sample. Each step needs only the current level, so a stage that starts partway, such as a release after an early note-off, continues from wherever the level is.
+where $N=t_\text{stage}F_s$ is the stage's length in samples. The synth computes the curve this way, one multiply-add per sample. Each step needs only the current level, so a stage that starts partway, such as a release after an early note-off, continues from wherever the level is.
 
 The overshoot decides how much of the exponential a stage uses, so each stage gets its own.
 
@@ -75,13 +79,7 @@ too quiet to hear, so the release sounds like an even fade to silence. An oversh
 
 ## Read a Time as the Stage's Length
 
-Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the curve's **time constant** $\tau$, in which the distance to the target shrinks by a factor of $e$, so that $c=e^{-1/(\tau F_s)}$ at the sample rate $F_s$. Setting this equal to the $c$ above gives
-
-$$
-\tau=\frac{N/F_s}{\ln\big((1+o)/o\big)},
-$$
-
-the stage's time divided by $\ln10001\approx9.2$ for a release, so a 100 ms release here has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
+Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the time constant $\tau$ itself. This envelope's $\tau$ is the stage's time divided by $\ln\big((1+o)/o\big)$, which is $\ln10001\approx9.2$ for a release, so a 100 ms release has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
 
 Times are also rates. A stage's $c$ is set for the full swing, so a decay or release that covers only part of it, such as a decay to the sustain level or a release from it, falls at the same speed and ends sooner, as on analog envelopes. Because an exponential's tail passes quickly, falling half the swing still takes about 92% of the time. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
 
@@ -104,6 +102,6 @@ $$
 T-x(t)=\big(T-x(0)\big)\cdot e^{-t/\tau}.
 $$
 
-Read every $1/F_s$ seconds, this is the stage's curve with $c=e^{-1/(\tau F_s)}$, the time constant of [Read a Time as the Stage's Length](#read-a-time-as-the-stages-length). The samples lie exactly on the continuous curve. Forward Euler, which moves $x$ at its current speed for one sample, would give $c=1-1/(\tau F_s)$ instead, which comes close only when $\tau$ spans many samples.
+This is the stage's curve, and stepping it by $c=e^{-1/(\tau F_s)}$ puts every sample exactly on it. Forward Euler, which moves $x$ at its current speed for one sample, would give $c=1-1/(\tau F_s)$ instead, which comes close only when $\tau$ spans many samples.
 
 Smoothing a measured level toward each new reading, as the [level meters](../../src/lib/level-meters.ts) do, steps the same equation with a target that changes every step. There the recurrence is required, because the target isn't known ahead of time. Here it's a convenience, since each stage's start, end, and time are known and a closed form would draw the same curve.
