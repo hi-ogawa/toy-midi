@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   addMidiTrack,
   createProject,
+  dragBy,
   openMidiInstrument,
   selectMidiInstrument,
 } from "./editor-helpers";
@@ -63,17 +64,12 @@ test("changes a synth track's waveform and amp envelope in its Synth panel", asy
 
   // Drag the decay handle halfway down the graph, which lowers the sustain to
   // about half and leaves the attack alone.
-  const handle = panel.getByTestId("envelope-decay-handle");
-  const box = (await handle.boundingBox())!;
-  const plot = (await panel
+  const decay = panel.getByTestId("envelope-decay-handle");
+  const decayBox = (await decay.boundingBox())!;
+  const releaseBox = (await panel
     .getByTestId("envelope-release-handle")
     .boundingBox())!;
-  const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-  const height = plot.y - box.y;
-  await page.mouse.move(center.x, center.y);
-  await page.mouse.down();
-  await page.mouse.move(center.x, center.y + height / 2);
-  await page.mouse.up();
+  await dragBy(page, decay, 0, { deltaY: (releaseBox.y - decayBox.y) / 2 });
   await expect(sustain).toHaveAttribute("aria-valuetext", "50%");
   await expect(attack).toHaveAttribute("aria-valuetext", "5 ms");
 
