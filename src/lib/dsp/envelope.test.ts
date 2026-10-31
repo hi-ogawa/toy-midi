@@ -35,7 +35,7 @@ describe(EnvelopeState, () => {
     ).toMatchInlineSnapshot(`"attack 10.0 ms, decay 92.5 ms, release 46.3 ms"`);
   });
 
-  it("decays and releases evenly in decibels", () => {
+  it("releases evenly in decibels", () => {
     // Levels each tenth of a release from 1 fall by about 8 dB, pass -60 dB
     // at three quarters of the time, and end at the full time.
     const curves = computeEnvelopeCurves(

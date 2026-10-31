@@ -25,14 +25,19 @@ export interface SynthLayer {
   };
 }
 
+// Short ramp to avoid clicks
+const RAMP_SECONDS = 0.005;
+
 export const DEFAULT_SYNTH_LAYER: SynthLayer = {
   oscillator: { waveform: "sine" },
   gain: 1,
   amp: {
-    // A gate whose 5 ms edges are short enough to sound immediate and long
-    // enough to keep notes from clicking. The decay only matters once the
-    // sustain is lowered.
-    envelope: { attack: 0.005, decay: 0.3, sustain: 1, release: 0.005 },
+    envelope: {
+      attack: RAMP_SECONDS,
+      decay: 0.3,
+      sustain: 1,
+      release: RAMP_SECONDS,
+    },
   },
 };
 
@@ -49,9 +54,6 @@ interface ResolvedLayer {
   ampEnvelope: EnvelopeCurves;
 }
 
-// Short enough to follow automation, long enough to keep CC7 and CC11 steps
-// from clicking.
-const CHANNEL_GAIN_RAMP_SECONDS = 0.005;
 const VOLUME_CONTROLLER = 7;
 const EXPRESSION_CONTROLLER = 11;
 // MIDI's defaults. A track without automation for a controller never sends
@@ -68,7 +70,8 @@ interface Voice {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
-  velocity: number;
+  /** Peak gain scaled by the note's velocity */
+  gain: number;
   /** One per layer */
   ampEnvelopes: EnvelopeState[];
 }
@@ -85,10 +88,17 @@ export class SubtractiveSynth implements SynthEngine {
 
   constructor(private readonly sampleRate: number) {
     this.layers = resolveLayers(DEFAULT_SYNTH_PATCH, sampleRate);
-    this.channelGainStep = 1 / (CHANNEL_GAIN_RAMP_SECONDS * sampleRate);
+    this.channelGainStep = 1 / (RAMP_SECONDS * sampleRate);
   }
 
   setPatch(patch: SynthPatch): void {
+    // Voices match their envelopes to layers by index, so they can't follow
+    // an added or removed layer and are cut instead.
+    // TODO: Give layers ids, as tracks have, so held notes keep their
+    // envelopes across layer changes.
+    if (patch.layers.length !== this.layers.length) {
+      this.voices = [];
+    }
     this.layers = resolveLayers(patch, this.sampleRate);
   }
 
@@ -98,7 +108,7 @@ export class SubtractiveSynth implements SynthEngine {
       pitch,
       phaseIncrement: midiToHz(pitch) / this.sampleRate,
       phase: 0,
-      velocity,
+      gain: PEAK_GAIN * (velocity / 127),
       ampEnvelopes: this.layers.map(() => new EnvelopeState()),
     });
   }
@@ -137,28 +147,20 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    const voices = this.voices.map((voice) => ({
-      voice,
-      // Layers that a patch change adds play from the next note.
-      layerCount: Math.min(this.layers.length, voice.ampEnvelopes.length),
-      layerGains: this.layers.map(
-        (layer) => PEAK_GAIN * layer.gain * (voice.velocity / 127),
-      ),
-    }));
     for (let i = offset; i < offset + length; i++) {
       let mix = 0;
-      for (const { voice, layerCount, layerGains } of voices) {
+      for (const voice of this.voices) {
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
-        for (let l = 0; l < layerCount; l++) {
+        for (let l = 0; l < this.layers.length; l++) {
           const layer = this.layers[l];
           sample +=
             layer.oscillate(voice.phase, voice.phaseIncrement) *
-            layerGains[l] *
+            layer.gain *
             voice.ampEnvelopes[l].advance(layer.ampEnvelope);
         }
-        mix += sample;
+        mix += voice.gain * sample;
         voice.phase = (voice.phase + voice.phaseIncrement) % 1;
       }
       const channelStep = Math.min(
@@ -172,9 +174,7 @@ export class SubtractiveSynth implements SynthEngine {
       right[i] += mix;
     }
     this.voices = this.voices.filter((voice) =>
-      voice.ampEnvelopes
-        .slice(0, this.layers.length)
-        .some((envelope) => envelope.stage !== "idle"),
+      voice.ampEnvelopes.some((envelope) => envelope.stage !== "idle"),
     );
   }
 
