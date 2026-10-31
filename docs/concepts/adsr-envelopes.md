@@ -37,7 +37,7 @@ The sustain level decides which of the other settings matter.
 
 ## Shape Each Stage as a Curve
 
-A stage's start level, end level, and time leave its shape open, and the shape is chosen by ear. Loudness is heard roughly in decibels, so a straight fade from 1 to 0 seems to hang near full level and then drop away, since halfway through its time it has fallen only 6 dB. A fade that falls by the same factor every sample, an exponential, loses the same number of decibels in each stretch of time and sounds even. Analog envelopes, which charge and discharge a capacitor, make this shape too, so it's the one synth players expect. The attack is the exception, because a rise of this shape sounds sluggish, so it's pushed close to a straight line.
+A stage's start level, end level, and time leave its shape open, and the shape is chosen by ear. Loudness is heard roughly in decibels, so a straight fade from 1 to 0 seems to hang near full level and then drop away, since halfway through its time it has fallen only 6 dB. A fade that falls by the same factor every sample, an exponential, loses the same number of decibels in each stretch of time and sounds even. Analog envelopes, which charge and discharge a capacitor, make this shape too, so it's the one synth players expect. The attack is the exception. A rise that is even in decibels would spend most of its time inaudibly low and then shoot up, which sounds sluggish, so the attack rises like a charging capacitor instead, quickly at first and easing into its peak.
 
 The synth draws every stage with one rule. Each sample, it moves the level $x$ toward a **target** $T$ by the same fraction,
 
@@ -51,33 +51,25 @@ $$
 (1+o)\cdot c^N=o,\qquad c=\left(\frac{o}{1+o}\right)^{1/N}.
 $$
 
-The overshoot sets the shape.
+The overshoot decides how much of the exponential a stage uses, so each stage gets its own.
 
-![Left: a 100 ms attack curves above a straight line, rising about twice as fast at first. Right: a 100 ms release from 1 falls in a nearly straight line in decibels, passes −60 dB at 75 ms, and bends down to silence at 100 ms](images/adsr-curves.svg)
+![Left: a 100 ms attack, plotted in level, rises quickly at first and eases into its peak, close to a straight line. Right: a 100 ms release from 1, plotted in decibels, falls in a straight line and bends down to silence near its end](images/adsr-curves.svg)
 
-**The attack aims 0.3 past 1, so it's close to a straight line.** Its level is $x_n=1.3\cdot(1-c^n)$, which starts at $1.3\cdot\ln(1.3/0.3)\approx1.9$ times the slope of a straight line and arrives a little more gently.
-
-**The decay and release aim 0.0001 past their ends, so they fall evenly in decibels.** Released from 1, the level is $x_n=(1+o)\cdot c^n-o$. While $x\gg o$ that is an exponential, a straight line in decibels, falling
+**The decay and release aim 0.0001 past their ends.** A small overshoot uses nearly the whole exponential, so the level falls evenly in decibels. Near the end, where the level is close to $o$, the $-o$ term takes over and the level drops to its end faster than the exponential would. That starts around
 
 $$
-20\log_{10}\frac{1+o}{o}\approx80\ \text{dB}
+20\log_{10}o=-80\ \text{dB},
 $$
 
-over the release time, or 8 dB per tenth of it. So a release passes −60 dB at about three quarters of its time. Near the end the $-o$ term takes over and the level bends down to exactly 0 at the full time.
+too quiet to hear, so the release sounds like an even fade to silence. An overshoot of 0.01 would bend at −40 dB, where a loud note's tail can be heard cut short.
 
-**A partial swing takes most of the time.** The decay's $c$ is set for falling all the way from 1 to 0, so the sustain level changes where the decay stops but not how fast it falls. Falling from 1 to a sustain $s$ takes the fraction
-
-$$
-\frac{\ln\big((1-s+o)/o\big)}{\ln\big((1+o)/o\big)}
-$$
-
-of the decay time, which is 92% for $s=0.5$, because an exponential's tail passes quickly. A release from the sustain level is shorter in the same way.
+**The attack aims 0.3 past 1, chosen by ear.** A large overshoot uses only the steep start of the exponential, so the attack is concave like an analog attack but close to a straight line, and it doesn't sound slow.
 
 ## Read a Time as the Stage's Length
 
 Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the curve's [time constant](#appendix-sample-a-first-order-relaxation-exactly) $\tau$, in which the distance to the target shrinks by a factor of $e$. Then falling 60 dB takes $\ln1000\cdot\tau\approx6.9\tau$, so the same 100 ms setting rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
 
-Times are also rates. A decay or release that covers only part of the swing, such as falling from the sustain level instead of from 1, falls at the same speed and ends sooner, as on analog envelopes. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
+Times are also rates. A stage's $c$ is set for the full swing, so a decay or release that covers only part of it, such as a decay to the sustain level or a release from it, falls at the same speed and ends sooner, as on analog envelopes. Because an exponential's tail passes quickly, falling half the swing still takes about 92% of the time. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
 
 ## References
 
