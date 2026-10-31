@@ -42,8 +42,6 @@ export function computeEnvelopeCurves(
         ATTACK_OVERSHOOT,
       ),
     },
-    // The decay's speed is set for falling all the way to 0, so the sustain
-    // level changes where it stops but not how fast it falls.
     decay: {
       target: envelope.sustain - DECAY_OVERSHOOT,
       coefficient: computeCoefficient(
@@ -63,7 +61,7 @@ export function computeEnvelopeCurves(
 }
 
 /**
- * Coefficient for a curve that covers a swing of 1 in `samples`, aiming
+ * Coefficient for a curve that crosses the whole range from 0 to 1 in `samples`, aiming
  * `overshoot` past its end. The distance to the target shrinks from
  * 1 + overshoot to overshoot, by the coefficient each sample.
  */
