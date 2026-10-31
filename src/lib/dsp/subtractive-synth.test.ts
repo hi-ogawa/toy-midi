@@ -411,18 +411,18 @@ describe(SubtractiveSynth, () => {
   it("pans each layer at constant power", () => {
     // Unity on both sides at the center, and √2 on the near side at a hard
     // side, so left² + right² stays 2 wherever the layer sits
-    const measurePan = (pan: number) => {
+    const measureChannelGains = (pan: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch({ layers: [{ ...createGateLayer(), pan }] });
       const [left, right] = renderSynthChannels(synth, {
         seconds: 0.1,
         at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
       });
-      const center = PEAK / Math.SQRT2;
-      return [measureRms(left) / center, measureRms(right) / center];
+      const centeredRms = PEAK / Math.SQRT2;
+      return [measureRms(left) / centeredRms, measureRms(right) / centeredRms];
     };
     const expectGains = (pan: number, [left, right]: number[]) => {
-      const [measuredLeft, measuredRight] = measurePan(pan);
+      const [measuredLeft, measuredRight] = measureChannelGains(pan);
       expect(measuredLeft).toBeCloseTo(left, 3);
       expect(measuredRight).toBeCloseTo(right, 3);
     };
