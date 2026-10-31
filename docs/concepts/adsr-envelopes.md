@@ -79,7 +79,7 @@ where $N=t_\text{stage}F_s$ is the stage's length in samples. The synth computes
 
 The overshoot decides how much of the exponential a stage uses, so each stage gets its own.
 
-**The decay and release aim 0.0001 past their ends.** A small overshoot uses nearly the whole exponential, so the level falls evenly in decibels. Near the end, where the level is close to $o$, the $-o$ term takes over and the level drops to its end faster than the exponential would. That starts around
+**The decay and release aim 0.0001 past their ends.** A small overshoot uses nearly the whole exponential, so a release, or a decay to sustain 0, falls evenly in decibels. A decay to a higher sustain levels off at the sustain's decibels instead. Near the end, where the level is close to $o$, the $-o$ term takes over and the level drops to its end faster than the exponential would. That starts around
 
 $$
 20\log_{10}o=-80\ \text{dB},
