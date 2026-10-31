@@ -54,6 +54,7 @@ describe(SubtractiveSynth, () => {
   });
 
   it("plays a note through its layer's amp envelope", () => {
+    // Decay to half level, 6 dB down, hold it, and release after note-off.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
       layers: [
@@ -65,15 +66,22 @@ describe(SubtractiveSynth, () => {
         },
       ],
     });
-    const buffers = createBuffers(SAMPLE_RATE);
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 0.5 * SAMPLE_RATE);
-    synth.noteOff(69);
-    synth.render(buffers[0], buffers[1], 0.5 * SAMPLE_RATE, 0.5 * SAMPLE_RATE);
-    expect(
-      measureRms(buffers[0].subarray(0.1 * SAMPLE_RATE, 0.5 * SAMPLE_RATE)),
-    ).toBeCloseTo((0.5 * PEAK) / Math.SQRT2, 4);
-    expect(measureRms(buffers[0].subarray(0.6 * SAMPLE_RATE))).toBe(0);
+    const samples = play(synth, {
+      seconds: 0.35,
+      at: {
+        0: () => synth.noteOn(69, 127),
+        0.2: () => synth.noteOff(69),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "  0 ms  -26.1 dB  ██████████████████████████████████
+       50 ms  -27.2 dB  █████████████████████████████████
+      100 ms  -27.2 dB  █████████████████████████████████
+      150 ms  -27.2 dB  █████████████████████████████████
+      200 ms  -36.8 dB  ███████████████████████
+      250 ms  -77.2 dB
+      300 ms   -inf dB"
+    `);
   });
 
   it("mixes into the buffers from the offset", () => {
@@ -123,24 +131,26 @@ describe(SubtractiveSynth, () => {
   });
 
   it("changes the waveform of a sounding note", () => {
+    // A square at the same peak is 3 dB louder than a sine.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const layer = createSynthLayer();
     synth.setPatch({ layers: [layer] });
-    const buffers = createBuffers(9600);
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.setPatch({
-      layers: [{ ...layer, oscillator: { waveform: "square" } }],
+    const samples = play(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(69, 127),
+        0.1: () =>
+          synth.setPatch({
+            layers: [{ ...layer, oscillator: { waveform: "square" } }],
+          }),
+      },
     });
-    synth.render(buffers[0], buffers[1], 4800, 4800);
-    expect(measureRms(buffers[0].subarray(RAMP_FRAMES, 4800))).toBeCloseTo(
-      PEAK / Math.SQRT2,
-      3,
-    );
-    expect(measureRms(buffers[0].subarray(4800 + RAMP_FRAMES))).toBeCloseTo(
-      PEAK,
-      2,
-    );
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "  0 ms  -21.4 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -18.2 dB  ██████████████████████████████████████████
+      150 ms  -18.2 dB  ██████████████████████████████████████████"
+    `);
   });
 
   it("keeps each layer's envelope on a sounding note when a layer is removed", () => {
@@ -155,30 +165,44 @@ describe(SubtractiveSynth, () => {
     };
     const holding = createSynthLayer();
     synth.setPatch({ layers: [decaying, holding] });
-    const buffers = createBuffers(9600);
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.setPatch({ layers: [holding] });
-    synth.render(buffers[0], buffers[1], 4800, 4800);
-    expect(measureRms(buffers[0].subarray(4800))).toBeCloseTo(
-      PEAK / Math.SQRT2,
-      3,
-    );
+    const samples = play(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(69, 127),
+        0.1: () => synth.setPatch({ layers: [holding] }),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "  0 ms  -20.5 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -21.1 dB  ███████████████████████████████████████
+      150 ms  -21.1 dB  ███████████████████████████████████████"
+    `);
   });
 
   it("plays a layer that a patch change adds from the next note", () => {
+    // The held note stays at one layer's level, and the next note sums both,
+    // 6 dB louder.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const patch = createSynthPatch();
     synth.setPatch(patch);
-    const buffers = createBuffers(9600);
-    synth.noteOn(69, 127);
-    synth.render(buffers[0], buffers[1], 0, 4800);
-    synth.setPatch({ layers: [...patch.layers, createSynthLayer()] });
-    synth.render(buffers[0], buffers[1], 4800, 4800);
-    expect(measureRms(buffers[0].subarray(4800))).toBeCloseTo(
-      PEAK / Math.SQRT2,
-      3,
-    );
+    const samples = play(synth, {
+      seconds: 0.3,
+      at: {
+        0: () => synth.noteOn(69, 127),
+        0.1: () =>
+          synth.setPatch({ layers: [...patch.layers, createSynthLayer()] }),
+        0.2: () => synth.noteOn(69, 127),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "  0 ms  -21.4 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -21.1 dB  ███████████████████████████████████████
+      150 ms  -21.1 dB  ███████████████████████████████████████
+      200 ms  -15.3 dB  █████████████████████████████████████████████
+      250 ms  -15.1 dB  █████████████████████████████████████████████"
+    `);
   });
 
   it("sums the layers of a note", () => {
@@ -226,15 +250,65 @@ describe(SubtractiveSynth, () => {
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createSynthPatch());
-    const buffers = createBuffers(4800);
-    synth.noteOn(60, 100);
-    synth.noteOn(64, 100);
-    synth.render(buffers[0], buffers[1], 0, 2400);
-    synth.stopAll();
-    synth.render(buffers[0], buffers[1], 2400, 2400);
-    expect(measureRms(buffers[0].subarray(2400 + RAMP_FRAMES))).toBe(0);
+    const samples = play(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => {
+          synth.noteOn(60, 100);
+          synth.noteOn(64, 100);
+        },
+        0.1: () => synth.stopAll(),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "  0 ms  -20.5 dB  ████████████████████████████████████████
+       50 ms  -20.6 dB  ███████████████████████████████████████
+      100 ms  -41.5 dB  ██████████████████
+      150 ms   -inf dB"
+    `);
   });
 });
+
+/**
+ * Renders the synth for `seconds`, running each action at its time in
+ * seconds, and returns the left channel.
+ */
+function play(
+  synth: SubtractiveSynth,
+  { seconds, at }: { seconds: number; at: Record<number, () => void> },
+): Float32Array {
+  const buffers = createBuffers(Math.round(seconds * SAMPLE_RATE));
+  const times = Object.keys(at)
+    .map(Number)
+    .sort((a, b) => a - b);
+  let rendered = 0;
+  for (const [i, time] of times.entries()) {
+    at[time]();
+    const end = Math.round((times[i + 1] ?? seconds) * SAMPLE_RATE);
+    synth.render(buffers[0], buffers[1], rendered, end - rendered);
+    rendered = end;
+  }
+  return buffers[0];
+}
+
+/**
+ * Lists the RMS level of each 50 ms window in dBFS, with a bar of one block
+ * per dB above -60 dB. A window holds a whole number of 440 Hz cycles, so a
+ * steady A4 reads the same in every row.
+ */
+function describeLevels(samples: Float32Array): string {
+  const window = 0.05 * SAMPLE_RATE;
+  const rows: string[] = [];
+  for (let start = 0; start < samples.length; start += window) {
+    const db =
+      20 * Math.log10(measureRms(samples.subarray(start, start + window)));
+    const time = `${Math.round((start / SAMPLE_RATE) * 1000)} ms`;
+    const level = db === -Infinity ? "-inf" : db.toFixed(1);
+    const bar = "█".repeat(Math.max(0, Math.round(db + 60)));
+    rows.push(`${time.padStart(6)}  ${level.padStart(5)} dB  ${bar}`.trimEnd());
+  }
+  return rows.join("\n");
+}
 
 function renderNote({
   waveform,
