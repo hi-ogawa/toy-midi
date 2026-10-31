@@ -1,9 +1,8 @@
 import type { Envelope } from "../lib/dsp/envelope";
-import { clamp } from "../lib/music";
+import { clamp, logPositionToValue, valueToLogPosition } from "../lib/music";
 import { usePointerDrag } from "./use-pointer-drag";
 
-const MIN_TIME = 0.001;
-const MAX_TIME = 10;
+const TIME_RANGE = { min: 0.001, max: 10 };
 // The sustain has no time of its own, so it gets a fixed stretch of the graph
 // between the decay and the release.
 const HOLD_WIDTH = 0.16;
@@ -182,7 +181,8 @@ function TimeReadout({
           : `${Number(value.toPrecision(2))} s`
       }
       position={timeToPosition(value)}
-      // A tenth of a decade, which stays above the rounding to two digits.
+      // A tenth of a decade, log(10^0.1) / log(10 / 0.001) = 0.025 of the range,
+      // which stays above the rounding to two digits.
       step={0.025}
       onChange={(position) => onChange(positionToTime(position))}
     />
@@ -251,10 +251,10 @@ function Readout({
 }
 
 function timeToPosition(time: number): number {
-  return clamp(Math.log(time / MIN_TIME) / Math.log(MAX_TIME / MIN_TIME), 0, 1);
+  return clamp(valueToLogPosition(time, TIME_RANGE), 0, 1);
 }
 
 function positionToTime(position: number): number {
-  const time = MIN_TIME * (MAX_TIME / MIN_TIME) ** clamp(position, 0, 1);
+  const time = logPositionToValue(clamp(position, 0, 1), TIME_RANGE);
   return Number(time.toPrecision(2));
 }
