@@ -55,6 +55,18 @@ e^{-t_\text{stage}/\tau}=\frac{o}{1+o}
 \tau=\frac{t_\text{stage}}{\ln\big((1+o)/o\big)}.
 $$
 
+A stage that covers only a distance $d$ of the range, such as a decay from 1 to the sustain level $S$ ($d=1-S$) or a release from the sustain level ($d=S$), keeps the same $\tau$. Its distance to the target starts at $d+o$ and must reach $o$, so it ends sooner:
+
+$$
+e^{-t_\text{end}/\tau}=\frac{o}{d+o}
+\quad\Longrightarrow\quad
+\frac{t_\text{end}}{t_\text{stage}}=\frac{\ln\big((d+o)/o\big)}{\ln\big((1+o)/o\big)},
+$$
+
+which is 1 at $d=1$. The time grows only with the logarithm of the distance. With the decay's overshoot of 0.0001, chosen below, falling half the range takes $\ln5001/\ln10001\approx92\%$ of the time, and even a tenth of it takes about 75%.
+
+![Two decays with the same 100 ms decay time, one to sustain 0 and one to sustain 0.5. Both shrink their distance to the sustain level with the same time constant, so the second is the first scaled into the upper half. It reaches 0.5 at about 92 ms, while the first reaches 0 at 100 ms](images/adsr-partial-decay.svg)
+
 Sampled at the sample rate $F_s$, at $t=n/F_s$, the distance shrinks by the same factor every sample:
 
 $$
@@ -81,17 +93,7 @@ too quiet to hear, so the release sounds like an even fade to silence. An oversh
 
 Synths disagree on what an envelope time means. Here a time is how long the stage takes to cross the whole range between 0 and 1, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the time constant $\tau$ itself. This envelope's $\tau$ is the stage's time divided by $\ln\big((1+o)/o\big)$, which is $\ln10001\approx9.2$ for a release, so a 100 ms release has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. This convention makes the number on a slider match what you hear.
 
-Times are also rates. A stage that covers only a distance $d$ of the range, such as a decay from 1 to the sustain level $S$ ($d=1-S$) or a release from it ($d=S$), keeps the same $\tau$ and ends sooner, as on analog envelopes. Its distance to the target starts at $d+o$ and ends at $o$, so
-
-$$
-e^{-t_\text{end}/\tau}=\frac{o}{d+o}
-\quad\Longrightarrow\quad
-\frac{t_\text{end}}{t_\text{stage}}=\frac{\ln\big((d+o)/o\big)}{\ln\big((1+o)/o\big)},
-$$
-
-which is 1 at $d=1$, as in the earlier condition. The time grows only with the logarithm of the distance. At $o=0.0001$, falling half the range takes $\ln5001/\ln10001\approx92\%$ of the time, and even a tenth of it takes about 75%. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
-
-![Two decays with the same 100 ms decay time, one to sustain 0 and one to sustain 0.5. Both shrink their distance to the sustain level by the same factor each sample, so the second is the first scaled into the upper half. It reaches 0.5 at about 92 ms, while the first reaches 0 at 100 ms](images/adsr-partial-decay.svg)
+Times are also rates. A stage that covers only part of the range keeps its time constant and ends sooner, as derived above and as on analog envelopes. The other choice, finishing every stage in its time whatever the distance, would make the decay's time constant change when the sustain changes.
 
 ## References
 
