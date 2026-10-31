@@ -149,7 +149,7 @@ function SynthLayerRow({
   onToggle: () => void;
   onRemove: () => void;
 }) {
-  const { envelope, velocity } = layer.amp;
+  const { envelope } = layer.amp;
 
   function updateEnvelope(update: Partial<Envelope>) {
     onChange({
@@ -239,13 +239,6 @@ function SynthLayerRow({
             label="Release"
             value={envelope.release}
             onChange={(release) => updateEnvelope({ release })}
-          />
-          <LevelSlider
-            label="Velocity"
-            value={velocity}
-            onChange={(velocity) =>
-              onChange({ ...layer, amp: { ...layer.amp, velocity } })
-            }
           />
         </div>
       )}

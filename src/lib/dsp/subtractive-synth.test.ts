@@ -50,26 +50,6 @@ describe(SubtractiveSynth, () => {
     expect(measureLevel(64) / measureLevel(127)).toBeCloseTo(64 / 127, 2);
   });
 
-  it("scales a note's level with velocity by the layer's depth", () => {
-    const measureLevel = (velocity: number, depth: number) => {
-      const synth = new SubtractiveSynth(SAMPLE_RATE);
-      synth.setPatch({
-        layers: [
-          {
-            ...DEFAULT_SYNTH_LAYER,
-            amp: { ...DEFAULT_SYNTH_LAYER.amp, velocity: depth },
-          },
-        ],
-      });
-      const buffers = createBuffers(4800);
-      synth.noteOn(60, velocity);
-      synth.render(buffers[0], buffers[1], 0, 4800);
-      return measureRms(buffers[0].subarray(RAMP_FRAMES));
-    };
-    expect(measureLevel(64, 0) / measureLevel(127, 0)).toBeCloseTo(1, 3);
-    expect(measureLevel(0, 0.5) / measureLevel(127, 0.5)).toBeCloseTo(0.5, 3);
-  });
-
   it("plays each layer through its own amp envelope", () => {
     // The first layer holds at half level, and the second decays away.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
@@ -79,14 +59,12 @@ describe(SubtractiveSynth, () => {
           ...DEFAULT_SYNTH_LAYER,
           amp: {
             envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0.1 },
-            velocity: 1,
           },
         },
         {
           ...DEFAULT_SYNTH_LAYER,
           amp: {
             envelope: { attack: 0, decay: 0.05, sustain: 0, release: 0.1 },
-            velocity: 1,
           },
         },
       ],

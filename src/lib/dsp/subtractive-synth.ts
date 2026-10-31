@@ -22,11 +22,6 @@ export interface SynthLayer {
   gain: number;
   amp: {
     envelope: Envelope;
-    /**
-     * How much velocity scales the level, from 0, where every note plays at
-     * full level, to 1, where the level is velocity / 127
-     */
-    velocity: number;
   };
 }
 
@@ -38,7 +33,6 @@ export const DEFAULT_SYNTH_LAYER: SynthLayer = {
     // enough to keep notes from clicking. The decay only matters once the
     // sustain is lowered.
     envelope: { attack: 0.005, decay: 0.3, sustain: 1, release: 0.005 },
-    velocity: 1,
   },
 };
 
@@ -53,7 +47,6 @@ interface ResolvedLayer {
   oscillate: Oscillator;
   gain: number;
   ampEnvelope: EnvelopeCurves;
-  ampVelocity: number;
 }
 
 // Short enough to follow automation, long enough to keep CC7 and CC11 steps
@@ -104,7 +97,6 @@ export class SubtractiveSynth implements SynthEngine {
       oscillate: OSCILLATORS[layer.oscillator.waveform],
       gain: layer.gain,
       ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, this.sampleRate),
-      ampVelocity: layer.amp.velocity,
     }));
   }
 
@@ -158,10 +150,7 @@ export class SubtractiveSynth implements SynthEngine {
       // Layers that a patch change adds play from the next note.
       layerCount: Math.min(this.layers.length, voice.ampEnvelopes.length),
       layerGains: this.layers.map(
-        (layer) =>
-          PEAK_GAIN *
-          layer.gain *
-          (1 - layer.ampVelocity * (1 - voice.velocity / 127)),
+        (layer) => PEAK_GAIN * layer.gain * (voice.velocity / 127),
       ),
     }));
     for (let i = offset; i < offset + length; i++) {
