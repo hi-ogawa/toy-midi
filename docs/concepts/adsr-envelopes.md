@@ -47,7 +47,7 @@ $$
 x(t)=T+(x_0-T)\cdot e^{-t/\tau},
 $$
 
-where the **time constant** $\tau$ is how long the distance takes to shrink by a factor of $e$. An exponential never reaches its target, so each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. Over a full swing the distance starts at $1+o$ and must reach $o$ at the stage's time $t_\text{stage}$, which sets the time constant:
+where the **time constant** $\tau$ is how long the distance takes to shrink by a factor of $e$. The curve has two free numbers, its target and its time constant, and a stage fixes only one condition, reaching its end level $E$ at the stage's time $t_\text{stage}$. Aiming at $E$ itself fails, since an exponential never arrives. So each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release, a choice that sets the curve's shape, and the stage ends when $x$ crosses $E$. The end condition then fixes $\tau$. Over a full swing the distance starts at $1+o$ and must reach $o$ at $t_\text{stage}$:
 
 $$
 e^{-t_\text{stage}/\tau}=\frac{o}{1+o}
