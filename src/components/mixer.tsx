@@ -1,6 +1,13 @@
 import type { ComponentProps, ReactNode } from "react";
 import { isEqActive } from "../lib/dsp/biquad-eq-multiband";
-import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
+import {
+  MAX_DB,
+  MIN_DB,
+  clamp,
+  dbToGain,
+  formatPan,
+  gainToDb,
+} from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
@@ -297,14 +304,6 @@ function PanKnob({
       </span>
     </div>
   );
-}
-
-function formatPan(pan: number): string {
-  const percent = Math.round(Math.abs(pan) * 100);
-  if (percent === 0) {
-    return "C";
-  }
-  return `${pan < 0 ? "L" : "R"}${percent}`;
 }
 
 export function GainSlider({

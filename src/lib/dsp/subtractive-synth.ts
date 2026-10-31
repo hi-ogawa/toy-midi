@@ -33,6 +33,8 @@ export interface SynthLayer {
   };
   /** Linear multiplier on the layer's output */
   gain: number;
+  /** From -1, hard left, to 1, hard right */
+  pan: number;
   amp: {
     envelope: Envelope;
   };
@@ -44,6 +46,7 @@ const RAMP_SECONDS = 0.005;
 const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
   oscillator: { waveform: "sine", octave: 0, detune: 0 },
   gain: 1,
+  pan: 0,
   amp: {
     envelope: {
       attack: RAMP_SECONDS,
@@ -70,7 +73,9 @@ interface ResolvedLayer {
   oscillate: Oscillator;
   /** The layer's frequency over the note's */
   frequencyRatio: number;
-  gain: number;
+  /** The layer's gain on each channel, with its pan */
+  leftGain: number;
+  rightGain: number;
   ampEnvelope: EnvelopeCurves;
 }
 
@@ -188,26 +193,30 @@ export class SubtractiveSynth implements SynthEngine {
     length: number,
   ): void {
     for (let i = offset; i < offset + length; i++) {
-      let mix = 0;
+      let mixLeft = 0;
+      let mixRight = 0;
       for (const voice of this.voices) {
         const vibrato =
           this.vibratoDepth * Math.sin(2 * Math.PI * voice.vibratoPhase);
         const notePhaseIncrement =
           midiToHz(voice.pitch + this.bend + vibrato / 100) / this.sampleRate;
-        let sample = 0;
+        let sampleLeft = 0;
+        let sampleRight = 0;
         for (const layer of this.layers) {
           // A layer that a patch change adds plays from the next note.
           const state = voice.layers.get(layer.id);
           if (state) {
             const phaseIncrement = notePhaseIncrement * layer.frequencyRatio;
-            sample +=
+            const sample =
               layer.oscillate(state.phase, phaseIncrement) *
-              layer.gain *
               state.ampEnvelope.advance(layer.ampEnvelope);
+            sampleLeft += sample * layer.leftGain;
+            sampleRight += sample * layer.rightGain;
             state.phase = (state.phase + phaseIncrement) % 1;
           }
         }
-        mix += voice.gain * sample;
+        mixLeft += voice.gain * sampleLeft;
+        mixRight += voice.gain * sampleRight;
         voice.vibratoPhase =
           (voice.vibratoPhase + this.vibratoPhaseIncrement) % 1;
       }
@@ -217,9 +226,8 @@ export class SubtractiveSynth implements SynthEngine {
       );
       this.channelGain +=
         this.targetChannelGain > this.channelGain ? channelStep : -channelStep;
-      mix *= this.channelGain;
-      left[i] += mix;
-      right[i] += mix;
+      left[i] += mixLeft * this.channelGain;
+      right[i] += mixRight * this.channelGain;
     }
     this.voices = this.voices.filter((voice) =>
       this.layers.some((layer) => {
@@ -237,14 +245,31 @@ export class SubtractiveSynth implements SynthEngine {
 }
 
 function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
-  return patch.layers.map((layer) => ({
-    id: layer.id,
-    oscillate: OSCILLATORS[layer.oscillator.waveform],
-    frequencyRatio:
-      2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
-    gain: layer.gain,
-    ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
-  }));
+  return patch.layers.map((layer) => {
+    const pan = computePanGains(layer.pan);
+    return {
+      id: layer.id,
+      oscillate: OSCILLATORS[layer.oscillator.waveform],
+      frequencyRatio:
+        2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
+      leftGain: layer.gain * pan.left,
+      rightGain: layer.gain * pan.right,
+      ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
+    };
+  });
+}
+
+/**
+ * Pans a layer, a mono source, at constant power, as a DAW pans a mono track,
+ * so moving a layer doesn't change its loudness. The √2 scale keeps both sides
+ * at unity at the center, where layers saved before pan sit.
+ */
+function computePanGains(pan: number): { left: number; right: number } {
+  const angle = ((pan + 1) * Math.PI) / 4;
+  return {
+    left: Math.SQRT2 * Math.cos(angle),
+    right: Math.SQRT2 * Math.sin(angle),
+  };
 }
 
 function releaseVoice(voice: Voice): void {

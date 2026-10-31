@@ -14,7 +14,14 @@ import {
   type Waveform,
   WAVEFORMS,
 } from "../lib/dsp/subtractive-synth";
-import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
+import {
+  MAX_DB,
+  MIN_DB,
+  clamp,
+  dbToGain,
+  formatPan,
+  gainToDb,
+} from "../lib/music";
 import { EnvelopeEditor } from "./envelope-editor";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
@@ -198,6 +205,11 @@ function SynthLayerRow({
           label={`${name} gain`}
           gain={layer.gain}
           onGainChange={(gain) => onChange({ ...layer, gain })}
+        />
+        <PanKnob
+          label={name}
+          pan={layer.pan}
+          onPanChange={(pan) => onChange({ ...layer, pan })}
         />
         <button
           type="button"
@@ -443,6 +455,60 @@ function GainKnob({
         className="cursor-ns-resize"
       />
       <span className="w-14 font-mono text-xs text-muted-foreground tabular-nums">
+        {valueText}
+      </span>
+    </div>
+  );
+}
+
+function PanKnob({
+  label,
+  pan,
+  onPanChange,
+}: {
+  label: string;
+  pan: number;
+  onPanChange: (pan: number) => void;
+}) {
+  const setPan = (value: number) =>
+    onPanChange(clamp(Math.round(value * 100) / 100, -1, 1));
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return pan;
+    },
+    onMove: (_event, drag) => setPan(drag.data - drag.deltaY / 100),
+  });
+  const valueText = formatPan(pan);
+  return (
+    <div className="flex items-center gap-2">
+      <Knob
+        ref={ref}
+        aria-label={`${label} pan`}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const next = {
+            ArrowLeft: pan - step,
+            ArrowDown: pan - step,
+            ArrowRight: pan + step,
+            ArrowUp: pan + step,
+            Home: -1,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPan(next);
+          }
+        }}
+        value={pan}
+        min={-1}
+        max={1}
+        origin={0}
+        className="cursor-ns-resize"
+      />
+      <span className="w-8 font-mono text-xs text-muted-foreground tabular-nums">
         {valueText}
       </span>
     </div>
