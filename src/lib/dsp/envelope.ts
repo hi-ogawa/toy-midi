@@ -8,12 +8,6 @@ export interface Envelope {
   release: number;
 }
 
-// Each stage is a one-pole curve aimed past its end level, like an analog
-// envelope's capacitor charging toward a voltage it never needs to reach. The
-// stage ends when the curve crosses its end level, so a time is the stage's
-// whole audible length over the full 0-to-1 swing. A large overshoot makes the
-// attack close to linear, rising a little faster at first. A tiny one makes
-// decay and release exponential, which falls evenly in decibels.
 const ATTACK_OVERSHOOT = 0.3;
 const DECAY_OVERSHOOT = 0.0001;
 
