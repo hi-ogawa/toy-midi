@@ -81,13 +81,15 @@ too quiet to hear, so the release sounds like an even fade to silence. An oversh
 
 Synths disagree on what an envelope time means. Here a time is how long the stage takes to cross the whole range between 0 and 1, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the time constant $\tau$ itself. This envelope's $\tau$ is the stage's time divided by $\ln\big((1+o)/o\big)$, which is $\ln10001\approx9.2$ for a release, so a 100 ms release has $\tau\approx11$ ms. Read as a time constant instead, a 100 ms setting falls 60 dB in $\ln1000\cdot\tau\approx6.9\tau$, so it rings for most of a second. This convention makes the number on a slider match what you hear.
 
-Times are also rates. A stage's $c$ is set for the whole range, so a decay or release that covers only part of it, such as a decay to the sustain level or a release from it, keeps the same time constant and ends sooner, as on analog envelopes. The stage ends when its distance shrinks to $o$, and the time that takes grows only with the logarithm of the starting distance, so falling half the range still takes
+Times are also rates. A stage that covers only a distance $d$ of the range, such as a decay from 1 to the sustain level $S$ ($d=1-S$) or a release from it ($d=S$), keeps the same $\tau$ and ends sooner, as on analog envelopes. Its distance to the target starts at $d+o$ and ends at $o$, so
 
 $$
-\frac{\ln\big((0.5+o)/o\big)}{\ln\big((1+o)/o\big)}=\frac{\ln5001}{\ln10001}\approx92\%
+e^{-t_\text{end}/\tau}=\frac{o}{d+o}
+\quad\Longrightarrow\quad
+\frac{t_\text{end}}{t_\text{stage}}=\frac{\ln\big((d+o)/o\big)}{\ln\big((1+o)/o\big)},
 $$
 
-of the time. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
+which is 1 at $d=1$, as in the earlier condition. The time grows only with the logarithm of the distance. At $o=0.0001$, falling half the range takes $\ln5001/\ln10001\approx92\%$ of the time, and even a tenth of it takes about 75%. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
 
 ![Two decays with the same 100 ms decay time, one to sustain 0 and one to sustain 0.5. Both shrink their distance to the sustain level by the same factor each sample, so the second is the first scaled into the upper half. It reaches 0.5 at about 92 ms, while the first reaches 0 at 100 ms](images/adsr-partial-decay.svg)
 
