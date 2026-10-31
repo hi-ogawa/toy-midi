@@ -120,9 +120,14 @@ interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
   layers: SerializedSynthLayer[];
 }
 
-interface SerializedSynthLayer extends Omit<SynthLayer, "id" | "gain" | "amp"> {
+interface SerializedSynthLayer extends Omit<
+  SynthLayer,
+  "id" | "gain" | "muted" | "amp"
+> {
   // 🟢 Optional for layers saved before per-layer gain.
   gain?: number;
+  // 🟢 Optional for layers saved before layer mute.
+  muted?: boolean;
   // 🟢 Optional for layers saved before the amp envelope.
   amp?: SynthLayer["amp"];
 }
