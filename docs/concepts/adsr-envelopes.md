@@ -41,7 +41,13 @@ A stage's start level, end level, and time leave its shape open, and the shape i
 
 ![A 100 ms attack and release, each in level and in decibels, against a straight ramp over the same time. In level, the attack rises just above the ramp and the release drops well below it. In decibels, the attack climbs out of silence within a few milliseconds, the release falls in a straight line until it bends down near −80 dB, and the straight fade stays near 0 dB until it plunges at the end](images/adsr-curves.svg)
 
-The synth draws every stage as a level relaxing toward a **target** $T$ with a time constant $\tau$. Sampled exactly, as the [appendix](#appendix-sample-a-first-order-relaxation-exactly) derives, that is
+The synth draws every stage as a level $x$ relaxing toward a **target** $T$ at a speed proportional to the distance left,
+
+$$
+\frac{dx}{dt}=\frac{T-x}{\tau},
+$$
+
+where the **time constant** $\tau$ is how long the distance takes to shrink by a factor of $e$. Sampled exactly at the sample rate $F_s$, as the [appendix](#appendix-sample-a-first-order-relaxation-exactly) derives, that is
 
 $$
 x_{n+1}=T+c\cdot(x_n-T),\qquad c=e^{-1/(\tau F_s)},
@@ -84,13 +90,7 @@ Times are also rates. A stage's $c$ is set for the full swing, so a decay or rel
 
 ## Appendix: Sample a First-Order Relaxation Exactly
 
-The stage curve is the motion of a level that moves toward its target at a speed proportional to the distance left,
-
-$$
-\frac{dx}{dt}=\frac{T-x}{\tau},
-$$
-
-where $\tau$ is the **time constant**. A capacitor charging through a resistor toward a supply voltage follows this equation. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
+A capacitor charging through a resistor toward a supply voltage follows the stage's equation, $dx/dt=(T-x)/\tau$. The distance $T-x$ obeys the same equation with its target at 0, so it decays as an exponential:
 
 $$
 T-x(t)=\big(T-x(0)\big)\cdot e^{-t/\tau}.
