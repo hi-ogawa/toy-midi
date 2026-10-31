@@ -83,8 +83,8 @@ interface Voice {
   /** The key that started the voice, which its note-off matches */
   note: number;
   /**
-   * Fractional MIDI pitch before synth-wide offsets such as bend. Render adds
-   * them on every call, so a change to either reaches a sounding note.
+   * Fractional MIDI pitch before offsets such as bend and vibrato. Render adds
+   * them every sample, so a change to either reaches a sounding note.
    */
   pitch: number;
   /**
@@ -179,18 +179,14 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    // Cycles per sample, by voice, before vibrato
-    const phaseIncrements = this.voices.map(
-      (voice) => midiToHz(voice.pitch + this.bend) / this.sampleRate,
-    );
     for (let i = offset; i < offset + length; i++) {
       let mix = 0;
-      for (let index = 0; index < this.voices.length; index++) {
-        const voice = this.voices[index];
+      for (const voice of this.voices) {
         const vibratoCents =
           this.vibratoDepth * Math.sin(2 * Math.PI * voice.vibratoPhase);
         const phaseIncrement =
-          phaseIncrements[index] * 2 ** (vibratoCents / 1200);
+          midiToHz(voice.pitch + this.bend + vibratoCents / 100) /
+          this.sampleRate;
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
