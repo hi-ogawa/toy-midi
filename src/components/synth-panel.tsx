@@ -73,7 +73,7 @@ export function SynthPanel({
   );
 }
 
-export function SynthPanelContent({
+function SynthPanelContent({
   patch,
   onChange,
 }: {
