@@ -25,11 +25,19 @@ export interface SynthLayer {
   };
 }
 
+// Short ramp to avoid clicks
+const RAMP_SECONDS = 0.005;
+
 export const DEFAULT_SYNTH_LAYER: SynthLayer = {
   oscillator: { waveform: "sine" },
   gain: 1,
   amp: {
-    envelope: { attack: 0.005, decay: 0.3, sustain: 1, release: 0.005 },
+    envelope: {
+      attack: RAMP_SECONDS,
+      decay: 0.3,
+      sustain: 1,
+      release: RAMP_SECONDS,
+    },
   },
 };
 
@@ -46,9 +54,6 @@ interface ResolvedLayer {
   ampEnvelope: EnvelopeCurves;
 }
 
-// Short enough to follow automation, long enough to keep CC7 and CC11 steps
-// from clicking.
-const CHANNEL_GAIN_RAMP_SECONDS = 0.005;
 const VOLUME_CONTROLLER = 7;
 const EXPRESSION_CONTROLLER = 11;
 // MIDI's defaults. A track without automation for a controller never sends
@@ -82,7 +87,7 @@ export class SubtractiveSynth implements SynthEngine {
 
   constructor(private readonly sampleRate: number) {
     this.layers = resolveLayers(DEFAULT_SYNTH_PATCH, sampleRate);
-    this.channelGainStep = 1 / (CHANNEL_GAIN_RAMP_SECONDS * sampleRate);
+    this.channelGainStep = 1 / (RAMP_SECONDS * sampleRate);
   }
 
   setPatch(patch: SynthPatch): void {
