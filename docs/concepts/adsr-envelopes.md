@@ -1,0 +1,83 @@
+# ADSR Envelopes
+
+An oscillator plays at a constant level for as long as it runs, so on its own every note starts at full level, stays there, and stops when its key is released. An **envelope** is a level from 0 to 1 that the synth multiplies into a note sample by sample, so the note can swell in, fade while held, or ring on after its key is released. The key's state drives it: pressing the key opens the **gate** with a note-on, and releasing it closes the gate with a note-off.
+
+The standard envelope is the **ADSR**, named after its four settings, attack, decay, sustain, and release. In the [synth](../../src/lib/dsp/subtractive-synth.ts) each layer has its own amp envelope, and the layer's level is the envelope times the layer's gain times the note's velocity / 127.
+
+This document explains what each setting means, how notes that end early behave, and how the synth's [envelope](../../src/lib/dsp/envelope.ts) curves each stage so that a time is the length you hear.
+
+## Follow a Held Note Through Four Stages
+
+![A note held for 1.1 s. The level rises from 0 to 1 during the attack, falls to the sustain level during the decay, stays there while the key is held, and falls to 0 during the release after the note-off](images/adsr-stages.svg)
+
+- **Attack** is the time to rise from 0 to 1 after the note-on.
+- **Decay** is the time to fall from 1 toward the sustain level.
+- **Sustain** is a level, not a time. The envelope stays there for as long as the key is held.
+- **Release** is the time to fall to 0 after the note-off.
+
+So an ADSR is three times and a level. The envelope doesn't set how long a note lasts, since the sustain lasts as long as the key does. The release comes after the note-off, so a note keeps sounding for up to the release time after its key is released.
+
+## Release from Wherever the Envelope Is
+
+![The same envelope released at 80 ms, during the attack, and at 300 ms, during the decay. Each release starts from the level the envelope had reached, below 1 for the first, and falls to 0 without a jump](images/adsr-early-release.svg)
+
+A note-off can arrive in any stage, and the release starts from whatever level the envelope has reached. A note shorter than the attack never reaches full level, which is why a slow attack makes short notes quieter. A note released during the decay never settles at the sustain level. In every case the level is continuous, because a jump in level is a click.
+
+Each note gets its own envelope, starting from 0. Playing a pitch that is still sounding releases the earlier note, which fades out under the new one.
+
+## Make Sounds from Four Settings
+
+![Four envelopes with the key held for 1 s. Organ is a gate with 5 ms edges. Pluck rises in 2 ms and fades to silence while held. Piano-like falls to a quiet sustain and stops shortly after the note-off. Pad swells over 600 ms, holds at 0.8, and fades over 900 ms after the note-off](images/adsr-shapes.svg)
+
+The sustain level decides which of the other settings matter.
+
+- **At sustain 1** there is nothing to decay to, so the envelope is a gate with rounded edges, like an organ. The synth's default is this shape with 5 ms edges, short enough to sound immediate and long enough to keep notes from clicking.
+- **At sustain 0** the note fades away while held, like a plucked string, and the decay sets how long it rings. The release only matters for notes released before the decay is over.
+- **In between**, the decay is the strike and the sustain is the body of the note, like a piano with a quiet sustain or a pad that swells in.
+
+## Shape Each Stage as a Curve
+
+The synth moves the level $x$ toward a **target** $T$ by the same fraction every sample,
+
+$$
+x_{n+1}=T+c\cdot(x_n-T),
+$$
+
+so the distance to the target shrinks by a factor $c$ per sample, like a capacitor charging toward a voltage. This is a one-pole curve, and it never reaches its target. So each stage aims an **overshoot** $o$ past its end level, $T=1+o$ for the attack and $T=E-o$ for a decay or release that ends at $E$, and the stage ends when $x$ crosses $E$. The distance then starts at $1+o$ over a full swing and ends at $o$. For a stage time of $N$ samples,
+
+$$
+(1+o)\cdot c^N=o,\qquad c=\left(\frac{o}{1+o}\right)^{1/N}.
+$$
+
+The overshoot sets the shape.
+
+![Left: a 100 ms attack curves above a straight line, rising about twice as fast at first. Right: a 100 ms release from 1 falls in a nearly straight line in decibels, passes −60 dB at 75 ms, and bends down to silence at 100 ms](images/adsr-curves.svg)
+
+**The attack aims 0.3 past 1, so it's close to a straight line.** Its level is $x_n=1.3\cdot(1-c^n)$, which starts at $1.3\cdot\ln(1.3/0.3)\approx1.9$ times the slope of a straight line and arrives a little more gently.
+
+**The decay and release aim 0.0001 past their ends, so they fall evenly in decibels.** Released from 1, the level is $x_n=(1+o)\cdot c^n-o$. While $x\gg o$ that is an exponential, a straight line in decibels, falling
+
+$$
+20\log_{10}\frac{1+o}{o}\approx80\ \text{dB}
+$$
+
+over the release time, or 8 dB per tenth of it. So a release passes −60 dB at about three quarters of its time. Near the end the $-o$ term takes over and the level bends down to exactly 0 at the full time.
+
+**A partial swing takes most of the time.** The decay's $c$ is set for falling all the way from 1 to 0, so the sustain level changes where the decay stops but not how fast it falls. Falling from 1 to a sustain $s$ takes the fraction
+
+$$
+\frac{\ln\big((1-s+o)/o\big)}{\ln\big((1+o)/o\big)}
+$$
+
+of the decay time, which is 92% for $s=0.5$, because an exponential's tail passes quickly. A release from the sustain level is shorter in the same way.
+
+## Read a Time as the Stage's Length
+
+Synths disagree on what an envelope time means. Here a time is how long the stage lasts over the full swing, so a 100 ms release from full level is silent at 100 ms. Another common convention takes the time as the curve's **time constant** $\tau$, in which the distance to the target shrinks by a factor of $e$. Then falling 60 dB takes $\ln1000\cdot\tau\approx6.9\tau$, so the same 100 ms setting rings for most of a second. The full-swing convention makes the number on a slider match what you hear.
+
+Times are also rates. A decay or release that covers only part of the swing, such as falling from the sustain level instead of from 1, falls at the same speed and ends sooner, as on analog envelopes. The other choice, finishing every stage in its time whatever the distance, would make the decay's speed change when the sustain changes.
+
+## References
+
+- [Envelope generators—ADSR code](https://www.earlevel.com/main/2013/06/03/envelope-generators-adsr-code/) (EarLevel Engineering) builds an ADSR from one-pole curves that aim past their ends, the same construction as here.
+- [Envelope (music)](<https://en.wikipedia.org/wiki/Envelope_(music)>) (Wikipedia) surveys the ADSR and its variants.
