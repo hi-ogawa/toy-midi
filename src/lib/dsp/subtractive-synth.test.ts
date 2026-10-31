@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { encodePitchBend } from "../general-midi";
 import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
@@ -297,6 +298,37 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
+  it("bends sounding and new notes by the wheel value", () => {
+    // Bend a held A4 up and then down an octave, and start the next note while
+    // the bend is held.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createPatch(["sine"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.pitchBend(encodePitchBend(12)),
+        0.2: () => synth.pitchBend(encodePitchBend(-12)),
+        0.3: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeFrequencies(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  440 Hz
+       50 ms  440 Hz
+      100 ms  880 Hz
+      150 ms  880 Hz
+      200 ms  220 Hz
+      250 ms  220 Hz
+      300 ms  220 Hz
+      350 ms  220 Hz
+      "
+    `);
+  });
+
   it("scales each layer by its gain", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
@@ -370,6 +402,32 @@ function describeLevels(samples: Float32Array): string {
     const level = db === -Infinity ? "-inf" : db.toFixed(1);
     const bar = "█".repeat(Math.max(0, Math.round(db + 60)));
     rows.push(`${time.padStart(6)}  ${level.padStart(5)} dB  ${bar}`.trimEnd());
+  }
+  // Starts and ends on a line break, so rows align in an inline snapshot.
+  return ["", ...rows, ""].join("\n");
+}
+
+/**
+ * Lists the frequency of each 50 ms window, from the cycles between the
+ * window's first and last rising zero crossings, each interpolated between
+ * samples.
+ */
+function describeFrequencies(samples: Float32Array): string {
+  const window = 0.05 * SAMPLE_RATE;
+  const rows: string[] = [];
+  for (let start = 0; start < samples.length; start += window) {
+    const crossings: number[] = [];
+    for (let i = start + 1; i < start + window; i++) {
+      if (samples[i - 1] < 0 && samples[i] >= 0) {
+        crossings.push(i - samples[i] / (samples[i] - samples[i - 1]));
+      }
+    }
+    const frequency = Math.round(
+      ((crossings.length - 1) * SAMPLE_RATE) /
+        (crossings.at(-1)! - crossings[0]),
+    );
+    const time = `${Math.round((start / SAMPLE_RATE) * 1000)} ms`;
+    rows.push(`${time.padStart(6)}  ${String(frequency).padStart(3)} Hz`);
   }
   // Starts and ends on a line break, so rows align in an inline snapshot.
   return ["", ...rows, ""].join("\n");

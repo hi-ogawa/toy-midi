@@ -1,3 +1,4 @@
+import { PITCH_BEND_RANGE, PITCH_WHEEL_CENTER } from "../general-midi.ts";
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { midiToHz } from "../music.ts";
 import {
@@ -79,9 +80,13 @@ const MAX_VIBRATO_CENTS = 50;
 const VIBRATO_RATE = 5.5;
 
 interface Voice {
+  /** The key that started the voice, which its note-off matches */
+  note: number;
+  /**
+   * Fractional MIDI pitch before synth-wide offsets such as bend. Render adds
+   * them on every call, so a change to either reaches a sounding note.
+   */
   pitch: number;
-  /** Cycles per sample */
-  phaseIncrement: number;
   /**
    * Cycles in [0, 1). Advancing by the increment instead of tracking time
    * keeps the waveform continuous when the frequency changes.
@@ -98,6 +103,8 @@ interface Voice {
 export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
   private layers: ResolvedLayer[] = [];
+  /** Semitones */
+  private bend = 0;
   private volume = DEFAULT_VOLUME;
   private expression = DEFAULT_EXPRESSION;
   /** CC7 volume times CC11 expression, applied to the summed voices */
@@ -120,8 +127,8 @@ export class SubtractiveSynth implements SynthEngine {
   noteOn(pitch: number, velocity: number): void {
     this.noteOff(pitch);
     this.voices.push({
+      note: pitch,
       pitch,
-      phaseIncrement: midiToHz(pitch) / this.sampleRate,
       phase: 0,
       vibratoPhase: 0,
       gain: PEAK_GAIN * (velocity / 127),
@@ -133,7 +140,7 @@ export class SubtractiveSynth implements SynthEngine {
 
   noteOff(pitch: number): void {
     for (const voice of this.voices) {
-      if (voice.pitch === pitch) {
+      if (voice.note === pitch) {
         releaseVoice(voice);
       }
     }
@@ -160,7 +167,10 @@ export class SubtractiveSynth implements SynthEngine {
     this.targetChannelGain = computeChannelGain(this.volume, this.expression);
   }
 
-  pitchBend(_value: number): void {}
+  pitchBend(value: number): void {
+    this.bend =
+      ((value - PITCH_WHEEL_CENTER) / PITCH_WHEEL_CENTER) * PITCH_BEND_RANGE;
+  }
 
   /** Mixes `length` samples into the buffers from `offset`. */
   render(
@@ -169,13 +179,18 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
+    // Cycles per sample, by voice, before vibrato
+    const phaseIncrements = this.voices.map(
+      (voice) => midiToHz(voice.pitch + this.bend) / this.sampleRate,
+    );
     for (let i = offset; i < offset + length; i++) {
       let mix = 0;
-      for (const voice of this.voices) {
+      for (let index = 0; index < this.voices.length; index++) {
+        const voice = this.voices[index];
         const vibratoCents =
           this.vibratoDepth * Math.sin(2 * Math.PI * voice.vibratoPhase);
         const phaseIncrement =
-          voice.phaseIncrement * 2 ** (vibratoCents / 1200);
+          phaseIncrements[index] * 2 ** (vibratoCents / 1200);
         // Every layer plays at the note's pitch for now, so they share the
         // voice's phase.
         let sample = 0;
