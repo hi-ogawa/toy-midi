@@ -18,7 +18,7 @@
 - [Oversampling](concepts/oversampling.md): why clipping aliases, upsampling and downsampling around it, the windowed-sinc low-pass they share, and the polyphase shortcut.
 - [Band-limited oscillators](concepts/band-limited-oscillators.md): why a sawtooth's jumps alias, why filtering or oversampling doesn't fix it, and how PolyBLEP rounds each jump over two samples.
 - [ADSR envelopes](concepts/adsr-envelopes.md): attack, decay, sustain, and release, early releases, and the one-pole curves that make a stage's time the length you hear.
-- [Notes, voices, and layers](concepts/synth-voices.md): the synth's patch and its sounding notes as a grid of layers and voices, how a sample flows through it, and what patch edits do to notes already sounding.
+- [How the synth plays a patch](concepts/subtractive-synth.md): the synth's patch and its sounding notes as a grid of layers and voices, how a sample flows through it, and what patch edits do to notes already sounding.
 
 ## Bass Pitch
 

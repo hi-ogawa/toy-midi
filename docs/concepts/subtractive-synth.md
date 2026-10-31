@@ -1,4 +1,4 @@
-# Notes, Voices, and Layers
+# How the Synth Plays a Patch
 
 Toy MIDI's own [synth](../../src/lib/dsp/subtractive-synth.ts) has two kinds of things that are easy to mix up. Its patch is a set of settings that every note shares. Its voices are what is sounding right now, one per note. Every word in the synth belongs to one of these two, or to the place where they meet. This document separates them, then follows a sample through both and shows what that means for editing a patch while notes sound.
 
