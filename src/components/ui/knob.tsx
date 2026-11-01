@@ -7,7 +7,7 @@ const SWEEP_DEGREES = 270;
 // level and other knobs beside it.
 const ARC_CLASSES = {
   primary: "stroke-primary",
-  pan: "stroke-violet-400",
+  pan: "stroke-sky-300",
 };
 
 /** A focusable slider drawn as a knob. The caller supplies the label and the input behavior through div props. */
