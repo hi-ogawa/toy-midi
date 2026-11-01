@@ -47,13 +47,15 @@ export interface SynthLayer {
     resonance: number;
     /** Octaves the cutoff moves per octave of the note from C4, note 60 */
     keytrack: number;
-    /** With `amount` in octaves at the envelope's peak */
-    envelope: Envelope & { amount: number };
-    /**
-     * How much the note's velocity scales the envelope's amount, from 0, not
-     * at all, to 1, in proportion
-     */
-    velocity: number;
+    envelope: Envelope & {
+      /** Octaves the cutoff moves at the envelope's peak */
+      amount: number;
+      /**
+       * How much the note's velocity scales `amount`, from 0, not at all, to 1,
+       * in proportion
+       */
+      velocity: number;
+    };
   };
   amp: {
     envelope: Envelope;
@@ -78,8 +80,7 @@ const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
     cutoff: EQ_LIMITS.frequency.max,
     resonance: BUTTERWORTH_Q,
     keytrack: 0,
-    envelope: { ...DEFAULT_ENVELOPE, amount: 0 },
-    velocity: 0,
+    envelope: { ...DEFAULT_ENVELOPE, amount: 0, velocity: 0 },
   },
   amp: { envelope: DEFAULT_ENVELOPE },
 };
@@ -109,9 +110,8 @@ interface ResolvedLayer {
   ampEnvelope: EnvelopeCurves;
 }
 
-type ResolvedFilter = Omit<SynthLayer["filter"], "envelope"> & {
-  amount: number;
-};
+type ResolvedFilter = Omit<SynthLayer["filter"], "envelope"> &
+  Pick<SynthLayer["filter"]["envelope"], "amount" | "velocity">;
 
 const MODULATION_CONTROLLER = 1;
 const VOLUME_CONTROLLER = 7;
@@ -328,6 +328,7 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
               EQ_LIMITS.q.max,
             ),
             amount: envelope.amount,
+            velocity: envelope.velocity,
           },
       filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
       ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
