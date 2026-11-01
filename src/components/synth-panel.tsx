@@ -26,6 +26,7 @@ import { EnvelopeEditor } from "./envelope-editor";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
+import { Tooltip } from "./ui/tooltip";
 import { usePointerDrag } from "./use-pointer-drag";
 import { WaveformIcon } from "./waveform-icon";
 
@@ -482,7 +483,7 @@ function PanKnob({
   });
   const valueText = formatPan(pan);
   return (
-    <div className="flex items-center gap-2">
+    <Tooltip content={valueText}>
       <Knob
         ref={ref}
         aria-label={`${label} pan`}
@@ -508,9 +509,6 @@ function PanKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="w-8 font-mono text-xs text-muted-foreground tabular-nums">
-        {valueText}
-      </span>
-    </div>
+    </Tooltip>
   );
 }
