@@ -227,53 +227,37 @@ $$
 |H(j\Omega)|^2=\frac{1}{1+(\Omega/\omega_c)^2}.
 $$
 
-At $\Omega=\omega_c$, the gain squared is $1/2$, which is −3 dB. Far above $\omega_c$, the gain is about $\omega_c/\Omega$, so each doubling of frequency halves it, which is −6 dB per octave. The gain only falls as $\Omega$ grows, so it never peaks: there's no resonance. The damping low-pass is this filter turned into a recurrence. Over one sample, hold the input at $x[n]$. A first try steps the output by its slope at the start of the sample, which is Euler's method:
+At $\Omega=\omega_c$, the gain squared is $1/2$, which is −3 dB. Far above $\omega_c$, the gain is about $\omega_c/\Omega$, so each doubling of frequency halves it, which is −6 dB per octave. The gain only falls as $\Omega$ grows, so it never peaks: there's no resonance.
 
-$$
-y[n]=y[n-1]+\omega_cT\,\bigl(x[n]-y[n-1]\bigr).
-$$
+The damping low-pass is this filter turned into a recurrence. There are two common ways to turn an $H(s)$ into an $H(z)$. The [bilinear transform](digital-filters/bilinear-transform.md) maps the whole response, and the other way maps only the pole. The damping filter uses the second, because it gives a recurrence with a single multiplication.
 
-The output moves the fraction $\omega_cT$ of the way toward the input each sample. At 6 kHz and 48 kHz, $\omega_cT=\pi/4\approx0.79$. That's much too far, because Euler's method keeps the starting slope for the whole sample. In fact the slope shrinks as the output nears the input, so the output closes in more and more slowly.
-
-With the input held, the equation can be solved exactly instead. Track the gap between the output and the held input, $e=y-x[n]$. The input doesn't change during the sample, so the gap changes exactly as the output does, and the RC equation becomes
-
-$$
-e'=y'=\omega_c\,\bigl(x[n]-y\bigr)=-\omega_c\,e.
-$$
-
-The gap's rate of change is proportional to the gap itself. So the gap closes by the same fraction in any stretch of time, however large it is, which is exponential decay:
-
-$$
-e(t)=e(0)\,e^{-\omega_ct}.
-$$
-
-Over one sample, $t=T$, the gap therefore shrinks by the factor
+The pole of $H(s)$ is where its denominator is zero, at $s=-\omega_c$, and it gives the filter's natural motion, the decay $e^{-\omega_ct}$. [Sampling](digital-filters/transfer-functions.md#the-s-plane-and-z-plane) that motion every $T$ seconds multiplies it each sample by $z=e^{sT}$, so the digital pole is
 
 $$
 p=e^{-\omega_cT}=e^{-2\pi f_c/F_s}.
 $$
 
-The gap starts the sample at $y[n-1]-x[n]$ and ends it at $y[n]-x[n]$, so
+For 6 kHz at 48 kHz, $p\approx0.456$. A one-pole filter with that pole has the transfer function
 
 $$
-y[n]-x[n]=p\,\bigl(y[n-1]-x[n]\bigr),
+H(z)=\frac{b}{1-pz^{-1}}.
 $$
 
-which rearranges to the recurrence in the code:
-
-$$
-y[n]=(1-p)\,x[n]+p\,y[n-1].
-$$
-
-For 6 kHz at 48 kHz, $p\approx0.456$, so each sample the output moves 54% of the way toward the input. Euler's method gives $1-p=0.79$ instead, which is its first-order approximation of $1-e^{-\omega_cT}$. A constant input passes unchanged, since $y=x$ gives $(1-p)x+px=x$. The pole $p$ is also what [sampling](digital-filters/transfer-functions.md#the-s-plane-and-z-plane) the RC filter's decay $e^{-\omega_ct}$ with $z=e^{sT}$ gives, so the recurrence decays exactly as the RC filter does.
-
-Substituting $z^n$ gives the transfer function
+The RC filter passes 0 Hz unchanged, since $H(0)=1$. At 0 Hz, $z=1$, so matching that gain requires $b=1-p$:
 
 $$
 H(z)=\frac{1-p}{1-pz^{-1}}.
 $$
 
-On the unit circle, the denominator's magnitude is
+Undoing the substitution gives the recurrence in the code:
+
+$$
+y[n]=(1-p)\,x[n]+p\,y[n-1].
+$$
+
+Each sample, the output moves the fraction $1-p$ of the way toward the input, 54% here. With no input it decays by $p$ per sample, exactly as the RC filter's output decays over the same time.
+
+For a steady tone, $z=e^{j\omega}$. The denominator's magnitude is then
 
 $$
 |1-pe^{-j\omega}|^2=(1-p\cos\omega)^2+(p\sin\omega)^2=1-2p\cos\omega+p^2,
@@ -285,7 +269,7 @@ $$
 |H(e^{j\omega})|^2=\frac{(1-p)^2}{1-2p\cos\omega+p^2}.
 $$
 
-The derivation assumes the input barely changes within a sample. That holds at low frequencies, so there the two filters agree. Near Nyquist the input changes sign every sample, and the two drift apart. At Nyquist, $z=-1$ gives a gain of $(1-p)/(1+p)\approx0.374$, which is −8.55 dB, where the RC filter has fallen further:
+Sampling the pole keeps the decay but not the whole response. Near 0 Hz, both responses are set mainly by the pole, and the gains were matched at 0 Hz, so the two filters agree. Toward Nyquist they drift apart. The RC filter's frequency runs on without limit, and its gain keeps falling. The digital filter's frequency ends at Nyquist, halfway around the unit circle, so its gain levels off there. At Nyquist, $z=-1$ gives a gain of $(1-p)/(1+p)\approx0.374$, which is −8.55 dB, where the RC filter has fallen further:
 
 | Frequency | One-pole | RC filter |
 | --------- | -------- | --------- |
@@ -294,7 +278,7 @@ The derivation assumes the input barely changes within a sample. That holds at l
 | 8 kHz     | −4.05 dB | −4.44 dB  |
 | 24 kHz    | −8.55 dB | −12.30 dB |
 
-So the one-pole's own −3 dB point is near 6.3 kHz, and its cutoff is the RC filter's. The [bilinear transform](digital-filters/bilinear-transform.md) gives the other common one-pole. Its gain is exactly −3 dB at a prewarped cutoff and falls to zero at Nyquist, at the cost of one more stored sample. Damping only needs the highs to lose more per trip, which both do.
+So the one-pole's own −3 dB point is near 6.3 kHz, and its cutoff is the RC filter's. A one-pole from the bilinear transform would be exactly −3 dB at a prewarped cutoff and fall to zero at Nyquist, at the cost of one more stored sample. Damping only needs the highs to lose more per trip, which both do.
 
 These gains predict the decay times in the main text. A trip around the figure eight loses $60T/T_{60}=24.2$ dB to the decay gains, plus twice the one-pole's loss, once in each half. Falling 60 dB then takes $60T$ divided by the total loss per trip. Scaled by the 9% that the tank's all-passes add at low frequencies, the predictions match the measured table:
 
