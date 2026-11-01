@@ -212,10 +212,22 @@ samples. It's smallest where $\cos\omega D=\operatorname{sign}g$, at $D(1-|g|)/(
 The tank needs the highs to lose more per trip than the lows, and a gentle slope across frequency is enough for that. A steep filter would instead remove everything above its cutoff within a few trips while leaving the rest untouched, so the tail would sound band-limited rather than darkening as it fades. The gentlest low-pass is the RC filter, whose output moves toward its input at a rate set by the cutoff $\omega_c=2\pi f_c$:
 
 $$
-y'=\omega_c\,(x-y),\qquad H(s)=\frac{1}{1+s/\omega_c}.
+y'=\omega_c\,(x-y).
 $$
 
-Its gain is −3 dB at $\omega_c$ and falls 6 dB per octave above it, with no resonance. The damping low-pass is this filter turned into a recurrence. Over one sample, hold the input at $x[n]$. A first try steps the output by its slope at the start of the sample, which is Euler's method:
+Substituting $x=e^{st}$ and $y=H(s)e^{st}$ turns $y'$ into $sy$, so $sH=\omega_c(1-H)$, and
+
+$$
+H(s)=\frac{1}{1+s/\omega_c}.
+$$
+
+For a steady tone, $s=j\Omega$, and
+
+$$
+|H(j\Omega)|^2=\frac{1}{1+(\Omega/\omega_c)^2}.
+$$
+
+At $\Omega=\omega_c$, the gain squared is $1/2$, which is −3 dB. Far above $\omega_c$, the gain is about $\omega_c/\Omega$, so each doubling of frequency halves it, which is −6 dB per octave. The gain only falls as $\Omega$ grows, so it never peaks: there's no resonance. The damping low-pass is this filter turned into a recurrence. Over one sample, hold the input at $x[n]$. A first try steps the output by its slope at the start of the sample, which is Euler's method:
 
 $$
 y[n]=y[n-1]+\omega_cT\,\bigl(x[n]-y[n-1]\bigr).
