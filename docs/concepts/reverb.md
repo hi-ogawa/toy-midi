@@ -233,11 +233,30 @@ $$
 y[n]=y[n-1]+\omega_cT\,\bigl(x[n]-y[n-1]\bigr).
 $$
 
-The output moves the fraction $\omega_cT$ of the way toward the input each sample. That fraction is only accurate while it's small, because the slope shrinks as the output nears the input. At 6 kHz and 48 kHz, $\omega_cT=\pi/4\approx0.79$, so Euler's method moves the output much too far. With the input held, though, the equation can be solved exactly. The gap $y-x$ shrinks by the factor $e^{-\omega_cT}$ over the sample, so
+The output moves the fraction $\omega_cT$ of the way toward the input each sample. At 6 kHz and 48 kHz, $\omega_cT=\pi/4\approx0.79$. That's much too far, because Euler's method keeps the starting slope for the whole sample. In fact the slope shrinks as the output nears the input, so the output closes in more and more slowly.
+
+With the input held, the equation can be solved exactly instead. Track the gap between the output and the held input, $e=y-x[n]$. The input doesn't change during the sample, so the gap changes exactly as the output does, and the RC equation becomes
+
+$$
+e'=y'=\omega_c\,\bigl(x[n]-y\bigr)=-\omega_c\,e.
+$$
+
+The gap's rate of change is proportional to the gap itself. So the gap closes by the same fraction in any stretch of time, however large it is, which is exponential decay:
+
+$$
+e(t)=e(0)\,e^{-\omega_ct}.
+$$
+
+Over one sample, $t=T$, the gap therefore shrinks by the factor
+
+$$
+p=e^{-\omega_cT}=e^{-2\pi f_c/F_s}.
+$$
+
+The gap starts the sample at $y[n-1]-x[n]$ and ends it at $y[n]-x[n]$, so
 
 $$
 y[n]-x[n]=p\,\bigl(y[n-1]-x[n]\bigr),
-\qquad p=e^{-2\pi f_c/F_s},
 $$
 
 which rearranges to the recurrence in the code:
