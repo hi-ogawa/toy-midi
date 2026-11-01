@@ -56,7 +56,7 @@ $$
 
 The first equation is the feedback delay with its gain negated, so a click makes $w$ the alternating train $1,-g,g^2,\dots$ at $0,D,2D,\dots$. The output adds $g$ times the train on time to the train a trip late, so each column of $y[n]$ is $g$ times the $w[n]$ entry plus the $w[n-D]$ entry:
 
-|          | $0$ | $D$     | $2D$        | $3D$         |
+| $n$      | $0$ | $D$     | $2D$        | $3D$         |
 | -------- | --- | ------- | ----------- | ------------ |
 | $w[n]$   | $1$ | $-g$    | $g^2$       | $-g^3$       |
 | $w[n-D]$ | $0$ | $1$     | $-g$        | $g^2$        |
