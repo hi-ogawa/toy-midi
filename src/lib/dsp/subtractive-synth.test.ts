@@ -437,17 +437,20 @@ describe(SubtractiveSynth, () => {
 
   it("filters a layer through a low-pass at its cutoff and resonance", () => {
     // A sine at the cutoff comes out at Q times its level: 3 dB down at the
-    // Butterworth Q, and 12 dB up at Q 4. Each level skips the first 50 ms,
+    // Butterworth Q, and 12 dB up at Q 4. The level skips the first 50 ms,
     // where a resonant filter rings after note-on.
     const measureGainDbAtResonance = (resonance: number) => {
-      const settle = 0.05 * SAMPLE_RATE;
-      const unfiltered = renderSynthPatch({ layers: [createGateLayer()] });
-      const filtered = renderSynthPatch({
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch({
         layers: [createGateLayer({ filter: { cutoff: 440, resonance } })],
       });
+      const samples = renderSynth(synth, {
+        seconds: 0.1,
+        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+      });
+      const unfiltered = PEAK / Math.SQRT2;
       return gainToDb(
-        measureRms(filtered.subarray(settle)) /
-          measureRms(unfiltered.subarray(settle)),
+        measureRms(samples.subarray(0.05 * SAMPLE_RATE)) / unfiltered,
       );
     };
     expect(measureGainDbAtResonance(Math.SQRT1_2)).toBeCloseTo(-3, 1);
@@ -457,8 +460,13 @@ describe(SubtractiveSynth, () => {
   it("moves the cutoff by keytrack and the envelope, with no lag", () => {
     // Each layer lands on a 440 Hz cutoff from its first sample, so it plays
     // the same samples as a layer fixed there.
-    const expected = renderSynthPatch({
+    const reference = new SubtractiveSynth(SAMPLE_RATE);
+    reference.setPatch({
       layers: [createGateLayer({ filter: { cutoff: 440 } })],
+    });
+    const expected = renderSynth(reference, {
+      seconds: 0.1,
+      at: { 0: () => reference.noteOn(A4, FULL_VELOCITY) },
     });
     const sustained = { attack: 0, decay: 0, sustain: 1, release: 0 };
     // A4 is 9 semitones above middle C.
@@ -475,7 +483,12 @@ describe(SubtractiveSynth, () => {
       },
     });
     for (const layer of [keytracked, enveloped]) {
-      const samples = renderSynthPatch({ layers: [layer] });
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch({ layers: [layer] });
+      const samples = renderSynth(synth, {
+        seconds: 0.1,
+        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+      });
       for (let i = 0; i < samples.length; i++) {
         expect(samples[i]).toBeCloseTo(expected[i], 6);
       }
@@ -676,16 +689,6 @@ function createGateLayer({
     filter: { ...layer.filter, ...filter },
     amp: { envelope: { attack: 0, decay: 0, sustain: 1, release: 0 } },
   };
-}
-
-/** Renders 0.1 s of a full-velocity A4 on the patch. */
-function renderSynthPatch(patch: SynthPatch): Float32Array {
-  const synth = new SubtractiveSynth(SAMPLE_RATE);
-  synth.setPatch(patch);
-  return renderSynth(synth, {
-    seconds: 0.1,
-    at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
-  });
 }
 
 function createBuffers(length: number): [Float32Array, Float32Array] {
