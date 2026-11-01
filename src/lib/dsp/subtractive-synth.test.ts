@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encodePitchBend } from "../general-midi";
-import { gainToDb } from "../music";
+import { gainToDb, midiToHz } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
   createSynthLayer,
@@ -14,7 +14,7 @@ import {
 } from "./subtractive-synth";
 
 // A full-velocity note's peak at the default CC7 volume of 100, about 4 dB
-// below the synth's peak gain
+// below the synth's peak gain. A sine at this peak measures -21.1 dB RMS.
 const PEAK = PEAK_GAIN * (100 / 127) ** 2;
 // 440 Hz
 const A4 = 69;
@@ -545,6 +545,220 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
+  it("filters a layer through a low-pass at its cutoff and resonance", () => {
+    // A sine at the cutoff comes out at Q times its level, from PEAK's -21.1 dB:
+    //   Q = √½ (Butterworth): 3 dB down, -24.2 dB
+    //   Q = 4: 12 dB up, -9.1 dB, after ringing for its first 50 ms
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
+      layers: [
+        createGateLayer({ filter: { cutoff: 440, resonance: Math.SQRT1_2 } }),
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.2: () => {
+          synth.noteOff(A4);
+          synth.setPatch({
+            ...DEFAULT_SYNTH_VOICE,
+            layers: [
+              createGateLayer({ filter: { cutoff: 440, resonance: 4 } }),
+            ],
+          });
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -24.2 dB  ████████████████████████████████████
+       50 ms  -24.2 dB  ████████████████████████████████████
+      100 ms  -24.2 dB  ████████████████████████████████████
+      150 ms  -24.2 dB  ████████████████████████████████████
+      200 ms   -9.5 dB  ███████████████████████████████████████████████████
+      250 ms   -9.1 dB  ███████████████████████████████████████████████████
+      300 ms   -9.1 dB  ███████████████████████████████████████████████████
+      350 ms   -9.1 dB  ███████████████████████████████████████████████████
+      "
+    `);
+  });
+
+  it("moves the cutoff with the note by keytrack", () => {
+    // Keytrack 1 moves the cutoff an octave per octave of the note from C4, so
+    // each note sits at its own cutoff, 3 dB down from PEAK's -21.1 dB:
+    //   A4: C4 × 2^(9/12) = 440 Hz, A5: C4 × 2^(21/12) = 880 Hz, both -24.2 dB
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
+      layers: [
+        createGateLayer({ filter: { cutoff: midiToHz(60), keytrack: 1 } }),
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4 + 12, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -24.2 dB  ████████████████████████████████████
+       50 ms  -24.2 dB  ████████████████████████████████████
+      100 ms  -24.2 dB  ████████████████████████████████████
+      150 ms  -24.2 dB  ████████████████████████████████████
+      "
+    `);
+  });
+
+  it("scales the envelope's amount by velocity", () => {
+    // Velocity scales the 2-octave amount, so each note opens the cutoff from
+    // 220 Hz onto itself, where the low-pass is 3 dB down from PEAK's -21.1 dB:
+    //   velocity 64, about half: 220 Hz × 2^1 = 440 Hz = A4, with the level
+    //   halved too, 6 dB more: -30.1 dB
+    //   velocity 127: 220 Hz × 2^2 = 880 Hz = A5: -24.2 dB
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
+      layers: [
+        createGateLayer({
+          filter: {
+            cutoff: 220,
+            envelope: {
+              attack: 0,
+              decay: 0,
+              sustain: 1,
+              release: 0,
+              amount: 2,
+              velocity: 1,
+            },
+          },
+        }),
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, 64),
+        0.1: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4 + 12, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -30.1 dB  ██████████████████████████████
+       50 ms  -30.1 dB  ██████████████████████████████
+      100 ms  -24.2 dB  ████████████████████████████████████
+      150 ms  -24.2 dB  ████████████████████████████████████
+      "
+    `);
+  });
+
+  it("closes the filter on a sounding note with its envelope", () => {
+    // The envelope sweeps the cutoff down over the 0.1 s decay:
+    //   110 × 2^4 = 1760 Hz → 110 Hz (A2)
+    // A4 = 440 Hz = 110 × 2^2 ends 2 octaves above the cutoff, where a 2-pole
+    // low-pass falls as (cutoff / f)^2, 12 dB per octave: 24 dB down.
+    // Unfiltered, the note is -21.1 dB, so the rows settle at -45.2 dB.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
+      layers: [
+        createGateLayer({
+          filter: {
+            cutoff: 110,
+            envelope: {
+              attack: 0,
+              decay: 0.1,
+              sustain: 0,
+              release: 0,
+              amount: 4,
+              velocity: 0,
+            },
+          },
+        }),
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -28.6 dB  ███████████████████████████████
+       50 ms  -45.1 dB  ███████████████
+      100 ms  -45.2 dB  ███████████████
+      150 ms  -45.2 dB  ███████████████
+      "
+    `);
+  });
+
+  it("moves the cutoff with CC74 and the resonance with CC71", () => {
+    // At 96, halfway from 64 to 128, CC74 opens the cutoff 2 octaves and CC71
+    // raises Q by 6.25 dB, from PEAK's -21.1 dB:
+    //   CC74: 110 Hz × 2^2 = 440 Hz = A4, where Q 1 passes it at 0 dB: -21.1 dB
+    //   CC71 at 0.2 s: Q 1 → +6.25 dB: -14.9 dB
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
+      layers: [createGateLayer({ filter: { cutoff: 110, resonance: 1 } })],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => {
+          synth.controller(74, 96);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+        0.2: () => synth.controller(71, 96),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -21.2 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -21.1 dB  ███████████████████████████████████████
+      150 ms  -21.1 dB  ███████████████████████████████████████
+      200 ms  -15.0 dB  █████████████████████████████████████████████
+      250 ms  -14.9 dB  █████████████████████████████████████████████
+      300 ms  -14.9 dB  █████████████████████████████████████████████
+      350 ms  -14.9 dB  █████████████████████████████████████████████
+      "
+    `);
+  });
+
+  it("closes an open layer's filter with CC74 on a sounding note", () => {
+    // An open layer skips its filter until CC74 drops below 64. At 0, CC74
+    // lowers the 20 kHz cutoff 4 octaves, to 1250 Hz, from PEAK's -21.1 dB:
+    //   A6 = 1760 Hz ≈ 1250 Hz × √2, where a Butterworth low-pass has
+    //   |H|² = 1 / (1 + √2^4) = 1/5, 7 dB down: -28.1 dB
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({ ...DEFAULT_SYNTH_VOICE, layers: [createGateLayer()] });
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4 + 24, FULL_VELOCITY),
+        0.1: () => synth.controller(74, 0),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -21.1 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -28.1 dB  ████████████████████████████████
+      150 ms  -28.1 dB  ████████████████████████████████
+      "
+    `);
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createPatch(["sine"]));
@@ -658,10 +872,17 @@ function createPatch(waveforms: Waveform[]): SynthPatch {
   };
 }
 
-/** A layer that starts and stops instantly, so its level holds from the first sample */
-function createGateLayer(): SynthLayer {
+/**
+ * A layer that starts and stops instantly, so its level holds from the first
+ * sample, with its filter open apart from the given fields
+ */
+function createGateLayer({
+  filter,
+}: { filter?: Partial<SynthLayer["filter"]> } = {}): SynthLayer {
+  const layer = createSynthLayer();
   return {
-    ...createSynthLayer(),
+    ...layer,
+    filter: { ...layer.filter, ...filter },
     amp: { envelope: { attack: 0, decay: 0, sustain: 1, release: 0 } },
   };
 }

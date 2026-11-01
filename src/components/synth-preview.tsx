@@ -12,12 +12,26 @@ function createInitialPatch(): SynthPatch {
   const detunedSaw = createSynthLayer();
   const sub = createSynthLayer();
   const envelope = { attack: 0.01, decay: 0.4, sustain: 0.6, release: 0.2 };
+  const filter = {
+    cutoff: 400,
+    resonance: 4,
+    keytrack: 0.5,
+    envelope: {
+      attack: 0.005,
+      decay: 0.3,
+      sustain: 0.2,
+      release: 0.2,
+      amount: 4,
+      velocity: 1,
+    },
+  };
   return {
     ...DEFAULT_SYNTH_VOICE,
     layers: [
       {
         ...saw,
         oscillator: { ...saw.oscillator, waveform: "sawtooth" },
+        filter,
         amp: { envelope },
       },
       {
@@ -27,6 +41,7 @@ function createInitialPatch(): SynthPatch {
           waveform: "sawtooth",
           detune: 7,
         },
+        filter,
         amp: { envelope },
       },
       {
