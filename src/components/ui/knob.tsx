@@ -3,8 +3,6 @@ import { cn } from "./utils";
 
 const SWEEP_DEGREES = 270;
 
-// Literal class names, so Tailwind finds them. Pan has its own color wherever
-// it appears, so a pan knob reads apart from a level knob beside it.
 const ARC_CLASSES = {
   primary: "stroke-primary",
   amber: "stroke-amber-500",
