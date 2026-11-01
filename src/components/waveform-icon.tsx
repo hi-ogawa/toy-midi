@@ -5,6 +5,7 @@ const WAVEFORM_PATHS: Record<Waveform, string> = {
   triangle: "M1 6 L6 1 L17 11 L23 6",
   sawtooth: "M1 11 L12 1 L12 11 L23 1 L23 11",
   square: "M1 11 L1 1 L12 1 L12 11 L23 11 L23 1",
+  noise: "M1 6 L3 2 L5 9 L7 4 L9 11 L11 3 L13 8 L15 1 L17 10 L19 5 L21 9 L23 6",
 };
 
 export function WaveformIcon({
