@@ -44,7 +44,7 @@ $$
 
 and setting $g$ sets the decay time.
 
-The problem with one loop is that its response has only one echo per trip, at multiples of $D$, while a room's echoes keep multiplying. A long $D$ therefore sounds like a flutter of repeats, and a short $D$ makes the loop ring at the frequencies whose period divides $D$, which sounds metallic. The [appendix](#appendix-feedback-delays-as-transfer-functions) finds those frequencies from the loop's transfer function. One loop has the decay but none of the density.
+The problem with one loop is that its response has only one echo per trip, at multiples of $D$, while a room's echoes keep multiplying. A long $D$ therefore sounds like a flutter of repeats, and a short $D$ makes the loop ring at the frequencies whose period divides $D$, which sounds metallic. The [appendix](#the-feedback-delay) finds those frequencies from the loop's transfer function. One loop has the decay but none of the density.
 
 ## Thicken the Echoes with All-Passes
 
@@ -74,7 +74,7 @@ $$
 g^2+\sum_{k\ge1}g^{2(k-1)}(1-g^2)^2=g^2+\frac{(1-g^2)^2}{1-g^2}=1,
 $$
 
-so the click comes out with exactly the energy it went in with, only spread over time. The [appendix](#appendix-feedback-delays-as-transfer-functions) shows the stronger fact that the all-pass passes every frequency at the same level. The figure compares it with a feedback delay of the same delay and gain:
+so the click comes out with exactly the energy it went in with, only spread over time. The [appendix](#schroeders-all-pass) shows the stronger fact that the all-pass passes every frequency at the same level. The figure compares it with a feedback delay of the same delay and gain:
 
 ![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
 
@@ -110,7 +110,7 @@ The tank's delays differ from each other and share no common factor, so the loop
 
 ### Set the Decay Time
 
-The trip time counts the tank's all-passes too. An all-pass passes every frequency at the same level, but it doesn't delay every frequency equally. Averaged across frequency, it delays a sound by its length $D$, and at single frequencies anywhere from $D(1-|g|)/(1+|g|)$ to $D(1+|g|)/(1-|g|)$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. For $g=0.5$, that's from a third of $D$ to three times $D$.
+The trip time counts the tank's all-passes too. An all-pass passes every frequency at the same level, but it doesn't delay every frequency equally. Averaged across frequency, it delays a sound by its length $D$, and at single frequencies anywhere from $D(1-|g|)/(1+|g|)$ to $D(1+|g|)/(1-|g|)$, as the [appendix](#schroeders-all-pass) derives. For $g=0.5$, that's from a third of $D$ to three times $D$.
 
 A trip around the figure eight passes the four decay gains marked ×g in the signal flow, two in each half, so it lowers the level by $-80\log_{10}g$ dB in $T\approx0.73$ s, counting each all-pass by its average delay. Like the single loop above, the decay time is then
 
@@ -126,7 +126,7 @@ Measured from the impulse response, the low frequencies take about 1.97 s to fal
 
 ### Damp the Highs
 
-The damping low-pass in each half is a one-pole filter with its cutoff at 6 kHz, which the appendix derives. It barely touches low frequencies, but at 8 kHz it takes away about 4 dB on each half, so 8 dB on each trip around the figure eight, on top of the gains. Highs therefore lose more per trip and fade faster, as they do in a hall, and the tail grows darker as it decays:
+The damping low-pass in each half is a one-pole filter with its cutoff at 6 kHz, which the [appendix](#the-damping-low-pass) derives. It barely touches low frequencies, but at 8 kHz it takes away about 4 dB on each half, so 8 dB on each trip around the figure eight, on top of the gains. Highs therefore lose more per trip and fade faster, as they do in a hall, and the tail grows darker as it decays:
 
 ![The energy still to come after each moment of the response, by octave band, as straight lines in dB. 250 Hz and 1 kHz fall 60 dB in about 1.96 s, 4 kHz in 1.74 s, and 8 kHz in 1.50 s](images/reverb-decay-bands.svg)
 
@@ -161,13 +161,15 @@ The other place for an effect is an **insert**, in the track's own chain, as an 
 - J. O. Smith, [Artificial Reverberation](https://ccrma.stanford.edu/~jos/pasp/Artificial_Reverberation.html), in _Physical Audio Signal Processing_, the all-pass, the feedback delay, and the networks built from them
 - [Reverb landscape](https://gist.github.com/hi-ogawa-agent/a1f910fea4abb6aa032196b991d3a864), what reverb is, its algorithms, and how mixes use it, which led to choosing this plate
 
-## Appendix: Feedback Delays as Transfer Functions
+## Appendix: The Plate's Filters as Transfer Functions
 
 > 🚧 TODO: not yet internalized by the author.
 
-The main text describes the feedback delay and the all-pass by their echoes. Their behavior across frequency comes from the method of [Waves, Feedback, and Transfer Functions](digital-filters/transfer-functions.md#generalize-the-weights-and-add-feedback). Substitute $x[n]=z^n$ and $y[n]=H(z)z^n$, so a delay of $D$ samples multiplies by $z^{-D}$, and evaluate on the unit circle $z=e^{j\omega}$ for a steady tone.
+The main text describes the feedback delay and the all-pass by their echoes, and the damping low-pass by its gain. Their behavior across frequency comes from the method of [Waves, Feedback, and Transfer Functions](digital-filters/transfer-functions.md#generalize-the-weights-and-add-feedback). Substitute $x[n]=z^n$ and $y[n]=H(z)z^n$, so a delay of $D$ samples multiplies by $z^{-D}$, and evaluate on the unit circle $z=e^{j\omega}$ for a steady tone.
 
-**The feedback delay.** Substituting into $y[n]=x[n]+g \cdot y[n-D]$ gives $H=1+gz^{-D}H$, so
+### The Feedback Delay
+
+Substituting into $y[n]=x[n]+g \cdot y[n-D]$ gives $H=1+gz^{-D}H$, so
 
 $$
 H(z)=\frac{1}{1-gz^{-D}}.
@@ -181,7 +183,9 @@ $$
 
 Every pole has the same radius $g^{1/D}$, so every mode loses the same factor $g$ over $D$ samples, which is the per-trip loss of the main text. The angles $2\pi k/D$ are the frequencies $kF_s/D$, which is where the loop rings. For the two walls of the main text, they're $kc/(2L)$, the frequencies whose half-wavelength fits a whole number of times between the walls, which are the standing waves of that space. On the unit circle the gain is $1/|1-ge^{-j\omega D}|$. It's largest, $1/(1-g)$, where $e^{-j\omega D}=1$, at those same frequencies, and smallest, $1/(1+g)$, halfway between them. For $g=0.7$ that's +10.5 dB and −4.6 dB, and with $D$ at 5 ms the peaks repeat every 200 Hz, as in the figure. Peaks spaced evenly across the spectrum, like a comb's teeth, are why this filter is usually called a **feedback comb filter**.
 
-**Schroeder's all-pass.** Substituting into $w[n]=x[n]-g \cdot w[n-D]$ gives $W=X/(1+gz^{-D})$, and then $y[n]=g \cdot w[n]+w[n-D]$ gives
+### Schroeder's All-Pass
+
+Substituting into $w[n]=x[n]-g \cdot w[n-D]$ gives $W=X/(1+gz^{-D})$, and then $y[n]=g \cdot w[n]+w[n-D]$ gives
 
 $$
 H(z)=\frac{g+z^{-D}}{1+gz^{-D}}.
@@ -195,7 +199,7 @@ $$
 
 at $0, D, 2D, 3D,\dots$ samples.
 
-**The all-pass's uneven delay.** A sound at frequency $\omega$ is delayed by the slope of the phase, $-d\arg H/d\omega$. For $H$ above, that's
+**Its uneven delay.** A sound at frequency $\omega$ is delayed by the slope of the phase, $-d\arg H/d\omega$. For $H$ above, that's
 
 $$
 \tau(\omega)=\frac{D(1-g^2)}{1+2g\cos\omega D+g^2}
@@ -203,7 +207,9 @@ $$
 
 samples. It's smallest where $\cos\omega D=\operatorname{sign}g$, at $D(1-|g|)/(1+|g|)$, and largest where $\cos\omega D=-\operatorname{sign}g$, at $D(1+|g|)/(1-|g|)$. Its average over all frequencies is exactly $D$, because as $\omega$ goes once around the circle, the numerator $g+z^{-D}$ winds $D$ times around 0 and the denominator not at all, so the phase falls by $2\pi D$ in all.
 
-**The damping low-pass.** It copies the simplest analog low-pass, an RC filter, whose output moves toward its input at a rate set by the cutoff $\omega_c=2\pi f_c$:
+### The Damping Low-Pass
+
+The damping low-pass copies the simplest analog low-pass, an RC filter, whose output moves toward its input at a rate set by the cutoff $\omega_c=2\pi f_c$:
 
 $$
 y'=\omega_c\,(x-y),\qquad H(s)=\frac{1}{1+s/\omega_c}.
