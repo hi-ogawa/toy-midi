@@ -78,9 +78,11 @@ so the click comes out with exactly the energy it went in with, only spread over
 
 ![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
 
-Chaining all-passes multiplies their echoes, since each echo of the first becomes a whole train in the second, so a few short all-passes turn one click into a dense burst. Reverb designs call this **diffusion**. The plate's four input diffusers, below, take a click from 17 echoes after the first all-pass to more than a thousand after the fourth:
+Chaining all-passes with different delays multiplies their echoes. Each echo of the first all-pass enters the second and becomes a train of its own, spaced by the second delay. So after two all-passes, echoes arrive at every time $k_1D_1+k_2D_2$, not only at multiples of one delay. When the delays share no common factor, these times don't coincide, so each all-pass in the chain multiplies the number of echoes. Chaining all-passes with the same $D$ doesn't help, because every echo still lands on a multiple of $D$.
 
-![A click through the plate's input diffusers. After one all-pass it's a single train of echoes, after two the trains interleave, and after four the echoes have merged into a dense burst within about 30 ms](images/reverb-diffusers.svg)
+The figure chains four all-passes of 4.8, 3.6, 12.7, and 9.3 ms:
+
+![A click through four chained all-passes. After one all-pass it's a single train of echoes, after two the trains interleave, and after four the echoes have merged into a dense burst within about 30 ms](images/reverb-diffusers.svg)
 
 An all-pass delays a sound by $D$ samples on average across frequency, but not equally at every frequency. Its delay swings between $D(1-|g|)/(1+|g|)$ and $D(1+|g|)/(1-|g|)$, which for $g=0.5$ is from a third of $D$ to three times $D$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. Inside a loop, that makes some frequencies take longer to go around, which [Set the Decay Time](#set-the-decay-time) has to account for.
 
@@ -102,7 +104,7 @@ The **pre-delay** holds the whole response back, here by 20 ms. In a hall, it's 
 
 ### Diffuse Before the Tank
 
-Four all-passes, 3.6 to 12.7 ms long, scatter the click into a burst of echoes before it reaches the loop. Without them, a sharp attack would circle the loop as one recognizable click and come back each time as a distinct repeat. With them, what the loop receives is already noise-like, and the first separate echoes in the figure are that burst reaching the outputs, already thickening.
+The plate starts with the four all-passes of the figure above, which the paper calls its **input diffusers**. They scatter the click into a burst of echoes before it reaches the loop. Without them, a sharp attack would circle the loop as one recognizable click and come back each time as a distinct repeat. With them, what the loop receives is already noise-like, and the first separate echoes in the figure are that burst reaching the outputs, already thickening.
 
 ### Circulate in a Figure Eight
 
