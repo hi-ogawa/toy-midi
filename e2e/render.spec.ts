@@ -119,3 +119,40 @@ test("renders a track's amp", async ({ page }) => {
     measureRmsDb(dry, range) + 6,
   );
 });
+
+test("renders a track's reverb send", async ({ page }) => {
+  // Render one short piano note without a send, with one, and with one on a
+  // muted track.
+  const createProject = ({
+    reverbSend,
+    muted,
+  }: {
+    reverbSend?: number;
+    muted?: boolean;
+  }): SharedProject => ({
+    title: "Reverb",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    midiTracks: [
+      {
+        name: "Piano",
+        program: 0,
+        notes: [{ pitch: 72, start: 0, duration: 0.25, velocity: 100 }],
+        reverbSend,
+        muted,
+      },
+    ],
+  });
+  const dry = await renderProject(page, createProject({}));
+  const wet = await renderProject(page, createProject({ reverbSend: 1 }));
+  const muted = await renderProject(
+    page,
+    createProject({ reverbSend: 1, muted: true }),
+  );
+
+  // Check the send leaves a tail after the dry note has died away, and a
+  // muted track sends nothing.
+  const tail = { start: 1, end: 1.5 };
+  expect(measureRmsDb(wet, tail)).toBeGreaterThan(measureRmsDb(dry, tail) + 20);
+  expect(measureRmsDb(muted, { start: 0, end: 2 })).toBe(-Infinity);
+});
