@@ -5,7 +5,7 @@ import {
   PlusIcon,
   XIcon,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import { BUTTERWORTH_Q, EQ_LIMITS } from "../lib/dsp/biquad-eq";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
@@ -374,6 +374,7 @@ function FilterControls({
     <div className="space-y-2">
       <div className="grid grid-cols-3 gap-2">
         <ParameterKnob
+          color="amber"
           label="Cutoff"
           value={filter.cutoff}
           scale={createLogScale(EQ_LIMITS.frequency)}
@@ -381,6 +382,7 @@ function FilterControls({
           onChange={(cutoff) => onChange({ cutoff: Math.round(cutoff) })}
         />
         <ParameterKnob
+          color="amber"
           label="Resonance"
           shortLabel="Reso"
           value={filter.resonance}
@@ -392,6 +394,7 @@ function FilterControls({
           }
         />
         <ParameterKnob
+          color="amber"
           label="Keytrack"
           shortLabel="Key"
           value={filter.keytrack}
@@ -404,6 +407,7 @@ function FilterControls({
       </div>
       <div className="grid grid-cols-3 gap-2">
         <ParameterKnob
+          color="amber"
           label="Envelope amount"
           shortLabel="Amount"
           value={envelope.amount}
@@ -422,6 +426,7 @@ function FilterControls({
           }
         />
         <ParameterKnob
+          color="amber"
           label="Velocity to envelope amount"
           shortLabel="Velocity"
           value={envelope.velocity}
@@ -490,6 +495,7 @@ function ParameterKnob({
   value,
   scale,
   origin,
+  color,
   format,
   onChange,
 }: {
@@ -498,6 +504,7 @@ function ParameterKnob({
   value: number;
   scale: KnobScale;
   origin?: number;
+  color: ComponentProps<typeof Knob>["color"];
   format: (value: number) => string;
   onChange: (value: number) => void;
 }) {
@@ -534,6 +541,7 @@ function ParameterKnob({
             setPosition(next);
           }
         }}
+        color={color}
         value={position}
         min={0}
         max={1}
