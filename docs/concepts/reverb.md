@@ -62,7 +62,7 @@ The first equation is the feedback delay with its gain negated, so a click makes
 | $w[n-D]$ | $0$ | $1$     | $-g$        | $g^2$        |
 | $y[n]$   | $g$ | $1-g^2$ | $-g(1-g^2)$ | $g^2(1-g^2)$ |
 
-At $0$, only the on-time train contributes, so $g$ goes straight through. After that, each $w[n]$ entry is $-g$ times the $w[n-D]$ entry below it, so the on-time train subtracts $g^2$ of every late echo, and the $k$-th echo is
+Along the bottom row, the output is $g$ at once and then the feedback train shaved by the same factor $1-g^2$:
 
 $$
 y[kD]=(-g)^{k-1}(1-g^2),\qquad k\ge1.
