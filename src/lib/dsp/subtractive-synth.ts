@@ -104,8 +104,7 @@ interface ResolvedLayer {
   /** The layer's gain on each channel, with its pan */
   leftGain: number;
   rightGain: number;
-  /** Undefined when the filter stays fully open, so the layer skips it */
-  filter?: ResolvedFilter;
+  filter: ResolvedFilter;
   filterEnvelope: EnvelopeCurves;
   ampEnvelope: EnvelopeCurves;
 }
@@ -260,7 +259,7 @@ export class SubtractiveSynth implements SynthEngine {
               layer.filterEnvelope,
             );
             let sample = layer.oscillate(state.phase, phaseIncrement);
-            if (layer.filter) {
+            if (!isFilterOpen(layer.filter)) {
               const cutoff = clamp(
                 computeCutoff(layer.filter, voice, filterLevel),
                 EQ_LIMITS.frequency.min,
@@ -318,18 +317,12 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
         2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
       leftGain: layer.gain * pan.left,
       rightGain: layer.gain * pan.right,
-      filter: isFilterOpen(layer.filter)
-        ? undefined
-        : {
-            ...filter,
-            resonance: clamp(
-              filter.resonance,
-              EQ_LIMITS.q.min,
-              EQ_LIMITS.q.max,
-            ),
-            amount: envelope.amount,
-            velocity: envelope.velocity,
-          },
+      filter: {
+        ...filter,
+        resonance: clamp(filter.resonance, EQ_LIMITS.q.min, EQ_LIMITS.q.max),
+        amount: envelope.amount,
+        velocity: envelope.velocity,
+      },
       filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
       ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
     };
@@ -341,11 +334,11 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
  * the filter then keeps a layer exactly as it sounded before filters existed,
  * and only drops a resonant peak at 20 kHz.
  */
-function isFilterOpen(filter: SynthLayer["filter"]): boolean {
+function isFilterOpen(filter: ResolvedFilter): boolean {
   return (
     filter.cutoff >= EQ_LIMITS.frequency.max &&
     filter.keytrack === 0 &&
-    filter.envelope.amount === 0
+    filter.amount === 0
   );
 }
 
