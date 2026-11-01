@@ -1,11 +1,5 @@
 import type { ReactNode } from "react";
 
-/**
- * Shows `content` below `children` while they're hovered or focused. A knob
- * keeps focus through a drag, so its tooltip follows the value as it changes.
- * The tooltip is visual only, so `children` carry the accessible text, such as
- * a slider's `aria-valuetext`.
- */
 export function Tooltip({
   content,
   children,
