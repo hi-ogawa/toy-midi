@@ -496,16 +496,17 @@ describe(SubtractiveSynth, () => {
   });
 
   it("scales the envelope's amount by velocity", () => {
-    // At velocity 64, a fully velocity-scaled 2-octave amount opens the cutoff
-    // 2 × 64 / 127 octaves, from 440 / 2^(2 × 64 / 127) onto A4 = 440 Hz, where
-    // the low-pass is 3 dB down. Velocity 64 about halves the level, 6 dB down,
-    // so the rows read -21.1 - 6 - 3 = -30.1 dB.
+    // Velocity 64 is about half of 127, so it scales the 2-octave amount to about
+    // 1 octave, opening the cutoff onto A4:
+    //   220 Hz × 2^1 = 440 Hz = A4, where the low-pass is 3 dB down
+    // Velocity 64 also halves the level, 6 dB down, so the rows read
+    // -21.1 - 6 - 3 = -30.1 dB.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
       layers: [
         createGateLayer({
           filter: {
-            cutoff: 440 / 2 ** ((2 * 64) / 127),
+            cutoff: 220,
             envelope: {
               attack: 0,
               decay: 0,
