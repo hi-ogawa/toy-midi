@@ -48,7 +48,7 @@ The problem with one loop is that its response has only one echo per trip, at mu
 
 ## Thicken the Echoes with All-Passes
 
-What's needed is a block that spreads a click into echoes without the loop's ringing, passing every frequency at the same gain. A filter with that property is called an **all-pass**, and adding a feedforward path to the feedback delay makes the one reverbs use, Schroeder's all-pass:
+What's needed is a block that spreads a click into echoes without the loop's ringing, passing every frequency at the same gain. A filter with that property is called an **all-pass**, and adding a feedforward path to the feedback delay makes the one reverbs use, Schroeder's all-pass, which reverb designs and this document call simply the all-pass:
 
 $$
 w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=g \cdot w[n]+w[n-D].
@@ -78,7 +78,7 @@ so the click comes out with exactly the energy it went in with, only spread over
 
 ![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
 
-From here on, "all-pass" means Schroeder's, as it does in reverb designs. Chaining all-passes multiplies their echoes, since each echo of the first becomes a whole train in the second, so a few short all-passes turn one click into a dense burst. Reverb designs call this **diffusion**. The plate's four input diffusers, below, take a click from 17 echoes after the first all-pass to more than a thousand after the fourth:
+Chaining all-passes multiplies their echoes, since each echo of the first becomes a whole train in the second, so a few short all-passes turn one click into a dense burst. Reverb designs call this **diffusion**. The plate's four input diffusers, below, take a click from 17 echoes after the first all-pass to more than a thousand after the fourth:
 
 ![A click through the plate's input diffusers. After one all-pass it's a single train of echoes, after two the trains interleave, and after four the echoes have merged into a dense burst within about 30 ms](images/reverb-diffusers.svg)
 
