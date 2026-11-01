@@ -86,15 +86,11 @@ The figure chains four all-passes of 4.8, 3.6, 12.7, and 9.3 ms:
 
 ## Follow a Click Through the Plate
 
-Dattorro's design imitates a plate reverb, a large steel sheet that a driver sets vibrating and pickups listen to. It uses all-passes before and inside a loop. The all-passes make the echoes dense, and the loop's gains make them fade at a set rate. A click passes through it in this order:
+Dattorro's design imitates a plate reverb, a large steel sheet that a driver sets vibrating and pickups listen to. It uses all-passes before and inside a loop. The all-passes make the echoes dense, and the loop's gains make them fade at a set rate. Each stage of the signal flow has its own section below, with the paper's name for it:
 
-$$
-\text{pre-delay} \rightarrow \text{4 all-passes} \rightarrow \text{loop} \rightarrow \text{stereo outputs}.
-$$
+![The plate's signal flow. The input passes through a 20 ms pre-delay and four all-passes of 4.8, 3.6, 12.7, and 9.3 ms, then enters both halves of a loop. Each half runs through an all-pass, a delay, a 6 kHz low-pass, a decay gain, a second all-pass, a second delay, and a second decay gain, and then feeds the other half. Dots on the delays and second all-passes mark the taps for the left and right outputs](images/reverb-plate-flow.svg)
 
-Each stage has its own section below, with the paper's name for it.
-
-The paper gives every length in samples at 29,761 Hz. They're really durations, so they're rescaled to keep their length in seconds at the actual sample rate.
+The paper gives every length in samples at 29,761 Hz. They're really durations, so they're rescaled to keep their length in seconds at the actual sample rate, which is how the figure shows them.
 
 ![The plate's response to a click over the first 150 ms. Nothing comes out during the 20 ms pre-delay, then a few separate echoes arrive, which thicken into dense noise by about 60 ms, differently in the left and right outputs](images/reverb-impulse-onset.svg)
 
@@ -104,11 +100,11 @@ The **pre-delay** holds the whole response back, here by 20 ms. In a hall, it's 
 
 ### Diffuse Before the Tank
 
-The plate starts with the four all-passes of the figure above, which the paper calls its **input diffusers**. They scatter the click into a burst of echoes before it reaches the loop. Without them, a sharp attack would enter the loop as one click, and its first trips would come back as distinct repeats. With them, what the loop receives is already noise-like, and the first separate echoes in the plate's response above are that burst reaching the outputs, already thickening.
+The plate starts with four all-passes, the chain from [Thicken the Echoes with All-Passes](#thicken-the-echoes-with-all-passes), which the paper calls its **input diffusers**. They scatter the click into a burst of echoes before it reaches the loop. Without them, a sharp attack would enter the loop as one click, and its first trips would come back as distinct repeats. With them, what the loop receives is already noise-like, and the first separate echoes in the plate's response above are that burst reaching the outputs, already thickening.
 
 ### Circulate in a Figure Eight
 
-The loop, which the paper calls the **tank**, has two halves. Each half runs the sound through an all-pass, a long delay, a damping low-pass, a gain, a second all-pass, a second delay, and another gain, and then feeds it into the other half, so the sound traces a figure eight through both. The input enters both halves at once. A full trip around the figure eight takes about 0.73 s, and every trip passes through four more all-passes, so the echoes keep multiplying as the response goes on, much as a room's reflections do.
+The loop, which the paper calls the **tank**, has two halves. Each half feeds the other, so the sound traces a figure eight through both, and the input enters both halves at once. A full trip around the figure eight takes about 0.73 s and passes through four more all-passes, so the echoes keep multiplying as the response goes on, much as a room's reflections do.
 
 The tank's delays differ from each other and share no common factor, so the loop's echoes don't line up into a repeating pattern. The paper also slowly varies two of the tank's all-pass lengths to break up its resonances further. Our implementation leaves that modulation out.
 
@@ -116,7 +112,7 @@ The tank's delays differ from each other and share no common factor, so the loop
 
 The trip time counts the tank's all-passes too. An all-pass passes every frequency at the same level, but it doesn't delay every frequency equally. Averaged across frequency, it delays a sound by its length $D$, and at single frequencies anywhere from $D(1-|g|)/(1+|g|)$ to $D(1+|g|)/(1-|g|)$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. For $g=0.5$, that's from a third of $D$ to three times $D$.
 
-A trip around the figure eight passes four gains, two in each half, so it lowers the level by $-80\log_{10}g$ dB in $T\approx0.73$ s, counting each all-pass by its average delay. Like the single loop above, the decay time is then
+A trip around the figure eight passes the four decay gains marked ×g in the signal flow, two in each half, so it lowers the level by $-80\log_{10}g$ dB in $T\approx0.73$ s, counting each all-pass by its average delay. Like the single loop above, the decay time is then
 
 $$
 T_{60}=\frac{60}{-80\log_{10}g} \cdot T,
@@ -145,7 +141,7 @@ Each band still loses the same dB on every trip, so the dense response decays ex
 
 ### Tap Stereo Outputs from the Tank
 
-The plate takes one input and makes two outputs, left and right. Each output adds up seven **taps**, points partway along the tank's delays where the circulating sound is read off, from both halves and with alternating signs. The two outputs use different taps. They read the same circulating sound, so they decay alike, but at any moment they sum different echoes.
+The plate takes one input and makes two outputs, left and right. Each output adds up seven **taps**, points partway along the tank's delays where the circulating sound is read off, from both halves and with alternating signs. The two outputs use different taps, which the signal flow marks as dots. They read the same circulating sound, so they decay alike, but at any moment they sum different echoes.
 
 How alike two waveforms are is measured by their **correlation**, which is 1 for identical waveforms and 0 for unrelated ones. Identical left and right channels are heard as one point between the speakers, and unrelated ones as sound surrounding the listener. Measured on the impulse response from 50 ms on, the plate's outputs have a correlation of about 0, so its reverb surrounds the listener, as a room's late reverberation does.
 
