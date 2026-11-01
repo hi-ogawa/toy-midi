@@ -44,7 +44,7 @@ $$
 
 and setting $g$ sets the decay time.
 
-The trouble is everything else. The echoes are $D$ apart and never get denser, so a long $D$ sounds like a flutter of repeats, and a short $D$ makes the loop ring at the frequencies whose period divides $D$, which sounds metallic. The [appendix](#appendix-feedback-delays-as-transfer-functions) finds those frequencies from the loop's transfer function. One loop has the decay but none of the density.
+The problem with one loop is that its response has only one echo per trip, at multiples of $D$, while a room's echoes keep multiplying. A long $D$ therefore sounds like a flutter of repeats, and a short $D$ makes the loop ring at the frequencies whose period divides $D$, which sounds metallic. The [appendix](#appendix-feedback-delays-as-transfer-functions) finds those frequencies from the loop's transfer function. One loop has the decay but none of the density.
 
 ## Thicken the Echoes with All-Passes
 
