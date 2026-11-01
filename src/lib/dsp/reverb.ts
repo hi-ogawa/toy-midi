@@ -2,8 +2,9 @@
  * Dattorro's plate reverb: a pre-delay, four input diffusers, and a
  * figure-eight tank of two delay loops whose taps make a synthetic stereo
  * output, after J. Dattorro, "Effect Design, Part 1: Reverberator and Other
- * Filters", J. Audio Eng. Soc., 1997, Fig. 1 and Tables 1 and 2. The paper's
- * delay modulation is left out, and so is its input low-pass, which its
+ * Filters", J. Audio Eng. Soc., 1997, Fig. 1 and Tables 1 and 2. Its lengths,
+ * given in samples at 29,761 Hz, appear here as durations in milliseconds. The
+ * paper's delay modulation is left out, and so is its input low-pass, which its
  * default setting leaves inaudible.
  *
  * See [Reverb](../../../docs/concepts/reverb.md) for why a delay network
@@ -31,8 +32,6 @@ export const REVERB_PARAMETERS: ReverbParameters = {
   dampingFrequency: 6000,
 };
 
-// Lengths are in milliseconds. The paper gives them in samples at 29,761 Hz,
-// and these are their durations.
 const INPUT_DIFFUSERS = [
   { length: 4.8, gain: 0.75 },
   { length: 3.6, gain: 0.75 },
