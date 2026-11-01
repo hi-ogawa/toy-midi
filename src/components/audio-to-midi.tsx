@@ -14,6 +14,7 @@ import type {
   EditorRuntime,
   EditorRuntimeState,
 } from "../lib/runtime";
+import { addToSet, deleteFromSet } from "../utils/set";
 import { Panel } from "./panel";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
@@ -26,22 +27,11 @@ export function useAudioToMidiUi() {
   >(new Set());
 
   function openTranscription(id: string) {
-    setOpenTranscriptions((current) => {
-      const next = new Set(current);
-      next.add(id);
-      return next;
-    });
+    setOpenTranscriptions((current) => addToSet(current, id));
   }
 
   function closeTranscription(id: string) {
-    setOpenTranscriptions((current) => {
-      if (!current.has(id)) {
-        return current;
-      }
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
+    setOpenTranscriptions((current) => deleteFromSet(current, id));
   }
 
   return { openTranscriptions, openTranscription, closeTranscription };

@@ -25,6 +25,7 @@ import {
   logPositionToValue,
   valueToLogPosition,
 } from "../lib/music";
+import { addToSet, deleteFromSet, toggleInSet } from "../utils/set";
 import { EnvelopeEditor } from "./envelope-editor";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
@@ -51,14 +52,10 @@ const WAVEFORM_LABELS: Record<Waveform, string> = {
 export function useSynthPanelUi() {
   const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
   function open(id: string) {
-    setOpenTracks((current) => new Set([...current, id]));
+    setOpenTracks((current) => addToSet(current, id));
   }
   function close(id: string) {
-    setOpenTracks((current) => {
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
+    setOpenTracks((current) => deleteFromSet(current, id));
   }
   return { openTracks, open, close };
 }
@@ -128,13 +125,7 @@ export function SynthPanelContent({
   }
 
   function toggleLayer(id: string) {
-    setCollapsed((current) => {
-      const next = new Set(current);
-      if (!next.delete(id)) {
-        next.add(id);
-      }
-      return next;
-    });
+    setCollapsed((current) => toggleInSet(current, id));
   }
 
   return (
@@ -185,13 +176,7 @@ function SynthLayerRow({
   );
 
   function toggleSection(section: string) {
-    setFoldedSections((current) => {
-      const next = new Set(current);
-      if (!next.delete(section)) {
-        next.add(section);
-      }
-      return next;
-    });
+    setFoldedSections((current) => toggleInSet(current, section));
   }
 
   function updateEnvelope(update: Partial<Envelope>) {
