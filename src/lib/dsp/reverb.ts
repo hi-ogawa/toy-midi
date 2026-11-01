@@ -101,6 +101,7 @@ export class Reverb {
     blockFrames: number;
     parameters: ReverbParameters;
   }) {
+    // TODO: what scale
     const scale = (length: number) =>
       Math.round((length * sampleRate) / PAPER_SAMPLE_RATE);
     this.block = new Float32Array(blockFrames);
@@ -248,13 +249,14 @@ class AllPass {
   }
 
   process(input: number): number {
-    const delayed = this.line.read();
-    const w = flushTiny(input - this.gain * delayed);
+    const wDelayed = this.line.read();
+    const w = flushTiny(input - this.gain * wDelayed);
     this.line.process(w);
-    return delayed + this.gain * w;
+    return this.gain * w + wDelayed;
   }
 }
 
+// TODO: derive
 /** y = (1 − p)·x + p·y[−1], whose pole p sets the cutoff. */
 class OnePoleLowPass {
   private previous = 0;
