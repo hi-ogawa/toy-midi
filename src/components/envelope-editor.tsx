@@ -8,6 +8,12 @@ const TIME_RANGE = { min: 0.001, max: 10 };
 const HOLD_WIDTH = 0.16;
 const STAGE_WIDTH = (1 - HOLD_WIDTH) / 3;
 
+// Literal class names, so Tailwind finds them
+const COLOR_CLASSES = {
+  emerald: { fill: "fill-emerald-500/15", stroke: "stroke-emerald-500" },
+  amber: { fill: "fill-amber-500/15", stroke: "stroke-amber-500" },
+};
+
 /**
  * An ADSR graph with a handle at the end of each timed stage, and a readout
  * per parameter for exact values. Each stage's width follows a log scale from
@@ -15,10 +21,12 @@ const STAGE_WIDTH = (1 - HOLD_WIDTH) / 3;
  */
 export function EnvelopeEditor({
   label,
+  color,
   envelope,
   onChange,
 }: {
   label: string;
+  color: keyof typeof COLOR_CLASSES;
   envelope: Envelope;
   onChange: (update: Partial<Envelope>) => void;
 }) {
@@ -57,11 +65,11 @@ export function EnvelopeEditor({
               strokeDasharray="2 2"
               vectorEffect="non-scaling-stroke"
             />
-            <path d={`${curve} Z`} className="fill-emerald-500/15" />
+            <path d={`${curve} Z`} className={COLOR_CLASSES[color].fill} />
             <path
               d={curve}
               fill="none"
-              className="stroke-emerald-500"
+              className={COLOR_CLASSES[color].stroke}
               strokeWidth={1.5}
               vectorEffect="non-scaling-stroke"
             />
