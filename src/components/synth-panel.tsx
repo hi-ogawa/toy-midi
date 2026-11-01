@@ -5,7 +5,7 @@ import {
   PlusIcon,
   XIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
   createSynthLayer,
@@ -173,6 +173,19 @@ function SynthLayerRow({
   onRemove: () => void;
 }) {
   const { envelope } = layer.amp;
+  const [foldedSections, setFoldedSections] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+
+  function toggleSection(section: string) {
+    setFoldedSections((current) => {
+      const next = new Set(current);
+      if (!next.delete(section)) {
+        next.add(section);
+      }
+      return next;
+    });
+  }
 
   function updateEnvelope(update: Partial<Envelope>) {
     onChange({
@@ -223,62 +236,111 @@ function SynthLayerRow({
       </div>
       {!collapsed && (
         <div className="space-y-2 border-t border-neutral-700 px-3 py-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-medium">Oscillator</h3>
-            <div
-              role="group"
-              aria-label="Waveform"
-              className="flex overflow-hidden rounded border border-neutral-600"
-            >
-              {WAVEFORMS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-label={WAVEFORM_LABELS[option]}
-                  title={WAVEFORM_LABELS[option]}
-                  aria-pressed={layer.oscillator.waveform === option}
-                  onClick={() =>
-                    onChange({
-                      ...layer,
-                      oscillator: { ...layer.oscillator, waveform: option },
-                    })
-                  }
-                  className="flex h-6 items-center justify-center bg-neutral-900 px-1.5 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
-                >
-                  <WaveformIcon waveform={option} />
-                </button>
-              ))}
+          <FoldableSection
+            title="Oscillator"
+            folded={foldedSections.has("oscillator")}
+            onToggle={() => toggleSection("oscillator")}
+            headerEnd={
+              <div
+                role="group"
+                aria-label="Waveform"
+                className="flex overflow-hidden rounded border border-neutral-600"
+              >
+                {WAVEFORMS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-label={WAVEFORM_LABELS[option]}
+                    title={WAVEFORM_LABELS[option]}
+                    aria-pressed={layer.oscillator.waveform === option}
+                    onClick={() =>
+                      onChange({
+                        ...layer,
+                        oscillator: { ...layer.oscillator, waveform: option },
+                      })
+                    }
+                    className="flex h-6 items-center justify-center bg-neutral-900 px-1.5 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                  >
+                    <WaveformIcon waveform={option} />
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            <div className="flex items-center gap-4">
+              <OctaveStepper
+                octave={layer.oscillator.octave}
+                onOctaveChange={(octave) =>
+                  onChange({
+                    ...layer,
+                    oscillator: { ...layer.oscillator, octave },
+                  })
+                }
+              />
+              <DetuneKnob
+                detune={layer.oscillator.detune}
+                onDetuneChange={(detune) =>
+                  onChange({
+                    ...layer,
+                    oscillator: { ...layer.oscillator, detune },
+                  })
+                }
+              />
             </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <OctaveStepper
-              octave={layer.oscillator.octave}
-              onOctaveChange={(octave) =>
-                onChange({
-                  ...layer,
-                  oscillator: { ...layer.oscillator, octave },
-                })
-              }
+          </FoldableSection>
+          <FoldableSection
+            title="Amp"
+            folded={foldedSections.has("amp")}
+            onToggle={() => toggleSection("amp")}
+          >
+            <EnvelopeEditor
+              label="Amp envelope"
+              envelope={envelope}
+              onChange={updateEnvelope}
             />
-            <DetuneKnob
-              detune={layer.oscillator.detune}
-              onDetuneChange={(detune) =>
-                onChange({
-                  ...layer,
-                  oscillator: { ...layer.oscillator, detune },
-                })
-              }
-            />
-          </div>
-          <h3 className="pt-1 text-xs font-medium">Amp</h3>
-          <EnvelopeEditor
-            label="Amp envelope"
-            envelope={envelope}
-            onChange={updateEnvelope}
-          />
+          </FoldableSection>
         </div>
       )}
     </div>
+  );
+}
+
+/** A section of a layer that folds to its header, which keeps `headerEnd` in view. */
+function FoldableSection({
+  title,
+  folded,
+  onToggle,
+  headerEnd,
+  children,
+}: {
+  title: string;
+  folded: boolean;
+  onToggle: () => void;
+  headerEnd?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <div className="flex h-6 items-center justify-between">
+        <h3 className="text-xs font-medium">
+          <button
+            type="button"
+            aria-expanded={!folded}
+            onClick={onToggle}
+            className="-ml-1 flex items-center gap-1 rounded px-1 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
+          >
+            {folded ? (
+              <ChevronRightIcon className="size-3 text-neutral-400" />
+            ) : (
+              <ChevronDownIcon className="size-3 text-neutral-400" />
+            )}
+            {title}
+          </button>
+        </h3>
+        {headerEnd}
+      </div>
+      {!folded && children}
+    </section>
   );
 }
 
