@@ -443,7 +443,7 @@ describe(SubtractiveSynth, () => {
       const settle = 0.05 * SAMPLE_RATE;
       const unfiltered = renderSynthPatch({ layers: [createGateLayer()] });
       const filtered = renderSynthPatch({
-        layers: [createFilterLayer({ cutoff: 440, resonance })],
+        layers: [createGateLayer({ filter: { cutoff: 440, resonance } })],
       });
       return gainToDb(
         measureRms(filtered.subarray(settle)) /
@@ -458,17 +458,21 @@ describe(SubtractiveSynth, () => {
     // Each layer lands on a 440 Hz cutoff from its first sample, so it plays
     // the same samples as a layer fixed there.
     const expected = renderSynthPatch({
-      layers: [createFilterLayer({ cutoff: 440 })],
+      layers: [createGateLayer({ filter: { cutoff: 440 } })],
     });
     const sustained = { attack: 0, decay: 0, sustain: 1, release: 0 };
     // A4 is 9 semitones above middle C.
-    const keytracked = createFilterLayer({
-      cutoff: 440 / 2 ** (9 / 12),
-      keytrack: 1,
+    const keytracked = createGateLayer({
+      filter: {
+        cutoff: 440 / 2 ** (9 / 12),
+        keytrack: 1,
+      },
     });
-    const enveloped = createFilterLayer({
-      cutoff: 110,
-      envelope: { ...sustained, amount: 2, velocity: 0 },
+    const enveloped = createGateLayer({
+      filter: {
+        cutoff: 110,
+        envelope: { ...sustained, amount: 2, velocity: 0 },
+      },
     });
     for (const layer of [keytracked, enveloped]) {
       const samples = renderSynthPatch({ layers: [layer] });
@@ -486,15 +490,17 @@ describe(SubtractiveSynth, () => {
     const octaves = (2 * 64) / 127;
     synth.setPatch({
       layers: [
-        createFilterLayer({
-          cutoff: 440 / 2 ** octaves,
-          envelope: {
-            attack: 0,
-            decay: 0,
-            sustain: 1,
-            release: 0,
-            amount: 2,
-            velocity: 1,
+        createGateLayer({
+          filter: {
+            cutoff: 440 / 2 ** octaves,
+            envelope: {
+              attack: 0,
+              decay: 0,
+              sustain: 1,
+              release: 0,
+              amount: 2,
+              velocity: 1,
+            },
           },
         }),
       ],
@@ -514,15 +520,17 @@ describe(SubtractiveSynth, () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
       layers: [
-        createFilterLayer({
-          cutoff: 110,
-          envelope: {
-            attack: 0,
-            decay: 0.2,
-            sustain: 0,
-            release: 0,
-            amount: 4,
-            velocity: 0,
+        createGateLayer({
+          filter: {
+            cutoff: 110,
+            envelope: {
+              attack: 0,
+              decay: 0.2,
+              sustain: 0,
+              release: 0,
+              amount: 4,
+              velocity: 0,
+            },
           },
         }),
       ],
@@ -655,18 +663,19 @@ function createPatch(waveforms: Waveform[]): SynthPatch {
   };
 }
 
-/** A layer that starts and stops instantly, so its level holds from the first sample */
-function createGateLayer(): SynthLayer {
+/**
+ * A layer that starts and stops instantly, so its level holds from the first
+ * sample, with its filter open apart from the given fields
+ */
+function createGateLayer({
+  filter,
+}: { filter?: Partial<SynthLayer["filter"]> } = {}): SynthLayer {
+  const layer = createSynthLayer();
   return {
-    ...createSynthLayer(),
+    ...layer,
+    filter: { ...layer.filter, ...filter },
     amp: { envelope: { attack: 0, decay: 0, sustain: 1, release: 0 } },
   };
-}
-
-/** A gate layer with a low-pass, open apart from the given fields */
-function createFilterLayer(filter: Partial<SynthLayer["filter"]>): SynthLayer {
-  const layer = createGateLayer();
-  return { ...layer, filter: { ...layer.filter, ...filter } };
 }
 
 /** Renders 0.1 s of a full-velocity A4 on the patch. */
