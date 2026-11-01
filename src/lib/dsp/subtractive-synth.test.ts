@@ -438,13 +438,13 @@ describe(SubtractiveSynth, () => {
   it("filters a layer through a low-pass at its cutoff and resonance", () => {
     // A sine at the cutoff comes out at Q times its level: 3 dB down at the
     // Butterworth Q, and 12 dB up at Q 4.
-    const measureGainDb = (resonance: number) => {
+    const measureGainDbAtResonance = (resonance: number) => {
       const unfiltered = createGateLayer();
       const filtered = createFilterLayer({ cutoff: 440, resonance });
       return gainToDb(measureLayerRms(filtered) / measureLayerRms(unfiltered));
     };
-    expect(measureGainDb(Math.SQRT1_2)).toBeCloseTo(-3, 1);
-    expect(measureGainDb(4)).toBeCloseTo(gainToDb(4), 1);
+    expect(measureGainDbAtResonance(Math.SQRT1_2)).toBeCloseTo(-3, 1);
+    expect(measureGainDbAtResonance(4)).toBeCloseTo(gainToDb(4), 1);
   });
 
   it("moves the cutoff by keytrack and the envelope, with no lag", () => {
