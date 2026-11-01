@@ -12,6 +12,8 @@ import {
   createSynthLayer,
   type SynthLayer,
   type SynthPatch,
+  VOICE_MODES,
+  type VoiceMode,
   type Waveform,
   WAVEFORMS,
 } from "../lib/dsp/subtractive-synth";
@@ -40,6 +42,15 @@ const MAX_DETUNE_CENTS = 50;
 // The cutoff spans about 10 octaves, so the envelope can sweep a low cutoff
 // almost to the top, or a high one down.
 const MAX_ENVELOPE_OCTAVES = 8;
+
+const GLIDE_RANGE = { min: 0.001, max: 1 };
+// A tenth of a decade across the three decades of the range
+const GLIDE_STEP = 1 / 30;
+
+const VOICE_MODE_LABELS: Record<VoiceMode, string> = {
+  poly: "Poly",
+  mono: "Mono",
+};
 
 const WAVEFORM_LABELS: Record<Waveform, string> = {
   sine: "Sine",
@@ -139,6 +150,29 @@ export function SynthPanelContent({
 
   return (
     <div className="space-y-2">
+      <div className="flex items-center gap-4 px-1">
+        <div
+          role="group"
+          aria-label="Voice"
+          className="flex overflow-hidden rounded border border-neutral-600"
+        >
+          {VOICE_MODES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={patch.voice === option}
+              onClick={() => onChange({ ...patch, voice: option })}
+              className="h-6 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+            >
+              {VOICE_MODE_LABELS[option]}
+            </button>
+          ))}
+        </div>
+        <GlideKnob
+          glide={patch.glide}
+          onGlideChange={(glide) => onChange({ ...patch, glide })}
+        />
+      </div>
       {patch.layers.map((layer, i) => (
         <SynthLayerRow
           key={layer.id}
@@ -677,6 +711,66 @@ function DetuneKnob({
       />
       <span className="w-12 font-mono text-xs text-muted-foreground tabular-nums">
         {signed} ct
+      </span>
+    </div>
+  );
+}
+
+function GlideKnob({
+  glide,
+  onGlideChange,
+}: {
+  glide: number;
+  onGlideChange: (glide: number) => void;
+}) {
+  const position = clamp(valueToLogPosition(glide, GLIDE_RANGE), 0, 1);
+  const setPosition = (value: number) =>
+    onGlideChange(
+      Number(
+        logPositionToValue(clamp(value, 0, 1), GLIDE_RANGE).toPrecision(2),
+      ),
+    );
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return position;
+    },
+    onMove: (_event, drag) => setPosition(drag.data - drag.deltaY / 200),
+  });
+  const valueText =
+    glide < 1
+      ? `${Number((glide * 1000).toPrecision(2))} ms`
+      : `${Number(glide.toPrecision(2))} s`;
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-neutral-400">Glide</span>
+      <Knob
+        ref={ref}
+        aria-label="Glide"
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 10 * GLIDE_STEP : GLIDE_STEP;
+          const next = {
+            ArrowLeft: position - step,
+            ArrowDown: position - step,
+            ArrowRight: position + step,
+            ArrowUp: position + step,
+            Home: 0,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPosition(next);
+          }
+        }}
+        value={position}
+        min={0}
+        max={1}
+        className="cursor-ns-resize"
+      />
+      <span className="w-12 font-mono text-xs text-muted-foreground tabular-nums">
+        {valueText}
       </span>
     </div>
   );

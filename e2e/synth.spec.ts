@@ -38,6 +38,24 @@ test("changes a synth track's oscillator, filter, and amp envelope in its Synth 
     "true",
   );
 
+  // Switch the patch from poly to mono, and lengthen its glide by a decade
+  // with the keyboard.
+  const voice = panel.getByRole("group", { name: "Voice" });
+  await expect(voice.getByRole("button", { name: "Poly" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await voice.getByRole("button", { name: "Mono" }).click();
+  await expect(voice.getByRole("button", { name: "Mono" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  const glide = panel.getByRole("slider", { name: "Glide" });
+  await expect(glide).toHaveAttribute("aria-valuetext", "50 ms");
+  await glide.focus();
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(glide).toHaveAttribute("aria-valuetext", "500 ms");
+
   // Switch to sawtooth, and see the panel follow the track's patch.
   await waveform.getByRole("button", { name: "Saw" }).click();
   await expect(waveform.getByRole("button", { name: "Saw" })).toHaveAttribute(
