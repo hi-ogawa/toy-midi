@@ -3,10 +3,11 @@ import { cn } from "./utils";
 
 const SWEEP_DEGREES = 270;
 
-// Pan has its own color wherever it appears, so a pan knob reads apart from
-// level and other knobs beside it.
+// Literal class names, so Tailwind finds them. Pan has its own color wherever
+// it appears, so a pan knob reads apart from a level knob beside it.
 const ARC_CLASSES = {
   primary: "stroke-primary",
+  amber: "stroke-amber-500",
   pan: "stroke-sky-300",
 };
 
@@ -25,6 +26,7 @@ export function Knob({
   max: number;
   /** Where the value arc starts, such as the center of a pan knob */
   origin?: number;
+  /** The value arc's color, such as its section's on the synth panel */
   color?: keyof typeof ARC_CLASSES;
 }) {
   const toDegrees = (v: number) =>
