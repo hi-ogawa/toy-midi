@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encodePitchBend } from "../general-midi";
-import { dbToGain, gainToDb, midiToHz } from "../music";
+import { gainToDb, midiToHz } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
   createSynthLayer,
@@ -587,56 +587,58 @@ describe(SubtractiveSynth, () => {
   });
 
   it("moves the cutoff with CC74 and the resonance with CC71", () => {
-    // At 96, CC74 opens the cutoff 2 octaves and CC71 raises the resonance by
-    // 6.25 dB, so the layer plays the same samples as one set there.
-    const expected = renderSynthPatch({
-      layers: [
-        createGateLayer({ filter: { cutoff: 440, resonance: dbToGain(6.25) } }),
-      ],
-    });
-    const samples = renderSynthPatch(
-      { layers: [createGateLayer({ filter: { cutoff: 110, resonance: 1 } })] },
-      { 71: 96, 74: 96 },
-    );
-    for (let i = 0; i < samples.length; i++) {
-      expect(samples[i]).toBeCloseTo(expected[i], 6);
-    }
-  });
-
-  it("closes an open layer's filter with CC74 below 64", () => {
-    // At 0, CC74 lowers an open layer's 20 kHz cutoff 4 octaves, to 1250 Hz.
-    const expected = renderSynthPatch({
-      layers: [createGateLayer({ filter: { cutoff: 20000 / 16 } })],
-    });
-    const samples = renderSynthPatch(
-      { layers: [createGateLayer()] },
-      { 74: 0 },
-    );
-    for (let i = 0; i < samples.length; i++) {
-      expect(samples[i]).toBeCloseTo(expected[i], 6);
-    }
-  });
-
-  it("follows CC74 on a sounding note", () => {
-    // Hold A4 at a 440 Hz cutoff, 3 dB down, then turn CC74 to 0. The cutoff
-    // falls 4 octaves below the note, where a 2-pole low-pass is 48 dB down.
+    // At 96, halfway from 64 to 128, CC74 opens the cutoff 2 octaves and CC71
+    // raises Q by 6.25 dB, from PEAK's -21.1 dB:
+    //   CC74: 110 Hz × 2^2 = 440 Hz = A4, where Q 1 passes it at 0 dB: -21.1 dB
+    //   CC71 at 0.2 s: Q 1 → +6.25 dB: -14.9 dB
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
-      layers: [createGateLayer({ filter: { cutoff: 440 } })],
+      layers: [createGateLayer({ filter: { cutoff: 110, resonance: 1 } })],
     });
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => {
+          synth.controller(74, 96);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+        0.2: () => synth.controller(71, 96),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -21.2 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -21.1 dB  ███████████████████████████████████████
+      150 ms  -21.1 dB  ███████████████████████████████████████
+      200 ms  -15.0 dB  █████████████████████████████████████████████
+      250 ms  -14.9 dB  █████████████████████████████████████████████
+      300 ms  -14.9 dB  █████████████████████████████████████████████
+      350 ms  -14.9 dB  █████████████████████████████████████████████
+      "
+    `);
+  });
+
+  it("closes an open layer's filter with CC74 on a sounding note", () => {
+    // An open layer skips its filter until CC74 drops below 64. At 0, CC74
+    // lowers the 20 kHz cutoff 4 octaves, to 1250 Hz, from PEAK's -21.1 dB:
+    //   A6 = 1760 Hz ≈ 1250 Hz × √2, where a Butterworth low-pass has
+    //   |H|² = 1 / (1 + √2^4) = 1/5, 7 dB down: -28.1 dB
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({ layers: [createGateLayer()] });
     const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
-        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0: () => synth.noteOn(A4 + 24, FULL_VELOCITY),
         0.1: () => synth.controller(74, 0),
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
       "
-        0 ms  -24.2 dB  ████████████████████████████████████
-       50 ms  -24.2 dB  ████████████████████████████████████
-      100 ms  -25.8 dB  ██████████████████████████████████
-      150 ms  -68.9 dB
+        0 ms  -21.1 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -28.1 dB  ████████████████████████████████
+      150 ms  -28.1 dB  ████████████████████████████████
       "
     `);
   });
@@ -766,29 +768,6 @@ function createGateLayer({
     filter: { ...layer.filter, ...filter },
     amp: { envelope: { attack: 0, decay: 0, sustain: 1, release: 0 } },
   };
-}
-
-/**
- * Renders 0.1 s of a full-velocity A4 on the patch, after setting the
- * controllers, keyed by number.
- */
-function renderSynthPatch(
-  patch: SynthPatch,
-  controllers: Record<number, number> = {},
-): Float32Array {
-  const synth = new SubtractiveSynth(SAMPLE_RATE);
-  synth.setPatch(patch);
-  return renderSynth(synth, {
-    seconds: 0.1,
-    at: {
-      0: () => {
-        for (const [controller, value] of Object.entries(controllers)) {
-          synth.controller(Number(controller), value);
-        }
-        synth.noteOn(A4, FULL_VELOCITY);
-      },
-    },
-  });
 }
 
 function createBuffers(length: number): [Float32Array, Float32Array] {
