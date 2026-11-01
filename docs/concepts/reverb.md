@@ -34,13 +34,13 @@ $$
 y[n]=x[n]+g \cdot y[n-D].
 $$
 
-A click comes out at once, then again $D$ samples later at $g$, again at $g^2$, and so on, so every trip around the loop lowers the level by the same $-20\log_{10}g$ dB. A level that falls by a fixed amount in each fixed time is exactly the room's straight-line decay, so the loop gives exponential decay for free. The decay time follows from how many trips fit in it,
+A click comes out at once, then again $D$ samples later at $g$, again at $g^2$, and so on. Each trip around the loop keeps the same fraction $g$, as each bounce in a room does, so the echoes fade the way a room's do. A trip takes $D/F_s$ seconds and lowers the level by $-20\log_{10}g$ dB, so falling 60 dB takes
 
 $$
 T_{60}=\frac{60}{-20\log_{10}g} \cdot \frac{D}{F_s},
 $$
 
-so setting $g$ sets the decay time.
+and setting $g$ sets the decay time.
 
 The trouble is everything else. The echoes are $D$ apart and never get denser, so a long $D$ sounds like a flutter of repeats, and a short $D$ makes the loop ring at the frequencies whose period divides $D$, which sounds metallic. The [appendix](#appendix-feedback-delays-as-transfer-functions) finds those frequencies from the loop's transfer function. One loop has the decay but none of the density.
 
