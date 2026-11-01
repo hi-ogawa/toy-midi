@@ -1,7 +1,7 @@
 import { PITCH_BEND_RANGE, PITCH_WHEEL_CENTER } from "../general-midi.ts";
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { clamp, dbToGain, midiToHz } from "../music.ts";
-import { BiquadFilter, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
+import { BiquadEqPerSample, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
 import {
   computeEnvelopeCurves,
   type Envelope,
@@ -105,8 +105,6 @@ interface ResolvedLayer {
   leftGain: number;
   rightGain: number;
   filter: ResolvedFilter;
-  /** Whether the patch keeps the filter fully open, so the layer can skip it */
-  filterOpen: boolean;
   filterEnvelope: EnvelopeCurves;
   ampEnvelope: EnvelopeCurves;
 }
@@ -153,7 +151,7 @@ interface VoiceLayer {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
-  filter: BiquadFilter;
+  filter: BiquadEqPerSample;
   filterEnvelope: EnvelopeState;
   ampEnvelope: EnvelopeState;
 }
@@ -202,7 +200,7 @@ export class SubtractiveSynth implements SynthEngine {
           layer.id,
           {
             phase: 0,
-            filter: new BiquadFilter({ sampleRate: this.sampleRate }),
+            filter: new BiquadEqPerSample({ sampleRate: this.sampleRate }),
             filterEnvelope: new EnvelopeState(),
             ampEnvelope: new EnvelopeState(),
           },
@@ -280,14 +278,14 @@ export class SubtractiveSynth implements SynthEngine {
           const state = voice.layers.get(layer.id);
           if (state) {
             const phaseIncrement = notePhaseIncrement * layer.frequencyRatio;
-            // The envelope runs while the filter is open, so a patch change
-            // that closes it finds the envelope where the note is.
+            // The envelope runs while the filter is skipped, so a patch change
+            // that brings it in finds the envelope where the note is.
             const filterLevel = state.filterEnvelope.advance(
               layer.filterEnvelope,
             );
             let sample = layer.oscillate(state.phase, phaseIncrement);
             // CC74 can close an open layer's filter, but not open it further.
-            if (!layer.filterOpen || this.cutoffScale < 1) {
+            if (!shouldSkipFilter(layer.filter) || this.cutoffScale < 1) {
               const cutoff = clamp(
                 computeCutoff(layer.filter, voice, filterLevel) *
                   this.cutoffScale,
@@ -356,7 +354,6 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
         amount: envelope.amount,
         velocity: envelope.velocity,
       },
-      filterOpen: isFilterOpen(layer.filter),
       filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
       ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
     };
@@ -364,15 +361,15 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
 }
 
 /**
- * Whether the cutoff stays at the top of the range on every note. Skipping
- * the filter then keeps a layer exactly as it sounded before filters existed,
- * and only drops a resonant peak at 20 kHz.
+ * Whether the layer should skip its filter, because the cutoff stays at the top
+ * of the range on every note. Skipping keeps a layer exactly as it sounded
+ * before filters existed, and only drops a resonant peak at 20 kHz.
  */
-function isFilterOpen(filter: SynthLayer["filter"]): boolean {
+function shouldSkipFilter(filter: ResolvedFilter): boolean {
   return (
     filter.cutoff >= EQ_LIMITS.frequency.max &&
     filter.keytrack === 0 &&
-    filter.envelope.amount === 0
+    filter.amount === 0
   );
 }
 
