@@ -9,6 +9,8 @@ Aim for compact explanations that make a mechanism or design reconstructable. Us
 
 ## Narrative
 
+Write for a physicist or mathematician doing a guided back-of-envelope calculation for an audio application. A math doc exists to derive the claims the application would otherwise take on faith, so let a short equation arrive at each claim and name the result once the equation shows it, rather than stating the claim and attaching math afterwards. An equation is also quicker to check while skimming than a sentence is to believe. When a derivation is too heavy for the main text, rely on an intuition that holds on its own, move the derivation to an appendix, or leave a TODO. Use the field's standard vocabulary where it names the idea the argument relies on, and leave out exact constants, convergence caveats, and side results that nothing in the application builds on.
+
 Separate mathematical fluency from domain familiarity. Motivate unfamiliar constructions through simple examples, then trust the reader with familiar algebra. Let the subject determine the approach rather than imposing a derivation template.
 
 Order the argument from the question a reader would ask and the computation the code performs, rather than the field's standard construction order, and introduce the standard term once the reasoning arrives at it. When revising a passage after feedback, reread the surrounding argument as a whole, since a patched sentence can keep a framing the new material no longer fits.
@@ -27,4 +29,8 @@ Read relevant examples in [docs/concepts](../../../docs/concepts) for calibratio
 
 ## Known Math Rendering Issues
 
-In GitHub Markdown math, `\,`, `\;`, and `\!` have rendered as literal punctuation. Use `\cdot` for explicit multiplication and `\quad` for extra spacing, and leave negative spacing out. GitHub also rejects `\operatorname`, so write a named function such as sech or sinc with `\text{sech}`.
+In GitHub Markdown math, `\,`, `\;`, and `\!` have rendered as literal punctuation. Use `\cdot` for explicit multiplication and `\quad` for extra spacing, and leave negative spacing out. GitHub also rejects `\operatorname`, so write a named function such as sech or sinc with `\text{sech}`. A `$` directly followed by a letter or digit doesn't close inline math, so `$n$th` renders as plain text. Write an ordinal as `$n$-th` instead.
+
+Claude's Markdown preview also reads a `$` followed by two letters as a variable such as `$HOME`, so `$LF_s$` stays plain text there. Put a space between the first two letters, as in `$L F_s$`, which renders the same everywhere else. The preview doesn't render GitHub's ``$`…`$`` form either, so write plain `$…$`.
+
+An underscore right after a `}` can pair with a later one as Markdown emphasis, so in `$\mathbf{x}_0$ and $\mathbf{x}_\tau$` the text between them turns italic. Leave out the braces, as in `$\mathbf x_0$`.

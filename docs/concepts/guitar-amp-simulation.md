@@ -106,13 +106,15 @@ $$
 y(t + T/2) = f\big(x(t + T/2)\big) = f\big(-x(t)\big) = -f\big(x(t)\big) = -y(t).
 $$
 
-Write $y$ as a Fourier series. Shifting by $T/2$ multiplies the $n$th term by $e^{i n \pi} = (-1)^n$:
+Write $y$ as a [Fourier series](fourier-series.md). Shifting by $T/2$ multiplies the $n$-th term by $e^{i n \pi} = (-1)^n$:
 
 $$
 y(t) = \sum_n c_n e^{i n \omega t}, \qquad y(t + T/2) = \sum_n (-1)^n c_n e^{i n \omega t}.
 $$
 
 Matching coefficients with $-y(t)$ gives $(-1)^n c_n = -c_n$, so $c_n = 0$ for every even $n$. $\blacksquare$
+
+The property the proof uses, $y(t + T/2) = -y(t)$, is called half-wave symmetry. [Band-limited oscillators](band-limited-oscillators.md#appendix-read-odd-harmonics-from-half-wave-symmetry) uses it to read a waveform's odd harmonics from its shape.
 
 The same shows through powers. An odd $f$ has only odd powers in its Taylor series, as in $\tanh u = u - u^3/3 + 2u^5/15 - \cdots$, and odd powers of a sine hold only odd harmonics, for example $\sin^3 t = \tfrac{3}{4} \sin t - \tfrac{1}{4} \sin 3t$, while even powers hold even harmonics and a constant, as in $\sin^2 t = \tfrac{1}{2} - \tfrac{1}{2} \cos 2t$.
 

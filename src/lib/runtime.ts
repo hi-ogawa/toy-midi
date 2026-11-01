@@ -24,6 +24,7 @@ import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
+import type { SynthPatch } from "./dsp/subtractive-synth.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
@@ -105,13 +106,23 @@ export interface MidiTrackState extends BaseTrackState {
    */
   bank?: number;
   /**
+   * Toy MIDI's own synth, which plays the track instead of the SoundFont preset
+   * when present
+   */
+  synth?: SynthPatch;
+  /**
    * Guitar amp in front of the EQ, absent when off. The drive makes each
    * note's release tail loud enough to smear into the next note, so mute the
    * tails with CC 11 (expression) at 0 from just after a note-off to the next
    * note-on.
    */
   amp?: AmpParameters;
-  /** Whether the row shows the note editor or a compact note overview */
+  /**
+   * Whether the row shows the note editor or a compact note overview. Keep
+   * tracks in `"overview"` so the whole arrangement fits on screen, and use
+   * `"editor"` for a track someone is about to edit by hand. `addMidiTrack`
+   * opens a track in the editor.
+   */
   viewMode: "editor" | "overview";
   /** Shows tab annotation in the note editor and enables editing it */
   tabAnnotationEnabled: boolean;
@@ -120,7 +131,10 @@ export interface MidiTrackState extends BaseTrackState {
   keySignature: KeySignature;
 }
 
-export type MidiPreset = Pick<MidiTrackState, "soundfont" | "bank" | "program">;
+export type MidiPreset = Pick<
+  MidiTrackState,
+  "soundfont" | "bank" | "program" | "synth"
+>;
 
 export interface LoopRange {
   /** In beats from the start of the project */
@@ -269,7 +283,7 @@ type EditorRuntimeClipsState = Pick<
 >;
 
 export function createDefaultEditorRuntimeState(): EditorRuntimeState {
-  const audioTrack = createAudioTrackState({ name: "Audio 1" });
+  const audioTrack = { ...createAudioTrackState(), name: "Audio 1" };
   return {
     title: "Untitled",
     comment: "",
@@ -441,12 +455,13 @@ export class EditorRuntime {
   addAudioTrack(): string {
     const { audioTracks } = this.store.get();
     const audioTrackNames = audioTracks.map((track) => track.name);
-    const track = createAudioTrackState({
+    const track = {
+      ...createAudioTrackState(),
       name: createNumberedName({
         names: audioTrackNames,
         prefix: "Audio",
       }),
-    });
+    };
     this.updateTrackLists({ audioTracks: [...audioTracks, track] });
     return track.id;
   }
@@ -478,13 +493,14 @@ export class EditorRuntime {
 
   async addMidiTrack(preset: MidiPreset): Promise<string> {
     const state = this.store.get();
-    const track = createMidiTrackState({
+    const track = {
+      ...createMidiTrackState(),
       name: createNumberedName({
         names: state.midiTracks.map((track) => track.name),
         prefix: "MIDI",
       }),
-      preset,
-    });
+      ...preset,
+    };
     await this.insertMidiTrack({ track });
     const index = this.store.get().trackOrder.indexOf(track.id);
     this.history.pushMidiTrack({ track, index });
@@ -723,6 +739,7 @@ export class EditorRuntime {
       soundfont: preset.soundfont,
       bank: preset.bank,
       program: preset.program,
+      synth: preset.synth,
     }));
   }
 
@@ -1171,12 +1188,10 @@ export class EditorRuntime {
     });
   }
 
-  /** @internal */
   serializeProject(): SerializedEditorRuntimeState {
     return serializeEditorRuntimeState(this.store.get());
   }
 
-  /** @internal */
   async deserializeProject(
     project: SerializedEditorRuntimeState,
   ): Promise<void> {

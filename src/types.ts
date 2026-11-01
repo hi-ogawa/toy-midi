@@ -23,6 +23,14 @@ export interface Note {
  * Each value holds until the next point, so start a sequence at beat 0 to set
  * its value from the start. A track has at most one sequence per controller
  * and one for pitch bend.
+ *
+ * Values belong to the track, not to a note, so a change also reaches notes
+ * still ringing in their release. At a loop wrap, the track takes loop-in's
+ * values while loop-out's tails still ring, a join that playing straight
+ * through never makes. When a track's sound rings across the wrap and nothing
+ * new starts on that track at loop-in, keep its values equal at loop-out and
+ * loop-in. If they must differ, as with a fade-out ending, end the loop after
+ * the tails have died, such as a bar after the last release.
  */
 export type Automation =
   | {
