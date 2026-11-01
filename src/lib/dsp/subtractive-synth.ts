@@ -1,7 +1,7 @@
 import { PITCH_BEND_RANGE, PITCH_WHEEL_CENTER } from "../general-midi.ts";
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { clamp, midiToHz } from "../music.ts";
-import { BiquadFilter, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
+import { BiquadEqPerSample, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
 import {
   computeEnvelopeCurves,
   type Envelope,
@@ -143,7 +143,7 @@ interface VoiceLayer {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
-  filter: BiquadFilter;
+  filter: BiquadEqPerSample;
   filterEnvelope: EnvelopeState;
   ampEnvelope: EnvelopeState;
 }
@@ -188,7 +188,7 @@ export class SubtractiveSynth implements SynthEngine {
           layer.id,
           {
             phase: 0,
-            filter: new BiquadFilter({ sampleRate: this.sampleRate }),
+            filter: new BiquadEqPerSample({ sampleRate: this.sampleRate }),
             filterEnvelope: new EnvelopeState(),
             ampEnvelope: new EnvelopeState(),
           },
