@@ -3,10 +3,10 @@ import { cn } from "./utils";
 
 const SWEEP_DEGREES = 270;
 
-// Literal class names, so Tailwind finds them
 const ARC_CLASSES = {
   primary: "stroke-primary",
   amber: "stroke-amber-500",
+  pan: "stroke-sky-300",
 };
 
 /** A focusable slider drawn as a knob. The caller supplies the label and the input behavior through div props. */

@@ -15,6 +15,7 @@ import { LevelMeter, MeterScale } from "./level-meter";
 import { MixToggle } from "./mix-toggle";
 import { Knob } from "./ui/knob";
 import { Slider } from "./ui/slider";
+import { Tooltip } from "./ui/tooltip";
 import { useDraftInput } from "./use-draft-input";
 import { usePointerDrag } from "./use-pointer-drag";
 
@@ -270,38 +271,35 @@ function PanKnob({
     onMove: (_event, drag) => setPan(drag.data - drag.deltaY / 100),
   });
   return (
-    // Equal side columns center the knob over the fader.
-    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-1">
-      <Knob
-        ref={ref}
-        aria-label={`${label} pan`}
-        aria-valuetext={formatPan(pan)}
-        onKeyDown={(event) => {
-          const step = event.shiftKey ? 0.1 : 0.01;
-          const next = {
-            ArrowLeft: pan - step,
-            ArrowDown: pan - step,
-            ArrowRight: pan + step,
-            ArrowUp: pan + step,
-            Home: -1,
-            End: 1,
-          }[event.key];
-          if (next !== undefined) {
-            event.preventDefault();
-            setPan(next);
-          }
-        }}
-        value={pan}
-        min={-1}
-        max={1}
-        origin={0}
-        className="col-start-2 cursor-ns-resize"
-      />
-      {/* Zero width, so a wide readout such as R100 spills over instead of
-          widening its column and the channel. */}
-      <span className="w-0 font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
-        {formatPan(pan)}
-      </span>
+    <div className="flex w-full justify-center">
+      <Tooltip content={formatPan(pan)}>
+        <Knob
+          ref={ref}
+          aria-label={`${label} pan`}
+          aria-valuetext={formatPan(pan)}
+          onKeyDown={(event) => {
+            const step = event.shiftKey ? 0.1 : 0.01;
+            const next = {
+              ArrowLeft: pan - step,
+              ArrowDown: pan - step,
+              ArrowRight: pan + step,
+              ArrowUp: pan + step,
+              Home: -1,
+              End: 1,
+            }[event.key];
+            if (next !== undefined) {
+              event.preventDefault();
+              setPan(next);
+            }
+          }}
+          value={pan}
+          min={-1}
+          max={1}
+          origin={0}
+          color="pan"
+          className="cursor-ns-resize"
+        />
+      </Tooltip>
     </div>
   );
 }
