@@ -74,7 +74,7 @@ test("changes a synth track's oscillator and amp envelope in its Synth panel", a
   const attack = panel.getByRole("slider", { name: "Attack" });
   await expect(attack).toHaveAttribute("aria-valuetext", "5 ms");
   const sustain = panel.getByRole("slider", { name: "Sustain" });
-  await expect(sustain).toHaveAttribute("aria-valuetext", "100%");
+  await expect(sustain).toHaveAttribute("aria-valuetext", "0.0 dB");
 
   // Lengthen the release by two decades with the keyboard.
   const release = panel.getByRole("slider", { name: "Release" });
@@ -84,14 +84,14 @@ test("changes a synth track's oscillator and amp envelope in its Synth panel", a
   await expect(release).toHaveAttribute("aria-valuetext", "500 ms");
 
   // Drag the decay handle halfway down the graph, which lowers the sustain to
-  // about half and leaves the attack alone.
+  // half of the graph's 60 dB range and leaves the attack alone.
   const decay = panel.getByTestId("envelope-decay-handle");
   const decayBox = (await decay.boundingBox())!;
   const releaseBox = (await panel
     .getByTestId("envelope-release-handle")
     .boundingBox())!;
   await dragBy(page, decay, 0, { deltaY: (releaseBox.y - decayBox.y) / 2 });
-  await expect(sustain).toHaveAttribute("aria-valuetext", "50%");
+  await expect(sustain).toHaveAttribute("aria-valuetext", "-30.0 dB");
   await expect(attack).toHaveAttribute("aria-valuetext", "5 ms");
 
   // Turn the layer's gain down from 0 dB with the keyboard.

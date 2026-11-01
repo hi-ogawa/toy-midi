@@ -1,5 +1,13 @@
 import type { Envelope } from "../lib/dsp/envelope";
-import { clamp, logPositionToValue, valueToLogPosition } from "../lib/music";
+import {
+  MIN_DB,
+  clamp,
+  dbToGain,
+  formatGainDb,
+  gainToDb,
+  logPositionToValue,
+  valueToLogPosition,
+} from "../lib/music";
 import { usePointerDrag } from "./use-pointer-drag";
 
 const TIME_RANGE = { min: 0.001, max: 10 };
@@ -11,7 +19,10 @@ const STAGE_WIDTH = (1 - HOLD_WIDTH) / 3;
 /**
  * An ADSR graph with a handle at the end of each timed stage, and a readout
  * per parameter for exact values. Each stage's width follows a log scale from
- * 1 ms to 10 s, so a 5 ms attack and a 2 s release both stay visible.
+ * 1 ms to 10 s, so a 5 ms attack and a 2 s release both stay visible. The
+ * level runs in dB from 0 at the top to silence at the bottom, as a gain knob
+ * does, so a sustain of -20 dB and one of -40 dB are as far apart as 0 and
+ * -20 dB.
  */
 export function EnvelopeEditor({
   label,
@@ -26,7 +37,7 @@ export function EnvelopeEditor({
   const decayX = attackX + STAGE_WIDTH * timeToPosition(envelope.decay);
   const sustainX = decayX + HOLD_WIDTH;
   const releaseX = sustainX + STAGE_WIDTH * timeToPosition(envelope.release);
-  const sustainY = 1 - envelope.sustain;
+  const sustainY = 1 - sustainToPosition(envelope.sustain);
   const curve = [
     "M 0 1",
     `L ${attackX} 0`,
@@ -81,7 +92,7 @@ export function EnvelopeEditor({
             onMove={({ x, y }) =>
               onChange({
                 decay: positionToTime((x - attackX) / STAGE_WIDTH),
-                sustain: Math.round((1 - y) * 100) / 100,
+                sustain: positionToSustain(1 - y),
               })
             }
           />
@@ -110,11 +121,12 @@ export function EnvelopeEditor({
         />
         <Readout
           label="Sustain"
-          valueText={`${Math.round(envelope.sustain * 100)}%`}
-          position={envelope.sustain}
-          step={0.01}
+          valueText={formatGainDb(envelope.sustain)}
+          position={sustainToPosition(envelope.sustain)}
+          // 0.5 dB, as on a gain knob
+          step={0.5 / -MIN_DB}
           onChange={(position) =>
-            onChange({ sustain: Math.round(position * 100) / 100 })
+            onChange({ sustain: positionToSustain(position) })
           }
         />
         <TimeReadout
@@ -257,4 +269,16 @@ function timeToPosition(time: number): number {
 function positionToTime(position: number): number {
   const time = logPositionToValue(clamp(position, 0, 1), TIME_RANGE);
   return Number(time.toPrecision(2));
+}
+
+function sustainToPosition(sustain: number): number {
+  return 1 - gainToDb(sustain) / MIN_DB;
+}
+
+/** Rounds to 0.1 dB, with the bottom of the range as silence. */
+function positionToSustain(position: number): number {
+  if (position <= 0) {
+    return 0;
+  }
+  return dbToGain(Math.round((1 - position) * MIN_DB * 10) / 10);
 }
