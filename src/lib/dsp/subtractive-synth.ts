@@ -1,14 +1,13 @@
 import { PITCH_BEND_RANGE, PITCH_WHEEL_CENTER } from "../general-midi.ts";
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { clamp, midiToHz } from "../music.ts";
-import { BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
+import { BiquadFilter, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
 import {
   computeEnvelopeCurves,
   type Envelope,
   type EnvelopeCurves,
   EnvelopeState,
 } from "./envelope.ts";
-import { SynthLowpass } from "./synth-lowpass.ts";
 
 export const WAVEFORMS = ["sine", "triangle", "sawtooth", "square"] as const;
 export type Waveform = (typeof WAVEFORMS)[number];
@@ -145,7 +144,7 @@ interface VoiceLayer {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
-  filter: SynthLowpass;
+  filter: BiquadFilter;
   filterEnvelope: EnvelopeState;
   ampEnvelope: EnvelopeState;
 }
@@ -190,7 +189,7 @@ export class SubtractiveSynth implements SynthEngine {
           layer.id,
           {
             phase: 0,
-            filter: new SynthLowpass(this.sampleRate),
+            filter: new BiquadFilter({ sampleRate: this.sampleRate }),
             filterEnvelope: new EnvelopeState(),
             ampEnvelope: new EnvelopeState(),
           },
@@ -267,11 +266,11 @@ export class SubtractiveSynth implements SynthEngine {
                 EQ_LIMITS.frequency.min,
                 this.maxCutoff,
               );
-              sample = state.filter.process(
-                sample,
-                cutoff,
-                layer.filter.resonance,
-              );
+              sample = state.filter.process(sample, {
+                type: "low-pass",
+                frequency: cutoff,
+                q: layer.filter.resonance,
+              });
             }
             sample *= state.ampEnvelope.advance(layer.ampEnvelope);
             sampleLeft += sample * layer.leftGain;
