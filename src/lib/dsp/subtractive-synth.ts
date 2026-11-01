@@ -1,7 +1,7 @@
 import { PITCH_BEND_RANGE, PITCH_WHEEL_CENTER } from "../general-midi.ts";
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { clamp, dbToGain, midiToHz } from "../music.ts";
-import { BiquadFilter, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
+import { BiquadEqPerSample, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
 import {
   computeEnvelopeCurves,
   type Envelope,
@@ -45,15 +45,17 @@ export interface SynthLayer {
     cutoff: number;
     /** The low-pass's Q, as on the track EQ */
     resonance: number;
-    /** Octaves the cutoff moves per octave of the note */
+    /** Octaves the cutoff moves per octave of the note from C4, note 60 */
     keytrack: number;
-    /** With `amount` in octaves at the envelope's peak */
-    envelope: Envelope & { amount: number };
-    /**
-     * How much the note's velocity scales the envelope's amount, from 0, not
-     * at all, to 1, in proportion
-     */
-    velocity: number;
+    envelope: Envelope & {
+      /** Octaves the cutoff moves at the envelope's peak */
+      amount: number;
+      /**
+       * How much the note's velocity scales `amount`, from 0, not at all, to 1,
+       * in proportion
+       */
+      velocity: number;
+    };
   };
   amp: {
     envelope: Envelope;
@@ -78,8 +80,7 @@ const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
     cutoff: EQ_LIMITS.frequency.max,
     resonance: BUTTERWORTH_Q,
     keytrack: 0,
-    envelope: { ...DEFAULT_ENVELOPE, amount: 0 },
-    velocity: 0,
+    envelope: { ...DEFAULT_ENVELOPE, amount: 0, velocity: 0 },
   },
   amp: { envelope: DEFAULT_ENVELOPE },
 };
@@ -104,15 +105,12 @@ interface ResolvedLayer {
   leftGain: number;
   rightGain: number;
   filter: ResolvedFilter;
-  /** Whether the patch keeps the filter fully open, so the layer can skip it */
-  filterOpen: boolean;
   filterEnvelope: EnvelopeCurves;
   ampEnvelope: EnvelopeCurves;
 }
 
-type ResolvedFilter = Omit<SynthLayer["filter"], "envelope"> & {
-  amount: number;
-};
+type ResolvedFilter = Omit<SynthLayer["filter"], "envelope"> &
+  Pick<SynthLayer["filter"]["envelope"], "amount" | "velocity">;
 
 const MODULATION_CONTROLLER = 1;
 const VOLUME_CONTROLLER = 7;
@@ -153,7 +151,7 @@ interface VoiceLayer {
    * keeps the waveform continuous when the frequency changes.
    */
   phase: number;
-  filter: BiquadFilter;
+  filter: BiquadEqPerSample;
   filterEnvelope: EnvelopeState;
   ampEnvelope: EnvelopeState;
 }
@@ -202,7 +200,7 @@ export class SubtractiveSynth implements SynthEngine {
           layer.id,
           {
             phase: 0,
-            filter: new BiquadFilter({ sampleRate: this.sampleRate }),
+            filter: new BiquadEqPerSample({ sampleRate: this.sampleRate }),
             filterEnvelope: new EnvelopeState(),
             ampEnvelope: new EnvelopeState(),
           },
@@ -280,14 +278,14 @@ export class SubtractiveSynth implements SynthEngine {
           const state = voice.layers.get(layer.id);
           if (state) {
             const phaseIncrement = notePhaseIncrement * layer.frequencyRatio;
-            // The envelope runs while the filter is open, so a patch change
-            // that closes it finds the envelope where the note is.
+            // The envelope runs while the filter is skipped, so a patch change
+            // that brings it in finds the envelope where the note is.
             const filterLevel = state.filterEnvelope.advance(
               layer.filterEnvelope,
             );
             let sample = layer.oscillate(state.phase, phaseIncrement);
             // CC74 can close an open layer's filter, but not open it further.
-            if (!layer.filterOpen || this.cutoffScale < 1) {
+            if (!shouldSkipFilter(layer.filter) || this.cutoffScale < 1) {
               const cutoff = clamp(
                 computeCutoff(layer.filter, voice, filterLevel) *
                   this.cutoffScale,
@@ -351,8 +349,11 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
         2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
       leftGain: layer.gain * pan.left,
       rightGain: layer.gain * pan.right,
-      filter: { ...filter, amount: envelope.amount },
-      filterOpen: isFilterOpen(layer.filter),
+      filter: {
+        ...filter,
+        amount: envelope.amount,
+        velocity: envelope.velocity,
+      },
       filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
       ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
     };
@@ -360,15 +361,15 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
 }
 
 /**
- * Whether the cutoff stays at the top of the range on every note. Skipping
- * the filter then keeps a layer exactly as it sounded before filters existed,
- * and only drops a resonant peak at 20 kHz.
+ * Whether the layer should skip its filter, because the cutoff stays at the top
+ * of the range on every note. Skipping keeps a layer exactly as it sounded
+ * before filters existed, and only drops a resonant peak at 20 kHz.
  */
-function isFilterOpen(filter: SynthLayer["filter"]): boolean {
+function shouldSkipFilter(filter: ResolvedFilter): boolean {
   return (
     filter.cutoff >= EQ_LIMITS.frequency.max &&
     filter.keytrack === 0 &&
-    filter.envelope.amount === 0
+    filter.amount === 0
   );
 }
 

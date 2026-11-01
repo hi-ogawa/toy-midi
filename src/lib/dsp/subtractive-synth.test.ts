@@ -459,7 +459,7 @@ describe(SubtractiveSynth, () => {
     });
     const enveloped = createFilterLayer({
       cutoff: 110,
-      envelope: { ...sustained, amount: 2 },
+      envelope: { ...sustained, amount: 2, velocity: 0 },
     });
     for (const layer of [keytracked, enveloped]) {
       const samples = renderLayer(layer);
@@ -479,8 +479,14 @@ describe(SubtractiveSynth, () => {
       layers: [
         createFilterLayer({
           cutoff: 440 / 2 ** octaves,
-          envelope: { attack: 0, decay: 0, sustain: 1, release: 0, amount: 2 },
-          velocity: 1,
+          envelope: {
+            attack: 0,
+            decay: 0,
+            sustain: 1,
+            release: 0,
+            amount: 2,
+            velocity: 1,
+          },
         }),
       ],
     });
@@ -507,6 +513,7 @@ describe(SubtractiveSynth, () => {
             sustain: 0,
             release: 0,
             amount: 4,
+            velocity: 0,
           },
         }),
       ],

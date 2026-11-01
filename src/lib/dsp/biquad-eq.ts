@@ -213,7 +213,7 @@ export class BiquadEq {
  * with no ramp, for callers whose parameters already move smoothly, such as a
  * cutoff an envelope sweeps.
  */
-export class BiquadFilter {
+export class BiquadEqPerSample {
   private readonly sampleRate: number;
   private readonly coefficients: BiquadEqCoefficients = {
     b0: 1,
