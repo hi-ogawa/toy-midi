@@ -89,8 +89,10 @@ The figure chains four all-passes of 4.8, 3.6, 12.7, and 9.3 ms:
 Dattorro's design imitates a plate reverb, a large steel sheet that a driver sets vibrating and pickups listen to. It uses all-passes before and inside a loop. The all-passes make the echoes dense, and the loop's gains make them fade at a set rate. A click passes through it in this order:
 
 $$
-\text{pre-delay} \rightarrow \text{input low-pass} \rightarrow \text{4 diffusers} \rightarrow \text{tank} \rightarrow \text{output taps}.
+\text{pre-delay} \rightarrow \text{input low-pass} \rightarrow \text{4 all-passes} \rightarrow \text{loop} \rightarrow \text{stereo outputs}.
 $$
+
+Each stage has its own section below, with the paper's name for it.
 
 The paper gives every length in samples at 29,761 Hz. They're really durations, so they're rescaled to keep their length in seconds at the actual sample rate.
 
@@ -143,7 +145,7 @@ Each band still loses the same dB on every trip, so the dense response decays ex
 
 ### Tap Stereo Outputs from the Tank
 
-The plate takes one input and makes two outputs, left and right. Each output adds up seven points along the tank's delays, from both halves, with alternating signs, and the two outputs use different points. They read the same circulating sound, so they decay alike, but at any moment they sum different echoes.
+The plate takes one input and makes two outputs, left and right. Each output adds up seven **taps**, points partway along the tank's delays where the circulating sound is read off, from both halves and with alternating signs. The two outputs use different taps. They read the same circulating sound, so they decay alike, but at any moment they sum different echoes.
 
 How alike two waveforms are is measured by their **correlation**, which is 1 for identical waveforms and 0 for unrelated ones. Identical left and right channels are heard as one point between the speakers, and unrelated ones as sound surrounding the listener. Measured on the impulse response from 50 ms on, the plate's outputs have a correlation of about 0, so its reverb surrounds the listener, as a room's late reverberation does.
 
