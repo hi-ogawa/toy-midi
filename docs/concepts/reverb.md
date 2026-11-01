@@ -8,7 +8,7 @@ Throughout, $F_s$ is the sample rate, 48 kHz in the examples.
 
 A click in a hall arrives in three stages. The direct sound comes first. A few milliseconds later the first reflections arrive, off the nearest walls, floor, and ceiling, each one a distinct echo. After that, every reflection is reflected again, so the number of echoes arriving per second keeps growing until they overlap into a hiss with no individual echoes left. That **late reverberation** is most of what we hear as reverb.
 
-Each bounce loses a fixed fraction of the sound's energy to the walls and the air, so the late reverberation loses a fixed number of decibels per second, meaning its level is a straight line in dB. The usual measure of how long it lasts is the **decay time** $T_{60}$, the time to fall by 60 dB. A medium hall is around 1.8 s. Walls, seats, and air absorb high frequencies more than low ones, so highs fade sooner and the tail darkens as it decays.
+Each bounce loses a fixed fraction of the sound's energy to the walls and the air, so the late reverberation's level falls in a straight line in dB. The usual measure of how long it lasts is the **decay time** $T_{60}$, the time to fall by 60 dB. A medium hall is around 1.8 s. Walls, seats, and air absorb high frequencies more than low ones, so highs fade sooner and the tail darkens as it decays.
 
 ![A sketch of a hall's response to a click. In the first 300 ms, the direct sound is one spike, a handful of separate early reflections follow, and from about 100 ms the echoes overlap into noise. Over 2 s, its level falls in a straight line in dB, reaching −60 dB at 1.8 s](images/reverb-room-response.svg)
 
@@ -24,7 +24,7 @@ Every input sample starts its own copy of the impulse response, scaled by its va
 
 At 48 kHz, a 1.8 s impulse response is 86,400 samples, so computing the sum directly takes 86,400 multiplications per output sample and channel. In stereo that's about 8 billion multiplications per second. Convolution reverbs do work this way, using the FFT to make it affordable, but they also need a recorded response for every room, and changing the decay means recording or editing another one.
 
-What makes the late reverberation sound like a room is not its exact samples, though. Once the echoes overlap, the ear hears only a few properties: how quickly the echoes thicken into hiss, how fast the hiss fades, and how much faster its highs fade than its lows. Any response with those properties sounds like a room. So instead of storing a response, a reverb can compute one that has them, with a network that reuses its own output. The plate below does it with about 40 multiplications per sample.
+But the ear doesn't hear the late reverberation's exact samples. Once the echoes overlap, the ear hears only a few properties: how quickly the echoes thicken into hiss, how fast the hiss fades, and how much faster its highs fade than its lows. Any response with those properties sounds like a room. So instead of storing a response, a reverb can compute one that has them, with a network that reuses its own output. The plate below does it with about 40 multiplications per sample.
 
 ## Make Echoes Decay with a Feedback Delay
 
@@ -34,7 +34,7 @@ $$
 y[n]=x[n]+g \cdot y[n-D].
 $$
 
-It's what a sound does between two parallel walls $L$ apart. It comes back every $2L/c$ seconds, with $c$ the speed of sound, keeping a fraction $g$ of its level each time, which is this loop with $D=2LF_s/c$.
+A sound between two parallel walls $L$ apart behaves this way. It comes back every $2L/c$ seconds, with $c$ the speed of sound, keeping a fraction $g$ of its level each time, which is this loop with $D=2LF_s/c$.
 
 A click comes out at once, then again $D$ samples later at $g$, again at $g^2$, and so on. Each trip around the loop keeps the same fraction $g$, as each bounce in a room does, so the echoes fade the way a room's do. That's exponential decay, so in dB every trip lowers the level by the same $-20\log_{10}g$. A trip takes $D/F_s$ seconds, so falling 60 dB takes
 
@@ -48,7 +48,7 @@ The problem with one loop is that its response has only one echo per trip, at mu
 
 ## Thicken the Echoes with All-Passes
 
-What's needed is a block that spreads a click into echoes without the loop's ringing, passing every frequency at the same gain. A filter with that property is called an **all-pass**, and adding a feedforward path to the feedback delay makes the one reverbs use, Schroeder's all-pass, which reverb designs and this document call simply the all-pass:
+What's needed is a block that spreads a click into echoes without the loop's ringing, passing every frequency at the same gain. A filter with that property is called an **all-pass**. Reverbs use one built from the feedback delay by adding a feedforward path, known as Schroeder's all-pass, and this document calls it simply the all-pass:
 
 $$
 w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=g \cdot w[n]+w[n-D].
@@ -74,7 +74,7 @@ $$
 g^2+\sum_{k\ge1}g^{2(k-1)}(1-g^2)^2=g^2+\frac{(1-g^2)^2}{1-g^2}=1,
 $$
 
-so the click comes out with exactly the energy it went in with, only spread over time. The [appendix](#appendix-feedback-delays-as-transfer-functions) shows the stronger fact that the shaving evens out the feedback's peaks and dips, so the all-pass passes every frequency at the same level. With the same delay and gain, the feedback delay's echoes come with peaks and dips across the spectrum, while the all-pass's stay flat:
+so the click comes out with exactly the energy it went in with, only spread over time. The [appendix](#appendix-feedback-delays-as-transfer-functions) shows the stronger fact that the all-pass passes every frequency at the same level. The figure compares it with a feedback delay of the same delay and gain:
 
 ![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
 
@@ -86,7 +86,7 @@ The figure chains four all-passes of 4.8, 3.6, 12.7, and 9.3 ms:
 
 ## Follow a Click Through the Plate
 
-Dattorro's design imitates a plate reverb, a large steel sheet that a driver sets vibrating and pickups listen to. It puts all-passes inside a loop. The all-passes make the echoes dense, and the loop's gains make them fade at a set rate. A click passes through it in this order:
+Dattorro's design imitates a plate reverb, a large steel sheet that a driver sets vibrating and pickups listen to. It uses all-passes before and inside a loop. The all-passes make the echoes dense, and the loop's gains make them fade at a set rate. A click passes through it in this order:
 
 $$
 \text{pre-delay} \rightarrow \text{input low-pass} \rightarrow \text{4 diffusers} \rightarrow \text{tank} \rightarrow \text{output taps}.
@@ -102,7 +102,7 @@ The **pre-delay** holds the whole response back, here by 20 ms. In a hall, it's 
 
 ### Diffuse Before the Tank
 
-The plate starts with the four all-passes of the figure above, which the paper calls its **input diffusers**. They scatter the click into a burst of echoes before it reaches the loop. Without them, a sharp attack would circle the loop as one recognizable click and come back each time as a distinct repeat. With them, what the loop receives is already noise-like, and the first separate echoes in the plate's response above are that burst reaching the outputs, already thickening.
+The plate starts with the four all-passes of the figure above, which the paper calls its **input diffusers**. They scatter the click into a burst of echoes before it reaches the loop. Without them, a sharp attack would enter the loop as one click, and its first trips would come back as distinct repeats. With them, what the loop receives is already noise-like, and the first separate echoes in the plate's response above are that burst reaching the outputs, already thickening.
 
 ### Circulate in a Figure Eight
 
@@ -112,7 +112,7 @@ The tank's delays differ from each other and share no common factor, so the loop
 
 ### Set the Decay Time
 
-An all-pass passes every frequency at the same level, but it doesn't delay every frequency equally. Averaged across frequency, it delays a sound by its length $D$, and at single frequencies anywhere from $D(1-|g|)/(1+|g|)$ to $D(1+|g|)/(1-|g|)$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. For $g=0.5$, that's from a third of $D$ to three times $D$.
+The trip time counts the tank's all-passes too. An all-pass passes every frequency at the same level, but it doesn't delay every frequency equally. Averaged across frequency, it delays a sound by its length $D$, and at single frequencies anywhere from $D(1-|g|)/(1+|g|)$ to $D(1+|g|)/(1-|g|)$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. For $g=0.5$, that's from a third of $D$ to three times $D$.
 
 A trip around the figure eight passes four gains, two in each half, so it lowers the level by $-80\log_{10}g$ dB in $T\approx0.73$ s, counting each all-pass by its average delay. Like the single loop above, the decay time is then
 
@@ -143,7 +143,7 @@ Each band still loses the same dB on every trip, so the dense response decays ex
 
 ### Tap Stereo Outputs from the Tank
 
-The plate takes one input and makes two outputs, left and right. Each output adds up seven points along the tank's delays, from both halves, with alternating signs, and the two outputs use different points. They hear the same circulating sound, so they decay alike, but at any moment they sum different echoes.
+The plate takes one input and makes two outputs, left and right. Each output adds up seven points along the tank's delays, from both halves, with alternating signs, and the two outputs use different points. They read the same circulating sound, so they decay alike, but at any moment they sum different echoes.
 
 How alike two waveforms are is measured by their **correlation**, which is 1 for identical waveforms and 0 for unrelated ones. Identical left and right channels are heard as one point between the speakers, and unrelated ones as sound surrounding the listener. Measured on the impulse response from 50 ms on, the plate's outputs have a correlation of about 0, so its reverb surrounds the listener, as a room's late reverberation does.
 
@@ -151,7 +151,7 @@ How alike two waveforms are is measured by their **correlation**, which is 1 for
 
 A room reverberates every source in it, and a mix gets the same effect from one reverb that every track feeds. Once the echoes overlap, the late reverberation arrives from every direction, whichever source started it, so it carries nothing about where the source stands. A listener locates a source from the direct sound and the first reflections, which arrive before it. The plate models only the late reverberation, and its pre-delay holds it back behind the direct sound, so summing every source into its one input loses nothing the listener uses to place a source.
 
-Each track feeds the reverb through a **send**, a copy of the track's signal at a level set per track, and the reverb's output, its **return**, joins the mix like another track. The send is taken after the track's fader, so turning a track down or muting it takes its reverb with it. It's taken before the track's pan, since the input is summed into one signal anyway and the direct sound already places the track. A guitar panned hard left then sits on the left inside a room that still surrounds the listener.
+Each track feeds the reverb through a **send**, a copy of the track's signal at a level set per track, and the reverb's output, its **return**, joins the mix like another track. The send is taken after the track's fader, so turning a track down or muting it takes its reverb with it. The send is taken before the track's pan, since the input is summed into one signal anyway and the direct sound already places the track. A guitar panned hard left then sits on the left inside a room that still surrounds the listener.
 
 The other place for an effect is an **insert**, in the track's own chain, as an EQ is. A reverb there reverberates only that track, and since a channel's pan comes after its inserts, the pan then acts on the reverb's stereo output. Panning a stereo signal works as a balance control, so panning the track moves its whole room to one side. A room doesn't reverberate from one side, so a mix rarely wants this. It's an easy mistake to make when first putting a reverb on a single track. Sends avoid it, and one shared reverb also costs less than one per track.
 
