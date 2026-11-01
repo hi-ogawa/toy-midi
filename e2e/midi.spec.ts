@@ -51,6 +51,17 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await secondPan.press("Shift+ArrowRight");
   await expect(secondChannel).toContainText("L90");
 
+  // Raise the second track's reverb send from off to full, then step it down to -12 dB.
+  const secondSend = secondChannel.getByRole("slider", {
+    name: "MIDI 2 reverb send",
+  });
+  await expect(secondSend).toHaveAttribute("aria-valuetext", "-∞ dB");
+  await secondSend.press("End");
+  await expect(secondSend).toHaveAttribute("aria-valuetext", "0.0 dB");
+  await secondSend.press("Shift+ArrowDown");
+  await secondSend.press("Shift+ArrowDown");
+  await expect(secondSend).toHaveAttribute("aria-valuetext", "-12.0 dB");
+
   // Save and reload both tracks with their independent mix settings.
   const save = page.getByTestId("save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
@@ -66,6 +77,7 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await expect(rows.nth(1)).toContainText("-6.0 dB");
   await expect(secondLevel).toHaveValue("-6.0");
   await expect(secondPan).toHaveAttribute("aria-valuetext", "L90");
+  await expect(secondSend).toHaveAttribute("aria-valuetext", "-12.0 dB");
 
   // Play the restored project and pause after the transport advances.
   const play = page.getByTestId("play-button");
