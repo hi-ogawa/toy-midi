@@ -6,6 +6,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { BUTTERWORTH_Q, EQ_LIMITS } from "../lib/dsp/biquad-eq";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
   createSynthLayer,
@@ -21,6 +22,8 @@ import {
   dbToGain,
   formatPan,
   gainToDb,
+  logPositionToValue,
+  valueToLogPosition,
 } from "../lib/music";
 import { EnvelopeEditor } from "./envelope-editor";
 import { Panel } from "./panel";
@@ -33,6 +36,9 @@ const MIN_OCTAVE = -3;
 const MAX_OCTAVE = 3;
 // Limit to half a semitone
 const MAX_DETUNE_CENTS = 50;
+// The cutoff spans about 10 octaves, so the envelope can sweep a low cutoff
+// almost to the top, or a high one down.
+const MAX_ENVELOPE_OCTAVES = 8;
 
 const WAVEFORM_LABELS: Record<Waveform, string> = {
   sine: "Sine",
@@ -194,6 +200,10 @@ function SynthLayerRow({
     });
   }
 
+  function updateFilter(update: Partial<SynthLayer["filter"]>) {
+    onChange({ ...layer, filter: { ...layer.filter, ...update } });
+  }
+
   return (
     <div
       role="group"
@@ -289,12 +299,20 @@ function SynthLayerRow({
             </div>
           </FoldableSection>
           <FoldableSection
+            title="Filter"
+            folded={foldedSections.has("filter")}
+            onToggle={() => toggleSection("filter")}
+          >
+            <FilterControls filter={layer.filter} onChange={updateFilter} />
+          </FoldableSection>
+          <FoldableSection
             title="Amp"
             folded={foldedSections.has("amp")}
             onToggle={() => toggleSection("amp")}
           >
             <EnvelopeEditor
               label="Amp envelope"
+              color="emerald"
               envelope={envelope}
               onChange={updateEnvelope}
             />
@@ -341,6 +359,194 @@ function FoldableSection({
       </div>
       {!folded && children}
     </section>
+  );
+}
+
+function FilterControls({
+  filter,
+  onChange,
+}: {
+  filter: SynthLayer["filter"];
+  onChange: (update: Partial<SynthLayer["filter"]>) => void;
+}) {
+  const { envelope } = filter;
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-2">
+        <ParameterKnob
+          label="Cutoff"
+          value={filter.cutoff}
+          scale={createLogScale(EQ_LIMITS.frequency)}
+          format={formatCutoff}
+          onChange={(cutoff) => onChange({ cutoff: Math.round(cutoff) })}
+        />
+        <ParameterKnob
+          label="Resonance"
+          shortLabel="Reso"
+          value={filter.resonance}
+          scale={createLogScale(EQ_LIMITS.q)}
+          origin={BUTTERWORTH_Q}
+          format={(q) => q.toFixed(2)}
+          onChange={(resonance) =>
+            onChange({ resonance: Math.round(resonance * 100) / 100 })
+          }
+        />
+        <ParameterKnob
+          label="Keytrack"
+          shortLabel="Key"
+          value={filter.keytrack}
+          scale={createLinearScale({ min: 0, max: 1 })}
+          format={formatPercent}
+          onChange={(keytrack) =>
+            onChange({ keytrack: Math.round(keytrack * 100) / 100 })
+          }
+        />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <ParameterKnob
+          label="Envelope amount"
+          shortLabel="Amount"
+          value={envelope.amount}
+          scale={createLinearScale({
+            min: -MAX_ENVELOPE_OCTAVES,
+            max: MAX_ENVELOPE_OCTAVES,
+          })}
+          origin={0}
+          format={(octaves) =>
+            `${octaves > 0 ? "+" : ""}${octaves.toFixed(1)} oct`
+          }
+          onChange={(amount) =>
+            onChange({
+              envelope: { ...envelope, amount: Math.round(amount * 10) / 10 },
+            })
+          }
+        />
+        <ParameterKnob
+          label="Velocity to envelope amount"
+          shortLabel="Velocity"
+          value={envelope.velocity}
+          scale={createLinearScale({ min: 0, max: 1 })}
+          format={formatPercent}
+          onChange={(velocity) =>
+            onChange({
+              envelope: {
+                ...envelope,
+                velocity: Math.round(velocity * 100) / 100,
+              },
+            })
+          }
+        />
+      </div>
+      <EnvelopeEditor
+        label="Filter envelope"
+        color="amber"
+        envelope={envelope}
+        onChange={(update) =>
+          onChange({ envelope: { ...envelope, ...update } })
+        }
+      />
+    </div>
+  );
+}
+
+/** Maps a parameter to a knob position from 0 to 1 and back. */
+interface KnobScale {
+  toPosition: (value: number) => number;
+  toValue: (position: number) => number;
+}
+
+function createLinearScale({ min, max }: { min: number; max: number }) {
+  return {
+    toPosition: (value: number) => (value - min) / (max - min),
+    toValue: (position: number) => min + position * (max - min),
+  } satisfies KnobScale;
+}
+
+function createLogScale(range: { min: number; max: number }) {
+  return {
+    toPosition: (value: number) => valueToLogPosition(value, range),
+    toValue: (position: number) => logPositionToValue(position, range),
+  } satisfies KnobScale;
+}
+
+function formatCutoff(hz: number): string {
+  if (hz >= EQ_LIMITS.frequency.max) {
+    return "Open";
+  }
+  return hz >= 1000 ? `${(hz / 1000).toFixed(1)} kHz` : `${Math.round(hz)} Hz`;
+}
+
+function formatPercent(fraction: number): string {
+  return `${Math.round(fraction * 100)}%`;
+}
+
+/**
+ * A knob with its label above its readout. Drag and keys move it by position,
+ * so a log scale gets finer steps at the low end.
+ */
+function ParameterKnob({
+  label,
+  shortLabel = label,
+  value,
+  scale,
+  origin,
+  format,
+  onChange,
+}: {
+  label: string;
+  shortLabel?: string;
+  value: number;
+  scale: KnobScale;
+  origin?: number;
+  format: (value: number) => string;
+  onChange: (value: number) => void;
+}) {
+  const position = scale.toPosition(value);
+  const setPosition = (next: number) =>
+    onChange(scale.toValue(clamp(next, 0, 1)));
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return position;
+    },
+    onMove: (_event, drag) => setPosition(drag.data - drag.deltaY / 200),
+  });
+  const valueText = format(value);
+  return (
+    <div className="flex items-center gap-1.5">
+      <Knob
+        ref={ref}
+        aria-label={label}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const next = {
+            ArrowLeft: position - step,
+            ArrowDown: position - step,
+            ArrowRight: position + step,
+            ArrowUp: position + step,
+            Home: 0,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPosition(next);
+          }
+        }}
+        value={position}
+        min={0}
+        max={1}
+        origin={origin === undefined ? 0 : scale.toPosition(origin)}
+        className="cursor-ns-resize"
+      />
+      <div className="min-w-0 leading-tight">
+        <div className="truncate text-xs text-neutral-400">{shortLabel}</div>
+        <div className="font-mono text-xs text-muted-foreground tabular-nums">
+          {valueText}
+        </div>
+      </div>
+    </div>
   );
 }
 
