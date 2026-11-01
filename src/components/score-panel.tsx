@@ -8,6 +8,7 @@ import type {
   EditorRuntime,
   EditorRuntimeState,
 } from "../lib/runtime";
+import { addToSet, deleteFromSet } from "../utils/set";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import {
@@ -19,14 +20,10 @@ import {
 export function useScorePanelUi() {
   const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
   function open(id: string) {
-    setOpenTracks((current) => new Set([...current, id]));
+    setOpenTracks((current) => addToSet(current, id));
   }
   function close(id: string) {
-    setOpenTracks((current) => {
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
+    setOpenTracks((current) => deleteFromSet(current, id));
   }
   return { openTracks, open, close };
 }

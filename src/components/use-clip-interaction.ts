@@ -11,6 +11,7 @@ import {
   EditorRuntime,
   EditorRuntimeState,
 } from "../lib/runtime";
+import { toggleInSet } from "../utils/set";
 
 type ClipEditStart = {
   type: "move" | "trim-start" | "trim-end";
@@ -83,13 +84,7 @@ export function useClipInteraction({
       setSelectedIds(next);
       return;
     }
-    const next = new Set(selectedIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setSelectedIds(next);
+    setSelectedIds(toggleInSet(selectedIds, id));
   }
 
   function startEdit(input: ClipEditStart): void {
