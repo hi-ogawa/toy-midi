@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encodePitchBend } from "../general-midi";
-import { gainToDb } from "../music";
+import { gainToDb, midiToHz } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
   createSynthLayer,
@@ -436,62 +436,104 @@ describe(SubtractiveSynth, () => {
   });
 
   it("filters a layer through a low-pass at its cutoff and resonance", () => {
-    // A sine at the cutoff comes out at Q times its level: 3 dB down at the
-    // Butterworth Q, and 12 dB up at Q 4. The level skips the first 50 ms,
-    // where a resonant filter rings after note-on.
-    const measureGainDbAtResonance = (resonance: number) => {
-      const synth = new SubtractiveSynth(SAMPLE_RATE);
-      synth.setPatch({
-        layers: [createGateLayer({ filter: { cutoff: 440, resonance } })],
-      });
-      const samples = renderSynth(synth, {
-        seconds: 0.1,
-        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
-      });
-      const unfiltered = PEAK / Math.SQRT2;
-      return gainToDb(
-        measureRms(samples.subarray(0.05 * SAMPLE_RATE)) / unfiltered,
-      );
-    };
-    expect(measureGainDbAtResonance(Math.SQRT1_2)).toBeCloseTo(-3, 1);
-    expect(measureGainDbAtResonance(4)).toBeCloseTo(gainToDb(4), 1);
+    // A sine at the cutoff comes out at Q times its level, from PEAK's -21.1 dB:
+    //   Q = √½ (Butterworth): 3 dB down, -24.2 dB
+    //   Q = 4: 12 dB up, -9.1 dB, after ringing for its first 50 ms
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      layers: [
+        createGateLayer({ filter: { cutoff: 440, resonance: Math.SQRT1_2 } }),
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.2: () => {
+          synth.noteOff(A4);
+          synth.setPatch({
+            layers: [
+              createGateLayer({ filter: { cutoff: 440, resonance: 4 } }),
+            ],
+          });
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -24.2 dB  ████████████████████████████████████
+       50 ms  -24.2 dB  ████████████████████████████████████
+      100 ms  -24.2 dB  ████████████████████████████████████
+      150 ms  -24.2 dB  ████████████████████████████████████
+      200 ms   -9.5 dB  ███████████████████████████████████████████████████
+      250 ms   -9.1 dB  ███████████████████████████████████████████████████
+      300 ms   -9.1 dB  ███████████████████████████████████████████████████
+      350 ms   -9.1 dB  ███████████████████████████████████████████████████
+      "
+    `);
   });
 
-  it("moves the cutoff by keytrack and the envelope, with no lag", () => {
-    // Each layer lands on a 440 Hz cutoff from its first sample, so it plays
-    // the same samples as a layer fixed there.
-    const reference = new SubtractiveSynth(SAMPLE_RATE);
-    reference.setPatch({
-      layers: [createGateLayer({ filter: { cutoff: 440 } })],
+  it("moves the cutoff with the note by keytrack", () => {
+    // Keytrack 1 moves the cutoff an octave per octave of the note from C4, so
+    // each note sits at its own cutoff, 3 dB down from PEAK's -21.1 dB:
+    //   A4: C4 × 2^(9/12) = 440 Hz, A5: C4 × 2^(21/12) = 880 Hz, both -24.2 dB
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      layers: [
+        createGateLayer({ filter: { cutoff: midiToHz(60), keytrack: 1 } }),
+      ],
     });
-    const expected = renderSynth(reference, {
-      seconds: 0.1,
-      at: { 0: () => reference.noteOn(A4, FULL_VELOCITY) },
-    });
-    const sustained = { attack: 0, decay: 0, sustain: 1, release: 0 };
-    // A4 is 9 semitones above middle C.
-    const keytracked = createGateLayer({
-      filter: {
-        cutoff: 440 / 2 ** (9 / 12),
-        keytrack: 1,
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4 + 12, FULL_VELOCITY);
+        },
       },
     });
-    const enveloped = createGateLayer({
-      filter: {
-        cutoff: 110,
-        envelope: { ...sustained, amount: 2, velocity: 0 },
-      },
-    });
-    for (const layer of [keytracked, enveloped]) {
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -24.2 dB  ████████████████████████████████████
+       50 ms  -24.2 dB  ████████████████████████████████████
+      100 ms  -24.2 dB  ████████████████████████████████████
+      150 ms  -24.2 dB  ████████████████████████████████████
+      "
+    `);
+  });
+
+  it("lands the envelope's cutoff from the first sample", () => {
+    // A sustained 2-octave amount opens the cutoff at once from 110 Hz to
+    // 110 × 2^2 = 440 Hz, so the layer plays the same samples as one fixed
+    // there.
+    const renderLayer = (layer: SynthLayer) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch({ layers: [layer] });
-      const samples = renderSynth(synth, {
+      return renderSynth(synth, {
         seconds: 0.1,
         at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
       });
-      for (let i = 0; i < samples.length; i++) {
-        expect(samples[i]).toBeCloseTo(expected[i], 6);
-      }
+    };
+    const expected = renderLayer(createGateLayer({ filter: { cutoff: 440 } }));
+    const samples = renderLayer(
+      createGateLayer({
+        filter: {
+          cutoff: 110,
+          envelope: {
+            attack: 0,
+            decay: 0,
+            sustain: 1,
+            release: 0,
+            amount: 2,
+            velocity: 0,
+          },
+        },
+      }),
+    );
+    for (let i = 0; i < samples.length; i++) {
+      expect(samples[i]).toBeCloseTo(expected[i], 6);
     }
   });
 
