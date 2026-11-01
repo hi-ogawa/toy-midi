@@ -62,7 +62,19 @@ The first equation is the feedback delay with its gain negated, so a click makes
 | $w[n-D]$ | $0$ | $1$     | $-g$        | $g^2$        |
 | $y[n]$   | $g$ | $1-g^2$ | $-g(1-g^2)$ | $g^2(1-g^2)$ |
 
-At $0$, only the on-time train contributes, so $g$ goes straight through. After that, each $w[n]$ entry is $-g$ times the $w[n-D]$ entry below it, so the on-time train subtracts $g^2$ of every late echo, which shaves each one by the same factor $1-g^2$. Squared and summed, the echoes come to $g^2+(1-g^2)^2(1+g^2+g^4+\dots)=1$, so the click keeps exactly its energy, only spread over time. The [appendix](#appendix-feedback-delays-as-transfer-functions) shows the stronger fact that the shaving evens out the feedback's peaks and dips at every frequency, so the all-pass changes when the sound arrives without changing its tone. With the same delay and gain, the feedback delay's echoes come with peaks and dips across the spectrum, while the all-pass's stay flat:
+At $0$, only the on-time train contributes, so $g$ goes straight through. After that, each $w[n]$ entry is $-g$ times the $w[n-D]$ entry below it, so the on-time train subtracts $g^2$ of every late echo, and the $k$-th echo is
+
+$$
+y[kD]=(-g)^{k-1}(1-g^2),\qquad k\ge1.
+$$
+
+A signal's energy is the sum of its squared samples, so the click goes in with energy 1. The output's comes to
+
+$$
+g^2+\sum_{k\ge1}g^{2(k-1)}(1-g^2)^2=g^2+\frac{(1-g^2)^2}{1-g^2}=1,
+$$
+
+so the click comes out with exactly the energy it went in with, only spread over time. The [appendix](#appendix-feedback-delays-as-transfer-functions) shows the stronger fact that the shaving evens out the feedback's peaks and dips at every frequency, so the all-pass changes when the sound arrives without changing its tone. With the same delay and gain, the feedback delay's echoes come with peaks and dips across the spectrum, while the all-pass's stay flat:
 
 ![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
 
