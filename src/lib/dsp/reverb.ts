@@ -1,9 +1,10 @@
 /**
- * Dattorro's plate reverb: a pre-delay, an input low-pass, four input
- * diffusers, and a figure-eight tank of two delay loops whose taps make a
- * synthetic stereo output, after J. Dattorro, "Effect Design, Part 1:
- * Reverberator and Other Filters", J. Audio Eng. Soc., 1997, Fig. 1 and
- * Tables 1 and 2. The paper's delay modulation is left out.
+ * Dattorro's plate reverb: a pre-delay, four input diffusers, and a
+ * figure-eight tank of two delay loops whose taps make a synthetic stereo
+ * output, after J. Dattorro, "Effect Design, Part 1: Reverberator and Other
+ * Filters", J. Audio Eng. Soc., 1997, Fig. 1 and Tables 1 and 2. The paper's
+ * delay modulation is left out, and so is its input low-pass, which its
+ * default setting leaves inaudible.
  *
  * See [Reverb](../../../docs/concepts/reverb.md) for why a delay network
  * reverberates and what each part does to the impulse response.
@@ -40,9 +41,6 @@ const INPUT_DIFFUSERS = [
   { length: 379, gain: 0.625 },
   { length: 277, gain: 0.625 },
 ];
-
-// The paper's default, which lets nearly the full band into the tank.
-const BANDWIDTH = 0.9995;
 
 // Each half of the tank: an all-pass, a delay, the damping low-pass, an
 // all-pass, and a delay. The first all-pass has its sign flipped, which the
@@ -84,7 +82,6 @@ const OUTPUT_TAP_GAIN = 0.6;
 export class Reverb {
   private readonly block: Float32Array;
   private readonly preDelay: DelayLine;
-  private readonly bandwidth = new OnePoleLowPass(1 - BANDWIDTH);
   private readonly inputDiffusers: AllPass[];
   private readonly halves: TankHalf[];
   private readonly decayGain: number;
@@ -167,7 +164,6 @@ export class Reverb {
     const decay = this.decayGain;
     for (let frame = 0; frame < block.length; frame++) {
       let x = this.preDelay.process(block[frame] / input.length);
-      x = this.bandwidth.process(x);
       for (const diffuser of this.inputDiffusers) {
         x = diffuser.process(x);
       }

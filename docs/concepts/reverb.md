@@ -89,7 +89,7 @@ The figure chains four all-passes of 4.8, 3.6, 12.7, and 9.3 ms:
 Dattorro's design imitates a plate reverb, a large steel sheet that a driver sets vibrating and pickups listen to. It uses all-passes before and inside a loop. The all-passes make the echoes dense, and the loop's gains make them fade at a set rate. A click passes through it in this order:
 
 $$
-\text{pre-delay} \rightarrow \text{input low-pass} \rightarrow \text{4 all-passes} \rightarrow \text{loop} \rightarrow \text{stereo outputs}.
+\text{pre-delay} \rightarrow \text{4 all-passes} \rightarrow \text{loop} \rightarrow \text{stereo outputs}.
 $$
 
 Each stage has its own section below, with the paper's name for it.
@@ -98,9 +98,9 @@ The paper gives every length in samples at 29,761 Hz. They're really durations, 
 
 ![The plate's response to a click over the first 150 ms. Nothing comes out during the 20 ms pre-delay, then a few separate echoes arrive, which thicken into dense noise by about 60 ms, differently in the left and right outputs](images/reverb-impulse-onset.svg)
 
-### Delay and Band-Limit the Input
+### Delay the Input
 
-The **pre-delay** holds the whole response back, here by 20 ms. In a hall, it's the gap between the direct sound and the first reflections, and in a mix it keeps a note's attack clear of its own reverb. A one-pole **low-pass** then sets how much high end enters the reverb. Our implementation keeps the paper's default, which loses less than 0.01 dB even at 24 kHz, so the low-pass has no audible effect unless it's turned down.
+The **pre-delay** holds the whole response back, here by 20 ms. In a hall, it's the gap between the direct sound and the first reflections, and in a mix it keeps a note's attack clear of its own reverb. The paper also passes the input through a low-pass, but its default setting loses less than 0.01 dB even at 24 kHz, so our implementation leaves it out.
 
 ### Diffuse Before the Tank
 
