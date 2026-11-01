@@ -498,8 +498,8 @@ describe(SubtractiveSynth, () => {
   it("scales the envelope's amount by velocity", () => {
     // At velocity 64, a fully velocity-scaled 2-octave amount opens the cutoff
     // 2 × 64 / 127 octaves, from 440 / 2^octaves onto A4 = 440 Hz, where the
-    // low-pass is 3 dB down. Velocity 64 alone puts the note at
-    // -21.1 + 20 log10(64 / 127) = -27.1 dB, so the rows read -30.1 dB.
+    // low-pass is 3 dB down. Velocity 64 about halves the level, 6 dB down, so
+    // the rows read -21.1 - 6 - 3 = -30.1 dB.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const octaves = (2 * 64) / 127;
     synth.setPatch({
