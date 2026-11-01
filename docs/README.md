@@ -18,6 +18,7 @@
 - [Oversampling](concepts/oversampling.md): why clipping aliases, upsampling and downsampling around it, the windowed-sinc low-pass they share, and the polyphase shortcut.
 - [Band-limited oscillators](concepts/band-limited-oscillators.md): why a sawtooth's jumps alias, why filtering or oversampling doesn't fix it, and how PolyBLEP rounds each jump over two samples.
 - [ADSR envelopes](concepts/adsr-envelopes.md): attack, decay, sustain, and release, early releases, and the one-pole curves that make a stage's time the length you hear.
+- [Noise colors](concepts/noise-colors.md): noise described by its spectrum rather than its samples, white, pink, and brown noise as one generator plus a filter, and why a synth's low-pass gives band-limited noise rather than a color.
 
 ## Bass Pitch
 
