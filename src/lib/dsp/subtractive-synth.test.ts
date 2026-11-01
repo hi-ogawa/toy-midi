@@ -13,7 +13,7 @@ import {
 } from "./subtractive-synth";
 
 // A full-velocity note's peak at the default CC7 volume of 100, about 4 dB
-// below the synth's peak gain
+// below the synth's peak gain. A sine at this peak measures -21.1 dB RMS.
 const PEAK = PEAK_GAIN * (100 / 127) ** 2;
 // 440 Hz
 const A4 = 69;
