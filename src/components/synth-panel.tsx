@@ -22,7 +22,7 @@ import {
   formatPan,
   gainToDb,
 } from "../lib/music";
-import { EnvelopeEditor } from "./envelope-editor";
+import { EnvelopeEditor, formatEnvelopeTime } from "./envelope-editor";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
@@ -40,6 +40,12 @@ const WAVEFORM_LABELS: Record<Waveform, string> = {
   sawtooth: "Saw",
   square: "Square",
 };
+
+const SECTIONS = [
+  { id: "oscillator", label: "Oscillator", shortLabel: "Osc" },
+  { id: "amp", label: "Amp", shortLabel: "Amp" },
+] as const;
+type Section = (typeof SECTIONS)[number]["id"];
 
 export function useSynthPanelUi() {
   const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
@@ -99,6 +105,10 @@ export function SynthPanelContent({
   onChange: (patch: SynthPatch) => void;
 }) {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  // Hides a section in every layer at once, so layers stay comparable.
+  const [hiddenSections, setHiddenSections] = useState<ReadonlySet<Section>>(
+    new Set(),
+  );
 
   function updateLayer(layer: SynthLayer) {
     onChange({
@@ -130,13 +140,45 @@ export function SynthPanelContent({
     });
   }
 
+  function toggleSection(section: Section) {
+    setHiddenSections((current) => {
+      const next = new Set(current);
+      if (!next.delete(section)) {
+        next.add(section);
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-2">
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-xs text-neutral-400">Show</span>
+        <div
+          role="group"
+          aria-label="Sections"
+          className="flex overflow-hidden rounded border border-neutral-600"
+        >
+          {SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              aria-label={section.label}
+              aria-pressed={!hiddenSections.has(section.id)}
+              onClick={() => toggleSection(section.id)}
+              className="h-6 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+            >
+              {section.shortLabel}
+            </button>
+          ))}
+        </div>
+      </div>
       {patch.layers.map((layer, i) => (
         <SynthLayerRow
           key={layer.id}
           name={`Layer ${i + 1}`}
           layer={layer}
+          hiddenSections={hiddenSections}
           collapsed={collapsed.has(layer.id)}
           removeDisabled={patch.layers.length === 1}
           onChange={updateLayer}
@@ -158,6 +200,7 @@ export function SynthPanelContent({
 function SynthLayerRow({
   name,
   layer,
+  hiddenSections,
   collapsed,
   removeDisabled,
   onChange,
@@ -166,6 +209,7 @@ function SynthLayerRow({
 }: {
   name: string;
   layer: SynthLayer;
+  hiddenSections: ReadonlySet<Section>;
   collapsed: boolean;
   removeDisabled: boolean;
   onChange: (layer: SynthLayer) => void;
@@ -223,63 +267,114 @@ function SynthLayerRow({
       </div>
       {!collapsed && (
         <div className="space-y-2 border-t border-neutral-700 px-3 py-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-medium">Oscillator</h3>
-            <div
-              role="group"
-              aria-label="Waveform"
-              className="flex overflow-hidden rounded border border-neutral-600"
-            >
-              {WAVEFORMS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-label={WAVEFORM_LABELS[option]}
-                  title={WAVEFORM_LABELS[option]}
-                  aria-pressed={layer.oscillator.waveform === option}
-                  onClick={() =>
+          {hiddenSections.has("oscillator") ? (
+            <SectionSummary
+              label="Oscillator"
+              summary={formatOscillator(layer.oscillator)}
+            />
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-medium">Oscillator</h3>
+                <div
+                  role="group"
+                  aria-label="Waveform"
+                  className="flex overflow-hidden rounded border border-neutral-600"
+                >
+                  {WAVEFORMS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-label={WAVEFORM_LABELS[option]}
+                      title={WAVEFORM_LABELS[option]}
+                      aria-pressed={layer.oscillator.waveform === option}
+                      onClick={() =>
+                        onChange({
+                          ...layer,
+                          oscillator: { ...layer.oscillator, waveform: option },
+                        })
+                      }
+                      className="flex h-6 items-center justify-center bg-neutral-900 px-1.5 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                    >
+                      <WaveformIcon waveform={option} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <OctaveStepper
+                  octave={layer.oscillator.octave}
+                  onOctaveChange={(octave) =>
                     onChange({
                       ...layer,
-                      oscillator: { ...layer.oscillator, waveform: option },
+                      oscillator: { ...layer.oscillator, octave },
                     })
                   }
-                  className="flex h-6 items-center justify-center bg-neutral-900 px-1.5 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
-                >
-                  <WaveformIcon waveform={option} />
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <OctaveStepper
-              octave={layer.oscillator.octave}
-              onOctaveChange={(octave) =>
-                onChange({
-                  ...layer,
-                  oscillator: { ...layer.oscillator, octave },
-                })
-              }
-            />
-            <DetuneKnob
-              detune={layer.oscillator.detune}
-              onDetuneChange={(detune) =>
-                onChange({
-                  ...layer,
-                  oscillator: { ...layer.oscillator, detune },
-                })
-              }
-            />
-          </div>
-          <h3 className="pt-1 text-xs font-medium">Amp</h3>
-          <EnvelopeEditor
-            label="Amp envelope"
-            envelope={envelope}
-            onChange={updateEnvelope}
-          />
+                />
+                <DetuneKnob
+                  detune={layer.oscillator.detune}
+                  onDetuneChange={(detune) =>
+                    onChange({
+                      ...layer,
+                      oscillator: { ...layer.oscillator, detune },
+                    })
+                  }
+                />
+              </div>
+            </>
+          )}
+          {hiddenSections.has("amp") ? (
+            <SectionSummary label="Amp" summary={formatEnvelope(envelope)} />
+          ) : (
+            <>
+              <h3 className="pt-1 text-xs font-medium">Amp</h3>
+              <EnvelopeEditor
+                label="Amp envelope"
+                envelope={envelope}
+                onChange={updateEnvelope}
+              />
+            </>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+/** Stands in for a hidden section, so its settings stay in view. */
+function SectionSummary({
+  label,
+  summary,
+}: {
+  label: string;
+  summary: string;
+}) {
+  return (
+    <div className="flex items-baseline gap-2 text-xs">
+      <h3 className="w-16 shrink-0 font-medium">{label}</h3>
+      <span className="truncate font-mono text-muted-foreground tabular-nums">
+        {summary}
+      </span>
+    </div>
+  );
+}
+
+function formatOscillator({
+  waveform,
+  octave,
+  detune,
+}: SynthLayer["oscillator"]): string {
+  const signed = (value: number) => (value > 0 ? `+${value}` : String(value));
+  return `${WAVEFORM_LABELS[waveform]} · ${signed(octave)} oct · ${signed(detune)} ct`;
+}
+
+function formatEnvelope({ attack, decay, sustain, release }: Envelope): string {
+  return [
+    `A ${formatEnvelopeTime(attack)}`,
+    `D ${formatEnvelopeTime(decay)}`,
+    `S ${Math.round(sustain * 100)}%`,
+    `R ${formatEnvelopeTime(release)}`,
+  ].join(" · ");
 }
 
 function OctaveStepper({

@@ -163,6 +163,12 @@ function EnvelopeHandle({
   );
 }
 
+export function formatEnvelopeTime(seconds: number): string {
+  return seconds < 1
+    ? `${Number((seconds * 1000).toPrecision(2))} ms`
+    : `${Number(seconds.toPrecision(2))} s`;
+}
+
 function TimeReadout({
   label,
   value,
@@ -175,11 +181,7 @@ function TimeReadout({
   return (
     <Readout
       label={label}
-      valueText={
-        value < 1
-          ? `${Number((value * 1000).toPrecision(2))} ms`
-          : `${Number(value.toPrecision(2))} s`
-      }
+      valueText={formatEnvelopeTime(value)}
       position={timeToPosition(value)}
       // A tenth of a decade, log(10^0.1) / log(10 / 0.001) = 0.025 of the range,
       // which stays above the rounding to two digits.

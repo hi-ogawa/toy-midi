@@ -152,6 +152,15 @@ test("adds, collapses, and removes layers in the Synth panel", async ({
   await expect(layer1.getByRole("group", { name: "Waveform" })).toHaveCount(0);
   await expect(layer2.getByRole("group", { name: "Waveform" })).toBeVisible();
 
+  // Hide the Oscillator section, and see the open layer show its waveform as
+  // a summary line. Show it again.
+  const sections = panel.getByRole("group", { name: "Sections" });
+  await sections.getByRole("button", { name: "Oscillator" }).click();
+  await expect(layer2.getByRole("group", { name: "Waveform" })).toHaveCount(0);
+  await expect(layer2).toContainText("Square · 0 oct · 0 ct");
+  await sections.getByRole("button", { name: "Oscillator" }).click();
+  await expect(layer2.getByRole("group", { name: "Waveform" })).toBeVisible();
+
   // Remove the first layer, and see the square layer move up, open, as the
   // only layer.
   await layer1.getByRole("button", { name: "Remove Layer 1" }).click();
