@@ -158,7 +158,7 @@ export class Reverb {
     block.fill(0);
     for (const channel of input) {
       for (let frame = 0; frame < block.length; frame++) {
-        block[frame] += channel[frame];
+        block[frame] += channel[frame] / input.length;
       }
     }
     const [left, right] = output;
@@ -166,7 +166,7 @@ export class Reverb {
     const [leftTaps, rightTaps] = this.outputTaps;
     const decay = this.decayGain;
     for (let frame = 0; frame < block.length; frame++) {
-      let x = this.preDelay.process(block[frame] / input.length);
+      let x = this.preDelay.process(block[frame]);
       for (const diffuser of this.inputDiffusers) {
         x = diffuser.process(x);
       }
