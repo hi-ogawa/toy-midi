@@ -41,7 +41,7 @@ export interface SynthLayer {
    * cutoff × 2^(envelope × amount × velocity depth + keytrack × (note − 60) / 12)
    */
   filter: {
-    /** Hz at middle C with the envelope at 0 */
+    /** Hz at middle C, note 60 (C4), with the envelope at 0 */
     cutoff: number;
     /** The low-pass's Q, as on the track EQ */
     resonance: number;
