@@ -708,6 +708,7 @@ function PanKnob({
         min={-1}
         max={1}
         origin={0}
+        color="pan"
         className="cursor-ns-resize"
       />
     </Tooltip>

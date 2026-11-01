@@ -3,12 +3,20 @@ import { cn } from "./utils";
 
 const SWEEP_DEGREES = 270;
 
+// Pan has its own color wherever it appears, so a pan knob reads apart from
+// level and other knobs beside it.
+const ARC_CLASSES = {
+  primary: "stroke-primary",
+  pan: "stroke-violet-400",
+};
+
 /** A focusable slider drawn as a knob. The caller supplies the label and the input behavior through div props. */
 export function Knob({
   value,
   min,
   max,
   origin = min,
+  color = "primary",
   className,
   ...props
 }: ComponentProps<"div"> & {
@@ -17,6 +25,7 @@ export function Knob({
   max: number;
   /** Where the value arc starts, such as the center of a pan knob */
   origin?: number;
+  color?: keyof typeof ARC_CLASSES;
 }) {
   const toDegrees = (v: number) =>
     ((v - min) / (max - min) - 0.5) * SWEEP_DEGREES;
@@ -51,7 +60,7 @@ export function Knob({
           <path
             d={`M ${start.x} ${start.y} A 10 10 0 ${largeArc} ${clockwise} ${end.x} ${end.y}`}
             fill="none"
-            className="stroke-primary"
+            className={ARC_CLASSES[color]}
             strokeWidth="3"
           />
         )}
