@@ -496,11 +496,11 @@ describe(SubtractiveSynth, () => {
   });
 
   it("scales the envelope's amount by velocity", () => {
-    // Velocity 64 is about half of 127, so it scales the 2-octave amount to about
-    // 1 octave, opening the cutoff onto A4:
-    //   220 Hz × 2^1 = 440 Hz = A4, where the low-pass is 3 dB down
-    // Velocity 64 also halves the level, 6 dB down, so the rows read
-    // -21.1 - 6 - 3 = -30.1 dB.
+    // Velocity scales the 2-octave amount, so each note opens the cutoff from
+    // 220 Hz onto itself, where the low-pass is 3 dB down from PEAK's -21.1 dB:
+    //   velocity 64, about half: 220 Hz × 2^1 = 440 Hz = A4, with the level
+    //   halved too, 6 dB more: -30.1 dB
+    //   velocity 127: 220 Hz × 2^2 = 880 Hz = A5: -24.2 dB
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
       layers: [
@@ -520,13 +520,21 @@ describe(SubtractiveSynth, () => {
       ],
     });
     const samples = renderSynth(synth, {
-      seconds: 0.1,
-      at: { 0: () => synth.noteOn(A4, 64) },
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, 64),
+        0.1: () => {
+          synth.noteOff(A4);
+          synth.noteOn(A4 + 12, FULL_VELOCITY);
+        },
+      },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
       "
         0 ms  -30.1 dB  ██████████████████████████████
        50 ms  -30.1 dB  ██████████████████████████████
+      100 ms  -24.2 dB  ████████████████████████████████████
+      150 ms  -24.2 dB  ████████████████████████████████████
       "
     `);
   });
