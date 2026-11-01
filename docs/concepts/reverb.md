@@ -90,7 +90,7 @@ Dattorro's design imitates a plate reverb, a large steel sheet that a driver set
 
 ![The plate's signal flow. The input passes through a 20 ms pre-delay and four all-passes of 4.8, 3.6, 12.7, and 9.3 ms, then enters both halves of a loop. Each half runs through an all-pass, a delay, a 6 kHz low-pass, a decay gain, a second all-pass, a second delay, and a second decay gain, and then feeds the other half. Dots on the delays and second all-passes mark the taps for the left and right outputs](images/reverb-plate-flow.svg)
 
-The paper gives every length in samples at 29,761 Hz. They're really durations, so they're rescaled to keep their length in seconds at the actual sample rate, which is how the figure shows them.
+The paper gives every length in samples at 29,761 Hz. They're really durations, so the figure and our implementation give them in milliseconds, and the implementation converts them to samples at the actual sample rate.
 
 ![The plate's response to a click over the first 150 ms. Nothing comes out during the 20 ms pre-delay, then a few separate echoes arrive, which thicken into dense noise by about 60 ms, differently in the left and right outputs](images/reverb-impulse-onset.svg)
 
@@ -122,18 +122,18 @@ $$
 
 For 1.8 s that gives $g\approx0.50$, which is also the paper's default.
 
-Measured from the impulse response, the low frequencies take about 1.96 s to fall 60 dB, about 9% longer. At frequencies where the tank's all-passes delay longer, a sound takes longer to go around but loses the same amount per trip, so it fades more slowly. The tail's last energy sits at those frequencies, which stretches the measured decay. With the tank's all-passes switched off, the same gain measures 1.79 s.
+Measured from the impulse response, the low frequencies take about 1.97 s to fall 60 dB, about 9% longer. At frequencies where the tank's all-passes delay longer, a sound takes longer to go around but loses the same amount per trip, so it fades more slowly. The tail's last energy sits at those frequencies, which stretches the measured decay. With the tank's all-passes switched off, the same gain measures 1.80 s.
 
 ### Damp the Highs
 
 The damping low-pass in each half is a one-pole filter with its cutoff at 6 kHz. It barely touches low frequencies, but at 8 kHz it takes away about 4 dB on each half, so 8 dB on each trip around the figure eight, on top of the gains. Highs therefore lose more per trip and fade faster, as they do in a hall, and the tail grows darker as it decays:
 
-![The energy still to come after each moment of the response, by octave band, as straight lines in dB. 250 Hz and 1 kHz fall 60 dB in about 1.95 s, 4 kHz in 1.74 s, and 8 kHz in 1.50 s](images/reverb-decay-bands.svg)
+![The energy still to come after each moment of the response, by octave band, as straight lines in dB. 250 Hz and 1 kHz fall 60 dB in about 1.96 s, 4 kHz in 1.74 s, and 8 kHz in 1.50 s](images/reverb-decay-bands.svg)
 
 | Octave band | Decay time |
 | ----------- | ---------- |
-| 250 Hz      | 1.96 s     |
-| 1 kHz       | 1.95 s     |
+| 250 Hz      | 1.97 s     |
+| 1 kHz       | 1.96 s     |
 | 4 kHz       | 1.74 s     |
 | 8 kHz       | 1.50 s     |
 
