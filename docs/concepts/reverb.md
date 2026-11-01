@@ -54,15 +54,15 @@ $$
 w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=w[n-D]+g \cdot w[n].
 $$
 
-The first equation is the feedback delay with its gain negated, so a click makes $w$ the alternating train $1,-g,g^2,\dots$ at $0,D,2D,\dots$. The output adds two copies of that train, one a trip late and one on time at $g$:
+The first equation is the feedback delay with its gain negated, so a click makes $w$ the alternating train $1,-g,g^2,\dots$ at $0,D,2D,\dots$. The output adds that train a trip late to $g$ times the train on time, so each column of $y[n]$ is the $w[n-D]$ entry plus $g$ times the $w[n]$ entry:
 
-|                        | $0$ | $D$     | $2D$        | $3D$         |
-| ---------------------- | --- | ------- | ----------- | ------------ |
-| Late copy, $w[n-D]$    | $0$ | $1$     | $-g$        | $g^2$        |
-| On-time copy, $g w[n]$ | $g$ | $-g^2$  | $g^3$       | $-g^4$       |
-| Output, $y[n]$         | $g$ | $1-g^2$ | $-g(1-g^2)$ | $g^2(1-g^2)$ |
+|          | $0$ | $D$     | $2D$        | $3D$         |
+| -------- | --- | ------- | ----------- | ------------ |
+| $w[n]$   | $1$ | $-g$    | $g^2$       | $-g^3$       |
+| $w[n-D]$ | $0$ | $1$     | $-g$        | $g^2$        |
+| $y[n]$   | $g$ | $1-g^2$ | $-g(1-g^2)$ | $g^2(1-g^2)$ |
 
-The on-time copy sends $g$ straight through, and after that it has the opposite sign to the late copy and $g^2$ times its size, so it shaves every echo by the same factor $1-g^2$. Squared and summed, the echoes come to $g^2+(1-g^2)^2(1+g^2+g^4+\dots)=1$, so the click keeps exactly its energy, only spread over time. The [appendix](#appendix-feedback-delays-as-transfer-functions) shows the stronger fact that the shaving evens out the feedback's peaks and dips at every frequency, so the all-pass changes when the sound arrives without changing its tone. With the same delay and gain, the feedback delay's echoes come with peaks and dips across the spectrum, while the all-pass's stay flat:
+At $0$, only the on-time train contributes, so $g$ goes straight through. After that, each $w[n]$ entry is $-g$ times the $w[n-D]$ entry below it, so the on-time train subtracts $g^2$ of every late echo, which shaves each one by the same factor $1-g^2$. Squared and summed, the echoes come to $g^2+(1-g^2)^2(1+g^2+g^4+\dots)=1$, so the click keeps exactly its energy, only spread over time. The [appendix](#appendix-feedback-delays-as-transfer-functions) shows the stronger fact that the shaving evens out the feedback's peaks and dips at every frequency, so the all-pass changes when the sound arrives without changing its tone. With the same delay and gain, the feedback delay's echoes come with peaks and dips across the spectrum, while the all-pass's stay flat:
 
 ![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
 
