@@ -135,12 +135,62 @@ describe(SubtractiveSynth, () => {
       );
       return `${waveform}: ${level} dB, ${frequency} Hz`;
     };
-    expect(WAVEFORMS.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
+    const pitched = WAVEFORMS.filter((waveform) => waveform !== "noise");
+    expect(pitched.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
       "sine: -21.1 dB, 440 Hz
       triangle: -22.9 dB, 440 Hz
       sawtooth: -23.0 dB, 440 Hz
       square: -18.2 dB, 440 Hz"
     `);
+  });
+
+  it("plays noise at a sawtooth's level on any note, and sums notes in power", () => {
+    // Levels are RMS in dBFS over a second. Uniform noise's RMS is the peak over
+    // √3, as a sawtooth's is. Two notes that draw the same noise would add 6 dB,
+    // and two that draw different noise add 3 dB.
+    const measureLevel = (pitches: number[]) => {
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch(createPatch(["noise"]));
+      const samples = renderSynth(synth, {
+        seconds: 1,
+        at: {
+          0: () =>
+            pitches.forEach((pitch) => synth.noteOn(pitch, FULL_VELOCITY)),
+        },
+      });
+      return `${pitches.join(" + ")}: ${gainToDb(measureRms(samples)).toFixed(1)} dB`;
+    };
+    expect([[30], [A4], [90], [A4, 72]].map(measureLevel).join("\n"))
+      .toMatchInlineSnapshot(`
+        "30: -22.9 dB
+        69: -22.9 dB
+        90: -22.9 dB
+        69 + 72: -19.9 dB"
+      `);
+  });
+
+  it("filters noise to the share of the band below the cutoff", () => {
+    // A two-pole Butterworth low-pass passes white noise as if it were a brick
+    // wall at about 1.11 times its cutoff, so a 1200 Hz cutoff keeps 1333 Hz of
+    // the 24 kHz band, about 12.6 dB down from the open filter's -22.9 dB.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      layers: [
+        {
+          ...createGateLayer({
+            filter: { cutoff: 1200, resonance: Math.SQRT1_2 },
+          }),
+          oscillator: { waveform: "noise", octave: 0, detune: 0 },
+        },
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 1,
+      at: { 0: () => synth.noteOn(60, FULL_VELOCITY) },
+    });
+    expect(gainToDb(measureRms(samples)).toFixed(1)).toMatchInlineSnapshot(
+      `"-35.6"`,
+    );
   });
 
   it("plays a layer at its octave, and follows a change on a sounding note", () => {
