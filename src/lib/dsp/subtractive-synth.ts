@@ -253,13 +253,13 @@ export class SubtractiveSynth implements SynthEngine {
           const state = voice.layers.get(layer.id);
           if (state) {
             const phaseIncrement = notePhaseIncrement * layer.frequencyRatio;
-            // The envelope runs while the filter is open, so a patch change
-            // that closes it finds the envelope where the note is.
+            // The envelope runs while the filter is skipped, so a patch change
+            // that brings it in finds the envelope where the note is.
             const filterLevel = state.filterEnvelope.advance(
               layer.filterEnvelope,
             );
             let sample = layer.oscillate(state.phase, phaseIncrement);
-            if (!isFilterOpen(layer.filter)) {
+            if (!shouldSkipFilter(layer.filter)) {
               const cutoff = clamp(
                 computeCutoff(layer.filter, voice, filterLevel),
                 EQ_LIMITS.frequency.min,
@@ -330,11 +330,11 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
 }
 
 /**
- * Whether the cutoff stays at the top of the range on every note. Skipping
- * the filter then keeps a layer exactly as it sounded before filters existed,
- * and only drops a resonant peak at 20 kHz.
+ * Whether the layer should skip its filter, because the cutoff stays at the top
+ * of the range on every note. Skipping keeps a layer exactly as it sounded
+ * before filters existed, and only drops a resonant peak at 20 kHz.
  */
-function isFilterOpen(filter: ResolvedFilter): boolean {
+function shouldSkipFilter(filter: ResolvedFilter): boolean {
   return (
     filter.cutoff >= EQ_LIMITS.frequency.max &&
     filter.keytrack === 0 &&
