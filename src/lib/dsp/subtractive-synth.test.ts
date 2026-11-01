@@ -4,6 +4,7 @@ import { gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
   createSynthLayer,
+  DEFAULT_SYNTH_VOICE,
   PEAK_GAIN,
   SubtractiveSynth,
   type SynthLayer,
@@ -62,6 +63,7 @@ describe(SubtractiveSynth, () => {
     // Decay to half level, 6 dB down, hold it, and release after note-off.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
       layers: [
         {
           ...createSynthLayer(),
@@ -148,6 +150,7 @@ describe(SubtractiveSynth, () => {
     const layer = createGateLayer();
     const setOctave = (octave: number) =>
       synth.setPatch({
+        ...DEFAULT_SYNTH_VOICE,
         layers: [{ ...layer, oscillator: { ...layer.oscillator, octave } }],
       });
     setOctave(-1);
@@ -178,6 +181,7 @@ describe(SubtractiveSynth, () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const layer = createGateLayer();
     synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
       layers: [
         layer,
         {
@@ -208,13 +212,14 @@ describe(SubtractiveSynth, () => {
     // A square at the same peak is 3 dB louder than a sine.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const layer = createGateLayer();
-    synth.setPatch({ layers: [layer] });
+    synth.setPatch({ ...DEFAULT_SYNTH_VOICE, layers: [layer] });
     const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
         0: () => synth.noteOn(A4, FULL_VELOCITY),
         0.1: () =>
           synth.setPatch({
+            ...DEFAULT_SYNTH_VOICE,
             layers: [
               {
                 ...layer,
@@ -245,12 +250,13 @@ describe(SubtractiveSynth, () => {
       },
     };
     const holding = createGateLayer();
-    synth.setPatch({ layers: [decaying, holding] });
+    synth.setPatch({ ...DEFAULT_SYNTH_VOICE, layers: [decaying, holding] });
     const samples = renderSynth(synth, {
       seconds: 0.2,
       at: {
         0: () => synth.noteOn(A4, FULL_VELOCITY),
-        0.1: () => synth.setPatch({ layers: [holding] }),
+        0.1: () =>
+          synth.setPatch({ ...DEFAULT_SYNTH_VOICE, layers: [holding] }),
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
@@ -274,7 +280,10 @@ describe(SubtractiveSynth, () => {
       at: {
         0: () => synth.noteOn(A4, FULL_VELOCITY),
         0.1: () =>
-          synth.setPatch({ layers: [...patch.layers, createGateLayer()] }),
+          synth.setPatch({
+            ...DEFAULT_SYNTH_VOICE,
+            layers: [...patch.layers, createGateLayer()],
+          }),
         0.2: () => {
           synth.noteOff(A4);
           synth.noteOn(A4, FULL_VELOCITY);
@@ -399,6 +408,7 @@ describe(SubtractiveSynth, () => {
   it("scales each layer by its gain", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
       layers: [createGateLayer(), { ...createGateLayer(), gain: 0.5 }],
     });
     const samples = renderSynth(synth, {
@@ -413,7 +423,10 @@ describe(SubtractiveSynth, () => {
     // side, so left² + right² stays 2 wherever the layer sits
     const measureChannelGains = (pan: number) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
-      synth.setPatch({ layers: [{ ...createGateLayer(), pan }] });
+      synth.setPatch({
+        ...DEFAULT_SYNTH_VOICE,
+        layers: [{ ...createGateLayer(), pan }],
+      });
       const [left, right] = renderSynthChannels(synth, {
         seconds: 0.1,
         at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
@@ -433,6 +446,103 @@ describe(SubtractiveSynth, () => {
       Math.SQRT2 * Math.cos((3 * Math.PI) / 8),
       Math.SQRT2 * Math.sin((3 * Math.PI) / 8),
     ]);
+  });
+
+  it("glides a mono voice between held notes and back", () => {
+    // Hold A4, glide up an octave to A5 over 100 ms, and glide back down when
+    // A5 ends while A4 is still held. The slides move evenly in pitch, three
+    // semitones, a ratio of about 1.19, every 25 ms.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({ ...createPatch(["sine"]), voice: "mono", glide: 0.1 });
+    const samples = renderSynth(synth, {
+      seconds: 0.5,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.noteOn(A4 + 12, FULL_VELOCITY),
+        0.3: () => synth.noteOff(A4 + 12),
+      },
+    });
+    expect(describeFrequencies(samples, { windowSeconds: 0.025 }))
+      .toMatchInlineSnapshot(`
+        "
+          0 ms  440 Hz
+         25 ms  440 Hz
+         50 ms  440 Hz
+         75 ms  440 Hz
+        100 ms  480 Hz
+        125 ms  574 Hz
+        150 ms  681 Hz
+        175 ms  809 Hz
+        200 ms  880 Hz
+        225 ms  880 Hz
+        250 ms  880 Hz
+        275 ms  880 Hz
+        300 ms  809 Hz
+        325 ms  681 Hz
+        350 ms  574 Hz
+        375 ms  484 Hz
+        400 ms  440 Hz
+        425 ms  440 Hz
+        450 ms  440 Hz
+        475 ms  440 Hz
+        "
+      `);
+  });
+
+  it("keeps a mono phrase's envelope and level through touching notes", () => {
+    // The first note decays to half level. A note starting on the frame the
+    // first ends continues at that level, though its velocity is lower. A note
+    // after a one-frame gap starts fresh from the peak at its own velocity.
+    const playPhrase = (gapSeconds: number) => {
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      synth.setPatch({
+        ...DEFAULT_SYNTH_VOICE,
+        voice: "mono",
+        layers: [
+          {
+            ...createSynthLayer(),
+            amp: {
+              envelope: { attack: 0, decay: 0.05, sustain: 0.5, release: 0 },
+            },
+          },
+        ],
+      });
+      const startSecondNote = () => synth.noteOn(A4 + 7, 64);
+      // The worklet sends a note-off and a note-on on the same frame with no
+      // render between them.
+      const at: Record<number, () => void> =
+        gapSeconds === 0
+          ? {
+              0.1: () => {
+                synth.noteOff(A4);
+                startSecondNote();
+              },
+            }
+          : {
+              0.1: () => synth.noteOff(A4),
+              [0.1 + gapSeconds]: startSecondNote,
+            };
+      return renderSynth(synth, {
+        seconds: 0.2,
+        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY), ...at },
+      });
+    };
+    expect(describeLevels(playPhrase(0))).toMatchInlineSnapshot(`
+      "
+        0 ms  -26.1 dB  ██████████████████████████████████
+       50 ms  -27.2 dB  █████████████████████████████████
+      100 ms  -27.2 dB  █████████████████████████████████
+      150 ms  -27.2 dB  █████████████████████████████████
+      "
+    `);
+    expect(describeLevels(playPhrase(1 / SAMPLE_RATE))).toMatchInlineSnapshot(`
+      "
+        0 ms  -26.1 dB  ██████████████████████████████████
+       50 ms  -27.2 dB  █████████████████████████████████
+      100 ms  -32.1 dB  ████████████████████████████
+      150 ms  -33.1 dB  ███████████████████████████
+      "
+    `);
   });
 
   it("releases every note on stopAll", () => {
@@ -540,6 +650,7 @@ function describeFrequencies(
 
 function createPatch(waveforms: Waveform[]): SynthPatch {
   return {
+    ...DEFAULT_SYNTH_VOICE,
     layers: waveforms.map((waveform) => {
       const layer = createGateLayer();
       return { ...layer, oscillator: { ...layer.oscillator, waveform } };

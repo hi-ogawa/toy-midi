@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   createSynthLayer,
+  DEFAULT_SYNTH_VOICE,
   type SynthPatch,
 } from "../lib/dsp/subtractive-synth";
 import { dbToGain } from "../lib/music";
@@ -12,6 +13,7 @@ function createInitialPatch(): SynthPatch {
   const sub = createSynthLayer();
   const envelope = { attack: 0.01, decay: 0.4, sustain: 0.6, release: 0.2 };
   return {
+    ...DEFAULT_SYNTH_VOICE,
     layers: [
       {
         ...saw,
