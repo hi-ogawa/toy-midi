@@ -48,7 +48,7 @@ The problem with one loop is that its response has only one echo per trip, at mu
 
 ## Thicken the Echoes with All-Passes
 
-What's needed is a block that spreads a click into echoes without the loop's ringing, passing every frequency at the same gain. A filter with that property is called an **all-pass**, and adding a feedforward path to the feedback delay makes one:
+What's needed is a block that spreads a click into echoes without the loop's ringing, passing every frequency at the same gain. A filter with that property is called an **all-pass**, and adding a feedforward path to the feedback delay makes the one reverbs use, Schroeder's all-pass:
 
 $$
 w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=g \cdot w[n]+w[n-D].
@@ -78,7 +78,7 @@ so the click comes out with exactly the energy it went in with, only spread over
 
 ![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
 
-Chaining all-passes multiplies their echoes, since each echo of the first becomes a whole train in the second, so a few short all-passes turn one click into a dense burst. Reverb designs call this **diffusion**. The plate's four input diffusers, below, take a click from 17 echoes after the first all-pass to more than a thousand after the fourth:
+From here on, "all-pass" means Schroeder's, as it does in reverb designs. Chaining all-passes multiplies their echoes, since each echo of the first becomes a whole train in the second, so a few short all-passes turn one click into a dense burst. Reverb designs call this **diffusion**. The plate's four input diffusers, below, take a click from 17 echoes after the first all-pass to more than a thousand after the fourth:
 
 ![A click through the plate's input diffusers. After one all-pass it's a single train of echoes, after two the trains interleave, and after four the echoes have merged into a dense burst within about 30 ms](images/reverb-diffusers.svg)
 
@@ -181,7 +181,7 @@ $$
 
 Every pole has the same radius $g^{1/D}$, so every mode loses the same factor $g$ over $D$ samples, which is the per-trip loss of the main text. The angles $2\pi k/D$ are the frequencies $kF_s/D$, which is where the loop rings. For the two walls of the main text, they're $kc/(2L)$, the frequencies whose half-wavelength fits a whole number of times between the walls, which are the standing waves of that space. On the unit circle the gain is $1/|1-ge^{-j\omega D}|$. It's largest, $1/(1-g)$, where $e^{-j\omega D}=1$, at those same frequencies, and smallest, $1/(1+g)$, halfway between them. For $g=0.7$ that's +10.5 dB and −4.6 dB, and with $D$ at 5 ms the peaks repeat every 200 Hz, as in the figure.
 
-**The all-pass.** Substituting into $w[n]=x[n]-g \cdot w[n-D]$ gives $W=X/(1+gz^{-D})$, and then $y[n]=g \cdot w[n]+w[n-D]$ gives
+**Schroeder's all-pass.** Substituting into $w[n]=x[n]-g \cdot w[n-D]$ gives $W=X/(1+gz^{-D})$, and then $y[n]=g \cdot w[n]+w[n-D]$ gives
 
 $$
 H(z)=\frac{g+z^{-D}}{1+gz^{-D}}.
