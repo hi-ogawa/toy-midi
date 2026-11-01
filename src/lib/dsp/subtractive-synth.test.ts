@@ -531,6 +531,7 @@ describe(SubtractiveSynth, () => {
     //   110 × 2^4 = 1760 Hz → 110 Hz (A2)
     // A4 = 440 Hz = 110 × 2^2 ends 2 octaves above the cutoff, where a 2-pole
     // low-pass falls as (cutoff / f)^2, 12 dB per octave: 24 dB down.
+    // Unfiltered, the note is -21.1 dB, so the rows settle at -45.2 dB.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
       layers: [
