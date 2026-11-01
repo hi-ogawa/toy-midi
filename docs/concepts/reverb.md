@@ -88,7 +88,7 @@ An all-pass delays a sound by $D$ samples on average across frequency, but not e
 
 ## Follow a Click Through the Plate
 
-Dattorro's network combines the two ideas. All-passes make the echoes dense, a loop makes them last, and gains inside the loop make them fade. A click passes through it in this order:
+Dattorro's design imitates a plate reverb, a large steel sheet that a driver sets vibrating and pickups listen to. It puts all-passes inside a loop. The all-passes make the echoes dense, and the loop's gains make them fade at a set rate. A click passes through it in this order:
 
 $$
 \text{pre-delay} \rightarrow \text{input low-pass} \rightarrow \text{4 diffusers} \rightarrow \text{tank} \rightarrow \text{output taps}.
@@ -104,13 +104,13 @@ The **pre-delay** holds the whole response back, here by 20 ms. In a hall, it's 
 
 ### Diffuse Before the Tank
 
-The plate starts with the four all-passes of the figure above, which the paper calls its **input diffusers**. They scatter the click into a burst of echoes before it reaches the loop. Without them, a sharp attack would circle the loop as one recognizable click and come back each time as a distinct repeat. With them, what the loop receives is already noise-like, and the first separate echoes in the figure are that burst reaching the outputs, already thickening.
+The plate starts with the four all-passes of the figure above, which the paper calls its **input diffusers**. They scatter the click into a burst of echoes before it reaches the loop. Without them, a sharp attack would circle the loop as one recognizable click and come back each time as a distinct repeat. With them, what the loop receives is already noise-like, and the first separate echoes in the plate's response above are that burst reaching the outputs, already thickening.
 
 ### Circulate in a Figure Eight
 
 The loop, which the paper calls the **tank**, has two halves. Each half runs the sound through an all-pass, a long delay, a damping low-pass, a gain, a second all-pass, a second delay, and another gain, and then feeds it into the other half, so the sound traces a figure eight through both. The input enters both halves at once. A full trip around the figure eight takes about 0.73 s, and every trip passes through four more all-passes, so the echoes keep multiplying as the response goes on, much as a room's reflections do.
 
-The tank's delays differ from each other and share no common period, so the loop's echoes don't line up into a repeating pattern. The paper also slowly varies two of the tank's all-pass lengths to break up its resonances further. Our implementation leaves that modulation out.
+The tank's delays differ from each other and share no common factor, so the loop's echoes don't line up into a repeating pattern. The paper also slowly varies two of the tank's all-pass lengths to break up its resonances further. Our implementation leaves that modulation out.
 
 ### Set the Decay Time
 
@@ -145,15 +145,15 @@ Each band still loses the same dB on every trip, so the dense response decays ex
 
 The plate takes one input and makes two outputs, left and right. Each output adds up seven points along the tank's delays, from both halves, with alternating signs, and the two outputs use different points. They hear the same circulating sound, so they decay alike, but at any moment they sum different echoes.
 
-How alike two waveforms are is measured by their **correlation**, which is 1 for identical waveforms and 0 for unrelated ones. Identical left and right channels are heard as one point between the speakers, and unrelated ones as sound surrounding the listener. Measured on the impulse response from 50 ms on, the plate's outputs have a correlation of about 0, so its reverb surrounds the listener, as a room's late reverberation does, arriving from every direction.
+How alike two waveforms are is measured by their **correlation**, which is 1 for identical waveforms and 0 for unrelated ones. Identical left and right channels are heard as one point between the speakers, and unrelated ones as sound surrounding the listener. Measured on the impulse response from 50 ms on, the plate's outputs have a correlation of about 0, so its reverb surrounds the listener, as a room's late reverberation does.
 
 ## Share One Reverb Across a Mix
 
-A room reverberates every source in it, and a mix gets the same effect from one reverb that every track feeds. One input is enough for that. Once the echoes overlap, the late reverberation arrives from every direction, whichever source started it, so it carries nothing about where the source stands. A listener locates a source from the direct sound and the first reflections, which arrive before it. The plate models only the late reverberation, and its pre-delay holds it back behind the direct sound, so summing every source into its one input loses nothing it could use.
+A room reverberates every source in it, and a mix gets the same effect from one reverb that every track feeds. Once the echoes overlap, the late reverberation arrives from every direction, whichever source started it, so it carries nothing about where the source stands. A listener locates a source from the direct sound and the first reflections, which arrive before it. The plate models only the late reverberation, and its pre-delay holds it back behind the direct sound, so summing every source into its one input loses nothing the listener uses to place a source.
 
 Each track feeds the reverb through a **send**, a copy of the track's signal at a level set per track, and the reverb's output, its **return**, joins the mix like another track. The send is taken after the track's fader, so turning a track down or muting it takes its reverb with it. It's taken before the track's pan, since the input is summed into one signal anyway and the direct sound already places the track. A guitar panned hard left then sits on the left inside a room that still surrounds the listener.
 
-The other place for an effect is an **insert**, in the track's own chain, as an EQ is. A reverb there reverberates only that track, and since a channel's pan comes after its inserts, the pan then acts on the reverb's stereo output. Panning a stereo signal works as a balance control, so panning the track moves its whole room to one side. A room doesn't reverberate from one side, so that's rarely what a mix wants, and it's an easy mistake to make when first putting a reverb on a single track. Sends avoid it, and one shared reverb also costs less than one per track.
+The other place for an effect is an **insert**, in the track's own chain, as an EQ is. A reverb there reverberates only that track, and since a channel's pan comes after its inserts, the pan then acts on the reverb's stereo output. Panning a stereo signal works as a balance control, so panning the track moves its whole room to one side. A room doesn't reverberate from one side, so a mix rarely wants this. It's an easy mistake to make when first putting a reverb on a single track. Sends avoid it, and one shared reverb also costs less than one per track.
 
 ## References
 
@@ -189,7 +189,7 @@ $$
 H(z)=\frac{g+z^{-D}}{1+gz^{-D}}.
 $$
 
-On the unit circle, write $u=e^{-j\omega D}$, so $|u|=1$ and $u\bar u=1$. Then the numerator is $g+u=u(1+g\bar u)$, and for real $g$, $|1+g\bar u|=|1+gu|$, so the numerator and denominator have the same magnitude and $|H|=1$ at every frequency. Expanding $1/(1+gz^{-D})$ as the geometric series $\sum_k(-g)^kz^{-kD}$ and multiplying by $g+z^{-D}$ gives the impulse response of the main text,
+On the unit circle, write $u=e^{-j\omega D}$, so $|u|=1$ and $u\bar u=1$. The numerator factors as $g+u=u(1+g\bar u)$. For real $g$, $1+g\bar u$ is the complex conjugate of $1+gu$, so the two have the same magnitude. The numerator and denominator therefore have the same magnitude, and $|H|=1$ at every frequency. Expanding $1/(1+gz^{-D})$ as the geometric series $\sum_k(-g)^kz^{-kD}$ and multiplying by $g+z^{-D}$ gives the impulse response of the main text,
 
 $$
 g,\quad 1-g^2,\quad -g(1-g^2),\quad g^2(1-g^2),\quad\dots
