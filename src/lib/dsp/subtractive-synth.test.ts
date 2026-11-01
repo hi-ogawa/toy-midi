@@ -529,8 +529,8 @@ describe(SubtractiveSynth, () => {
   it("closes the filter on a sounding note with its envelope", () => {
     // The envelope sweeps the cutoff down over the 0.2 s decay:
     //   110 × 2^4 = 1760 Hz → 110 Hz (A2)
-    // A4 = 440 Hz = 110 × 2^2 starts 2 octaves below the cutoff and ends 2 above,
-    // where a 2-pole low-pass falls as (cutoff / f)^2, 12 dB per octave: 24 dB down.
+    // A4 = 440 Hz = 110 × 2^2 ends 2 octaves above the cutoff, where a 2-pole
+    // low-pass falls as (cutoff / f)^2, 12 dB per octave: 24 dB down.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
       layers: [
