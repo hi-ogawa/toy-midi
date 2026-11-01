@@ -582,7 +582,7 @@ describe(SubtractiveSynth, () => {
   });
 
   it("closes the filter on a sounding note with its envelope", () => {
-    // The envelope sweeps the cutoff down over the 0.2 s decay:
+    // The envelope sweeps the cutoff down over the 0.1 s decay:
     //   110 × 2^4 = 1760 Hz → 110 Hz (A2)
     // A4 = 440 Hz = 110 × 2^2 ends 2 octaves above the cutoff, where a 2-pole
     // low-pass falls as (cutoff / f)^2, 12 dB per octave: 24 dB down.
@@ -595,7 +595,7 @@ describe(SubtractiveSynth, () => {
             cutoff: 110,
             envelope: {
               attack: 0,
-              decay: 0.2,
+              decay: 0.1,
               sustain: 0,
               release: 0,
               amount: 4,
@@ -606,17 +606,15 @@ describe(SubtractiveSynth, () => {
       ],
     });
     const samples = renderSynth(synth, {
-      seconds: 0.3,
+      seconds: 0.2,
       at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
       "
-        0 ms  -25.8 dB  ██████████████████████████████████
-       50 ms  -43.2 dB  █████████████████
-      100 ms  -45.1 dB  ███████████████
+        0 ms  -28.6 dB  ███████████████████████████████
+       50 ms  -45.1 dB  ███████████████
+      100 ms  -45.2 dB  ███████████████
       150 ms  -45.2 dB  ███████████████
-      200 ms  -45.2 dB  ███████████████
-      250 ms  -45.2 dB  ███████████████
       "
     `);
   });
