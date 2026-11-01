@@ -237,7 +237,7 @@ class DelayLine {
 }
 
 /**
- * Schroeder all-pass around a delay line: w = x − g·w[−L], y = w[−L] + g·w.
+ * Schroeder all-pass around a delay line: w = x − g·w[−L], y = g·w + w[−L].
  * Its response to an impulse is a train of echoes L apart, decaying by g, and
  * its gain is 1 at every frequency.
  */

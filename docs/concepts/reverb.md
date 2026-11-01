@@ -51,10 +51,10 @@ The problem with one loop is that its response has only one echo per trip, at mu
 What's needed is a block that spreads a click into echoes without the loop's ringing, passing every frequency at the same gain. A filter with that property is called an **all-pass**, and adding a feedforward path to the feedback delay makes one:
 
 $$
-w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=w[n-D]+g \cdot w[n].
+w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=g \cdot w[n]+w[n-D].
 $$
 
-The first equation is the feedback delay with its gain negated, so a click makes $w$ the alternating train $1,-g,g^2,\dots$ at $0,D,2D,\dots$. The output adds that train a trip late to $g$ times the train on time, so each column of $y[n]$ is the $w[n-D]$ entry plus $g$ times the $w[n]$ entry:
+The first equation is the feedback delay with its gain negated, so a click makes $w$ the alternating train $1,-g,g^2,\dots$ at $0,D,2D,\dots$. The output adds $g$ times the train on time to the train a trip late, so each column of $y[n]$ is $g$ times the $w[n]$ entry plus the $w[n-D]$ entry:
 
 |          | $0$ | $D$     | $2D$        | $3D$         |
 | -------- | --- | ------- | ----------- | ------------ |
@@ -169,7 +169,7 @@ $$
 
 Every pole has the same radius $g^{1/D}$, so every mode loses the same factor $g$ over $D$ samples, which is the per-trip loss of the main text. The angles $2\pi k/D$ are the frequencies $kF_s/D$, which is where the loop rings. For the two walls of the main text, they're $kc/(2L)$, the frequencies whose half-wavelength fits a whole number of times between the walls, which are the standing waves of that space. On the unit circle the gain is $1/|1-ge^{-j\omega D}|$. It's largest, $1/(1-g)$, where $e^{-j\omega D}=1$, at those same frequencies, and smallest, $1/(1+g)$, halfway between them. For $g=0.7$ that's +10.5 dB and −4.6 dB, and with $D$ at 5 ms the peaks repeat every 200 Hz, as in the figure.
 
-**The all-pass.** Substituting into $w[n]=x[n]-g \cdot w[n-D]$ gives $W=X/(1+gz^{-D})$, and then $y[n]=w[n-D]+g \cdot w[n]$ gives
+**The all-pass.** Substituting into $w[n]=x[n]-g \cdot w[n-D]$ gives $W=X/(1+gz^{-D})$, and then $y[n]=g \cdot w[n]+w[n-D]$ gives
 
 $$
 H(z)=\frac{g+z^{-D}}{1+gz^{-D}}.
