@@ -258,7 +258,6 @@ class AllPass {
   }
 }
 
-// TODO: derive
 /** y = (1 − p)·x + p·y[−1], whose pole p sets the cutoff. */
 class OnePoleLowPass {
   private previous = 0;

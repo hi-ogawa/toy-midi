@@ -126,7 +126,7 @@ Measured from the impulse response, the low frequencies take about 1.97 s to fal
 
 ### Damp the Highs
 
-The damping low-pass in each half is a one-pole filter with its cutoff at 6 kHz. It barely touches low frequencies, but at 8 kHz it takes away about 4 dB on each half, so 8 dB on each trip around the figure eight, on top of the gains. Highs therefore lose more per trip and fade faster, as they do in a hall, and the tail grows darker as it decays:
+The damping low-pass in each half is a one-pole filter with its cutoff at 6 kHz, which the appendix derives. It barely touches low frequencies, but at 8 kHz it takes away about 4 dB on each half, so 8 dB on each trip around the figure eight, on top of the gains. Highs therefore lose more per trip and fade faster, as they do in a hall, and the tail grows darker as it decays:
 
 ![The energy still to come after each moment of the response, by octave band, as straight lines in dB. 250 Hz and 1 kHz fall 60 dB in about 1.96 s, 4 kHz in 1.74 s, and 8 kHz in 1.50 s](images/reverb-decay-bands.svg)
 
@@ -202,3 +202,39 @@ $$
 $$
 
 samples. It's smallest where $\cos\omega D=\operatorname{sign}g$, at $D(1-|g|)/(1+|g|)$, and largest where $\cos\omega D=-\operatorname{sign}g$, at $D(1+|g|)/(1-|g|)$. Its average over all frequencies is exactly $D$, because as $\omega$ goes once around the circle, the numerator $g+z^{-D}$ winds $D$ times around 0 and the denominator not at all, so the phase falls by $2\pi D$ in all.
+
+**The damping low-pass.** It copies the simplest analog low-pass, an RC filter, whose output moves toward its input at a rate set by the cutoff $\omega_c=2\pi f_c$:
+
+$$
+y'=\omega_c\,(x-y),\qquad H(s)=\frac{1}{1+s/\omega_c}.
+$$
+
+Its gain is −3 dB at $\omega_c$. With no input, its output decays as $e^{-\omega_c t}$, so its pole is $s=-\omega_c$. [Sampling](digital-filters/transfer-functions.md#the-s-plane-and-z-plane) that decay with $z=e^{sT}$ multiplies it each sample by
+
+$$
+p=e^{-2\pi f_c/F_s},
+$$
+
+which is about 0.456 for 6 kHz at 48 kHz. The recurrence with that pole is
+
+$$
+y[n]=(1-p)\,x[n]+p\,y[n-1].
+$$
+
+Each sample, the output moves the fraction $1-p$ of the way toward the input, which is the sampled form of $y'=\omega_c(x-y)$. The weight $1-p$ makes the gain at 0 Hz exactly 1, since a constant input $y=x$ gives $(1-p)x+px=x$. Substituting $z^n$ gives
+
+$$
+H(z)=\frac{1-p}{1-pz^{-1}},\qquad
+|H(e^{j\omega})|^2=\frac{(1-p)^2}{1-2p\cos\omega+p^2}.
+$$
+
+This copies the RC filter's decay, not its frequency response, so the two agree at low frequencies and drift apart toward Nyquist:
+
+| Frequency | One-pole | RC filter |
+| --------- | -------- | --------- |
+| 1 kHz     | −0.11 dB | −0.12 dB  |
+| 6 kHz     | −2.79 dB | −3.01 dB  |
+| 8 kHz     | −4.05 dB | −4.44 dB  |
+| 24 kHz    | −8.55 dB | −12.30 dB |
+
+So the one-pole's own −3 dB point is near 6.3 kHz, and its cutoff is the RC filter's. Damping only needs the highs to lose more per trip than the lows, which both responses do.
