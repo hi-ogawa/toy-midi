@@ -38,12 +38,14 @@ export function EnvelopeEditor({
   const sustainX = decayX + HOLD_WIDTH;
   const releaseX = sustainX + STAGE_WIDTH * timeToPosition(envelope.release);
   const sustainY = 1 - sustainToPosition(envelope.sustain);
+  // The synth's decay and release fall at a steady rate in dB, so straight
+  // lines show them on this axis.
   const curve = [
     "M 0 1",
     `L ${attackX} 0`,
-    `Q ${attackX + (decayX - attackX) * 0.1} ${sustainY} ${decayX} ${sustainY}`,
+    `L ${decayX} ${sustainY}`,
     `L ${sustainX} ${sustainY}`,
-    `Q ${sustainX + (releaseX - sustainX) * 0.1} 1 ${releaseX} 1`,
+    `L ${releaseX} 1`,
   ].join(" ");
 
   return (
