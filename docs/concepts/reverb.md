@@ -215,47 +215,49 @@ $$
 y'=\omega_c\,(x-y).
 $$
 
-Substituting $x=e^{st}$ and $y=H(s)e^{st}$ turns $y'$ into $sy$, so $sH=\omega_c(1-H)$, and
+Substituting $x=e^{st}$ and $y=H_a(s)e^{st}$ turns $y'$ into $sy$, so $sH_a=\omega_c(1-H_a)$, and
 
 $$
-H(s)=\frac{1}{1+s/\omega_c}.
+H_a(s)=\frac{1}{1+s/\omega_c}.
 $$
 
 For a steady tone, $s=j\Omega$, and
 
 $$
-|H(j\Omega)|^2=\frac{1}{1+(\Omega/\omega_c)^2}.
+|H_a(j\Omega)|^2=\frac{1}{1+(\Omega/\omega_c)^2}.
 $$
 
 At $\Omega=\omega_c$, the gain squared is $1/2$, which is −3 dB. Far above $\omega_c$, the gain is about $\omega_c/\Omega$, so each doubling of frequency halves it, which is −6 dB per octave. The gain only falls as $\Omega$ grows, so it never peaks: there's no resonance.
 
-The damping low-pass is this filter turned into a recurrence. There are two common ways to turn an $H(s)$ into an $H(z)$. The [bilinear transform](digital-filters/bilinear-transform.md) maps the whole response, and the other way maps only the pole. The damping filter uses the second, because it gives a recurrence with a single multiplication.
+The damping low-pass is this filter turned into a recurrence. There are two common ways to turn an analog response $H_a(s)$ into a digital one, $H_d(z)$. The [bilinear transform](digital-filters/bilinear-transform.md) maps the whole response, and the other way maps only the pole. The damping filter uses the second, because it gives a recurrence with a single multiplication.
 
-The pole of $H(s)$ is where its denominator is zero, at $s=-\omega_c$, and it gives the filter's natural motion, the decay $e^{-\omega_ct}$. [Sampling](digital-filters/transfer-functions.md#the-s-plane-and-z-plane) that motion every $T$ seconds multiplies it each sample by $z=e^{sT}$, so the digital pole is
+The pole of $H_a(s)$ is where its denominator is zero, at $s=-\omega_c$, and it gives the filter's natural motion, the decay $e^{-\omega_ct}$. [Sampling](digital-filters/transfer-functions.md#the-s-plane-and-z-plane) that motion every $T$ seconds multiplies it each sample by $z=e^{sT}$, so the digital pole is
 
 $$
 p=e^{-\omega_cT}=e^{-2\pi f_c/F_s}.
 $$
 
-For 6 kHz at 48 kHz, $p\approx0.456$. A one-pole filter with that pole has the transfer function
+For 6 kHz at 48 kHz, $p\approx0.456$. We want a recurrence whose output, with no input, decays by $p$ per sample, as the RC filter's output decays over the same time. The simplest one adds the input, with some weight $b$, to the previous output scaled by $p$:
 
 $$
-H(z)=\frac{b}{1-pz^{-1}}.
+y[n]=b\,x[n]+p\,y[n-1].
 $$
 
-The RC filter passes 0 Hz unchanged, since $H(0)=1$. At 0 Hz, $z=1$, so matching that gain requires $b=1-p$:
+With no input, it becomes $y[n]=p\,y[n-1]$, which is that decay. Substituting $z^n$ gives its transfer function
 
 $$
-H(z)=\frac{1-p}{1-pz^{-1}}.
+H_d(z)=\frac{b}{1-pz^{-1}},
 $$
 
-Undoing the substitution gives the recurrence in the code:
+whose pole is $z=p$, as intended. The RC filter passes 0 Hz unchanged, since $H_a(0)=1$. At 0 Hz, $z=1$, so matching that gain requires $b=1-p$. The result is the recurrence in the code:
 
 $$
-y[n]=(1-p)\,x[n]+p\,y[n-1].
+y[n]=(1-p)\,x[n]+p\,y[n-1],
+\qquad
+H_d(z)=\frac{1-p}{1-pz^{-1}}.
 $$
 
-Each sample, the output moves the fraction $1-p$ of the way toward the input, 54% here. With no input it decays by $p$ per sample, exactly as the RC filter's output decays over the same time.
+Each sample, the output moves the fraction $1-p$ of the way toward the input, 54% here.
 
 For a steady tone, $z=e^{j\omega}$. The denominator's magnitude is then
 
@@ -266,7 +268,7 @@ $$
 so
 
 $$
-|H(e^{j\omega})|^2=\frac{(1-p)^2}{1-2p\cos\omega+p^2}.
+|H_d(e^{j\omega})|^2=\frac{(1-p)^2}{1-2p\cos\omega+p^2}.
 $$
 
 Sampling the pole keeps the decay but not the whole response. Near 0 Hz, both responses are set mainly by the pole, and the gains were matched at 0 Hz, so the two filters agree. Toward Nyquist they drift apart. The RC filter's frequency runs on without limit, and its gain keeps falling. The digital filter's frequency ends at Nyquist, halfway around the unit circle, so its gain levels off there. At Nyquist, $z=-1$ gives a gain of $(1-p)/(1+p)\approx0.374$, which is −8.55 dB, where the RC filter has fallen further:
