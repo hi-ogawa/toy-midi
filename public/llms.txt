@@ -6,6 +6,7 @@ Projects live in the browser's own storage. The app has no server, no accounts, 
 
 - `/`, the project list.
 - `/recorder/<projectId>`, a project saved in this browser.
+- `/draft`, a new empty project, where you start a song from scratch. It opens unsaved until someone saves it.
 - `/draft#p=<payload>`, a project carried in a share link. It opens unsaved, so the person who opens it can edit it and then save their own copy.
 - `/draft?src=<url>`, a project fetched from a JSON file at that URL. It opens unsaved in the same way.
 
@@ -15,11 +16,21 @@ Links and pages are on the site that served this guide.
 
 Drive the open app when you need to listen and revise. You can play, seek, and loop the project and hear what you changed, which is how arrangement and mixing work gets done.
 
-Write a share link when you cannot reach the user's browser, such as from a remote or cloud session, or when you are composing and the user will tell you what they think in words. You write the project as JSON, encode it into a link, and post the link.
+Write a share link when you cannot reach the user's browser, such as from a remote or cloud session, or when you are composing and the user will tell you what they think in words. You write the project as JSON, encode it into a link, and post the link. If you wrote the project as a file and can reach the open app, load the file into it instead.
 
 ## Drive the Open App
 
 The app registers its tools with [WebMCP](https://webmachinelearning.github.io/webmcp/), a proposed browser API for agents, through `document.modelContext`. The runtime the tools act on is declared in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts), so you can read it before you reach the page.
+
+If you can run JavaScript in the page, as a browser automation tool does, use `window.toyMidi` instead of the tool. On a project page, it holds `runtime`, the open project, and `utils`, helpers to compose with it. The tool's code sees the same object as `toyMidi`. Its type is `ToyMidiGlobal` in the same file.
+
+To open a project you wrote as `SharedProject` JSON, open `/draft` and load it into the page:
+
+```js
+await toyMidi.runtime.deserializeProject(toyMidi.utils.convertSharedProject(project));
+```
+
+It replaces the open project and stays unsaved until someone saves it.
 
 A browser or agent that supports WebMCP calls the tool directly. From a terminal, use [webmcp-bridge](https://github.com/hi-ogawa/toy-midi/tree/main/packages/webmcp-bridge), which connects you to a page open in the user's browser on the same machine. Install the command:
 
@@ -39,6 +50,8 @@ A share link is the site's `/draft` page with the project in the URL fragment:
 
 The payload is the project as JSON, compressed with raw deflate, without a zlib header, and encoded as base64url. The format's type is `SharedProject` in [`/llms/toy-midi.d.ts`](/llms/toy-midi.d.ts).
 
+To share a project you built in the open app, get it in this format with `toyMidi.utils.createSharedProject(toyMidi.runtime.serializeProject())`, from `toy_midi_eval` or from page script.
+
 Composing doesn't need tab annotation, so leave `tabAnnotationEnabled` on tracks and `tabString` on notes unset.
 
 Encode the payload with Node, which has raw deflate and base64url built in:
@@ -49,7 +62,7 @@ import { deflateRawSync } from "node:zlib";
 const payload = deflateRawSync(JSON.stringify(project)).toString("base64url");
 ```
 
-A link grows with the project. A full arrangement can run to tens of thousands of characters, far past what a chat message holds, such as 2,000 characters on Discord. When the link won't fit where it's going, link to a project file instead.
+A link grows with the project. A full arrangement can run to tens of thousands of characters, far past what a chat message holds, such as 2,000 characters on Discord. Dense automation grows it fast too: an 8-bar loop with a point every 16th note already runs to several thousand. When the link won't fit where it's going, link to a project file instead.
 
 A payload that matches `SharedProject` opens in the app, so you don't need to open the link yourself to check it. The person you share it with opens it and listens, and that's the check that matters. If it doesn't load, they'll tell you.
 

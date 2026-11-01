@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  AudioWaveformIcon,
   DownloadIcon,
   UploadIcon,
   Music2Icon,
@@ -71,6 +72,7 @@ export function MidiTrackRow({
   subdivisionsPerBeat,
   viewportStartBeat,
   move,
+  onSynthOpen,
   onEffectsOpen,
   onRemove,
   midiInteraction,
@@ -84,6 +86,7 @@ export function MidiTrackRow({
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
   move: TrackMoveControls;
+  onSynthOpen: () => void;
   onEffectsOpen: () => void;
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useMidiInteraction>;
@@ -179,6 +182,7 @@ export function MidiTrackRow({
             label={track.name}
             move={move}
             onRename={(name) => runtime.setTrackName({ id: track.id, name })}
+            onSynthOpen={track.synth && onSynthOpen}
             onEffectsOpen={onEffectsOpen}
             viewMode={track.viewMode}
             onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
@@ -255,6 +259,7 @@ export function MidiTrackRow({
 
 function MidiTrackActions({
   onRename,
+  onSynthOpen,
   onEffectsOpen,
   isImporting,
   onImportMidi,
@@ -270,6 +275,8 @@ function MidiTrackActions({
   onScorePreview,
 }: {
   onRename: (name: string) => void;
+  /** Absent when the track plays its SoundFont preset */
+  onSynthOpen?: () => void;
   onEffectsOpen: () => void;
   isImporting: boolean;
   onImportMidi: () => void;
@@ -300,6 +307,12 @@ function MidiTrackActions({
         </DropdownMenuCheckboxItem>
 
         <DropdownMenuSeparator />
+        {onSynthOpen && (
+          <DropdownMenuItem onSelect={onSynthOpen}>
+            <AudioWaveformIcon />
+            Synth…
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onSelect={onEffectsOpen}>
           <SlidersHorizontalIcon />
           Effects…

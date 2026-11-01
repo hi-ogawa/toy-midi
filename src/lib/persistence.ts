@@ -7,6 +7,11 @@ import {
   type MultibandEqParameters,
 } from "./dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
+import {
+  createSynthLayer,
+  type SynthLayer,
+  type SynthPatch,
+} from "./dsp/subtractive-synth.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
   type PersistableEditorRuntimeState,
@@ -98,6 +103,7 @@ export interface SerializedMidiTrackState extends Omit<
   | "pan"
   | "reverbSend"
   | "automation"
+  | "synth"
 > {
   tabAnnotationEnabled?: boolean;
   tabOpenStringPitches?: number[];
@@ -109,7 +115,29 @@ export interface SerializedMidiTrackState extends Omit<
   reverbSend?: number;
   // 🟢 Optional for MIDI tracks saved before automation support.
   automation?: MidiTrackState["automation"];
+  synth?: SerializedSynthPatch;
   eq: SerializedMultibandEq;
+}
+
+interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
+  layers: SerializedSynthLayer[];
+}
+
+interface SerializedSynthLayer extends Omit<
+  SynthLayer,
+  "id" | "oscillator" | "gain" | "pan" | "amp"
+> {
+  oscillator: Pick<SynthLayer["oscillator"], "waveform"> & {
+    // 🟢 Optional for layers saved before octave and detune.
+    octave?: number;
+    detune?: number;
+  };
+  // 🟢 Optional for layers saved before per-layer gain.
+  gain?: number;
+  // 🟢 Optional for layers saved before per-layer pan.
+  pan?: number;
+  // 🟢 Optional for layers saved before the amp envelope.
+  amp?: SynthLayer["amp"];
 }
 
 interface SerializedAudioTrackState<ChannelData> {
@@ -185,7 +213,13 @@ export function serializeEditorRuntimeState(
       showClips: track.showClips,
       clips: track.clips.map(serializeAudioClip),
     })),
-    midiTracks: state.midiTracks,
+    midiTracks: state.midiTracks.map((track) => ({
+      ...track,
+      synth: track.synth && {
+        ...track.synth,
+        layers: track.synth.layers.map(({ id: _id, ...layer }) => layer),
+      },
+    })),
     trackOrder: state.trackOrder,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
@@ -246,6 +280,17 @@ export function deserializeEditorRuntimeState({
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,
       ],
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
+      synth: track.synth && {
+        ...track.synth,
+        layers: track.synth.layers.map((layer) => {
+          const defaults = createSynthLayer();
+          return {
+            ...defaults,
+            ...layer,
+            oscillator: { ...defaults.oscillator, ...layer.oscillator },
+          };
+        }),
+      },
       eq: deserializeEq(track.eq),
     })),
     // The runtime fills in tracks missing from older or partial orders.

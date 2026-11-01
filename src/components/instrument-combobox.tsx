@@ -1,5 +1,6 @@
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { useState } from "react";
+import { createSynthPatch } from "../lib/dsp/subtractive-synth";
 import { DRUM_KIT_BANK, DRUM_KITS, GM_PROGRAMS } from "../lib/general-midi";
 import type { MidiPreset } from "../lib/runtime";
 import { findSoundfont, SOUNDFONTS } from "../lib/soundfonts";
@@ -52,10 +53,12 @@ export function InstrumentCombobox({
 
   function renderItem(preset: MidiPreset) {
     const label = formatPresetLabel(preset);
-    const selected =
-      value.soundfont === preset.soundfont &&
-      (value.bank ?? 0) === (preset.bank ?? 0) &&
-      value.program === preset.program;
+    const selected = preset.synth
+      ? Boolean(value.synth)
+      : !value.synth &&
+        value.soundfont === preset.soundfont &&
+        (value.bank ?? 0) === (preset.bank ?? 0) &&
+        value.program === preset.program;
     return (
       <CommandItem
         key={label}
@@ -118,6 +121,15 @@ export function InstrumentCombobox({
                 )}
               </CommandGroup>
             ))}
+            <CommandGroup heading="Toy MIDI Original">
+              {/* Keep the SoundFont preset as the General MIDI stand-in for .mid export. */}
+              {renderItem({
+                soundfont: value.soundfont,
+                bank: value.bank,
+                program: value.program,
+                synth: value.synth ?? createSynthPatch(),
+              })}
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
@@ -125,7 +137,15 @@ export function InstrumentCombobox({
   );
 }
 
-function formatPresetLabel({ soundfont, bank, program }: MidiPreset): string {
+function formatPresetLabel({
+  soundfont,
+  bank,
+  program,
+  synth,
+}: MidiPreset): string {
+  if (synth) {
+    return "Subtractive Synth";
+  }
   if (soundfont) {
     const { name, presets } = findSoundfont(soundfont);
     const preset = presets.find((preset) => preset.program === program);

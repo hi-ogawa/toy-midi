@@ -5,4 +5,5 @@
   - references.md is a reference. It answers which outside projects are useful for what.
   - e2e.md and rust-development.md are guides. They answer what to do, including what to run when a command rejects something.
   - public/llms.txt is a guide for agents, served at `/llms.txt`. It answers how an agent works with a project from outside the code, so it states formats and commands and links to the served declaration file rather than restating types.
+- Follow the [math-explanations skill](../.agents/skills/math-explanations/SKILL.md) for any doc with math, including how to write math that renders on GitHub.
 - Use Title Case for headings. In explanations, phrase each section heading as the action the section explains, such as “Find Repetition by Shifting the Waveform”, and keep plain labels for lists such as “References”.

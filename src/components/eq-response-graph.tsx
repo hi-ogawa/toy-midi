@@ -5,7 +5,13 @@ import {
   isGainFilter,
 } from "../lib/dsp/biquad-eq";
 import { type MultibandEqBand } from "../lib/dsp/biquad-eq-multiband";
-import { clamp, dbToGain, gainToDb } from "../lib/music";
+import {
+  clamp,
+  dbToGain,
+  gainToDb,
+  logPositionToValue,
+  valueToLogPosition,
+} from "../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { usePointerGesture } from "./use-pointer-gesture";
 
@@ -267,13 +273,11 @@ function createResponsePath(bands: MultibandEqBand[]): string {
 }
 
 function frequencyToGraphX(frequency: number): number {
-  const { min, max } = EQ_CONTROL_LIMITS.frequency;
-  return Math.log(frequency / min) / Math.log(max / min);
+  return valueToLogPosition(frequency, EQ_CONTROL_LIMITS.frequency);
 }
 
 function graphXToFrequency(x: number): number {
-  const { min, max } = EQ_CONTROL_LIMITS.frequency;
-  return min * (max / min) ** x;
+  return logPositionToValue(x, EQ_CONTROL_LIMITS.frequency);
 }
 
 function gainDbToGraphY(gainDb: number): number {

@@ -38,7 +38,9 @@ export class MidiTrackPlayback implements TransportParticipant {
     try {
       await synth.init();
       // Play GeneralUser rather than wait for the track's SoundFont.
-      synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
+      if (!track.synth) {
+        synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
+      }
       synth.setPreset(track).catch(ignoreLoadFailure);
       return new MidiTrackPlayback({
         transport,

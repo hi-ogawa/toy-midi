@@ -6,6 +6,7 @@ import {
   clamp,
   dbToGain,
   formatGainDb,
+  formatPan,
   gainToDb,
 } from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
@@ -392,14 +393,6 @@ function ReverbSendKnob({
       </span>
     </div>
   );
-}
-
-function formatPan(pan: number): string {
-  const percent = Math.round(Math.abs(pan) * 100);
-  if (percent === 0) {
-    return "C";
-  }
-  return `${pan < 0 ? "L" : "R"}${percent}`;
 }
 
 export function GainSlider({
