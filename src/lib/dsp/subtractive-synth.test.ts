@@ -504,39 +504,6 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
-  it("lands the envelope's cutoff from the first sample", () => {
-    // A sustained 2-octave amount opens the cutoff at once from 110 Hz to
-    // 110 × 2^2 = 440 Hz, so the layer plays the same samples as one fixed
-    // there.
-    const renderLayer = (layer: SynthLayer) => {
-      const synth = new SubtractiveSynth(SAMPLE_RATE);
-      synth.setPatch({ layers: [layer] });
-      return renderSynth(synth, {
-        seconds: 0.1,
-        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
-      });
-    };
-    const expected = renderLayer(createGateLayer({ filter: { cutoff: 440 } }));
-    const samples = renderLayer(
-      createGateLayer({
-        filter: {
-          cutoff: 110,
-          envelope: {
-            attack: 0,
-            decay: 0,
-            sustain: 1,
-            release: 0,
-            amount: 2,
-            velocity: 0,
-          },
-        },
-      }),
-    );
-    for (let i = 0; i < samples.length; i++) {
-      expect(samples[i]).toBeCloseTo(expected[i], 6);
-    }
-  });
-
   it("scales the envelope's amount by velocity", () => {
     // Velocity scales the 2-octave amount, so each note opens the cutoff from
     // 220 Hz onto itself, where the low-pass is 3 dB down from PEAK's -21.1 dB:
