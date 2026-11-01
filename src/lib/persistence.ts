@@ -125,7 +125,7 @@ interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
 
 interface SerializedSynthLayer extends Omit<
   SynthLayer,
-  "id" | "oscillator" | "gain" | "pan" | "amp"
+  "id" | "oscillator" | "gain" | "pan" | "filter" | "amp"
 > {
   oscillator: Pick<SynthLayer["oscillator"], "waveform"> & {
     // 🟢 Optional for layers saved before octave and detune.
@@ -136,6 +136,8 @@ interface SerializedSynthLayer extends Omit<
   gain?: number;
   // 🟢 Optional for layers saved before per-layer pan.
   pan?: number;
+  // 🟢 Optional for layers saved before the filter.
+  filter?: SynthLayer["filter"];
   // 🟢 Optional for layers saved before the amp envelope.
   amp?: SynthLayer["amp"];
 }

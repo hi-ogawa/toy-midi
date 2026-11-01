@@ -1,9 +1,11 @@
 /**
- * Dattorro's plate reverb: a pre-delay, an input low-pass, four input
- * diffusers, and a figure-eight tank of two delay loops whose taps make a
- * synthetic stereo output, after J. Dattorro, "Effect Design, Part 1:
- * Reverberator and Other Filters", J. Audio Eng. Soc., 1997, Fig. 1 and
- * Tables 1 and 2. The paper's delay modulation is left out.
+ * Dattorro's plate reverb: a pre-delay, four input diffusers, and a
+ * figure-eight tank of two delay loops whose taps make a synthetic stereo
+ * output, after J. Dattorro, "Effect Design, Part 1: Reverberator and Other
+ * Filters", J. Audio Eng. Soc., 1997, Fig. 1 and Tables 1 and 2. Its lengths,
+ * given in samples at 29,761 Hz, appear here as durations in milliseconds. The
+ * paper's delay modulation is left out, and so is its input low-pass, which its
+ * default setting leaves inaudible.
  *
  * See [Reverb](../../../docs/concepts/reverb.md) for why a delay network
  * reverberates and what each part does to the impulse response.
@@ -30,53 +32,46 @@ export const REVERB_PARAMETERS: ReverbParameters = {
   dampingFrequency: 6000,
 };
 
-// The paper gives its lengths in samples at this rate, and they're rescaled
-// to keep their durations.
-const PAPER_SAMPLE_RATE = 29761;
-
 const INPUT_DIFFUSERS = [
-  { length: 142, gain: 0.75 },
-  { length: 107, gain: 0.75 },
-  { length: 379, gain: 0.625 },
-  { length: 277, gain: 0.625 },
+  { length: 4.8, gain: 0.75 },
+  { length: 3.6, gain: 0.75 },
+  { length: 12.7, gain: 0.625 },
+  { length: 9.3, gain: 0.625 },
 ];
-
-// The paper's default, which lets nearly the full band into the tank.
-const BANDWIDTH = 0.9995;
 
 // Each half of the tank: an all-pass, a delay, the damping low-pass, an
 // all-pass, and a delay. The first all-pass has its sign flipped, which the
 // paper uses to make the two pairs of tank all-passes differ in character.
 const TANK_HALVES = [
-  { diffuser1: 672, delay1: 4453, diffuser2: 1800, delay2: 3720 },
-  { diffuser1: 908, delay1: 4217, diffuser2: 2656, delay2: 3163 },
+  { diffuser1: 22.6, delay1: 149.6, diffuser2: 60.5, delay2: 125.0 },
+  { diffuser1: 30.5, delay1: 141.7, diffuser2: 89.2, delay2: 106.3 },
 ];
 const DECAY_DIFFUSION_1 = -0.7;
 const DECAY_DIFFUSION_2 = 0.5;
 
 // Table 2: each output sums seven taps across both halves of the tank, with
-// signs, at 0.6 each. A tap's position counts samples back from the newest
-// sample in that delay line.
+// signs, at 0.6 each. A tap's position counts back from the newest sample in
+// that delay line.
 type TapSource = "delay1" | "diffuser2" | "delay2";
 type Tap = { half: number; source: TapSource; position: number; sign: number };
 const OUTPUT_TAPS: Tap[][] = [
   [
-    { half: 1, source: "delay1", position: 266, sign: 1 },
-    { half: 1, source: "delay1", position: 2974, sign: 1 },
-    { half: 1, source: "diffuser2", position: 1913, sign: -1 },
-    { half: 1, source: "delay2", position: 1996, sign: 1 },
-    { half: 0, source: "delay1", position: 1990, sign: -1 },
-    { half: 0, source: "diffuser2", position: 187, sign: -1 },
-    { half: 0, source: "delay2", position: 1066, sign: -1 },
+    { half: 1, source: "delay1", position: 8.9, sign: 1 },
+    { half: 1, source: "delay1", position: 99.9, sign: 1 },
+    { half: 1, source: "diffuser2", position: 64.3, sign: -1 },
+    { half: 1, source: "delay2", position: 67.1, sign: 1 },
+    { half: 0, source: "delay1", position: 66.9, sign: -1 },
+    { half: 0, source: "diffuser2", position: 6.3, sign: -1 },
+    { half: 0, source: "delay2", position: 35.8, sign: -1 },
   ],
   [
-    { half: 0, source: "delay1", position: 353, sign: 1 },
-    { half: 0, source: "delay1", position: 3627, sign: 1 },
-    { half: 0, source: "diffuser2", position: 1228, sign: -1 },
-    { half: 0, source: "delay2", position: 2673, sign: 1 },
-    { half: 1, source: "delay1", position: 2111, sign: -1 },
-    { half: 1, source: "diffuser2", position: 335, sign: -1 },
-    { half: 1, source: "delay2", position: 121, sign: -1 },
+    { half: 0, source: "delay1", position: 11.9, sign: 1 },
+    { half: 0, source: "delay1", position: 121.9, sign: 1 },
+    { half: 0, source: "diffuser2", position: 41.3, sign: -1 },
+    { half: 0, source: "delay2", position: 89.8, sign: 1 },
+    { half: 1, source: "delay1", position: 70.9, sign: -1 },
+    { half: 1, source: "diffuser2", position: 11.3, sign: -1 },
+    { half: 1, source: "delay2", position: 4.1, sign: -1 },
   ],
 ];
 const OUTPUT_TAP_GAIN = 0.6;
@@ -84,7 +79,6 @@ const OUTPUT_TAP_GAIN = 0.6;
 export class Reverb {
   private readonly block: Float32Array;
   private readonly preDelay: DelayLine;
-  private readonly bandwidth = new OnePoleLowPass(1 - BANDWIDTH);
   private readonly inputDiffusers: AllPass[];
   private readonly halves: TankHalf[];
   private readonly decayGain: number;
@@ -104,24 +98,30 @@ export class Reverb {
     blockFrames: number;
     parameters: ReverbParameters;
   }) {
-    const scale = (length: number) =>
-      Math.round((length * sampleRate) / PAPER_SAMPLE_RATE);
+    const convertToSamples = (milliseconds: number) =>
+      Math.round((milliseconds * sampleRate) / 1000);
     this.block = new Float32Array(blockFrames);
     this.preDelay = new DelayLine(
       Math.max(1, Math.round(parameters.preDelay * sampleRate)),
     );
     this.inputDiffusers = INPUT_DIFFUSERS.map(
-      ({ length, gain }) => new AllPass(scale(length), gain),
+      ({ length, gain }) => new AllPass(convertToSamples(length), gain),
     );
     const damping = Math.exp(
       (-2 * Math.PI * parameters.dampingFrequency) / sampleRate,
     );
     this.halves = TANK_HALVES.map((lengths) => ({
-      diffuser1: new AllPass(scale(lengths.diffuser1), DECAY_DIFFUSION_1),
-      delay1: new DelayLine(scale(lengths.delay1)),
+      diffuser1: new AllPass(
+        convertToSamples(lengths.diffuser1),
+        DECAY_DIFFUSION_1,
+      ),
+      delay1: new DelayLine(convertToSamples(lengths.delay1)),
       damping: new OnePoleLowPass(damping),
-      diffuser2: new AllPass(scale(lengths.diffuser2), DECAY_DIFFUSION_2),
-      delay2: new DelayLine(scale(lengths.delay2)),
+      diffuser2: new AllPass(
+        convertToSamples(lengths.diffuser2),
+        DECAY_DIFFUSION_2,
+      ),
+      delay2: new DelayLine(convertToSamples(lengths.delay2)),
     }));
     // A sound circling the whole figure eight passes four decay gains, so the
     // gain per pass that falls 60 dB in the decay time is g⁴ = 10^(−3T/t).
@@ -130,7 +130,7 @@ export class Reverb {
     // tail lingers, so the measured decay runs about 9% longer.
     const loopSeconds =
       TANK_HALVES.flatMap((lengths) => Object.values(lengths))
-        .map(scale)
+        .map(convertToSamples)
         .reduce((sum, length) => sum + length, 0) / sampleRate;
     this.decayGain = 10 ** ((-3 * loopSeconds) / (4 * parameters.decayTime));
     this.outputTaps = OUTPUT_TAPS.map((taps) =>
@@ -139,7 +139,7 @@ export class Reverb {
           tap.source === "diffuser2"
             ? this.halves[tap.half].diffuser2.line
             : this.halves[tap.half][tap.source],
-        position: scale(tap.position),
+        position: convertToSamples(tap.position),
         gain: tap.sign * OUTPUT_TAP_GAIN,
       })),
     );
@@ -158,7 +158,7 @@ export class Reverb {
     block.fill(0);
     for (const channel of input) {
       for (let frame = 0; frame < block.length; frame++) {
-        block[frame] += channel[frame];
+        block[frame] += channel[frame] / input.length;
       }
     }
     const [left, right] = output;
@@ -166,8 +166,7 @@ export class Reverb {
     const [leftTaps, rightTaps] = this.outputTaps;
     const decay = this.decayGain;
     for (let frame = 0; frame < block.length; frame++) {
-      let x = this.preDelay.process(block[frame] / input.length);
-      x = this.bandwidth.process(x);
+      let x = this.preDelay.process(block[frame]);
       for (const diffuser of this.inputDiffusers) {
         x = diffuser.process(x);
       }
@@ -237,7 +236,7 @@ class DelayLine {
 }
 
 /**
- * Schroeder all-pass around a delay line: w = x − g·w[−L], y = w[−L] + g·w.
+ * Schroeder all-pass around a delay line: w = x − g·w[−L], y = g·w + w[−L].
  * Its response to an impulse is a train of echoes L apart, decaying by g, and
  * its gain is 1 at every frequency.
  */
@@ -252,10 +251,10 @@ class AllPass {
   }
 
   process(input: number): number {
-    const delayed = this.line.read();
-    const w = flushTiny(input - this.gain * delayed);
+    const wDelayed = this.line.read();
+    const w = flushTiny(input - this.gain * wDelayed);
     this.line.process(w);
-    return delayed + this.gain * w;
+    return this.gain * w + wDelayed;
   }
 }
 

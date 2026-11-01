@@ -18,8 +18,8 @@ describe(Reverb, () => {
         .map((frequency, i) => `${frequency} Hz: ${decayTimes[i].toFixed(2)} s`)
         .join("\n"),
     ).toMatchInlineSnapshot(`
-      "250 Hz: 1.96 s
-      1000 Hz: 1.95 s
+      "250 Hz: 1.97 s
+      1000 Hz: 1.96 s
       4000 Hz: 1.74 s
       8000 Hz: 1.50 s"
     `);
