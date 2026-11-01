@@ -496,9 +496,10 @@ describe(SubtractiveSynth, () => {
   });
 
   it("scales the envelope's amount by velocity", () => {
-    // At velocity 64, a fully velocity-scaled 2-octave amount opens the
-    // cutoff by 2 × 64 / 127 octaves, so a cutoff at 440 Hz over that many
-    // octaves meets A4 at 3 dB down.
+    // At velocity 64, a fully velocity-scaled 2-octave amount opens the cutoff
+    // 2 × 64 / 127 octaves, from 440 / 2^octaves onto A4 = 440 Hz, where the
+    // low-pass is 3 dB down. Velocity 64 alone puts the note at
+    // -21.1 + 20 log10(64 / 127) = -27.1 dB, so the rows read -30.1 dB.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const octaves = (2 * 64) / 127;
     synth.setPatch({
@@ -522,8 +523,12 @@ describe(SubtractiveSynth, () => {
       seconds: 0.1,
       at: { 0: () => synth.noteOn(A4, 64) },
     });
-    const unfiltered = (PEAK * (64 / 127)) / Math.SQRT2;
-    expect(gainToDb(measureRms(samples) / unfiltered)).toBeCloseTo(-3, 1);
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -30.1 dB  ██████████████████████████████
+       50 ms  -30.1 dB  ██████████████████████████████
+      "
+    `);
   });
 
   it("closes the filter on a sounding note with its envelope", () => {
