@@ -8,7 +8,7 @@ import {
 } from "./editor-helpers";
 import { getMenuItem, selectMenuItem } from "./helpers";
 
-test("changes a synth track's oscillator and amp envelope in its Synth panel", async ({
+test("changes a synth track's oscillator, filter, and amp envelope in its Synth panel", async ({
   page,
 }) => {
   // Add two MIDI tracks, and switch the first to the synth.
@@ -70,14 +70,36 @@ test("changes a synth track's oscillator and amp envelope in its Synth panel", a
   await page.keyboard.press("Shift+ArrowDown");
   await expect(detune).toHaveAttribute("aria-valuetext", "-8 cents");
 
+  // See the filter start fully open, then close it a step on its log scale.
+  const cutoff = panel.getByRole("slider", { name: "Cutoff" });
+  await expect(cutoff).toHaveAttribute("aria-valuetext", "Open");
+  await cutoff.focus();
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(cutoff).toHaveAttribute("aria-valuetext", "10.0 kHz");
+
+  // Raise the filter envelope's amount from 0 with the keyboard, and see the
+  // filter envelope's graph.
+  const amount = panel.getByRole("slider", {
+    name: "Envelope amount",
+    exact: true,
+  });
+  await expect(amount).toHaveAttribute("aria-valuetext", "0.0 oct");
+  await amount.focus();
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(amount).toHaveAttribute("aria-valuetext", "+1.6 oct");
+  await expect(
+    panel.getByRole("group", { name: "Filter envelope" }),
+  ).toBeVisible();
+
   // See the amp envelope start as a 5 ms gate.
-  const attack = panel.getByRole("slider", { name: "Attack" });
+  const ampEnvelope = panel.getByRole("group", { name: "Amp envelope" });
+  const attack = ampEnvelope.getByRole("slider", { name: "Attack" });
   await expect(attack).toHaveAttribute("aria-valuetext", "5 ms");
-  const sustain = panel.getByRole("slider", { name: "Sustain" });
+  const sustain = ampEnvelope.getByRole("slider", { name: "Sustain" });
   await expect(sustain).toHaveAttribute("aria-valuetext", "100%");
 
   // Lengthen the release by two decades with the keyboard.
-  const release = panel.getByRole("slider", { name: "Release" });
+  const release = ampEnvelope.getByRole("slider", { name: "Release" });
   await release.focus();
   await page.keyboard.press("Shift+ArrowUp");
   await page.keyboard.press("Shift+ArrowUp");
@@ -85,9 +107,9 @@ test("changes a synth track's oscillator and amp envelope in its Synth panel", a
 
   // Drag the decay handle halfway down the graph, which lowers the sustain to
   // about half and leaves the attack alone.
-  const decay = panel.getByTestId("envelope-decay-handle");
+  const decay = ampEnvelope.getByTestId("envelope-decay-handle");
   const decayBox = (await decay.boundingBox())!;
-  const releaseBox = (await panel
+  const releaseBox = (await ampEnvelope
     .getByTestId("envelope-release-handle")
     .boundingBox())!;
   await dragBy(page, decay, 0, { deltaY: (releaseBox.y - decayBox.y) / 2 });
@@ -151,6 +173,19 @@ test("adds, collapses, and removes layers in the Synth panel", async ({
   await layer1.getByRole("button", { name: "Layer 1", exact: true }).click();
   await expect(layer1.getByRole("group", { name: "Waveform" })).toHaveCount(0);
   await expect(layer2.getByRole("group", { name: "Waveform" })).toBeVisible();
+
+  // Fold the second layer's Oscillator section, and see the waveform stay in
+  // its header while the octave goes. Unfold it.
+  const oscillator = layer2.getByRole("button", { name: "Oscillator" });
+  await oscillator.click();
+  await expect(layer2.getByRole("spinbutton", { name: "Octave" })).toHaveCount(
+    0,
+  );
+  await expect(layer2.getByRole("group", { name: "Waveform" })).toBeVisible();
+  await oscillator.click();
+  await expect(
+    layer2.getByRole("spinbutton", { name: "Octave" }),
+  ).toBeVisible();
 
   // Remove the first layer, and see the square layer move up, open, as the
   // only layer.
