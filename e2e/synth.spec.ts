@@ -8,7 +8,7 @@ import {
 } from "./editor-helpers";
 import { getMenuItem, selectMenuItem } from "./helpers";
 
-test("changes a synth track's oscillator and amp envelope in its Synth panel", async ({
+test("changes a synth track's oscillator, filter, and amp envelope in its Synth panel", async ({
   page,
 }) => {
   // Add two MIDI tracks, and switch the first to the synth.
@@ -69,6 +69,27 @@ test("changes a synth track's oscillator and amp envelope in its Synth panel", a
   await expect(detune).toHaveAttribute("aria-valuetext", "+2 cents");
   await page.keyboard.press("Shift+ArrowDown");
   await expect(detune).toHaveAttribute("aria-valuetext", "-8 cents");
+
+  // See the filter start fully open, then close it a step on its log scale.
+  const cutoff = panel.getByRole("slider", { name: "Cutoff" });
+  await expect(cutoff).toHaveAttribute("aria-valuetext", "Open");
+  await cutoff.focus();
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(cutoff).toHaveAttribute("aria-valuetext", "10.0 kHz");
+
+  // Raise the filter envelope's amount from 0 with the keyboard, and see the
+  // filter envelope's graph.
+  const amount = panel.getByRole("slider", {
+    name: "Envelope amount",
+    exact: true,
+  });
+  await expect(amount).toHaveAttribute("aria-valuetext", "0.0 oct");
+  await amount.focus();
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(amount).toHaveAttribute("aria-valuetext", "+1.6 oct");
+  await expect(
+    panel.getByRole("group", { name: "Filter envelope" }),
+  ).toBeVisible();
 
   // See the amp envelope start as a 5 ms gate.
   const ampEnvelope = panel.getByRole("group", { name: "Amp envelope" });
