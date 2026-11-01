@@ -439,15 +439,15 @@ describe(SubtractiveSynth, () => {
     // A sine at the cutoff comes out at Q times its level: 3 dB down at the
     // Butterworth Q, and 12 dB up at Q 4. Each level skips the first 50 ms,
     // where a resonant filter rings after note-on.
-    const measureSettledRms = (layer: SynthLayer) =>
-      measureRms(
-        renderSynthPatch({ layers: [layer] }).subarray(0.05 * SAMPLE_RATE),
-      );
     const measureGainDbAtResonance = (resonance: number) => {
-      const unfiltered = createGateLayer();
-      const filtered = createFilterLayer({ cutoff: 440, resonance });
+      const settle = 0.05 * SAMPLE_RATE;
+      const unfiltered = renderSynthPatch({ layers: [createGateLayer()] });
+      const filtered = renderSynthPatch({
+        layers: [createFilterLayer({ cutoff: 440, resonance })],
+      });
       return gainToDb(
-        measureSettledRms(filtered) / measureSettledRms(unfiltered),
+        measureRms(filtered.subarray(settle)) /
+          measureRms(unfiltered.subarray(settle)),
       );
     };
     expect(measureGainDbAtResonance(Math.SQRT1_2)).toBeCloseTo(-3, 1);
