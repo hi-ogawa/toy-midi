@@ -54,7 +54,7 @@ $$
 w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=w[n-D]+g \cdot w[n].
 $$
 
-The feedforward path takes $g$ times the signal entering the delay, and the [appendix](#appendix-feedback-delays-as-transfer-functions) shows that it exactly evens out the feedback's peaks and dips. Its impulse response is still a train of echoes, $g$ at once, then $1-g^2$ at $D$, then $-g(1-g^2)$ at $2D$, and so on, but because the echoes add up to a flat spectrum, it changes when the sound arrives without changing its tone. That's the property a reverb needs, because it scatters a sound in time without coloring it. With the same delay and gain, the feedback delay's echoes come with peaks and dips across the spectrum, while the all-pass's stay flat:
+The feedforward path takes $g$ times the signal entering the delay, and the [appendix](#appendix-feedback-delays-as-transfer-functions) shows that it exactly evens out the feedback's peaks and dips. Its impulse response is still a train of echoes, $g$ at once, then $1-g^2$ at $D$, then $-g(1-g^2)$ at $2D$, and so on, but because the echoes add up to a flat spectrum, it changes when the sound arrives without changing its tone. With the same delay and gain, the feedback delay's echoes come with peaks and dips across the spectrum, while the all-pass's stay flat:
 
 ![With a 5 ms delay and g = 0.7, both respond to a click with echoes 5 ms apart that fade away. The feedback delay's gain swings between about +10 and −5 dB, peaking every 200 Hz, while the all-pass's gain is 0 dB at every frequency](images/reverb-comb-and-all-pass.svg)
 
@@ -62,7 +62,7 @@ Chaining all-passes multiplies their echoes, since each echo of the first become
 
 ![A click through the plate's input diffusers. After one all-pass it's a single train of echoes, after two the trains interleave, and after four the echoes have merged into a dense burst within about 30 ms](images/reverb-diffusers.svg)
 
-An all-pass delays a sound by $D$ samples on average across frequency, but not equally at every frequency. Its delay swings between $D(1-|g|)/(1+|g|)$ and $D(1+|g|)/(1-|g|)$, which for $g=0.5$ is from a third of $D$ to three times $D$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. That matters below, where all-passes sit inside a loop.
+An all-pass delays a sound by $D$ samples on average across frequency, but not equally at every frequency. Its delay swings between $D(1-|g|)/(1+|g|)$ and $D(1+|g|)/(1-|g|)$, which for $g=0.5$ is from a third of $D$ to three times $D$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. Inside a loop, that makes some frequencies take longer to go around, which [Set the Decay Time](#set-the-decay-time) has to account for.
 
 ## Follow a Click Through the Plate
 
@@ -102,7 +102,7 @@ $$
 
 For 1.8 s that gives $g\approx0.50$, which is also the paper's default.
 
-Measured from the impulse response, the low frequencies take about 1.96 s to fall 60 dB, about 9% longer. That's the all-passes' uneven delay. A sound at a frequency where the tank's all-passes delay longer takes longer to go around, but it still loses the same amount per trip, so it fades more slowly. The tail's last energy sits at those frequencies, which stretches the measured decay. With the tank's all-passes switched off, the same gain measures 1.79 s.
+Measured from the impulse response, the low frequencies take about 1.96 s to fall 60 dB, about 9% longer. The difference comes from the tank all-passes' uneven delay. A sound at a frequency where they delay longer takes longer to go around, but it still loses the same amount per trip, so it fades more slowly. The tail's last energy sits at those frequencies, which stretches the measured decay. With the tank's all-passes switched off, the same gain measures 1.79 s.
 
 ### Damp the Highs
 
@@ -117,7 +117,7 @@ The damping low-pass in each half is a one-pole filter with its cutoff at 6 kHz.
 | 4 kHz       | 1.74 s     |
 | 8 kHz       | 1.50 s     |
 
-The lines are straight because each trip takes off the same number of dB, which is the exponential decay the single loop showed, now on a dense response.
+Each band still loses the same dB on every trip, so the dense response decays exponentially like the single loop, at a rate that the damping sets per band.
 
 ### Tap Stereo Outputs from the Tank
 
