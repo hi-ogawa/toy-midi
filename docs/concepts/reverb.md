@@ -48,7 +48,7 @@ The problem with one loop is that its response has only one echo per trip, at mu
 
 ## Thicken the Echoes with All-Passes
 
-An **all-pass** is a feedback delay with a feedforward path added, chosen so that it passes every frequency at the same gain:
+What's needed is a block that spreads a click into echoes without the loop's ringing, passing every frequency at the same gain. A filter with that property is called an **all-pass**, and adding a feedforward path to the feedback delay makes one:
 
 $$
 w[n]=x[n]-g \cdot w[n-D], \qquad y[n]=w[n-D]+g \cdot w[n].
