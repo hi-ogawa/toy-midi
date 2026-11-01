@@ -319,7 +319,6 @@ function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
       rightGain: layer.gain * pan.right,
       filter: {
         ...filter,
-        resonance: clamp(filter.resonance, EQ_LIMITS.q.min, EQ_LIMITS.q.max),
         amount: envelope.amount,
         velocity: envelope.velocity,
       },
