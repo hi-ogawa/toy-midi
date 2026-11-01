@@ -84,8 +84,6 @@ The figure chains four all-passes of 4.8, 3.6, 12.7, and 9.3 ms:
 
 ![A click through four chained all-passes. After one all-pass it's a single train of echoes, after two the trains interleave, and after four the echoes have merged into a dense burst within about 30 ms](images/reverb-diffusers.svg)
 
-Passing every frequency at the same level still lets the all-pass delay some frequencies longer than others. It delays a sound by $D$ samples on average across frequency. Its delay swings between $D(1-|g|)/(1+|g|)$ and $D(1+|g|)/(1-|g|)$, which for $g=0.5$ is from a third of $D$ to three times $D$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. Inside a loop, that makes some frequencies take longer to go around, which [Set the Decay Time](#set-the-decay-time) has to account for.
-
 ## Follow a Click Through the Plate
 
 Dattorro's design imitates a plate reverb, a large steel sheet that a driver sets vibrating and pickups listen to. It puts all-passes inside a loop. The all-passes make the echoes dense, and the loop's gains make them fade at a set rate. A click passes through it in this order:
@@ -114,7 +112,9 @@ The tank's delays differ from each other and share no common factor, so the loop
 
 ### Set the Decay Time
 
-A trip around the figure eight passes four gains, two in each half, so it lowers the level by $-80\log_{10}g$ dB in $T\approx0.73$ s, counting the all-passes by their average delay. Like the single loop above, the decay time is then
+An all-pass passes every frequency at the same level, but it doesn't delay every frequency equally. Averaged across frequency, it delays a sound by its length $D$, and at single frequencies anywhere from $D(1-|g|)/(1+|g|)$ to $D(1+|g|)/(1-|g|)$, as the [appendix](#appendix-feedback-delays-as-transfer-functions) derives. For $g=0.5$, that's from a third of $D$ to three times $D$.
+
+A trip around the figure eight passes four gains, two in each half, so it lowers the level by $-80\log_{10}g$ dB in $T\approx0.73$ s, counting each all-pass by its average delay. Like the single loop above, the decay time is then
 
 $$
 T_{60}=\frac{60}{-80\log_{10}g} \cdot T,
@@ -124,7 +124,7 @@ $$
 
 For 1.8 s that gives $g\approx0.50$, which is also the paper's default.
 
-Measured from the impulse response, the low frequencies take about 1.96 s to fall 60 dB, about 9% longer. The difference comes from the tank all-passes' uneven delay. A sound at a frequency where they delay longer takes longer to go around, but it still loses the same amount per trip, so it fades more slowly. The tail's last energy sits at those frequencies, which stretches the measured decay. With the tank's all-passes switched off, the same gain measures 1.79 s.
+Measured from the impulse response, the low frequencies take about 1.96 s to fall 60 dB, about 9% longer. At frequencies where the tank's all-passes delay longer, a sound takes longer to go around but loses the same amount per trip, so it fades more slowly. The tail's last energy sits at those frequencies, which stretches the measured decay. With the tank's all-passes switched off, the same gain measures 1.79 s.
 
 ### Damp the Highs
 
