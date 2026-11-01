@@ -586,6 +586,63 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
+  it("moves the cutoff with CC74 and the resonance with CC71", () => {
+    // At 96, halfway from 64 to 128, CC74 opens the cutoff 2 octaves and CC71
+    // raises Q by 6.25 dB, from PEAK's -21.1 dB:
+    //   CC74: 110 Hz × 2^2 = 440 Hz = A4, where Q 1 passes it at 0 dB: -21.1 dB
+    //   CC71 at 0.2 s: Q 1 → +6.25 dB: -14.9 dB
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      layers: [createGateLayer({ filter: { cutoff: 110, resonance: 1 } })],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => {
+          synth.controller(74, 96);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+        0.2: () => synth.controller(71, 96),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -21.2 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -21.1 dB  ███████████████████████████████████████
+      150 ms  -21.1 dB  ███████████████████████████████████████
+      200 ms  -15.0 dB  █████████████████████████████████████████████
+      250 ms  -14.9 dB  █████████████████████████████████████████████
+      300 ms  -14.9 dB  █████████████████████████████████████████████
+      350 ms  -14.9 dB  █████████████████████████████████████████████
+      "
+    `);
+  });
+
+  it("closes an open layer's filter with CC74 on a sounding note", () => {
+    // An open layer skips its filter until CC74 drops below 64. At 0, CC74
+    // lowers the 20 kHz cutoff 4 octaves, to 1250 Hz, from PEAK's -21.1 dB:
+    //   A6 = 1760 Hz ≈ 1250 Hz × √2, where a Butterworth low-pass has
+    //   |H|² = 1 / (1 + √2^4) = 1/5, 7 dB down: -28.1 dB
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({ layers: [createGateLayer()] });
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4 + 24, FULL_VELOCITY),
+        0.1: () => synth.controller(74, 0),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -21.1 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -28.1 dB  ████████████████████████████████
+      150 ms  -28.1 dB  ████████████████████████████████
+      "
+    `);
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createPatch(["sine"]));

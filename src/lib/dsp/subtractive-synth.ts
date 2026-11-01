@@ -1,6 +1,6 @@
 import { PITCH_BEND_RANGE, PITCH_WHEEL_CENTER } from "../general-midi.ts";
 import type { SynthEngine } from "../midi-synth-worklet.ts";
-import { clamp, midiToHz } from "../music.ts";
+import { clamp, dbToGain, midiToHz } from "../music.ts";
 import { BiquadEqPerSample, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
 import {
   computeEnvelopeCurves,
@@ -115,6 +115,14 @@ type ResolvedFilter = Omit<SynthLayer["filter"], "envelope"> &
 const MODULATION_CONTROLLER = 1;
 const VOLUME_CONTROLLER = 7;
 const EXPRESSION_CONTROLLER = 11;
+const RESONANCE_CONTROLLER = 71;
+const BRIGHTNESS_CONTROLLER = 74;
+// SpessaSynth's routes for CC74 and CC71 move the cutoff and resonance each
+// way from the controller's center, linearly in cents and dB, so the synth
+// matches a SoundFont track's automation.
+const CONTROLLER_CENTER = 64;
+const MAX_BRIGHTNESS_CENTS = 4800;
+const MAX_RESONANCE_DB = 12.5;
 // MIDI's defaults. A track without automation for a controller never sends
 // it, so the synth starts from these.
 const DEFAULT_VOLUME = 100;
@@ -157,6 +165,10 @@ export class SubtractiveSynth implements SynthEngine {
   private vibratoDepth = 0;
   private volume = DEFAULT_VOLUME;
   private expression = DEFAULT_EXPRESSION;
+  /** CC74's multiplier on every layer's cutoff */
+  private cutoffScale = 1;
+  /** CC71's multiplier on every layer's Q */
+  private resonanceScale = 1;
   /** CC7 volume times CC11 expression, applied to the summed voices */
   private channelGain = computeChannelGain(DEFAULT_VOLUME, DEFAULT_EXPRESSION);
   private targetChannelGain = this.channelGain;
@@ -211,6 +223,19 @@ export class SubtractiveSynth implements SynthEngine {
         this.vibratoDepth = (value / 127) * MAX_VIBRATO_CENTS;
         return;
       }
+      case BRIGHTNESS_CONTROLLER: {
+        const cents =
+          ((value - CONTROLLER_CENTER) / CONTROLLER_CENTER) *
+          MAX_BRIGHTNESS_CENTS;
+        this.cutoffScale = 2 ** (cents / 1200);
+        return;
+      }
+      case RESONANCE_CONTROLLER: {
+        const db =
+          ((value - CONTROLLER_CENTER) / CONTROLLER_CENTER) * MAX_RESONANCE_DB;
+        this.resonanceScale = dbToGain(db);
+        return;
+      }
       case VOLUME_CONTROLLER: {
         this.volume = value;
         break;
@@ -259,16 +284,23 @@ export class SubtractiveSynth implements SynthEngine {
               layer.filterEnvelope,
             );
             let sample = layer.oscillate(state.phase, phaseIncrement);
-            if (!shouldSkipFilter(layer.filter)) {
+            // CC74 can close an open layer's filter, but not open it further.
+            if (!shouldSkipFilter(layer.filter) || this.cutoffScale < 1) {
               const cutoff = clamp(
-                computeCutoff(layer.filter, voice, filterLevel),
+                computeCutoff(layer.filter, voice, filterLevel) *
+                  this.cutoffScale,
                 EQ_LIMITS.frequency.min,
                 this.maxCutoff,
+              );
+              const q = clamp(
+                layer.filter.resonance * this.resonanceScale,
+                EQ_LIMITS.q.min,
+                EQ_LIMITS.q.max,
               );
               sample = state.filter.process(sample, {
                 type: "low-pass",
                 frequency: cutoff,
-                q: layer.filter.resonance,
+                q,
               });
             }
             sample *= state.ampEnvelope.advance(layer.ampEnvelope);
