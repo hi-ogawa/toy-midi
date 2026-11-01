@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encodePitchBend } from "../general-midi";
-import { gainToDb } from "../music";
+import { dbToGain, gainToDb } from "../music";
 import { createSine, measureRms, SAMPLE_RATE } from "./helper";
 import {
   createSynthLayer,
@@ -527,6 +527,52 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
+  it("moves the cutoff with CC74 and the resonance with CC71", () => {
+    // At 96, CC74 opens the cutoff 2 octaves and CC71 raises the resonance by
+    // 6.25 dB, so the layer plays the same samples as one set there.
+    const expected = renderLayer(
+      createFilterLayer({ cutoff: 440, resonance: dbToGain(6.25) }),
+    );
+    const samples = renderLayer(
+      createFilterLayer({ cutoff: 110, resonance: 1 }),
+      { 71: 96, 74: 96 },
+    );
+    for (let i = 0; i < samples.length; i++) {
+      expect(samples[i]).toBeCloseTo(expected[i], 6);
+    }
+  });
+
+  it("closes an open layer's filter with CC74 below 64", () => {
+    // At 0, CC74 lowers an open layer's 20 kHz cutoff 4 octaves, to 1250 Hz.
+    const expected = renderLayer(createFilterLayer({ cutoff: 20000 / 16 }));
+    const samples = renderLayer(createGateLayer(), { 74: 0 });
+    for (let i = 0; i < samples.length; i++) {
+      expect(samples[i]).toBeCloseTo(expected[i], 6);
+    }
+  });
+
+  it("follows CC74 on a sounding note", () => {
+    // Hold A4 at a 440 Hz cutoff, 3 dB down, then turn CC74 to 0. The cutoff
+    // falls 4 octaves below the note, where a 2-pole low-pass is 48 dB down.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({ layers: [createFilterLayer({ cutoff: 440 })] });
+    const samples = renderSynth(synth, {
+      seconds: 0.2,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => synth.controller(74, 0),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -24.2 dB  ████████████████████████████████████
+       50 ms  -24.2 dB  ████████████████████████████████████
+      100 ms  -25.8 dB  ██████████████████████████████████
+      150 ms  -68.9 dB
+      "
+    `);
+  });
+
   it("releases every note on stopAll", () => {
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createPatch(["sine"]));
@@ -653,13 +699,26 @@ function createFilterLayer(filter: Partial<SynthLayer["filter"]>): SynthLayer {
   return { ...layer, filter: { ...layer.filter, ...filter } };
 }
 
-/** Renders 0.1 s of a full-velocity A4 on the layer alone. */
-function renderLayer(layer: SynthLayer): Float32Array {
+/**
+ * Renders 0.1 s of a full-velocity A4 on the layer alone, after setting the
+ * controllers, keyed by number.
+ */
+function renderLayer(
+  layer: SynthLayer,
+  controllers: Record<number, number> = {},
+): Float32Array {
   const synth = new SubtractiveSynth(SAMPLE_RATE);
   synth.setPatch({ layers: [layer] });
   return renderSynth(synth, {
     seconds: 0.1,
-    at: { 0: () => synth.noteOn(A4, FULL_VELOCITY) },
+    at: {
+      0: () => {
+        for (const [controller, value] of Object.entries(controllers)) {
+          synth.controller(Number(controller), value);
+        }
+        synth.noteOn(A4, FULL_VELOCITY);
+      },
+    },
   });
 }
 
