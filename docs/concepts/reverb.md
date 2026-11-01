@@ -100,7 +100,7 @@ The paper gives every length in samples at 29,761 Hz. They're really durations, 
 
 ### Delay and Band-Limit the Input
 
-The **pre-delay** holds the whole response back, here by 20 ms. In a hall, it's the gap between the direct sound and the first reflections, and in a mix it keeps a note's attack clear of its own reverb. A one-pole **low-pass** then sets how much high end enters the reverb at all. The paper's default, kept here, lets nearly the full band in.
+The **pre-delay** holds the whole response back, here by 20 ms. In a hall, it's the gap between the direct sound and the first reflections, and in a mix it keeps a note's attack clear of its own reverb. A one-pole **low-pass** then sets how much high end enters the reverb. Our implementation keeps the paper's default, which loses less than 0.01 dB even at 24 kHz, so the low-pass has no audible effect unless it's turned down.
 
 ### Diffuse Before the Tank
 
