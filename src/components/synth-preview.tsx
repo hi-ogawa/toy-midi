@@ -21,8 +21,8 @@ function createInitialPatch(): SynthPatch {
       sustain: 0.2,
       release: 0.2,
       amount: 4,
+      velocity: 1,
     },
-    velocity: 1,
   };
   return {
     layers: [

@@ -357,11 +357,16 @@ function FilterControls({
         <ParameterKnob
           label="Velocity to envelope amount"
           shortLabel="Velocity"
-          value={filter.velocity}
+          value={envelope.velocity}
           scale={createLinearScale({ min: 0, max: 1 })}
           format={formatPercent}
           onChange={(velocity) =>
-            onChange({ velocity: Math.round(velocity * 100) / 100 })
+            onChange({
+              envelope: {
+                ...envelope,
+                velocity: Math.round(velocity * 100) / 100,
+              },
+            })
           }
         />
       </div>
