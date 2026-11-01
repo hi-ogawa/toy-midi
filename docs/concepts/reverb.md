@@ -34,7 +34,7 @@ $$
 y[n]=x[n]+g \cdot y[n-D].
 $$
 
-A click comes out at once, then again $D$ samples later at $g$, again at $g^2$, and so on. Each trip around the loop keeps the same fraction $g$, as each bounce in a room does, so the echoes fade the way a room's do. A trip takes $D/F_s$ seconds and lowers the level by $-20\log_{10}g$ dB, so falling 60 dB takes
+A click comes out at once, then again $D$ samples later at $g$, again at $g^2$, and so on. Each trip around the loop keeps the same fraction $g$, as each bounce in a room does, so the echoes fade the way a room's do. That's exponential decay, so in dB every trip lowers the level by the same $-20\log_{10}g$. A trip takes $D/F_s$ seconds, so falling 60 dB takes
 
 $$
 T_{60}=\frac{60}{-20\log_{10}g} \cdot \frac{D}{F_s},
