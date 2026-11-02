@@ -5,6 +5,7 @@ import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
 import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
+import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import type {
   TimelineAutomation,
   TimelineNote,
@@ -26,6 +27,7 @@ interface Mix {
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
+    reverbSend: number;
     regions: AudioPlaybackSource[];
   }[];
   midiTracks: {
@@ -33,6 +35,7 @@ interface Mix {
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
+    reverbSend: number;
     preset: MidiPreset;
     notes: TimelineNote[];
     automation: TimelineAutomation[];
@@ -49,6 +52,7 @@ export function resolveMix(state: EditorRuntimeState): Mix {
     eq: track.eq,
     gain: gains.get(track.id)!,
     pan: track.pan,
+    reverbSend: track.reverbSend,
     regions: getClipSources(track.regions),
   }));
   const midiTracks: Mix["midiTracks"] = state.midiTracks.map((track) => ({
@@ -56,6 +60,7 @@ export function resolveMix(state: EditorRuntimeState): Mix {
     eq: track.eq,
     gain: gains.get(track.id)!,
     pan: track.pan,
+    reverbSend: track.reverbSend,
     preset: track,
     notes: convertToTimelineNotes(track.notes, state.tempo),
     automation: convertToTimelineAutomation(track.automation, state.tempo),
@@ -102,18 +107,23 @@ export async function renderMix({
       master.channelInterpretation = "speakers";
       master.connect(context.destination);
       using cleanup = new DisposableStack();
+      const reverb = new ReverbNode({ context, output: master });
+      cleanup.defer(() => reverb.dispose());
       await Promise.all([
         ensureAmpWorklet(context),
         ensureBiquadEqWorklet(context),
+        reverb.init(),
       ]);
       for (const track of mix.tracks) {
         const channel = new AudioChannel({
           context,
           output: master,
+          reverb: reverb.input,
           amp: track.amp,
           eq: track.eq,
           gain: track.gain,
           pan: track.pan,
+          reverbSend: track.reverbSend,
         });
         cleanup.defer(() => channel.dispose());
         for (const region of track.regions) {
@@ -138,10 +148,12 @@ export async function renderMix({
           const channel = new AudioChannel({
             context,
             output: master,
+            reverb: reverb.input,
             amp: track.amp,
             eq: track.eq,
             gain: track.gain,
             pan: track.pan,
+            reverbSend: track.reverbSend,
           });
           cleanup.defer(() => channel.dispose());
           synth.output.connect(channel.input);
