@@ -673,12 +673,13 @@ function GainKnob({
     onMove: (_event, drag) =>
       setDb(drag.data - (drag.deltaY / 200) * (MAX_DB - MIN_DB)),
   });
+  const valueText = `${db.toFixed(1)} dB`;
   return (
     <div className="flex items-center gap-1">
       <Knob
         ref={ref}
         aria-label={label}
-        aria-valuetext={`${db.toFixed(1)} dB`}
+        aria-valuetext={valueText}
         onKeyDown={(event) => {
           const step = event.shiftKey ? 6 : 0.5;
           const next = {
@@ -700,8 +701,8 @@ function GainKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="mr-1 w-[5ch] font-mono text-[10px] text-muted-foreground tabular-nums">
-        {db.toFixed(1)}
+      <span className="mr-1 w-[8ch] font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
+        {valueText}
       </span>
     </div>
   );
