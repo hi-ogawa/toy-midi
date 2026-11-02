@@ -700,7 +700,7 @@ function GainKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="mr-1 w-[5ch] font-mono text-xs text-muted-foreground tabular-nums">
+      <span className="mr-1 w-[5ch] font-mono text-[10px] text-muted-foreground tabular-nums">
         {db.toFixed(1)}
       </span>
     </div>
