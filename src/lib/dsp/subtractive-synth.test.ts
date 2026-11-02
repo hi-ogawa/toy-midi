@@ -145,10 +145,11 @@ describe(SubtractiveSynth, () => {
   });
 
   it("plays noise at a sawtooth's level on any note, and sums notes in power", () => {
-    // Play a low, middle, and high note in turn, then two notes together.
-    // Uniform noise's RMS is the peak over √3, as a sawtooth's is. Two notes
-    // that draw the same noise would add 6 dB, and two that draw different
-    // noise add 3 dB.
+    // Play a low, middle, and high note for 100 ms each, then two notes
+    // together. Each comes out at, from PEAK's -21.1 dB as a sine:
+    //   One note: PEAK over √3, as a sawtooth, -22.9 dB give or take 0.1 dB
+    //   Two notes: 3 dB up, -19.9 dB, as they draw different noise. The same
+    //   noise would add 6 dB.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createPatch(["noise"]));
     const samples = renderSynth(synth, {
