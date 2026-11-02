@@ -1,7 +1,11 @@
 import { DEFAULT_MIDI_CONTROLLERS } from "spessasynth_core";
 import { type SynthPatch, SubtractiveSynth } from "./dsp/subtractive-synth.ts";
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
-import { encodePitchBend, PITCH_WHEEL_CENTER } from "./general-midi.ts";
+import {
+  encodePitchBend,
+  LIVE_CONTROLLERS,
+  PITCH_WHEEL_CENTER,
+} from "./general-midi.ts";
 import {
   MidiNoteScheduler,
   type ScheduledAutomation,
@@ -91,10 +95,6 @@ export class MidiSynth {
   // Set by `stop()` so release tails keep the values they stopped at. Playback
   // chases its own values at start, so only live input needs the reset.
   private automationResetPending = false;
-  // What a performer has moved, which keeps its value until reset because no
-  // sequence owns it.
-  private readonly liveControllers = new Set<number>();
-  private livePitchBendMoved = false;
   // Sorted by frame, then note-offs, controller changes, and note-ons on the
   // same frame, so a controller change applies to the note starting with it.
   private events: QueuedEvent[] = [];
@@ -124,7 +124,6 @@ export class MidiSynth {
       engine = this.subtractiveSynth;
     }
     if (engine !== this.engine) {
-      await this.resetLiveControllers();
       this.engine!.stopAll();
       this.engine = engine;
     }
@@ -157,27 +156,21 @@ export class MidiSynth {
     value: number;
   }): Promise<void> {
     this.applyPendingAutomationReset();
-    this.liveControllers.add(controller);
     this.engine!.controller(controller, value);
   }
 
   async setPitchBend(value: number): Promise<void> {
     this.applyPendingAutomationReset();
-    this.livePitchBendMoved = true;
     this.engine!.pitchBend(value);
   }
 
-  /** Returns what a performer moved to its default, or to the playhead's value. */
+  /** Returns live input to its defaults, and automation to the playhead's value. */
   async resetLiveControllers(): Promise<void> {
     const engine = this.engine!;
-    for (const controller of this.liveControllers) {
+    for (const controller of LIVE_CONTROLLERS) {
       engine.controller(controller, getDefaultControllerValue(controller));
     }
-    this.liveControllers.clear();
-    if (this.livePitchBendMoved) {
-      this.livePitchBendMoved = false;
-      engine.pitchBend(PITCH_WHEEL_CENTER);
-    }
+    engine.pitchBend(PITCH_WHEEL_CENTER);
     this.scheduler.requestChase();
   }
 

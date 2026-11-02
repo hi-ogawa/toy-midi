@@ -1,3 +1,5 @@
+import { LIVE_CONTROLLERS } from "./general-midi.ts";
+
 export type MidiDeviceMessage =
   | { type: "note-on"; pitch: number; velocity: number }
   | { type: "note-off"; pitch: number }
@@ -10,9 +12,6 @@ const NOTE_OFF_STATUS = 0x80;
 const NOTE_ON_STATUS = 0x90;
 const CONTROLLER_STATUS = 0xb0;
 const PITCH_BEND_STATUS = 0xe0;
-// Modulation, volume, and expression. A device's other controllers, such as
-// bank select, would change the instrument instead of the performance.
-const LIVE_CONTROLLERS = new Set([1, 7, 11]);
 
 export function isMidiDeviceSupported(): boolean {
   return "requestMIDIAccess" in navigator;
@@ -104,7 +103,7 @@ export function parseMidiDeviceMessage(
         : { type: "note-on", pitch: first, velocity: second };
     }
     case CONTROLLER_STATUS: {
-      return LIVE_CONTROLLERS.has(first)
+      return LIVE_CONTROLLERS.includes(first)
         ? { type: "controller", controller: first, value: second }
         : undefined;
     }
