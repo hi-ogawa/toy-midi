@@ -5,6 +5,8 @@ import { isMidiDeviceSupported } from "../lib/midi-device";
 import { preferences } from "../lib/preferences";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 
+export type UseMidiDeviceResult = ReturnType<typeof useMidiDevice>;
+
 export function useMidiDevice({
   runtime,
   state,

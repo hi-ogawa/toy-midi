@@ -9,14 +9,14 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
-import type { useMidiDevice } from "./use-midi-device";
+import type { UseMidiDeviceResult } from "./use-midi-device";
 
 const OFF_VALUE = "off";
 
 export function MidiDeviceMenu({
   midiDevice: { devices, deviceId, isSupported, requestAccess, selectDevice },
 }: {
-  midiDevice: ReturnType<typeof useMidiDevice>;
+  midiDevice: UseMidiDeviceResult;
 }) {
   return (
     <DropdownMenu>

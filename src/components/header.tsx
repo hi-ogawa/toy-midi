@@ -48,7 +48,7 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 import { useDraftInput } from "./use-draft-input";
-import type { useMidiDevice } from "./use-midi-device";
+import type { UseMidiDeviceResult } from "./use-midi-device";
 import { usePlaybackPosition } from "./use-playback-position";
 import type { SaveStatus } from "./use-project";
 import { useTapTempo } from "./use-tap-tempo";
@@ -141,7 +141,7 @@ export function Header({
   inputPanelOpen: boolean;
   inputAccessRequired: boolean;
   onInputPanelToggle: () => void;
-  midiDevice: ReturnType<typeof useMidiDevice>;
+  midiDevice: UseMidiDeviceResult;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
