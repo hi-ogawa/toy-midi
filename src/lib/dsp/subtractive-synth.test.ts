@@ -146,7 +146,7 @@ describe(SubtractiveSynth, () => {
 
   it("plays noise at a sawtooth's level on any note, and sums notes in power", () => {
     // Play a low, middle, and high note for 100 ms each, then two notes
-    // together. Each comes out at, from PEAK's -21.1 dB as a sine:
+    // together. A sine at PEAK measures -21.1 dB, and the noise measures:
     //   One note: PEAK over √3, as a sawtooth, -22.9 dB give or take 0.1 dB
     //   Two notes: 3 dB up, -19.9 dB, as they draw different noise. The same
     //   noise would add 6 dB.
