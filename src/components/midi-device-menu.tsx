@@ -14,7 +14,7 @@ import type { useMidiDevice } from "./use-midi-device";
 const OFF_VALUE = "off";
 
 export function MidiDeviceMenu({
-  midiDevice: { inputs, input, isSupported, requestAccess, selectInput },
+  midiDevice: { devices, deviceId, isSupported, requestAccess, selectDevice },
 }: {
   midiDevice: ReturnType<typeof useMidiDevice>;
 }) {
@@ -31,7 +31,7 @@ export function MidiDeviceMenu({
           aria-label="MIDI Device"
           className={cn(
             "size-9",
-            input
+            deviceId
               ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
               : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
           )}
@@ -40,17 +40,17 @@ export function MidiDeviceMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {inputs ? (
+        {devices ? (
           <DropdownMenuRadioGroup
-            value={input?.id ?? OFF_VALUE}
+            value={deviceId ?? OFF_VALUE}
             onValueChange={(value) =>
-              selectInput(value === OFF_VALUE ? undefined : value)
+              selectDevice(value === OFF_VALUE ? undefined : value)
             }
           >
             <DropdownMenuRadioItem value={OFF_VALUE}>Off</DropdownMenuRadioItem>
-            {inputs.map((entry) => (
-              <DropdownMenuRadioItem key={entry.id} value={entry.id}>
-                {entry.name || "Unnamed device"}
+            {devices.map((device) => (
+              <DropdownMenuRadioItem key={device.id} value={device.id}>
+                {device.name}
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>

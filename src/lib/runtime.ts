@@ -29,7 +29,11 @@ import type { SynthPatch } from "./dsp/subtractive-synth.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
-import type { MidiDeviceMessage } from "./midi-device.ts";
+import {
+  type MidiDevice,
+  MidiDeviceInput,
+  type MidiDeviceMessage,
+} from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -243,7 +247,11 @@ export interface EditorRuntimeState {
   inputMonitoring: boolean;
   /** The track the next take records into. */
   armedTrackId?: string;
-  /** The MIDI track a MIDI device plays. */
+  /** Undefined until the browser grants MIDI access. */
+  midiDevices?: MidiDevice[];
+  /** The connected MIDI device. */
+  midiDeviceId?: string;
+  /** The MIDI track a MIDI device plays. Only on while a device is connected. */
   midiMonitorTrackId?: string;
 }
 
@@ -355,6 +363,7 @@ export class EditorRuntime {
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
+  private midiDeviceInput?: MidiDeviceInput;
   /** Pitch of each note a MIDI device holds, and the track it sounds on. */
   private readonly midiDeviceNotes = new Map<number, string>();
   private attachedYouTubePlayer?: {
@@ -808,9 +817,35 @@ export class EditorRuntime {
     this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
   }
 
+  async requestMidiAccess(deviceId?: string): Promise<void> {
+    this.midiDeviceInput ??= await MidiDeviceInput.create({
+      onChange: () => this.syncMidiDevice(),
+      onMessage: (message) => this.playMidiDeviceMessage(message),
+    });
+    this.midiDeviceInput.select(deviceId);
+  }
+
+  /** Reconnects without showing a permission prompt on page load. */
+  async restoreMidiDevice(deviceId: string): Promise<void> {
+    const permission = await navigator.permissions.query({ name: "midi" });
+    if (permission.state === "granted") {
+      await this.requestMidiAccess(deviceId);
+    }
+  }
+
+  selectMidiDevice(deviceId?: string): void {
+    if (!this.midiDeviceInput) {
+      throw new Error("Request MIDI access before selecting a device.");
+    }
+    this.midiDeviceInput.select(deviceId);
+  }
+
   /** Called from the click that enables monitoring, which lets audio start. */
   setMidiMonitorTrack(id?: string): void {
-    const { midiMonitorTrackId } = this.store.get();
+    const { midiDeviceId, midiMonitorTrackId } = this.store.get();
+    if (id !== undefined && midiDeviceId === undefined) {
+      throw new Error("Connect a MIDI device before monitoring.");
+    }
     if (midiMonitorTrackId !== undefined) {
       this.midiTrackPlaybacks.get(midiMonitorTrackId)?.resetLiveControllers();
     }
@@ -824,7 +859,7 @@ export class EditorRuntime {
    * Sends without waiting for the audio context, so a note-off can't overtake
    * its note-on.
    */
-  playMidiDeviceMessage(message: MidiDeviceMessage): void {
+  private playMidiDeviceMessage(message: MidiDeviceMessage): void {
     const { midiMonitorTrackId } = this.store.get();
     const playback =
       midiMonitorTrackId === undefined
@@ -853,12 +888,16 @@ export class EditorRuntime {
     }
   }
 
-  /** Ends monitoring when the device stops sending, so no note stays held. */
-  stopMidiDevice(): void {
-    for (const pitch of this.midiDeviceNotes.keys()) {
-      this.releaseMidiDeviceNote(pitch);
+  /** A device that stops sending can't release its notes, so they end here. */
+  private syncMidiDevice(): void {
+    const { devices, connectedId } = this.midiDeviceInput!;
+    if (connectedId !== this.store.get().midiDeviceId) {
+      for (const pitch of this.midiDeviceNotes.keys()) {
+        this.releaseMidiDeviceNote(pitch);
+      }
+      this.setMidiMonitorTrack(undefined);
     }
-    this.setMidiMonitorTrack(undefined);
+    this.store.update({ midiDevices: devices, midiDeviceId: connectedId });
   }
 
   /** The note ends on the track that started it, wherever monitoring is now. */

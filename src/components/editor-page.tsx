@@ -91,7 +91,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
     document.title = `${state.title} - Toy MIDI`;
   }, [state.title]);
 
-  const midiDevice = useMidiDevice(runtime);
+  const midiDevice = useMidiDevice({ runtime, state });
   const input = useInput({
     runtime,
     state,
@@ -666,7 +666,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                       }}
                       midiInteraction={midiInteraction}
                       midiMonitoring={state.midiMonitorTrackId === track.id}
-                      midiMonitorDisabled={!midiDevice.input}
+                      midiMonitorDisabled={state.midiDeviceId === undefined}
                       onTranscribe={() =>
                         transcriptions.openTranscription(track.id)
                       }
