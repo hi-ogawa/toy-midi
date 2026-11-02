@@ -23,7 +23,10 @@ async function installFakeMidiOutput(page: Page): Promise<void> {
 
 test("sends notes and controllers to a MIDI output", async ({ page }) => {
   await installFakeMidiOutput(page);
-  await page.goto("/midi-keyboard");
+
+  // Open the page from the home page.
+  await page.goto("/");
+  await page.getByRole("link", { name: "MIDI Keyboard" }).click();
   await expect(page.getByLabel("MIDI output")).toContainText("Fake Output");
 
   const expectSent = async (messages: number[][]) => {
