@@ -51,6 +51,7 @@ import { Tuner } from "./tuner";
 import { Dialog } from "./ui/dialog";
 import { useInput } from "./use-input";
 import { useInteraction } from "./use-interaction";
+import { useMidiDevice } from "./use-midi-device";
 import { useProject } from "./use-project";
 import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
@@ -90,6 +91,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
     document.title = `${state.title} - Toy MIDI`;
   }, [state.title]);
 
+  const midiDevice = useMidiDevice(runtime);
   const input = useInput({
     runtime,
     state,
@@ -383,6 +385,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         inputPanelOpen={isInputPanelOpen}
         inputAccessRequired={input.initialized && !input.hasAccess}
         onInputPanelToggle={() => setIsInputPanelOpen((open) => !open)}
+        midiDevice={midiDevice}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -662,6 +665,8 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                         scoreUi.close(track.id);
                       }}
                       midiInteraction={midiInteraction}
+                      midiMonitoring={state.midiMonitorTrackId === track.id}
+                      midiMonitorDisabled={!midiDevice.input}
                       onTranscribe={() =>
                         transcriptions.openTranscription(track.id)
                       }

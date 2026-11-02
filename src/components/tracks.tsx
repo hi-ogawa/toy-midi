@@ -304,8 +304,8 @@ function TrackRecordingToggles({
       >
         R
       </Button>
-      <span
-        className="inline-flex"
+      <TrackMonitorToggle
+        label={monitorLabel}
         title={
           monitorDisabled
             ? "Turn input on and arm this track to monitor"
@@ -313,23 +313,44 @@ function TrackRecordingToggles({
               ? monitorLabel
               : `${monitorLabel} (use headphones to avoid feedback)`
         }
-      >
-        <Button
-          data-testid="input-monitor"
-          disabled={monitorDisabled}
-          onClick={() => onMonitoringChange(!monitoring)}
-          className={cn(
-            "size-6 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
-            monitoring &&
-              "border-sky-500/60 bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
-          )}
-          aria-label={monitorLabel}
-          aria-pressed={monitoring}
-        >
-          <HeadphonesIcon className="size-3.5" />
-        </Button>
-      </span>
+        disabled={monitorDisabled}
+        monitoring={monitoring}
+        onMonitoringChange={onMonitoringChange}
+      />
     </>
+  );
+}
+
+export function TrackMonitorToggle({
+  label,
+  title,
+  disabled,
+  monitoring,
+  onMonitoringChange,
+}: {
+  label: string;
+  title: string;
+  disabled: boolean;
+  monitoring: boolean;
+  onMonitoringChange: (monitoring: boolean) => void;
+}) {
+  return (
+    <span className="inline-flex" title={title}>
+      <Button
+        data-testid="input-monitor"
+        disabled={disabled}
+        onClick={() => onMonitoringChange(!monitoring)}
+        className={cn(
+          "size-6 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+          monitoring &&
+            "border-sky-500/60 bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
+        )}
+        aria-label={label}
+        aria-pressed={monitoring}
+      >
+        <HeadphonesIcon className="size-3.5" />
+      </Button>
+    </span>
   );
 }
 

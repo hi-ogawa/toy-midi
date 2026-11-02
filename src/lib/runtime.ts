@@ -29,6 +29,7 @@ import type { SynthPatch } from "./dsp/subtractive-synth.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
+import type { MidiDeviceMessage } from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -60,6 +61,7 @@ import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
+const PREVIEW_VELOCITY = 100;
 export const MIN_CLIP_DURATION = 0.01;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
@@ -241,6 +243,8 @@ export interface EditorRuntimeState {
   inputMonitoring: boolean;
   /** The track the next take records into. */
   armedTrackId?: string;
+  /** The MIDI track a MIDI device plays. */
+  midiMonitorTrackId?: string;
 }
 
 export type PersistableEditorRuntimeState = Pick<
@@ -351,6 +355,8 @@ export class EditorRuntime {
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
+  /** Pitch of each note a MIDI device holds, and the track it sounds on. */
+  private readonly midiDeviceNotes = new Map<number, string>();
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
@@ -570,6 +576,9 @@ export class EditorRuntime {
       midiTracks: this.store
         .get()
         .midiTracks.filter((track) => track.id !== id),
+      ...(id === this.store.get().midiMonitorTrackId && {
+        midiMonitorTrackId: undefined,
+      }),
     });
     this.syncTrackMix();
   }
@@ -792,11 +801,73 @@ export class EditorRuntime {
     pitch: number;
   }): Promise<void> {
     await this.context.resume();
-    this.midiTrackPlaybacks.get(id)?.noteOn(pitch);
+    this.midiTrackPlaybacks.get(id)?.noteOn(pitch, PREVIEW_VELOCITY);
   }
 
   stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
     this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
+  }
+
+  /** Called from the click that enables monitoring, which lets audio start. */
+  setMidiMonitorTrack(id?: string): void {
+    const { midiMonitorTrackId } = this.store.get();
+    if (midiMonitorTrackId !== undefined) {
+      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.resetLiveControllers();
+    }
+    this.store.update({ midiMonitorTrackId: id });
+    if (id !== undefined) {
+      void this.context.resume();
+    }
+  }
+
+  /**
+   * Sends without waiting for the audio context, so a note-off can't overtake
+   * its note-on.
+   */
+  playMidiDeviceMessage(message: MidiDeviceMessage): void {
+    const { midiMonitorTrackId } = this.store.get();
+    const playback =
+      midiMonitorTrackId === undefined
+        ? undefined
+        : this.midiTrackPlaybacks.get(midiMonitorTrackId);
+    switch (message.type) {
+      case "note-on": {
+        if (midiMonitorTrackId !== undefined) {
+          this.midiDeviceNotes.set(message.pitch, midiMonitorTrackId);
+        }
+        playback?.noteOn(message.pitch, message.velocity);
+        break;
+      }
+      case "note-off": {
+        this.releaseMidiDeviceNote(message.pitch);
+        break;
+      }
+      case "controller": {
+        playback?.setController(message.controller, message.value);
+        break;
+      }
+      case "pitch-bend": {
+        playback?.setPitchBend(message.value);
+        break;
+      }
+    }
+  }
+
+  /** Ends monitoring when the device stops sending, so no note stays held. */
+  stopMidiDevice(): void {
+    for (const pitch of this.midiDeviceNotes.keys()) {
+      this.releaseMidiDeviceNote(pitch);
+    }
+    this.setMidiMonitorTrack(undefined);
+  }
+
+  /** The note ends on the track that started it, wherever monitoring is now. */
+  private releaseMidiDeviceNote(pitch: number): void {
+    const trackId = this.midiDeviceNotes.get(pitch);
+    if (trackId !== undefined) {
+      this.midiDeviceNotes.delete(pitch);
+      this.midiTrackPlaybacks.get(trackId)?.noteOff(pitch);
+    }
   }
 
   setMidiTrackNotes(id: string, notes: Note[]): void {
@@ -1286,6 +1357,7 @@ export class EditorRuntime {
       ...project,
       audioTracks,
       trackOrder: syncTrackOrder({ ...project, audioTracks }),
+      midiMonitorTrackId: undefined,
     });
     this.syncYouTubePlayer();
     this.transport.seek(0);

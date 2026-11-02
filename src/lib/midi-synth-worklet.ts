@@ -89,8 +89,12 @@ export class MidiSynth {
   private readonly scheduler = new MidiNoteScheduler();
   private automation: ScheduledAutomation[] = [];
   // Set by `stop()` so release tails keep the values they stopped at. Playback
-  // chases its own values at start, so only a live note needs the reset.
+  // chases its own values at start, so only live input needs the reset.
   private automationResetPending = false;
+  // What a performer has moved, which keeps its value until reset because no
+  // sequence owns it.
+  private readonly liveControllers = new Set<number>();
+  private livePitchBendMoved = false;
   // Sorted by frame, then note-offs, controller changes, and note-ons on the
   // same frame, so a controller change applies to the note starting with it.
   private events: QueuedEvent[] = [];
@@ -120,6 +124,7 @@ export class MidiSynth {
       engine = this.subtractiveSynth;
     }
     if (engine !== this.engine) {
+      await this.resetLiveControllers();
       this.engine!.stopAll();
       this.engine = engine;
     }
@@ -136,15 +141,44 @@ export class MidiSynth {
     pitch: number;
     velocity: number;
   }): Promise<void> {
-    if (this.automationResetPending) {
-      this.automationResetPending = false;
-      this.resetAutomation(this.automation);
-    }
+    this.applyPendingAutomationReset();
     this.engine!.noteOn(pitch, velocity);
   }
 
   async noteOff(pitch: number): Promise<void> {
     this.engine!.noteOff(pitch);
+  }
+
+  async setController({
+    controller,
+    value,
+  }: {
+    controller: number;
+    value: number;
+  }): Promise<void> {
+    this.applyPendingAutomationReset();
+    this.liveControllers.add(controller);
+    this.engine!.controller(controller, value);
+  }
+
+  async setPitchBend(value: number): Promise<void> {
+    this.applyPendingAutomationReset();
+    this.livePitchBendMoved = true;
+    this.engine!.pitchBend(value);
+  }
+
+  /** Returns what a performer moved to its default, or to the playhead's value. */
+  async resetLiveControllers(): Promise<void> {
+    const engine = this.engine!;
+    for (const controller of this.liveControllers) {
+      engine.controller(controller, getDefaultControllerValue(controller));
+    }
+    this.liveControllers.clear();
+    if (this.livePitchBendMoved) {
+      this.livePitchBendMoved = false;
+      engine.pitchBend(PITCH_WHEEL_CENTER);
+    }
+    this.scheduler.requestChase();
   }
 
   async setNotes(notes: TimelineNote[]): Promise<void> {
@@ -170,6 +204,7 @@ export class MidiSynth {
   }
 
   async start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
+    await this.resetLiveControllers();
     this.automationResetPending = false;
     this.scheduler.start(playbackRunOptions);
   }
@@ -180,6 +215,13 @@ export class MidiSynth {
     this.events = [];
     this.engine!.stopAll();
     this.automationResetPending = true;
+  }
+
+  private applyPendingAutomationReset(): void {
+    if (this.automationResetPending) {
+      this.automationResetPending = false;
+      this.resetAutomation(this.automation);
+    }
   }
 
   /**
@@ -279,7 +321,7 @@ function convertToScheduledAutomation(
     case "controller": {
       return {
         ...sequence,
-        initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
+        initialValue: getDefaultControllerValue(sequence.controller),
       };
     }
     case "pitch-bend": {
@@ -293,6 +335,10 @@ function convertToScheduledAutomation(
       };
     }
   }
+}
+
+function getDefaultControllerValue(controller: number): number {
+  return DEFAULT_MIDI_CONTROLLERS[controller] >> 7;
 }
 
 registerProcessor(PROCESSOR_NAME, MidiSynthProcessor);

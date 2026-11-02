@@ -62,12 +62,24 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  noteOn(pitch: number): void {
-    void this.getSynth().noteOn({ pitch, velocity: 100 });
+  noteOn(pitch: number, velocity: number): void {
+    void this.getSynth().noteOn({ pitch, velocity });
   }
 
   noteOff(pitch: number): void {
     void this.getSynth().noteOff(pitch);
+  }
+
+  setController(controller: number, value: number): void {
+    void this.getSynth().setController({ controller, value });
+  }
+
+  setPitchBend(value: number): void {
+    void this.getSynth().setPitchBend(value);
+  }
+
+  resetLiveControllers(): void {
+    void this.getSynth().resetLiveControllers();
   }
 
   setNotes(notes: TimelineNote[]): Promise<void> {
