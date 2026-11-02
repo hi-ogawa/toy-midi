@@ -674,7 +674,7 @@ function GainKnob({
       setDb(drag.data - (drag.deltaY / 200) * (MAX_DB - MIN_DB)),
   });
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       <Knob
         ref={ref}
         aria-label={label}
@@ -700,7 +700,7 @@ function GainKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="w-[5ch] text-right font-mono text-xs text-muted-foreground tabular-nums">
+      <span className="mr-1 w-[5ch] font-mono text-xs text-muted-foreground tabular-nums">
         {db.toFixed(1)}
       </span>
     </div>
