@@ -187,30 +187,47 @@ describe(SubtractiveSynth, () => {
   });
 
   it("filters noise to the share of the band below the cutoff", () => {
-    // A low-pass keeps the area under |H|² of white noise's 24 kHz band, about
+    // Play a note with the filter open, then one through a 1200 Hz low-pass. A
+    // low-pass keeps the area under |H|² of white noise's 24 kHz band, about
     // 1.11 × cutoff for a two-pole Butterworth, as
     // [Noise](../../../docs/concepts/noise.md) derives:
     //   Open: -22.9 dB
-    //   1200 Hz cutoff: 1333 Hz of the band, 12.6 dB down, -35.5 dB give or
-    //     take 0.1 dB
+    //   1200 Hz cutoff: 1333 Hz of the band, 12.6 dB down, -35.5 dB
+    // A 50 ms window varies by about 0.1 dB open and 0.5 dB filtered.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
-    synth.setPatch({
-      layers: [
-        {
-          ...createGateLayer({
-            filter: { cutoff: 1200, resonance: Math.SQRT1_2 },
-          }),
-          oscillator: { waveform: "noise", octave: 0, detune: 0 },
-        },
-      ],
-    });
+    synth.setPatch(createPatch(["noise"]));
     const samples = renderSynth(synth, {
-      seconds: 1,
-      at: { 0: () => synth.noteOn(60, FULL_VELOCITY) },
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(60, FULL_VELOCITY),
+        0.2: () => {
+          synth.noteOff(60);
+          synth.setPatch({
+            layers: [
+              {
+                ...createGateLayer({
+                  filter: { cutoff: 1200, resonance: Math.SQRT1_2 },
+                }),
+                oscillator: { waveform: "noise", octave: 0, detune: 0 },
+              },
+            ],
+          });
+          synth.noteOn(60, FULL_VELOCITY);
+        },
+      },
     });
-    expect(gainToDb(measureRms(samples)).toFixed(1)).toMatchInlineSnapshot(
-      `"-35.6"`,
-    );
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -23.0 dB  █████████████████████████████████████
+       50 ms  -22.9 dB  █████████████████████████████████████
+      100 ms  -23.0 dB  █████████████████████████████████████
+      150 ms  -23.0 dB  █████████████████████████████████████
+      200 ms  -35.8 dB  ████████████████████████
+      250 ms  -35.7 dB  ████████████████████████
+      300 ms  -35.8 dB  ████████████████████████
+      350 ms  -36.2 dB  ████████████████████████
+      "
+    `);
   });
 
   it("plays a layer at its octave, and follows a change on a sounding note", () => {

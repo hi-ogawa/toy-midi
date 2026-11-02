@@ -86,4 +86,4 @@ $$
 \frac{\int|H|^4df}{T\cdot\big(\int|H|^2df\big)^2}.
 $$
 
-For the two-pole Butterworth, $\int|H|^4df\approx0.83\cdot f_0$, so one second through the 1200 Hz low-pass varies by 2.4%, about 0.1 dB.
+For the two-pole Butterworth, $\int|H|^4df\approx0.83\cdot f_0$, so one second through the 1200 Hz low-pass varies by 2.4%, about 0.1 dB, and a 50 ms window by 11%, about 0.45 dB.
