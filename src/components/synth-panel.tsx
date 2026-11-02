@@ -46,6 +46,7 @@ const WAVEFORM_LABELS: Record<Waveform, string> = {
   triangle: "Triangle",
   sawtooth: "Saw",
   square: "Square",
+  noise: "Noise",
 };
 
 export function useSynthPanelUi() {
