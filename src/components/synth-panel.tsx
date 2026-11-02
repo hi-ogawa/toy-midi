@@ -5,7 +5,7 @@ import {
   PlusIcon,
   XIcon,
 } from "lucide-react";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { BUTTERWORTH_Q, EQ_LIMITS } from "../lib/dsp/biquad-eq";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
@@ -25,13 +25,13 @@ import {
   logPositionToValue,
   valueToLogPosition,
 } from "../lib/music";
-import { addToSet, deleteFromSet, toggleInSet } from "../utils/set";
 import { EnvelopeEditor } from "./envelope-editor";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
 import { Tooltip } from "./ui/tooltip";
 import { usePointerDrag } from "./use-pointer-drag";
+import { useSetState } from "./use-set-state";
 import { WaveformIcon } from "./waveform-icon";
 
 const MIN_OCTAVE = -3;
@@ -50,13 +50,7 @@ const WAVEFORM_LABELS: Record<Waveform, string> = {
 };
 
 export function useSynthPanelUi() {
-  const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
-  function open(id: string) {
-    setOpenTracks((current) => addToSet(current, id));
-  }
-  function close(id: string) {
-    setOpenTracks((current) => deleteFromSet(current, id));
-  }
+  const [openTracks, { add: open, remove: close }] = useSetState<string>();
   return { openTracks, open, close };
 }
 
@@ -102,7 +96,7 @@ export function SynthPanelContent({
   patch: SynthPatch;
   onChange: (patch: SynthPatch) => void;
 }) {
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const [collapsed, { toggle: toggleLayer }] = useSetState<string>();
 
   function updateLayer(layer: SynthLayer) {
     onChange({
@@ -122,10 +116,6 @@ export function SynthPanelContent({
       ...patch,
       layers: patch.layers.filter((layer) => layer.id !== id),
     });
-  }
-
-  function toggleLayer(id: string) {
-    setCollapsed((current) => toggleInSet(current, id));
   }
 
   return (
@@ -171,13 +161,7 @@ function SynthLayerRow({
   onRemove: () => void;
 }) {
   const { envelope } = layer.amp;
-  const [foldedSections, setFoldedSections] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
-
-  function toggleSection(section: string) {
-    setFoldedSections((current) => toggleInSet(current, section));
-  }
+  const [foldedSections, { toggle: toggleSection }] = useSetState<string>();
 
   function updateEnvelope(update: Partial<Envelope>) {
     onChange({

@@ -14,25 +14,18 @@ import type {
   EditorRuntime,
   EditorRuntimeState,
 } from "../lib/runtime";
-import { addToSet, deleteFromSet } from "../utils/set";
 import { Panel } from "./panel";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
+import { useSetState } from "./use-set-state";
 
 const CONVERSION_CANCELLED_ERROR = new Error("Conversion cancelled");
 
 export function useAudioToMidiUi() {
-  const [openTranscriptions, setOpenTranscriptions] = useState<
-    ReadonlySet<string>
-  >(new Set());
-
-  function openTranscription(id: string) {
-    setOpenTranscriptions((current) => addToSet(current, id));
-  }
-
-  function closeTranscription(id: string) {
-    setOpenTranscriptions((current) => deleteFromSet(current, id));
-  }
+  const [
+    openTranscriptions,
+    { add: openTranscription, remove: closeTranscription },
+  ] = useSetState<string>();
 
   return { openTranscriptions, openTranscription, closeTranscription };
 }

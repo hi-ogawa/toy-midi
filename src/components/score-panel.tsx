@@ -8,7 +8,6 @@ import type {
   EditorRuntime,
   EditorRuntimeState,
 } from "../lib/runtime";
-import { addToSet, deleteFromSet } from "../utils/set";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import {
@@ -16,15 +15,10 @@ import {
   type ScoreViewerClock,
   ScoreViewerRuntime,
 } from "./score-viewer-runtime";
+import { useSetState } from "./use-set-state";
 
 export function useScorePanelUi() {
-  const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
-  function open(id: string) {
-    setOpenTracks((current) => addToSet(current, id));
-  }
-  function close(id: string) {
-    setOpenTracks((current) => deleteFromSet(current, id));
-  }
+  const [openTracks, { add: open, remove: close }] = useSetState<string>();
   return { openTracks, open, close };
 }
 
