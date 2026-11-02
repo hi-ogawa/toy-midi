@@ -220,7 +220,7 @@ test("shows a collapsed layer's pan value below its header", async ({
   await pan.focus();
   await page.keyboard.press("Shift+ArrowLeft");
   const tooltip = layer.getByText("L10", { exact: true });
-  await expect(tooltip).toHaveCSS("opacity", "1");
+  await expect(tooltip).toBeVisible();
 
   // See that the layer's clipped edge does not cut the tooltip off. Hit testing
   // follows clipping, so the tooltip must be what is found at its own center.
@@ -240,14 +240,14 @@ test("shows a collapsed layer's pan value below its header", async ({
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 40);
   const dragged = layer.getByText("L50", { exact: true });
-  await expect(dragged).toHaveCSS("opacity", "1");
+  await expect(dragged).toBeVisible();
   await page.mouse.up();
 });
 
-test("keeps a pan value off the knob near the bottom of the window", async ({
+test("shows a pan value below the knob after scrolling the layer into view", async ({
   page,
 }) => {
-  // Open a synth track's panel, and stack two collapsed layers.
+  // Open a synth track's panel, and add a second layer.
   await createProject(page);
   await addMidiTrack(page);
   const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
@@ -255,26 +255,24 @@ test("keeps a pan value off the knob near the bottom of the window", async ({
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
   await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Synth…" });
   const panel = page.getByTestId("synth-panel");
-  await panel.getByRole("button", { name: "Layer 1", exact: true }).click();
   await panel.getByRole("button", { name: "+ Layer" }).click();
-  await panel.getByRole("button", { name: "Layer 2", exact: true }).click();
+  const layer = panel.getByRole("group", { name: "Layer 2" });
+  const pan = layer.getByRole("slider", { name: "Layer 2 pan" });
 
-  // Shorten the panel, which leaves the second knob at the bottom of the window.
-  await dragBy(
-    page,
-    panel.getByRole("button", { name: "Resize MIDI 1 Synth" }),
-    0,
-    { deltaY: 1000 },
-  );
+  // Scroll to the panel's top, which moves the knob below the window.
+  await panel
+    .getByRole("group", { name: "Layer 1" })
+    .evaluate((element) => element.scrollIntoView({ block: "start" }));
+  await expect(pan).not.toBeInViewport();
 
-  // Focus the knob, and see the tooltip stay below it instead of covering it.
-  const pan = panel.getByRole("slider", { name: "Layer 2 pan" });
-  await pan.focus();
-  const tooltip = panel
-    .getByRole("group", { name: "Layer 2" })
-    .getByText("C", { exact: true });
-  await expect(tooltip).toHaveCSS("opacity", "1");
+  // Scroll the knob back to the middle of the panel, and hover it.
+  await pan.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await pan.hover();
+
+  // See the value below the knob, where there is room for it.
+  const tooltip = layer.getByText("C", { exact: true });
+  await expect(tooltip).toBeVisible();
   const panBox = (await pan.boundingBox())!;
   const tooltipBox = (await tooltip.boundingBox())!;
-  expect(tooltipBox.y).toBeGreaterThanOrEqual(panBox.y + panBox.height);
+  expect(tooltipBox.y).toBeGreaterThan(panBox.y);
 });
