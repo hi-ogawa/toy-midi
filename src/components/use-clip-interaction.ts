@@ -11,6 +11,7 @@ import {
   EditorRuntime,
   EditorRuntimeState,
 } from "../lib/runtime";
+import { useSetState } from "./use-set-state";
 
 type ClipEditStart = {
   type: "move" | "trim-start" | "trim-end";
@@ -41,7 +42,8 @@ export function useClipInteraction({
   onSelect: () => void;
 }) {
   const [edit, setEdit] = useState<ClipEdit>();
-  const [selectedIds, setSelectedIds] = useState(() => new Set<string>());
+  const [selectedIds, { toggle: toggleSelected, replace: setSelectedIds }] =
+    useSetState<string>();
 
   function getSelectedClips(editIds: ReadonlySet<string>) {
     return {
@@ -83,13 +85,7 @@ export function useClipInteraction({
       setSelectedIds(next);
       return;
     }
-    const next = new Set(selectedIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setSelectedIds(next);
+    toggleSelected(id);
   }
 
   function startEdit(input: ClipEditStart): void {

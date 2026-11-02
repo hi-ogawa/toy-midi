@@ -15,19 +15,10 @@ import {
   type ScoreViewerClock,
   ScoreViewerRuntime,
 } from "./score-viewer-runtime";
+import { useSetState } from "./use-set-state";
 
 export function useScorePanelUi() {
-  const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
-  function open(id: string) {
-    setOpenTracks((current) => new Set([...current, id]));
-  }
-  function close(id: string) {
-    setOpenTracks((current) => {
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
+  const [openTracks, { add: open, remove: close }] = useSetState<string>();
   return { openTracks, open, close };
 }
 
