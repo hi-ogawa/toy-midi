@@ -145,13 +145,14 @@ describe(SubtractiveSynth, () => {
   });
 
   it("plays noise at a sawtooth's level on any note, and sums notes in power", () => {
-    // Play a low, middle, and high note for 100 ms each, then two notes together:
+    // Play a low, middle, and high note for 100 ms each, then two notes
+    // together:
     //   One note: x is uniform on [-1, 1), as a sawtooth's values are over a
     //     cycle, so E[x²] = ⅓ against a sine's ½, 1.8 dB below PEAK's -21.1 dB,
     //     -22.9 dB on any pitch
-    //   Two notes: E[(a + b)²] = E[a²] + E[b²] + 2E[ab], and different noise makes
-    //     E[ab] zero, so power doubles, 3 dB up, -19.9 dB. The same noise would
-    //     double the amplitude, 6 dB up.
+    //   Two notes: E[(a + b)²] = E[a²] + E[b²] + 2E[ab], and different noise
+    //     makes E[ab] zero, so power doubles, 3 dB up, -19.9 dB. The same noise
+    //     would double the amplitude, 6 dB up.
     // A 50 ms window of 2400 samples varies by about 0.1 dB.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createPatch(["noise"]));
@@ -189,9 +190,9 @@ describe(SubtractiveSynth, () => {
   });
 
   it("filters noise to the share of the band below the cutoff", () => {
-    // White noise has equal power per hertz, so a low-pass keeps the share of the
-    // 24 kHz band it passes. A two-pole Butterworth passes as much noise as a
-    // brick wall at its noise bandwidth, ∫|H|² df = π/(2√2) ≈ 1.11 × cutoff:
+    // White noise has equal power per hertz, so a low-pass keeps the share of
+    // the 24 kHz band it passes. A two-pole Butterworth passes as much noise as
+    // a brick wall at its noise bandwidth, ∫|H|² df = π/(2√2) ≈ 1.11 × cutoff:
     //   Open: -22.9 dB
     //   1200 Hz cutoff: 1333 Hz of the band, 12.6 dB down, about -35.5 dB
     const synth = new SubtractiveSynth(SAMPLE_RATE);
