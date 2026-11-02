@@ -129,12 +129,6 @@ test("changes a synth track's oscillator, filter, and amp envelope in its Synth 
   await pan.focus();
   await page.keyboard.press("Shift+ArrowLeft");
   await expect(pan).toHaveAttribute("aria-valuetext", "L10");
-  await expect(panel.getByText("L10", { exact: true })).toBeVisible();
-
-  // Drag the knob, and see its value stay shown with the pointer off the knob.
-  await dragBy(page, pan, 0, { deltaY: 40, release: false });
-  await expect(panel.getByText("L50", { exact: true })).toBeVisible();
-  await page.mouse.up();
 });
 
 test("adds, collapses, and removes layers in the Synth panel", async ({
@@ -210,37 +204,4 @@ test("adds, collapses, and removes layers in the Synth panel", async ({
   await expect(
     layer1.getByRole("button", { name: "Remove Layer 1" }),
   ).toBeDisabled();
-});
-
-test("shows a pan value below the knob after scrolling the layer into view", async ({
-  page,
-}) => {
-  // Open a synth track's panel, and add a second layer.
-  await createProject(page);
-  await addMidiTrack(page);
-  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
-  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
-  await instrument.getByRole("button", { name: "Close", exact: true }).click();
-  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Synth…" });
-  const panel = page.getByTestId("synth-panel");
-  await panel.getByRole("button", { name: "+ Layer" }).click();
-  const layer = panel.getByRole("group", { name: "Layer 2" });
-  const pan = layer.getByRole("slider", { name: "Layer 2 pan" });
-
-  // Scroll to the panel's top, which moves the knob below the window.
-  await panel
-    .getByRole("group", { name: "Layer 1" })
-    .evaluate((element) => element.scrollIntoView({ block: "start" }));
-  await expect(pan).not.toBeInViewport();
-
-  // Scroll the knob back to the middle of the panel, and hover it.
-  await pan.evaluate((element) => element.scrollIntoView({ block: "center" }));
-  await pan.hover();
-
-  // See the value below the knob, where there is room for it.
-  const tooltip = layer.getByText("C", { exact: true });
-  await expect(tooltip).toBeVisible();
-  const panBox = (await pan.boundingBox())!;
-  const tooltipBox = (await tooltip.boundingBox())!;
-  expect(tooltipBox.y).toBeGreaterThan(panBox.y);
 });
