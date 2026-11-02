@@ -145,14 +145,12 @@ describe(SubtractiveSynth, () => {
   });
 
   it("plays noise at a sawtooth's level on any note, and sums notes in power", () => {
-    // Play a low, middle, and high note for 100 ms each, then two at once:
-    //   One note: x is uniform on [-1, 1), as a sawtooth's values are over a
-    //     cycle, so E[x²] = ⅓ against a sine's ½, 1.8 dB below PEAK's -21.1 dB,
-    //     -22.9 dB on any pitch
-    //   Two notes: E[(a + b)²] = E[a²] + E[b²] + 2E[ab], and different noise
-    //     makes E[ab] zero, so power doubles, 3 dB up, -19.9 dB. The same noise
-    //     would double the amplitude, 6 dB up.
-    // A 50 ms window of 2400 samples varies by about 0.1 dB.
+    // Play a low, middle, and high note for 100 ms each, then two at once. See
+    // [Noise](../../../docs/concepts/noise.md) for each level, from PEAK's
+    // -21.1 dB as a sine:
+    //   One note: 1.8 dB down, -22.9 dB on any pitch
+    //   Two notes: 3 dB up, -19.9 dB, where the same noise would be 6 dB up
+    // A 50 ms window varies by about 0.1 dB.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch(createPatch(["noise"]));
     const samples = renderSynth(synth, {
@@ -189,11 +187,12 @@ describe(SubtractiveSynth, () => {
   });
 
   it("filters noise to the share of the band below the cutoff", () => {
-    // White noise has equal power per hertz, so a low-pass keeps the share of
-    // the 24 kHz band it passes. A two-pole Butterworth passes as much noise as
-    // a brick wall at its noise bandwidth, ∫|H|² df = π/(2√2) ≈ 1.11 × cutoff:
+    // A low-pass keeps the area under |H|² of white noise's 24 kHz band, about
+    // 1.11 × cutoff for a two-pole Butterworth, as
+    // [Noise](../../../docs/concepts/noise.md) derives:
     //   Open: -22.9 dB
-    //   1200 Hz cutoff: 1333 Hz of the band, 12.6 dB down, about -35.5 dB
+    //   1200 Hz cutoff: 1333 Hz of the band, 12.6 dB down, -35.5 dB give or
+    //     take 0.1 dB
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
       layers: [
