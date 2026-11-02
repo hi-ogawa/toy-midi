@@ -129,6 +129,12 @@ test("changes a synth track's oscillator, filter, and amp envelope in its Synth 
   await pan.focus();
   await page.keyboard.press("Shift+ArrowLeft");
   await expect(pan).toHaveAttribute("aria-valuetext", "L10");
+  await expect(panel.getByText("L10", { exact: true })).toBeVisible();
+
+  // Drag the knob, and see its value stay shown with the pointer off the knob.
+  await dragBy(page, pan, 0, { deltaY: 40, release: false });
+  await expect(panel.getByText("L50", { exact: true })).toBeVisible();
+  await page.mouse.up();
 });
 
 test("adds, collapses, and removes layers in the Synth panel", async ({
@@ -174,6 +180,12 @@ test("adds, collapses, and removes layers in the Synth panel", async ({
   await expect(layer1.getByRole("group", { name: "Waveform" })).toHaveCount(0);
   await expect(layer2.getByRole("group", { name: "Waveform" })).toBeVisible();
 
+  // Focus the collapsed layer's pan knob, and see its whole value below the header.
+  await layer1.getByRole("slider", { name: "Layer 1 pan" }).focus();
+  await expect(layer1.getByText("C", { exact: true })).toBeInViewport({
+    ratio: 1,
+  });
+
   // Fold the second layer's Oscillator section, and see the waveform stay in
   // its header while the octave goes. Unfold it.
   const oscillator = layer2.getByRole("button", { name: "Oscillator" });
@@ -198,50 +210,6 @@ test("adds, collapses, and removes layers in the Synth panel", async ({
   await expect(
     layer1.getByRole("button", { name: "Remove Layer 1" }),
   ).toBeDisabled();
-});
-
-test("shows a collapsed layer's pan value below its header", async ({
-  page,
-}) => {
-  // Open a synth track's panel, and collapse its layer to the header.
-  await createProject(page);
-  await addMidiTrack(page);
-  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
-  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
-  await instrument.getByRole("button", { name: "Close", exact: true }).click();
-  await selectMenuItem(page, { menu: "MIDI 1 actions", item: "Synth…" });
-  const layer = page
-    .getByTestId("synth-panel")
-    .getByRole("group", { name: "Layer 1" });
-  await layer.getByRole("button", { name: "Layer 1", exact: true }).click();
-
-  // Pan the layer with the keyboard, and see the value in a tooltip.
-  const pan = layer.getByRole("slider", { name: "Layer 1 pan" });
-  await pan.focus();
-  await page.keyboard.press("Shift+ArrowLeft");
-  const tooltip = layer.getByText("L10", { exact: true });
-  await expect(tooltip).toBeVisible();
-
-  // See that the layer's clipped edge does not cut the tooltip off. Hit testing
-  // follows clipping, so the tooltip must be what is found at its own center.
-  const isTopmost = await tooltip.evaluate((element) => {
-    (element as HTMLElement).style.pointerEvents = "auto";
-    const { x, y, width, height } = element.getBoundingClientRect();
-    return document.elementFromPoint(x + width / 2, y + height / 2) === element;
-  });
-  expect(isTopmost).toBe(true);
-  await tooltip.evaluate((element) => {
-    (element as HTMLElement).style.pointerEvents = "";
-  });
-
-  // Drag the knob away from where it was pressed, and see the value stay shown.
-  const box = (await pan.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 40);
-  const dragged = layer.getByText("L50", { exact: true });
-  await expect(dragged).toBeVisible();
-  await page.mouse.up();
 });
 
 test("shows a pan value below the knob after scrolling the layer into view", async ({
