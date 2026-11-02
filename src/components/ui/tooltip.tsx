@@ -13,7 +13,7 @@ export function Tooltip({
       {/* Fixed positioning keeps clipping ancestors from cutting it off. */}
       <span
         aria-hidden
-        className="pointer-events-none fixed z-50 mt-1 [position-anchor:--tooltip] [position-area:bottom] rounded border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 font-mono text-xs whitespace-nowrap text-neutral-100 tabular-nums opacity-0 shadow-lg transition-opacity group-focus-within/tooltip:opacity-100 group-hover/tooltip:opacity-100"
+        className="pointer-events-none fixed z-50 mt-1 [position-anchor:--tooltip] top-[anchor(bottom)] left-[anchor(center)] -translate-x-1/2 rounded border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 font-mono text-xs whitespace-nowrap text-neutral-100 tabular-nums opacity-0 shadow-lg transition-opacity group-focus-within/tooltip:opacity-100 group-hover/tooltip:opacity-100"
       >
         {content}
       </span>
