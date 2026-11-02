@@ -148,7 +148,7 @@ describe(SubtractiveSynth, () => {
     // Levels are RMS in dBFS over a second. Uniform noise's RMS is the peak over
     // √3, as a sawtooth's is. Two notes that draw the same noise would add 6 dB,
     // and two that draw different noise add 3 dB.
-    const describePitches = (pitches: number[]) => {
+    const measureRmsAtPitches = (pitches: number[]) => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch(createPatch(["noise"]));
       const samples = renderSynth(synth, {
@@ -158,10 +158,13 @@ describe(SubtractiveSynth, () => {
             pitches.forEach((pitch) => synth.noteOn(pitch, FULL_VELOCITY)),
         },
       });
-      return `${pitches.join(" + ")}: ${gainToDb(measureRms(samples)).toFixed(1)} dB`;
+      return measureRms(samples);
     };
-    expect([[30], [A4], [90], [A4, 72]].map(describePitches).join("\n"))
-      .toMatchInlineSnapshot(`
+    const levels = [[30], [A4], [90], [A4, 72]].map(
+      (pitches) =>
+        `${pitches.join(" + ")}: ${gainToDb(measureRmsAtPitches(pitches)).toFixed(1)} dB`,
+    );
+    expect(levels.join("\n")).toMatchInlineSnapshot(`
         "30: -22.9 dB
         69: -22.9 dB
         90: -22.9 dB
