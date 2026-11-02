@@ -675,7 +675,7 @@ function GainKnob({
   });
   const valueText = `${db.toFixed(1)} dB`;
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       <Knob
         ref={ref}
         aria-label={label}
@@ -701,7 +701,7 @@ function GainKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="w-14 font-mono text-xs text-muted-foreground tabular-nums">
+      <span className="mr-1 w-[8ch] font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
         {valueText}
       </span>
     </div>
