@@ -701,7 +701,7 @@ function GainKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="w-14 font-mono text-xs text-muted-foreground tabular-nums">
+      <span className="w-16 font-mono text-xs whitespace-nowrap text-muted-foreground tabular-nums">
         {valueText}
       </span>
     </div>
