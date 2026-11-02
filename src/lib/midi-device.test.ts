@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMidiDeviceMessage } from "./midi-device";
+import { encodeMidiDeviceMessage, parseMidiDeviceMessage } from "./midi-device";
 
 describe("parseMidiDeviceMessage", () => {
   it("reads notes on any channel", () => {
@@ -46,5 +46,17 @@ describe("parseMidiDeviceMessage", () => {
   it("ignores other messages", () => {
     expect(parseMidiDeviceMessage(new Uint8Array([0xf8]))).toBeUndefined();
     expect(parseMidiDeviceMessage(new Uint8Array([0xc0, 5]))).toBeUndefined();
+  });
+});
+
+describe("encodeMidiDeviceMessage", () => {
+  it.each([
+    { type: "note-on", pitch: 60, velocity: 90 },
+    { type: "note-off", pitch: 60 },
+    { type: "controller", controller: 1, value: 64 },
+    { type: "pitch-bend", value: 10_000 },
+  ] as const)("writes what the parser reads for $type", (message) => {
+    const bytes = new Uint8Array(encodeMidiDeviceMessage(message));
+    expect(parseMidiDeviceMessage(bytes)).toEqual(message);
   });
 });

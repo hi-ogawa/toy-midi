@@ -11,6 +11,7 @@ export const routes = route({
   draft: "/draft",
   examples: "/examples",
   latencyChecker: "/latency-checker",
+  midiKeyboard: "/midi-keyboard",
   scoreViewer: "/score-viewer",
   scoreCapture: "/score-capture",
   editorCli: "/editor-cli",

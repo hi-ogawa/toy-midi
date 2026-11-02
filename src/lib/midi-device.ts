@@ -112,3 +112,21 @@ export function parseMidiDeviceMessage(
     }
   }
 }
+
+/** Writes a message on channel 1. */
+export function encodeMidiDeviceMessage(message: MidiDeviceMessage): number[] {
+  switch (message.type) {
+    case "note-on": {
+      return [NOTE_ON_STATUS, message.pitch, message.velocity];
+    }
+    case "note-off": {
+      return [NOTE_OFF_STATUS, message.pitch, 0];
+    }
+    case "controller": {
+      return [CONTROLLER_STATUS, message.controller, message.value];
+    }
+    case "pitch-bend": {
+      return [PITCH_BEND_STATUS, message.value & 0x7f, message.value >> 7];
+    }
+  }
+}
