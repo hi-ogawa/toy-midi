@@ -240,7 +240,7 @@ function SynthLayerRow({
                         oscillator: { ...layer.oscillator, waveform: option },
                       })
                     }
-                    className="flex h-6 items-center justify-center bg-neutral-900 px-1.5 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                    className="flex h-6 items-center justify-center bg-neutral-900 px-1 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
                   >
                     <WaveformIcon waveform={option} />
                   </button>
@@ -675,7 +675,7 @@ function GainKnob({
   });
   const valueText = `${db.toFixed(1)} dB`;
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       <Knob
         ref={ref}
         aria-label={label}
@@ -701,7 +701,7 @@ function GainKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="w-14 font-mono text-xs text-muted-foreground tabular-nums">
+      <span className="mr-1 w-[8ch] font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
         {valueText}
       </span>
     </div>
