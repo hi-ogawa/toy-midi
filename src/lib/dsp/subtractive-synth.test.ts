@@ -145,31 +145,43 @@ describe(SubtractiveSynth, () => {
   });
 
   it("plays noise at a sawtooth's level on any note, and sums notes in power", () => {
-    // Levels are RMS in dBFS over a second. Uniform noise's RMS is the peak over
-    // √3, as a sawtooth's is. Two notes that draw the same noise would add 6 dB,
-    // and two that draw different noise add 3 dB.
-    const measureRmsAtPitches = (pitches: number[]) => {
-      const synth = new SubtractiveSynth(SAMPLE_RATE);
-      synth.setPatch(createPatch(["noise"]));
-      const samples = renderSynth(synth, {
-        seconds: 1,
-        at: {
-          0: () =>
-            pitches.forEach((pitch) => synth.noteOn(pitch, FULL_VELOCITY)),
+    // Play a low, middle, and high note in turn, then two notes together.
+    // Uniform noise's RMS is the peak over √3, as a sawtooth's is. Two notes
+    // that draw the same noise would add 6 dB, and two that draw different
+    // noise add 3 dB.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createPatch(["noise"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(30, FULL_VELOCITY),
+        0.1: () => {
+          synth.noteOff(30);
+          synth.noteOn(A4, FULL_VELOCITY);
         },
-      });
-      return measureRms(samples);
-    };
-    const levels = [[30], [A4], [90], [A4, 72]].map(
-      (pitches) =>
-        `${pitches.join(" + ")}: ${gainToDb(measureRmsAtPitches(pitches)).toFixed(1)} dB`,
-    );
-    expect(levels.join("\n")).toMatchInlineSnapshot(`
-        "30: -22.9 dB
-        69: -22.9 dB
-        90: -22.9 dB
-        69 + 72: -19.9 dB"
-      `);
+        0.2: () => {
+          synth.noteOff(A4);
+          synth.noteOn(90, FULL_VELOCITY);
+        },
+        0.3: () => {
+          synth.noteOff(90);
+          synth.noteOn(A4, FULL_VELOCITY);
+          synth.noteOn(72, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -23.0 dB  █████████████████████████████████████
+       50 ms  -22.9 dB  █████████████████████████████████████
+      100 ms  -23.1 dB  █████████████████████████████████████
+      150 ms  -22.9 dB  █████████████████████████████████████
+      200 ms  -22.8 dB  █████████████████████████████████████
+      250 ms  -23.0 dB  █████████████████████████████████████
+      300 ms  -19.9 dB  ████████████████████████████████████████
+      350 ms  -19.9 dB  ████████████████████████████████████████
+      "
+    `);
   });
 
   it("filters noise to the share of the band below the cutoff", () => {
