@@ -145,8 +145,7 @@ describe(SubtractiveSynth, () => {
   });
 
   it("plays noise at a sawtooth's level on any note, and sums notes in power", () => {
-    // Play a low, middle, and high note for 100 ms each, then two notes
-    // together:
+    // Play a low, middle, and high note for 100 ms each, then two at once:
     //   One note: x is uniform on [-1, 1), as a sawtooth's values are over a
     //     cycle, so E[x²] = ⅓ against a sine's ½, 1.8 dB below PEAK's -21.1 dB,
     //     -22.9 dB on any pitch
