@@ -173,7 +173,7 @@ function YouTubeReferenceSetup({
           }}
           placeholder="https://www.youtube.com/watch?v=..."
           autoFocus
-          className="mt-1 h-9 w-full rounded border border-neutral-600 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-600"
+          className="mt-1 h-7 w-full rounded border border-neutral-600 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-600"
         />
         {error && (
           <span className="mt-1.5 block text-xs font-normal text-orange-300">
@@ -183,7 +183,7 @@ function YouTubeReferenceSetup({
       </label>
       <Button
         type="submit"
-        className="mt-[19px] h-9 border-emerald-700 bg-emerald-700 px-4 text-sm text-white hover:bg-emerald-600"
+        className="mt-[19px] h-7 border-emerald-700 bg-emerald-700 px-4 text-sm text-white hover:bg-emerald-600"
       >
         Add video
       </Button>

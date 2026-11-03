@@ -87,7 +87,7 @@ export function InstrumentCombobox({
           disabled={disabled}
           aria-expanded={open}
           className={cn(
-            "h-8 w-44 justify-between gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900",
+            "h-7 w-44 justify-between gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900",
             className,
           )}
         >

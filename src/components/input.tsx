@@ -67,7 +67,7 @@ export function InputSetup({
     min: 0,
   });
   const inputClass =
-    "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
+    "mt-1 h-7 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
   return (
     <div className="max-h-[70vh] overflow-y-auto">
       <div className="space-y-4">
@@ -126,7 +126,7 @@ export function InputSetup({
           }
           onClick={onInputToggle}
           className={cn(
-            "h-8 w-full justify-start gap-2 px-2 text-xs",
+            "h-7 w-full justify-start gap-2 px-2 text-xs",
             inputsInitialized && !hasAccess
               ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
               : "border-neutral-600 bg-neutral-900 text-neutral-200 hover:bg-neutral-700",
@@ -167,7 +167,7 @@ export function InputSetup({
               disabled={disabled || !inputActive}
               inputMode="decimal"
               {...latencyInput.props}
-              className="h-8 w-24 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
+              className="h-7 w-24 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
             />
             <span>ms</span>
           </label>
@@ -239,7 +239,7 @@ function InputLatencyMeasurement({
           for details.
         </p>
         <Button
-          className="h-8 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
+          className="h-7 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
           disabled={disabled || !inputActive || isPlaying}
           onClick={onMeasure}
         >

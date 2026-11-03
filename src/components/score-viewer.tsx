@@ -152,23 +152,23 @@ export function ScoreViewer({
         settings.layout === "paged" && "score-viewer-root-paged",
       )}
     >
-      <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
         <Button
           data-testid="score-play-pause-button"
           disabled={!runtimeState.isReady}
           onClick={() => runtime.togglePlayback()}
           title={runtimeState.isPlaying ? "Pause" : "Play"}
           className={cn(
-            "size-9",
+            "size-7",
             runtimeState.isPlaying
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
               : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
           )}
         >
           {runtimeState.isPlaying ? (
-            <PauseIcon className="size-5" />
+            <PauseIcon className="size-4.5" />
           ) : (
-            <PlayIcon className="size-5" />
+            <PlayIcon className="size-4.5" />
           )}
         </Button>
         <Button
@@ -176,9 +176,9 @@ export function ScoreViewer({
           onClick={() => runtime.restart()}
           title="Restart"
           aria-label="Restart"
-          className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
-          <RotateCcwIcon className="size-5" />
+          <RotateCcwIcon className="size-4.5" />
         </Button>
 
         <div className="h-5 w-px bg-border" />
@@ -201,7 +201,7 @@ export function ScoreViewer({
               type="text"
               inputMode="numeric"
               {...tempoInput.props}
-              className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
+              className="h-7 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
             />
           </label>
         </div>
@@ -225,12 +225,12 @@ export function ScoreViewer({
           title="Score settings"
           aria-label="Score settings"
           className={cn(
-            "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+            "size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
             isSettingsOpen &&
               "bg-primary text-primary-foreground hover:bg-primary/90",
           )}
         >
-          <SlidersHorizontalIcon className="size-5" />
+          <SlidersHorizontalIcon className="size-4.5" />
         </Button>
 
         {!initialSource && (
@@ -248,9 +248,9 @@ export function ScoreViewer({
             <Button
               title="Score viewer menu"
               aria-label="Score viewer menu"
-              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+              className="size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
             >
-              <MoreVerticalIcon className="size-5" />
+              <MoreVerticalIcon className="size-4.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -298,7 +298,7 @@ export function ScoreViewer({
               className="group h-48 w-full max-w-4xl flex-col gap-3 border border-neutral-400 bg-white text-center text-neutral-700 shadow-xs hover:border-emerald-500 hover:text-neutral-900 data-[drag-over=true]:border-emerald-600 data-[drag-over=true]:bg-emerald-100 data-[drag-over=true]:text-emerald-950"
             >
               <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-emerald-400">
-                <UploadIcon className="size-5" />
+                <UploadIcon className="size-4.5" />
               </span>
               <span className="font-medium">Drop a MusicXML score here</span>
               <span className="text-xs text-neutral-500 group-data-[drag-over=true]:text-emerald-800">
@@ -345,9 +345,9 @@ function ScoreSamplesMenu({
         <Button
           title="Score samples"
           aria-label="Score samples"
-          className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
-          <LibraryIcon className="size-5" />
+          <LibraryIcon className="size-4.5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">

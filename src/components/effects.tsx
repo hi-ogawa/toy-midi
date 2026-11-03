@@ -271,7 +271,7 @@ export function EffectsContent({
               aria-label={`Select band ${index + 1}`}
               aria-pressed={selected}
               onClick={() => setSelectedBandId(band.id)}
-              className="flex h-8 shrink-0 items-center gap-1.5 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none hover:border-neutral-500 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 aria-pressed:border-neutral-500 aria-pressed:bg-neutral-800 aria-pressed:text-neutral-100"
+              className="flex h-7 shrink-0 items-center gap-1.5 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none hover:border-neutral-500 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 aria-pressed:border-neutral-500 aria-pressed:bg-neutral-800 aria-pressed:text-neutral-100"
             >
               <span
                 className="size-2 rounded-full"

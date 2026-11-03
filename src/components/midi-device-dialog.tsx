@@ -32,7 +32,7 @@ function MidiDeviceContent({
             onChange={(event) =>
               selectDevice(event.currentTarget.value || undefined)
             }
-            className="mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100"
+            className="mt-1 h-7 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100"
           >
             <option value="">Off</option>
             {devices.map((device) => (

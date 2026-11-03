@@ -82,7 +82,7 @@ export function ProjectList() {
               <a
                 data-testid="new-project-button"
                 href={routes.draft.href()}
-                className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 h-7 px-3 text-sm text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 New project
               </a>
@@ -92,7 +92,7 @@ export function ProjectList() {
                 onFile={(file) => importProjectMutation.mutate(file)}
                 data-testid="import-project"
                 disabled={importProjectMutation.isPending}
-                className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+                className="h-7 bg-neutral-700 px-3 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
               >
                 <span className="grid">
                   <span className="invisible col-start-1 row-start-1">
@@ -241,7 +241,7 @@ function ProjectListItem({
         }}
         disabled={deletePending}
         title="Delete project"
-        className="size-8 text-neutral-400 hover:bg-red-600/30"
+        className="size-7 text-neutral-400 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
       </Button>
@@ -292,7 +292,7 @@ function LegacyProjectListItem({
         }}
         disabled={migrationPending}
         title="Delete legacy project"
-        className="size-8 shrink-0 text-neutral-400 hover:bg-red-600/30"
+        className="size-7 shrink-0 text-neutral-400 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
       </Button>

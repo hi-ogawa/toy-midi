@@ -45,7 +45,7 @@ export function MidiInstrument({
               },
             });
           }}
-          className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
+          className="h-7 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
         >
           {KEY_SIGNATURE_OPTION_GROUPS.map((group) => (
             <optgroup key={group.mode} label={group.label}>
@@ -74,7 +74,7 @@ export function MidiInstrument({
               tabOpenStringPitches: [...preset.openStringPitches],
             });
           }}
-          className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
+          className="h-7 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
         >
           {TAB_STRING_PRESETS.map((preset) => (
             <option key={preset.id} value={preset.id}>

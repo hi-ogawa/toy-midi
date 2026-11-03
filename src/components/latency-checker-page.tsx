@@ -74,7 +74,7 @@ export function LatencyCheckerPage() {
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
-      <header className="sticky top-0 z-10 flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
+      <header className="sticky top-0 z-10 flex h-11 items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
         <AudioLinesIcon className="mr-2 size-5 text-emerald-400" />
         <span className="font-medium">Latency Checker</span>
         <div className="flex-1" />
@@ -83,9 +83,9 @@ export function LatencyCheckerPage() {
             <Button
               title="Latency checker menu"
               aria-label="Latency checker menu"
-              className="size-9 hover:bg-accent hover:text-accent-foreground"
+              className="size-7 hover:bg-accent hover:text-accent-foreground"
             >
-              <MoreVerticalIcon className="size-5" />
+              <MoreVerticalIcon className="size-4.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -133,7 +133,7 @@ export function LatencyCheckerPage() {
                   onChange={(event) =>
                     input.selectDevice(event.currentTarget.value || undefined)
                   }
-                  className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="h-7 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {!inputsInitialized ? (
                     <option>Loading audio inputs...</option>
@@ -167,7 +167,7 @@ export function LatencyCheckerPage() {
                   onChange={(event) => {
                     input.selectChannel(Number(event.currentTarget.value));
                   }}
-                  className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="h-7 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {state.inputChannelCount ? (
                     Array.from(
@@ -512,7 +512,7 @@ function ActionButton({
   return (
     <Button
       className={cn(
-        "min-h-10 flex-1 px-3 text-sm font-semibold",
+        "min-h-7 flex-1 px-3 text-sm font-semibold",
         accent
           ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-500"
           : "border-neutral-700 bg-neutral-800 text-neutral-100 hover:bg-neutral-700",

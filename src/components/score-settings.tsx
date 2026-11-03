@@ -46,7 +46,7 @@ export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
         type="number"
         disabled={!settings.showTitle}
         {...titleSpacingInput.props}
-        className="h-8 w-32 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+        className="h-7 w-32 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
       />
 
       <label htmlFor="score-section-labels">Section labels</label>
@@ -66,7 +66,7 @@ export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
 function SettingsSelect(props: ComponentProps<"select">) {
   return (
     <select
-      className="h-8 w-32 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+      className="h-7 w-32 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
       {...props}
     />
   );

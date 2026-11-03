@@ -42,7 +42,7 @@ export function MidiKeyboardPage() {
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
-      <header className="sticky top-0 z-10 flex h-[53px] items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
+      <header className="sticky top-0 z-10 flex h-11 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
         <KeyboardMusicIcon className="size-5 text-emerald-400" />
         <span className="font-medium">MIDI Keyboard</span>
         <div className="flex-1" />
@@ -52,9 +52,9 @@ export function MidiKeyboardPage() {
             <Button
               title="MIDI keyboard menu"
               aria-label="MIDI keyboard menu"
-              className="size-9 hover:bg-accent hover:text-accent-foreground"
+              className="size-7 hover:bg-accent hover:text-accent-foreground"
             >
-              <MoreVerticalIcon className="size-5" />
+              <MoreVerticalIcon className="size-4.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -82,9 +82,9 @@ function MidiKeyboardHelp() {
         <Button
           title="MIDI keyboard help"
           aria-label="MIDI keyboard help"
-          className="size-9 hover:bg-accent hover:text-accent-foreground"
+          className="size-7 hover:bg-accent hover:text-accent-foreground"
         >
-          <CircleHelpIcon className="size-5" />
+          <CircleHelpIcon className="size-4.5" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 space-y-2 p-3 text-xs">
@@ -162,7 +162,7 @@ function MidiKeyboardControls() {
               keyboard.releaseAll();
               setSelectedId(event.currentTarget.value);
             }}
-            className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+            className="h-7 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
           >
             {outputs.length === 0 && (
               <option>
