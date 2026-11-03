@@ -83,7 +83,7 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   autoScrollEnabled: true,
   inputPanelOpen: false,
   midiKeyboardOpen: false,
-  midiKeyboardSize: { width: 342, height: 224 },
+  midiKeyboardSize: { width: 334, height: 224 },
   tunerOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   referenceVideoSize: { width: 640, height: 480 },
