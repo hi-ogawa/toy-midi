@@ -852,21 +852,24 @@ export class EditorRuntime {
       midiMonitorTrackId === undefined
         ? undefined
         : this.midiTrackPlaybacks.get(midiMonitorTrackId);
+    if (!playback) {
+      return;
+    }
     switch (message.type) {
       case "note-on": {
-        playback?.noteOn(message.pitch, message.velocity);
+        playback.noteOn(message.pitch, message.velocity);
         break;
       }
       case "note-off": {
-        playback?.noteOff(message.pitch);
+        playback.noteOff(message.pitch);
         break;
       }
       case "controller": {
-        playback?.setController(message.controller, message.value);
+        playback.setController(message.controller, message.value);
         break;
       }
       case "pitch-bend": {
-        playback?.setPitchBend(message.value);
+        playback.setPitchBend(message.value);
         break;
       }
     }
