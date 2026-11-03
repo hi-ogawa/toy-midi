@@ -54,6 +54,7 @@ import { Dialog } from "./ui/dialog";
 import { useInput } from "./use-input";
 import { useInteraction } from "./use-interaction";
 import { useMidiDevice } from "./use-midi-device";
+import { useMidiLiveInput } from "./use-midi-live-input";
 import { useProject } from "./use-project";
 import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
@@ -82,8 +83,6 @@ export function EditorPage({ source }: { source: ProjectSource }) {
   const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
   const [isInputPanelOpen, setIsInputPanelOpen] =
     projectUiStore.useValue("inputPanelOpen");
-  const [isMidiKeyboardOpen, setIsMidiKeyboardOpen] =
-    projectUiStore.useValue("midiKeyboardOpen");
   const effects = useEffectsUi(projectUiStore);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -97,6 +96,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
   }, [state.title]);
 
   const midiDevice = useMidiDevice({ runtime, state });
+  const midiLiveInput = useMidiLiveInput({ runtime, state, projectUiStore });
   const input = useInput({
     runtime,
     state,
@@ -230,21 +230,6 @@ export function EditorPage({ source }: { source: ProjectSource }) {
       return;
     }
     recordMutation.mutate(flags.isRecording ? "stop" : "start");
-  }
-
-  function toggleMidiKeyboard() {
-    if (isMidiKeyboardOpen) {
-      closeMidiKeyboard();
-    } else {
-      setIsMidiKeyboardOpen(true);
-    }
-  }
-
-  function closeMidiKeyboard() {
-    setIsMidiKeyboardOpen(false);
-    if (!state.midiConnection) {
-      void runtime.setMidiMonitorTrack(undefined);
-    }
   }
 
   function promptInputOn() {
@@ -410,7 +395,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
           setIsMidiDeviceOpen(true);
           midiDevice.requestAccess();
         }}
-        onMidiKeyboardToggle={toggleMidiKeyboard}
+        onMidiKeyboardToggle={midiLiveInput.toggleKeyboard}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -691,9 +676,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                       }}
                       midiInteraction={midiInteraction}
                       midiMonitoring={state.midiMonitorTrackId === track.id}
-                      midiMonitorVisible={
-                        state.midiConnection !== undefined || isMidiKeyboardOpen
-                      }
+                      midiMonitorVisible={midiLiveInput.isAvailable}
                       onTranscribe={() =>
                         transcriptions.openTranscription(track.id)
                       }
@@ -757,11 +740,11 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
-        {isMidiKeyboardOpen && (
+        {midiLiveInput.isKeyboardOpen && (
           <MidiKeyboardPanel
             runtime={runtime}
             state={state}
-            onClose={closeMidiKeyboard}
+            onClose={midiLiveInput.closeKeyboard}
           />
         )}
         {orderedMidiTracks.map(
