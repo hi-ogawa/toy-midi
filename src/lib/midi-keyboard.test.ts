@@ -4,8 +4,7 @@ import { MidiKeyboard } from "./midi-keyboard";
 
 function createKeyboard() {
   const sent: MidiDeviceMessage[] = [];
-  const keyboard = new MidiKeyboard();
-  keyboard.connect((message) => sent.push(message));
+  const keyboard = new MidiKeyboard({ send: (message) => sent.push(message) });
   return { keyboard, sent };
 }
 
@@ -39,19 +38,6 @@ describe("MidiKeyboard", () => {
     const { keyboard, sent } = createKeyboard();
     keyboard.slidePointer(62);
     expect(sent).toEqual([]);
-  });
-
-  it("ends held keyboard on the old destination when connecting a new one", () => {
-    const { keyboard, sent } = createKeyboard();
-    keyboard.pressKey("KeyQ");
-    const next: MidiDeviceMessage[] = [];
-    keyboard.connect((message) => next.push(message));
-    expect(sent.at(-1)).toEqual({ type: "note-off", pitch: 60 });
-    expect(next).toEqual([]);
-
-    // The key's own release no longer sends anything.
-    keyboard.releaseKey("KeyQ");
-    expect(next).toEqual([]);
   });
 
   it("springs the pitch bend back to center once", () => {

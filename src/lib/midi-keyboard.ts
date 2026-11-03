@@ -33,16 +33,11 @@ export class MidiKeyboard {
     ) as Readonly<Record<number, number>>,
   }));
 
-  private send?: Send;
   // A key releases the pitch it started, even if the octave changed since.
   private keyPitches = new Map<string, number>();
   private pointerPitch?: number;
 
-  /** Ends held notes on the current destination before switching to the next. */
-  connect(send: Send): void {
-    this.releaseAll();
-    this.send = send;
-  }
+  constructor(private readonly options: { send: Send }) {}
 
   setVelocity(velocity: number): void {
     this.store.update({ velocity });
@@ -59,12 +54,12 @@ export class MidiKeyboard {
     this.store.update({
       controllerValues: { ...controllerValues, [controller]: value },
     });
-    this.send?.({ type: "controller", controller, value });
+    this.options.send({ type: "controller", controller, value });
   }
 
   setPitchBend(value: number): void {
     this.store.update({ pitchBend: value });
-    this.send?.({ type: "pitch-bend", value });
+    this.options.send({ type: "pitch-bend", value });
   }
 
   /** Springs the wheel back to center. */
@@ -123,7 +118,7 @@ export class MidiKeyboard {
 
   releaseAll(): void {
     for (const pitch of this.store.get().heldPitches) {
-      this.send?.({ type: "note-off", pitch });
+      this.options.send({ type: "note-off", pitch });
     }
     this.keyPitches.clear();
     this.pointerPitch = undefined;
@@ -133,7 +128,7 @@ export class MidiKeyboard {
   private press(pitch: number): void {
     const { heldPitches, velocity } = this.store.get();
     if (!heldPitches.has(pitch)) {
-      this.send?.({ type: "note-on", pitch, velocity });
+      this.options.send({ type: "note-on", pitch, velocity });
       this.store.update({ heldPitches: new Set(heldPitches).add(pitch) });
     }
   }
@@ -141,7 +136,7 @@ export class MidiKeyboard {
   private release(pitch: number): void {
     const next = new Set(this.store.get().heldPitches);
     if (next.delete(pitch)) {
-      this.send?.({ type: "note-off", pitch });
+      this.options.send({ type: "note-off", pitch });
       this.store.update({ heldPitches: next });
     }
   }

@@ -125,14 +125,9 @@ function MidiKeyboardControls({ access }: { access: MIDIAccess }) {
     velocity,
     pitchBend,
     controllerValues,
-  } = useMidiKeyboard();
-
-  // Held notes end on the previous output whenever the selected one changes.
-  useEffect(() => {
-    keyboard.connect((message) =>
-      output?.send(encodeMidiDeviceMessage(message)),
-    );
-  }, [keyboard, output]);
+  } = useMidiKeyboard((message) =>
+    output?.send(encodeMidiDeviceMessage(message)),
+  );
 
   return (
     <div className="grid gap-6">
@@ -142,6 +137,7 @@ function MidiKeyboardControls({ access }: { access: MIDIAccess }) {
           value={output?.id ?? ""}
           disabled={!output}
           onChange={(event) => {
+            keyboard.releaseAll();
             setSelectedId(event.currentTarget.value);
           }}
           className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"

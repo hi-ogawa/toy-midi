@@ -1,13 +1,15 @@
-import { useState, useSyncExternalStore } from "react";
+import { useEffectEvent, useState, useSyncExternalStore } from "react";
 import {
   getComputerKeyOctaveShift,
   getComputerKeyPitch,
 } from "../lib/computer-keyboard";
+import type { MidiDeviceMessage } from "../lib/midi-device";
 import { MidiKeyboard } from "../lib/midi-keyboard";
 import { useWindowEvent } from "./use-window-event";
 
-export function useMidiKeyboard() {
-  const [keyboard] = useState(() => new MidiKeyboard());
+export function useMidiKeyboard(send: (message: MidiDeviceMessage) => void) {
+  const sendLatest = useEffectEvent(send);
+  const [keyboard] = useState(() => new MidiKeyboard({ send: sendLatest }));
   const state = useSyncExternalStore(
     keyboard.store.subscribe,
     keyboard.store.get,
