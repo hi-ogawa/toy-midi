@@ -48,7 +48,6 @@ const PITCHES = range(HIGHEST_PITCH - LOWEST_PITCH + 1).map(
 );
 const WHITE_KEY_COUNT = PITCHES.filter((pitch) => !isBlackKey(pitch)).length;
 
-const COMPUTER_KEY_STEP = 40;
 const DEMO_TRACK_HREF = `${routes.draft.href()}?src=/midi-keyboard-demo.json`;
 
 export function MidiKeyboardPage() {
@@ -331,10 +330,11 @@ function ComputerKeyboardLayout({
         className="grid gap-1 select-none"
       >
         {COMPUTER_KEYBOARD_ROWS.map(({ stagger, codes }) => (
+          // A key is one step of size-9 plus gap-1, in pixels.
           <div
             key={stagger}
             className="flex gap-1"
-            style={{ marginLeft: stagger * COMPUTER_KEY_STEP }}
+            style={{ marginLeft: stagger * 40 }}
           >
             {codes.map((code) => (
               <ComputerKey
