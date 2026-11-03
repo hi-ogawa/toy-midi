@@ -20,8 +20,8 @@ import {
   SaveIcon,
   SlidersVerticalIcon,
   VideoIcon,
+  Volume2Icon,
 } from "lucide-react";
-import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
 import { routes } from "../lib/routes";
 import type { EditorRuntime, LoopState, PunchState } from "../lib/runtime";
@@ -35,7 +35,7 @@ import {
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../types";
 import type { EditorFlags } from "./flags";
 import { MetronomeIcon } from "./icons";
-import { GainSlider } from "./mixer";
+import { GainKnob } from "./mixer";
 import { RangeControl } from "./range-control";
 import { Button } from "./ui/button";
 import {
@@ -160,14 +160,14 @@ export function Header({
     onTempoChange,
   });
   return (
-    <header className="flex h-[53px] shrink-0 items-center gap-2 border-b-2 border-neutral-600 bg-neutral-800 px-4 shadow-sm">
+    <header className="flex h-11 shrink-0 items-center gap-1 border-b-2 border-neutral-600 bg-neutral-800 px-2 shadow-sm">
       <Button
         data-testid="play-button"
         onClick={onPlayToggle}
         disabled={flags.transportDisabled}
         aria-pressed={isPlaying}
         className={cn(
-          "size-9",
+          "size-7",
           isPlaying
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
@@ -177,9 +177,9 @@ export function Header({
         }
       >
         {isPlaying ? (
-          <PauseIcon className="size-5" />
+          <PauseIcon className="size-4.5" />
         ) : (
-          <PlayIcon className="size-5" />
+          <PlayIcon className="size-4.5" />
         )}
       </Button>
       <Button
@@ -188,7 +188,7 @@ export function Header({
         disabled={flags.transportDisabled}
         aria-pressed={flags.isRecording}
         className={cn(
-          "size-9",
+          "size-7",
           flags.isRecording
             ? "border-red-500/60 bg-red-500/20 text-red-200 hover:bg-red-500/30"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
@@ -196,9 +196,9 @@ export function Header({
         title={flags.isRecording ? "Stop recording (R)" : "Record (R)"}
       >
         {flags.isRecording ? (
-          <CircleStopIcon className="size-5" />
+          <CircleStopIcon className="size-4.5" />
         ) : (
-          <CircleIcon className="size-4 fill-current" />
+          <CircleIcon className="size-3.5 fill-current" />
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
@@ -223,40 +223,40 @@ export function Header({
         aria-pressed={metronomeEnabled}
         title="Toggle metronome (M)"
         className={cn(
-          "size-9",
+          "size-7",
           metronomeEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
-        <MetronomeIcon className="size-5" />
+        <MetronomeIcon className="size-4.5" />
       </Button>
       <Button
         onClick={() => onAutoScrollChange(!autoScrollEnabled)}
         aria-pressed={autoScrollEnabled}
         title="Toggle auto-scroll (F)"
         className={cn(
-          "size-9",
+          "size-7",
           autoScrollEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
-        <LocateFixedIcon className="size-5" />
+        <LocateFixedIcon className="size-4.5" />
       </Button>
       <PlaybackPosition
         runtime={runtime}
         tempo={tempo}
         timeSignature={timeSignature}
       />
-      <div className="h-5 w-px bg-neutral-600" />
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="playback-rate"
             title="Playback speed (< slower / > faster)"
             disabled={flags.isRecording}
-            className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
+            className="h-7 gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800"
           >
             {playbackRate}x
             <ChevronDownIcon className="size-3 text-neutral-400" />
@@ -275,27 +275,27 @@ export function Header({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+      <div className="flex items-center gap-1 text-xs text-neutral-400">
         <span>BPM</span>
         <input
           data-testid="tempo-input"
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
-          className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100"
+          className="h-7 w-10 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100"
         />
         <Button
           data-testid="tap-tempo-button"
           onClick={handleTapTempo}
           title="Tap tempo"
-          className="h-8 px-1.5 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="h-7 px-1 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           TAP
         </Button>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
+          <Button className="h-7 gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800">
             {timeSignatureValue}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
@@ -320,7 +320,7 @@ export function Header({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
+            className="h-7 gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800"
           >
             {gridDivision}
             <ChevronDownIcon className="size-3 text-neutral-400" />
@@ -341,20 +341,15 @@ export function Header({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="h-5 w-px bg-neutral-600" />
-      <label className="flex items-center gap-2 text-[10px] text-neutral-400">
-        <span className="font-medium uppercase tracking-wide">Master</span>
-        <GainSlider
-          data-testid="master-gain"
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <div className="flex items-center gap-0.5 text-neutral-400">
+        <Volume2Icon className="size-4" />
+        <GainKnob
           label="Master gain"
           gain={masterGain}
           onGainChange={onMasterGainChange}
-          className="w-24"
         />
-        <span className="w-12 text-right font-mono">
-          {formatGainDb(masterGain)}
-        </span>
-      </label>
+      </div>
       <div className="flex-1" />
       {draft ? (
         <DraftControls ready={title !== undefined} onSave={onSave} />
@@ -381,20 +376,20 @@ export function Header({
           />
         )}
       </button>
-      <div className="h-5 w-px bg-neutral-600" />
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
       <Button
         data-testid="reference-video-button"
         onClick={() => onReferenceVideoOpenChange(!referenceVideoOpen)}
         aria-pressed={referenceVideoOpen}
         title="Reference video"
         className={cn(
-          "size-9",
+          "size-7",
           referenceVideoOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
-        <VideoIcon className="size-5" />
+        <VideoIcon className="size-4.5" />
       </Button>
       <Button
         data-testid="mixer-button"
@@ -402,13 +397,13 @@ export function Header({
         aria-pressed={mixerOpen}
         title="Mixer"
         className={cn(
-          "size-9",
+          "size-7",
           mixerOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
-        <SlidersVerticalIcon className="size-5" />
+        <SlidersVerticalIcon className="size-4.5" />
       </Button>
       <Button
         data-testid="input-panel-button"
@@ -420,7 +415,7 @@ export function Header({
             : "Audio Input"
         }
         className={cn(
-          "size-9",
+          "size-7",
           inputAccessRequired
             ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
             : inputPanelOpen
@@ -428,16 +423,16 @@ export function Header({
               : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
-        <MicIcon className="size-5" />
+        <MicIcon className="size-4.5" />
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             title="Editor menu"
             aria-label="Editor menu"
-            className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            className="size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
-            <MoreVerticalIcon className="size-5" />
+            <MoreVerticalIcon className="size-4.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -529,7 +524,7 @@ function PlaybackPosition({
       data-testid="position"
       data-position={position}
       data-beat={secondsToBeats(position, tempo)}
-      className="font-mono text-sm tabular-nums text-neutral-300"
+      className="font-mono text-sm whitespace-nowrap tabular-nums text-neutral-300"
     >
       {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
       {formatTimeWithMilliseconds(position)}
@@ -562,7 +557,7 @@ function DraftControls({
           aria-describedby="save-tooltip"
           disabled={!ready}
           onClick={onSave}
-          className="size-8 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="size-7 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <SaveIcon className="size-4" />
         </Button>
@@ -608,7 +603,7 @@ function SaveButton({
         aria-disabled={!canSave}
         onClick={canSave ? onSave : undefined}
         className={cn(
-          "size-8 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "size-7 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
           status === "saved" && "text-neutral-500",
           status === "unsaved" && "text-neutral-300",
           status === "saving" && "text-neutral-400",
