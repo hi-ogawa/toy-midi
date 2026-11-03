@@ -817,8 +817,6 @@ export class EditorRuntime {
     const midiConnection = await connectMidiInput({
       input,
       onMessage: (message) => {
-        // Sends without waiting for the audio context, so a note-off can't
-        // overtake its note-on.
         const { midiMonitorTrackId } = this.store.get();
         if (midiMonitorTrackId !== undefined) {
           this.midiTrackPlaybacks.get(midiMonitorTrackId)?.playMessage(message);
