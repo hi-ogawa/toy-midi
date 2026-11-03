@@ -1,14 +1,18 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
+  getConnectedMidiInputs,
   isMidiAccessGranted,
   isMidiDeviceSupported,
-  openMidiAccess,
+  requestMidiAccess,
+  subscribeMidiInputs,
 } from "../lib/midi-device";
 import { preferences } from "../lib/preferences";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 
 export type UseMidiDeviceResult = ReturnType<typeof useMidiDevice>;
+
+const MIDI_ACCESS_KEY = ["midi-access"];
 
 export function useMidiDevice({
   runtime,
@@ -17,59 +21,65 @@ export function useMidiDevice({
   runtime: EditorRuntime;
   state: EditorRuntimeState;
 }) {
+  const queryClient = useQueryClient();
   const [rememberedId, setRememberedId] = preferences.useValue("midiDeviceId");
   const [devices, setDevices] = useState<MIDIInput[]>();
+  const isSupported = isMidiDeviceSupported();
 
-  function openAccess() {
-    return openMidiAccess({
-      onChange: (inputs) => {
-        setDevices(inputs);
-        // Runs for the life of the page, so it can't close over a rendered value.
-        connectDevice(inputs, preferences.get().midiDeviceId);
-      },
-    });
-  }
-
-  function connectDevice(inputs: MIDIInput[], deviceId?: string) {
-    const input = inputs.find((entry) => entry.id === deviceId);
-    if (input?.id === runtime.store.get().midiConnection?.deviceId) {
-      return;
-    }
-    if (input) {
-      void runtime.startMidiInput(input);
-    } else {
-      void runtime.stopMidiInput();
-    }
-  }
-
-  const requestAccessMutation = useMutation({ mutationFn: openAccess });
-
-  useQuery({
-    queryKey: ["midi-device-restore"],
+  const accessQuery = useQuery({
+    queryKey: MIDI_ACCESS_KEY,
+    enabled: isSupported,
     retry: false,
     staleTime: Infinity,
-    queryFn: async () => {
-      // Reconnect only when that shows no permission prompt on page load.
-      if (rememberedId && (await isMidiAccessGranted())) {
-        await openAccess();
+    // Wrap the optional result because query data itself must be defined.
+    queryFn: async (): Promise<{ access?: MIDIAccess }> => {
+      // Page load must not show a permission prompt.
+      if (!(await isMidiAccessGranted())) {
+        return {};
       }
-      return true;
+      const access = await requestMidiAccess();
+      const input = getConnectedMidiInputs(access).find(
+        (entry) => entry.id === rememberedId,
+      );
+      if (input) {
+        await runtime.startMidiInput(input);
+      }
+      return { access };
     },
   });
+  const access = accessQuery.data?.access;
+
+  const requestAccessMutation = useMutation({
+    mutationFn: requestMidiAccess,
+    onSuccess: (nextAccess) => {
+      queryClient.setQueryData(MIDI_ACCESS_KEY, { access: nextAccess });
+    },
+  });
+
+  useEffect(() => {
+    if (access) {
+      return subscribeMidiInputs(access, setDevices);
+    }
+  }, [access]);
 
   return {
     devices,
     deviceId: state.midiConnection?.deviceId,
-    isSupported: isMidiDeviceSupported(),
+    isSupported,
     isAccessDenied: requestAccessMutation.isError,
     requestAccess: () => {
-      if (!devices) {
+      if (!access) {
         requestAccessMutation.mutate();
       }
     },
     selectDevice: (deviceId?: string) => {
       setRememberedId(deviceId);
-      connectDevice(devices ?? [], deviceId);
+      const input = devices?.find((entry) => entry.id === deviceId);
+      if (input) {
+        void runtime.startMidiInput(input);
+      } else {
+        void runtime.stopMidiInput();
+      }
     },
   };
 }
