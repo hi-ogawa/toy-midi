@@ -26,6 +26,7 @@ import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import type { SynthPatch } from "./dsp/subtractive-synth.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
@@ -61,7 +62,6 @@ import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
-const PREVIEW_VELOCITY = 100;
 export const MIN_CLIP_DURATION = 0.01;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
@@ -793,23 +793,17 @@ export class EditorRuntime {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
   }
 
-  async startMidiNotePreview({
+  /** Called from the click that plays the note, which lets audio start. */
+  playMidiNotePreview({
     id,
-    pitch,
+    message,
   }: {
     id: string;
-    pitch: number;
-  }): Promise<void> {
-    await this.context.resume();
-    this.midiTrackPlaybacks.get(id)?.playMessage({
-      type: "note-on",
-      pitch,
-      velocity: PREVIEW_VELOCITY,
-    });
-  }
-
-  stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
-    this.midiTrackPlaybacks.get(id)?.playMessage({ type: "note-off", pitch });
+    message: MidiMessage;
+  }): void {
+    // A note-off can't wait for audio to start, or it would overtake its note-on.
+    void this.context.resume();
+    this.midiTrackPlaybacks.get(id)?.playMessage(message);
   }
 
   async startMidiInput(input: MIDIInput): Promise<void> {
