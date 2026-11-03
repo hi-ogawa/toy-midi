@@ -791,16 +791,6 @@ function useMidiNotePreview({
 }) {
   const previewPitch = useRef<number>(undefined);
 
-  const previewMutation = useMutation({
-    mutationFn: (pitch: number) =>
-      runtime.startMidiNotePreview({ id: trackId, pitch }),
-    onError: (error) => {
-      stop();
-      console.error(error);
-      toast.error(error.message);
-    },
-  });
-
   function start(pitch: number) {
     // Keep the note sounding during horizontal or in-cell dragging.
     // Audition again only when the pitch changes.
@@ -809,14 +799,17 @@ function useMidiNotePreview({
     }
     stop();
     previewPitch.current = pitch;
-    previewMutation.mutate(pitch);
+    runtime.playMidiNotePreview({
+      id: trackId,
+      message: { type: "note-on", pitch, velocity: 100 },
+    });
   }
 
   function stop() {
     if (previewPitch.current !== undefined) {
-      runtime.stopMidiNotePreview({
+      runtime.playMidiNotePreview({
         id: trackId,
-        pitch: previewPitch.current,
+        message: { type: "note-off", pitch: previewPitch.current },
       });
       previewPitch.current = undefined;
     }

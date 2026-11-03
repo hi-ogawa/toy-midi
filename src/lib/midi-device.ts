@@ -1,10 +1,4 @@
-import { LIVE_CONTROLLERS } from "./general-midi.ts";
-
-export type MidiDeviceMessage =
-  | { type: "note-on"; pitch: number; velocity: number }
-  | { type: "note-off"; pitch: number }
-  | { type: "controller"; controller: number; value: number }
-  | { type: "pitch-bend"; value: number };
+import { LIVE_CONTROLLERS, type MidiMessage } from "./general-midi.ts";
 
 export type MidiConnection = {
   deviceId: string;
@@ -41,17 +35,33 @@ export function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
   );
 }
 
+/** Calls `onChange` with the connected outputs, now and whenever they change. */
+export function subscribeMidiOutputs(
+  access: MIDIAccess,
+  onChange: (outputs: MIDIOutput[]) => void,
+): () => void {
+  const notify = () =>
+    onChange(
+      [...access.outputs.values()].filter(
+        (output) => output.state === "connected",
+      ),
+    );
+  notify();
+  access.addEventListener("statechange", notify);
+  return () => access.removeEventListener("statechange", notify);
+}
+
 export async function connectMidiInput({
   input,
   onMessage,
   onDisconnect,
 }: {
   input: MIDIInput;
-  onMessage: (message: MidiDeviceMessage) => void;
+  onMessage: (message: MidiMessage) => void;
   onDisconnect: () => void;
 }): Promise<MidiConnection> {
   const handleMessage = (event: MIDIMessageEvent) => {
-    const message = event.data && parseMidiDeviceMessage(event.data);
+    const message = event.data && parseMidiMessage(event.data);
     if (message) {
       onMessage(message);
     }
@@ -81,9 +91,7 @@ const CONTROLLER_STATUS = 0xb0;
 const PITCH_BEND_STATUS = 0xe0;
 
 /** Reads a message on any channel, or nothing for what live input ignores. */
-function parseMidiDeviceMessage(
-  data: Uint8Array,
-): MidiDeviceMessage | undefined {
+function parseMidiMessage(data: Uint8Array): MidiMessage | undefined {
   const [status, first, second] = data;
   switch (status & 0xf0) {
     case NOTE_OFF_STATUS: {
@@ -102,6 +110,24 @@ function parseMidiDeviceMessage(
     }
     case PITCH_BEND_STATUS: {
       return { type: "pitch-bend", value: first | (second << 7) };
+    }
+  }
+}
+
+/** Writes a message on channel 1. */
+export function encodeMidiMessage(message: MidiMessage): number[] {
+  switch (message.type) {
+    case "note-on": {
+      return [NOTE_ON_STATUS, message.pitch, message.velocity];
+    }
+    case "note-off": {
+      return [NOTE_OFF_STATUS, message.pitch, 0];
+    }
+    case "controller": {
+      return [CONTROLLER_STATUS, message.controller, message.value];
+    }
+    case "pitch-bend": {
+      return [PITCH_BEND_STATUS, message.value & 0x7f, message.value >> 7];
     }
   }
 }

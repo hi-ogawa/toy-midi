@@ -1,5 +1,11 @@
 import { clamp } from "./music.ts";
 
+export type MidiMessage =
+  | { type: "note-on"; pitch: number; velocity: number }
+  | { type: "note-off"; pitch: number }
+  | { type: "controller"; controller: number; value: number }
+  | { type: "pitch-bend"; value: number };
+
 // General MIDI Program Names (0-127)
 export const GM_PROGRAMS = [
   // Piano (0-7)
@@ -161,7 +167,18 @@ export const PITCH_WHEEL_CENTER = 8192;
 // player moves during a performance, and what a reset can return to its default.
 // A device's other controllers, such as bank select, would change the instrument
 // instead.
-export const LIVE_CONTROLLERS = [1, 7, 11, 64, 71, 74];
+export const LIVE_CONTROLLER_SETTINGS = [
+  { label: "Mod wheel", controller: 1, defaultValue: 0 },
+  { label: "Volume", controller: 7, defaultValue: 100 },
+  { label: "Expression", controller: 11, defaultValue: 127 },
+  { label: "Sustain", controller: 64, defaultValue: 0 },
+  { label: "Resonance", controller: 71, defaultValue: 64 },
+  { label: "Brightness", controller: 74, defaultValue: 64 },
+];
+export const LIVE_CONTROLLERS = LIVE_CONTROLLER_SETTINGS.map(
+  ({ controller }) => controller,
+);
+export const PITCH_WHEEL_MAX = 2 * PITCH_WHEEL_CENTER - 1;
 
 /** Convert a bend in semitones to a 14-bit pitch wheel value. */
 export function encodePitchBend(semitones: number): number {
@@ -172,7 +189,7 @@ export function encodePitchBend(semitones: number): number {
       PITCH_WHEEL_CENTER + (semitones / PITCH_BEND_RANGE) * PITCH_WHEEL_CENTER,
     ),
     0,
-    2 * PITCH_WHEEL_CENTER - 1,
+    PITCH_WHEEL_MAX,
   );
 }
 

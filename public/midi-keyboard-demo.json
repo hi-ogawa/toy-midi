@@ -1,0 +1,6 @@
+{
+  "title": "MIDI keyboard demo",
+  "tempo": 120,
+  "timeSignature": { "numerator": 4, "denominator": 4 },
+  "midiTracks": [{ "name": "Piano", "program": 0, "notes": [] }]
+}

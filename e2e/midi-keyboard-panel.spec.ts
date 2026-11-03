@@ -53,11 +53,11 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   // Turn on capture, and play a note from the computer keyboard.
   await page.keyboard.press("Shift+C");
   await expect(
-    panel.getByRole("img", { name: "Computer keyboard layout" }),
+    panel.getByRole("img", { name: "Keyboard shortcuts" }),
   ).toBeVisible();
   await page.keyboard.down("a");
   await expect(
-    panel.getByRole("button", { name: "C4", exact: true }),
+    panel.getByRole("button", { name: "C3", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await expectSounding();
   await page.keyboard.up("a");
@@ -66,11 +66,11 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   // Shift an octave, and release the note it started after shifting back.
   await page.keyboard.press("x");
   await page.keyboard.down("a");
-  const c5 = panel.getByRole("button", { name: "C5", exact: true });
-  await expect(c5).toHaveAttribute("aria-pressed", "true");
+  const c4 = panel.getByRole("button", { name: "C4", exact: true });
+  await expect(c4).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("z");
   await page.keyboard.up("a");
-  await expect(c5).toHaveAttribute("aria-pressed", "false");
+  await expect(c4).toHaveAttribute("aria-pressed", "false");
   await expectSilent();
 
   // Play from inside the instrument dialog while browsing presets.

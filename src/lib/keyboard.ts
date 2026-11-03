@@ -135,17 +135,17 @@ export function matchKeyboardEvent(
 
 export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
   return (
-    isFormInputTarget(target) ||
+    isTextEntryTarget(target) ||
+    target instanceof HTMLSelectElement ||
     // Custom sliders use arrow keys but are not native form controls.
     (target instanceof HTMLElement && target.getAttribute("role") === "slider")
   );
 }
 
-export function isFormInputTarget(target: EventTarget | null): boolean {
+export function isTextEntryTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
     (target instanceof HTMLElement && target.isContentEditable)
   );
 }
