@@ -6,18 +6,24 @@ import {
   MoreVerticalIcon,
   PlusIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   COMPUTER_KEYBOARD_ROWS,
   formatComputerKey,
+  getComputerKeyOctaveShift,
   getComputerKeyPitch,
 } from "../lib/computer-keyboard";
+import {
+  LIVE_CONTROLLER_SETTINGS,
+  PITCH_WHEEL_CENTER,
+  PITCH_WHEEL_MAX,
+} from "../lib/general-midi";
 import {
   encodeMidiDeviceMessage,
   type MidiDeviceMessage,
   openMidiOutputAccess,
 } from "../lib/midi-device";
-import { clamp } from "../lib/music";
+import { isBlackKey } from "../lib/music";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { routes } from "../lib/routes";
 import { range } from "../utils/array";
@@ -30,36 +36,18 @@ import {
 } from "./ui/dropdown-menu";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
-import { useSetState } from "./use-set-state";
-import { useWindowEvent } from "./use-window-event";
+import { MAX_OCTAVE, MIN_OCTAVE, useKeyboardNotes } from "./use-keyboard-notes";
 
 const LOWEST_PITCH = 24;
 const HIGHEST_PITCH = 108;
-const MIN_OCTAVE = -2;
-const MAX_OCTAVE = 2;
-const BLACK_PITCH_CLASSES = [1, 3, 6, 8, 10];
 const PITCHES = range(HIGHEST_PITCH - LOWEST_PITCH + 1).map(
   (i) => LOWEST_PITCH + i,
 );
 const WHITE_KEY_COUNT = PITCHES.filter((pitch) => !isBlackKey(pitch)).length;
 
 const COMPUTER_KEY_STEP = 40;
-const OCTAVE_KEY_HINTS: Record<string, string> = {
-  BracketLeft: "Oct -",
-  BracketRight: "Oct +",
-};
 
 const DEFAULT_VELOCITY = 100;
-const PITCH_BEND_CENTER = 8192;
-const PITCH_BEND_MAX = 16383;
-const CONTROLLERS = [
-  { label: "Mod wheel", controller: 1, defaultValue: 0 },
-  { label: "Volume", controller: 7, defaultValue: 100 },
-  { label: "Expression", controller: 11, defaultValue: 127 },
-  { label: "Sustain", controller: 64, defaultValue: 0 },
-  { label: "Resonance", controller: 71, defaultValue: 64 },
-  { label: "Brightness", controller: 74, defaultValue: 64 },
-];
 
 export function MidiKeyboardPage() {
   const [outputs, setOutputs] = useState<MIDIOutput[]>();
@@ -137,88 +125,28 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
     outputs.find((output) => output.id === selectedId) ?? outputs[0];
 
   const [velocity, setVelocity] = useState(DEFAULT_VELOCITY);
-  const [pitchBend, setPitchBend] = useState(PITCH_BEND_CENTER);
+  const [pitchBend, setPitchBend] = useState(PITCH_WHEEL_CENTER);
   const [controllerValues, setControllerValues] = useState(() =>
-    CONTROLLERS.map((controller) => controller.defaultValue),
+    LIVE_CONTROLLER_SETTINGS.map(({ defaultValue }) => defaultValue),
   );
-  const [heldPitches, heldPitchActions] = useSetState<number>();
-  const [pointerPitch, setPointerPitch] = useState<number>();
-  const [octave, setOctave] = useState(0);
-  // A key releases the pitch it started, even if the octave changed since.
-  const heldKeyPitches = useRef(new Map<string, number>());
 
   function send(message: MidiDeviceMessage): void {
     output?.send(encodeMidiDeviceMessage(message));
   }
 
-  function press(pitch: number): void {
-    if (!heldPitches.has(pitch)) {
-      send({ type: "note-on", pitch, velocity });
-      heldPitchActions.add(pitch);
-    }
-  }
-
-  function release(pitch: number): void {
-    if (heldPitches.has(pitch)) {
-      send({ type: "note-off", pitch });
-      heldPitchActions.remove(pitch);
-    }
-  }
-
-  function releaseAll(): void {
-    for (const pitch of heldPitches) {
-      send({ type: "note-off", pitch });
-    }
-    heldPitchActions.replace(new Set());
-    heldKeyPitches.current.clear();
-    setPointerPitch(undefined);
-  }
-
-  function shiftOctave(delta: number): void {
-    setOctave((current) => clamp(current + delta, MIN_OCTAVE, MAX_OCTAVE));
-  }
+  const {
+    heldPitches,
+    octave,
+    shiftOctave,
+    pressPointer,
+    slidePointer,
+    releaseAll,
+  } = useKeyboardNotes({ velocity, send });
 
   function changePitchBend(value: number): void {
     setPitchBend(value);
     send({ type: "pitch-bend", value });
   }
-
-  useWindowEvent("keydown", (event) => {
-    if (event.ctrlKey || event.metaKey || event.altKey) {
-      return;
-    }
-    if (event.code === "BracketLeft" || event.code === "BracketRight") {
-      event.preventDefault();
-      if (!event.repeat) {
-        shiftOctave(event.code === "BracketLeft" ? -1 : 1);
-      }
-      return;
-    }
-    const pitch = getComputerKeyPitch({ code: event.code, octave });
-    if (pitch !== undefined) {
-      // Otherwise a focused output picker takes the key for type-ahead.
-      event.preventDefault();
-      if (!event.repeat) {
-        heldKeyPitches.current.set(event.code, pitch);
-        press(pitch);
-      }
-    }
-  });
-  useWindowEvent("keyup", (event) => {
-    const pitch = heldKeyPitches.current.get(event.code);
-    if (pitch !== undefined) {
-      heldKeyPitches.current.delete(event.code);
-      release(pitch);
-    }
-  });
-  useWindowEvent("pointerup", () => {
-    if (pointerPitch !== undefined) {
-      release(pointerPitch);
-      setPointerPitch(undefined);
-    }
-  });
-  // The window misses the key or pointer release once it loses focus.
-  useWindowEvent("blur", releaseAll);
 
   return (
     <div className="grid gap-6">
@@ -250,7 +178,7 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
           max={127}
           onChange={setVelocity}
         />
-        {CONTROLLERS.map(({ label, controller }, index) => (
+        {LIVE_CONTROLLER_SETTINGS.map(({ label, controller }, index) => (
           <ControlSlider
             key={controller}
             label={label}
@@ -267,11 +195,11 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
           label="Pitch bend"
           value={pitchBend}
           min={0}
-          max={PITCH_BEND_MAX}
+          max={PITCH_WHEEL_MAX}
           onChange={changePitchBend}
           onRelease={() => {
-            if (pitchBend !== PITCH_BEND_CENTER) {
-              changePitchBend(PITCH_BEND_CENTER);
+            if (pitchBend !== PITCH_WHEEL_CENTER) {
+              changePitchBend(PITCH_WHEEL_CENTER);
             }
           }}
         />
@@ -315,16 +243,9 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
             onPointerDown={(event) => {
               // Keeps focus where it is, so a key can't also press this button.
               event.preventDefault();
-              press(pitch);
-              setPointerPitch(pitch);
+              pressPointer(pitch);
             }}
-            onPointerEnter={() => {
-              if (pointerPitch !== undefined) {
-                release(pointerPitch);
-                press(pitch);
-                setPointerPitch(pitch);
-              }
-            }}
+            onPointerEnter={() => slidePointer(pitch)}
             className={cn(
               "absolute top-0 flex items-end justify-center rounded-b pb-1 text-[10px] text-neutral-500",
               isBlackKey(pitch)
@@ -390,8 +311,13 @@ function ComputerKey({
   pitch?: number;
   heldPitches: ReadonlySet<number>;
 }) {
+  const shift = getComputerKeyOctaveShift(code);
   const hint =
-    pitch === undefined ? OCTAVE_KEY_HINTS[code] : formatChromaticPitch(pitch);
+    pitch !== undefined
+      ? formatChromaticPitch(pitch)
+      : shift !== undefined
+        ? `Oct ${shift < 0 ? "-" : "+"}`
+        : undefined;
   return (
     <span
       className={cn(
@@ -449,7 +375,7 @@ function getComputerKeyColor({
   heldPitches: ReadonlySet<number>;
 }): string {
   if (pitch === undefined) {
-    return code in OCTAVE_KEY_HINTS
+    return getComputerKeyOctaveShift(code) !== undefined
       ? "border border-neutral-500 text-neutral-200"
       : "border border-neutral-800 text-neutral-600";
   }
@@ -461,10 +387,6 @@ function getComputerKeyColor({
   return heldPitches.has(pitch)
     ? "bg-emerald-400 text-neutral-900"
     : "bg-neutral-100 text-neutral-900";
-}
-
-function isBlackKey(pitch: number): boolean {
-  return BLACK_PITCH_CLASSES.includes(pitch % 12);
 }
 
 function getKeyStyle(pitch: number) {

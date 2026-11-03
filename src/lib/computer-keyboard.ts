@@ -44,6 +44,16 @@ const PUNCTUATION_KEYS: Record<string, string> = {
   Slash: "/",
 };
 
+const OCTAVE_SHIFT_KEYS = new Map([
+  ["BracketLeft", -1],
+  ["BracketRight", 1],
+]);
+
+/** Finds the octave change a computer key makes, from `KeyboardEvent.code`. */
+export function getComputerKeyOctaveShift(code: string): number | undefined {
+  return OCTAVE_SHIFT_KEYS.get(code);
+}
+
 /** Finds the pitch a computer key plays, from `KeyboardEvent.code`. */
 export function getComputerKeyPitch({
   code,
