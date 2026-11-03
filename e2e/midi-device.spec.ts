@@ -86,11 +86,11 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await expect.poll(() => getLevel(firstMeter)).toBeGreaterThan(-60);
   await expect(secondMeter).toHaveAttribute("aria-valuenow", "-60");
 
-  // Move monitoring while the note is held, and release it on the first track.
+  // Move monitoring while the note is held, and hear the note end.
   await secondMonitor.click();
   await expect(firstMonitor).toHaveAttribute("aria-pressed", "false");
-  await page.evaluate(() => window.sendFakeMidi([0x80, 60, 0]));
   await expect(firstMeter).toHaveAttribute("aria-valuenow", "-60");
+  await page.evaluate(() => window.sendFakeMidi([0x80, 60, 0]));
 
   // Play the second track, releasing with a note-on at velocity 0.
   await page.evaluate(() => window.sendFakeMidi([0x91, 64, 100]));

@@ -361,8 +361,6 @@ export class EditorRuntime {
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
-  /** Pitch of each note a MIDI device holds, and the track it sounds on. */
-  private readonly midiDeviceNotes = new Map<number, string>();
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
@@ -823,12 +821,8 @@ export class EditorRuntime {
     });
   }
 
-  /** A device that stops sending can't release its notes, so they end here. */
   async stopMidiInput(): Promise<void> {
     await this.store.get().midiConnection?.disconnect();
-    for (const pitch of this.midiDeviceNotes.keys()) {
-      this.releaseMidiDeviceNote(pitch);
-    }
     await this.setMidiMonitorTrack(undefined);
     this.store.update({ midiConnection: undefined });
   }
@@ -840,7 +834,7 @@ export class EditorRuntime {
       throw new Error("Connect a MIDI device before monitoring.");
     }
     if (midiMonitorTrackId !== undefined) {
-      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.resetLiveControllers();
+      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.resetLiveInput();
     }
     this.store.update({ midiMonitorTrackId: id });
     if (id !== undefined) {
@@ -860,14 +854,11 @@ export class EditorRuntime {
         : this.midiTrackPlaybacks.get(midiMonitorTrackId);
     switch (message.type) {
       case "note-on": {
-        if (midiMonitorTrackId !== undefined) {
-          this.midiDeviceNotes.set(message.pitch, midiMonitorTrackId);
-        }
         playback?.noteOn(message.pitch, message.velocity);
         break;
       }
       case "note-off": {
-        this.releaseMidiDeviceNote(message.pitch);
+        playback?.noteOff(message.pitch);
         break;
       }
       case "controller": {
@@ -878,15 +869,6 @@ export class EditorRuntime {
         playback?.setPitchBend(message.value);
         break;
       }
-    }
-  }
-
-  /** The note ends on the track that started it, wherever monitoring is now. */
-  private releaseMidiDeviceNote(pitch: number): void {
-    const trackId = this.midiDeviceNotes.get(pitch);
-    if (trackId !== undefined) {
-      this.midiDeviceNotes.delete(pitch);
-      this.midiTrackPlaybacks.get(trackId)?.noteOff(pitch);
     }
   }
 

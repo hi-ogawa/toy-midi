@@ -164,9 +164,13 @@ export class MidiSynth {
     this.engine!.pitchBend(value);
   }
 
-  /** Returns live input to its defaults, and automation to the playhead's value. */
-  async resetLiveControllers(): Promise<void> {
+  /**
+   * Ends what live input left sounding, which a device may never release, and
+   * returns controllers to their defaults and automation to the playhead's value.
+   */
+  async resetLiveInput(): Promise<void> {
     const engine = this.engine!;
+    engine.stopAll();
     for (const controller of LIVE_CONTROLLERS) {
       engine.controller(controller, getDefaultControllerValue(controller));
     }
@@ -197,7 +201,7 @@ export class MidiSynth {
   }
 
   async start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
-    await this.resetLiveControllers();
+    await this.resetLiveInput();
     this.automationResetPending = false;
     this.scheduler.start(playbackRunOptions);
   }
