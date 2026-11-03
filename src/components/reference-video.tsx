@@ -134,7 +134,7 @@ function YouTubeReferencePanel({
         </div>
       </div>
       {!referenceVideo && !candidateVideoId && (
-        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 p-4">
+        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 px-3 py-2">
           <YouTubeReferenceSetup onSubmit={setCandidateVideoId} />
         </div>
       )}

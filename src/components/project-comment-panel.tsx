@@ -59,7 +59,7 @@ export function ProjectCommentPanel({
           onChange={(event) => runtime.setComment(event.target.value)}
           spellCheck={false}
           placeholder="Brief, chord chart, decisions, and feedback in Markdown. The agent reads and writes these too."
-          className="block size-full resize-none bg-transparent px-4 py-3 font-mono text-xs/5 text-neutral-100 outline-none placeholder:text-neutral-500"
+          className="block size-full resize-none bg-transparent px-3 py-2 font-mono text-xs/5 text-neutral-100 outline-none placeholder:text-neutral-500"
         />
       )}
     </Panel>
@@ -72,7 +72,7 @@ function CommentPreview({ comment }: { comment: string }) {
   const html = useMemo(() => markdown.render(comment), [comment]);
   if (!comment.trim()) {
     return (
-      <p className="px-4 py-3 text-xs text-neutral-500">
+      <p className="px-3 py-2 text-xs text-neutral-500">
         Nothing to preview. Turn off Preview to write a comment.
       </p>
     );
@@ -80,7 +80,7 @@ function CommentPreview({ comment }: { comment: string }) {
   return (
     <div
       data-testid="project-comment-preview"
-      className="project-comment-markdown scrollbar-thin size-full overflow-auto px-4 py-3 text-xs/5 text-neutral-100"
+      className="project-comment-markdown scrollbar-thin size-full overflow-auto px-3 py-2 text-xs/5 text-neutral-100"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
