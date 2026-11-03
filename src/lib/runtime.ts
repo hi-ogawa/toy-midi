@@ -834,7 +834,7 @@ export class EditorRuntime {
       throw new Error("Connect a MIDI device before monitoring.");
     }
     if (midiMonitorTrackId !== undefined) {
-      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.resetLiveInput();
+      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.reset();
     }
     this.store.update({ midiMonitorTrackId: id });
     if (id !== undefined) {

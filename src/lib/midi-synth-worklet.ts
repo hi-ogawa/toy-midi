@@ -168,7 +168,7 @@ export class MidiSynth {
    * Ends what live input left sounding, which a device may never release, and
    * returns controllers to their defaults and automation to the playhead's value.
    */
-  async resetLiveInput(): Promise<void> {
+  async reset(): Promise<void> {
     const engine = this.engine!;
     engine.stopAll();
     for (const controller of LIVE_CONTROLLERS) {
@@ -201,7 +201,7 @@ export class MidiSynth {
   }
 
   async start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
-    await this.resetLiveInput();
+    await this.reset();
     this.automationResetPending = false;
     this.scheduler.start(playbackRunOptions);
   }

@@ -130,8 +130,8 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.synth.setPitchBend(value);
   }
 
-  resetLiveInput(): void {
-    this.synth.resetLiveInput();
+  reset(): void {
+    this.synth.reset();
   }
 
   start(): void {
