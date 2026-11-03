@@ -29,8 +29,8 @@ test("opens a demo track in a new tab", async ({ page, context }) => {
   await installFakeMidiOutput(page);
   await page.goto("/midi-keyboard");
 
-  // Ask how to hear the keyboard.
-  await page.getByRole("button", { name: "How do I hear it?" }).click();
+  // Open the help.
+  await page.getByRole("button", { name: "MIDI keyboard help" }).click();
 
   // Follow the demo link, and find one MIDI track to monitor.
   const [editor] = await Promise.all([

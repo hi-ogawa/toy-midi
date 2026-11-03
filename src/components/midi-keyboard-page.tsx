@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  CircleHelpIcon,
   HouseIcon,
   KeyboardMusicIcon,
   MinusIcon,
@@ -61,6 +62,7 @@ export function MidiKeyboardPage() {
         <KeyboardMusicIcon className="mr-2 size-5 text-emerald-400" />
         <span className="font-medium">MIDI Keyboard</span>
         <div className="flex-1" />
+        <MidiKeyboardHelp />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -83,13 +85,7 @@ export function MidiKeyboardPage() {
       </header>
 
       <div className="mx-auto w-full max-w-5xl px-8 py-10">
-        <p className="text-base text-neutral-400">
-          A virtual MIDI controller. It makes no sound by itself.{" "}
-          <HearingHelp />
-        </p>
-        <div className="mt-8">
-          <MidiKeyboardControls />
-        </div>
+        <MidiKeyboardControls />
       </div>
     </main>
   );
@@ -281,21 +277,24 @@ function PianoKey({
   );
 }
 
-function HearingHelp() {
+function MidiKeyboardHelp() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="underline decoration-dotted underline-offset-4 hover:text-neutral-100"
+        <Button
+          title="MIDI keyboard help"
+          aria-label="MIDI keyboard help"
+          className="size-9 hover:bg-accent hover:text-accent-foreground"
         >
-          How do I hear it?
-        </button>
+          <CircleHelpIcon className="size-5" />
+        </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80 space-y-2 p-3 text-xs">
+      <PopoverContent align="end" className="w-80 space-y-2 p-3 text-xs">
+        <p>A virtual MIDI controller. It makes no sound by itself.</p>
         <p>
-          Send it to anything that takes MIDI input. To reach another app on
-          this computer, use a loopback port, such as the IAC Driver on macOS.
+          To hear it, send it to anything that takes MIDI input. To reach
+          another app on this computer, use a loopback port, such as the IAC
+          Driver on macOS.
         </p>
         <p>
           To hear it in the editor, open a{" "}
