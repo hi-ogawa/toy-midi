@@ -21,6 +21,7 @@ const preferencesSchema = z.object({
       latencyCompensation: z.number().nonnegative().optional(),
     })
     .optional(),
+  midiDeviceId: z.string().optional(),
 });
 type Preferences = z.infer<typeof preferencesSchema>;
 
@@ -47,6 +48,11 @@ export const preferences = withUseValue(
 const projectUiStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
+  midiKeyboardOpen: z.boolean(),
+  midiKeyboardSize: z.object({
+    width: z.number().positive(),
+    height: z.number().positive(),
+  }),
   tunerOpen: z.boolean(),
   timelinePixelsPerBeat: z
     .number()
@@ -76,6 +82,8 @@ type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   autoScrollEnabled: true,
   inputPanelOpen: false,
+  midiKeyboardOpen: false,
+  midiKeyboardSize: { width: 334, height: 224 },
   tunerOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   referenceVideoSize: { width: 640, height: 480 },

@@ -15,19 +15,10 @@ import {
   type ScoreViewerClock,
   ScoreViewerRuntime,
 } from "./score-viewer-runtime";
+import { useSetState } from "./use-set-state";
 
 export function useScorePanelUi() {
-  const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
-  function open(id: string) {
-    setOpenTracks((current) => new Set([...current, id]));
-  }
-  function close(id: string) {
-    setOpenTracks((current) => {
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
+  const [openTracks, { add: open, remove: close }] = useSetState<string>();
   return { openTracks, open, close };
 }
 
@@ -57,7 +48,7 @@ export function ScorePanel({
       onClose={onClose}
       data-testid="score-preview"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
-      contentClassName="min-h-0 flex-1 p-0"
+      contentClassName="min-h-0 flex-1"
       style={size}
     >
       <PanelResizeHandle

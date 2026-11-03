@@ -32,7 +32,9 @@ export async function createShareLink(
  * The project a share link carries: the saved format without audio tracks,
  * track order, or ids. Tracks appear in the order of `midiTracks`, the app
  * generates ids when the link opens, and optional fields fill in defaults when
- * the project loads. Tracks without `viewMode` or `height` open collapsed.
+ * the project loads. Leave `viewMode` and `height` unset, rather than copying
+ * them from runtime state, so tracks open collapsed and the whole arrangement
+ * fits on screen.
  */
 export interface SharedProject extends Omit<
   SerializedEditorRuntimeState,

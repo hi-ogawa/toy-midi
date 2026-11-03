@@ -208,6 +208,45 @@ export class BiquadEq {
   }
 }
 
+/**
+ * Single-channel direct-form-I biquad that takes its filter on every sample,
+ * with no ramp, for callers whose parameters already move smoothly, such as a
+ * cutoff an envelope sweeps.
+ */
+export class BiquadEqPerSample {
+  private readonly sampleRate: number;
+  private readonly coefficients: BiquadEqCoefficients = {
+    b0: 1,
+    b1: 0,
+    b2: 0,
+    a1: 0,
+    a2: 0,
+  };
+  // x[n-1], x[n-2], y[n-1], y[n-2]
+  private x1 = 0;
+  private x2 = 0;
+  private y1 = 0;
+  private y2 = 0;
+
+  constructor({ sampleRate }: { sampleRate: number }) {
+    this.sampleRate = sampleRate;
+  }
+
+  process(input: number, spec: BiquadFilterSpec): number {
+    const { b0, b1, b2, a1, a2 } = calculateBiquadEqCoefficients(
+      { sampleRate: this.sampleRate, output: this.coefficients },
+      spec,
+    );
+    const output =
+      b0 * input + b1 * this.x1 + b2 * this.x2 - a1 * this.y1 - a2 * this.y2;
+    this.x2 = this.x1;
+    this.x1 = input;
+    this.y2 = this.y1;
+    this.y1 = output;
+    return output;
+  }
+}
+
 export function calculateBiquadEqCoefficients(
   { sampleRate, output }: { sampleRate: number; output?: BiquadEqCoefficients },
   spec: BiquadFilterSpec,

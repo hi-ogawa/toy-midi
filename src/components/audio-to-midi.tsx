@@ -17,32 +17,15 @@ import type {
 import { Panel } from "./panel";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
+import { useSetState } from "./use-set-state";
 
 const CONVERSION_CANCELLED_ERROR = new Error("Conversion cancelled");
 
 export function useAudioToMidiUi() {
-  const [openTranscriptions, setOpenTranscriptions] = useState<
-    ReadonlySet<string>
-  >(new Set());
-
-  function openTranscription(id: string) {
-    setOpenTranscriptions((current) => {
-      const next = new Set(current);
-      next.add(id);
-      return next;
-    });
-  }
-
-  function closeTranscription(id: string) {
-    setOpenTranscriptions((current) => {
-      if (!current.has(id)) {
-        return current;
-      }
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
+  const [
+    openTranscriptions,
+    { add: openTranscription, remove: closeTranscription },
+  ] = useSetState<string>();
 
   return { openTranscriptions, openTranscription, closeTranscription };
 }
@@ -134,7 +117,7 @@ export function AudioToMidi({
     <Panel
       closeLabel="Close Audio to MIDI"
       className="pointer-events-auto w-[440px] shrink-0"
-      contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-4 py-3"
+      contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-3 py-2"
       onClose={onClose}
       title={`Audio to MIDI · ${track.name}`}
       data-testid="audio-to-midi"

@@ -1,7 +1,12 @@
 import { DEFAULT_MIDI_CONTROLLERS } from "spessasynth_core";
 import { type SynthPatch, SubtractiveSynth } from "./dsp/subtractive-synth.ts";
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
-import { encodePitchBend, PITCH_WHEEL_CENTER } from "./general-midi.ts";
+import {
+  encodePitchBend,
+  LIVE_CONTROLLERS,
+  type MidiMessage,
+  PITCH_WHEEL_CENTER,
+} from "./general-midi.ts";
 import {
   MidiNoteScheduler,
   type ScheduledAutomation,
@@ -88,6 +93,9 @@ export class MidiSynth {
   // dropping notes.
   private readonly scheduler = new MidiNoteScheduler();
   private automation: ScheduledAutomation[] = [];
+  // Set by `stop()` so release tails keep the values they stopped at. Playback
+  // chases its own values at start, so only live input needs the reset.
+  private automationResetPending = false;
   // Sorted by frame, then note-offs, controller changes, and note-ons on the
   // same frame, so a controller change applies to the note starting with it.
   private events: QueuedEvent[] = [];
@@ -126,18 +134,26 @@ export class MidiSynth {
     this.scheduler.requestChase();
   }
 
-  async noteOn({
-    pitch,
-    velocity,
-  }: {
-    pitch: number;
-    velocity: number;
-  }): Promise<void> {
-    this.engine!.noteOn(pitch, velocity);
+  async playMessage(message: MidiMessage): Promise<void> {
+    if (message.type !== "note-off") {
+      this.applyPendingAutomationReset();
+    }
+    playMidiMessage(this.engine!, message);
   }
 
-  async noteOff(pitch: number): Promise<void> {
-    this.engine!.noteOff(pitch);
+  /**
+   * Ends every sounding note, including any a MIDI device never released, and
+   * returns live controllers to their defaults and automation to the playhead's
+   * value.
+   */
+  async reset(): Promise<void> {
+    const engine = this.engine!;
+    engine.stopAll();
+    for (const controller of LIVE_CONTROLLERS) {
+      engine.controller(controller, getDefaultControllerValue(controller));
+    }
+    engine.pitchBend(PITCH_WHEEL_CENTER);
+    this.scheduler.requestChase();
   }
 
   async setNotes(notes: TimelineNote[]): Promise<void> {
@@ -163,6 +179,8 @@ export class MidiSynth {
   }
 
   async start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
+    await this.reset();
+    this.automationResetPending = false;
     this.scheduler.start(playbackRunOptions);
   }
 
@@ -171,7 +189,14 @@ export class MidiSynth {
     this.scheduler.stop();
     this.events = [];
     this.engine!.stopAll();
-    this.resetAutomation(this.automation);
+    this.automationResetPending = true;
+  }
+
+  private applyPendingAutomationReset(): void {
+    if (this.automationResetPending) {
+      this.automationResetPending = false;
+      this.resetAutomation(this.automation);
+    }
   }
 
   /**
@@ -235,27 +260,31 @@ export class MidiSynth {
         engine.render(left, right, offset, eventOffset - offset);
         offset = eventOffset;
       }
-      switch (event.type) {
-        case "note-off": {
-          engine.noteOff(event.pitch);
-          break;
-        }
-        case "controller": {
-          engine.controller(event.controller, event.value);
-          break;
-        }
-        case "pitch-bend": {
-          engine.pitchBend(event.value);
-          break;
-        }
-        case "note-on": {
-          engine.noteOn(event.pitch, event.velocity);
-          break;
-        }
-      }
+      playMidiMessage(engine, event);
     }
     if (offset < left.length) {
       engine.render(left, right, offset, left.length - offset);
+    }
+  }
+}
+
+function playMidiMessage(engine: SynthEngine, message: MidiMessage): void {
+  switch (message.type) {
+    case "note-on": {
+      engine.noteOn(message.pitch, message.velocity);
+      break;
+    }
+    case "note-off": {
+      engine.noteOff(message.pitch);
+      break;
+    }
+    case "controller": {
+      engine.controller(message.controller, message.value);
+      break;
+    }
+    case "pitch-bend": {
+      engine.pitchBend(message.value);
+      break;
     }
   }
 }
@@ -271,7 +300,7 @@ function convertToScheduledAutomation(
     case "controller": {
       return {
         ...sequence,
-        initialValue: DEFAULT_MIDI_CONTROLLERS[sequence.controller] >> 7,
+        initialValue: getDefaultControllerValue(sequence.controller),
       };
     }
     case "pitch-bend": {
@@ -285,6 +314,10 @@ function convertToScheduledAutomation(
       };
     }
   }
+}
+
+function getDefaultControllerValue(controller: number): number {
+  return DEFAULT_MIDI_CONTROLLERS[controller] >> 7;
 }
 
 registerProcessor(PROCESSOR_NAME, MidiSynthProcessor);

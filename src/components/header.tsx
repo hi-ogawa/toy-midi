@@ -6,18 +6,20 @@ import {
   CircleStopIcon,
   DownloadIcon,
   HouseIcon,
+  KeyboardMusicIcon,
   LinkIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
   MicIcon,
   MoreVerticalIcon,
+  NotebookPenIcon,
   PauseIcon,
+  PianoIcon,
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
-  VideoIcon,
   SlidersVerticalIcon,
-  NotebookPenIcon,
+  VideoIcon,
 } from "lucide-react";
 import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
@@ -94,6 +96,9 @@ export function Header({
   inputPanelOpen,
   inputAccessRequired,
   onInputPanelToggle,
+  midiDeviceSupported,
+  onMidiDeviceOpen,
+  onMidiKeyboardToggle,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
@@ -138,6 +143,9 @@ export function Header({
   inputPanelOpen: boolean;
   inputAccessRequired: boolean;
   onInputPanelToggle: () => void;
+  midiDeviceSupported: boolean;
+  onMidiDeviceOpen: () => void;
+  onMidiKeyboardToggle: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -438,6 +446,17 @@ export function Header({
           <DropdownMenuItem onSelect={onProjectCommentToggle}>
             <NotebookPenIcon />
             Project Comment
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={!midiDeviceSupported}
+            onSelect={onMidiDeviceOpen}
+          >
+            <KeyboardMusicIcon />
+            MIDI Device
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onMidiKeyboardToggle}>
+            <PianoIcon />
+            MIDI Keyboard
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

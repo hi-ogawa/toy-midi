@@ -71,6 +71,14 @@ export function formatGainDb(gain: number): string {
   return `${db > 0 ? "+" : ""}${db.toFixed(1)} dB`;
 }
 
+export function formatPan(pan: number): string {
+  const percent = Math.round(Math.abs(pan) * 100);
+  if (percent === 0) {
+    return "C";
+  }
+  return `${pan < 0 ? "L" : "R"}${percent}`;
+}
+
 export function percentToGain(percent: number): number {
   const position = clamp(percent / 100, 0, 1);
   if (position === 0) {

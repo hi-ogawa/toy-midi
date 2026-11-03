@@ -1,5 +1,12 @@
-import { ChevronDownIcon, ChevronRightIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  MinusIcon,
+  PlusIcon,
+  XIcon,
+} from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
+import { BUTTERWORTH_Q, EQ_LIMITS } from "../lib/dsp/biquad-eq";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
   createSynthLayer,
@@ -8,35 +15,45 @@ import {
   type Waveform,
   WAVEFORMS,
 } from "../lib/dsp/subtractive-synth";
-import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
+import {
+  MAX_DB,
+  MIN_DB,
+  clamp,
+  dbToGain,
+  formatPan,
+  gainToDb,
+  logPositionToValue,
+  valueToLogPosition,
+} from "../lib/music";
 import { EnvelopeEditor } from "./envelope-editor";
 import { MixToggle } from "./mix-toggle";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
+import { Tooltip } from "./ui/tooltip";
 import { cn } from "./ui/utils";
 import { usePointerDrag } from "./use-pointer-drag";
+import { useSetState } from "./use-set-state";
 import { WaveformIcon } from "./waveform-icon";
+
+const MIN_OCTAVE = -3;
+const MAX_OCTAVE = 3;
+// Limit to half a semitone
+const MAX_DETUNE_CENTS = 50;
+// The cutoff spans about 10 octaves, so the envelope can sweep a low cutoff
+// almost to the top, or a high one down.
+const MAX_ENVELOPE_OCTAVES = 8;
 
 const WAVEFORM_LABELS: Record<Waveform, string> = {
   sine: "Sine",
   triangle: "Triangle",
   sawtooth: "Saw",
   square: "Square",
+  noise: "Noise",
 };
 
 export function useSynthPanelUi() {
-  const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
-  function open(id: string) {
-    setOpenTracks((current) => new Set([...current, id]));
-  }
-  function close(id: string) {
-    setOpenTracks((current) => {
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
+  const [openTracks, { add: open, remove: close }] = useSetState<string>();
   return { openTracks, open, close };
 }
 
@@ -63,7 +80,7 @@ export function SynthPanel({
       onClose={onClose}
       data-testid="synth-panel"
       className="pointer-events-auto relative flex max-h-[calc(100vh-48px)] shrink-0 flex-col"
-      contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
+      contentClassName="min-h-0 flex-1 overflow-auto px-3 py-2"
       style={size}
     >
       <PanelResizeHandle
@@ -75,14 +92,14 @@ export function SynthPanel({
   );
 }
 
-function SynthPanelContent({
+export function SynthPanelContent({
   patch,
   onChange,
 }: {
   patch: SynthPatch;
   onChange: (patch: SynthPatch) => void;
 }) {
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const [collapsed, { toggle: toggleLayer }] = useSetState<string>();
 
   function updateLayer(layer: SynthLayer) {
     onChange({
@@ -101,16 +118,6 @@ function SynthPanelContent({
     onChange({
       ...patch,
       layers: patch.layers.filter((layer) => layer.id !== id),
-    });
-  }
-
-  function toggleLayer(id: string) {
-    setCollapsed((current) => {
-      const next = new Set(current);
-      if (!next.delete(id)) {
-        next.add(id);
-      }
-      return next;
     });
   }
 
@@ -157,12 +164,17 @@ function SynthLayerRow({
   onRemove: () => void;
 }) {
   const { envelope } = layer.amp;
+  const [foldedSections, { toggle: toggleSection }] = useSetState<string>();
 
   function updateEnvelope(update: Partial<Envelope>) {
     onChange({
       ...layer,
       amp: { ...layer.amp, envelope: { ...envelope, ...update } },
     });
+  }
+
+  function updateFilter(update: Partial<SynthLayer["filter"]>) {
+    onChange({ ...layer, filter: { ...layer.filter, ...update } });
   }
 
   return (
@@ -200,6 +212,11 @@ function SynthLayerRow({
           gain={layer.gain}
           onGainChange={(gain) => onChange({ ...layer, gain })}
         />
+        <PanKnob
+          label={name}
+          pan={layer.pan}
+          onPanChange={(pan) => onChange({ ...layer, pan })}
+        />
         <button
           type="button"
           aria-label={`Remove ${name}`}
@@ -217,38 +234,437 @@ function SynthLayerRow({
             layer.muted && "opacity-50",
           )}
         >
-          <h3 className="text-xs font-medium">Oscillator</h3>
-          <div
-            role="group"
-            aria-label="Waveform"
-            className="flex overflow-hidden rounded border border-neutral-600"
+          <FoldableSection
+            title="Oscillator"
+            folded={foldedSections.has("oscillator")}
+            onToggle={() => toggleSection("oscillator")}
+            headerEnd={
+              <div
+                role="group"
+                aria-label="Waveform"
+                className="flex overflow-hidden rounded border border-neutral-600"
+              >
+                {WAVEFORMS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-label={WAVEFORM_LABELS[option]}
+                    title={WAVEFORM_LABELS[option]}
+                    aria-pressed={layer.oscillator.waveform === option}
+                    onClick={() =>
+                      onChange({
+                        ...layer,
+                        oscillator: { ...layer.oscillator, waveform: option },
+                      })
+                    }
+                    className="flex h-6 items-center justify-center bg-neutral-900 px-1 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                  >
+                    <WaveformIcon waveform={option} />
+                  </button>
+                ))}
+              </div>
+            }
           >
-            {WAVEFORMS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={layer.oscillator.waveform === option}
-                onClick={() =>
+            <div className="flex items-center gap-4">
+              <OctaveStepper
+                octave={layer.oscillator.octave}
+                onOctaveChange={(octave) =>
                   onChange({
                     ...layer,
-                    oscillator: { ...layer.oscillator, waveform: option },
+                    oscillator: { ...layer.oscillator, octave },
                   })
                 }
-                className="flex flex-1 flex-col items-center gap-px bg-neutral-900 px-1.5 pt-1 pb-px text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
-              >
-                <WaveformIcon waveform={option} />
-                {WAVEFORM_LABELS[option]}
-              </button>
-            ))}
-          </div>
-          <h3 className="pt-1 text-xs font-medium">Amp</h3>
-          <EnvelopeEditor
-            label="Amp envelope"
-            envelope={envelope}
-            onChange={updateEnvelope}
-          />
+              />
+              <DetuneKnob
+                detune={layer.oscillator.detune}
+                onDetuneChange={(detune) =>
+                  onChange({
+                    ...layer,
+                    oscillator: { ...layer.oscillator, detune },
+                  })
+                }
+              />
+            </div>
+          </FoldableSection>
+          <FoldableSection
+            title="Filter"
+            folded={foldedSections.has("filter")}
+            onToggle={() => toggleSection("filter")}
+          >
+            <FilterControls filter={layer.filter} onChange={updateFilter} />
+          </FoldableSection>
+          <FoldableSection
+            title="Amp"
+            folded={foldedSections.has("amp")}
+            onToggle={() => toggleSection("amp")}
+          >
+            <EnvelopeEditor
+              label="Amp envelope"
+              color="emerald"
+              envelope={envelope}
+              onChange={updateEnvelope}
+            />
+          </FoldableSection>
         </div>
       )}
+    </div>
+  );
+}
+
+/** A section of a layer that folds to its header, which keeps `headerEnd` in view. */
+function FoldableSection({
+  title,
+  folded,
+  onToggle,
+  headerEnd,
+  children,
+}: {
+  title: string;
+  folded: boolean;
+  onToggle: () => void;
+  headerEnd?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <div className="flex h-6 items-center justify-between">
+        <h3 className="text-xs font-medium">
+          <button
+            type="button"
+            aria-expanded={!folded}
+            onClick={onToggle}
+            className="-ml-1 flex items-center gap-1 rounded px-1 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
+          >
+            {folded ? (
+              <ChevronRightIcon className="size-3 text-neutral-400" />
+            ) : (
+              <ChevronDownIcon className="size-3 text-neutral-400" />
+            )}
+            {title}
+          </button>
+        </h3>
+        {headerEnd}
+      </div>
+      {!folded && children}
+    </section>
+  );
+}
+
+function FilterControls({
+  filter,
+  onChange,
+}: {
+  filter: SynthLayer["filter"];
+  onChange: (update: Partial<SynthLayer["filter"]>) => void;
+}) {
+  const { envelope } = filter;
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-2">
+        <ParameterKnob
+          color="amber"
+          label="Cutoff"
+          value={filter.cutoff}
+          scale={createLogScale(EQ_LIMITS.frequency)}
+          format={formatCutoff}
+          onChange={(cutoff) => onChange({ cutoff: Math.round(cutoff) })}
+        />
+        <ParameterKnob
+          color="amber"
+          label="Resonance"
+          shortLabel="Reso"
+          value={filter.resonance}
+          scale={createLogScale(EQ_LIMITS.q)}
+          origin={BUTTERWORTH_Q}
+          format={(q) => q.toFixed(2)}
+          onChange={(resonance) =>
+            onChange({ resonance: Math.round(resonance * 100) / 100 })
+          }
+        />
+        <ParameterKnob
+          color="amber"
+          label="Keytrack"
+          shortLabel="Key"
+          value={filter.keytrack}
+          scale={createLinearScale({ min: 0, max: 1 })}
+          format={formatPercent}
+          onChange={(keytrack) =>
+            onChange({ keytrack: Math.round(keytrack * 100) / 100 })
+          }
+        />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <ParameterKnob
+          color="amber"
+          label="Envelope amount"
+          shortLabel="Amount"
+          value={envelope.amount}
+          scale={createLinearScale({
+            min: -MAX_ENVELOPE_OCTAVES,
+            max: MAX_ENVELOPE_OCTAVES,
+          })}
+          origin={0}
+          format={(octaves) =>
+            `${octaves > 0 ? "+" : ""}${octaves.toFixed(1)} oct`
+          }
+          onChange={(amount) =>
+            onChange({
+              envelope: { ...envelope, amount: Math.round(amount * 10) / 10 },
+            })
+          }
+        />
+        <ParameterKnob
+          color="amber"
+          label="Velocity to envelope amount"
+          shortLabel="Velocity"
+          value={envelope.velocity}
+          scale={createLinearScale({ min: 0, max: 1 })}
+          format={formatPercent}
+          onChange={(velocity) =>
+            onChange({
+              envelope: {
+                ...envelope,
+                velocity: Math.round(velocity * 100) / 100,
+              },
+            })
+          }
+        />
+      </div>
+      <EnvelopeEditor
+        label="Filter envelope"
+        color="amber"
+        envelope={envelope}
+        onChange={(update) =>
+          onChange({ envelope: { ...envelope, ...update } })
+        }
+      />
+    </div>
+  );
+}
+
+/** Maps a parameter to a knob position from 0 to 1 and back. */
+interface KnobScale {
+  toPosition: (value: number) => number;
+  toValue: (position: number) => number;
+}
+
+function createLinearScale({ min, max }: { min: number; max: number }) {
+  return {
+    toPosition: (value: number) => (value - min) / (max - min),
+    toValue: (position: number) => min + position * (max - min),
+  } satisfies KnobScale;
+}
+
+function createLogScale(range: { min: number; max: number }) {
+  return {
+    toPosition: (value: number) => valueToLogPosition(value, range),
+    toValue: (position: number) => logPositionToValue(position, range),
+  } satisfies KnobScale;
+}
+
+function formatCutoff(hz: number): string {
+  if (hz >= EQ_LIMITS.frequency.max) {
+    return "Open";
+  }
+  return hz >= 1000 ? `${(hz / 1000).toFixed(1)} kHz` : `${Math.round(hz)} Hz`;
+}
+
+function formatPercent(fraction: number): string {
+  return `${Math.round(fraction * 100)}%`;
+}
+
+/**
+ * A knob with its label above its readout. Drag and keys move it by position,
+ * so a log scale gets finer steps at the low end.
+ */
+function ParameterKnob({
+  label,
+  shortLabel = label,
+  value,
+  scale,
+  origin,
+  color,
+  format,
+  onChange,
+}: {
+  label: string;
+  shortLabel?: string;
+  value: number;
+  scale: KnobScale;
+  origin?: number;
+  color: ComponentProps<typeof Knob>["color"];
+  format: (value: number) => string;
+  onChange: (value: number) => void;
+}) {
+  const position = scale.toPosition(value);
+  const setPosition = (next: number) =>
+    onChange(scale.toValue(clamp(next, 0, 1)));
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return position;
+    },
+    onMove: (_event, drag) => setPosition(drag.data - drag.deltaY / 200),
+  });
+  const valueText = format(value);
+  return (
+    <div className="flex items-center gap-1.5">
+      <Knob
+        ref={ref}
+        aria-label={label}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const next = {
+            ArrowLeft: position - step,
+            ArrowDown: position - step,
+            ArrowRight: position + step,
+            ArrowUp: position + step,
+            Home: 0,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPosition(next);
+          }
+        }}
+        color={color}
+        value={position}
+        min={0}
+        max={1}
+        origin={origin === undefined ? 0 : scale.toPosition(origin)}
+        className="cursor-ns-resize"
+      />
+      <div className="min-w-0 leading-tight">
+        <div className="truncate text-xs text-neutral-400">{shortLabel}</div>
+        <div className="font-mono text-xs text-muted-foreground tabular-nums">
+          {valueText}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OctaveStepper({
+  octave,
+  onOctaveChange,
+}: {
+  octave: number;
+  onOctaveChange: (octave: number) => void;
+}) {
+  const setOctave = (value: number) =>
+    onOctaveChange(clamp(value, MIN_OCTAVE, MAX_OCTAVE));
+  const valueText = octave > 0 ? `+${octave}` : String(octave);
+  const buttonClassName =
+    "flex h-full w-5 items-center justify-center text-neutral-400 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40";
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-neutral-400">Octave</span>
+      <div
+        role="spinbutton"
+        tabIndex={0}
+        aria-label="Octave"
+        aria-valuenow={octave}
+        aria-valuemin={MIN_OCTAVE}
+        aria-valuemax={MAX_OCTAVE}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const next = {
+            ArrowLeft: octave - 1,
+            ArrowDown: octave - 1,
+            ArrowRight: octave + 1,
+            ArrowUp: octave + 1,
+            Home: MIN_OCTAVE,
+            End: MAX_OCTAVE,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setOctave(next);
+          }
+        }}
+        className="flex h-6 items-center rounded border border-neutral-600 bg-neutral-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+      >
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden
+          disabled={octave <= MIN_OCTAVE}
+          onClick={() => setOctave(octave - 1)}
+          className={buttonClassName}
+        >
+          <MinusIcon className="size-3" />
+        </button>
+        <span className="w-5 text-center font-mono text-xs tabular-nums">
+          {valueText}
+        </span>
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden
+          disabled={octave >= MAX_OCTAVE}
+          onClick={() => setOctave(octave + 1)}
+          className={buttonClassName}
+        >
+          <PlusIcon className="size-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DetuneKnob({
+  detune,
+  onDetuneChange,
+}: {
+  detune: number;
+  onDetuneChange: (detune: number) => void;
+}) {
+  const setDetune = (value: number) =>
+    onDetuneChange(
+      clamp(Math.round(value), -MAX_DETUNE_CENTS, MAX_DETUNE_CENTS),
+    );
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return detune;
+    },
+    onMove: (_event, drag) =>
+      setDetune(drag.data - (drag.deltaY / 200) * (2 * MAX_DETUNE_CENTS)),
+  });
+  const signed = detune > 0 ? `+${detune}` : String(detune);
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-neutral-400">Detune</span>
+      <Knob
+        ref={ref}
+        aria-label="Detune"
+        aria-valuetext={`${signed} cents`}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 10 : 1;
+          const next = {
+            ArrowLeft: detune - step,
+            ArrowDown: detune - step,
+            ArrowRight: detune + step,
+            ArrowUp: detune + step,
+            Home: -MAX_DETUNE_CENTS,
+            End: MAX_DETUNE_CENTS,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setDetune(next);
+          }
+        }}
+        value={detune}
+        min={-MAX_DETUNE_CENTS}
+        max={MAX_DETUNE_CENTS}
+        origin={0}
+        className="cursor-ns-resize"
+      />
+      <span className="w-12 font-mono text-xs text-muted-foreground tabular-nums">
+        {signed} ct
+      </span>
     </div>
   );
 }
@@ -276,7 +692,7 @@ function GainKnob({
   });
   const valueText = `${db.toFixed(1)} dB`;
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       <Knob
         ref={ref}
         aria-label={label}
@@ -302,9 +718,61 @@ function GainKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="w-14 font-mono text-xs text-muted-foreground tabular-nums">
+      <span className="mr-1 w-[8ch] font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
         {valueText}
       </span>
     </div>
+  );
+}
+
+function PanKnob({
+  label,
+  pan,
+  onPanChange,
+}: {
+  label: string;
+  pan: number;
+  onPanChange: (pan: number) => void;
+}) {
+  const setPan = (value: number) =>
+    onPanChange(clamp(Math.round(value * 100) / 100, -1, 1));
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return pan;
+    },
+    onMove: (_event, drag) => setPan(drag.data - drag.deltaY / 100),
+  });
+  const valueText = formatPan(pan);
+  return (
+    <Tooltip content={valueText}>
+      <Knob
+        ref={ref}
+        aria-label={`${label} pan`}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const next = {
+            ArrowLeft: pan - step,
+            ArrowDown: pan - step,
+            ArrowRight: pan + step,
+            ArrowUp: pan + step,
+            Home: -1,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPan(next);
+          }
+        }}
+        value={pan}
+        min={-1}
+        max={1}
+        origin={0}
+        color="pan"
+        className="cursor-ns-resize"
+      />
+    </Tooltip>
   );
 }

@@ -28,6 +28,7 @@ export function Tuner({
       closeLabel="Close Tuner"
       onClose={onClose}
       data-testid="tuner-panel"
+      contentClassName="px-3 py-2"
       className="pointer-events-auto w-80 shrink-0"
     >
       <TunerContent analysis={analysis} />

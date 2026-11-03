@@ -27,6 +27,8 @@ import { Help } from "./help";
 import { InputSetup } from "./input";
 import { InputPanel } from "./input-panel";
 import { LocatorRow } from "./locators";
+import { MidiDeviceDialog } from "./midi-device-dialog";
+import { MidiKeyboardPanel } from "./midi-keyboard-panel";
 import { MidiTrackRow } from "./midi-track";
 import { Mixer } from "./mixer";
 import { Panel } from "./panel";
@@ -51,6 +53,8 @@ import { Tuner } from "./tuner";
 import { Dialog } from "./ui/dialog";
 import { useInput } from "./use-input";
 import { useInteraction } from "./use-interaction";
+import { useMidiDevice } from "./use-midi-device";
+import { useMidiLiveInput } from "./use-midi-live-input";
 import { useProject } from "./use-project";
 import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
@@ -82,6 +86,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
   const effects = useEffectsUi(projectUiStore);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isMidiDeviceOpen, setIsMidiDeviceOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -90,6 +95,8 @@ export function EditorPage({ source }: { source: ProjectSource }) {
     document.title = `${state.title} - Toy MIDI`;
   }, [state.title]);
 
+  const midiDevice = useMidiDevice({ runtime, state });
+  const midiLiveInput = useMidiLiveInput({ runtime, state, projectUiStore });
   const input = useInput({
     runtime,
     state,
@@ -383,6 +390,12 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         inputPanelOpen={isInputPanelOpen}
         inputAccessRequired={input.initialized && !input.hasAccess}
         onInputPanelToggle={() => setIsInputPanelOpen((open) => !open)}
+        midiDeviceSupported={midiDevice.isSupported}
+        onMidiDeviceOpen={() => {
+          setIsMidiDeviceOpen(true);
+          midiDevice.requestAccess();
+        }}
+        onMidiKeyboardToggle={midiLiveInput.toggleKeyboard}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -662,6 +675,8 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                         scoreUi.close(track.id);
                       }}
                       midiInteraction={midiInteraction}
+                      midiMonitoring={state.midiMonitorTrackId === track.id}
+                      midiMonitorVisible={midiLiveInput.isAvailable}
                       onTranscribe={() =>
                         transcriptions.openTranscription(track.id)
                       }
@@ -675,6 +690,11 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         </section>
 
         <Help isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+        <MidiDeviceDialog
+          isOpen={isMidiDeviceOpen}
+          onClose={() => setIsMidiDeviceOpen(false)}
+          midiDevice={midiDevice}
+        />
         <ExportDialog
           runtime={runtime}
           state={state}
@@ -720,6 +740,14 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+        {midiLiveInput.isKeyboardOpen && (
+          <MidiKeyboardPanel
+            projectUiStore={projectUiStore}
+            runtime={runtime}
+            state={state}
+            onClose={midiLiveInput.closeKeyboard}
+          />
+        )}
         {orderedMidiTracks.map(
           (track) =>
             track.synth &&
@@ -836,6 +864,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
             data-testid="mixer-panel"
+            contentClassName="overflow-x-auto px-3 py-2"
             className="pointer-events-auto flex-1"
           >
             <Mixer

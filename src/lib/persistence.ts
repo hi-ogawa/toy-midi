@@ -101,6 +101,7 @@ export interface SerializedMidiTrackState extends Omit<
   | "keySignature"
   | "viewMode"
   | "pan"
+  | "reverbSend"
   | "automation"
   | "synth"
 > {
@@ -110,6 +111,8 @@ export interface SerializedMidiTrackState extends Omit<
   viewMode?: MidiTrackState["viewMode"];
   // 🟢 Optional for MIDI tracks saved before pan support.
   pan?: number;
+  // 🟢 Optional for MIDI tracks saved before reverb sends.
+  reverbSend?: number;
   // 🟢 Optional for MIDI tracks saved before automation support.
   automation?: MidiTrackState["automation"];
   synth?: SerializedSynthPatch;
@@ -122,12 +125,21 @@ interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
 
 interface SerializedSynthLayer extends Omit<
   SynthLayer,
-  "id" | "gain" | "muted" | "amp"
+  "id" | "oscillator" | "gain" | "muted" | "pan" | "filter" | "amp"
 > {
+  oscillator: Pick<SynthLayer["oscillator"], "waveform"> & {
+    // 🟢 Optional for layers saved before octave and detune.
+    octave?: number;
+    detune?: number;
+  };
   // 🟢 Optional for layers saved before per-layer gain.
   gain?: number;
   // 🟢 Optional for layers saved before layer mute.
   muted?: boolean;
+  // 🟢 Optional for layers saved before per-layer pan.
+  pan?: number;
+  // 🟢 Optional for layers saved before the filter.
+  filter?: SynthLayer["filter"];
   // 🟢 Optional for layers saved before the amp envelope.
   amp?: SynthLayer["amp"];
 }
@@ -145,6 +157,8 @@ interface SerializedAudioTrackState<ChannelData> {
   gain: number;
   // 🟢 Optional for tracks saved before pan support.
   pan?: number;
+  // 🟢 Optional for tracks saved before reverb sends.
+  reverbSend?: number;
   muted: boolean;
   soloed: boolean;
   // 🟢 Optional for tracks saved before they could record takes.
@@ -196,6 +210,7 @@ export function serializeEditorRuntimeState(
       eq: track.eq,
       gain: track.gain,
       pan: track.pan,
+      reverbSend: track.reverbSend,
       muted: track.muted,
       soloed: track.soloed,
       nextTakeNumber: track.nextTakeNumber,
@@ -254,6 +269,7 @@ export function deserializeEditorRuntimeState({
       eq: deserializeEq(track.eq),
       gain: track.gain,
       pan: track.pan ?? 0,
+      reverbSend: track.reverbSend ?? 0,
       muted: track.muted,
       soloed: track.soloed,
     })),
@@ -261,6 +277,7 @@ export function deserializeEditorRuntimeState({
       ...track,
       viewMode: track.viewMode ?? "editor",
       pan: track.pan ?? 0,
+      reverbSend: track.reverbSend ?? 0,
       automation: track.automation ?? [],
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
@@ -269,10 +286,14 @@ export function deserializeEditorRuntimeState({
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       synth: track.synth && {
         ...track.synth,
-        layers: track.synth.layers.map((layer) => ({
-          ...createSynthLayer(),
-          ...layer,
-        })),
+        layers: track.synth.layers.map((layer) => {
+          const defaults = createSynthLayer();
+          return {
+            ...defaults,
+            ...layer,
+            oscillator: { ...defaults.oscillator, ...layer.oscillator },
+          };
+        }),
       },
       eq: deserializeEq(track.eq),
     })),

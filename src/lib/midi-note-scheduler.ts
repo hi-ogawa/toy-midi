@@ -1,4 +1,5 @@
 import { findSortedIndex } from "../utils/array.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import {
   type ContextTimeWindow,
   PlaybackRun,
@@ -30,11 +31,7 @@ export type TimelineAutomation = (
 export type ScheduledAutomation = TimelineAutomation & { initialValue: number };
 
 /** A synth event placed on the audio clock. */
-export type ScheduledEvent =
-  | { type: "note-on"; time: number; pitch: number; velocity: number }
-  | { type: "note-off"; time: number; pitch: number }
-  | { type: "controller"; time: number; controller: number; value: number }
-  | { type: "pitch-bend"; time: number; value: number };
+export type ScheduledEvent = MidiMessage & { time: number };
 
 /**
  * Places a track's notes and controller changes on the audio clock for windows

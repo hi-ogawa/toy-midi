@@ -33,6 +33,23 @@ export async function addMidiTrack(page: Page) {
   );
 }
 
+export async function setMidiInstrument(
+  page: Page,
+  { name, option }: { name: string; option: string },
+) {
+  await test.step(
+    `Set ${name} instrument to ${option}`,
+    async () => {
+      const instrument = await openMidiInstrument(page, { name });
+      await selectMidiInstrument(instrument, { option });
+      await instrument
+        .getByRole("button", { name: "Close", exact: true })
+        .click();
+    },
+    { box: true },
+  );
+}
+
 export async function openMidiInstrument(
   page: Page,
   { name }: { name: string },
