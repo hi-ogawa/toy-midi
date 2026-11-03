@@ -882,14 +882,18 @@ export class EditorRuntime {
 
   /** A device that stops sending can't release its notes, so they end here. */
   private syncMidiDevice(): void {
-    const { devices, connectedId } = this.midiDeviceInput!;
+    const input = this.midiDeviceInput!;
+    const connectedId = input.getConnectedId();
     if (connectedId !== this.store.get().midiDeviceId) {
       for (const pitch of this.midiDeviceNotes.keys()) {
         this.releaseMidiDeviceNote(pitch);
       }
       this.setMidiMonitorTrack(undefined);
     }
-    this.store.update({ midiDevices: devices, midiDeviceId: connectedId });
+    this.store.update({
+      midiDevices: input.getDevices(),
+      midiDeviceId: connectedId,
+    });
   }
 
   /** The note ends on the track that started it, wherever monitoring is now. */

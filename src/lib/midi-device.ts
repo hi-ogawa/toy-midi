@@ -47,14 +47,14 @@ export class MidiDeviceInput {
     access.onstatechange = () => this.sync();
   }
 
-  get devices(): MidiDevice[] {
+  getDevices(): MidiDevice[] {
     return this.getConnectedInputs().map((input) => ({
       id: input.id,
       name: input.name || "Unnamed device",
     }));
   }
 
-  get connectedId(): string | undefined {
+  getConnectedId(): string | undefined {
     return this.input?.id;
   }
 
