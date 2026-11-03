@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ABLETON_KEYMAP, getComputerKeyLabels } from "../lib/computer-keyboard";
+import { PITCH_WHEEL_MAX } from "../lib/general-midi";
 import {
   MAX_OCTAVE,
   MAX_VELOCITY,
@@ -23,11 +24,13 @@ import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Button } from "./ui/button";
 import { Knob } from "./ui/knob";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Slider } from "./ui/slider";
 import { useMidiKeyboard } from "./use-midi-keyboard";
 import { usePointerDrag } from "./use-pointer-drag";
 
 const WHITE_KEY_WIDTH = 28;
 const PANEL_CHROME_WIDTH = 26;
+const MOD_WHEEL_CONTROLLER = 1;
 
 export function MidiKeyboardPanel({
   projectUiStore,
@@ -47,7 +50,14 @@ export function MidiKeyboardPanel({
     onResizeEnd: (midiKeyboardSize) =>
       projectUiStore.update({ midiKeyboardSize }),
   });
-  const { keyboard, heldPitches, octave, velocity } = useMidiKeyboard({
+  const {
+    keyboard,
+    heldPitches,
+    octave,
+    velocity,
+    pitchBend,
+    controllerValues,
+  } = useMidiKeyboard({
     send: (message) => runtime.playLiveMidiMessage(message),
     keymap: ABLETON_KEYMAP,
     capturesKeys: isCapturing,
@@ -65,6 +75,14 @@ export function MidiKeyboardPanel({
   }
 
   useEffect(() => () => keyboard.releaseAll(), [keyboard]);
+
+  // Keeps the controls matching the monitored track: a track that gains
+  // monitoring starts at defaults, and one that outlives the panel, because a
+  // device still monitors it, must not stay modulated with no control to undo it.
+  useEffect(
+    () => () => keyboard.resetControllers(),
+    [keyboard, state.midiMonitorTrackId],
+  );
 
   return (
     <Panel
@@ -101,13 +119,31 @@ export function MidiKeyboardPanel({
       style={size}
     >
       <PanelResizeHandle handleRef={handleRef} label="Resize MIDI Keyboard" />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <OctaveStepper
           keyboard={keyboard}
           octave={octave}
           lowestPitch={lowestPitch}
         />
-        <VelocityKnob keyboard={keyboard} velocity={velocity} />
+        <PitchBendSlider keyboard={keyboard} pitchBend={pitchBend} />
+        <ValueKnob
+          label="Mod wheel"
+          shortLabel="Mod"
+          value={controllerValues[MOD_WHEEL_CONTROLLER]}
+          min={0}
+          max={127}
+          onChange={(value) =>
+            keyboard.setController({ controller: MOD_WHEEL_CONTROLLER, value })
+          }
+        />
+        <ValueKnob
+          label="Velocity"
+          shortLabel="Vel"
+          value={velocity}
+          min={MIN_VELOCITY}
+          max={MAX_VELOCITY}
+          onChange={(value) => keyboard.setVelocity(value)}
+        />
       </div>
       <MidiKeyboardPiano
         keyboard={keyboard}
@@ -160,52 +196,84 @@ function OctaveStepper({
   );
 }
 
-function VelocityKnob({
+function PitchBendSlider({
   keyboard,
-  velocity,
+  pitchBend,
 }: {
   keyboard: MidiKeyboard;
-  velocity: number;
+  pitchBend: number;
 }) {
-  const setVelocity = (next: number) =>
-    keyboard.setVelocity(clamp(Math.round(next), MIN_VELOCITY, MAX_VELOCITY));
+  return (
+    <div className="min-w-0 flex-1 text-xs leading-none text-neutral-300">
+      <div className="mb-1">Bend</div>
+      <Slider
+        aria-label="Pitch bend"
+        value={[pitchBend]}
+        min={0}
+        max={PITCH_WHEEL_MAX}
+        onValueChange={([value]) => keyboard.setPitchBend(value)}
+        onPointerUp={() => keyboard.releasePitchBend()}
+        onKeyUp={() => keyboard.releasePitchBend()}
+      />
+    </div>
+  );
+}
+
+function ValueKnob({
+  label,
+  shortLabel,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  shortLabel: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  const setValue = (next: number) =>
+    onChange(clamp(Math.round(next), min, max));
   // About 200px of vertical drag covers the full range.
   const ref = usePointerDrag({
     onStart: (event) => {
       (event.currentTarget as HTMLElement).focus();
-      return velocity;
+      return value;
     },
     onMove: (_event, drag) =>
-      setVelocity(
-        drag.data - (drag.deltaY / 200) * (MAX_VELOCITY - MIN_VELOCITY),
-      ),
+      setValue(drag.data - (drag.deltaY / 200) * (max - min)),
   });
   return (
     <div className="flex items-center gap-1.5 text-xs text-neutral-300">
       <Knob
         ref={ref}
-        aria-label="Velocity"
+        aria-label={label}
         onKeyDown={(event) => {
           const step = event.shiftKey ? 10 : 1;
           const next = {
-            ArrowLeft: velocity - step,
-            ArrowDown: velocity - step,
-            ArrowRight: velocity + step,
-            ArrowUp: velocity + step,
-            Home: MIN_VELOCITY,
-            End: MAX_VELOCITY,
+            ArrowLeft: value - step,
+            ArrowDown: value - step,
+            ArrowRight: value + step,
+            ArrowUp: value + step,
+            Home: min,
+            End: max,
           }[event.key];
           if (next !== undefined) {
             event.preventDefault();
-            setVelocity(next);
+            setValue(next);
           }
         }}
-        value={velocity}
-        min={MIN_VELOCITY}
-        max={MAX_VELOCITY}
+        value={value}
+        min={min}
+        max={max}
         className="cursor-ns-resize"
       />
-      <span className="tabular-nums">Vel {velocity}</span>
+      <div className="grid w-6 gap-1 leading-none">
+        <span>{shortLabel}</span>
+        <span className="tabular-nums">{value}</span>
+      </div>
     </div>
   );
 }

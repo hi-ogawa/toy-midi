@@ -62,6 +62,15 @@ export class MidiKeyboard {
     this.options.send({ type: "controller", controller, value });
   }
 
+  /** Leaves unchanged controllers alone, as a hardware one may be sharing the track. */
+  resetControllers(): void {
+    for (const { controller, defaultValue } of LIVE_CONTROLLER_SETTINGS) {
+      if (this.store.get().controllerValues[controller] !== defaultValue) {
+        this.setController({ controller, value: defaultValue });
+      }
+    }
+  }
+
   setPitchBend(value: number): void {
     this.store.update({ pitchBend: value });
     this.options.send({ type: "pitch-bend", value });

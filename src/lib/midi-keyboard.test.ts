@@ -88,6 +88,18 @@ describe("MidiKeyboard", () => {
     ]);
   });
 
+  it("resets only the controllers that changed", () => {
+    const { keyboard, sent } = createKeyboard();
+    keyboard.setController({ controller: 1, value: 90 });
+    keyboard.resetControllers();
+    keyboard.resetControllers();
+    expect(sent).toEqual([
+      { type: "controller", controller: 1, value: 90 },
+      { type: "controller", controller: 1, value: 0 },
+    ]);
+    expect(keyboard.store.get().controllerValues[1]).toBe(0);
+  });
+
   it("changes velocity from a key, within the MIDI range", () => {
     const { keyboard } = createKeyboard(ABLETON_KEYMAP);
     keyboard.pressKey({ code: "KeyC", repeat: false });

@@ -80,3 +80,34 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   ).toHaveAttribute("aria-pressed", "false");
   await expect(a2).toBeVisible();
 });
+
+test("bends and modulates from the MIDI keyboard panel", async ({ page }) => {
+  await createProject(page);
+
+  // Monitor a track from the panel.
+  const first = await addMidiTrack(page);
+  const second = await addMidiTrack(page);
+  await page.getByRole("button", { name: "Editor menu" }).click();
+  await page.getByRole("menuitem", { name: "MIDI Keyboard" }).click();
+  const panel = page.getByTestId("midi-keyboard-panel");
+  await first.getByTestId("input-monitor").click();
+
+  // Hold the bend off center, and let go so it springs back.
+  const bend = panel.getByRole("slider", { name: "Pitch bend" });
+  await bend.hover();
+  await page.mouse.down();
+  const { x, y } = (await bend.boundingBox())!;
+  await page.mouse.move(x + 20, y);
+  await expect(bend).not.toHaveAttribute("aria-valuenow", "8192");
+  await page.mouse.up();
+  await expect(bend).toHaveAttribute("aria-valuenow", "8192");
+
+  // Turn up the mod wheel, which stays where it is left.
+  const mod = panel.getByRole("slider", { name: "Mod wheel" });
+  await mod.press("End");
+  await expect(mod).toHaveAttribute("aria-valuenow", "127");
+
+  // Move monitoring to another track, which starts with no modulation.
+  await second.getByTestId("input-monitor").click();
+  await expect(mod).toHaveAttribute("aria-valuenow", "0");
+});
