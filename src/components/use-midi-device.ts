@@ -53,6 +53,16 @@ export function useMidiDevice({
     }
   }, [access]);
 
+  function selectDevice(deviceId?: string) {
+    setRememberedId(deviceId);
+    const input = devices?.find((entry) => entry.id === deviceId);
+    if (input) {
+      void runtime.startMidiInput(input);
+    } else {
+      void runtime.stopMidiInput();
+    }
+  }
+
   return {
     devices,
     deviceId: state.midiConnection?.deviceId,
@@ -63,14 +73,6 @@ export function useMidiDevice({
         requestAccessMutation.mutate();
       }
     },
-    selectDevice: (deviceId?: string) => {
-      setRememberedId(deviceId);
-      const input = devices?.find((entry) => entry.id === deviceId);
-      if (input) {
-        void runtime.startMidiInput(input);
-      } else {
-        void runtime.stopMidiInput();
-      }
-    },
+    selectDevice,
   };
 }
