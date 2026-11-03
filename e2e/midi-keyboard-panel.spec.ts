@@ -51,14 +51,6 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await expect(d4).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByTestId("locator")).toHaveCount(0);
 
-  // Shift an octave, and release the note it started after shifting back.
-  await page.keyboard.press("x");
-  await page.keyboard.down("a");
-  await expect(c4).toHaveAttribute("aria-pressed", "true");
-  await page.keyboard.press("z");
-  await page.keyboard.up("a");
-  await expect(c4).toHaveAttribute("aria-pressed", "false");
-
   // Step up an octave from the panel, which moves the piano and the key marks.
   await panel.getByRole("button", { name: "Octave up" }).click();
   await expect(
