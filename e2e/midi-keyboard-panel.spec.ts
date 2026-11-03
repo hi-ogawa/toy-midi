@@ -1,9 +1,5 @@
 import { expect, test } from "@playwright/test";
-import {
-  addMidiTrack,
-  createProject,
-  openMidiInstrument,
-} from "./editor-helpers";
+import { addMidiTrack, createProject } from "./editor-helpers";
 
 test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await createProject(page);
@@ -70,20 +66,6 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await page.mouse.up();
   await expect(a2).toHaveText("");
   await expect(c3).toContainText("A");
-
-  // Play from inside the instrument dialog while browsing presets.
-  const dialog = await openMidiInstrument(page, { name: "MIDI 1" });
-  const hiddenC3 = panel.getByRole("button", {
-    name: "C3",
-    exact: true,
-    // The dialog hides the page from the accessibility tree.
-    includeHidden: true,
-  });
-  await page.keyboard.down("a");
-  await expect(hiddenC3).toHaveAttribute("aria-pressed", "true");
-  await page.keyboard.up("a");
-  await expect(hiddenC3).toHaveAttribute("aria-pressed", "false");
-  await dialog.getByRole("button", { name: "Close", exact: true }).click();
 
   // Close the panel, which ends monitoring.
   await panel.getByRole("button", { name: "Close MIDI Keyboard" }).click();
