@@ -20,29 +20,22 @@ export async function isMidiAccessGranted(): Promise<boolean> {
   return permission.state === "granted";
 }
 
-/** Calls `onChange` with the connected inputs, now and whenever they change. */
-export async function openMidiAccess({
-  onChange,
-}: {
-  onChange: (inputs: MIDIInput[]) => void;
-}): Promise<void> {
-  const access = await navigator.requestMIDIAccess();
-  let inputs = getConnectedMidiInputs(access);
-  onChange(inputs);
-  // Opening or closing a port also fires this, with the same inputs connected.
-  access.addEventListener("statechange", () => {
-    const next = getConnectedMidiInputs(access);
-    if (
-      next.length !== inputs.length ||
-      next.some((input, index) => input.id !== inputs[index].id)
-    ) {
-      inputs = next;
-      onChange(inputs);
-    }
-  });
+export function requestMidiAccess(): Promise<MIDIAccess> {
+  return navigator.requestMIDIAccess();
 }
 
-function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
+/** Calls `onChange` with the connected inputs, now and whenever they change. */
+export function subscribeMidiInputs(
+  access: MIDIAccess,
+  onChange: (inputs: MIDIInput[]) => void,
+): () => void {
+  const notify = () => onChange(getConnectedMidiInputs(access));
+  notify();
+  access.addEventListener("statechange", notify);
+  return () => access.removeEventListener("statechange", notify);
+}
+
+export function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
   return [...access.inputs.values()].filter(
     (input) => input.state === "connected",
   );
@@ -68,9 +61,11 @@ export async function openMidiOutputAccess({
 export async function connectMidiInput({
   input,
   onMessage,
+  onUnplug,
 }: {
   input: MIDIInput;
   onMessage: (message: MidiDeviceMessage) => void;
+  onUnplug: () => void;
 }): Promise<MidiConnection> {
   const handleMessage = (event: MIDIMessageEvent) => {
     const message = event.data && parseMidiDeviceMessage(event.data);
@@ -78,13 +73,20 @@ export async function connectMidiInput({
       onMessage(message);
     }
   };
+  const handleStateChange = () => {
+    if (input.state === "disconnected") {
+      onUnplug();
+    }
+  };
   input.addEventListener("midimessage", handleMessage);
+  input.addEventListener("statechange", handleStateChange);
   // Only setting `onmidimessage` opens the port implicitly.
   await input.open();
   return {
     deviceId: input.id,
     disconnect: async () => {
       input.removeEventListener("midimessage", handleMessage);
+      input.removeEventListener("statechange", handleStateChange);
       await input.close();
     },
   };
