@@ -812,28 +812,26 @@ export class EditorRuntime {
   }
 
   async startMidiInput(input: MIDIInput): Promise<void> {
-    const stopped = this.stopMidiInput();
+    await this.stopMidiInput();
     this.disconnectMidiInput = connectMidiInput(input, (message) =>
       this.playMidiDeviceMessage(message),
     );
     this.store.update({ midiDeviceId: input.id });
-    await stopped;
   }
 
   /** A device that stops sending can't release its notes, so they end here. */
   async stopMidiInput(): Promise<void> {
-    const disconnect = this.disconnectMidiInput;
+    await this.disconnectMidiInput?.();
     this.disconnectMidiInput = undefined;
     for (const pitch of this.midiDeviceNotes.keys()) {
       this.releaseMidiDeviceNote(pitch);
     }
-    this.setMidiMonitorTrack(undefined);
+    await this.setMidiMonitorTrack(undefined);
     this.store.update({ midiDeviceId: undefined });
-    await disconnect?.();
   }
 
   /** Called from the click that enables monitoring, which lets audio start. */
-  setMidiMonitorTrack(id?: string): void {
+  async setMidiMonitorTrack(id?: string): Promise<void> {
     const { midiDeviceId, midiMonitorTrackId } = this.store.get();
     if (id !== undefined && midiDeviceId === undefined) {
       throw new Error("Connect a MIDI device before monitoring.");
@@ -843,7 +841,7 @@ export class EditorRuntime {
     }
     this.store.update({ midiMonitorTrackId: id });
     if (id !== undefined) {
-      void this.context.resume();
+      await this.context.resume();
     }
   }
 

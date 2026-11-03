@@ -223,7 +223,9 @@ export function MidiTrackRow({
                 title={monitorLabel}
                 monitoring={midiMonitoring}
                 onMonitoringChange={(monitoring) =>
-                  runtime.setMidiMonitorTrack(monitoring ? track.id : undefined)
+                  void runtime.setMidiMonitorTrack(
+                    monitoring ? track.id : undefined,
+                  )
                 }
               />
             )}
