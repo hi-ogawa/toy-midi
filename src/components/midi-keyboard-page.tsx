@@ -8,9 +8,9 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
+  COMPUTER_KEY_ROWS,
+  formatComputerKey,
   getComputerKeyPitch,
-  LOWER_ROW_PITCH,
-  UPPER_ROW_PITCH,
 } from "../lib/computer-keyboard";
 import {
   encodeMidiDeviceMessage,
@@ -42,6 +42,10 @@ const PITCHES = range(HIGHEST_PITCH - LOWEST_PITCH + 1).map(
   (i) => LOWEST_PITCH + i,
 );
 const WHITE_KEY_COUNT = PITCHES.filter((pitch) => !isBlackKey(pitch)).length;
+
+const COMPUTER_KEY_STEP = 36;
+const OCTAVE_KEY_CLASS =
+  "flex size-8 items-center justify-center rounded border border-neutral-600 font-medium text-neutral-200";
 
 const DEFAULT_VELOCITY = 100;
 const PITCH_BEND_CENTER = 8192;
@@ -337,13 +341,90 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
           </button>
         ))}
       </div>
-      <p className="text-sm text-neutral-400">
-        Play with the mouse or the computer keyboard. Z to M starts at{" "}
-        {formatChromaticPitch(LOWER_ROW_PITCH + octave * 12)}, Q to P starts at{" "}
-        {formatChromaticPitch(UPPER_ROW_PITCH + octave * 12)}, and the rows
-        above and below play the black keys. Press [ and ] to change the octave.
-      </p>
+      <ComputerKeyboardLayout octave={octave} heldPitches={heldPitches} />
     </div>
+  );
+}
+
+function ComputerKeyboardLayout({
+  octave,
+  heldPitches,
+}: {
+  octave: number;
+  heldPitches: ReadonlySet<number>;
+}) {
+  return (
+    <div
+      role="img"
+      aria-label="Computer keyboard layout"
+      className="grid gap-3 select-none"
+    >
+      {COMPUTER_KEY_ROWS.map(({ startPitch, codes }, rowIndex) => {
+        const lowestPitch = startPitch + octave * 12;
+        return (
+          <div key={startPitch} className="flex items-end gap-2">
+            <span className="w-8 pb-2 text-right text-xs tabular-nums text-neutral-400">
+              {formatChromaticPitch(lowestPitch)}
+            </span>
+            <div className="relative h-[68px] w-[432px]">
+              {codes.map((code, index) => (
+                <ComputerKey
+                  key={code}
+                  label={formatComputerKey(code)}
+                  pitch={lowestPitch + index}
+                  lowestPitch={lowestPitch}
+                  isHeld={heldPitches.has(lowestPitch + index)}
+                />
+              ))}
+              {rowIndex === 0 && (
+                <div className="absolute bottom-0 left-[360px] flex items-center gap-1 text-xs text-neutral-400">
+                  <span className={OCTAVE_KEY_CLASS}>[</span>
+                  <span className={OCTAVE_KEY_CLASS}>]</span>
+                  <span className="ml-1">Octave</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ComputerKey({
+  label,
+  pitch,
+  lowestPitch,
+  isHeld,
+}: {
+  label: string;
+  pitch: number;
+  lowestPitch: number;
+  isHeld: boolean;
+}) {
+  const isBlack = isBlackKey(pitch);
+  const whiteKeysBelow = range(pitch - lowestPitch).filter(
+    (i) => !isBlackKey(lowestPitch + i),
+  ).length;
+  return (
+    <span
+      style={{
+        left: (whiteKeysBelow - (isBlack ? 0.5 : 0)) * COMPUTER_KEY_STEP,
+      }}
+      className={cn(
+        "absolute flex size-8 items-center justify-center rounded text-xs font-medium",
+        isBlack ? "top-0" : "bottom-0",
+        isHeld
+          ? isBlack
+            ? "bg-emerald-600 text-neutral-100"
+            : "bg-emerald-400 text-neutral-900"
+          : isBlack
+            ? "border border-neutral-600 bg-neutral-950 text-neutral-200"
+            : "bg-neutral-100 text-neutral-900",
+      )}
+    >
+      {label}
+    </span>
   );
 }
 
