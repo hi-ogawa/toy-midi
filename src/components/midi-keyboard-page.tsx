@@ -1,12 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { HouseIcon, KeyboardMusicIcon, MoreVerticalIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getComputerKeyPitch } from "../lib/computer-keyboard";
+import {
+  HouseIcon,
+  KeyboardMusicIcon,
+  MinusIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  getComputerKeyPitch,
+  LOWER_ROW_PITCH,
+  UPPER_ROW_PITCH,
+} from "../lib/computer-keyboard";
 import {
   encodeMidiDeviceMessage,
   type MidiDeviceMessage,
   openMidiOutputAccess,
 } from "../lib/midi-device";
+import { clamp } from "../lib/music";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { routes } from "../lib/routes";
 import { range } from "../utils/array";
@@ -22,8 +33,10 @@ import { cn } from "./ui/utils";
 import { useSetState } from "./use-set-state";
 import { useWindowEvent } from "./use-window-event";
 
-const LOWEST_PITCH = 36;
-const HIGHEST_PITCH = 96;
+const LOWEST_PITCH = 24;
+const HIGHEST_PITCH = 108;
+const MIN_OCTAVE = -2;
+const MAX_OCTAVE = 2;
 const BLACK_PITCH_CLASSES = [1, 3, 6, 8, 10];
 const PITCHES = range(HIGHEST_PITCH - LOWEST_PITCH + 1).map(
   (i) => LOWEST_PITCH + i,
@@ -124,6 +137,9 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
   );
   const [heldPitches, heldPitchActions] = useSetState<number>();
   const [pointerPitch, setPointerPitch] = useState<number>();
+  const [octave, setOctave] = useState(0);
+  // A key releases the pitch it started, even if the octave changed since.
+  const heldKeyPitches = useRef(new Map<string, number>());
 
   function send(message: MidiDeviceMessage): void {
     output?.send(encodeMidiDeviceMessage(message));
@@ -148,7 +164,12 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
       send({ type: "note-off", pitch });
     }
     heldPitchActions.replace(new Set());
+    heldKeyPitches.current.clear();
     setPointerPitch(undefined);
+  }
+
+  function shiftOctave(delta: number): void {
+    setOctave((current) => clamp(current + delta, MIN_OCTAVE, MAX_OCTAVE));
   }
 
   function changePitchBend(value: number): void {
@@ -160,18 +181,27 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
     if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
-    const pitch = getComputerKeyPitch(event.code);
+    if (event.code === "BracketLeft" || event.code === "BracketRight") {
+      event.preventDefault();
+      if (!event.repeat) {
+        shiftOctave(event.code === "BracketLeft" ? -1 : 1);
+      }
+      return;
+    }
+    const pitch = getComputerKeyPitch({ code: event.code, octave });
     if (pitch !== undefined) {
       // Otherwise a focused output picker takes the key for type-ahead.
       event.preventDefault();
       if (!event.repeat) {
+        heldKeyPitches.current.set(event.code, pitch);
         press(pitch);
       }
     }
   });
   useWindowEvent("keyup", (event) => {
-    const pitch = getComputerKeyPitch(event.code);
+    const pitch = heldKeyPitches.current.get(event.code);
     if (pitch !== undefined) {
+      heldKeyPitches.current.delete(event.code);
       release(pitch);
     }
   });
@@ -241,6 +271,28 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
         />
       </div>
 
+      <div className="flex items-center gap-2 text-xs text-neutral-300">
+        <Button
+          aria-label="Octave down"
+          disabled={octave === MIN_OCTAVE}
+          onClick={() => shiftOctave(-1)}
+          className="size-7 hover:bg-accent hover:text-accent-foreground"
+        >
+          <MinusIcon className="size-4" />
+        </Button>
+        <span className="w-16 text-center tabular-nums">
+          Octave {octave > 0 ? `+${octave}` : octave}
+        </span>
+        <Button
+          aria-label="Octave up"
+          disabled={octave === MAX_OCTAVE}
+          onClick={() => shiftOctave(1)}
+          className="size-7 hover:bg-accent hover:text-accent-foreground"
+        >
+          <PlusIcon className="size-4" />
+        </Button>
+      </div>
+
       <div
         className="relative h-40 select-none"
         role="group"
@@ -272,10 +324,12 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
               isBlackKey(pitch)
                 ? "z-10 h-[60%]"
                 : "h-full border border-neutral-400",
-              heldPitches.has(pitch)
-                ? "bg-emerald-400 text-neutral-900"
-                : isBlackKey(pitch)
-                  ? "bg-neutral-950"
+              isBlackKey(pitch)
+                ? heldPitches.has(pitch)
+                  ? "bg-emerald-600"
+                  : "bg-neutral-950"
+                : heldPitches.has(pitch)
+                  ? "bg-emerald-400 text-neutral-900"
                   : "bg-neutral-100",
             )}
           >
@@ -284,8 +338,10 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
         ))}
       </div>
       <p className="text-sm text-neutral-400">
-        Play with the mouse, or with the computer keyboard: Z to M from C3, Q to
-        P from C4, with the rows above and below as black keys.
+        Play with the mouse or the computer keyboard. Z to M starts at{" "}
+        {formatChromaticPitch(LOWER_ROW_PITCH + octave * 12)}, Q to P starts at{" "}
+        {formatChromaticPitch(UPPER_ROW_PITCH + octave * 12)}, and the rows
+        above and below play the black keys. Press [ and ] to change the octave.
       </p>
     </div>
   );

@@ -62,6 +62,27 @@ test("sends notes and controllers to a MIDI output", async ({ page }) => {
     [0x80, 49, 0],
   ]);
 
+  // Shift up an octave, and hold a key across a shift back down.
+  await page.keyboard.press("]");
+  await page.keyboard.down("z");
+  await page.keyboard.press("[");
+  await page.keyboard.up("z");
+  await expectSent([
+    [0x90, 60, 100],
+    [0x80, 60, 0],
+  ]);
+
+  // Shift to the lowest octave with the buttons, which stop at the limit.
+  const octaveDown = page.getByRole("button", { name: "Octave down" });
+  await octaveDown.click();
+  await octaveDown.click();
+  await expect(octaveDown).toBeDisabled();
+  await page.keyboard.press("z");
+  await expectSent([
+    [0x90, 24, 100],
+    [0x80, 24, 0],
+  ]);
+
   // Nudge the mod wheel, which keeps its value.
   await page.getByRole("slider", { name: "Mod wheel" }).focus();
   await page.keyboard.press("ArrowRight");
