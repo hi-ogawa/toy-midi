@@ -29,7 +29,7 @@ import type { TimeSignature } from "../types";
 import { AudioWaveformView } from "./audio-waveform";
 import { openFilePicker } from "./file-drop-input";
 import { MixToggle } from "./mix-toggle";
-import { TrackMenuButton } from "./tracks";
+import { TrackButtonGroup, TrackMenuButton } from "./tracks";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -638,7 +638,7 @@ export function ReferenceTimelineRow({
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           Reference
         </div>
-        <div className="flex self-center gap-1">
+        <TrackButtonGroup>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <TrackMenuButton label="Reference" />
@@ -655,10 +655,10 @@ export function ReferenceTimelineRow({
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-6"
+            className="size-5"
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
-        </div>
+        </TrackButtonGroup>
       </div>
       <div
         className="relative overflow-hidden bg-neutral-900"

@@ -134,7 +134,7 @@ export function TrackMenuButton({
       aria-label={`${label} actions`}
       {...props}
       className={cn(
-        "inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+        "inline-flex size-5 shrink-0 items-center justify-center rounded-md border border-neutral-600 text-neutral-300 hover:bg-neutral-700",
         className,
       )}
     >
@@ -223,24 +223,24 @@ export function TrackRow({
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           {title}
         </div>
-        <div className="flex self-center gap-1">
+        <TrackButtonGroup>
           {action}
           {recording && <TrackRecordingToggles title={title} {...recording} />}
           <MixToggle
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-6"
+            className="size-5"
             title={muted ? `Unmute ${title}` : `Mute ${title}`}
           />
           <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
-            className="size-6"
+            className="size-5"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
-        </div>
+        </TrackButtonGroup>
         {showGain && (
           <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
             <GainSlider
@@ -258,6 +258,14 @@ export function TrackRow({
         className="absolute inset-x-0 bottom-0 z-30 h-0.5 cursor-ns-resize border-b-2 border-neutral-600 after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title={`Resize ${title}`}
       />
+    </div>
+  );
+}
+
+export function TrackButtonGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex self-center [&_button:not([aria-pressed=true])]:border-transparent">
+      {children}
     </div>
   );
 }
@@ -294,7 +302,7 @@ function TrackRecordingToggles({
         disabled={armDisabled}
         onClick={() => onArmedChange(!armed)}
         className={cn(
-          "size-6 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
+          "size-5 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
           armed &&
             "border-red-500/60 bg-red-500/35 hover:!bg-red-500/40 hover:!text-red-300",
         )}
@@ -341,7 +349,7 @@ export function TrackMonitorToggle({
         disabled={disabled}
         onClick={() => onMonitoringChange(!monitoring)}
         className={cn(
-          "size-6 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+          "size-5 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
           monitoring &&
             "border-sky-500/60 bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
         )}
@@ -440,38 +448,40 @@ export function ClipTrackRow({
       data-testid="clip-row"
       className="grid h-16 grid-cols-[15rem_1fr] border-b-2 border-neutral-600"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r-2 border-neutral-600 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
+      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto] items-center gap-1 border-r-2 border-neutral-600 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
         <span className="truncate">{label}</span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <TrackMenuButton label={label} />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onSelect={onDelete}>
-              <Trash2Icon />
-              Delete clip
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <MixToggle
-          data-testid="clip-mute"
-          aria-label={`Mute ${label}`}
-          active={muted}
-          kind="mute"
-          onClick={() => onMutedChange(!muted)}
-          className="size-6"
-          title="Mute clip"
-        />
-        <MixToggle
-          data-testid="clip-solo"
-          aria-label={`Solo ${label}`}
-          active={soloed}
-          kind="solo"
-          onClick={() => onSoloedChange(!soloed)}
-          className="size-6"
-          title="Solo clip"
-        />
-        <label className="col-span-4 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
+        <TrackButtonGroup>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <TrackMenuButton label={label} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onSelect={onDelete}>
+                <Trash2Icon />
+                Delete clip
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <MixToggle
+            data-testid="clip-mute"
+            aria-label={`Mute ${label}`}
+            active={muted}
+            kind="mute"
+            onClick={() => onMutedChange(!muted)}
+            className="size-5"
+            title="Mute clip"
+          />
+          <MixToggle
+            data-testid="clip-solo"
+            aria-label={`Solo ${label}`}
+            active={soloed}
+            kind="solo"
+            onClick={() => onSoloedChange(!soloed)}
+            className="size-5"
+            title="Solo clip"
+          />
+        </TrackButtonGroup>
+        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
           <GainSlider
             label={`${label} gain`}
             gain={gain}
