@@ -1,7 +1,10 @@
-import { useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { toast } from "sonner";
-import { isMidiDeviceSupported } from "../lib/midi-device";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import {
+  isMidiAccessGranted,
+  isMidiDeviceSupported,
+  openMidiAccess,
+} from "../lib/midi-device";
 import { preferences } from "../lib/preferences";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 
@@ -15,29 +18,58 @@ export function useMidiDevice({
   state: EditorRuntimeState;
 }) {
   const [rememberedId, setRememberedId] = preferences.useValue("midiDeviceId");
+  const [devices, setDevices] = useState<MIDIInput[]>();
 
-  const requestAccessMutation = useMutation({
-    mutationFn: () => runtime.requestMidiAccess(rememberedId),
-    onError: (error) => {
-      console.error(error);
-      toast.error("MIDI access was denied");
+  function openAccess() {
+    return openMidiAccess({
+      onChange: (inputs) => {
+        setDevices(inputs);
+        // Runs for the life of the page, so it can't close over a rendered value.
+        connectDevice(inputs, preferences.get().midiDeviceId);
+      },
+    });
+  }
+
+  function connectDevice(inputs: MIDIInput[], deviceId?: string) {
+    const input = inputs.find((entry) => entry.id === deviceId);
+    if (input?.id === runtime.store.get().midiConnection?.deviceId) {
+      return;
+    }
+    if (input) {
+      void runtime.startMidiInput(input);
+    } else {
+      void runtime.stopMidiInput();
+    }
+  }
+
+  const requestAccessMutation = useMutation({ mutationFn: openAccess });
+
+  useQuery({
+    queryKey: ["midi-device-restore"],
+    retry: false,
+    staleTime: Infinity,
+    queryFn: async () => {
+      // Reconnect only when that shows no permission prompt on page load.
+      if (rememberedId && (await isMidiAccessGranted())) {
+        await openAccess();
+      }
+      return true;
     },
   });
 
-  useEffect(() => {
-    if (rememberedId) {
-      void runtime.restoreMidiDevice(rememberedId);
-    }
-  }, []);
-
   return {
-    devices: state.midiDevices,
-    deviceId: state.midiDeviceId,
+    devices,
+    deviceId: state.midiConnection?.deviceId,
     isSupported: isMidiDeviceSupported(),
-    requestAccess: requestAccessMutation.mutate,
+    isAccessDenied: requestAccessMutation.isError,
+    requestAccess: () => {
+      if (!devices) {
+        requestAccessMutation.mutate();
+      }
+    },
     selectDevice: (deviceId?: string) => {
       setRememberedId(deviceId);
-      runtime.selectMidiDevice(deviceId);
+      connectDevice(devices ?? [], deviceId);
     },
   };
 }

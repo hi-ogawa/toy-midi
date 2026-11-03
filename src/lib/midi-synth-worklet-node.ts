@@ -78,8 +78,8 @@ export class MidiSynthWorkletNode {
     void this.getSynth().setPitchBend(value);
   }
 
-  resetLiveControllers(): void {
-    void this.getSynth().resetLiveControllers();
+  reset(): void {
+    void this.getSynth().reset();
   }
 
   setNotes(notes: TimelineNote[]): Promise<void> {

@@ -17,7 +17,10 @@ async function installFakeMidiOutput(page: Page): Promise<void> {
       send: (bytes: number[]) => window.sentMidi.push(bytes),
     };
     navigator.requestMIDIAccess = async () =>
-      ({ outputs: new Map([[output.id, output]]) }) as unknown as MIDIAccess;
+      ({
+        outputs: new Map([[output.id, output]]),
+        addEventListener: () => {},
+      }) as unknown as MIDIAccess;
   });
 }
 

@@ -5,6 +5,7 @@ import { getComputerKeyPitch } from "../lib/computer-keyboard";
 import {
   encodeMidiDeviceMessage,
   type MidiDeviceMessage,
+  openMidiOutputAccess,
 } from "../lib/midi-device";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { routes } from "../lib/routes";
@@ -36,13 +37,21 @@ const CONTROLLERS = [
   { label: "Mod wheel", controller: 1, defaultValue: 0 },
   { label: "Volume", controller: 7, defaultValue: 100 },
   { label: "Expression", controller: 11, defaultValue: 127 },
+  { label: "Sustain", controller: 64, defaultValue: 0 },
+  { label: "Resonance", controller: 71, defaultValue: 64 },
+  { label: "Brightness", controller: 74, defaultValue: 64 },
 ];
 
 export function MidiKeyboardPage() {
+  const [outputs, setOutputs] = useState<MIDIOutput[]>();
   const accessQuery = useQuery({
-    queryKey: ["midi-access"],
-    queryFn: () => navigator.requestMIDIAccess(),
+    queryKey: ["midi-output-access"],
     retry: false,
+    staleTime: Infinity,
+    queryFn: async () => {
+      await openMidiOutputAccess({ onChange: setOutputs });
+      return true;
+    },
   });
 
   useEffect(() => {
@@ -86,8 +95,8 @@ export function MidiKeyboardPage() {
           same port as the editor's MIDI device.
         </p>
         <div className="mt-8">
-          {accessQuery.data ? (
-            <MidiKeyboard access={accessQuery.data} />
+          {outputs ? (
+            <MidiKeyboard outputs={outputs} />
           ) : accessQuery.isError ? (
             <p role="alert" className="text-sm text-red-400">
               MIDI access isn't available: {accessQuery.error.message}
@@ -103,18 +112,10 @@ export function MidiKeyboardPage() {
   );
 }
 
-function MidiKeyboard({ access }: { access: MIDIAccess }) {
-  const [outputs, setOutputs] = useState(() => getConnectedOutputs(access));
+function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
   const [selectedId, setSelectedId] = useState<string>();
   const output =
     outputs.find((output) => output.id === selectedId) ?? outputs[0];
-
-  useEffect(() => {
-    access.onstatechange = () => setOutputs(getConnectedOutputs(access));
-    return () => {
-      access.onstatechange = null;
-    };
-  }, [access]);
 
   const [velocity, setVelocity] = useState(DEFAULT_VELOCITY);
   const [pitchBend, setPitchBend] = useState(PITCH_BEND_CENTER);
@@ -205,7 +206,7 @@ function MidiKeyboard({ access }: { access: MIDIAccess }) {
         </select>
       </label>
 
-      <div className="grid grid-cols-5 gap-6">
+      <div className="grid grid-cols-4 gap-6">
         <ControlSlider
           label="Velocity"
           value={velocity}
@@ -321,12 +322,6 @@ function ControlSlider({
         onKeyUp={onRelease}
       />
     </div>
-  );
-}
-
-function getConnectedOutputs(access: MIDIAccess): MIDIOutput[] {
-  return [...access.outputs.values()].filter(
-    (output) => output.state === "connected",
   );
 }
 

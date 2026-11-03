@@ -330,7 +330,7 @@ export function TrackMonitorToggle({
 }: {
   label: string;
   title: string;
-  disabled: boolean;
+  disabled?: boolean;
   monitoring: boolean;
   onMonitoringChange: (monitoring: boolean) => void;
 }) {

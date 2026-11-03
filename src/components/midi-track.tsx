@@ -78,7 +78,7 @@ export function MidiTrackRow({
   onRemove,
   midiInteraction,
   midiMonitoring,
-  midiMonitorDisabled,
+  midiMonitorVisible,
   onTranscribe,
   onScorePreview,
 }: {
@@ -94,7 +94,7 @@ export function MidiTrackRow({
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useMidiInteraction>;
   midiMonitoring: boolean;
-  midiMonitorDisabled: boolean;
+  midiMonitorVisible: boolean;
   onTranscribe: () => void;
   onScorePreview: () => void;
 }) {
@@ -217,19 +217,18 @@ export function MidiTrackRow({
               onExportMidi={() => exportMidiMutation.mutate()}
               onExportMusicXml={() => exportMusicXmlMutation.mutate()}
             />
-            <TrackMonitorToggle
-              label={monitorLabel}
-              title={
-                midiMonitorDisabled
-                  ? "Select a MIDI device to monitor"
-                  : monitorLabel
-              }
-              disabled={midiMonitorDisabled}
-              monitoring={midiMonitoring}
-              onMonitoringChange={(monitoring) =>
-                runtime.setMidiMonitorTrack(monitoring ? track.id : undefined)
-              }
-            />
+            {midiMonitorVisible && (
+              <TrackMonitorToggle
+                label={monitorLabel}
+                title={monitorLabel}
+                monitoring={midiMonitoring}
+                onMonitoringChange={(monitoring) =>
+                  void runtime.setMidiMonitorTrack(
+                    monitoring ? track.id : undefined,
+                  )
+                }
+              />
+            )}
           </>
         }
       >
