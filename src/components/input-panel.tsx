@@ -44,7 +44,7 @@ export function InputPanel({
       onClose={onClose}
       data-testid="input-panel"
       className="pointer-events-auto w-64 shrink-0"
-      contentClassName="space-y-2.5 text-xs"
+      contentClassName="space-y-2.5 px-3 py-2 text-xs"
     >
       {accessRequired ? (
         <button

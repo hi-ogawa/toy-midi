@@ -117,7 +117,7 @@ export function AudioToMidi({
     <Panel
       closeLabel="Close Audio to MIDI"
       className="pointer-events-auto w-[440px] shrink-0"
-      contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto"
+      contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-3 py-2"
       onClose={onClose}
       title={`Audio to MIDI · ${track.name}`}
       data-testid="audio-to-midi"

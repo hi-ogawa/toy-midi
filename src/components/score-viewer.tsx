@@ -324,6 +324,7 @@ export function ScoreViewer({
           onClose={() => setIsSettingsOpen(false)}
           title="Score settings"
           data-testid="score-settings-panel"
+          contentClassName="px-3 py-2"
           className="fixed right-4 bottom-4 z-40 max-w-[calc(100vw-2rem)]"
         >
           <ScoreSettings settings={settings} onChange={changeSettings} />

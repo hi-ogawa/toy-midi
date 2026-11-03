@@ -11,7 +11,6 @@ export function Panel({
   "data-testid": testId,
   className,
   contentClassName,
-  flush,
   style,
 }: {
   title: ReactNode;
@@ -21,9 +20,7 @@ export function Panel({
   children: ReactNode;
   "data-testid"?: string;
   className?: string;
-  contentClassName?: string;
-  /** Lets the content reach the panel's edges, without body padding. */
-  flush?: boolean;
+  contentClassName: string;
   style?: CSSProperties;
 }) {
   return (
@@ -50,14 +47,7 @@ export function Panel({
           </button>
         </div>
       </div>
-      <div
-        className={cn(
-          !flush && "px-3 py-2",
-          contentClassName ?? "overflow-x-auto",
-        )}
-      >
-        {children}
-      </div>
+      <div className={contentClassName}>{children}</div>
     </section>
   );
 }

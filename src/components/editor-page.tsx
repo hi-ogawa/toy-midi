@@ -864,6 +864,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
             data-testid="mixer-panel"
+            contentClassName="overflow-x-auto px-3 py-2"
             className="pointer-events-auto flex-1"
           >
             <Mixer
