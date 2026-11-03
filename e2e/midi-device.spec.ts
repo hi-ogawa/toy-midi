@@ -28,7 +28,7 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   const output = await tapMasterOutput(page);
   await firstMonitor.click();
   await expect(firstMonitor).toHaveAttribute("aria-pressed", "true");
-  await device.send([0x90, 60, 100]);
+  await device.send({ type: "note-on", pitch: 60, velocity: 100 });
   await output.expectSound();
   await first.getByTitle("Mute MIDI 1", { exact: true }).click();
   await output.expectSilence();
@@ -40,12 +40,12 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await expect(firstMonitor).toHaveAttribute("aria-pressed", "false");
   await expect(secondMonitor).toHaveAttribute("aria-pressed", "true");
   await output.expectSilence();
-  await device.send([0x80, 60, 0]);
+  await device.send({ type: "note-off", pitch: 60 });
 
-  // Play the second track, releasing with a note-on at velocity 0.
-  await device.send([0x91, 64, 100]);
+  // Play the second track.
+  await device.send({ type: "note-on", pitch: 64, velocity: 100 });
   await output.expectSound();
-  await device.send([0x91, 64, 0]);
+  await device.send({ type: "note-off", pitch: 64 });
   await output.expectSilence();
 
   // Save and reload, and find the device reconnected with monitoring off.

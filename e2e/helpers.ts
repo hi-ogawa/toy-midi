@@ -1,5 +1,7 @@
 import path from "node:path";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import type { MidiMessage } from "../src/lib/general-midi";
+import { encodeMidiMessage } from "../src/lib/midi-device";
 
 declare global {
   interface Window {
@@ -51,7 +53,7 @@ export async function installFakeMidiDevice(page: Page) {
     navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
   });
   return {
-    send: (bytes: number[]) =>
+    send: (message: MidiMessage) =>
       page.evaluate(async (bytes) => {
         const access = await navigator.requestMIDIAccess();
         const input = access.inputs.get("fake-keyboard")!;
@@ -62,7 +64,7 @@ export async function installFakeMidiDevice(page: Page) {
             }),
           );
         }
-      }, bytes),
+      }, encodeMidiMessage(message)),
   };
 }
 
