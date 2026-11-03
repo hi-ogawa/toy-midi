@@ -63,6 +63,14 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   await page.keyboard.up("a");
   await expectSilent();
 
+  // Play a note from L, which adds no locator while capture is on.
+  await page.keyboard.down("l");
+  const d4 = panel.getByRole("button", { name: "D4", exact: true });
+  await expect(d4).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.up("l");
+  await expect(d4).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("locator")).toHaveCount(0);
+
   // Shift an octave, and release the note it started after shifting back.
   await page.keyboard.press("x");
   await page.keyboard.down("a");
