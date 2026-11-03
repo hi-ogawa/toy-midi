@@ -8,7 +8,7 @@ export type MidiDeviceMessage =
 
 export type MidiConnection = {
   deviceId: string;
-  disconnect: () => Promise<void>;
+  dispose: () => Promise<void>;
 };
 
 export function isMidiDeviceSupported(): boolean {
@@ -44,11 +44,11 @@ export function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
 export async function connectMidiInput({
   input,
   onMessage,
-  onUnplug,
+  onDisconnect,
 }: {
   input: MIDIInput;
   onMessage: (message: MidiDeviceMessage) => void;
-  onUnplug: () => void;
+  onDisconnect: () => void;
 }): Promise<MidiConnection> {
   const handleMessage = (event: MIDIMessageEvent) => {
     const message = event.data && parseMidiDeviceMessage(event.data);
@@ -58,7 +58,7 @@ export async function connectMidiInput({
   };
   const handleStateChange = () => {
     if (input.state === "disconnected") {
-      onUnplug();
+      onDisconnect();
     }
   };
   input.addEventListener("midimessage", handleMessage);
@@ -67,7 +67,7 @@ export async function connectMidiInput({
   await input.open();
   return {
     deviceId: input.id,
-    disconnect: async () => {
+    dispose: async () => {
       input.removeEventListener("midimessage", handleMessage);
       input.removeEventListener("statechange", handleStateChange);
       await input.close();

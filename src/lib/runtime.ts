@@ -817,13 +817,13 @@ export class EditorRuntime {
     const midiConnection = await connectMidiInput({
       input,
       onMessage: (message) => this.playMidiDeviceMessage(message),
-      onUnplug: () => this.stopMidiInput(),
+      onDisconnect: () => this.stopMidiInput(),
     });
     this.store.update({ midiConnection });
   }
 
   async stopMidiInput(): Promise<void> {
-    await this.store.get().midiConnection?.disconnect();
+    await this.store.get().midiConnection?.dispose();
     await this.setMidiMonitorTrack(undefined);
     this.store.update({ midiConnection: undefined });
   }
