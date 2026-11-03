@@ -1,5 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { isMidiDeviceSupported } from "../lib/midi-device";
 import { preferences } from "../lib/preferences";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
@@ -19,11 +18,17 @@ export function useMidiDevice({
     mutationFn: () => runtime.requestMidiAccess(rememberedId),
   });
 
-  useEffect(() => {
-    if (rememberedId) {
-      void runtime.restoreMidiDevice(rememberedId);
-    }
-  }, []);
+  useQuery({
+    queryKey: ["midi-device-restore"],
+    retry: false,
+    staleTime: Infinity,
+    queryFn: async () => {
+      if (rememberedId) {
+        await runtime.restoreMidiDevice(rememberedId);
+      }
+      return true;
+    },
+  });
 
   return {
     devices: state.midiDevices,
