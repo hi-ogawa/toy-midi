@@ -133,6 +133,7 @@ export function matchKeyboardEvent(
     : e.key.toLowerCase() === parsed.key?.toLowerCase();
 }
 
+/** Whether the focused control uses keys itself, so editor shortcuts leave them alone. */
 export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
   return (
     isTextEntryTarget(target) ||
@@ -142,6 +143,7 @@ export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
   );
 }
 
+/** Whether the user is typing. Selects and sliders don't count, so key capture keeps playing there. */
 export function isTextEntryTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLInputElement ||

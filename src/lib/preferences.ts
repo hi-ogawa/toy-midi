@@ -48,6 +48,7 @@ export const preferences = withUseValue(
 const projectUiStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
+  midiKeyboardOpen: z.boolean(),
   tunerOpen: z.boolean(),
   timelinePixelsPerBeat: z
     .number()
@@ -77,6 +78,7 @@ type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   autoScrollEnabled: true,
   inputPanelOpen: false,
+  midiKeyboardOpen: false,
   tunerOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   referenceVideoSize: { width: 640, height: 480 },
