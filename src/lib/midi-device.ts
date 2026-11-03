@@ -40,16 +40,16 @@ function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
 export function connectMidiInput(
   input: MIDIInput,
   onMessage: (message: MidiDeviceMessage) => void,
-): () => void {
+): () => Promise<void> {
   input.onmidimessage = (event) => {
     const message = event.data && parseMidiDeviceMessage(event.data);
     if (message) {
       onMessage(message);
     }
   };
-  return () => {
+  return async () => {
     input.onmidimessage = null;
-    void input.close();
+    await input.close();
   };
 }
 

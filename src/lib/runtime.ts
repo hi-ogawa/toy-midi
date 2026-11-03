@@ -357,7 +357,7 @@ export class EditorRuntime {
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
-  private disconnectMidiInput?: () => void;
+  private disconnectMidiInput?: () => Promise<void>;
   /** Pitch of each note a MIDI device holds, and the track it sounds on. */
   private readonly midiDeviceNotes = new Map<number, string>();
   private attachedYouTubePlayer?: {
@@ -811,23 +811,25 @@ export class EditorRuntime {
     this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
   }
 
-  startMidiInput(input: MIDIInput): void {
-    this.stopMidiInput();
+  async startMidiInput(input: MIDIInput): Promise<void> {
+    const stopped = this.stopMidiInput();
     this.disconnectMidiInput = connectMidiInput(input, (message) =>
       this.playMidiDeviceMessage(message),
     );
     this.store.update({ midiDeviceId: input.id });
+    await stopped;
   }
 
   /** A device that stops sending can't release its notes, so they end here. */
-  stopMidiInput(): void {
-    this.disconnectMidiInput?.();
+  async stopMidiInput(): Promise<void> {
+    const disconnect = this.disconnectMidiInput;
     this.disconnectMidiInput = undefined;
     for (const pitch of this.midiDeviceNotes.keys()) {
       this.releaseMidiDeviceNote(pitch);
     }
     this.setMidiMonitorTrack(undefined);
     this.store.update({ midiDeviceId: undefined });
+    await disconnect?.();
   }
 
   /** Called from the click that enables monitoring, which lets audio start. */

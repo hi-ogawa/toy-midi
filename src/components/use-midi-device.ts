@@ -34,9 +34,9 @@ export function useMidiDevice({
       return;
     }
     if (input) {
-      runtime.startMidiInput(input);
+      void runtime.startMidiInput(input);
     } else {
-      runtime.stopMidiInput();
+      void runtime.stopMidiInput();
     }
   }
 
