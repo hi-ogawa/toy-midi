@@ -814,11 +814,10 @@ export class EditorRuntime {
 
   async startMidiInput(input: MIDIInput): Promise<void> {
     await this.stopMidiInput();
-    this.store.update({
-      midiConnection: connectMidiInput(input, (message) =>
-        this.playMidiDeviceMessage(message),
-      ),
-    });
+    const midiConnection = connectMidiInput(input, (message) =>
+      this.playMidiDeviceMessage(message),
+    );
+    this.store.update({ midiConnection });
   }
 
   async stopMidiInput(): Promise<void> {
