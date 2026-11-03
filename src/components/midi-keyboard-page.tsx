@@ -255,7 +255,7 @@ function MidiKeyboardControls() {
       </div>
 
       <div
-        className="relative h-40 select-none"
+        className="relative h-40 touch-none select-none"
         role="group"
         aria-label="Piano"
       >
@@ -326,9 +326,13 @@ function PianoKey({
       onPointerDown={(event) => {
         // Keeps focus where it is, so a key can't also press this button.
         event.preventDefault();
-        keyboard.pressPointer(pitch);
+        // A touch stays captured by its first key, which would stop it sliding.
+        event.currentTarget.releasePointerCapture(event.pointerId);
+        keyboard.pressPointer({ pointerId: event.pointerId, pitch });
       }}
-      onPointerEnter={() => keyboard.slidePointer(pitch)}
+      onPointerEnter={(event) =>
+        keyboard.slidePointer({ pointerId: event.pointerId, pitch })
+      }
       className={cn(
         "absolute top-0 flex items-end justify-center rounded-b pb-1 text-[10px] text-neutral-500",
         isBlackKey(pitch) ? "z-10 h-[60%]" : "h-full border border-neutral-400",

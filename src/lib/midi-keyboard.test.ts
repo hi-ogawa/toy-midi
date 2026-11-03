@@ -37,9 +37,9 @@ describe("MidiKeyboard", () => {
 
   it("releases the previous pitch when the pointer slides", () => {
     const { keyboard, sent } = createKeyboard();
-    keyboard.pressPointer(60);
-    keyboard.slidePointer(62);
-    keyboard.releasePointer();
+    keyboard.pressPointer({ pointerId: 1, pitch: 60 });
+    keyboard.slidePointer({ pointerId: 1, pitch: 62 });
+    keyboard.releasePointer(1);
     expect(sent).toEqual([
       { type: "note-on", pitch: 60, velocity: 100 },
       { type: "note-off", pitch: 60 },
@@ -48,9 +48,28 @@ describe("MidiKeyboard", () => {
     ]);
   });
 
+  it("releases only the note under the pointer that lifted", () => {
+    const { keyboard, sent } = createKeyboard();
+    keyboard.pressPointer({ pointerId: 1, pitch: 60 });
+    keyboard.pressPointer({ pointerId: 2, pitch: 64 });
+    keyboard.releasePointer(1);
+    expect(sent.at(-1)).toEqual({ type: "note-off", pitch: 60 });
+    expect([...keyboard.store.get().heldPitches]).toEqual([64]);
+  });
+
+  it("keeps a note until every pointer on it lifts", () => {
+    const { keyboard, sent } = createKeyboard();
+    keyboard.pressPointer({ pointerId: 1, pitch: 60 });
+    keyboard.pressPointer({ pointerId: 2, pitch: 60 });
+    keyboard.releasePointer(1);
+    expect(sent).toEqual([{ type: "note-on", pitch: 60, velocity: 100 }]);
+    keyboard.releasePointer(2);
+    expect(sent.at(-1)).toEqual({ type: "note-off", pitch: 60 });
+  });
+
   it("ignores a pointer sliding with no button held", () => {
     const { keyboard, sent } = createKeyboard();
-    keyboard.slidePointer(62);
+    keyboard.slidePointer({ pointerId: 1, pitch: 62 });
     expect(sent).toEqual([]);
   });
 

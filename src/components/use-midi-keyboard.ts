@@ -25,7 +25,12 @@ export function useMidiKeyboard({
     }
   });
   useWindowEvent("keyup", (event) => keyboard.releaseKey(event.code));
-  useWindowEvent("pointerup", () => keyboard.releasePointer());
+  useWindowEvent("pointerup", (event) =>
+    keyboard.releasePointer(event.pointerId),
+  );
+  useWindowEvent("pointercancel", (event) =>
+    keyboard.releasePointer(event.pointerId),
+  );
   // The window misses the key or pointer release once it loses focus.
   useWindowEvent("blur", () => keyboard.releaseAll());
 

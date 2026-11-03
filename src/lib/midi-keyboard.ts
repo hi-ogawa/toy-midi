@@ -33,7 +33,7 @@ export class MidiKeyboard {
 
   // A key releases the pitch it started, even if the octave changed since.
   private keyPitches = new Map<string, number>();
-  private pointerPitch?: number;
+  private pointerPitches = new Map<number, number>();
 
   constructor(
     private readonly options: { send: (message: MidiDeviceMessage) => void },
@@ -105,22 +105,35 @@ export class MidiKeyboard {
     }
   }
 
-  pressPointer(pitch: number): void {
-    this.pointerPitch = pitch;
+  pressPointer({
+    pointerId,
+    pitch,
+  }: {
+    pointerId: number;
+    pitch: number;
+  }): void {
+    this.pointerPitches.set(pointerId, pitch);
     this.press(pitch);
   }
 
-  slidePointer(pitch: number): void {
-    if (this.pointerPitch !== undefined) {
-      this.release(this.pointerPitch);
-      this.pressPointer(pitch);
+  slidePointer({
+    pointerId,
+    pitch,
+  }: {
+    pointerId: number;
+    pitch: number;
+  }): void {
+    if (this.pointerPitches.has(pointerId)) {
+      this.releasePointer(pointerId);
+      this.pressPointer({ pointerId, pitch });
     }
   }
 
-  releasePointer(): void {
-    if (this.pointerPitch !== undefined) {
-      this.release(this.pointerPitch);
-      this.pointerPitch = undefined;
+  releasePointer(pointerId: number): void {
+    const pitch = this.pointerPitches.get(pointerId);
+    if (pitch !== undefined) {
+      this.pointerPitches.delete(pointerId);
+      this.release(pitch);
     }
   }
 
@@ -129,7 +142,7 @@ export class MidiKeyboard {
       this.options.send({ type: "note-off", pitch });
     }
     this.keyPitches.clear();
-    this.pointerPitch = undefined;
+    this.pointerPitches.clear();
     this.store.update({ heldPitches: new Set() });
   }
 
@@ -142,6 +155,14 @@ export class MidiKeyboard {
   }
 
   private release(pitch: number): void {
+    // Another finger or key can still be holding the same note.
+    if (
+      [...this.keyPitches.values(), ...this.pointerPitches.values()].includes(
+        pitch,
+      )
+    ) {
+      return;
+    }
     const next = new Set(this.store.get().heldPitches);
     if (next.delete(pitch)) {
       this.options.send({ type: "note-off", pitch });
