@@ -1,12 +1,21 @@
 import { expect, test } from "@playwright/test";
-import { addSynthTrack, createProject } from "./editor-helpers";
+import {
+  addMidiTrack,
+  createProject,
+  setMidiInstrument,
+} from "./editor-helpers";
 import { tapMasterOutput } from "./helpers";
 
 test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await createProject(page);
 
-  // Add a synth track, which offers no monitoring without a live input.
-  const row = await addSynthTrack(page, { name: "MIDI 1" });
+  // Add a track on the synth, whose held notes sustain. It offers no monitoring
+  // without a live input.
+  const row = await addMidiTrack(page);
+  await setMidiInstrument(page, {
+    name: "MIDI 1",
+    option: "Subtractive Synth",
+  });
   const monitor = row.getByTestId("input-monitor");
   await expect(monitor).toHaveCount(0);
 

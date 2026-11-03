@@ -33,18 +33,18 @@ export async function addMidiTrack(page: Page) {
   );
 }
 
-/** Add a track on the synth, whose held notes sustain instead of decaying away. */
-export async function addSynthTrack(page: Page, { name }: { name: string }) {
-  return await test.step(
-    `Add synth track ${name}`,
+export async function setMidiInstrument(
+  page: Page,
+  { name, option }: { name: string; option: string },
+) {
+  await test.step(
+    `Set ${name} instrument to ${option}`,
     async () => {
-      const track = await addMidiTrack(page);
       const instrument = await openMidiInstrument(page, { name });
-      await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
+      await selectMidiInstrument(instrument, { option });
       await instrument
         .getByRole("button", { name: "Close", exact: true })
         .click();
-      return track;
     },
     { box: true },
   );
