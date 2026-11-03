@@ -5,7 +5,6 @@ import type {} from "../src/api";
 declare global {
   interface Window {
     __e2eSentMidi: number[][];
-    __e2eOutputAnalyser: AnalyserNode;
   }
 }
 
@@ -73,46 +72,44 @@ export async function installFakeMidiOutput(page: Page): Promise<void> {
   });
 }
 
-/** Connect an analyser to the master output, which is the mix the speakers play. */
-export async function tapMasterOutput(page: Page): Promise<void> {
+/**
+ * Connect an analyser to the master output, which is the mix the speakers play,
+ * and return checks that wait for it to sound or to fall silent.
+ */
+export async function tapMasterOutput(page: Page) {
   await page.waitForFunction(() => window.toyMidi.runtime);
-  await page.evaluate(() => {
+  const analyser = await page.evaluateHandle(() => {
     const { masterOutput } = window.toyMidi.runtime!;
     const analyser = masterOutput.context.createAnalyser();
     masterOutput.connect(analyser);
-    window.__e2eOutputAnalyser = analyser;
+    return analyser;
   });
-}
-
-/** Wait until the tapped master output sounds. */
-export async function expectSound(page: Page): Promise<void> {
-  await test.step(
-    "Expect sound",
-    async () => {
-      await expect.poll(() => getOutputPeak(page)).toBeGreaterThan(0.001);
+  const getPeak = () =>
+    analyser.evaluate((analyser) => {
+      const samples = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(samples);
+      return Math.max(...samples.map(Math.abs));
+    });
+  return {
+    async expectSound(): Promise<void> {
+      await test.step(
+        "Expect sound",
+        async () => {
+          await expect.poll(getPeak).toBeGreaterThan(0.001);
+        },
+        { box: true },
+      );
     },
-    { box: true },
-  );
-}
-
-/** Wait until the tapped master output is silent. */
-export async function expectSilence(page: Page): Promise<void> {
-  await test.step(
-    "Expect silence",
-    async () => {
-      await expect.poll(() => getOutputPeak(page)).toBe(0);
+    async expectSilence(): Promise<void> {
+      await test.step(
+        "Expect silence",
+        async () => {
+          await expect.poll(getPeak).toBe(0);
+        },
+        { box: true },
+      );
     },
-    { box: true },
-  );
-}
-
-async function getOutputPeak(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    const analyser = window.__e2eOutputAnalyser;
-    const samples = new Float32Array(analyser.fftSize);
-    analyser.getFloatTimeDomainData(samples);
-    return Math.max(...samples.map(Math.abs));
-  });
+  };
 }
 
 /** Log elapsed checkpoints while investigating E2E timing. */

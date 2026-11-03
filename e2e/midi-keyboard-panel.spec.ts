@@ -5,7 +5,7 @@ import {
   openMidiInstrument,
   selectMidiInstrument,
 } from "./editor-helpers";
-import { expectSilence, expectSound, tapMasterOutput } from "./helpers";
+import { tapMasterOutput } from "./helpers";
 
 test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await createProject(page);
@@ -22,17 +22,17 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await expect(panel.getByRole("status")).toHaveText("No track");
   await monitor.click();
   await expect(panel.getByRole("status")).toHaveText("MIDI 1");
-  await tapMasterOutput(page);
+  const output = await tapMasterOutput(page);
 
   // Hold a piano key with the mouse, which sounds until release.
   const c4 = panel.getByRole("button", { name: "C4", exact: true });
   await c4.hover();
   await page.mouse.down();
   await expect(c4).toHaveAttribute("aria-pressed", "true");
-  await expectSound(page);
+  await output.expectSound();
   await page.mouse.up();
   await expect(c4).toHaveAttribute("aria-pressed", "false");
-  await expectSilence(page);
+  await output.expectSilence();
 
   // Leave the computer keys as shortcuts until capture is on.
   const c3 = panel.getByRole("button", { name: "C3", exact: true });
@@ -45,18 +45,18 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await expect(c3).toContainText("A");
   await page.keyboard.down("a");
   await expect(c3).toHaveAttribute("aria-pressed", "true");
-  await expectSound(page);
+  await output.expectSound();
   await page.keyboard.up("a");
   await expect(c3).toHaveAttribute("aria-pressed", "false");
-  await expectSilence(page);
+  await output.expectSilence();
 
   // Switch the instrument, and play it from the keys inside its dialog.
   const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
   await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
   await page.keyboard.down("a");
-  await expectSound(page);
+  await output.expectSound();
   await page.keyboard.up("a");
-  await expectSilence(page);
+  await output.expectSilence();
   await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Play a note from L, which adds no locator while capture is on.
