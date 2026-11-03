@@ -80,6 +80,9 @@ export async function tapMasterOutput(page: Page) {
   const analyser = await page.evaluateHandle(() => {
     const { masterOutput } = window.toyMidi.runtime!;
     const analyser = masterOutput.context.createAnalyser();
+    // The largest window spans a beat at the default tempo, so a read can't miss
+    // a metronome click that falls between polls.
+    analyser.fftSize = 32768;
     masterOutput.connect(analyser);
     return analyser;
   });

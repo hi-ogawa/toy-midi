@@ -8,7 +8,11 @@ import {
   getPosition,
   seekByPixels,
 } from "./editor-helpers";
-import { createCheckpoint, useFakeAudioInput } from "./helpers";
+import {
+  createCheckpoint,
+  tapMasterOutput,
+  useFakeAudioInput,
+} from "./helpers";
 
 useFakeAudioInput();
 
@@ -151,12 +155,21 @@ test("clamps tempo edits and sets tempo from evenly spaced taps", async ({
 test("toggles the metronome by button and shortcut without intercepting text input", async ({
   page,
 }) => {
-  // Enable the metronome from the toolbar, then disable it with its shortcut.
+  // Enable the metronome from the toolbar.
   await createProject(page);
   const metronome = page.getByTitle("Toggle metronome (M)", { exact: true });
   await expect(metronome).toHaveAttribute("aria-pressed", "false");
   await metronome.click();
   await expect(metronome).toHaveAttribute("aria-pressed", "true");
+
+  // Play, and hear the metronome.
+  const output = await tapMasterOutput(page);
+  const play = page.getByTestId("play-button");
+  await play.click();
+  await output.expectSound();
+  await play.click();
+
+  // Disable it with its shortcut.
   await page.keyboard.press("m");
   await expect(metronome).toHaveAttribute("aria-pressed", "false");
 

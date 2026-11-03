@@ -7,7 +7,7 @@ import {
   getPosition,
   saveProject,
 } from "./editor-helpers";
-import { selectMenuItem } from "./helpers";
+import { selectMenuItem, tapMasterOutput } from "./helpers";
 
 test("uploads and plays a backing track", async ({ page }) => {
   await createProject(page);
@@ -47,14 +47,17 @@ test("uploads and plays a backing track", async ({ page }) => {
     -1,
   );
 
-  // Playback rolls the shared transport and can be paused from its new position.
+  // Playback rolls the shared transport, sounds, and can be paused from its new position.
+  const output = await tapMasterOutput(page);
   const playButton = page.getByTestId("play-button");
   await expect.poll(() => getPosition(page)).toBe(0);
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => getPosition(page)).toBeGreaterThan(0);
+  await output.expectSound();
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
+  await output.expectSilence();
 
   // Deleting the selected clip preserves both audio track rows.
   await clip.dispatchEvent("click");
@@ -134,12 +137,20 @@ test("mixes editor outputs in a floating panel", async ({ page }) => {
   await masterLevel.press("Enter");
   await expect(masterLevel).toHaveValue("-6.0");
 
-  // Mute and solo backing audio independently.
+  // Seek back into the clip, and play it to hear muting silence it.
+  await position.click();
+  await page.keyboard.press("ArrowLeft");
+  const output = await tapMasterOutput(page);
+  const playButton = page.getByTestId("play-button");
+  await playButton.click();
+  await output.expectSound();
   const audio = panel.getByTestId("mixer-audio-2");
   await audio.getByRole("button", { name: "Toggle Audio 2 mute" }).click();
   await expect(
     audio.getByRole("button", { name: "Toggle Audio 2 mute" }),
   ).toHaveAttribute("aria-pressed", "true");
+  await output.expectSilence();
+  await playButton.click();
   await audio.getByRole("button", { name: "Toggle Audio 2 solo" }).click();
   await expect(
     audio.getByRole("button", { name: "Toggle Audio 2 solo" }),

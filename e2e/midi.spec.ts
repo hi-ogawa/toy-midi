@@ -9,7 +9,7 @@ import {
   openMidiInstrument,
   selectMidiInstrument,
 } from "./editor-helpers";
-import { selectMenuItem } from "./helpers";
+import { selectMenuItem, tapMasterOutput } from "./helpers";
 
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Add two MIDI tracks and verify each has its own timeline row.
@@ -62,6 +62,11 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await secondSend.press("Shift+ArrowDown");
   await expect(secondSend).toHaveAttribute("aria-valuetext", "-12.0 dB");
 
+  // Write a bar of notes on the second track to hear after reload.
+  for (const beat of [0, 1, 2, 3]) {
+    await createMidiNote(page, rows.nth(1), { beat, pitch: "C4" });
+  }
+
   // Save and reload both tracks with their independent mix settings.
   const save = page.getByTestId("save-button");
   await expect(save).toHaveAttribute("data-status", "unsaved");
@@ -79,10 +84,12 @@ test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   await expect(secondPan).toHaveAttribute("aria-valuetext", "L90");
   await expect(secondSend).toHaveAttribute("aria-valuetext", "-12.0 dB");
 
-  // Play the restored project and pause after the transport advances.
+  // Play the restored project, hear its notes, and pause after the transport advances.
+  const output = await tapMasterOutput(page);
   const play = page.getByTestId("play-button");
   await play.click();
   await expect.poll(() => getPosition(page)).toBeGreaterThan(0);
+  await output.expectSound();
   await play.click();
   await expect(play).toHaveAttribute("aria-pressed", "false");
   await expect(save).toHaveAttribute("data-status", "saved");
