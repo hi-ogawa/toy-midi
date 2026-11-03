@@ -1,4 +1,8 @@
-import { PITCH_BEND_RANGE, PITCH_WHEEL_CENTER } from "../general-midi.ts";
+import {
+  MODULATION_CONTROLLER,
+  PITCH_BEND_RANGE,
+  PITCH_WHEEL_CENTER,
+} from "../general-midi.ts";
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { clamp, dbToGain, midiToHz } from "../music.ts";
 import { BiquadEqPerSample, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
@@ -119,7 +123,6 @@ interface ResolvedLayer {
 type ResolvedFilter = Omit<SynthLayer["filter"], "envelope"> &
   Pick<SynthLayer["filter"]["envelope"], "amount" | "velocity">;
 
-const MODULATION_CONTROLLER = 1;
 const VOLUME_CONTROLLER = 7;
 const EXPRESSION_CONTROLLER = 11;
 const RESONANCE_CONTROLLER = 71;

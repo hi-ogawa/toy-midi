@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { ABLETON_KEYMAP, getComputerKeyLabels } from "../lib/computer-keyboard";
 import {
   encodePitchBend,
+  MODULATION_CONTROLLER,
   PITCH_BEND_RANGE,
   PITCH_WHEEL_CENTER,
 } from "../lib/general-midi";
@@ -32,7 +33,6 @@ import { usePointerDrag } from "./use-pointer-drag";
 
 const WHITE_KEY_WIDTH = 28;
 const PANEL_CHROME_WIDTH = 26;
-const MOD_WHEEL_CONTROLLER = 1;
 const SEMITONE_BEND = PITCH_WHEEL_CENTER / PITCH_BEND_RANGE;
 // Narrower than the synths' range, so a short drag plays a musical bend.
 const KNOB_BEND_SEMITONES = 2;
@@ -137,11 +137,11 @@ export function MidiKeyboardPanel({
         <ValueKnob
           label="Mod wheel"
           shortLabel="Mod"
-          value={controllerValues[MOD_WHEEL_CONTROLLER]}
+          value={controllerValues[MODULATION_CONTROLLER]}
           min={0}
           max={127}
           onChange={(value) =>
-            keyboard.setController({ controller: MOD_WHEEL_CONTROLLER, value })
+            keyboard.setController({ controller: MODULATION_CONTROLLER, value })
           }
         />
         <ValueKnob
