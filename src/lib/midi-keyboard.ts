@@ -13,8 +13,6 @@ import { clamp } from "./music.ts";
 export const MIN_OCTAVE = -2;
 export const MAX_OCTAVE = 2;
 
-type Send = (message: MidiDeviceMessage) => void;
-
 /**
  * What a player does live on a keyboard, as MIDI messages. Every note-on gets
  * its note-off however the input changes while a note is held.
@@ -37,7 +35,9 @@ export class MidiKeyboard {
   private keyPitches = new Map<string, number>();
   private pointerPitch?: number;
 
-  constructor(private readonly options: { send: Send }) {}
+  constructor(
+    private readonly options: { send: (message: MidiDeviceMessage) => void },
+  ) {}
 
   setVelocity(velocity: number): void {
     this.store.update({ velocity });
