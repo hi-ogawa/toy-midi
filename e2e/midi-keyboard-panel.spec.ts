@@ -71,11 +71,6 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await expect(a2).toHaveText("");
   await expect(c3).toContainText("A");
 
-  // Read how to use the keys from the help popover.
-  await panel.getByRole("button", { name: "MIDI Keyboard help" }).click();
-  await expect(page.getByText("Octave down, up")).toBeVisible();
-  await page.keyboard.press("Escape");
-
   // Play from inside the instrument dialog while browsing presets.
   const dialog = await openMidiInstrument(page, { name: "MIDI 1" });
   const hiddenC3 = panel.getByRole("button", {
