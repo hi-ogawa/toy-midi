@@ -37,7 +37,7 @@ function MidiDeviceContent({
             <option value="">Off</option>
             {devices.map((device) => (
               <option key={device.id} value={device.id}>
-                {device.name}
+                {device.name || "Unnamed device"}
               </option>
             ))}
           </select>

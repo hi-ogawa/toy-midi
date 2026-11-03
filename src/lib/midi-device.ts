@@ -6,8 +6,6 @@ export type MidiDeviceMessage =
   | { type: "controller"; controller: number; value: number }
   | { type: "pitch-bend"; value: number };
 
-export type MidiDevice = { id: string; name: string };
-
 const NOTE_OFF_STATUS = 0x80;
 const NOTE_ON_STATUS = 0x90;
 const CONTROLLER_STATUS = 0xb0;
@@ -22,74 +20,10 @@ export async function isMidiAccessGranted(): Promise<boolean> {
   return permission.state === "granted";
 }
 
-/**
- * The browser's MIDI devices and the connection to the selected one, which
- * returns on its own when an unplugged device comes back.
- */
-export class MidiDeviceInput {
-  private selectedId?: string;
-  private input?: MIDIInput;
-
-  static async create(options: {
-    onChange: () => void;
-    onMessage: (message: MidiDeviceMessage) => void;
-  }): Promise<MidiDeviceInput> {
-    return new MidiDeviceInput(await navigator.requestMIDIAccess(), options);
-  }
-
-  private constructor(
-    private readonly access: MIDIAccess,
-    private readonly options: {
-      onChange: () => void;
-      onMessage: (message: MidiDeviceMessage) => void;
-    },
-  ) {
-    access.onstatechange = () => this.sync();
-  }
-
-  getDevices(): MidiDevice[] {
-    return this.getConnectedInputs().map((input) => ({
-      id: input.id,
-      name: input.name || "Unnamed device",
-    }));
-  }
-
-  getConnectedId(): string | undefined {
-    return this.input?.id;
-  }
-
-  select(id?: string): void {
-    this.selectedId = id;
-    this.sync();
-  }
-
-  private getConnectedInputs(): MIDIInput[] {
-    return [...this.access.inputs.values()].filter(
-      (input) => input.state === "connected",
-    );
-  }
-
-  private sync(): void {
-    const next = this.getConnectedInputs().find(
-      (input) => input.id === this.selectedId,
-    );
-    if (next !== this.input) {
-      if (this.input) {
-        this.input.onmidimessage = null;
-        void this.input.close();
-      }
-      this.input = next;
-      if (next) {
-        next.onmidimessage = (event) => {
-          const message = event.data && parseMidiDeviceMessage(event.data);
-          if (message) {
-            this.options.onMessage(message);
-          }
-        };
-      }
-    }
-    this.options.onChange();
-  }
+export function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
+  return [...access.inputs.values()].filter(
+    (input) => input.state === "connected",
+  );
 }
 
 /** Reads a message on any channel, or nothing for what live input ignores. */

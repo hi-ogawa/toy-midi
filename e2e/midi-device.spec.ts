@@ -10,6 +10,7 @@ import {
 declare global {
   interface Window {
     sendFakeMidi: (bytes: number[]) => void;
+    setFakeMidiState: (state: "connected" | "disconnected") => void;
   }
 }
 
@@ -27,10 +28,17 @@ async function installFakeMidiDevice(page: Page): Promise<void> {
         | undefined,
       close: async () => input,
     };
-    const access = { inputs: new Map([[input.id, input]]) };
+    const access = {
+      inputs: new Map([[input.id, input]]),
+      onstatechange: undefined as (() => void) | undefined,
+    };
     navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
     window.sendFakeMidi = (bytes) =>
       input.onmidimessage?.({ data: new Uint8Array(bytes) });
+    window.setFakeMidiState = (state) => {
+      input.state = state;
+      access.onstatechange?.();
+    };
   });
 }
 
@@ -89,6 +97,17 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await expect.poll(() => getLevel(secondMeter)).toBeGreaterThan(-60);
   await page.evaluate(() => window.sendFakeMidi([0x91, 64, 0]));
   await expect(secondMeter).toHaveAttribute("aria-valuenow", "-60");
+
+  // Unplug the device while holding a note, and hear the note end.
+  await page.evaluate(() => window.sendFakeMidi([0x90, 67, 100]));
+  await expect.poll(() => getLevel(secondMeter)).toBeGreaterThan(-60);
+  await page.evaluate(() => window.setFakeMidiState("disconnected"));
+  await expect(secondMeter).toHaveAttribute("aria-valuenow", "-60");
+  await expect(secondMonitor).toHaveCount(0);
+
+  // Plug it back in, and find it reconnected with monitoring off.
+  await page.evaluate(() => window.setFakeMidiState("connected"));
+  await expect(secondMonitor).toHaveAttribute("aria-pressed", "false");
 
   // Save and reload, and find the device reconnected with monitoring off.
   await saveProject(page);

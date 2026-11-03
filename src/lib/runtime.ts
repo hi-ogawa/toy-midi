@@ -30,9 +30,8 @@ import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
 import {
-  type MidiDevice,
-  MidiDeviceInput,
   type MidiDeviceMessage,
+  parseMidiDeviceMessage,
 } from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
@@ -247,8 +246,6 @@ export interface EditorRuntimeState {
   inputMonitoring: boolean;
   /** The track the next take records into. */
   armedTrackId?: string;
-  /** Undefined until the browser grants MIDI access. */
-  midiDevices?: MidiDevice[];
   /** The connected MIDI device. */
   midiDeviceId?: string;
   /** The MIDI track a MIDI device plays. Only on while a device is connected. */
@@ -363,7 +360,7 @@ export class EditorRuntime {
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
-  private midiDeviceInput?: MidiDeviceInput;
+  private midiInput?: MIDIInput;
   /** Pitch of each note a MIDI device holds, and the track it sounds on. */
   private readonly midiDeviceNotes = new Map<number, string>();
   private attachedYouTubePlayer?: {
@@ -817,19 +814,30 @@ export class EditorRuntime {
     this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
   }
 
-  async requestMidiAccess(deviceId?: string): Promise<void> {
-    this.midiDeviceInput ??= await MidiDeviceInput.create({
-      onChange: () => this.syncMidiDevice(),
-      onMessage: (message) => this.playMidiDeviceMessage(message),
-    });
-    this.midiDeviceInput.select(deviceId);
+  startMidiInput(input: MIDIInput): void {
+    this.stopMidiInput();
+    input.onmidimessage = (event) => {
+      const message = event.data && parseMidiDeviceMessage(event.data);
+      if (message) {
+        this.playMidiDeviceMessage(message);
+      }
+    };
+    this.midiInput = input;
+    this.store.update({ midiDeviceId: input.id });
   }
 
-  selectMidiDevice(deviceId?: string): void {
-    if (!this.midiDeviceInput) {
-      throw new Error("Request MIDI access before selecting a device.");
+  /** A device that stops sending can't release its notes, so they end here. */
+  stopMidiInput(): void {
+    if (this.midiInput) {
+      this.midiInput.onmidimessage = null;
+      void this.midiInput.close();
+      this.midiInput = undefined;
     }
-    this.midiDeviceInput.select(deviceId);
+    for (const pitch of this.midiDeviceNotes.keys()) {
+      this.releaseMidiDeviceNote(pitch);
+    }
+    this.setMidiMonitorTrack(undefined);
+    this.store.update({ midiDeviceId: undefined });
   }
 
   /** Called from the click that enables monitoring, which lets audio start. */
@@ -878,22 +886,6 @@ export class EditorRuntime {
         break;
       }
     }
-  }
-
-  /** A device that stops sending can't release its notes, so they end here. */
-  private syncMidiDevice(): void {
-    const input = this.midiDeviceInput!;
-    const connectedId = input.getConnectedId();
-    if (connectedId !== this.store.get().midiDeviceId) {
-      for (const pitch of this.midiDeviceNotes.keys()) {
-        this.releaseMidiDeviceNote(pitch);
-      }
-      this.setMidiMonitorTrack(undefined);
-    }
-    this.store.update({
-      midiDevices: input.getDevices(),
-      midiDeviceId: connectedId,
-    });
   }
 
   /** The note ends on the track that started it, wherever monitoring is now. */
