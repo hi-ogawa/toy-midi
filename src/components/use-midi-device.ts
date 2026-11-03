@@ -17,8 +17,6 @@ export function useMidiDevice({
 
   const requestAccessMutation = useMutation({
     mutationFn: () => runtime.requestMidiAccess(rememberedId),
-    // A failed request shows as the denied state instead of a toast.
-    onError: (error) => console.error(error),
   });
 
   useEffect(() => {
