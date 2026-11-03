@@ -295,6 +295,11 @@ export function EditorPage({ source }: { source: ProjectSource }) {
       }
       return;
     }
+    if (matchKeyboardEvent(event, "Shift+K")) {
+      event.preventDefault();
+      toggleMidiKeyboard();
+      return;
+    }
     if (matchKeyboardEvent(event, "L")) {
       event.preventDefault();
       locatorInteraction.add();

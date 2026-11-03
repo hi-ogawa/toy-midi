@@ -51,7 +51,7 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   await page.keyboard.up("a");
 
   // Turn on capture, and play a note from the computer keyboard.
-  await panel.getByRole("button", { name: "Computer keys" }).click();
+  await page.keyboard.press("Shift+C");
   await expect(
     panel.getByRole("img", { name: "Keyboard shortcuts" }),
   ).toBeVisible();
@@ -81,14 +81,13 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   await expectSilent();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
 
-  // Close the panel, which ends monitoring.
-  await panel.getByRole("button", { name: "Close MIDI Keyboard" }).click();
+  // Hide the panel by shortcut, which ends monitoring.
+  await page.keyboard.press("Shift+K");
   await expect(panel).toHaveCount(0);
   await expect(monitor).toHaveCount(0);
 
-  // Open it again, with capture back off.
-  await page.getByRole("button", { name: "Editor menu" }).click();
-  await page.getByRole("menuitem", { name: "MIDI Keyboard" }).click();
+  // Show it again, with capture back off.
+  await page.keyboard.press("Shift+K");
   await expect(
     panel.getByRole("button", { name: "Computer keys" }),
   ).toHaveAttribute("aria-pressed", "false");
