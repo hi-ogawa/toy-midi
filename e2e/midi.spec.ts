@@ -9,7 +9,7 @@ import {
   openMidiInstrument,
   selectMidiInstrument,
 } from "./editor-helpers";
-import { selectMenuItem } from "./helpers";
+import { selectMenuItem, tapMasterOutput } from "./helpers";
 
 test("adds, mixes, saves, plays, and removes MIDI tracks", async ({ page }) => {
   // Add two MIDI tracks and verify each has its own timeline row.
@@ -249,6 +249,38 @@ test("plays a MIDI track on the own synth and persists it", async ({
   await selectMidiInstrument(instrument, {
     option: "1: Bright Acoustic Piano",
   });
+});
+
+test("ends a previewed note on a quick first click", async ({ page }) => {
+  // Save a track and reload, so audio hasn't started yet. Delay its start to
+  // make the click quicker than it every time.
+  await createProject(page);
+  const row = await addMidiTrack(page);
+  await saveProject(page);
+  await page.addInitScript(() => {
+    const resume = AudioContext.prototype.resume;
+    AudioContext.prototype.resume = async function () {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return resume.call(this);
+    };
+  });
+  await page.reload();
+  const key = row.getByRole("button", { name: "Preview C4", exact: true });
+  await expect(key).toBeVisible();
+  const output = await tapMasterOutput(page);
+
+  // Click a piano key quickly, wait for audio to start, and hear the note end.
+  await key.hover();
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(1000);
+  await output.expectSilence();
+
+  // Hold the key, and hear it play.
+  await page.mouse.down();
+  await output.expectSound();
+  await page.mouse.up();
+  await output.expectSilence();
 });
 
 test("scrolls the instrument picker list with the mouse wheel", async ({
