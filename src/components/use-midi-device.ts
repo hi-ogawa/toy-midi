@@ -30,7 +30,7 @@ export function useMidiDevice({
 
   function connectDevice(inputs: MIDIInput[], deviceId?: string) {
     const input = inputs.find((entry) => entry.id === deviceId);
-    if (input?.id === runtime.store.get().midiDeviceId) {
+    if (input?.id === runtime.store.get().midiConnection?.deviceId) {
       return;
     }
     if (input) {
@@ -57,7 +57,7 @@ export function useMidiDevice({
 
   return {
     devices,
-    deviceId: state.midiDeviceId,
+    deviceId: state.midiConnection?.deviceId,
     isSupported: isMidiDeviceSupported(),
     isAccessDenied: requestAccessMutation.isError,
     requestAccess: () => {

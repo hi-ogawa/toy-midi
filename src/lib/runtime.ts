@@ -29,7 +29,11 @@ import type { SynthPatch } from "./dsp/subtractive-synth.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
-import { connectMidiInput, type MidiDeviceMessage } from "./midi-device.ts";
+import {
+  connectMidiInput,
+  type MidiConnection,
+  type MidiDeviceMessage,
+} from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -243,8 +247,8 @@ export interface EditorRuntimeState {
   inputMonitoring: boolean;
   /** The track the next take records into. */
   armedTrackId?: string;
-  /** The connected MIDI device. */
-  midiDeviceId?: string;
+  /** @internal */
+  midiConnection?: MidiConnection;
   /** The MIDI track a MIDI device plays. Only on while a device is connected. */
   midiMonitorTrackId?: string;
 }
@@ -357,7 +361,6 @@ export class EditorRuntime {
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
-  private disconnectMidiInput?: () => Promise<void>;
   /** Pitch of each note a MIDI device holds, and the track it sounds on. */
   private readonly midiDeviceNotes = new Map<number, string>();
   private attachedYouTubePlayer?: {
@@ -813,27 +816,27 @@ export class EditorRuntime {
 
   async startMidiInput(input: MIDIInput): Promise<void> {
     await this.stopMidiInput();
-    this.disconnectMidiInput = connectMidiInput(input, (message) =>
-      this.playMidiDeviceMessage(message),
-    );
-    this.store.update({ midiDeviceId: input.id });
+    this.store.update({
+      midiConnection: connectMidiInput(input, (message) =>
+        this.playMidiDeviceMessage(message),
+      ),
+    });
   }
 
   /** A device that stops sending can't release its notes, so they end here. */
   async stopMidiInput(): Promise<void> {
-    await this.disconnectMidiInput?.();
-    this.disconnectMidiInput = undefined;
+    await this.store.get().midiConnection?.disconnect();
     for (const pitch of this.midiDeviceNotes.keys()) {
       this.releaseMidiDeviceNote(pitch);
     }
     await this.setMidiMonitorTrack(undefined);
-    this.store.update({ midiDeviceId: undefined });
+    this.store.update({ midiConnection: undefined });
   }
 
   /** Called from the click that enables monitoring, which lets audio start. */
   async setMidiMonitorTrack(id?: string): Promise<void> {
-    const { midiDeviceId, midiMonitorTrackId } = this.store.get();
-    if (id !== undefined && midiDeviceId === undefined) {
+    const { midiConnection, midiMonitorTrackId } = this.store.get();
+    if (id !== undefined && !midiConnection) {
       throw new Error("Connect a MIDI device before monitoring.");
     }
     if (midiMonitorTrackId !== undefined) {

@@ -672,7 +672,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                       }}
                       midiInteraction={midiInteraction}
                       midiMonitoring={state.midiMonitorTrackId === track.id}
-                      midiMonitorVisible={state.midiDeviceId !== undefined}
+                      midiMonitorVisible={state.midiConnection !== undefined}
                       onTranscribe={() =>
                         transcriptions.openTranscription(track.id)
                       }

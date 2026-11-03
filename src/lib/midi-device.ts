@@ -6,6 +6,11 @@ export type MidiDeviceMessage =
   | { type: "controller"; controller: number; value: number }
   | { type: "pitch-bend"; value: number };
 
+export type MidiConnection = {
+  deviceId: string;
+  disconnect: () => Promise<void>;
+};
+
 const NOTE_OFF_STATUS = 0x80;
 const NOTE_ON_STATUS = 0x90;
 const CONTROLLER_STATUS = 0xb0;
@@ -36,20 +41,22 @@ function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
   );
 }
 
-/** Returns the function that disconnects it. */
 export function connectMidiInput(
   input: MIDIInput,
   onMessage: (message: MidiDeviceMessage) => void,
-): () => Promise<void> {
+): MidiConnection {
   input.onmidimessage = (event) => {
     const message = event.data && parseMidiDeviceMessage(event.data);
     if (message) {
       onMessage(message);
     }
   };
-  return async () => {
-    input.onmidimessage = null;
-    await input.close();
+  return {
+    deviceId: input.id,
+    disconnect: async () => {
+      input.onmidimessage = null;
+      await input.close();
+    },
   };
 }
 
