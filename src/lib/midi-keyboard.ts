@@ -12,8 +12,8 @@ import { clamp } from "./music.ts";
 
 export const MIN_OCTAVE = -2;
 export const MAX_OCTAVE = 2;
-const MIN_VELOCITY = 1;
-const MAX_VELOCITY = 127;
+export const MIN_VELOCITY = 1;
+export const MAX_VELOCITY = 127;
 
 /**
  * What a player does live on a keyboard, as MIDI messages. Every note-on gets

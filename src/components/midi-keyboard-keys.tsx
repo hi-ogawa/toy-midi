@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import {
   COMPUTER_KEYBOARD_ROWS,
   type ComputerKeymap,
@@ -5,25 +6,54 @@ import {
   getComputerKeyPitch,
 } from "../lib/computer-keyboard";
 import type { MidiKeyboard } from "../lib/midi-keyboard";
-import { isBlackKey } from "../lib/music";
+import { clamp, isBlackKey } from "../lib/music";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { range } from "../utils/array";
 import { cn } from "./ui/utils";
 
 const LOWEST_PITCH = 24;
 const HIGHEST_PITCH = 108;
-const PITCHES = range(HIGHEST_PITCH - LOWEST_PITCH + 1).map(
+export const PIANO_PITCHES = range(HIGHEST_PITCH - LOWEST_PITCH + 1).map(
   (i) => LOWEST_PITCH + i,
 );
-const WHITE_KEY_COUNT = PITCHES.filter((pitch) => !isBlackKey(pitch)).length;
+const WHITE_PITCHES = PIANO_PITCHES.filter((pitch) => !isBlackKey(pitch));
+
+/** Picks whole white keys centered on two white pitches, within the piano. */
+export function getPianoPitchesAround({
+  lowestPitch,
+  highestPitch,
+  whiteKeyCount,
+}: {
+  lowestPitch: number;
+  highestPitch: number;
+  whiteKeyCount: number;
+}): number[] {
+  const count = Math.min(whiteKeyCount, WHITE_PITCHES.length);
+  const lowestIndex = WHITE_PITCHES.indexOf(lowestPitch);
+  const spareKeys =
+    count - (WHITE_PITCHES.indexOf(highestPitch) - lowestIndex + 1);
+  const start = clamp(
+    lowestIndex - Math.floor(spareKeys / 2),
+    0,
+    WHITE_PITCHES.length - count,
+  );
+  const first = WHITE_PITCHES[start];
+  const last = WHITE_PITCHES[start + count - 1];
+  return PIANO_PITCHES.filter((pitch) => pitch >= first && pitch <= last);
+}
 
 export function MidiKeyboardPiano({
   keyboard,
+  pitches,
   heldPitches,
+  keyLabels,
   className,
 }: {
   keyboard: MidiKeyboard;
+  pitches: readonly number[];
   heldPitches: ReadonlySet<number>;
+  /** The computer key on each pitch. Keys without one look out of reach. */
+  keyLabels?: ReadonlyMap<number, string>;
   className: string;
 }) {
   return (
@@ -32,11 +62,14 @@ export function MidiKeyboardPiano({
       role="group"
       aria-label="Piano"
     >
-      {PITCHES.map((pitch) => (
+      {pitches.map((pitch) => (
         <PianoKey
           key={pitch}
           pitch={pitch}
+          style={getKeyStyle(pitch, pitches)}
           isHeld={heldPitches.has(pitch)}
+          keyLabel={keyLabels?.get(pitch)}
+          isOutOfReach={keyLabels !== undefined && !keyLabels.has(pitch)}
           keyboard={keyboard}
         />
       ))}
@@ -46,11 +79,17 @@ export function MidiKeyboardPiano({
 
 function PianoKey({
   pitch,
+  style,
   isHeld,
+  keyLabel,
+  isOutOfReach,
   keyboard,
 }: {
   pitch: number;
+  style: CSSProperties;
   isHeld: boolean;
+  keyLabel?: string;
+  isOutOfReach: boolean;
   keyboard: MidiKeyboard;
 }) {
   return (
@@ -59,7 +98,7 @@ function PianoKey({
       tabIndex={-1}
       aria-label={formatChromaticPitch(pitch)}
       aria-pressed={isHeld}
-      style={getKeyStyle(pitch)}
+      style={style}
       onPointerDown={(event) => {
         // Keeps focus where it is, so a key can't also press this button.
         event.preventDefault();
@@ -71,18 +110,33 @@ function PianoKey({
         keyboard.slidePointer({ pointerId: event.pointerId, pitch })
       }
       className={cn(
-        "absolute top-0 flex items-end justify-center rounded-b pb-1 text-[10px] text-neutral-500",
+        "absolute top-0 flex flex-col items-center justify-end rounded-b pb-1 text-[10px] leading-tight text-neutral-500",
         isBlackKey(pitch) ? "z-10 h-[60%]" : "h-full border border-neutral-400",
         isBlackKey(pitch)
           ? isHeld
-            ? "bg-emerald-600"
-            : "bg-neutral-950"
+            ? "bg-emerald-600 text-neutral-100"
+            : cn(
+                "text-neutral-300",
+                isOutOfReach ? "bg-neutral-700" : "bg-neutral-950",
+              )
           : isHeld
             ? "bg-emerald-400 text-neutral-900"
-            : "bg-neutral-100",
+            : isOutOfReach
+              ? "bg-neutral-300"
+              : "bg-neutral-100",
       )}
     >
-      {pitch % 12 === 0 && formatChromaticPitch(pitch)}
+      {keyLabel && (
+        <span
+          className={cn(
+            "font-medium",
+            !isBlackKey(pitch) && "text-neutral-900",
+          )}
+        >
+          {keyLabel}
+        </span>
+      )}
+      {pitch % 12 === 0 && <span>{formatChromaticPitch(pitch)}</span>}
     </button>
   );
 }
@@ -199,11 +253,10 @@ function getComputerKeyColor({
     : "bg-neutral-100 text-neutral-900";
 }
 
-function getKeyStyle(pitch: number) {
-  const whiteKeysBelow = PITCHES.filter(
-    (other) => other < pitch && !isBlackKey(other),
-  ).length;
-  const whiteKeyWidth = 100 / WHITE_KEY_COUNT;
+function getKeyStyle(pitch: number, pitches: readonly number[]): CSSProperties {
+  const whitePitches = pitches.filter((other) => !isBlackKey(other));
+  const whiteKeysBelow = whitePitches.filter((other) => other < pitch).length;
+  const whiteKeyWidth = 100 / whitePitches.length;
   return isBlackKey(pitch)
     ? {
         left: `${(whiteKeysBelow - 0.3) * whiteKeyWidth}%`,

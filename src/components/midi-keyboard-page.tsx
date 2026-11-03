@@ -20,6 +20,7 @@ import { routes } from "../lib/routes";
 import {
   ComputerKeyboardLayout,
   MidiKeyboardPiano,
+  PIANO_PITCHES,
 } from "./midi-keyboard-keys";
 import { Button } from "./ui/button";
 import {
@@ -242,6 +243,7 @@ function MidiKeyboardControls() {
 
       <MidiKeyboardPiano
         keyboard={keyboard}
+        pitches={PIANO_PITCHES}
         heldPitches={heldPitches}
         className="h-40"
       />

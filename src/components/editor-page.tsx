@@ -742,6 +742,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
         {midiLiveInput.isKeyboardOpen && (
           <MidiKeyboardPanel
+            projectUiStore={projectUiStore}
             runtime={runtime}
             state={state}
             onClose={midiLiveInput.closeKeyboard}

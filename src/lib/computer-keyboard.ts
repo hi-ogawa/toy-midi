@@ -99,6 +99,22 @@ export function getComputerKeyPitch({
   return pitch === undefined ? undefined : pitch + octave * 12;
 }
 
+/** Lists the character printed on the computer key that plays each pitch. */
+export function getComputerKeyLabels({
+  keymap,
+  octave,
+}: {
+  keymap: ComputerKeymap;
+  octave: number;
+}): Map<number, string> {
+  return new Map(
+    [...keymap.noteKeys].map(
+      ([code, pitch]) =>
+        [pitch + octave * 12, formatComputerKey(code)] as const,
+    ),
+  );
+}
+
 /** Formats a `KeyboardEvent.code` as the character printed on the key. */
 export function formatComputerKey(code: string): string {
   return PUNCTUATION_KEYS[code] ?? code.replace(/^(Key|Digit)/, "");

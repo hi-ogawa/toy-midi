@@ -23,9 +23,9 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   await page.getByRole("button", { name: "Editor menu" }).click();
   await page.getByRole("menuitem", { name: "MIDI Keyboard" }).click();
   const panel = page.getByTestId("midi-keyboard-panel");
-  await expect(panel.getByRole("status")).toContainText("Turn on");
+  await expect(panel.getByRole("status")).toHaveText("No track");
   await monitor.click();
-  await expect(panel.getByRole("status")).toContainText("Playing MIDI 1");
+  await expect(panel.getByRole("status")).toHaveText("MIDI 1");
 
   await page.getByTestId("mixer-button").click();
   const meter = page
@@ -50,15 +50,14 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   expect(await getLevel()).toBe(-60);
   await page.keyboard.up("a");
 
-  // Turn on capture, and play a note from the computer keyboard.
+  // Turn on capture, which marks the keys on the piano, and play a note.
+  const panelSize = await panel.boundingBox();
   await panel.getByRole("button", { name: "Computer keys" }).click();
-  await expect(
-    panel.getByRole("img", { name: "Keyboard shortcuts" }),
-  ).toBeVisible();
+  const c3 = panel.getByRole("button", { name: "C3", exact: true });
+  await expect(c3).toContainText("A");
+  expect(await panel.boundingBox()).toEqual(panelSize);
   await page.keyboard.down("a");
-  await expect(
-    panel.getByRole("button", { name: "C3", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(c3).toHaveAttribute("aria-pressed", "true");
   await expectSounding();
   await page.keyboard.up("a");
   await expectSilent();
@@ -81,6 +80,40 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   await expect(c4).toHaveAttribute("aria-pressed", "false");
   await expectSilent();
 
+  // Step up an octave from the panel, which moves the piano and the key marks.
+  await panel.getByRole("button", { name: "Octave up" }).click();
+  await expect(
+    panel.getByRole("button", { name: "C5", exact: true }),
+  ).toContainText("K");
+  await expect(c3).toHaveCount(0);
+  await panel.getByRole("button", { name: "Octave down" }).click();
+
+  // Fold the panel, and keep playing from the computer keyboard.
+  await panel.getByRole("button", { name: "Fold MIDI Keyboard" }).click();
+  await expect(c3).toHaveCount(0);
+  await page.keyboard.down("a");
+  await expectSounding();
+  await page.keyboard.up("a");
+  await expectSilent();
+  await panel.getByRole("button", { name: "Unfold MIDI Keyboard" }).click();
+
+  // Widen the panel, which adds unmarked notes around the same range.
+  const a2 = panel.getByRole("button", { name: "A2", exact: true });
+  await expect(a2).toHaveCount(0);
+  const handle = panel.getByRole("button", { name: "Resize MIDI Keyboard" });
+  await handle.hover();
+  await page.mouse.down();
+  const { x, y } = (await handle.boundingBox())!;
+  await page.mouse.move(x - 120, y);
+  await page.mouse.up();
+  await expect(a2).toHaveText("");
+  await expect(c3).toContainText("A");
+
+  // Read how to use the keys from the help popover.
+  await panel.getByRole("button", { name: "MIDI Keyboard help" }).click();
+  await expect(page.getByText("Octave down, up")).toBeVisible();
+  await page.keyboard.press("Escape");
+
   // Play from inside the instrument dialog while browsing presets.
   const dialog = await openMidiInstrument(page, { name: "MIDI 1" });
   await page.keyboard.down("a");
@@ -94,10 +127,11 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   await expect(panel).toHaveCount(0);
   await expect(monitor).toHaveCount(0);
 
-  // Open it again, with capture back off.
+  // Open it again, at its saved width with capture back off.
   await page.getByRole("button", { name: "Editor menu" }).click();
   await page.getByRole("menuitem", { name: "MIDI Keyboard" }).click();
   await expect(
     panel.getByRole("button", { name: "Computer keys" }),
   ).toHaveAttribute("aria-pressed", "false");
+  await expect(a2).toBeVisible();
 });
