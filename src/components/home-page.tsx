@@ -1,4 +1,10 @@
-import { AudioLinesIcon, BotIcon, GitForkIcon, Music2Icon } from "lucide-react";
+import {
+  AudioLinesIcon,
+  BotIcon,
+  GitForkIcon,
+  KeyboardMusicIcon,
+  Music2Icon,
+} from "lucide-react";
 import { routes } from "../lib/routes";
 import { ProjectList } from "./project-list";
 
@@ -28,6 +34,13 @@ export function HomePage() {
             >
               <AudioLinesIcon className="size-4" />
               Latency Checker
+            </a>
+            <a
+              href={routes.midiKeyboard.href()}
+              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+            >
+              <KeyboardMusicIcon className="size-4" />
+              MIDI Keyboard
             </a>
             <a
               href={routes.scoreViewer.href()}
