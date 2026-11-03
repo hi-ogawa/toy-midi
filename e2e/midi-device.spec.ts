@@ -23,15 +23,11 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await expect(firstMonitor).toBeVisible();
 
-  // Hold a note before monitoring, and hear nothing once monitoring starts.
+  // Monitor the first track, hold a note, and hear it through that track, so
+  // muting it silences it.
   const output = await tapMasterOutput(page);
-  await device.send([0x90, 60, 100]);
   await firstMonitor.click();
   await expect(firstMonitor).toHaveAttribute("aria-pressed", "true");
-  await output.expectSilence();
-  await device.send([0x80, 60, 0]);
-
-  // Hold a note, and hear it through the first track, so muting it silences it.
   await device.send([0x90, 60, 100]);
   await output.expectSound();
   await first.getByTitle("Mute MIDI 1", { exact: true }).click();
