@@ -106,6 +106,7 @@ test("bends and modulates from the MIDI keyboard panel", async ({ page }) => {
 
   // Hold the bend off center, and let go so it springs back.
   const bend = panel.getByRole("slider", { name: "Pitch bend" });
+  await expect(bend).toHaveAttribute("aria-valuenow", "8192");
   await bend.hover();
   await page.mouse.down();
   const { x, y } = (await bend.boundingBox())!;
@@ -116,6 +117,7 @@ test("bends and modulates from the MIDI keyboard panel", async ({ page }) => {
 
   // Turn up the mod wheel, which stays where it is left.
   const mod = panel.getByRole("slider", { name: "Mod wheel" });
+  await expect(mod).toHaveAttribute("aria-valuenow", "0");
   await mod.press("End");
   await expect(mod).toHaveAttribute("aria-valuenow", "127");
 });
