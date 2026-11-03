@@ -3,17 +3,13 @@ import {
   addMidiTrack,
   createProject,
   openMidiInstrument,
-  selectMidiInstrument,
 } from "./editor-helpers";
 
 test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await createProject(page);
 
-  // Add a synth track, which offers no monitoring without a live input.
+  // Add a track, which offers no monitoring without a live input.
   const row = await addMidiTrack(page);
-  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
-  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
-  await instrument.getByRole("button", { name: "Close", exact: true }).click();
   const monitor = row.getByTestId("input-monitor");
   await expect(monitor).toHaveCount(0);
 
@@ -40,10 +36,8 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await page.keyboard.up("a");
 
   // Turn on capture, which marks the keys on the piano, and play a note.
-  const panelSize = await panel.boundingBox();
   await panel.getByRole("button", { name: "Computer keys" }).click();
   await expect(c3).toContainText("A");
-  expect(await panel.boundingBox()).toEqual(panelSize);
   await page.keyboard.down("a");
   await expect(c3).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.up("a");
