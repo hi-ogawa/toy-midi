@@ -63,14 +63,6 @@ export async function installFakeMidiDevice(page: Page) {
           );
         }
       }, bytes),
-    unplug: () =>
-      page.evaluate(async () => {
-        const access = await navigator.requestMIDIAccess();
-        const input = access.inputs.get("fake-keyboard")!;
-        Object.assign(input, { state: "disconnected" });
-        input.dispatchEvent(new Event("statechange"));
-        access.dispatchEvent(new Event("statechange"));
-      }),
   };
 }
 

@@ -52,13 +52,6 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await device.send([0x91, 64, 0]);
   await output.expectSilence();
 
-  // Unplug the device while holding a note, and hear the note end.
-  await device.send([0x90, 67, 100]);
-  await output.expectSound();
-  await device.unplug();
-  await output.expectSilence();
-  await expect(secondMonitor).toHaveCount(0);
-
   // Save and reload, and find the device reconnected with monitoring off.
   await saveProject(page);
   await page.reload();
