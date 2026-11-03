@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
-  COMPUTER_KEY_ROWS,
+  COMPUTER_KEYBOARD_ROWS,
   formatComputerKey,
   getComputerKeyPitch,
 } from "../lib/computer-keyboard";
@@ -43,9 +43,11 @@ const PITCHES = range(HIGHEST_PITCH - LOWEST_PITCH + 1).map(
 );
 const WHITE_KEY_COUNT = PITCHES.filter((pitch) => !isBlackKey(pitch)).length;
 
-const COMPUTER_KEY_STEP = 36;
-const OCTAVE_KEY_CLASS =
-  "flex size-8 items-center justify-center rounded border border-neutral-600 font-medium text-neutral-200";
+const COMPUTER_KEY_STEP = 40;
+const OCTAVE_KEY_HINTS: Record<string, string> = {
+  BracketLeft: "Oct -",
+  BracketRight: "Oct +",
+};
 
 const DEFAULT_VELOCITY = 100;
 const PITCH_BEND_CENTER = 8192;
@@ -357,73 +359,48 @@ function ComputerKeyboardLayout({
     <div
       role="img"
       aria-label="Computer keyboard layout"
-      className="grid gap-3 select-none"
+      className="grid gap-1 select-none"
     >
-      {COMPUTER_KEY_ROWS.map(({ startPitch, codes }, rowIndex) => {
-        const lowestPitch = startPitch + octave * 12;
-        return (
-          <div key={startPitch} className="flex items-end gap-2">
-            <span className="w-8 pb-2 text-right text-xs tabular-nums text-neutral-400">
-              {formatChromaticPitch(lowestPitch)}
-            </span>
-            <div className="relative h-[68px] w-[432px]">
-              {codes.map((code, index) => (
-                <ComputerKey
-                  key={code}
-                  label={formatComputerKey(code)}
-                  pitch={lowestPitch + index}
-                  lowestPitch={lowestPitch}
-                  isHeld={heldPitches.has(lowestPitch + index)}
-                />
-              ))}
-              {rowIndex === 0 && (
-                <div className="absolute bottom-0 left-[360px] flex items-center gap-1 text-xs text-neutral-400">
-                  <span className={OCTAVE_KEY_CLASS}>[</span>
-                  <span className={OCTAVE_KEY_CLASS}>]</span>
-                  <span className="ml-1">Octave</span>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {COMPUTER_KEYBOARD_ROWS.map(({ stagger, codes }) => (
+        <div
+          key={stagger}
+          className="flex gap-1"
+          style={{ marginLeft: stagger * COMPUTER_KEY_STEP }}
+        >
+          {codes.map((code) => (
+            <ComputerKey
+              key={code}
+              code={code}
+              pitch={getComputerKeyPitch({ code, octave })}
+              heldPitches={heldPitches}
+            />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
 
 function ComputerKey({
-  label,
+  code,
   pitch,
-  lowestPitch,
-  isHeld,
+  heldPitches,
 }: {
-  label: string;
-  pitch: number;
-  lowestPitch: number;
-  isHeld: boolean;
+  code: string;
+  pitch?: number;
+  heldPitches: ReadonlySet<number>;
 }) {
-  const isBlack = isBlackKey(pitch);
-  const whiteKeysBelow = range(pitch - lowestPitch).filter(
-    (i) => !isBlackKey(lowestPitch + i),
-  ).length;
+  const hint =
+    pitch === undefined ? OCTAVE_KEY_HINTS[code] : formatChromaticPitch(pitch);
   return (
     <span
-      style={{
-        left: (whiteKeysBelow - (isBlack ? 0.5 : 0)) * COMPUTER_KEY_STEP,
-      }}
       className={cn(
-        "absolute flex size-8 items-center justify-center rounded text-xs font-medium",
-        isBlack ? "top-0" : "bottom-0",
-        isHeld
-          ? isBlack
-            ? "bg-emerald-600 text-neutral-100"
-            : "bg-emerald-400 text-neutral-900"
-          : isBlack
-            ? "border border-neutral-600 bg-neutral-950 text-neutral-200"
-            : "bg-neutral-100 text-neutral-900",
+        "flex size-9 flex-col items-center justify-center rounded text-xs leading-tight font-medium",
+        getComputerKeyColor({ code, pitch, heldPitches }),
       )}
     >
-      {label}
+      {formatComputerKey(code)}
+      {hint && <span className="text-[9px] font-normal">{hint}</span>}
     </span>
   );
 }
@@ -460,6 +437,30 @@ function ControlSlider({
       />
     </div>
   );
+}
+
+function getComputerKeyColor({
+  code,
+  pitch,
+  heldPitches,
+}: {
+  code: string;
+  pitch?: number;
+  heldPitches: ReadonlySet<number>;
+}): string {
+  if (pitch === undefined) {
+    return code in OCTAVE_KEY_HINTS
+      ? "border border-neutral-500 text-neutral-200"
+      : "border border-neutral-800 text-neutral-600";
+  }
+  if (isBlackKey(pitch)) {
+    return heldPitches.has(pitch)
+      ? "bg-emerald-600 text-neutral-100"
+      : "border border-neutral-600 bg-neutral-950 text-neutral-200";
+  }
+  return heldPitches.has(pitch)
+    ? "bg-emerald-400 text-neutral-900"
+    : "bg-neutral-100 text-neutral-900";
 }
 
 function isBlackKey(pitch: number): boolean {
