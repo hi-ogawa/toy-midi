@@ -33,9 +33,6 @@ import { usePointerDrag } from "./use-pointer-drag";
 
 const WHITE_KEY_WIDTH = 28;
 const PANEL_CHROME_WIDTH = 26;
-const SEMITONE_BEND = PITCH_WHEEL_CENTER / PITCH_BEND_RANGE;
-// Narrower than the synths' range, so a short drag plays a musical bend.
-const KNOB_BEND_SEMITONES = 2;
 
 export function MidiKeyboardPanel({
   projectUiStore,
@@ -122,15 +119,16 @@ export function MidiKeyboardPanel({
           octave={octave}
           lowestPitch={lowestPitch}
         />
+        {/* Narrower than the synths' range, so a short drag plays a musical bend. */}
         <ValueKnob
           label="Pitch bend"
           shortLabel="Bend"
           value={pitchBend}
           displayValue={formatPitchBend(pitchBend)}
-          min={encodePitchBend(-KNOB_BEND_SEMITONES)}
-          max={encodePitchBend(KNOB_BEND_SEMITONES)}
+          min={encodePitchBend(-2)}
+          max={encodePitchBend(2)}
           origin={PITCH_WHEEL_CENTER}
-          step={SEMITONE_BEND}
+          step={PITCH_WHEEL_CENTER / PITCH_BEND_RANGE}
           onChange={(value) => keyboard.setPitchBend(value)}
           onRelease={() => keyboard.releasePitchBend()}
         />
