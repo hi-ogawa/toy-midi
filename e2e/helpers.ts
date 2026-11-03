@@ -1,9 +1,11 @@
 import path from "node:path";
-import { test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import type {} from "../src/api";
 
 declare global {
   interface Window {
     __e2eSentMidi: number[][];
+    __e2eOutputAnalyser: AnalyserNode;
   }
 }
 
@@ -68,6 +70,48 @@ export async function installFakeMidiOutput(page: Page): Promise<void> {
         addEventListener: () => {},
         removeEventListener: () => {},
       }) as unknown as MIDIAccess;
+  });
+}
+
+/** Connect an analyser to the master output, which is the mix the speakers play. */
+export async function tapMasterOutput(page: Page): Promise<void> {
+  await page.waitForFunction(() => window.toyMidi.runtime);
+  await page.evaluate(() => {
+    const { masterOutput } = window.toyMidi.runtime!;
+    const analyser = masterOutput.context.createAnalyser();
+    masterOutput.connect(analyser);
+    window.__e2eOutputAnalyser = analyser;
+  });
+}
+
+/** Wait until the tapped master output sounds. */
+export async function expectSound(page: Page): Promise<void> {
+  await test.step(
+    "Expect sound",
+    async () => {
+      await expect.poll(() => getOutputPeak(page)).toBeGreaterThan(0.001);
+    },
+    { box: true },
+  );
+}
+
+/** Wait until the tapped master output is silent. */
+export async function expectSilence(page: Page): Promise<void> {
+  await test.step(
+    "Expect silence",
+    async () => {
+      await expect.poll(() => getOutputPeak(page)).toBe(0);
+    },
+    { box: true },
+  );
+}
+
+async function getOutputPeak(page: Page): Promise<number> {
+  return await page.evaluate(() => {
+    const analyser = window.__e2eOutputAnalyser;
+    const samples = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(samples);
+    return Math.max(...samples.map(Math.abs));
   });
 }
 
