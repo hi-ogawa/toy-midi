@@ -251,27 +251,32 @@ function ComputerKeyboardLayout({
   heldPitches: ReadonlySet<number>;
 }) {
   return (
-    <div
-      role="img"
-      aria-label="Computer keyboard layout"
-      className="grid gap-1 select-none"
-    >
-      {COMPUTER_KEYBOARD_ROWS.map(({ stagger, codes }) => (
-        <div
-          key={stagger}
-          className="flex gap-1"
-          style={{ marginLeft: stagger * COMPUTER_KEY_STEP }}
-        >
-          {codes.map((code) => (
-            <ComputerKey
-              key={code}
-              code={code}
-              pitch={getComputerKeyPitch({ code, octave })}
-              heldPitches={heldPitches}
-            />
-          ))}
-        </div>
-      ))}
+    <div className="mx-auto w-fit">
+      <h2 className="mb-2 text-xs font-semibold text-neutral-400">
+        Computer keyboard
+      </h2>
+      <div
+        role="img"
+        aria-label="Computer keyboard layout"
+        className="grid gap-1 select-none"
+      >
+        {COMPUTER_KEYBOARD_ROWS.map(({ stagger, codes }) => (
+          <div
+            key={stagger}
+            className="flex gap-1"
+            style={{ marginLeft: stagger * COMPUTER_KEY_STEP }}
+          >
+            {codes.map((code) => (
+              <ComputerKey
+                key={code}
+                code={code}
+                pitch={getComputerKeyPitch({ code, octave })}
+                heldPitches={heldPitches}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
