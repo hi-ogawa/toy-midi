@@ -88,15 +88,6 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   await expect(c3).toHaveCount(0);
   await panel.getByRole("button", { name: "Octave down" }).click();
 
-  // Fold the panel, and keep playing from the computer keyboard.
-  await panel.getByRole("button", { name: "Fold MIDI Keyboard" }).click();
-  await expect(c3).toHaveCount(0);
-  await page.keyboard.down("a");
-  await expectSounding();
-  await page.keyboard.up("a");
-  await expectSilent();
-  await panel.getByRole("button", { name: "Unfold MIDI Keyboard" }).click();
-
   // Widen the panel, which adds unmarked notes around the same range.
   const a2 = panel.getByRole("button", { name: "A2", exact: true });
   await expect(a2).toHaveCount(0);

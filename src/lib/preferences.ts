@@ -49,7 +49,6 @@ const projectUiStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
   midiKeyboardOpen: z.boolean(),
-  midiKeyboardFolded: z.boolean(),
   midiKeyboardSize: z.object({
     width: z.number().positive(),
     height: z.number().positive(),
@@ -84,7 +83,6 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   autoScrollEnabled: true,
   inputPanelOpen: false,
   midiKeyboardOpen: false,
-  midiKeyboardFolded: false,
   midiKeyboardSize: { width: 342, height: 224 },
   tunerOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,

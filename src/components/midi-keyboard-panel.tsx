@@ -1,6 +1,4 @@
 import {
-  ChevronDownIcon,
-  ChevronUpIcon,
   CircleHelpIcon,
   KeyboardIcon,
   MinusIcon,
@@ -43,7 +41,6 @@ export function MidiKeyboardPanel({
   onClose: () => void;
 }) {
   const [isCapturing, setIsCapturing] = useState(false);
-  const [isFolded, setIsFolded] = projectUiStore.useValue("midiKeyboardFolded");
   const { size, handleRef } = usePanelResize({
     initialSize: projectUiStore.get().midiKeyboardSize,
     minSize: { width: 342, height: 180 },
@@ -94,60 +91,37 @@ export function MidiKeyboardPanel({
             <KeyboardIcon className="size-4" />
           </button>
           <MidiKeyboardHelp />
-          <button
-            type="button"
-            aria-label={
-              isFolded ? "Unfold MIDI Keyboard" : "Fold MIDI Keyboard"
-            }
-            onClick={() => setIsFolded(!isFolded)}
-            className="text-neutral-400 hover:text-neutral-200"
-          >
-            {isFolded ? (
-              <ChevronUpIcon className="size-5" />
-            ) : (
-              <ChevronDownIcon className="size-5" />
-            )}
-          </button>
         </>
       }
       closeLabel="Close MIDI Keyboard"
       onClose={onClose}
       data-testid="midi-keyboard-panel"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
-      contentClassName={
-        isFolded ? "hidden" : "flex min-h-0 flex-1 flex-col gap-3 px-4 py-3"
-      }
-      style={isFolded ? { width: size.width } : size}
+      contentClassName="flex min-h-0 flex-1 flex-col gap-3 px-4 py-3"
+      style={size}
     >
-      {!isFolded && (
-        <>
-          <PanelResizeHandle
-            handleRef={handleRef}
-            label="Resize MIDI Keyboard"
-          />
-          <div className="flex items-center justify-between">
-            <OctaveStepper
-              keyboard={keyboard}
-              octave={octave}
-              lowestPitch={lowestPitch}
-            />
-            <VelocityKnob keyboard={keyboard} velocity={velocity} />
-          </div>
-          <MidiKeyboardPiano
-            keyboard={keyboard}
-            pitches={getPianoPitchesAround({
-              lowestPitch,
-              highestPitch: Math.max(...labeledPitches),
-              whiteKeyCount: Math.floor(
-                (size.width - PANEL_CHROME_WIDTH) / WHITE_KEY_WIDTH,
-              ),
-            })}
-            heldPitches={heldPitches}
-            keyLabels={isCapturing ? keyLabels : undefined}
-            className="min-h-0 flex-1"
-          />
-        </>
-      )}
+      <PanelResizeHandle handleRef={handleRef} label="Resize MIDI Keyboard" />
+      <div className="flex items-center justify-between">
+        <OctaveStepper
+          keyboard={keyboard}
+          octave={octave}
+          lowestPitch={lowestPitch}
+        />
+        <VelocityKnob keyboard={keyboard} velocity={velocity} />
+      </div>
+      <MidiKeyboardPiano
+        keyboard={keyboard}
+        pitches={getPianoPitchesAround({
+          lowestPitch,
+          highestPitch: Math.max(...labeledPitches),
+          whiteKeyCount: Math.floor(
+            (size.width - PANEL_CHROME_WIDTH) / WHITE_KEY_WIDTH,
+          ),
+        })}
+        heldPitches={heldPitches}
+        keyLabels={isCapturing ? keyLabels : undefined}
+        className="min-h-0 flex-1"
+      />
     </Panel>
   );
 }
