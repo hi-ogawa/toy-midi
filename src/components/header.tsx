@@ -342,7 +342,7 @@ export function Header({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="h-5 w-px bg-neutral-600" />
-      <div className="flex items-center gap-0.5 text-neutral-400">
+      <div className="flex items-center gap-1 text-neutral-400">
         <Volume2Icon className="size-4" />
         <GainKnob
           label="Master gain"
