@@ -17,6 +17,11 @@ export function isMidiDeviceSupported(): boolean {
   return "requestMIDIAccess" in navigator;
 }
 
+export async function isMidiAccessGranted(): Promise<boolean> {
+  const permission = await navigator.permissions.query({ name: "midi" });
+  return permission.state === "granted";
+}
+
 /**
  * The browser's MIDI devices and the connection to the selected one, which
  * returns on its own when an unplugged device comes back.

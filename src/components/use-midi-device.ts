@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { isMidiDeviceSupported } from "../lib/midi-device";
+import { isMidiAccessGranted, isMidiDeviceSupported } from "../lib/midi-device";
 import { preferences } from "../lib/preferences";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 
@@ -23,8 +23,9 @@ export function useMidiDevice({
     retry: false,
     staleTime: Infinity,
     queryFn: async () => {
-      if (rememberedId) {
-        await runtime.restoreMidiDevice(rememberedId);
+      // Reconnect only when that shows no permission prompt on page load.
+      if (rememberedId && (await isMidiAccessGranted())) {
+        await runtime.requestMidiAccess(rememberedId);
       }
       return true;
     },

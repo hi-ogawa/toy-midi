@@ -825,14 +825,6 @@ export class EditorRuntime {
     this.midiDeviceInput.select(deviceId);
   }
 
-  /** Reconnects without showing a permission prompt on page load. */
-  async restoreMidiDevice(deviceId: string): Promise<void> {
-    const permission = await navigator.permissions.query({ name: "midi" });
-    if (permission.state === "granted") {
-      await this.requestMidiAccess(deviceId);
-    }
-  }
-
   selectMidiDevice(deviceId?: string): void {
     if (!this.midiDeviceInput) {
       throw new Error("Request MIDI access before selecting a device.");
