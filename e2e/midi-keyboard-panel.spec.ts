@@ -96,7 +96,9 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await expect(a2).toBeVisible();
 });
 
-test("bends and modulates from the MIDI keyboard panel", async ({ page }) => {
+test("sets bend, mod, and velocity from the MIDI keyboard panel", async ({
+  page,
+}) => {
   await createProject(page);
 
   // Open the panel from the editor menu.
@@ -120,4 +122,10 @@ test("bends and modulates from the MIDI keyboard panel", async ({ page }) => {
   await expect(mod).toHaveAttribute("aria-valuenow", "0");
   await mod.press("End");
   await expect(mod).toHaveAttribute("aria-valuenow", "127");
+
+  // Turn up the velocity, which also stays where it is left.
+  const velocity = panel.getByRole("slider", { name: "Velocity" });
+  await expect(velocity).toHaveAttribute("aria-valuenow", "100");
+  await velocity.press("End");
+  await expect(velocity).toHaveAttribute("aria-valuenow", "127");
 });
