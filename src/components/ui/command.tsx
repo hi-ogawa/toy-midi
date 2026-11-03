@@ -77,7 +77,7 @@ export function CommandGroup({
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        "text-foreground [&_[data-slot=command-group-heading]]:text-muted-foreground overflow-hidden p-tight [&_[data-slot=command-group-heading]]:px-snug [&_[data-slot=command-group-heading]]:py-tight [&_[data-slot=command-group-heading]]:text-xs [&_[data-slot=command-group-heading]]:font-medium",
+        "text-foreground [&_[cmdk-group-heading]]:text-muted-foreground overflow-hidden p-tight [&_[cmdk-group-heading]]:px-snug [&_[cmdk-group-heading]]:py-tight [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium",
         className,
       )}
       {...props}
