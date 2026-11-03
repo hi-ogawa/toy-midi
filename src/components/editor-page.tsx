@@ -28,6 +28,7 @@ import { InputSetup } from "./input";
 import { InputPanel } from "./input-panel";
 import { LocatorRow } from "./locators";
 import { MidiDeviceDialog } from "./midi-device-dialog";
+import { MidiKeyboardPanel } from "./midi-keyboard-panel";
 import { MidiTrackRow } from "./midi-track";
 import { Mixer } from "./mixer";
 import { Panel } from "./panel";
@@ -229,6 +230,10 @@ export function EditorPage({ source }: { source: ProjectSource }) {
     recordMutation.mutate(flags.isRecording ? "stop" : "start");
   }
 
+  function toggleMidiKeyboard() {
+    runtime.setMidiKeyboardOpen(!state.midiKeyboardOpen);
+  }
+
   function promptInputOn() {
     toast.warning("Turn input on to record");
     setIsInputPanelOpen(true);
@@ -288,6 +293,11 @@ export function EditorPage({ source }: { source: ProjectSource }) {
       if (rate !== undefined) {
         runtime.setPlaybackRate(rate);
       }
+      return;
+    }
+    if (matchKeyboardEvent(event, "Shift+K")) {
+      event.preventDefault();
+      toggleMidiKeyboard();
       return;
     }
     if (matchKeyboardEvent(event, "L")) {
@@ -392,6 +402,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
           setIsMidiDeviceOpen(true);
           midiDevice.requestAccess();
         }}
+        onMidiKeyboardToggle={toggleMidiKeyboard}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -672,7 +683,10 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                       }}
                       midiInteraction={midiInteraction}
                       midiMonitoring={state.midiMonitorTrackId === track.id}
-                      midiMonitorVisible={state.midiConnection !== undefined}
+                      midiMonitorVisible={
+                        state.midiConnection !== undefined ||
+                        state.midiKeyboardOpen === true
+                      }
                       onTranscribe={() =>
                         transcriptions.openTranscription(track.id)
                       }
@@ -736,6 +750,9 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+        {state.midiKeyboardOpen && (
+          <MidiKeyboardPanel runtime={runtime} state={state} />
+        )}
         {orderedMidiTracks.map(
           (track) =>
             track.synth &&

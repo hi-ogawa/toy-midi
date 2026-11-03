@@ -249,7 +249,9 @@ export interface EditorRuntimeState {
   armedTrackId?: string;
   /** @internal */
   midiConnection?: MidiConnection;
-  /** The MIDI track a MIDI device plays. Only on while a device is connected. */
+  /** Whether the on-screen MIDI keyboard panel is open. */
+  midiKeyboardOpen?: boolean;
+  /** The MIDI track live input plays. Only on while a live input is available. */
   midiMonitorTrackId?: string;
 }
 
@@ -816,22 +818,35 @@ export class EditorRuntime {
     await this.stopMidiInput();
     const midiConnection = await connectMidiInput({
       input,
-      onMessage: (message) => this.playMidiDeviceMessage(message),
+      onMessage: (message) => this.playLiveMidiMessage(message),
     });
     this.store.update({ midiConnection });
   }
 
   async stopMidiInput(): Promise<void> {
-    await this.store.get().midiConnection?.disconnect();
-    await this.setMidiMonitorTrack(undefined);
+    const { midiConnection, midiKeyboardOpen } = this.store.get();
+    await midiConnection?.disconnect();
+    if (!midiKeyboardOpen) {
+      await this.setMidiMonitorTrack(undefined);
+    }
     this.store.update({ midiConnection: undefined });
+  }
+
+  setMidiKeyboardOpen(open: boolean): void {
+    this.store.update({ midiKeyboardOpen: open });
+    if (!open && !this.store.get().midiConnection) {
+      void this.setMidiMonitorTrack(undefined);
+    }
   }
 
   /** Called from the click that enables monitoring, which lets audio start. */
   async setMidiMonitorTrack(id?: string): Promise<void> {
-    const { midiConnection, midiMonitorTrackId } = this.store.get();
-    if (id !== undefined && !midiConnection) {
-      throw new Error("Connect a MIDI device before monitoring.");
+    const { midiConnection, midiKeyboardOpen, midiMonitorTrackId } =
+      this.store.get();
+    if (id !== undefined && !midiConnection && !midiKeyboardOpen) {
+      throw new Error(
+        "Connect a MIDI device or open the MIDI keyboard before monitoring.",
+      );
     }
     if (midiMonitorTrackId !== undefined) {
       this.midiTrackPlaybacks.get(midiMonitorTrackId)?.reset();
@@ -846,7 +861,7 @@ export class EditorRuntime {
    * Sends without waiting for the audio context, so a note-off can't overtake
    * its note-on.
    */
-  private playMidiDeviceMessage(message: MidiDeviceMessage): void {
+  playLiveMidiMessage(message: MidiDeviceMessage): void {
     const { midiMonitorTrackId } = this.store.get();
     const playback =
       midiMonitorTrackId === undefined

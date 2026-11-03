@@ -99,6 +99,13 @@ const sections: HelpSectionData[] = [
     ],
   },
   {
+    title: "MIDI keyboard",
+    items: [
+      { action: "Show / hide the panel", keys: "Shift + K" },
+      { action: "Play with the computer keys", keys: "Shift + C" },
+    ],
+  },
+  {
     title: "Project",
     items: [{ action: "Save project", keys: "Ctrl / Cmd + S" }],
   },
