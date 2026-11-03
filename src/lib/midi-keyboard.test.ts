@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { MidiDeviceMessage } from "./midi-device";
+import type { MidiMessage } from "./general-midi";
 import { MidiKeyboard } from "./midi-keyboard";
 
 function createKeyboard() {
-  const sent: MidiDeviceMessage[] = [];
+  const sent: MidiMessage[] = [];
   const keyboard = new MidiKeyboard({ send: (message) => sent.push(message) });
   return { keyboard, sent };
 }

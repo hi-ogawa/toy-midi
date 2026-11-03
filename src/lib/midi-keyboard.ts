@@ -5,9 +5,9 @@ import {
 } from "./computer-keyboard.ts";
 import {
   LIVE_CONTROLLER_SETTINGS,
+  type MidiMessage,
   PITCH_WHEEL_CENTER,
 } from "./general-midi.ts";
-import type { MidiDeviceMessage } from "./midi-device.ts";
 import { clamp } from "./music.ts";
 
 export const MIN_OCTAVE = -2;
@@ -36,7 +36,7 @@ export class MidiKeyboard {
   private pointerPitches = new Map<number, number>();
 
   constructor(
-    private readonly options: { send: (message: MidiDeviceMessage) => void },
+    private readonly options: { send: (message: MidiMessage) => void },
   ) {}
 
   setVelocity(velocity: number): void {

@@ -16,7 +16,7 @@ import {
 } from "../lib/computer-keyboard";
 import { LIVE_CONTROLLER_SETTINGS, PITCH_WHEEL_MAX } from "../lib/general-midi";
 import {
-  encodeMidiDeviceMessage,
+  encodeMidiMessage,
   requestMidiAccess,
   subscribeMidiOutputs,
 } from "../lib/midi-device";
@@ -154,7 +154,7 @@ function MidiKeyboardControls() {
     pitchBend,
     controllerValues,
   } = useMidiKeyboard({
-    send: (message) => output?.send(encodeMidiDeviceMessage(message)),
+    send: (message) => output?.send(encodeMidiMessage(message)),
   });
 
   return (

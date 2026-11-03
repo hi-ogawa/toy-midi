@@ -1,12 +1,12 @@
 import { useEffectEvent, useState, useSyncExternalStore } from "react";
-import type { MidiDeviceMessage } from "../lib/midi-device";
+import type { MidiMessage } from "../lib/general-midi";
 import { MidiKeyboard } from "../lib/midi-keyboard";
 import { useWindowEvent } from "./use-window-event";
 
 export function useMidiKeyboard({
   send,
 }: {
-  send: (message: MidiDeviceMessage) => void;
+  send: (message: MidiMessage) => void;
 }) {
   const sendLatest = useEffectEvent(send);
   const [keyboard] = useState(() => new MidiKeyboard({ send: sendLatest }));

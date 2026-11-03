@@ -115,7 +115,7 @@ function parseMidiMessage(data: Uint8Array): MidiMessage | undefined {
 }
 
 /** Writes a message on channel 1. */
-export function encodeMidiDeviceMessage(message: MidiDeviceMessage): number[] {
+export function encodeMidiMessage(message: MidiMessage): number[] {
   switch (message.type) {
     case "note-on": {
       return [NOTE_ON_STATUS, message.pitch, message.velocity];
