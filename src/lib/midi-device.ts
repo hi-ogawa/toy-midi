@@ -79,7 +79,7 @@ const CONTROLLER_STATUS = 0xb0;
 const PITCH_BEND_STATUS = 0xe0;
 
 /** Reads a message on any channel, or nothing for what live input ignores. */
-export function parseMidiDeviceMessage(
+function parseMidiDeviceMessage(
   data: Uint8Array,
 ): MidiDeviceMessage | undefined {
   const [status, first, second] = data;
