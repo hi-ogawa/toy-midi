@@ -23,6 +23,29 @@ export function useFakeAudioInput({
   });
 }
 
+/** Playwright has no virtual MIDI device, so this replaces the browser's access. */
+export async function installFakeMidiDevice(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const setConnection = async (connection: string) => {
+      input.connection = connection;
+      access.dispatchEvent(new Event("statechange"));
+      return input;
+    };
+    const input = Object.assign(new EventTarget(), {
+      id: "fake-keyboard",
+      name: "Fake Keyboard",
+      state: "connected",
+      connection: "closed",
+      open: () => setConnection("open"),
+      close: () => setConnection("closed"),
+    });
+    const access = Object.assign(new EventTarget(), {
+      inputs: new Map([[input.id, input]]),
+    });
+    navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
+  });
+}
+
 /** Log elapsed checkpoints while investigating E2E timing. */
 export function createCheckpoint(): (label: string) => void {
   const startedAt = performance.now();

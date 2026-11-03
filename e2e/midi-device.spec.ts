@@ -1,30 +1,8 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { addMidiTrack, createProject, saveProject } from "./editor-helpers";
+import { installFakeMidiDevice } from "./helpers";
 
 test.use({ permissions: ["midi"] });
-
-// Playwright has no virtual MIDI device, so this replaces the browser's access.
-async function installFakeMidiDevice(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const setConnection = async (connection: string) => {
-      input.connection = connection;
-      access.dispatchEvent(new Event("statechange"));
-      return input;
-    };
-    const input = Object.assign(new EventTarget(), {
-      id: "fake-keyboard",
-      name: "Fake Keyboard",
-      state: "connected",
-      connection: "closed",
-      open: () => setConnection("open"),
-      close: () => setConnection("closed"),
-    });
-    const access = Object.assign(new EventTarget(), {
-      inputs: new Map([[input.id, input]]),
-    });
-    navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
-  });
-}
 
 test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await installFakeMidiDevice(page);
