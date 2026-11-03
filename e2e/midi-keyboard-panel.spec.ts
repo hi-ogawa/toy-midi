@@ -1,11 +1,21 @@
 import { expect, test } from "@playwright/test";
-import { addMidiTrack, createProject } from "./editor-helpers";
+import {
+  addMidiTrack,
+  createProject,
+  setMidiInstrument,
+} from "./editor-helpers";
+import { tapMasterOutput } from "./helpers";
 
 test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await createProject(page);
 
-  // Add a track, which offers no monitoring without a live input.
+  // Add a track on the synth, whose held notes sustain. It offers no monitoring
+  // without a live input.
   const row = await addMidiTrack(page);
+  await setMidiInstrument(page, {
+    name: "MIDI 1",
+    option: "Subtractive Synth",
+  });
   const monitor = row.getByTestId("input-monitor");
   await expect(monitor).toHaveCount(0);
 
@@ -16,14 +26,17 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await expect(panel.getByRole("status")).toHaveText("No track");
   await monitor.click();
   await expect(panel.getByRole("status")).toHaveText("MIDI 1");
+  const output = await tapMasterOutput(page);
 
-  // Hold a piano key with the mouse until release.
+  // Hold a piano key with the mouse, which sounds until release.
   const c4 = panel.getByRole("button", { name: "C4", exact: true });
   await c4.hover();
   await page.mouse.down();
   await expect(c4).toHaveAttribute("aria-pressed", "true");
+  await output.expectSound();
   await page.mouse.up();
   await expect(c4).toHaveAttribute("aria-pressed", "false");
+  await output.expectSilence();
 
   // Leave the computer keys as shortcuts until capture is on.
   const c3 = panel.getByRole("button", { name: "C3", exact: true });
@@ -36,8 +49,10 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await expect(c3).toContainText("A");
   await page.keyboard.down("a");
   await expect(c3).toHaveAttribute("aria-pressed", "true");
+  await output.expectSound();
   await page.keyboard.up("a");
   await expect(c3).toHaveAttribute("aria-pressed", "false");
+  await output.expectSilence();
 
   // Play a note from L, which adds no locator while capture is on.
   await page.keyboard.down("l");
