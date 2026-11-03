@@ -323,11 +323,11 @@ function ComputerKeyboardLayout({
   return (
     <div className="mx-auto w-fit">
       <h2 className="mb-2 text-xs font-semibold text-neutral-400">
-        Computer keyboard mapping
+        Keyboard shortcuts
       </h2>
       <div
         role="img"
-        aria-label="Computer keyboard mapping"
+        aria-label="Keyboard shortcuts"
         className="grid gap-1 select-none"
       >
         {COMPUTER_KEYBOARD_ROWS.map(({ stagger, codes }) => (
