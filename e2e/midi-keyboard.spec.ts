@@ -2,19 +2,19 @@ import { expect, test, type Page } from "@playwright/test";
 
 declare global {
   interface Window {
-    sentMidi: number[][];
+    __e2eSentMidi: number[][];
   }
 }
 
 // Playwright has no virtual MIDI device, so this replaces the browser's access.
 async function installFakeMidiOutput(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    window.sentMidi = [];
+    window.__e2eSentMidi = [];
     const output = {
       id: "fake-output",
       name: "Fake Output",
       state: "connected",
-      send: (bytes: number[]) => window.sentMidi.push(bytes),
+      send: (bytes: number[]) => window.__e2eSentMidi.push(bytes),
     };
     navigator.requestMIDIAccess = async () =>
       ({
@@ -50,9 +50,9 @@ test("sends notes and controllers to a MIDI output", async ({ page }) => {
 
   const expectSent = async (messages: number[][]) => {
     await expect
-      .poll(() => page.evaluate(() => window.sentMidi))
+      .poll(() => page.evaluate(() => window.__e2eSentMidi))
       .toEqual(messages);
-    await page.evaluate(() => (window.sentMidi = []));
+    await page.evaluate(() => (window.__e2eSentMidi = []));
   };
 
   // Press and release a piano key with the mouse.
