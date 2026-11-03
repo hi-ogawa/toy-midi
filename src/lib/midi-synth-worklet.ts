@@ -4,6 +4,7 @@ import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
 import {
   encodePitchBend,
   LIVE_CONTROLLERS,
+  type MidiMessage,
   PITCH_WHEEL_CENTER,
 } from "./general-midi.ts";
 import {
@@ -133,35 +134,11 @@ export class MidiSynth {
     this.scheduler.requestChase();
   }
 
-  async noteOn({
-    pitch,
-    velocity,
-  }: {
-    pitch: number;
-    velocity: number;
-  }): Promise<void> {
-    this.applyPendingAutomationReset();
-    this.engine!.noteOn(pitch, velocity);
-  }
-
-  async noteOff(pitch: number): Promise<void> {
-    this.engine!.noteOff(pitch);
-  }
-
-  async setController({
-    controller,
-    value,
-  }: {
-    controller: number;
-    value: number;
-  }): Promise<void> {
-    this.applyPendingAutomationReset();
-    this.engine!.controller(controller, value);
-  }
-
-  async setPitchBend(value: number): Promise<void> {
-    this.applyPendingAutomationReset();
-    this.engine!.pitchBend(value);
+  async playMessage(message: MidiMessage): Promise<void> {
+    if (message.type !== "note-off") {
+      this.applyPendingAutomationReset();
+    }
+    playMidiMessage(this.engine!, message);
   }
 
   /**
@@ -283,27 +260,31 @@ export class MidiSynth {
         engine.render(left, right, offset, eventOffset - offset);
         offset = eventOffset;
       }
-      switch (event.type) {
-        case "note-off": {
-          engine.noteOff(event.pitch);
-          break;
-        }
-        case "controller": {
-          engine.controller(event.controller, event.value);
-          break;
-        }
-        case "pitch-bend": {
-          engine.pitchBend(event.value);
-          break;
-        }
-        case "note-on": {
-          engine.noteOn(event.pitch, event.velocity);
-          break;
-        }
-      }
+      playMidiMessage(engine, event);
     }
     if (offset < left.length) {
       engine.render(left, right, offset, left.length - offset);
+    }
+  }
+}
+
+function playMidiMessage(engine: SynthEngine, message: MidiMessage): void {
+  switch (message.type) {
+    case "note-on": {
+      engine.noteOn(message.pitch, message.velocity);
+      break;
+    }
+    case "note-off": {
+      engine.noteOff(message.pitch);
+      break;
+    }
+    case "controller": {
+      engine.controller(message.controller, message.value);
+      break;
+    }
+    case "pitch-bend": {
+      engine.pitchBend(message.value);
+      break;
     }
   }
 }
