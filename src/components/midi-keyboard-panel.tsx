@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { ABLETON_KEYMAP } from "../lib/computer-keyboard";
-import { isTextEntryTarget, matchKeyboardEvent } from "../lib/keyboard";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import {
   ComputerKeyboardLayout,
@@ -11,7 +10,6 @@ import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
 import { useMidiKeyboard } from "./use-midi-keyboard";
-import { useWindowEvent } from "./use-window-event";
 
 export function MidiKeyboardPanel({
   runtime,
@@ -34,23 +32,6 @@ export function MidiKeyboardPanel({
     keyboard.releaseAll();
     setIsCapturing(!isCapturing);
   }
-
-  useWindowEvent(
-    "keydown",
-    (event) => {
-      if (
-        !isTextEntryTarget(event.target) &&
-        matchKeyboardEvent(event, "Shift+C")
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!event.repeat) {
-          toggleCapture();
-        }
-      }
-    },
-    true,
-  );
 
   useEffect(() => () => keyboard.releaseAll(), [keyboard]);
 
