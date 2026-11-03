@@ -1,3 +1,4 @@
+// Throwaway change to check the trace trigger.
 import { expect, test } from "@playwright/test";
 import {
   addMidiTrack,
