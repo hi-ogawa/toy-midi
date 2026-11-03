@@ -12,6 +12,7 @@
 
 - This application is desktop-only. Do not propose, evaluate, implement, or mention mobile or responsive behavior
 - Commit messages: use Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`); add `!` for breaking changes
+- When asked to merge a PR that only pending checks are blocking, enable auto-merge with `gh pr merge --squash --auto` instead of asking, and say that it merges when the checks pass. If a check failed or the PR has conflicts, report that instead
 - File names: kebab-case
 - Function names: start with a verb for the action the function performs, so a call site reads as what happens rather than what comes back. This includes class accessors, so write a `get`-prefixed method rather than a getter. Components, hooks, and other constructs with their own ecosystem naming conventions follow those instead
 - Do not add compatibility paths or handling for edge cases that do not occur in practice
