@@ -125,9 +125,9 @@ function MidiKeyboardControls({ access }: { access: MIDIAccess }) {
     velocity,
     pitchBend,
     controllerValues,
-  } = useMidiKeyboard((message) =>
-    output?.send(encodeMidiDeviceMessage(message)),
-  );
+  } = useMidiKeyboard({
+    send: (message) => output?.send(encodeMidiDeviceMessage(message)),
+  });
 
   return (
     <div className="grid gap-6">
