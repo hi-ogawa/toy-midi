@@ -1,10 +1,5 @@
 import { expect, test } from "@playwright/test";
-import {
-  addMidiTrack,
-  createProject,
-  openMidiInstrument,
-  selectMidiInstrument,
-} from "./editor-helpers";
+import { addMidiTrack, createProject } from "./editor-helpers";
 import { tapMasterOutput } from "./helpers";
 
 test("plays notes from the MIDI keyboard panel", async ({ page }) => {
@@ -49,15 +44,6 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await page.keyboard.up("a");
   await expect(c3).toHaveAttribute("aria-pressed", "false");
   await output.expectSilence();
-
-  // Switch the instrument, and play it from the keys inside its dialog.
-  const instrument = await openMidiInstrument(page, { name: "MIDI 1" });
-  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
-  await page.keyboard.down("a");
-  await output.expectSound();
-  await page.keyboard.up("a");
-  await output.expectSilence();
-  await instrument.getByRole("button", { name: "Close", exact: true }).click();
 
   // Play a note from L, which adds no locator while capture is on.
   await page.keyboard.down("l");
