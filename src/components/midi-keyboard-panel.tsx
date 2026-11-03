@@ -14,9 +14,11 @@ import { useMidiKeyboard } from "./use-midi-keyboard";
 export function MidiKeyboardPanel({
   runtime,
   state,
+  onClose,
 }: {
   runtime: EditorRuntime;
   state: EditorRuntimeState;
+  onClose: () => void;
 }) {
   const [isCapturing, setIsCapturing] = useState(false);
   const { keyboard, heldPitches, octave, velocity } = useMidiKeyboard({
@@ -39,7 +41,7 @@ export function MidiKeyboardPanel({
     <Panel
       title="MIDI Keyboard"
       closeLabel="Close MIDI Keyboard"
-      onClose={() => runtime.setMidiKeyboardOpen(false)}
+      onClose={onClose}
       data-testid="midi-keyboard-panel"
       className="pointer-events-auto shrink-0"
       contentClassName="grid w-[732px] gap-3 px-4 py-3"

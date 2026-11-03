@@ -245,9 +245,7 @@ export interface EditorRuntimeState {
   armedTrackId?: string;
   /** @internal */
   midiConnection?: MidiConnection;
-  /** Whether the on-screen MIDI keyboard panel is open. */
-  midiKeyboardOpen?: boolean;
-  /** The MIDI track live input plays. Only on while a live input is available. */
+  /** The MIDI track live input plays. */
   midiMonitorTrackId?: string;
 }
 
@@ -819,30 +817,14 @@ export class EditorRuntime {
   }
 
   async stopMidiInput(): Promise<void> {
-    const { midiConnection, midiKeyboardOpen } = this.store.get();
-    await midiConnection?.dispose();
-    if (!midiKeyboardOpen) {
-      await this.setMidiMonitorTrack(undefined);
-    }
+    await this.store.get().midiConnection?.dispose();
+    await this.setMidiMonitorTrack(undefined);
     this.store.update({ midiConnection: undefined });
-  }
-
-  setMidiKeyboardOpen(open: boolean): void {
-    this.store.update({ midiKeyboardOpen: open });
-    if (!open && !this.store.get().midiConnection) {
-      void this.setMidiMonitorTrack(undefined);
-    }
   }
 
   /** Called from the click that enables monitoring, which lets audio start. */
   async setMidiMonitorTrack(id?: string): Promise<void> {
-    const { midiConnection, midiKeyboardOpen, midiMonitorTrackId } =
-      this.store.get();
-    if (id !== undefined && !midiConnection && !midiKeyboardOpen) {
-      throw new Error(
-        "Connect a MIDI device or open the MIDI keyboard before monitoring.",
-      );
-    }
+    const { midiMonitorTrackId } = this.store.get();
     if (midiMonitorTrackId !== undefined) {
       this.midiTrackPlaybacks.get(midiMonitorTrackId)?.reset();
     }

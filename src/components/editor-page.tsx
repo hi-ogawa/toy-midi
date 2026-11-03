@@ -82,6 +82,8 @@ export function EditorPage({ source }: { source: ProjectSource }) {
   const [isTunerOpen, setIsTunerOpen] = projectUiStore.useValue("tunerOpen");
   const [isInputPanelOpen, setIsInputPanelOpen] =
     projectUiStore.useValue("inputPanelOpen");
+  const [isMidiKeyboardOpen, setIsMidiKeyboardOpen] =
+    projectUiStore.useValue("midiKeyboardOpen");
   const effects = useEffectsUi(projectUiStore);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -231,7 +233,18 @@ export function EditorPage({ source }: { source: ProjectSource }) {
   }
 
   function toggleMidiKeyboard() {
-    runtime.setMidiKeyboardOpen(!state.midiKeyboardOpen);
+    if (isMidiKeyboardOpen) {
+      closeMidiKeyboard();
+    } else {
+      setIsMidiKeyboardOpen(true);
+    }
+  }
+
+  function closeMidiKeyboard() {
+    setIsMidiKeyboardOpen(false);
+    if (!state.midiConnection) {
+      void runtime.setMidiMonitorTrack(undefined);
+    }
   }
 
   function promptInputOn() {
@@ -679,8 +692,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                       midiInteraction={midiInteraction}
                       midiMonitoring={state.midiMonitorTrackId === track.id}
                       midiMonitorVisible={
-                        state.midiConnection !== undefined ||
-                        state.midiKeyboardOpen === true
+                        state.midiConnection !== undefined || isMidiKeyboardOpen
                       }
                       onTranscribe={() =>
                         transcriptions.openTranscription(track.id)
@@ -745,8 +757,12 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
-        {state.midiKeyboardOpen && (
-          <MidiKeyboardPanel runtime={runtime} state={state} />
+        {isMidiKeyboardOpen && (
+          <MidiKeyboardPanel
+            runtime={runtime}
+            state={state}
+            onClose={closeMidiKeyboard}
+          />
         )}
         {orderedMidiTracks.map(
           (track) =>
