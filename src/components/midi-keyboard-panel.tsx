@@ -6,7 +6,11 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ABLETON_KEYMAP, getComputerKeyLabels } from "../lib/computer-keyboard";
-import { PITCH_WHEEL_MAX } from "../lib/general-midi";
+import {
+  PITCH_BEND_RANGE,
+  PITCH_WHEEL_CENTER,
+  PITCH_WHEEL_MAX,
+} from "../lib/general-midi";
 import {
   MAX_OCTAVE,
   MAX_VELOCITY,
@@ -23,13 +27,13 @@ import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Slider } from "./ui/slider";
 import { useMidiKeyboard } from "./use-midi-keyboard";
 import { usePointerDrag } from "./use-pointer-drag";
 
 const WHITE_KEY_WIDTH = 28;
 const PANEL_CHROME_WIDTH = 26;
 const MOD_WHEEL_CONTROLLER = 1;
+const SEMITONE_BEND = PITCH_WHEEL_CENTER / PITCH_BEND_RANGE;
 
 export function MidiKeyboardPanel({
   projectUiStore,
@@ -124,7 +128,18 @@ export function MidiKeyboardPanel({
           octave={octave}
           lowestPitch={lowestPitch}
         />
-        <PitchBendSlider keyboard={keyboard} pitchBend={pitchBend} />
+        <ValueKnob
+          label="Pitch bend"
+          shortLabel="Bend"
+          value={pitchBend}
+          displayValue={formatPitchBend(pitchBend)}
+          min={0}
+          max={PITCH_WHEEL_MAX}
+          origin={PITCH_WHEEL_CENTER}
+          step={SEMITONE_BEND}
+          onChange={(value) => keyboard.setPitchBend(value)}
+          onRelease={() => keyboard.releasePitchBend()}
+        />
         <ValueKnob
           label="Mod wheel"
           shortLabel="Mod"
@@ -199,43 +214,28 @@ function OctaveStepper({
   );
 }
 
-function PitchBendSlider({
-  keyboard,
-  pitchBend,
-}: {
-  keyboard: MidiKeyboard;
-  pitchBend: number;
-}) {
-  return (
-    <div className="min-w-0 flex-1 text-xs leading-none text-neutral-300">
-      <div className="mb-1">Bend</div>
-      <Slider
-        aria-label="Pitch bend"
-        value={[pitchBend]}
-        min={0}
-        max={PITCH_WHEEL_MAX}
-        onValueChange={([value]) => keyboard.setPitchBend(value)}
-        onPointerUp={() => keyboard.releasePitchBend()}
-        onKeyUp={() => keyboard.releasePitchBend()}
-      />
-    </div>
-  );
-}
-
 function ValueKnob({
   label,
   shortLabel,
   value,
+  displayValue = value,
   min,
   max,
+  origin,
+  step = 1,
   onChange,
+  onRelease,
 }: {
   label: string;
   shortLabel: string;
   value: number;
+  displayValue?: number | string;
   min: number;
   max: number;
+  origin?: number;
+  step?: number;
   onChange: (value: number) => void;
+  onRelease?: () => void;
 }) {
   const setValue = (next: number) =>
     onChange(clamp(Math.round(next), min, max));
@@ -247,6 +247,8 @@ function ValueKnob({
     },
     onMove: (_event, drag) =>
       setValue(drag.data - (drag.deltaY / 200) * (max - min)),
+    onEnd: onRelease,
+    onCancel: onRelease,
   });
   return (
     <div className="flex items-center gap-1.5 text-xs text-neutral-300">
@@ -254,12 +256,12 @@ function ValueKnob({
         ref={ref}
         aria-label={label}
         onKeyDown={(event) => {
-          const step = event.shiftKey ? 10 : 1;
+          const delta = event.shiftKey ? 10 * step : step;
           const next = {
-            ArrowLeft: value - step,
-            ArrowDown: value - step,
-            ArrowRight: value + step,
-            ArrowUp: value + step,
+            ArrowLeft: value - delta,
+            ArrowDown: value - delta,
+            ArrowRight: value + delta,
+            ArrowUp: value + delta,
             Home: min,
             End: max,
           }[event.key];
@@ -268,17 +270,26 @@ function ValueKnob({
             setValue(next);
           }
         }}
+        onKeyUp={onRelease}
         value={value}
         min={min}
         max={max}
+        origin={origin}
         className="cursor-ns-resize"
       />
       <div className="grid w-6 gap-1 leading-none">
         <span>{shortLabel}</span>
-        <span className="tabular-nums">{value}</span>
+        <span className="tabular-nums">{displayValue}</span>
       </div>
     </div>
   );
+}
+
+function formatPitchBend(pitchBend: number): string {
+  const semitones = Math.round(
+    ((pitchBend - PITCH_WHEEL_CENTER) / PITCH_WHEEL_CENTER) * PITCH_BEND_RANGE,
+  );
+  return semitones > 0 ? `+${semitones}` : `${semitones}`;
 }
 
 function MidiKeyboardHelp() {

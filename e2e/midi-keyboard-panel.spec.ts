@@ -97,7 +97,7 @@ test("bends and modulates from the MIDI keyboard panel", async ({ page }) => {
   await bend.hover();
   await page.mouse.down();
   const { x, y } = (await bend.boundingBox())!;
-  await page.mouse.move(x + 20, y);
+  await page.mouse.move(x, y - 20);
   await expect(bend).not.toHaveAttribute("aria-valuenow", "8192");
   await page.mouse.up();
   await expect(bend).toHaveAttribute("aria-valuenow", "8192");
