@@ -91,6 +91,42 @@ export function MidiKeyboardPage() {
   );
 }
 
+function MidiKeyboardHelp() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          title="MIDI keyboard help"
+          aria-label="MIDI keyboard help"
+          className="size-9 hover:bg-accent hover:text-accent-foreground"
+        >
+          <CircleHelpIcon className="size-5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 space-y-2 p-3 text-xs">
+        <p>A virtual MIDI controller. It makes no sound by itself.</p>
+        <p>
+          To hear it, send it to anything that takes MIDI input. To reach
+          another app on this computer, use a loopback port, such as the IAC
+          Driver on macOS.
+        </p>
+        <p>
+          To hear it in the editor, open a{" "}
+          <a
+            href={DEMO_TRACK_HREF}
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            demo track
+          </a>
+          , select the same port under MIDI Device, and turn on Monitor.
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function MidiKeyboardControls() {
   const accessQuery = useQuery({
     queryKey: ["midi-output-access"],
@@ -274,42 +310,6 @@ function PianoKey({
     >
       {pitch % 12 === 0 && formatChromaticPitch(pitch)}
     </button>
-  );
-}
-
-function MidiKeyboardHelp() {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          title="MIDI keyboard help"
-          aria-label="MIDI keyboard help"
-          className="size-9 hover:bg-accent hover:text-accent-foreground"
-        >
-          <CircleHelpIcon className="size-5" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 space-y-2 p-3 text-xs">
-        <p>A virtual MIDI controller. It makes no sound by itself.</p>
-        <p>
-          To hear it, send it to anything that takes MIDI input. To reach
-          another app on this computer, use a loopback port, such as the IAC
-          Driver on macOS.
-        </p>
-        <p>
-          To hear it in the editor, open a{" "}
-          <a
-            href={DEMO_TRACK_HREF}
-            target="_blank"
-            rel="noreferrer"
-            className="underline underline-offset-2"
-          >
-            demo track
-          </a>
-          , select the same port under MIDI Device, and turn on Monitor.
-        </p>
-      </PopoverContent>
-    </Popover>
   );
 }
 
