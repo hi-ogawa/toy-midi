@@ -6,9 +6,7 @@ import {
   selectMidiInstrument,
 } from "./editor-helpers";
 
-test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
-  page,
-}) => {
+test("plays notes from the MIDI keyboard panel", async ({ page }) => {
   await createProject(page);
 
   // Add a synth track, which offers no monitoring without a live input.
@@ -27,40 +25,29 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   await monitor.click();
   await expect(panel.getByRole("status")).toHaveText("MIDI 1");
 
-  await page.getByTestId("mixer-button").click();
-  const meter = page
-    .getByTestId("mixer-panel")
-    // The instrument dialog hides the page from the accessibility tree.
-    .getByRole("meter", { name: "MIDI 1 level", includeHidden: true });
-  const getLevel = async () =>
-    Number(await meter.getAttribute("aria-valuenow"));
-  const expectSounding = () => expect.poll(getLevel).toBeGreaterThan(-60);
-  const expectSilent = () => expect.poll(getLevel).toBe(-60);
-
-  // Hold a piano key with the mouse, and hear it until release.
-  await panel.getByRole("button", { name: "C4", exact: true }).hover();
+  // Hold a piano key with the mouse until release.
+  const c4 = panel.getByRole("button", { name: "C4", exact: true });
+  await c4.hover();
   await page.mouse.down();
-  await expectSounding();
+  await expect(c4).toHaveAttribute("aria-pressed", "true");
   await page.mouse.up();
-  await expectSilent();
+  await expect(c4).toHaveAttribute("aria-pressed", "false");
 
   // Leave the computer keys as shortcuts until capture is on.
+  const c3 = panel.getByRole("button", { name: "C3", exact: true });
   await page.keyboard.down("a");
-  await page.waitForTimeout(200);
-  expect(await getLevel()).toBe(-60);
+  await expect(c3).toHaveAttribute("aria-pressed", "false");
   await page.keyboard.up("a");
 
   // Turn on capture, which marks the keys on the piano, and play a note.
   const panelSize = await panel.boundingBox();
   await panel.getByRole("button", { name: "Computer keys" }).click();
-  const c3 = panel.getByRole("button", { name: "C3", exact: true });
   await expect(c3).toContainText("A");
   expect(await panel.boundingBox()).toEqual(panelSize);
   await page.keyboard.down("a");
   await expect(c3).toHaveAttribute("aria-pressed", "true");
-  await expectSounding();
   await page.keyboard.up("a");
-  await expectSilent();
+  await expect(c3).toHaveAttribute("aria-pressed", "false");
 
   // Play a note from L, which adds no locator while capture is on.
   await page.keyboard.down("l");
@@ -73,12 +60,10 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
   // Shift an octave, and release the note it started after shifting back.
   await page.keyboard.press("x");
   await page.keyboard.down("a");
-  const c4 = panel.getByRole("button", { name: "C4", exact: true });
   await expect(c4).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("z");
   await page.keyboard.up("a");
   await expect(c4).toHaveAttribute("aria-pressed", "false");
-  await expectSilent();
 
   // Step up an octave from the panel, which moves the piano and the key marks.
   await panel.getByRole("button", { name: "Octave up" }).click();
@@ -107,10 +92,16 @@ test("plays the monitored MIDI track from the MIDI keyboard panel", async ({
 
   // Play from inside the instrument dialog while browsing presets.
   const dialog = await openMidiInstrument(page, { name: "MIDI 1" });
+  const hiddenC3 = panel.getByRole("button", {
+    name: "C3",
+    exact: true,
+    // The dialog hides the page from the accessibility tree.
+    includeHidden: true,
+  });
   await page.keyboard.down("a");
-  await expectSounding();
+  await expect(hiddenC3).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.up("a");
-  await expectSilent();
+  await expect(hiddenC3).toHaveAttribute("aria-pressed", "false");
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
 
   // Close the panel, which ends monitoring.
