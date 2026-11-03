@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   getConnectedMidiInputs,
@@ -12,8 +12,6 @@ import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 
 export type UseMidiDeviceResult = ReturnType<typeof useMidiDevice>;
 
-const MIDI_ACCESS_KEY = ["midi-access"];
-
 export function useMidiDevice({
   runtime,
   state,
@@ -21,13 +19,12 @@ export function useMidiDevice({
   runtime: EditorRuntime;
   state: EditorRuntimeState;
 }) {
-  const queryClient = useQueryClient();
   const [rememberedId, setRememberedId] = preferences.useValue("midiDeviceId");
   const [devices, setDevices] = useState<MIDIInput[]>();
   const isSupported = isMidiDeviceSupported();
 
   const accessQuery = useQuery({
-    queryKey: MIDI_ACCESS_KEY,
+    queryKey: ["midi-access"],
     enabled: isSupported,
     retry: false,
     staleTime: Infinity,
@@ -47,14 +44,8 @@ export function useMidiDevice({
       return { access };
     },
   });
-  const access = accessQuery.data?.access;
-
-  const requestAccessMutation = useMutation({
-    mutationFn: requestMidiAccess,
-    onSuccess: (nextAccess) => {
-      queryClient.setQueryData(MIDI_ACCESS_KEY, { access: nextAccess });
-    },
-  });
+  const requestAccessMutation = useMutation({ mutationFn: requestMidiAccess });
+  const access = accessQuery.data?.access ?? requestAccessMutation.data;
 
   useEffect(() => {
     if (access) {
