@@ -57,7 +57,7 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await page.getByRole("button", { name: "Editor menu" }).click();
   await page.getByRole("menuitem", { name: "MIDI Device" }).click();
   const dialog = page.getByRole("dialog", { name: "MIDI Device" });
-  await dialog.getByRole("radio", { name: "Fake Keyboard" }).check();
+  await dialog.getByLabel("Device").selectOption("Fake Keyboard");
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await expect(firstMonitor).toBeVisible();
 

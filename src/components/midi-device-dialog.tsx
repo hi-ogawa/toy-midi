@@ -1,8 +1,6 @@
 import { Dialog } from "./ui/dialog";
 import type { UseMidiDeviceResult } from "./use-midi-device";
 
-const OFF_VALUE = "off";
-
 export function MidiDeviceDialog({
   isOpen,
   onClose,
@@ -25,31 +23,25 @@ function MidiDeviceContent({
   midiDevice: UseMidiDeviceResult;
 }) {
   if (devices) {
-    const options = [{ id: OFF_VALUE, name: "Off" }, ...devices];
     return (
-      <div className="space-y-3 text-sm">
-        <div
-          role="radiogroup"
-          aria-label="MIDI Device"
-          className="flex flex-col gap-2"
-        >
-          {options.map((option) => (
-            <label
-              key={option.id}
-              className="flex items-center gap-2 text-neutral-100"
-            >
-              <input
-                type="radio"
-                name="midi-device"
-                checked={(deviceId ?? OFF_VALUE) === option.id}
-                onChange={() =>
-                  selectDevice(option.id === OFF_VALUE ? undefined : option.id)
-                }
-              />
-              {option.name}
-            </label>
-          ))}
-        </div>
+      <div className="space-y-3">
+        <label className="block text-xs font-medium text-neutral-400">
+          Device
+          <select
+            value={deviceId ?? ""}
+            onChange={(event) =>
+              selectDevice(event.currentTarget.value || undefined)
+            }
+            className="mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100"
+          >
+            <option value="">Off</option>
+            {devices.map((device) => (
+              <option key={device.id} value={device.id}>
+                {device.name}
+              </option>
+            ))}
+          </select>
+        </label>
         {devices.length === 0 && (
           <p role="status" className="text-xs text-neutral-400">
             No MIDI devices found. A device appears here once you connect it.
