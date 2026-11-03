@@ -6,18 +6,19 @@ import {
   CircleStopIcon,
   DownloadIcon,
   HouseIcon,
+  KeyboardMusicIcon,
   LinkIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
   MicIcon,
   MoreVerticalIcon,
+  NotebookPenIcon,
   PauseIcon,
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
-  VideoIcon,
   SlidersVerticalIcon,
-  NotebookPenIcon,
+  VideoIcon,
 } from "lucide-react";
 import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
@@ -33,7 +34,6 @@ import {
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../types";
 import type { EditorFlags } from "./flags";
 import { MetronomeIcon } from "./icons";
-import { MidiDeviceMenu } from "./midi-device-menu";
 import { GainSlider } from "./mixer";
 import { RangeControl } from "./range-control";
 import { Button } from "./ui/button";
@@ -48,7 +48,6 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 import { useDraftInput } from "./use-draft-input";
-import type { UseMidiDeviceResult } from "./use-midi-device";
 import { usePlaybackPosition } from "./use-playback-position";
 import type { SaveStatus } from "./use-project";
 import { useTapTempo } from "./use-tap-tempo";
@@ -96,7 +95,8 @@ export function Header({
   inputPanelOpen,
   inputAccessRequired,
   onInputPanelToggle,
-  midiDevice,
+  midiDeviceSupported,
+  onMidiDeviceOpen,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
@@ -141,7 +141,8 @@ export function Header({
   inputPanelOpen: boolean;
   inputAccessRequired: boolean;
   onInputPanelToggle: () => void;
-  midiDevice: UseMidiDeviceResult;
+  midiDeviceSupported: boolean;
+  onMidiDeviceOpen: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -426,7 +427,6 @@ export function Header({
       >
         <MicIcon className="size-5" />
       </Button>
-      <MidiDeviceMenu midiDevice={midiDevice} />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -443,6 +443,13 @@ export function Header({
           <DropdownMenuItem onSelect={onProjectCommentToggle}>
             <NotebookPenIcon />
             Project Comment
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={!midiDeviceSupported}
+            onSelect={onMidiDeviceOpen}
+          >
+            <KeyboardMusicIcon />
+            MIDI Device
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

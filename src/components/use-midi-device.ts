@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { toast } from "sonner";
 import { isMidiDeviceSupported } from "../lib/midi-device";
 import { preferences } from "../lib/preferences";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
@@ -18,10 +17,8 @@ export function useMidiDevice({
 
   const requestAccessMutation = useMutation({
     mutationFn: () => runtime.requestMidiAccess(rememberedId),
-    onError: (error) => {
-      console.error(error);
-      toast.error("MIDI access was denied");
-    },
+    // A failed request shows as the denied state instead of a toast.
+    onError: (error) => console.error(error),
   });
 
   useEffect(() => {
@@ -34,7 +31,8 @@ export function useMidiDevice({
     devices: state.midiDevices,
     deviceId: state.midiDeviceId,
     isSupported: isMidiDeviceSupported(),
-    requestAccess: requestAccessMutation.mutate,
+    isAccessDenied: requestAccessMutation.isError,
+    requestAccess: () => requestAccessMutation.mutate(),
     selectDevice: (deviceId?: string) => {
       setRememberedId(deviceId);
       runtime.selectMidiDevice(deviceId);

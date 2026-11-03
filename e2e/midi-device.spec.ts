@@ -46,19 +46,20 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await installFakeMidiDevice(page);
   await createProject(page);
 
-  // Add two synth tracks, which can't monitor without a device.
+  // Add two synth tracks, which offer no monitoring without a device.
   const first = await addSynthTrack(page, "MIDI 1");
   const second = await addSynthTrack(page, "MIDI 2");
   const firstMonitor = first.getByTestId("input-monitor");
   const secondMonitor = second.getByTestId("input-monitor");
-  await expect(firstMonitor).toBeDisabled();
+  await expect(firstMonitor).toHaveCount(0);
 
-  // Allow MIDI access, and select the device.
-  const deviceButton = page.getByRole("button", { name: "MIDI Device" });
-  await deviceButton.click();
-  await page.getByRole("menuitem", { name: "Allow MIDI access" }).click();
-  await deviceButton.click();
-  await page.getByRole("menuitemradio", { name: "Fake Keyboard" }).click();
+  // Open the MIDI device dialog from the editor menu, and select the device.
+  await page.getByRole("button", { name: "Editor menu" }).click();
+  await page.getByRole("menuitem", { name: "MIDI Device" }).click();
+  const dialog = page.getByRole("dialog", { name: "MIDI Device" });
+  await dialog.getByRole("radio", { name: "Fake Keyboard" }).check();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(firstMonitor).toBeVisible();
 
   // Hold a note before monitoring, and hear nothing.
   await page.getByTestId("mixer-button").click();
@@ -92,6 +93,6 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   // Save and reload, and find the device reconnected with monitoring off.
   await saveProject(page);
   await page.reload();
-  await expect(firstMonitor).toBeEnabled();
+  await expect(firstMonitor).toBeVisible();
   await expect(secondMonitor).toHaveAttribute("aria-pressed", "false");
 });
