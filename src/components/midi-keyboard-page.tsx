@@ -46,13 +46,6 @@ const COMPUTER_KEY_STEP = 40;
 const DEMO_TRACK_HREF = `${routes.draft.href()}?src=/midi-keyboard-demo.json`;
 
 export function MidiKeyboardPage() {
-  const accessQuery = useQuery({
-    queryKey: ["midi-output-access"],
-    retry: false,
-    staleTime: Infinity,
-    queryFn: requestMidiAccess,
-  });
-
   useEffect(() => {
     document.title = "MIDI Keyboard - Toy MIDI";
   }, []);
@@ -108,26 +101,28 @@ export function MidiKeyboardPage() {
           </p>
         </div>
         <div className="mt-8">
-          {accessQuery.data ? (
-            <MidiKeyboardControls access={accessQuery.data} />
-          ) : accessQuery.isError ? (
-            <p role="alert" className="text-sm text-red-400">
-              MIDI access isn't available: {accessQuery.error.message}
-            </p>
-          ) : (
-            <p className="text-sm text-neutral-400">
-              Waiting for MIDI access...
-            </p>
-          )}
+          <MidiKeyboardControls />
         </div>
       </div>
     </main>
   );
 }
 
-function MidiKeyboardControls({ access }: { access: MIDIAccess }) {
+function MidiKeyboardControls() {
+  const accessQuery = useQuery({
+    queryKey: ["midi-output-access"],
+    retry: false,
+    staleTime: Infinity,
+    queryFn: requestMidiAccess,
+  });
+  const access = accessQuery.data;
+
   const [outputs, setOutputs] = useState<MIDIOutput[]>([]);
-  useEffect(() => subscribeMidiOutputs(access, setOutputs), [access]);
+  useEffect(() => {
+    if (access) {
+      return subscribeMidiOutputs(access, setOutputs);
+    }
+  }, [access]);
 
   const [selectedId, setSelectedId] = useState<string>();
   const output =
@@ -157,13 +152,24 @@ function MidiKeyboardControls({ access }: { access: MIDIAccess }) {
           }}
           className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
         >
-          {outputs.length === 0 && <option>No MIDI outputs found</option>}
+          {outputs.length === 0 && (
+            <option>
+              {accessQuery.isPending
+                ? "Waiting for MIDI access..."
+                : "No MIDI outputs found"}
+            </option>
+          )}
           {outputs.map((output) => (
             <option key={output.id} value={output.id}>
               {output.name || "Unnamed output"}
             </option>
           ))}
         </select>
+        {accessQuery.isError && (
+          <span role="alert" className="font-normal text-red-400">
+            MIDI access isn't available: {accessQuery.error.message}
+          </span>
+        )}
       </label>
 
       <div className="grid grid-cols-4 gap-6">
