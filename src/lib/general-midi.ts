@@ -157,6 +157,12 @@ export const DRUM_KIT_BANK = 128;
 export const PITCH_BEND_RANGE = 12;
 export const PITCH_WHEEL_CENTER = 8192;
 
+// Modulation, volume, expression, sustain, resonance, and brightness: what a
+// player moves during a performance, and what a reset can return to its default.
+// A device's other controllers, such as bank select, would change the instrument
+// instead.
+export const LIVE_CONTROLLERS = [1, 7, 11, 64, 71, 74];
+
 /** Convert a bend in semitones to a 14-bit pitch wheel value. */
 export function encodePitchBend(semitones: number): number {
   // The value runs 8192 steps down from center but only 8191 up, so a bend

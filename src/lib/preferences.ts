@@ -21,6 +21,7 @@ const preferencesSchema = z.object({
       latencyCompensation: z.number().nonnegative().optional(),
     })
     .optional(),
+  midiDeviceId: z.string().optional(),
 });
 type Preferences = z.infer<typeof preferencesSchema>;
 

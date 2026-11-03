@@ -35,6 +35,7 @@ import { openFilePicker } from "./file-drop-input";
 import { MidiInstrument } from "./midi-instrument";
 import {
   TrackMenuButton,
+  TrackMonitorToggle,
   type TrackMoveControls,
   TrackMoveItems,
   RenameTrackMenuItem,
@@ -76,6 +77,8 @@ export function MidiTrackRow({
   onEffectsOpen,
   onRemove,
   midiInteraction,
+  midiMonitoring,
+  midiMonitorVisible,
   onTranscribe,
   onScorePreview,
 }: {
@@ -90,6 +93,8 @@ export function MidiTrackRow({
   onEffectsOpen: () => void;
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useMidiInteraction>;
+  midiMonitoring: boolean;
+  midiMonitorVisible: boolean;
   onTranscribe: () => void;
   onScorePreview: () => void;
 }) {
@@ -132,6 +137,9 @@ export function MidiTrackRow({
       );
     },
   });
+  const monitorLabel = midiMonitoring
+    ? `Disable ${track.name} input monitoring`
+    : `Enable ${track.name} input monitoring`;
   const exportMusicXmlMutation = useMutation({
     mutationFn: async () => {
       const state = runtime.store.get();
@@ -178,36 +186,50 @@ export function MidiTrackRow({
         onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
         onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
         action={
-          <MidiTrackActions
-            label={track.name}
-            move={move}
-            onRename={(name) => runtime.setTrackName({ id: track.id, name })}
-            onSynthOpen={track.synth && onSynthOpen}
-            onEffectsOpen={onEffectsOpen}
-            viewMode={track.viewMode}
-            onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
-            onRemove={onRemove}
-            onTranscribe={onTranscribe}
-            onScorePreview={onScorePreview}
-            onInstrumentOpen={() => setIsInstrumentOpen(true)}
-            isImporting={importMidiMutation.isPending}
-            onImportMidi={() =>
-              openFilePicker({
-                accept: ".mid,.midi",
-                onFile: (file) => {
-                  if (
-                    confirm(
-                      `Import MIDI into ${track.name}? This will replace all notes in this track. Project tempo, time signature, and instrument will stay unchanged.`,
-                    )
-                  ) {
-                    importMidiMutation.mutate(file);
-                  }
-                },
-              })
-            }
-            onExportMidi={() => exportMidiMutation.mutate()}
-            onExportMusicXml={() => exportMusicXmlMutation.mutate()}
-          />
+          <>
+            <MidiTrackActions
+              label={track.name}
+              move={move}
+              onRename={(name) => runtime.setTrackName({ id: track.id, name })}
+              onSynthOpen={track.synth && onSynthOpen}
+              onEffectsOpen={onEffectsOpen}
+              viewMode={track.viewMode}
+              onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
+              onRemove={onRemove}
+              onTranscribe={onTranscribe}
+              onScorePreview={onScorePreview}
+              onInstrumentOpen={() => setIsInstrumentOpen(true)}
+              isImporting={importMidiMutation.isPending}
+              onImportMidi={() =>
+                openFilePicker({
+                  accept: ".mid,.midi",
+                  onFile: (file) => {
+                    if (
+                      confirm(
+                        `Import MIDI into ${track.name}? This will replace all notes in this track. Project tempo, time signature, and instrument will stay unchanged.`,
+                      )
+                    ) {
+                      importMidiMutation.mutate(file);
+                    }
+                  },
+                })
+              }
+              onExportMidi={() => exportMidiMutation.mutate()}
+              onExportMusicXml={() => exportMusicXmlMutation.mutate()}
+            />
+            {midiMonitorVisible && (
+              <TrackMonitorToggle
+                label={monitorLabel}
+                title={monitorLabel}
+                monitoring={midiMonitoring}
+                onMonitoringChange={(monitoring) =>
+                  void runtime.setMidiMonitorTrack(
+                    monitoring ? track.id : undefined,
+                  )
+                }
+              />
+            )}
+          </>
         }
       >
         {track.viewMode === "overview" ? (

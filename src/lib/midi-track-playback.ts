@@ -114,12 +114,24 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.synth.setPreset(preset).catch(ignoreLoadFailure);
   }
 
-  noteOn(pitch: number): void {
-    this.synth.noteOn(pitch);
+  noteOn(pitch: number, velocity: number): void {
+    this.synth.noteOn(pitch, velocity);
   }
 
   noteOff(pitch: number): void {
     this.synth.noteOff(pitch);
+  }
+
+  setController(controller: number, value: number): void {
+    this.synth.setController(controller, value);
+  }
+
+  setPitchBend(value: number): void {
+    this.synth.setPitchBend(value);
+  }
+
+  reset(): void {
+    this.synth.reset();
   }
 
   start(): void {

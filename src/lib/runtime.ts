@@ -29,6 +29,11 @@ import type { SynthPatch } from "./dsp/subtractive-synth.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
+import {
+  connectMidiInput,
+  type MidiConnection,
+  type MidiDeviceMessage,
+} from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -60,6 +65,7 @@ import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
+const PREVIEW_VELOCITY = 100;
 export const MIN_CLIP_DURATION = 0.01;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
@@ -241,6 +247,10 @@ export interface EditorRuntimeState {
   inputMonitoring: boolean;
   /** The track the next take records into. */
   armedTrackId?: string;
+  /** @internal */
+  midiConnection?: MidiConnection;
+  /** The MIDI track a MIDI device plays. Only on while a device is connected. */
+  midiMonitorTrackId?: string;
 }
 
 export type PersistableEditorRuntimeState = Pick<
@@ -570,6 +580,9 @@ export class EditorRuntime {
       midiTracks: this.store
         .get()
         .midiTracks.filter((track) => track.id !== id),
+      ...(id === this.store.get().midiMonitorTrackId && {
+        midiMonitorTrackId: undefined,
+      }),
     });
     this.syncTrackMix();
   }
@@ -792,11 +805,75 @@ export class EditorRuntime {
     pitch: number;
   }): Promise<void> {
     await this.context.resume();
-    this.midiTrackPlaybacks.get(id)?.noteOn(pitch);
+    this.midiTrackPlaybacks.get(id)?.noteOn(pitch, PREVIEW_VELOCITY);
   }
 
   stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
     this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
+  }
+
+  async startMidiInput(input: MIDIInput): Promise<void> {
+    await this.stopMidiInput();
+    const midiConnection = await connectMidiInput({
+      input,
+      onMessage: (message) => this.playMidiDeviceMessage(message),
+      onDisconnect: () => this.stopMidiInput(),
+    });
+    this.store.update({ midiConnection });
+  }
+
+  async stopMidiInput(): Promise<void> {
+    await this.store.get().midiConnection?.dispose();
+    await this.setMidiMonitorTrack(undefined);
+    this.store.update({ midiConnection: undefined });
+  }
+
+  /** Called from the click that enables monitoring, which lets audio start. */
+  async setMidiMonitorTrack(id?: string): Promise<void> {
+    const { midiConnection, midiMonitorTrackId } = this.store.get();
+    if (id !== undefined && !midiConnection) {
+      throw new Error("Connect a MIDI device before monitoring.");
+    }
+    if (midiMonitorTrackId !== undefined) {
+      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.reset();
+    }
+    this.store.update({ midiMonitorTrackId: id });
+    if (id !== undefined) {
+      await this.context.resume();
+    }
+  }
+
+  /**
+   * Sends without waiting for the audio context, so a note-off can't overtake
+   * its note-on.
+   */
+  private playMidiDeviceMessage(message: MidiDeviceMessage): void {
+    const { midiMonitorTrackId } = this.store.get();
+    const playback =
+      midiMonitorTrackId === undefined
+        ? undefined
+        : this.midiTrackPlaybacks.get(midiMonitorTrackId);
+    if (!playback) {
+      return;
+    }
+    switch (message.type) {
+      case "note-on": {
+        playback.noteOn(message.pitch, message.velocity);
+        break;
+      }
+      case "note-off": {
+        playback.noteOff(message.pitch);
+        break;
+      }
+      case "controller": {
+        playback.setController(message.controller, message.value);
+        break;
+      }
+      case "pitch-bend": {
+        playback.setPitchBend(message.value);
+        break;
+      }
+    }
   }
 
   setMidiTrackNotes(id: string, notes: Note[]): void {
@@ -1286,6 +1363,7 @@ export class EditorRuntime {
       ...project,
       audioTracks,
       trackOrder: syncTrackOrder({ ...project, audioTracks }),
+      midiMonitorTrackId: undefined,
     });
     this.syncYouTubePlayer();
     this.transport.seek(0);
