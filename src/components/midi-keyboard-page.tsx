@@ -19,7 +19,11 @@ import {
   requestMidiAccess,
   subscribeMidiOutputs,
 } from "../lib/midi-device";
-import { MAX_OCTAVE, MIN_OCTAVE } from "../lib/midi-keyboard";
+import {
+  MAX_OCTAVE,
+  MIN_OCTAVE,
+  type MidiKeyboard,
+} from "../lib/midi-keyboard";
 import { isBlackKey } from "../lib/music";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { routes } from "../lib/routes";
@@ -228,39 +232,55 @@ function MidiKeyboardControls() {
         aria-label="Piano"
       >
         {PITCHES.map((pitch) => (
-          <button
+          <PianoKey
             key={pitch}
-            type="button"
-            tabIndex={-1}
-            aria-label={formatChromaticPitch(pitch)}
-            aria-pressed={heldPitches.has(pitch)}
-            style={getKeyStyle(pitch)}
-            onPointerDown={(event) => {
-              // Keeps focus where it is, so a key can't also press this button.
-              event.preventDefault();
-              keyboard.pressPointer(pitch);
-            }}
-            onPointerEnter={() => keyboard.slidePointer(pitch)}
-            className={cn(
-              "absolute top-0 flex items-end justify-center rounded-b pb-1 text-[10px] text-neutral-500",
-              isBlackKey(pitch)
-                ? "z-10 h-[60%]"
-                : "h-full border border-neutral-400",
-              isBlackKey(pitch)
-                ? heldPitches.has(pitch)
-                  ? "bg-emerald-600"
-                  : "bg-neutral-950"
-                : heldPitches.has(pitch)
-                  ? "bg-emerald-400 text-neutral-900"
-                  : "bg-neutral-100",
-            )}
-          >
-            {pitch % 12 === 0 && formatChromaticPitch(pitch)}
-          </button>
+            pitch={pitch}
+            isHeld={heldPitches.has(pitch)}
+            keyboard={keyboard}
+          />
         ))}
       </div>
       <ComputerKeyboardLayout octave={octave} heldPitches={heldPitches} />
     </div>
+  );
+}
+
+function PianoKey({
+  pitch,
+  isHeld,
+  keyboard,
+}: {
+  pitch: number;
+  isHeld: boolean;
+  keyboard: MidiKeyboard;
+}) {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={formatChromaticPitch(pitch)}
+      aria-pressed={isHeld}
+      style={getKeyStyle(pitch)}
+      onPointerDown={(event) => {
+        // Keeps focus where it is, so a key can't also press this button.
+        event.preventDefault();
+        keyboard.pressPointer(pitch);
+      }}
+      onPointerEnter={() => keyboard.slidePointer(pitch)}
+      className={cn(
+        "absolute top-0 flex items-end justify-center rounded-b pb-1 text-[10px] text-neutral-500",
+        isBlackKey(pitch) ? "z-10 h-[60%]" : "h-full border border-neutral-400",
+        isBlackKey(pitch)
+          ? isHeld
+            ? "bg-emerald-600"
+            : "bg-neutral-950"
+          : isHeld
+            ? "bg-emerald-400 text-neutral-900"
+            : "bg-neutral-100",
+      )}
+    >
+      {pitch % 12 === 0 && formatChromaticPitch(pitch)}
+    </button>
   );
 }
 
