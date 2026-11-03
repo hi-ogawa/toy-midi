@@ -16,7 +16,8 @@ import {
 import { LIVE_CONTROLLER_SETTINGS, PITCH_WHEEL_MAX } from "../lib/general-midi";
 import {
   encodeMidiDeviceMessage,
-  openMidiOutputAccess,
+  requestMidiAccess,
+  subscribeMidiOutputs,
 } from "../lib/midi-device";
 import { MAX_OCTAVE, MIN_OCTAVE } from "../lib/midi-keyboard";
 import { isBlackKey } from "../lib/music";
@@ -44,15 +45,11 @@ const WHITE_KEY_COUNT = PITCHES.filter((pitch) => !isBlackKey(pitch)).length;
 const COMPUTER_KEY_STEP = 40;
 
 export function MidiKeyboardPage() {
-  const [outputs, setOutputs] = useState<MIDIOutput[]>();
   const accessQuery = useQuery({
     queryKey: ["midi-output-access"],
     retry: false,
     staleTime: Infinity,
-    queryFn: async () => {
-      await openMidiOutputAccess({ onChange: setOutputs });
-      return true;
-    },
+    queryFn: requestMidiAccess,
   });
 
   useEffect(() => {
@@ -96,8 +93,8 @@ export function MidiKeyboardPage() {
           same port as the editor's MIDI device.
         </p>
         <div className="mt-8">
-          {outputs ? (
-            <MidiKeyboardControls outputs={outputs} />
+          {accessQuery.data ? (
+            <MidiKeyboardControls access={accessQuery.data} />
           ) : accessQuery.isError ? (
             <p role="alert" className="text-sm text-red-400">
               MIDI access isn't available: {accessQuery.error.message}
@@ -113,7 +110,10 @@ export function MidiKeyboardPage() {
   );
 }
 
-function MidiKeyboardControls({ outputs }: { outputs: MIDIOutput[] }) {
+function MidiKeyboardControls({ access }: { access: MIDIAccess }) {
+  const [outputs, setOutputs] = useState<MIDIOutput[]>([]);
+  useEffect(() => subscribeMidiOutputs(access, setOutputs), [access]);
+
   const [selectedId, setSelectedId] = useState<string>();
   const output =
     outputs.find((output) => output.id === selectedId) ?? outputs[0];

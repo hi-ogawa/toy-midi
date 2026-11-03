@@ -20,6 +20,7 @@ async function installFakeMidiOutput(page: Page): Promise<void> {
       ({
         outputs: new Map([[output.id, output]]),
         addEventListener: () => {},
+        removeEventListener: () => {},
       }) as unknown as MIDIAccess;
   });
 }

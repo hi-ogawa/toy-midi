@@ -42,12 +42,10 @@ export function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
 }
 
 /** Calls `onChange` with the connected outputs, now and whenever they change. */
-export async function openMidiOutputAccess({
-  onChange,
-}: {
-  onChange: (outputs: MIDIOutput[]) => void;
-}): Promise<void> {
-  const access = await navigator.requestMIDIAccess();
+export function subscribeMidiOutputs(
+  access: MIDIAccess,
+  onChange: (outputs: MIDIOutput[]) => void,
+): () => void {
   const notify = () =>
     onChange(
       [...access.outputs.values()].filter(
@@ -56,6 +54,7 @@ export async function openMidiOutputAccess({
     );
   notify();
   access.addEventListener("statechange", notify);
+  return () => access.removeEventListener("statechange", notify);
 }
 
 export async function connectMidiInput({
