@@ -53,8 +53,8 @@ export async function installFakeMidiDevice(page: Page) {
     navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
   });
   return {
-    send: (message: MidiMessage) =>
-      page.evaluate(async (bytes) => {
+    send: (message: MidiMessage) => {
+      return page.evaluate(async (bytes) => {
         const access = await navigator.requestMIDIAccess();
         const input = access.inputs.get("fake-keyboard")!;
         if (input.connection === "open") {
@@ -64,7 +64,8 @@ export async function installFakeMidiDevice(page: Page) {
             }),
           );
         }
-      }, encodeMidiMessage(message)),
+      }, encodeMidiMessage(message));
+    },
   };
 }
 
