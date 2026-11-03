@@ -11,11 +11,6 @@ export type MidiConnection = {
   disconnect: () => Promise<void>;
 };
 
-const NOTE_OFF_STATUS = 0x80;
-const NOTE_ON_STATUS = 0x90;
-const CONTROLLER_STATUS = 0xb0;
-const PITCH_BEND_STATUS = 0xe0;
-
 export function isMidiDeviceSupported(): boolean {
   return "requestMIDIAccess" in navigator;
 }
@@ -77,6 +72,11 @@ export async function connectMidiInput({
     },
   };
 }
+
+const NOTE_OFF_STATUS = 0x80;
+const NOTE_ON_STATUS = 0x90;
+const CONTROLLER_STATUS = 0xb0;
+const PITCH_BEND_STATUS = 0xe0;
 
 /** Reads a message on any channel, or nothing for what live input ignores. */
 export function parseMidiDeviceMessage(
