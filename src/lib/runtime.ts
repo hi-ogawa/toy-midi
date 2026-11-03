@@ -29,10 +29,7 @@ import type { SynthPatch } from "./dsp/subtractive-synth.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
-import {
-  type MidiDeviceMessage,
-  parseMidiDeviceMessage,
-} from "./midi-device.ts";
+import { connectMidiInput, type MidiDeviceMessage } from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -360,7 +357,7 @@ export class EditorRuntime {
   captureInput?: CaptureInput;
   private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private midiTrackPlaybacks = new Map<string, MidiTrackPlayback>();
-  private midiInput?: MIDIInput;
+  private disconnectMidiInput?: () => void;
   /** Pitch of each note a MIDI device holds, and the track it sounds on. */
   private readonly midiDeviceNotes = new Map<number, string>();
   private attachedYouTubePlayer?: {
@@ -816,23 +813,16 @@ export class EditorRuntime {
 
   startMidiInput(input: MIDIInput): void {
     this.stopMidiInput();
-    input.onmidimessage = (event) => {
-      const message = event.data && parseMidiDeviceMessage(event.data);
-      if (message) {
-        this.playMidiDeviceMessage(message);
-      }
-    };
-    this.midiInput = input;
+    this.disconnectMidiInput = connectMidiInput(input, (message) =>
+      this.playMidiDeviceMessage(message),
+    );
     this.store.update({ midiDeviceId: input.id });
   }
 
   /** A device that stops sending can't release its notes, so they end here. */
   stopMidiInput(): void {
-    if (this.midiInput) {
-      this.midiInput.onmidimessage = null;
-      void this.midiInput.close();
-      this.midiInput = undefined;
-    }
+    this.disconnectMidiInput?.();
+    this.disconnectMidiInput = undefined;
     for (const pitch of this.midiDeviceNotes.keys()) {
       this.releaseMidiDeviceNote(pitch);
     }

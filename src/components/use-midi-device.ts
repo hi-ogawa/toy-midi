@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  getConnectedMidiInputs,
   isMidiAccessGranted,
   isMidiDeviceSupported,
+  openMidiAccess,
 } from "../lib/midi-device";
 import { preferences } from "../lib/preferences";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
@@ -20,16 +20,12 @@ export function useMidiDevice({
   const [rememberedId, setRememberedId] = preferences.useValue("midiDeviceId");
   const [devices, setDevices] = useState<MIDIInput[]>();
 
-  async function openAccess() {
-    const access = await navigator.requestMIDIAccess();
-    // Runs for the life of the page, so it can't close over a rendered value.
-    const refresh = () => {
-      const inputs = getConnectedMidiInputs(access);
+  function openAccess() {
+    return openMidiAccess((inputs) => {
       setDevices(inputs);
+      // Runs for the life of the page, so it can't close over a rendered value.
       connectDevice(inputs, preferences.get().midiDeviceId);
-    };
-    access.onstatechange = refresh;
-    refresh();
+    });
   }
 
   function connectDevice(inputs: MIDIInput[], deviceId?: string) {

@@ -20,10 +20,37 @@ export async function isMidiAccessGranted(): Promise<boolean> {
   return permission.state === "granted";
 }
 
-export function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
+/** Calls `onChange` with the connected inputs, now and whenever they change. */
+export async function openMidiAccess(
+  onChange: (inputs: MIDIInput[]) => void,
+): Promise<void> {
+  const access = await navigator.requestMIDIAccess();
+  const notify = () => onChange(getConnectedMidiInputs(access));
+  access.onstatechange = notify;
+  notify();
+}
+
+function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
   return [...access.inputs.values()].filter(
     (input) => input.state === "connected",
   );
+}
+
+/** Returns the function that disconnects it. */
+export function connectMidiInput(
+  input: MIDIInput,
+  onMessage: (message: MidiDeviceMessage) => void,
+): () => void {
+  input.onmidimessage = (event) => {
+    const message = event.data && parseMidiDeviceMessage(event.data);
+    if (message) {
+      onMessage(message);
+    }
+  };
+  return () => {
+    input.onmidimessage = null;
+    void input.close();
+  };
 }
 
 /** Reads a message on any channel, or nothing for what live input ignores. */
