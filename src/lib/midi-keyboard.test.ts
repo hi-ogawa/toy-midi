@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { LiveMidiKeyboard } from "./live-midi-keyboard";
 import type { MidiDeviceMessage } from "./midi-device";
+import { MidiKeyboard } from "./midi-keyboard";
 
 function createKeyboard() {
   const sent: MidiDeviceMessage[] = [];
-  const keyboard = new LiveMidiKeyboard();
+  const keyboard = new MidiKeyboard();
   keyboard.connect((message) => sent.push(message));
   return { keyboard, sent };
 }
 
-describe("LiveMidiKeyboard", () => {
+describe("MidiKeyboard", () => {
   it("releases the pitch a key started after an octave shift", () => {
     const { keyboard, sent } = createKeyboard();
     keyboard.pressKey("KeyQ");

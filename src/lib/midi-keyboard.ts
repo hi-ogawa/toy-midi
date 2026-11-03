@@ -19,7 +19,7 @@ type Send = (message: MidiDeviceMessage) => void;
  * What a player does live on a keyboard, as MIDI messages. Every note-on gets
  * its note-off however the input changes while a note is held.
  */
-export class LiveMidiKeyboard {
+export class MidiKeyboard {
   readonly store = createStore(() => ({
     heldPitches: new Set<number>() as ReadonlySet<number>,
     octave: 0,

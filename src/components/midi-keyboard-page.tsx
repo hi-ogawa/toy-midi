@@ -14,11 +14,11 @@ import {
   getComputerKeyPitch,
 } from "../lib/computer-keyboard";
 import { LIVE_CONTROLLER_SETTINGS, PITCH_WHEEL_MAX } from "../lib/general-midi";
-import { MAX_OCTAVE, MIN_OCTAVE } from "../lib/live-midi-keyboard";
 import {
   encodeMidiDeviceMessage,
   openMidiOutputAccess,
 } from "../lib/midi-device";
+import { MAX_OCTAVE, MIN_OCTAVE } from "../lib/midi-keyboard";
 import { isBlackKey } from "../lib/music";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { routes } from "../lib/routes";
@@ -32,7 +32,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
-import { useLiveMidiKeyboard } from "./use-live-midi-keyboard";
+import { useMidiKeyboard } from "./use-midi-keyboard";
 
 const LOWEST_PITCH = 24;
 const HIGHEST_PITCH = 108;
@@ -97,7 +97,7 @@ export function MidiKeyboardPage() {
         </p>
         <div className="mt-8">
           {outputs ? (
-            <MidiKeyboard outputs={outputs} />
+            <MidiKeyboardControls outputs={outputs} />
           ) : accessQuery.isError ? (
             <p role="alert" className="text-sm text-red-400">
               MIDI access isn't available: {accessQuery.error.message}
@@ -113,7 +113,7 @@ export function MidiKeyboardPage() {
   );
 }
 
-function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
+function MidiKeyboardControls({ outputs }: { outputs: MIDIOutput[] }) {
   const [selectedId, setSelectedId] = useState<string>();
   const output =
     outputs.find((output) => output.id === selectedId) ?? outputs[0];
@@ -125,7 +125,7 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
     velocity,
     pitchBend,
     controllerValues,
-  } = useLiveMidiKeyboard();
+  } = useMidiKeyboard();
 
   // Held notes end on the previous output whenever the selected one changes.
   useEffect(() => {

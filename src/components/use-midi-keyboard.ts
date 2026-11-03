@@ -3,11 +3,11 @@ import {
   getComputerKeyOctaveShift,
   getComputerKeyPitch,
 } from "../lib/computer-keyboard";
-import { LiveMidiKeyboard } from "../lib/live-midi-keyboard";
+import { MidiKeyboard } from "../lib/midi-keyboard";
 import { useWindowEvent } from "./use-window-event";
 
-export function useLiveMidiKeyboard() {
-  const [keyboard] = useState(() => new LiveMidiKeyboard());
+export function useMidiKeyboard() {
+  const [keyboard] = useState(() => new MidiKeyboard());
   const state = useSyncExternalStore(
     keyboard.store.subscribe,
     keyboard.store.get,
