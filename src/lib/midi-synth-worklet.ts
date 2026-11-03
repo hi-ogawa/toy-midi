@@ -165,8 +165,9 @@ export class MidiSynth {
   }
 
   /**
-   * Ends what live input left sounding, which a device may never release, and
-   * returns controllers to their defaults and automation to the playhead's value.
+   * Ends every sounding note, including any a MIDI device never released, and
+   * returns live controllers to their defaults and automation to the playhead's
+   * value.
    */
   async reset(): Promise<void> {
     const engine = this.engine!;
