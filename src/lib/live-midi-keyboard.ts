@@ -3,6 +3,10 @@ import {
   getComputerKeyOctaveShift,
   getComputerKeyPitch,
 } from "./computer-keyboard.ts";
+import {
+  LIVE_CONTROLLER_SETTINGS,
+  PITCH_WHEEL_CENTER,
+} from "./general-midi.ts";
 import type { MidiDeviceMessage } from "./midi-device.ts";
 import { clamp } from "./music.ts";
 
@@ -12,14 +16,21 @@ export const MAX_OCTAVE = 2;
 type Send = (message: MidiDeviceMessage) => void;
 
 /**
- * Turns computer keys and a pointer into note messages, so that every note-on
- * gets its note-off however the input changes while a note is held.
+ * What a player does live on a keyboard, as MIDI messages. Every note-on gets
+ * its note-off however the input changes while a note is held.
  */
-export class KeyboardNotes {
+export class LiveMidiKeyboard {
   readonly store = createStore(() => ({
     heldPitches: new Set<number>() as ReadonlySet<number>,
     octave: 0,
     velocity: 100,
+    pitchBend: PITCH_WHEEL_CENTER,
+    controllerValues: Object.fromEntries(
+      LIVE_CONTROLLER_SETTINGS.map(({ controller, defaultValue }) => [
+        controller,
+        defaultValue,
+      ]),
+    ) as Readonly<Record<number, number>>,
   }));
 
   private send?: Send;
@@ -35,6 +46,32 @@ export class KeyboardNotes {
 
   setVelocity(velocity: number): void {
     this.store.update({ velocity });
+  }
+
+  setController({
+    controller,
+    value,
+  }: {
+    controller: number;
+    value: number;
+  }): void {
+    const { controllerValues } = this.store.get();
+    this.store.update({
+      controllerValues: { ...controllerValues, [controller]: value },
+    });
+    this.send?.({ type: "controller", controller, value });
+  }
+
+  setPitchBend(value: number): void {
+    this.store.update({ pitchBend: value });
+    this.send?.({ type: "pitch-bend", value });
+  }
+
+  /** Springs the wheel back to center. */
+  releasePitchBend(): void {
+    if (this.store.get().pitchBend !== PITCH_WHEEL_CENTER) {
+      this.setPitchBend(PITCH_WHEEL_CENTER);
+    }
   }
 
   shiftOctave(delta: number): void {

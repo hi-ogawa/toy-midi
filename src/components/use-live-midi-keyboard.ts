@@ -3,12 +3,15 @@ import {
   getComputerKeyOctaveShift,
   getComputerKeyPitch,
 } from "../lib/computer-keyboard";
-import { KeyboardNotes } from "../lib/keyboard-notes";
+import { LiveMidiKeyboard } from "../lib/live-midi-keyboard";
 import { useWindowEvent } from "./use-window-event";
 
-export function useKeyboardNotes() {
-  const [notes] = useState(() => new KeyboardNotes());
-  const state = useSyncExternalStore(notes.store.subscribe, notes.store.get);
+export function useLiveMidiKeyboard() {
+  const [keyboard] = useState(() => new LiveMidiKeyboard());
+  const state = useSyncExternalStore(
+    keyboard.store.subscribe,
+    keyboard.store.get,
+  );
 
   useWindowEvent("keydown", (event) => {
     if (event.ctrlKey || event.metaKey || event.altKey) {
@@ -21,14 +24,14 @@ export function useKeyboardNotes() {
       // Otherwise a focused output picker takes the key for type-ahead.
       event.preventDefault();
       if (!event.repeat) {
-        notes.pressKey(event.code);
+        keyboard.pressKey(event.code);
       }
     }
   });
-  useWindowEvent("keyup", (event) => notes.releaseKey(event.code));
-  useWindowEvent("pointerup", () => notes.releasePointer());
+  useWindowEvent("keyup", (event) => keyboard.releaseKey(event.code));
+  useWindowEvent("pointerup", () => keyboard.releasePointer());
   // The window misses the key or pointer release once it loses focus.
-  useWindowEvent("blur", () => notes.releaseAll());
+  useWindowEvent("blur", () => keyboard.releaseAll());
 
-  return { notes, ...state };
+  return { keyboard, ...state };
 }

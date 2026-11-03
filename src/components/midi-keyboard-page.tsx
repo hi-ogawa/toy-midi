@@ -13,15 +13,10 @@ import {
   getComputerKeyOctaveShift,
   getComputerKeyPitch,
 } from "../lib/computer-keyboard";
-import {
-  LIVE_CONTROLLER_SETTINGS,
-  PITCH_WHEEL_CENTER,
-  PITCH_WHEEL_MAX,
-} from "../lib/general-midi";
-import { MAX_OCTAVE, MIN_OCTAVE } from "../lib/keyboard-notes";
+import { LIVE_CONTROLLER_SETTINGS, PITCH_WHEEL_MAX } from "../lib/general-midi";
+import { MAX_OCTAVE, MIN_OCTAVE } from "../lib/live-midi-keyboard";
 import {
   encodeMidiDeviceMessage,
-  type MidiDeviceMessage,
   openMidiOutputAccess,
 } from "../lib/midi-device";
 import { isBlackKey } from "../lib/music";
@@ -37,7 +32,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
-import { useKeyboardNotes } from "./use-keyboard-notes";
+import { useLiveMidiKeyboard } from "./use-live-midi-keyboard";
 
 const LOWEST_PITCH = 24;
 const HIGHEST_PITCH = 108;
@@ -123,22 +118,21 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
   const output =
     outputs.find((output) => output.id === selectedId) ?? outputs[0];
 
-  const [pitchBend, setPitchBend] = useState(PITCH_WHEEL_CENTER);
-  const [controllerValues, setControllerValues] = useState(() =>
-    LIVE_CONTROLLER_SETTINGS.map(({ defaultValue }) => defaultValue),
-  );
-
-  const { notes, heldPitches, octave, velocity } = useKeyboardNotes();
+  const {
+    keyboard,
+    heldPitches,
+    octave,
+    velocity,
+    pitchBend,
+    controllerValues,
+  } = useLiveMidiKeyboard();
 
   // Held notes end on the previous output whenever the selected one changes.
   useEffect(() => {
-    notes.connect((message) => sendToOutput(output, message));
-  }, [notes, output]);
-
-  function changePitchBend(value: number): void {
-    setPitchBend(value);
-    sendToOutput(output, { type: "pitch-bend", value });
-  }
+    keyboard.connect((message) =>
+      output?.send(encodeMidiDeviceMessage(message)),
+    );
+  }, [keyboard, output]);
 
   return (
     <div className="grid gap-6">
@@ -167,19 +161,16 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
           value={velocity}
           min={1}
           max={127}
-          onChange={(value) => notes.setVelocity(value)}
+          onChange={(value) => keyboard.setVelocity(value)}
         />
-        {LIVE_CONTROLLER_SETTINGS.map(({ label, controller }, index) => (
+        {LIVE_CONTROLLER_SETTINGS.map(({ label, controller }) => (
           <ControlSlider
             key={controller}
             label={label}
-            value={controllerValues[index]}
+            value={controllerValues[controller]}
             min={0}
             max={127}
-            onChange={(value) => {
-              setControllerValues((values) => values.with(index, value));
-              sendToOutput(output, { type: "controller", controller, value });
-            }}
+            onChange={(value) => keyboard.setController({ controller, value })}
           />
         ))}
         <ControlSlider
@@ -187,12 +178,8 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
           value={pitchBend}
           min={0}
           max={PITCH_WHEEL_MAX}
-          onChange={changePitchBend}
-          onRelease={() => {
-            if (pitchBend !== PITCH_WHEEL_CENTER) {
-              changePitchBend(PITCH_WHEEL_CENTER);
-            }
-          }}
+          onChange={(value) => keyboard.setPitchBend(value)}
+          onRelease={() => keyboard.releasePitchBend()}
         />
       </div>
 
@@ -200,7 +187,7 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
         <Button
           aria-label="Octave down"
           disabled={octave === MIN_OCTAVE}
-          onClick={() => notes.shiftOctave(-1)}
+          onClick={() => keyboard.shiftOctave(-1)}
           className="size-7 hover:bg-accent hover:text-accent-foreground"
         >
           <MinusIcon className="size-4" />
@@ -211,7 +198,7 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
         <Button
           aria-label="Octave up"
           disabled={octave === MAX_OCTAVE}
-          onClick={() => notes.shiftOctave(1)}
+          onClick={() => keyboard.shiftOctave(1)}
           className="size-7 hover:bg-accent hover:text-accent-foreground"
         >
           <PlusIcon className="size-4" />
@@ -234,9 +221,9 @@ function MidiKeyboard({ outputs }: { outputs: MIDIOutput[] }) {
             onPointerDown={(event) => {
               // Keeps focus where it is, so a key can't also press this button.
               event.preventDefault();
-              notes.pressPointer(pitch);
+              keyboard.pressPointer(pitch);
             }}
-            onPointerEnter={() => notes.slidePointer(pitch)}
+            onPointerEnter={() => keyboard.slidePointer(pitch)}
             className={cn(
               "absolute top-0 flex items-end justify-center rounded-b pb-1 text-[10px] text-neutral-500",
               isBlackKey(pitch)
@@ -354,13 +341,6 @@ function ControlSlider({
       />
     </div>
   );
-}
-
-function sendToOutput(
-  output: MIDIOutput | undefined,
-  message: MidiDeviceMessage,
-): void {
-  output?.send(encodeMidiDeviceMessage(message));
 }
 
 function getComputerKeyColor({
