@@ -23,8 +23,8 @@ export function useMidiKeyboard({
     keyboard.store.get,
   );
 
-  // Capture phase, because modal dialogs stop keys from reaching the window,
-  // and auditioning presets happens in one.
+  // Capture phase, so captured keys work inside modal dialogs, which stop keys
+  // from reaching the window, and take priority over editor shortcuts like L.
   useWindowEvent(
     "keydown",
     (event) => {
@@ -41,6 +41,7 @@ export function useMidiKeyboard({
       if (keyboard.pressKey({ code: event.code, repeat: event.repeat })) {
         // Otherwise a focused select takes the key for type-ahead.
         event.preventDefault();
+        // Otherwise the editor also runs the shortcut on this key.
         event.stopPropagation();
       }
     },
