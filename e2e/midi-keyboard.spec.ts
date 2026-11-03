@@ -1,29 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-
-declare global {
-  interface Window {
-    __e2eSentMidi: number[][];
-  }
-}
-
-// Playwright has no virtual MIDI device, so this replaces the browser's access.
-async function installFakeMidiOutput(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    window.__e2eSentMidi = [];
-    const output = {
-      id: "fake-output",
-      name: "Fake Output",
-      state: "connected",
-      send: (bytes: number[]) => window.__e2eSentMidi.push(bytes),
-    };
-    navigator.requestMIDIAccess = async () =>
-      ({
-        outputs: new Map([[output.id, output]]),
-        addEventListener: () => {},
-        removeEventListener: () => {},
-      }) as unknown as MIDIAccess;
-  });
-}
+import { expect, test } from "@playwright/test";
+import { installFakeMidiOutput } from "./helpers";
 
 test("opens a demo track in a new tab", async ({ page, context }) => {
   await installFakeMidiOutput(page);

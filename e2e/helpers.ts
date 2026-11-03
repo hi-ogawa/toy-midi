@@ -1,6 +1,12 @@
 import path from "node:path";
 import { test, type Locator, type Page } from "@playwright/test";
 
+declare global {
+  interface Window {
+    __e2eSentMidi: number[][];
+  }
+}
+
 /** Call at file scope to enable a fake microphone for this test file. */
 export function useFakeAudioInput({
   audioFilePath,
@@ -43,6 +49,25 @@ export async function installFakeMidiDevice(page: Page): Promise<void> {
       inputs: new Map([[input.id, input]]),
     });
     navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
+  });
+}
+
+/** Replaces the browser's access with one output that records what it is sent. */
+export async function installFakeMidiOutput(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    window.__e2eSentMidi = [];
+    const output = {
+      id: "fake-output",
+      name: "Fake Output",
+      state: "connected",
+      send: (bytes: number[]) => window.__e2eSentMidi.push(bytes),
+    };
+    navigator.requestMIDIAccess = async () =>
+      ({
+        outputs: new Map([[output.id, output]]),
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }) as unknown as MIDIAccess;
   });
 }
 
