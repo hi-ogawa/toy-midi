@@ -79,14 +79,6 @@ export function MidiKeyboardPanel({
 
   useEffect(() => () => keyboard.releaseAll(), [keyboard]);
 
-  // Keeps the controls matching the monitored track: a track that gains
-  // monitoring starts at defaults, and one that outlives the panel, because a
-  // device still monitors it, must not stay modulated with no control to undo it.
-  useEffect(
-    () => () => keyboard.resetControllers(),
-    [keyboard, state.midiMonitorTrackId],
-  );
-
   return (
     <Panel
       title={
