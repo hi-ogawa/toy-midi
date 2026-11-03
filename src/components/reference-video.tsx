@@ -72,7 +72,7 @@ export function ReferenceVideoPanel({
       onClose={onClose}
       data-testid="youtube-reference"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
-      contentClassName="min-h-0 flex-1 p-0"
+      contentClassName="min-h-0 flex-1"
       style={size}
     >
       <PanelResizeHandle
@@ -134,7 +134,7 @@ function YouTubeReferencePanel({
         </div>
       </div>
       {!referenceVideo && !candidateVideoId && (
-        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 p-4">
+        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 px-3 py-2">
           <YouTubeReferenceSetup onSubmit={setCandidateVideoId} />
         </div>
       )}

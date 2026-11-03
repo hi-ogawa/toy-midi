@@ -96,7 +96,7 @@ export function Effects({
       onClose={onClose}
       data-testid="effects-panel"
       className="pointer-events-auto relative flex max-h-[calc(100vh-48px)] shrink-0 flex-col"
-      contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
+      contentClassName="min-h-0 flex-1 overflow-auto px-3 py-2"
       style={size}
     >
       <PanelResizeHandle

@@ -27,7 +27,7 @@ import { useMidiKeyboard } from "./use-midi-keyboard";
 import { usePointerDrag } from "./use-pointer-drag";
 
 const WHITE_KEY_WIDTH = 28;
-const PANEL_CHROME_WIDTH = 34;
+const PANEL_CHROME_WIDTH = 26;
 
 export function MidiKeyboardPanel({
   projectUiStore,
@@ -43,7 +43,7 @@ export function MidiKeyboardPanel({
   const [isCapturing, setIsCapturing] = useState(false);
   const { size, handleRef } = usePanelResize({
     initialSize: projectUiStore.get().midiKeyboardSize,
-    minSize: { width: 342, height: 180 },
+    minSize: { width: 334, height: 180 },
     onResizeEnd: (midiKeyboardSize) =>
       projectUiStore.update({ midiKeyboardSize }),
   });
@@ -97,7 +97,7 @@ export function MidiKeyboardPanel({
       onClose={onClose}
       data-testid="midi-keyboard-panel"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
-      contentClassName="flex min-h-0 flex-1 flex-col gap-3 px-4 py-3"
+      contentClassName="flex min-h-0 flex-1 flex-col gap-3 px-3 py-2"
       style={size}
     >
       <PanelResizeHandle handleRef={handleRef} label="Resize MIDI Keyboard" />
