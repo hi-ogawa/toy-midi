@@ -819,6 +819,7 @@ export class EditorRuntime {
     const midiConnection = await connectMidiInput({
       input,
       onMessage: (message) => this.playLiveMidiMessage(message),
+      onUnplug: () => this.stopMidiInput(),
     });
     this.store.update({ midiConnection });
   }
