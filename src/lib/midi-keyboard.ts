@@ -74,19 +74,27 @@ export class MidiKeyboard {
     this.store.update({ octave: clamp(octave, MIN_OCTAVE, MAX_OCTAVE) });
   }
 
-  pressKey(code: string): void {
+  /** Returns whether the key does anything, even when a repeat changes nothing. */
+  pressKey({ code, repeat }: { code: string; repeat: boolean }): boolean {
     const shift = getComputerKeyOctaveShift(code);
     if (shift !== undefined) {
-      this.shiftOctave(shift);
+      if (!repeat) {
+        this.shiftOctave(shift);
+      }
+      return true;
     }
     const pitch = getComputerKeyPitch({
       code,
       octave: this.store.get().octave,
     });
-    if (pitch !== undefined) {
+    if (pitch === undefined) {
+      return false;
+    }
+    if (!repeat) {
       this.keyPitches.set(code, pitch);
       this.press(pitch);
     }
+    return true;
   }
 
   releaseKey(code: string): void {

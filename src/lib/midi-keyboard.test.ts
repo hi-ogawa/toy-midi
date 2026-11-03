@@ -11,14 +11,28 @@ function createKeyboard() {
 describe("MidiKeyboard", () => {
   it("releases the pitch a key started after an octave shift", () => {
     const { keyboard, sent } = createKeyboard();
-    keyboard.pressKey("KeyQ");
-    keyboard.pressKey("BracketRight");
+    keyboard.pressKey({ code: "KeyQ", repeat: false });
+    keyboard.pressKey({ code: "BracketRight", repeat: false });
     keyboard.releaseKey("KeyQ");
     expect(sent).toEqual([
       { type: "note-on", pitch: 60, velocity: 100 },
       { type: "note-off", pitch: 60 },
     ]);
     expect(keyboard.store.get().heldPitches.size).toBe(0);
+  });
+
+  it("reports bound keys but acts only on the first press", () => {
+    const { keyboard, sent } = createKeyboard();
+    expect(keyboard.pressKey({ code: "KeyA", repeat: false })).toBe(false);
+    expect(keyboard.pressKey({ code: "BracketRight", repeat: false })).toBe(
+      true,
+    );
+    expect(keyboard.pressKey({ code: "BracketRight", repeat: true })).toBe(
+      true,
+    );
+    expect(keyboard.store.get().octave).toBe(1);
+    expect(keyboard.pressKey({ code: "KeyQ", repeat: true })).toBe(true);
+    expect(sent).toEqual([]);
   });
 
   it("releases the previous pitch when the pointer slides", () => {

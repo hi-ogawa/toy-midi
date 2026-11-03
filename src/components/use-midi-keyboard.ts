@@ -1,8 +1,4 @@
 import { useEffectEvent, useState, useSyncExternalStore } from "react";
-import {
-  getComputerKeyOctaveShift,
-  getComputerKeyPitch,
-} from "../lib/computer-keyboard";
 import type { MidiDeviceMessage } from "../lib/midi-device";
 import { MidiKeyboard } from "../lib/midi-keyboard";
 import { useWindowEvent } from "./use-window-event";
@@ -23,15 +19,9 @@ export function useMidiKeyboard({
     if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
-    const isBound =
-      getComputerKeyOctaveShift(event.code) !== undefined ||
-      getComputerKeyPitch({ code: event.code, octave: 0 }) !== undefined;
-    if (isBound) {
+    if (keyboard.pressKey({ code: event.code, repeat: event.repeat })) {
       // Otherwise a focused output picker takes the key for type-ahead.
       event.preventDefault();
-      if (!event.repeat) {
-        keyboard.pressKey(event.code);
-      }
     }
   });
   useWindowEvent("keyup", (event) => keyboard.releaseKey(event.code));
