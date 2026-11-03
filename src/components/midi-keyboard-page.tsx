@@ -85,10 +85,7 @@ export function MidiKeyboardPage() {
       </header>
 
       <div className="mx-auto w-full max-w-5xl px-8 py-10">
-        <h1 className="text-4xl font-semibold tracking-[-0.045em]">
-          Send MIDI from the browser
-        </h1>
-        <div className="mt-4 grid max-w-2xl gap-3 text-base leading-7 text-neutral-400">
+        <div className="grid max-w-2xl gap-3 text-base leading-7 text-neutral-400">
           <p>
             A virtual MIDI controller in your browser. It sends notes and
             controller changes to the MIDI output you choose, and makes no sound
