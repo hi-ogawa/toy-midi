@@ -87,14 +87,14 @@ export class MidiKeyboard {
       code,
       octave: this.store.get().octave,
     });
-    if (pitch === undefined) {
-      return false;
+    if (pitch !== undefined) {
+      if (!repeat) {
+        this.keyPitches.set(code, pitch);
+        this.press(pitch);
+      }
+      return true;
     }
-    if (!repeat) {
-      this.keyPitches.set(code, pitch);
-      this.press(pitch);
-    }
-    return true;
+    return false;
   }
 
   releaseKey(code: string): void {
