@@ -45,7 +45,8 @@ export function ProjectCommentPanel({
       }
       data-testid="project-comment-panel"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
-      contentClassName="min-h-0 flex-1 p-0"
+      flush
+      contentClassName="min-h-0 flex-1"
       style={size}
     >
       <PanelResizeHandle handleRef={handleRef} label="Resize Comment" />
