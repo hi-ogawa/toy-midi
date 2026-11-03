@@ -26,7 +26,6 @@ import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import type { SynthPatch } from "./dsp/subtractive-synth.ts";
-import type { MidiMessage } from "./general-midi.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
@@ -817,7 +816,14 @@ export class EditorRuntime {
     await this.stopMidiInput();
     const midiConnection = await connectMidiInput({
       input,
-      onMessage: (message) => this.playMidiDeviceMessage(message),
+      onMessage: (message) => {
+        // Sends without waiting for the audio context, so a note-off can't
+        // overtake its note-on.
+        const { midiMonitorTrackId } = this.store.get();
+        if (midiMonitorTrackId !== undefined) {
+          this.midiTrackPlaybacks.get(midiMonitorTrackId)?.playMessage(message);
+        }
+      },
       onDisconnect: () => this.stopMidiInput(),
     });
     this.store.update({ midiConnection });
@@ -841,17 +847,6 @@ export class EditorRuntime {
     this.store.update({ midiMonitorTrackId: id });
     if (id !== undefined) {
       await this.context.resume();
-    }
-  }
-
-  /**
-   * Sends without waiting for the audio context, so a note-off can't overtake
-   * its note-on.
-   */
-  private playMidiDeviceMessage(message: MidiMessage): void {
-    const { midiMonitorTrackId } = this.store.get();
-    if (midiMonitorTrackId !== undefined) {
-      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.playMessage(message);
     }
   }
 
