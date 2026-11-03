@@ -28,10 +28,7 @@ test("sends notes and controllers to a MIDI output", async ({ page }) => {
   await expect(c4).toHaveAttribute("aria-pressed", "true");
   await page.mouse.up();
   await expect(c4).toHaveAttribute("aria-pressed", "false");
-  await expectSent([
-    [0x90, 60, 100],
-    [0x80, 60, 0],
-  ]);
+  await expectSent([encodeNoteOn(60), encodeNoteOff(60)]);
 
   // Hold a black key from the computer keyboard, in the lower row.
   await page.keyboard.down("s");
@@ -39,20 +36,14 @@ test("sends notes and controllers to a MIDI output", async ({ page }) => {
     page.getByRole("button", { name: "C#3", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.up("s");
-  await expectSent([
-    [0x90, 49, 100],
-    [0x80, 49, 0],
-  ]);
+  await expectSent([encodeNoteOn(49), encodeNoteOff(49)]);
 
   // Shift up an octave, and hold a key across a shift back down.
   await page.keyboard.press("]");
   await page.keyboard.down("z");
   await page.keyboard.press("[");
   await page.keyboard.up("z");
-  await expectSent([
-    [0x90, 60, 100],
-    [0x80, 60, 0],
-  ]);
+  await expectSent([encodeNoteOn(60), encodeNoteOff(60)]);
 
   // Shift to the lowest octave with the buttons, which stop at the limit.
   const octaveDown = page.getByRole("button", { name: "Octave down" });
@@ -63,21 +54,31 @@ test("sends notes and controllers to a MIDI output", async ({ page }) => {
     page.getByRole("img", { name: "Keyboard shortcuts" }),
   ).toContainText("C1");
   await page.keyboard.press("z");
-  await expectSent([
-    [0x90, 24, 100],
-    [0x80, 24, 0],
-  ]);
+  await expectSent([encodeNoteOn(24), encodeNoteOff(24)]);
 
   // Nudge the mod wheel, which keeps its value.
   await page.getByRole("slider", { name: "Mod wheel" }).focus();
   await page.keyboard.press("ArrowRight");
-  await expectSent([[0xb0, 1, 1]]);
+  await expectSent([encodeController(1, 1)]);
 
   // Nudge the pitch bend, which springs back to center.
   await page.getByRole("slider", { name: "Pitch bend" }).focus();
   await page.keyboard.press("ArrowRight");
-  await expectSent([
-    [0xe0, 1, 64],
-    [0xe0, 0, 64],
-  ]);
+  await expectSent([encodePitchBend(8193), encodePitchBend(8192)]);
 });
+
+function encodeNoteOn(pitch: number): number[] {
+  return [0x90, pitch, 100];
+}
+
+function encodeNoteOff(pitch: number): number[] {
+  return [0x80, pitch, 0];
+}
+
+function encodeController(number: number, value: number): number[] {
+  return [0xb0, number, value];
+}
+
+function encodePitchBend(value: number): number[] {
+  return [0xe0, value & 0x7f, value >> 7];
+}
