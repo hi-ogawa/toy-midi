@@ -19,25 +19,35 @@ test.use({ permissions: ["midi"] });
 // Playwright has no virtual MIDI device, so this replaces the browser's access.
 async function installFakeMidiDevice(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    const input = {
+    const setConnection = async (connection: string) => {
+      input.connection = connection;
+      access.dispatchEvent(new Event("statechange"));
+      return input;
+    };
+    const input = Object.assign(new EventTarget(), {
       id: "fake-keyboard",
       name: "Fake Keyboard",
       state: "connected",
-      onmidimessage: undefined as
-        | ((event: { data: Uint8Array }) => void)
-        | undefined,
-      close: async () => input,
-    };
-    const access = {
+      connection: "closed",
+      open: () => setConnection("open"),
+      close: () => setConnection("closed"),
+    });
+    const access = Object.assign(new EventTarget(), {
       inputs: new Map([[input.id, input]]),
-      onstatechange: undefined as (() => void) | undefined,
-    };
+    });
     navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
-    window.sendFakeMidi = (bytes) =>
-      input.onmidimessage?.({ data: new Uint8Array(bytes) });
+    window.sendFakeMidi = (bytes) => {
+      if (input.connection === "open") {
+        input.dispatchEvent(
+          Object.assign(new Event("midimessage"), {
+            data: new Uint8Array(bytes),
+          }),
+        );
+      }
+    };
     window.setFakeMidiState = (state) => {
       input.state = state;
-      access.onstatechange?.();
+      access.dispatchEvent(new Event("statechange"));
     };
   });
 }

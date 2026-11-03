@@ -32,9 +32,19 @@ export async function openMidiAccess({
   onChange: (inputs: MIDIInput[]) => void;
 }): Promise<void> {
   const access = await navigator.requestMIDIAccess();
-  const notify = () => onChange(getConnectedMidiInputs(access));
-  access.onstatechange = notify;
-  notify();
+  let inputs = getConnectedMidiInputs(access);
+  onChange(inputs);
+  // Opening or closing a port also fires this, with the same inputs connected.
+  access.addEventListener("statechange", () => {
+    const next = getConnectedMidiInputs(access);
+    if (
+      next.length !== inputs.length ||
+      next.some((input, index) => input.id !== inputs[index].id)
+    ) {
+      inputs = next;
+      onChange(inputs);
+    }
+  });
 }
 
 function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
@@ -43,23 +53,26 @@ function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
   );
 }
 
-export function connectMidiInput({
+export async function connectMidiInput({
   input,
   onMessage,
 }: {
   input: MIDIInput;
   onMessage: (message: MidiDeviceMessage) => void;
-}): MidiConnection {
-  input.onmidimessage = (event) => {
+}): Promise<MidiConnection> {
+  const handleMessage = (event: MIDIMessageEvent) => {
     const message = event.data && parseMidiDeviceMessage(event.data);
     if (message) {
       onMessage(message);
     }
   };
+  input.addEventListener("midimessage", handleMessage);
+  // Only setting `onmidimessage` opens the port implicitly.
+  await input.open();
   return {
     deviceId: input.id,
     disconnect: async () => {
-      input.onmidimessage = null;
+      input.removeEventListener("midimessage", handleMessage);
       await input.close();
     },
   };

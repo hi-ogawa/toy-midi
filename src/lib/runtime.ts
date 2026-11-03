@@ -814,7 +814,7 @@ export class EditorRuntime {
 
   async startMidiInput(input: MIDIInput): Promise<void> {
     await this.stopMidiInput();
-    const midiConnection = connectMidiInput({
+    const midiConnection = await connectMidiInput({
       input,
       onMessage: (message) => this.playMidiDeviceMessage(message),
     });
