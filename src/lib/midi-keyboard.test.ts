@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { ABLETON_KEYMAP, TWO_ROW_KEYMAP } from "./computer-keyboard";
 import type { MidiMessage } from "./general-midi";
 import { MidiKeyboard } from "./midi-keyboard";
 
-function createKeyboard() {
+function createKeyboard(keymap = TWO_ROW_KEYMAP) {
   const sent: MidiMessage[] = [];
-  const keyboard = new MidiKeyboard({ send: (message) => sent.push(message) });
+  const keyboard = new MidiKeyboard({
+    send: (message) => sent.push(message),
+    keymap,
+  });
   return { keyboard, sent };
 }
 
@@ -82,6 +86,16 @@ describe("MidiKeyboard", () => {
       { type: "pitch-bend", value: 10_000 },
       { type: "pitch-bend", value: 8192 },
     ]);
+  });
+
+  it("changes velocity from a key, within the MIDI range", () => {
+    const { keyboard } = createKeyboard(ABLETON_KEYMAP);
+    keyboard.pressKey({ code: "KeyC", repeat: false });
+    expect(keyboard.store.get().velocity).toBe(80);
+    keyboard.pressKey({ code: "KeyV", repeat: false });
+    keyboard.pressKey({ code: "KeyV", repeat: false });
+    keyboard.pressKey({ code: "KeyV", repeat: false });
+    expect(keyboard.store.get().velocity).toBe(127);
   });
 
   it("stops shifting at the octave limits", () => {

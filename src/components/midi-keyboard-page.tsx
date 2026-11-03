@@ -8,6 +8,7 @@ import {
   PlusIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { TWO_ROW_KEYMAP } from "../lib/computer-keyboard";
 import { LIVE_CONTROLLER_SETTINGS, PITCH_WHEEL_MAX } from "../lib/general-midi";
 import {
   encodeMidiMessage,
@@ -19,6 +20,7 @@ import { routes } from "../lib/routes";
 import {
   ComputerKeyboardLayout,
   MidiKeyboardPiano,
+  PIANO_PITCHES,
 } from "./midi-keyboard-keys";
 import { Button } from "./ui/button";
 import {
@@ -138,6 +140,8 @@ function MidiKeyboardControls() {
     controllerValues,
   } = useMidiKeyboard({
     send: (message) => output?.send(encodeMidiMessage(message)),
+    keymap: TWO_ROW_KEYMAP,
+    capturesKeys: true,
   });
 
   return (
@@ -239,10 +243,15 @@ function MidiKeyboardControls() {
 
       <MidiKeyboardPiano
         keyboard={keyboard}
+        pitches={PIANO_PITCHES}
         heldPitches={heldPitches}
         className="h-40"
       />
-      <ComputerKeyboardLayout octave={octave} heldPitches={heldPitches} />
+      <ComputerKeyboardLayout
+        keymap={TWO_ROW_KEYMAP}
+        octave={octave}
+        heldPitches={heldPitches}
+      />
     </div>
   );
 }

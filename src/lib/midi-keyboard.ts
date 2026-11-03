@@ -1,6 +1,6 @@
 import { createStore } from "../utils/store.ts";
 import {
-  getComputerKeyOctaveShift,
+  type ComputerKeymap,
   getComputerKeyPitch,
 } from "./computer-keyboard.ts";
 import {
@@ -12,6 +12,8 @@ import { clamp } from "./music.ts";
 
 export const MIN_OCTAVE = -2;
 export const MAX_OCTAVE = 2;
+export const MIN_VELOCITY = 1;
+export const MAX_VELOCITY = 127;
 
 /**
  * What a player does live on a keyboard, as MIDI messages. Every note-on gets
@@ -36,7 +38,10 @@ export class MidiKeyboard {
   private pointerPitches = new Map<number, number>();
 
   constructor(
-    private readonly options: { send: (message: MidiMessage) => void },
+    private readonly options: {
+      send: (message: MidiMessage) => void;
+      keymap: ComputerKeymap;
+    },
   ) {}
 
   setVelocity(velocity: number): void {
@@ -76,14 +81,24 @@ export class MidiKeyboard {
 
   /** Returns whether the key does anything, even when a repeat changes nothing. */
   pressKey({ code, repeat }: { code: string; repeat: boolean }): boolean {
-    const shift = getComputerKeyOctaveShift(code);
-    if (shift !== undefined) {
+    const { keymap } = this.options;
+    const octaveShift = keymap.octaveKeys.get(code);
+    if (octaveShift !== undefined) {
       if (!repeat) {
-        this.shiftOctave(shift);
+        this.shiftOctave(octaveShift);
+      }
+      return true;
+    }
+    const velocityShift = keymap.velocityKeys?.get(code);
+    if (velocityShift !== undefined) {
+      if (!repeat) {
+        const velocity = this.store.get().velocity + velocityShift;
+        this.setVelocity(clamp(velocity, MIN_VELOCITY, MAX_VELOCITY));
       }
       return true;
     }
     const pitch = getComputerKeyPitch({
+      keymap,
       code,
       octave: this.store.get().octave,
     });

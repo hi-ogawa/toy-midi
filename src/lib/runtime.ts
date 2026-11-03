@@ -245,7 +245,7 @@ export interface EditorRuntimeState {
   armedTrackId?: string;
   /** @internal */
   midiConnection?: MidiConnection;
-  /** The MIDI track a MIDI device plays. Only on while a device is connected. */
+  /** The MIDI track live input plays. */
   midiMonitorTrackId?: string;
 }
 
@@ -810,12 +810,7 @@ export class EditorRuntime {
     await this.stopMidiInput();
     const midiConnection = await connectMidiInput({
       input,
-      onMessage: (message) => {
-        const { midiMonitorTrackId } = this.store.get();
-        if (midiMonitorTrackId !== undefined) {
-          this.midiTrackPlaybacks.get(midiMonitorTrackId)?.playMessage(message);
-        }
-      },
+      onMessage: (message) => this.playLiveMidiMessage(message),
       onDisconnect: () => this.stopMidiInput(),
     });
     this.store.update({ midiConnection });
@@ -829,16 +824,20 @@ export class EditorRuntime {
 
   /** Called from the click that enables monitoring, which lets audio start. */
   async setMidiMonitorTrack(id?: string): Promise<void> {
-    const { midiConnection, midiMonitorTrackId } = this.store.get();
-    if (id !== undefined && !midiConnection) {
-      throw new Error("Connect a MIDI device before monitoring.");
-    }
+    const { midiMonitorTrackId } = this.store.get();
     if (midiMonitorTrackId !== undefined) {
       this.midiTrackPlaybacks.get(midiMonitorTrackId)?.reset();
     }
     this.store.update({ midiMonitorTrackId: id });
     if (id !== undefined) {
       await this.context.resume();
+    }
+  }
+
+  playLiveMidiMessage(message: MidiMessage): void {
+    const { midiMonitorTrackId } = this.store.get();
+    if (midiMonitorTrackId !== undefined) {
+      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.playMessage(message);
     }
   }
 

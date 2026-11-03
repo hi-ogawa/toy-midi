@@ -28,6 +28,7 @@ import { InputSetup } from "./input";
 import { InputPanel } from "./input-panel";
 import { LocatorRow } from "./locators";
 import { MidiDeviceDialog } from "./midi-device-dialog";
+import { MidiKeyboardPanel } from "./midi-keyboard-panel";
 import { MidiTrackRow } from "./midi-track";
 import { Mixer } from "./mixer";
 import { Panel } from "./panel";
@@ -53,6 +54,7 @@ import { Dialog } from "./ui/dialog";
 import { useInput } from "./use-input";
 import { useInteraction } from "./use-interaction";
 import { useMidiDevice } from "./use-midi-device";
+import { useMidiLiveInput } from "./use-midi-live-input";
 import { useProject } from "./use-project";
 import { useTimeline } from "./use-timeline";
 import { useWebMcpBridge } from "./use-webmcp-bridge";
@@ -94,6 +96,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
   }, [state.title]);
 
   const midiDevice = useMidiDevice({ runtime, state });
+  const midiLiveInput = useMidiLiveInput({ runtime, state, projectUiStore });
   const input = useInput({
     runtime,
     state,
@@ -392,6 +395,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
           setIsMidiDeviceOpen(true);
           midiDevice.requestAccess();
         }}
+        onMidiKeyboardToggle={midiLiveInput.toggleKeyboard}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -672,7 +676,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                       }}
                       midiInteraction={midiInteraction}
                       midiMonitoring={state.midiMonitorTrackId === track.id}
-                      midiMonitorVisible={state.midiConnection !== undefined}
+                      midiMonitorVisible={midiLiveInput.isAvailable}
                       onTranscribe={() =>
                         transcriptions.openTranscription(track.id)
                       }
@@ -736,6 +740,14 @@ export function EditorPage({ source }: { source: ProjectSource }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+        {midiLiveInput.isKeyboardOpen && (
+          <MidiKeyboardPanel
+            projectUiStore={projectUiStore}
+            runtime={runtime}
+            state={state}
+            onClose={midiLiveInput.closeKeyboard}
+          />
+        )}
         {orderedMidiTracks.map(
           (track) =>
             track.synth &&
