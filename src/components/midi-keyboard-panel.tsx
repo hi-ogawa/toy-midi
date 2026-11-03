@@ -21,7 +21,6 @@ import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { getPianoPitchesAround, MidiKeyboardPiano } from "./midi-keyboard-keys";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
-import { Button } from "./ui/button";
 import { Knob } from "./ui/knob";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Slider } from "./ui/slider";
@@ -171,27 +170,31 @@ function OctaveStepper({
   octave: number;
   lowestPitch: number;
 }) {
+  const buttonClassName =
+    "flex h-full w-5 items-center justify-center text-neutral-400 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40";
   return (
-    <div className="flex items-center gap-1 text-xs text-neutral-300">
-      <Button
+    <div className="flex h-6 items-center rounded border border-neutral-600 bg-neutral-900 text-xs text-neutral-300">
+      <button
+        type="button"
         aria-label="Octave down"
         disabled={octave === MIN_OCTAVE}
         onClick={() => keyboard.shiftOctave(-1)}
-        className="size-6 hover:bg-accent hover:text-accent-foreground"
+        className={buttonClassName}
       >
-        <MinusIcon className="size-3.5" />
-      </Button>
-      <span className="w-6 text-center tabular-nums">
+        <MinusIcon className="size-3" />
+      </button>
+      <span className="w-5 text-center tabular-nums">
         {formatChromaticPitch(lowestPitch)}
       </span>
-      <Button
+      <button
+        type="button"
         aria-label="Octave up"
         disabled={octave === MAX_OCTAVE}
         onClick={() => keyboard.shiftOctave(1)}
-        className="size-6 hover:bg-accent hover:text-accent-foreground"
+        className={buttonClassName}
       >
-        <PlusIcon className="size-3.5" />
-      </Button>
+        <PlusIcon className="size-3" />
+      </button>
     </div>
   );
 }
