@@ -1,5 +1,6 @@
 import type { Automation, Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import {
   convertToTimelineAutomation,
   convertToTimelineNotes,
@@ -114,20 +115,8 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.synth.setPreset(preset).catch(ignoreLoadFailure);
   }
 
-  noteOn(pitch: number, velocity: number): void {
-    this.synth.noteOn(pitch, velocity);
-  }
-
-  noteOff(pitch: number): void {
-    this.synth.noteOff(pitch);
-  }
-
-  setController(controller: number, value: number): void {
-    this.synth.setController(controller, value);
-  }
-
-  setPitchBend(value: number): void {
-    this.synth.setPitchBend(value);
+  playMessage(message: MidiMessage): void {
+    this.synth.playMessage(message);
   }
 
   reset(): void {

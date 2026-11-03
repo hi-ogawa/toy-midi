@@ -1,5 +1,11 @@
 import { clamp } from "./music.ts";
 
+export type MidiMessage =
+  | { type: "note-on"; pitch: number; velocity: number }
+  | { type: "note-off"; pitch: number }
+  | { type: "controller"; controller: number; value: number }
+  | { type: "pitch-bend"; value: number };
+
 // General MIDI Program Names (0-127)
 export const GM_PROGRAMS = [
   // Piano (0-7)

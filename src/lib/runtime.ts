@@ -26,14 +26,11 @@ import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import type { SynthPatch } from "./dsp/subtractive-synth.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
-import {
-  connectMidiInput,
-  type MidiConnection,
-  type MidiDeviceMessage,
-} from "./midi-device.ts";
+import { connectMidiInput, type MidiConnection } from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -65,7 +62,6 @@ import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
-const PREVIEW_VELOCITY = 100;
 export const MIN_CLIP_DURATION = 0.01;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
@@ -797,26 +793,29 @@ export class EditorRuntime {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
   }
 
-  async startMidiNotePreview({
+  /** Called from the click that plays the note, which lets audio start. */
+  playMidiNotePreview({
     id,
-    pitch,
+    message,
   }: {
     id: string;
-    pitch: number;
-  }): Promise<void> {
-    await this.context.resume();
-    this.midiTrackPlaybacks.get(id)?.noteOn(pitch, PREVIEW_VELOCITY);
-  }
-
-  stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
-    this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
+    message: MidiMessage;
+  }): void {
+    // A note-off can't wait for audio to start, or it would overtake its note-on.
+    void this.context.resume();
+    this.midiTrackPlaybacks.get(id)?.playMessage(message);
   }
 
   async startMidiInput(input: MIDIInput): Promise<void> {
     await this.stopMidiInput();
     const midiConnection = await connectMidiInput({
       input,
-      onMessage: (message) => this.playMidiDeviceMessage(message),
+      onMessage: (message) => {
+        const { midiMonitorTrackId } = this.store.get();
+        if (midiMonitorTrackId !== undefined) {
+          this.midiTrackPlaybacks.get(midiMonitorTrackId)?.playMessage(message);
+        }
+      },
       onDisconnect: () => this.stopMidiInput(),
     });
     this.store.update({ midiConnection });
@@ -840,39 +839,6 @@ export class EditorRuntime {
     this.store.update({ midiMonitorTrackId: id });
     if (id !== undefined) {
       await this.context.resume();
-    }
-  }
-
-  /**
-   * Sends without waiting for the audio context, so a note-off can't overtake
-   * its note-on.
-   */
-  private playMidiDeviceMessage(message: MidiDeviceMessage): void {
-    const { midiMonitorTrackId } = this.store.get();
-    const playback =
-      midiMonitorTrackId === undefined
-        ? undefined
-        : this.midiTrackPlaybacks.get(midiMonitorTrackId);
-    if (!playback) {
-      return;
-    }
-    switch (message.type) {
-      case "note-on": {
-        playback.noteOn(message.pitch, message.velocity);
-        break;
-      }
-      case "note-off": {
-        playback.noteOff(message.pitch);
-        break;
-      }
-      case "controller": {
-        playback.setController(message.controller, message.value);
-        break;
-      }
-      case "pitch-bend": {
-        playback.setPitchBend(message.value);
-        break;
-      }
     }
   }
 
