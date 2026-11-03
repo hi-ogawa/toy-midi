@@ -323,7 +323,7 @@ function ComputerKeyboardLayout({
   return (
     <div className="mx-auto w-fit">
       <h2 className="mb-2 text-xs font-semibold text-neutral-400">
-        Computer keyboard
+        Computer keyboard mapping
       </h2>
       <div
         role="img"
