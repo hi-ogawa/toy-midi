@@ -1,5 +1,5 @@
 import path from "node:path";
-import { test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 declare global {
   interface Window {
@@ -69,6 +69,46 @@ export async function installFakeMidiOutput(page: Page): Promise<void> {
         removeEventListener: () => {},
       }) as unknown as MIDIAccess;
   });
+}
+
+/**
+ * Connect an analyser to the master output, which is the mix the speakers play,
+ * and return checks that wait for it to sound or to fall silent.
+ */
+export async function tapMasterOutput(page: Page) {
+  await page.waitForFunction(() => window.toyMidi.runtime);
+  const analyser = await page.evaluateHandle(() => {
+    const { masterOutput } = window.toyMidi.runtime!;
+    const analyser = masterOutput.context.createAnalyser();
+    masterOutput.connect(analyser);
+    return analyser;
+  });
+  const getPeak = () =>
+    analyser.evaluate((analyser) => {
+      const samples = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(samples);
+      return Math.max(...samples.map(Math.abs));
+    });
+  return {
+    async expectSound(): Promise<void> {
+      await test.step(
+        "Expect sound",
+        async () => {
+          await expect.poll(getPeak).toBeGreaterThan(0.001);
+        },
+        { box: true },
+      );
+    },
+    async expectSilence(): Promise<void> {
+      await test.step(
+        "Expect silence",
+        async () => {
+          await expect.poll(getPeak).toBe(0);
+        },
+        { box: true },
+      );
+    },
+  };
 }
 
 /** Log elapsed checkpoints while investigating E2E timing. */

@@ -347,7 +347,8 @@ export class EditorRuntime {
 
   readonly context = new AudioContext();
   readonly transport = new AudioContextTransport(this.context);
-  private readonly masterOutput: GainNode;
+  /** @internal E2E tests tap this to check for real sound. */
+  readonly masterOutput: GainNode;
   private readonly reverb: ReverbNode;
   private masterAnalyser?: StereoAnalyser;
   readonly levelMeters = new LevelMeters({
