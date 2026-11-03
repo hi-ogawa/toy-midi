@@ -9,12 +9,17 @@ test("sends notes and controllers to a MIDI output", async ({ page }) => {
   await page.getByRole("link", { name: "MIDI Keyboard" }).click();
   await expect(page.getByLabel("MIDI output")).toContainText("Fake Output");
 
-  const expectSent = async (messages: number[][]) => {
-    await expect
-      .poll(() => page.evaluate(() => window.__e2eSentMidi))
-      .toEqual(messages);
-    await page.evaluate(() => (window.__e2eSentMidi = []));
-  };
+  const expectSent = (messages: number[][]) =>
+    test.step(
+      "Expect sent MIDI",
+      async () => {
+        await expect
+          .poll(() => page.evaluate(() => window.__e2eSentMidi))
+          .toEqual(messages);
+        await page.evaluate(() => (window.__e2eSentMidi = []));
+      },
+      { box: true },
+    );
 
   // Press and release a piano key with the mouse.
   const c4 = page.getByRole("button", { name: "C4", exact: true });
