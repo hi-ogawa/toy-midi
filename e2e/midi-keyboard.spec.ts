@@ -32,7 +32,7 @@ test("opens a demo track in a new tab", async ({ page, context }) => {
   // Follow the demo link, and find one MIDI track to monitor.
   const [editor] = await Promise.all([
     context.waitForEvent("page"),
-    page.getByRole("link", { name: "demo track" }).click(),
+    page.getByRole("link", { name: "Open demo track" }).click(),
   ]);
   await expect(editor.getByTestId("midi-track-row")).toHaveCount(1);
 });

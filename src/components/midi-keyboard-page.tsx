@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  CircleHelpIcon,
+  ExternalLinkIcon,
   HouseIcon,
   KeyboardMusicIcon,
   MinusIcon,
@@ -35,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
 import { useMidiKeyboard } from "./use-midi-keyboard";
@@ -82,28 +85,9 @@ export function MidiKeyboardPage() {
       </header>
 
       <div className="mx-auto w-full max-w-5xl px-8 py-10">
-        <div className="grid max-w-2xl gap-3 text-base leading-7 text-neutral-400">
-          <p>
-            A virtual MIDI controller in your browser. It sends notes and
-            controller changes to the MIDI output you choose, and makes no sound
-            by itself. To hear it, connect a synth, or send to another app
-            through a loopback port, such as Midi Through on Linux or the IAC
-            Driver on macOS.
-          </p>
-          <p>
-            The Toy MIDI editor can also listen on a loopback port. Open a{" "}
-            <a
-              href={DEMO_TRACK_HREF}
-              target="_blank"
-              rel="noreferrer"
-              className="text-emerald-400 underline hover:text-emerald-300"
-            >
-              demo track
-            </a>{" "}
-            in a new tab, select the same port under MIDI Device, and turn on
-            Monitor.
-          </p>
-        </div>
+        <p className="text-base text-neutral-400">
+          A virtual MIDI controller. It makes no sound by itself.
+        </p>
         <div className="mt-8">
           <MidiKeyboardControls />
         </div>
@@ -145,36 +129,64 @@ function MidiKeyboardControls() {
 
   return (
     <div className="grid gap-6">
-      <label className="grid max-w-md gap-2 text-xs font-semibold text-neutral-400">
-        MIDI output
-        <select
-          value={output?.id ?? ""}
-          disabled={!output}
-          onChange={(event) => {
-            keyboard.releaseAll();
-            setSelectedId(event.currentTarget.value);
-          }}
-          className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
-        >
-          {outputs.length === 0 && (
-            <option>
-              {accessQuery.isPending
-                ? "Waiting for MIDI access..."
-                : "No MIDI outputs found"}
-            </option>
-          )}
-          {outputs.map((output) => (
-            <option key={output.id} value={output.id}>
-              {output.name || "Unnamed output"}
-            </option>
-          ))}
-        </select>
+      <div className="grid gap-2">
+        <div className="flex items-center gap-1.5">
+          <label
+            htmlFor="midi-output"
+            className="text-xs font-semibold text-neutral-400"
+          >
+            MIDI output
+          </label>
+          <MidiOutputHelp />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-full max-w-md">
+            <select
+              id="midi-output"
+              value={output?.id ?? ""}
+              disabled={!output}
+              onChange={(event) => {
+                keyboard.releaseAll();
+                setSelectedId(event.currentTarget.value);
+              }}
+              className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+            >
+              {outputs.length === 0 && (
+                <option>
+                  {accessQuery.isPending
+                    ? "Waiting for MIDI access..."
+                    : "No MIDI outputs found"}
+                </option>
+              )}
+              {outputs.map((output) => (
+                <option key={output.id} value={output.id}>
+                  {output.name || "Unnamed output"}
+                </option>
+              ))}
+            </select>
+          </div>
+          <a
+            href={DEMO_TRACK_HREF}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-neutral-700 px-3 text-sm text-neutral-100 hover:bg-neutral-800"
+          >
+            Open demo track
+            <ExternalLinkIcon className="size-3.5" />
+          </a>
+        </div>
         {accessQuery.isError && (
-          <span role="alert" className="font-normal text-red-400">
+          <p role="alert" className="text-xs text-red-400">
             MIDI access isn't available: {accessQuery.error.message}
-          </span>
+          </p>
         )}
-      </label>
+        {access && outputs.length === 0 && (
+          <p className="text-xs text-neutral-400">
+            To send to another app, set up a loopback port, such as the IAC
+            Driver on macOS.
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-4 gap-6">
         <ControlSlider
@@ -281,6 +293,32 @@ function PianoKey({
     >
       {pitch % 12 === 0 && formatChromaticPitch(pitch)}
     </button>
+  );
+}
+
+function MidiOutputHelp() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="About loopback ports"
+          className="text-neutral-500 hover:text-neutral-200"
+        >
+          <CircleHelpIcon className="size-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 space-y-2 p-3 text-xs">
+        <p>
+          A loopback port passes MIDI to another app on this computer. Examples
+          are Midi Through on Linux and the IAC Driver on macOS.
+        </p>
+        <p>
+          To play the editor, open the demo track, select the same port under
+          MIDI Device, and turn on Monitor.
+        </p>
+      </PopoverContent>
+    </Popover>
   );
 }
 
