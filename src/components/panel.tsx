@@ -33,8 +33,10 @@ export function Panel({
       )}
     >
       <div className="flex h-9 shrink-0 items-center gap-3 border-b border-neutral-700 px-3">
-        <h2 className="text-sm font-semibold text-neutral-100">{title}</h2>
-        <div className="ml-auto flex items-center gap-3">
+        <h2 className="min-w-0 text-sm font-semibold text-neutral-100">
+          {title}
+        </h2>
+        <div className="ml-auto flex shrink-0 items-center gap-3">
           {headerActions}
           <button
             onClick={onClose}

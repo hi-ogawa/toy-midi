@@ -14,6 +14,7 @@ import {
   MoreVerticalIcon,
   NotebookPenIcon,
   PauseIcon,
+  PianoIcon,
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
@@ -97,6 +98,7 @@ export function Header({
   onInputPanelToggle,
   midiDeviceSupported,
   onMidiDeviceOpen,
+  onMidiKeyboardToggle,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
@@ -143,6 +145,7 @@ export function Header({
   onInputPanelToggle: () => void;
   midiDeviceSupported: boolean;
   onMidiDeviceOpen: () => void;
+  onMidiKeyboardToggle: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -450,6 +453,10 @@ export function Header({
           >
             <KeyboardMusicIcon />
             MIDI Device
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onMidiKeyboardToggle}>
+            <PianoIcon />
+            MIDI Keyboard
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
