@@ -1,11 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import {
-  addMidiTrack,
-  createProject,
-  openMidiInstrument,
-  saveProject,
-  selectMidiInstrument,
-} from "./editor-helpers";
+import { expect, test } from "@playwright/test";
+import { addSynthTrack, createProject, saveProject } from "./editor-helpers";
 import { installFakeMidiDevice, tapMasterOutput } from "./helpers";
 
 test.use({ permissions: ["midi"] });
@@ -14,10 +8,9 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   const device = await installFakeMidiDevice(page);
   await createProject(page);
 
-  // Add two synth tracks, whose held notes sustain instead of decaying away.
-  // They offer no monitoring without a device.
-  const first = await addSynthTrack(page, "MIDI 1");
-  const second = await addSynthTrack(page, "MIDI 2");
+  // Add two synth tracks, which offer no monitoring without a device.
+  const first = await addSynthTrack(page, { name: "MIDI 1" });
+  const second = await addSynthTrack(page, { name: "MIDI 2" });
   const firstMonitor = first.getByTestId("input-monitor");
   const secondMonitor = second.getByTestId("input-monitor");
   await expect(firstMonitor).toHaveCount(0);
@@ -61,11 +54,3 @@ test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await expect(firstMonitor).toBeVisible();
   await expect(secondMonitor).toHaveAttribute("aria-pressed", "false");
 });
-
-async function addSynthTrack(page: Page, name: string) {
-  const row = await addMidiTrack(page);
-  const instrument = await openMidiInstrument(page, { name });
-  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
-  await instrument.getByRole("button", { name: "Close", exact: true }).click();
-  return row;
-}
