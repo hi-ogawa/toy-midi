@@ -94,7 +94,7 @@ test("sends notes and controllers to a MIDI output", async ({ page }) => {
   await octaveDown.click();
   await expect(octaveDown).toBeDisabled();
   await expect(
-    page.getByRole("img", { name: "Computer keyboard layout" }),
+    page.getByRole("img", { name: "Computer keyboard mapping" }),
   ).toContainText("C1");
   await page.keyboard.press("z");
   await expectSent([

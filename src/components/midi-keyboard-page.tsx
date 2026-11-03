@@ -327,7 +327,7 @@ function ComputerKeyboardLayout({
       </h2>
       <div
         role="img"
-        aria-label="Computer keyboard layout"
+        aria-label="Computer keyboard mapping"
         className="grid gap-1 select-none"
       >
         {COMPUTER_KEYBOARD_ROWS.map(({ stagger, codes }) => (
