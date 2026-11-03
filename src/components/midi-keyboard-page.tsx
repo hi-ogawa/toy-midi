@@ -273,6 +273,40 @@ function MidiKeyboardControls() {
   );
 }
 
+function ControlSlider({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+  onRelease,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+  onRelease?: () => void;
+}) {
+  return (
+    <div>
+      <div className="mb-2.5 flex justify-between text-xs text-neutral-300">
+        <span>{label}</span>
+        <span className="tabular-nums">{value}</span>
+      </div>
+      <Slider
+        aria-label={label}
+        value={[value]}
+        min={min}
+        max={max}
+        onValueChange={([next]) => onChange(next)}
+        onPointerUp={onRelease}
+        onKeyUp={onRelease}
+      />
+    </div>
+  );
+}
+
 function PianoKey({
   pitch,
   isHeld,
@@ -377,40 +411,6 @@ function ComputerKey({
       {formatComputerKey(code)}
       {hint && <span className="text-[9px] font-normal">{hint}</span>}
     </span>
-  );
-}
-
-function ControlSlider({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-  onRelease,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-  onRelease?: () => void;
-}) {
-  return (
-    <div>
-      <div className="mb-2.5 flex justify-between text-xs text-neutral-300">
-        <span>{label}</span>
-        <span className="tabular-nums">{value}</span>
-      </div>
-      <Slider
-        aria-label={label}
-        value={[value]}
-        min={min}
-        max={max}
-        onValueChange={([next]) => onChange(next)}
-        onPointerUp={onRelease}
-        onKeyUp={onRelease}
-      />
-    </div>
   );
 }
 
