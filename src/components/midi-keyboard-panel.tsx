@@ -7,9 +7,9 @@ import {
 import { useEffect, useState } from "react";
 import { ABLETON_KEYMAP, getComputerKeyLabels } from "../lib/computer-keyboard";
 import {
+  encodePitchBend,
   PITCH_BEND_RANGE,
   PITCH_WHEEL_CENTER,
-  PITCH_WHEEL_MAX,
 } from "../lib/general-midi";
 import {
   MAX_OCTAVE,
@@ -34,6 +34,8 @@ const WHITE_KEY_WIDTH = 28;
 const PANEL_CHROME_WIDTH = 26;
 const MOD_WHEEL_CONTROLLER = 1;
 const SEMITONE_BEND = PITCH_WHEEL_CENTER / PITCH_BEND_RANGE;
+// Narrower than the synths' range, so a short drag plays a musical bend.
+const KNOB_BEND_SEMITONES = 2;
 
 export function MidiKeyboardPanel({
   projectUiStore,
@@ -125,8 +127,8 @@ export function MidiKeyboardPanel({
           shortLabel="Bend"
           value={pitchBend}
           displayValue={formatPitchBend(pitchBend)}
-          min={0}
-          max={PITCH_WHEEL_MAX}
+          min={encodePitchBend(-KNOB_BEND_SEMITONES)}
+          max={encodePitchBend(KNOB_BEND_SEMITONES)}
           origin={PITCH_WHEEL_CENTER}
           step={SEMITONE_BEND}
           onChange={(value) => keyboard.setPitchBend(value)}
@@ -278,10 +280,10 @@ function ValueKnob({
 }
 
 function formatPitchBend(pitchBend: number): string {
-  const semitones = Math.round(
-    ((pitchBend - PITCH_WHEEL_CENTER) / PITCH_WHEEL_CENTER) * PITCH_BEND_RANGE,
-  );
-  return semitones > 0 ? `+${semitones}` : `${semitones}`;
+  const semitones =
+    ((pitchBend - PITCH_WHEEL_CENTER) / PITCH_WHEEL_CENTER) * PITCH_BEND_RANGE;
+  const rounded = Math.round(semitones * 10) / 10;
+  return `${rounded > 0 ? "+" : ""}${rounded.toFixed(1)}`;
 }
 
 function MidiKeyboardHelp() {
