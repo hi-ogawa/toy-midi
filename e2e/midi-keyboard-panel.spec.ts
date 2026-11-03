@@ -99,12 +99,10 @@ test("plays notes from the MIDI keyboard panel", async ({ page }) => {
 test("bends and modulates from the MIDI keyboard panel", async ({ page }) => {
   await createProject(page);
 
-  // Monitor a track from the panel.
-  const row = await addMidiTrack(page);
+  // Open the panel from the editor menu.
   await page.getByRole("button", { name: "Editor menu" }).click();
   await page.getByRole("menuitem", { name: "MIDI Keyboard" }).click();
   const panel = page.getByTestId("midi-keyboard-panel");
-  await row.getByTestId("input-monitor").click();
 
   // Hold the bend off center, and let go so it springs back.
   const bend = panel.getByRole("slider", { name: "Pitch bend" });
