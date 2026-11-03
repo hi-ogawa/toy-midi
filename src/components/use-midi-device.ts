@@ -21,10 +21,12 @@ export function useMidiDevice({
   const [devices, setDevices] = useState<MIDIInput[]>();
 
   function openAccess() {
-    return openMidiAccess((inputs) => {
-      setDevices(inputs);
-      // Runs for the life of the page, so it can't close over a rendered value.
-      connectDevice(inputs, preferences.get().midiDeviceId);
+    return openMidiAccess({
+      onChange: (inputs) => {
+        setDevices(inputs);
+        // Runs for the life of the page, so it can't close over a rendered value.
+        connectDevice(inputs, preferences.get().midiDeviceId);
+      },
     });
   }
 

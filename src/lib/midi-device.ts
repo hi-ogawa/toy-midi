@@ -26,9 +26,11 @@ export async function isMidiAccessGranted(): Promise<boolean> {
 }
 
 /** Calls `onChange` with the connected inputs, now and whenever they change. */
-export async function openMidiAccess(
-  onChange: (inputs: MIDIInput[]) => void,
-): Promise<void> {
+export async function openMidiAccess({
+  onChange,
+}: {
+  onChange: (inputs: MIDIInput[]) => void;
+}): Promise<void> {
   const access = await navigator.requestMIDIAccess();
   const notify = () => onChange(getConnectedMidiInputs(access));
   access.onstatechange = notify;
@@ -41,10 +43,13 @@ function getConnectedMidiInputs(access: MIDIAccess): MIDIInput[] {
   );
 }
 
-export function connectMidiInput(
-  input: MIDIInput,
-  onMessage: (message: MidiDeviceMessage) => void,
-): MidiConnection {
+export function connectMidiInput({
+  input,
+  onMessage,
+}: {
+  input: MIDIInput;
+  onMessage: (message: MidiDeviceMessage) => void;
+}): MidiConnection {
   input.onmidimessage = (event) => {
     const message = event.data && parseMidiDeviceMessage(event.data);
     if (message) {
