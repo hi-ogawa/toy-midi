@@ -30,7 +30,7 @@ export function useFakeAudioInput({
 }
 
 /** Playwright has no virtual MIDI device, so this replaces the browser's access. */
-export async function installFakeMidiDevice(page: Page): Promise<void> {
+export async function installFakeMidiDevice(page: Page) {
   await page.addInitScript(() => {
     const setConnection = async (connection: string) => {
       input.connection = connection;
@@ -50,6 +50,28 @@ export async function installFakeMidiDevice(page: Page): Promise<void> {
     });
     navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
   });
+  return {
+    send: (bytes: number[]) =>
+      page.evaluate(async (bytes) => {
+        const access = await navigator.requestMIDIAccess();
+        const input = access.inputs.get("fake-keyboard")!;
+        if (input.connection === "open") {
+          input.dispatchEvent(
+            Object.assign(new Event("midimessage"), {
+              data: new Uint8Array(bytes),
+            }),
+          );
+        }
+      }, bytes),
+    unplug: () =>
+      page.evaluate(async () => {
+        const access = await navigator.requestMIDIAccess();
+        const input = access.inputs.get("fake-keyboard")!;
+        Object.assign(input, { state: "disconnected" });
+        input.dispatchEvent(new Event("statechange"));
+        access.dispatchEvent(new Event("statechange"));
+      }),
+  };
 }
 
 /** Replaces the browser's access with one output that records what it is sent. */
