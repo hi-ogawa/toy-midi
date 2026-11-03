@@ -68,21 +68,21 @@ export function ProjectList() {
   return (
     <div className="flex max-h-full min-h-0 flex-col overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/45 shadow-2xl shadow-black/20">
       {projectsQuery.data.ok && (
-        <div className="shrink-0 space-y-3 border-b border-neutral-700/70 p-4">
-          <div className="flex items-center justify-between gap-4">
+        <div className="shrink-0 space-y-normal border-b border-neutral-700/70 p-normal">
+          <div className="flex items-center justify-between gap-normal">
             <h2 className="font-semibold">Projects</h2>
-            <div className="flex gap-2">
+            <div className="flex gap-snug">
               <BrowserStorageDialog />
               <a
                 href={routes.examples.href()}
-                className="self-center px-2 text-sm text-neutral-300 underline underline-offset-4 transition-colors hover:text-emerald-400"
+                className="self-center px-snug text-sm text-neutral-300 underline underline-offset-4 transition-colors hover:text-emerald-400"
               >
                 Examples
               </a>
               <a
                 data-testid="new-project-button"
                 href={routes.draft.href()}
-                className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 h-7 px-3 text-sm text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 h-control px-normal text-sm text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 New project
               </a>
@@ -92,7 +92,7 @@ export function ProjectList() {
                 onFile={(file) => importProjectMutation.mutate(file)}
                 data-testid="import-project"
                 disabled={importProjectMutation.isPending}
-                className="h-7 bg-neutral-700 px-3 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+                className="h-control bg-neutral-700 px-normal text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
               >
                 <span className="grid">
                   <span className="invisible col-start-1 row-start-1">
@@ -108,13 +108,13 @@ export function ProjectList() {
             </div>
           </div>
           {legacyProjects.length > 0 && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-700/70 px-3 py-1 text-xs text-neutral-400">
+            <div className="flex items-center justify-between gap-normal rounded-lg border border-neutral-700/70 px-normal py-tight text-xs text-neutral-400">
               <span>
                 Migration required for{" "}
                 {pluralCount(legacyProjects.length, "legacy project")}.
               </span>
               <Button
-                className="shrink-0 border border-neutral-600 bg-neutral-700 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-600"
+                className="h-control-dense shrink-0 border border-neutral-600 bg-neutral-700 px-snug text-xs text-neutral-200 hover:bg-neutral-600"
                 onClick={() => {
                   setShowLegacy(!showLegacy);
                   setQuery("");
@@ -148,11 +148,11 @@ export function ProjectList() {
         key={showLegacy ? "legacy" : "current"}
         aria-label={showLegacy ? "Legacy projects" : "Current projects"}
         data-testid="project-list-scroll"
-        className="min-h-0 shrink space-y-2 overflow-y-auto scrollbar-thin p-3"
+        className="min-h-0 shrink space-y-snug overflow-y-auto scrollbar-thin p-normal"
       >
         {showLegacy ? (
           filteredLegacyProjects.length === 0 ? (
-            <p className="py-3 text-center text-sm text-neutral-500">
+            <p className="py-normal text-center text-sm text-neutral-500">
               No matching legacy projects
             </p>
           ) : (
@@ -179,18 +179,18 @@ export function ProjectList() {
             ))
           )
         ) : !projectsQuery.data.ok ? (
-          <div className="p-8 text-center text-sm text-orange-300">
+          <div className="p-loose text-center text-sm text-orange-300">
             {String(projectsQuery.data.error)}
           </div>
         ) : projectsQuery.data.value.length === 0 ? (
           <div className="flex min-h-36 flex-col items-center justify-center text-center">
             <p className="font-medium text-neutral-300">No projects yet</p>
-            <p className="mt-1 text-sm text-neutral-500">
+            <p className="mt-tight text-sm text-neutral-500">
               Create a project to begin.
             </p>
           </div>
         ) : filteredProjects.length === 0 ? (
-          <p className="mb-4 py-3 text-center text-sm text-neutral-500">
+          <p className="mb-normal py-normal text-center text-sm text-neutral-500">
             No matching projects
           </p>
         ) : (
@@ -218,13 +218,13 @@ function ProjectListItem({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex h-16 w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800">
+    <div className="flex h-12 w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-normal transition-colors hover:bg-neutral-800">
       <a
         href={routes.project.href({ projectId: project.id })}
         className="min-w-0 flex-1"
       >
         <div className="truncate text-sm font-medium">{project.title}</div>
-        <div className="mt-1 text-xs text-neutral-500">
+        <div className="mt-tight text-xs text-neutral-500">
           Last edited{" "}
           {new Date(project.updatedAt).toLocaleDateString(undefined, {
             month: "short",
@@ -241,7 +241,7 @@ function ProjectListItem({
         }}
         disabled={deletePending}
         title="Delete project"
-        className="size-7 text-neutral-400 hover:bg-red-600/30"
+        className="size-control text-neutral-400 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
       </Button>
@@ -263,12 +263,12 @@ function LegacyProjectListItem({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex h-16 items-center gap-3 rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4">
+    <div className="flex h-12 items-center gap-normal rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-normal">
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-neutral-200">
           {project.name}
         </div>
-        <div className="mt-1 text-xs text-neutral-500">
+        <div className="mt-tight text-xs text-neutral-500">
           Last edited{" "}
           {new Date(project.updatedAt).toLocaleDateString(undefined, {
             month: "short",
@@ -280,7 +280,7 @@ function LegacyProjectListItem({
       <Button
         onClick={onMigrate}
         disabled={migrationPending}
-        className="shrink-0 bg-neutral-700 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-600"
+        className="h-control shrink-0 bg-neutral-700 px-normal text-xs text-neutral-200 hover:bg-neutral-600"
       >
         {migrating ? "Migrating..." : "Migrate to new editor"}
       </Button>
@@ -292,7 +292,7 @@ function LegacyProjectListItem({
         }}
         disabled={migrationPending}
         title="Delete legacy project"
-        className="size-7 shrink-0 text-neutral-400 hover:bg-red-600/30"
+        className="size-control shrink-0 text-neutral-400 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
       </Button>
@@ -320,8 +320,8 @@ function ProjectListSearch({
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-      <div className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-normal">
+      <div className="flex items-center gap-snug rounded-lg border border-neutral-700 bg-neutral-900 px-normal focus-within:border-emerald-500">
         <SearchIcon
           aria-hidden="true"
           className="size-4 shrink-0 text-neutral-500"
@@ -339,14 +339,14 @@ function ProjectListSearch({
               clear();
             }
           }}
-          className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-200 outline-none"
+          className="h-control min-w-0 flex-1 bg-transparent text-sm text-neutral-200 outline-none"
         />
         {query && (
           <button
             type="button"
             aria-label="Clear search"
             onClick={clear}
-            className="rounded p-1 text-neutral-400 hover:text-neutral-200"
+            className="rounded p-0.5 text-neutral-400 hover:text-neutral-200"
           >
             <XIcon aria-hidden="true" className="size-4" />
           </button>

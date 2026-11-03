@@ -81,7 +81,7 @@ export function MidiKeyboardPanel({
   return (
     <Panel
       title={
-        <span className="flex items-baseline gap-2 whitespace-nowrap">
+        <span className="flex items-baseline gap-snug whitespace-nowrap">
           MIDI Keyboard
           <span
             role="status"
@@ -98,7 +98,7 @@ export function MidiKeyboardPanel({
             title="Computer keys"
             aria-pressed={isCapturing}
             onClick={toggleCapture}
-            className="flex size-6 items-center justify-center rounded text-neutral-400 hover:text-neutral-200 aria-pressed:bg-emerald-500 aria-pressed:text-neutral-950"
+            className="flex size-control-dense items-center justify-center rounded text-neutral-400 hover:text-neutral-200 aria-pressed:bg-emerald-500 aria-pressed:text-neutral-950"
           >
             <KeyboardIcon className="size-4" />
           </button>
@@ -109,11 +109,11 @@ export function MidiKeyboardPanel({
       onClose={onClose}
       data-testid="midi-keyboard-panel"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
-      contentClassName="flex min-h-0 flex-1 flex-col gap-3 px-3 py-2"
+      contentClassName="flex min-h-0 flex-1 flex-col gap-normal px-normal py-snug"
       style={size}
     >
       <PanelResizeHandle handleRef={handleRef} label="Resize MIDI Keyboard" />
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-normal">
         <OctaveStepper
           keyboard={keyboard}
           octave={octave}
@@ -180,7 +180,7 @@ function OctaveStepper({
   const buttonClassName =
     "flex h-full w-5 items-center justify-center text-neutral-400 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40";
   return (
-    <div className="flex h-6 items-center rounded border border-neutral-600 bg-neutral-900 text-xs text-neutral-300">
+    <div className="flex h-control-dense items-center rounded border border-neutral-600 bg-neutral-900 text-xs text-neutral-300">
       <button
         type="button"
         aria-label="Octave down"
@@ -243,7 +243,7 @@ function ValueKnob({
     onCancel: onRelease,
   });
   return (
-    <div className="flex items-center gap-1.5 text-xs text-neutral-300">
+    <div className="flex items-center gap-tight text-xs text-neutral-300">
       <Knob
         ref={ref}
         aria-label={label}
@@ -269,7 +269,7 @@ function ValueKnob({
         origin={origin}
         className="cursor-ns-resize"
       />
-      <div className="grid w-6 gap-1 leading-none">
+      <div className="grid w-6 gap-tight leading-none">
         <span>{shortLabel}</span>
         <span className="tabular-nums">{displayValue}</span>
       </div>
@@ -295,14 +295,14 @@ function MidiKeyboardHelp() {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="grid w-64 gap-2 p-3 text-xs text-neutral-300"
+        className="grid w-64 gap-snug p-normal text-xs text-neutral-300"
       >
         <p>Turn on Monitor on a MIDI track to hear this keyboard.</p>
         <p>
           With computer keys on, the keys marked on the piano play notes instead
           of editor shortcuts such as F and L.
         </p>
-        <dl className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5">
+        <dl className="grid grid-cols-[auto_1fr] items-center gap-x-normal gap-y-tight">
           <dt>
             <KeyHint>Z</KeyHint> <KeyHint>X</KeyHint>
           </dt>

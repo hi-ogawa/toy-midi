@@ -42,7 +42,7 @@ export function MidiKeyboardPage() {
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
-      <header className="sticky top-0 z-10 flex h-11 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
+      <header className="sticky top-0 z-10 flex h-page-header items-center gap-snug border-b border-neutral-700 bg-neutral-800 px-normal text-neutral-100 shadow-sm">
         <KeyboardMusicIcon className="size-5 text-emerald-400" />
         <span className="font-medium">MIDI Keyboard</span>
         <div className="flex-1" />
@@ -52,7 +52,7 @@ export function MidiKeyboardPage() {
             <Button
               title="MIDI keyboard menu"
               aria-label="MIDI keyboard menu"
-              className="size-7 hover:bg-accent hover:text-accent-foreground"
+              className="size-control hover:bg-accent hover:text-accent-foreground"
             >
               <MoreVerticalIcon className="size-4.5" />
             </Button>
@@ -68,7 +68,7 @@ export function MidiKeyboardPage() {
         </DropdownMenu>
       </header>
 
-      <div className="mx-auto w-full max-w-5xl px-8 py-10">
+      <div className="mx-auto w-full max-w-5xl px-loose py-loose">
         <MidiKeyboardControls />
       </div>
     </main>
@@ -82,12 +82,15 @@ function MidiKeyboardHelp() {
         <Button
           title="MIDI keyboard help"
           aria-label="MIDI keyboard help"
-          className="size-7 hover:bg-accent hover:text-accent-foreground"
+          className="size-control hover:bg-accent hover:text-accent-foreground"
         >
           <CircleHelpIcon className="size-4.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 space-y-2 p-3 text-xs">
+      <PopoverContent
+        align="end"
+        className="w-80 space-y-snug p-normal text-xs"
+      >
         <p>A virtual MIDI controller. It makes no sound by itself.</p>
         <p>
           To hear it, send it to anything that takes MIDI input. To reach
@@ -145,8 +148,8 @@ function MidiKeyboardControls() {
   });
 
   return (
-    <div className="grid gap-6">
-      <div className="grid gap-2">
+    <div className="grid gap-relaxed">
+      <div className="grid gap-snug">
         <label
           htmlFor="midi-output"
           className="text-xs font-semibold text-neutral-400"
@@ -162,7 +165,7 @@ function MidiKeyboardControls() {
               keyboard.releaseAll();
               setSelectedId(event.currentTarget.value);
             }}
-            className="h-7 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+            className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
           >
             {outputs.length === 0 && (
               <option>
@@ -191,7 +194,7 @@ function MidiKeyboardControls() {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-4 gap-relaxed">
         <ControlSlider
           label="Velocity"
           value={velocity}
@@ -219,12 +222,12 @@ function MidiKeyboardControls() {
         />
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-neutral-300">
+      <div className="flex items-center gap-snug text-xs text-neutral-300">
         <Button
           aria-label="Octave down"
           disabled={octave === MIN_OCTAVE}
           onClick={() => keyboard.shiftOctave(-1)}
-          className="size-7 hover:bg-accent hover:text-accent-foreground"
+          className="size-control hover:bg-accent hover:text-accent-foreground"
         >
           <MinusIcon className="size-4" />
         </Button>
@@ -235,7 +238,7 @@ function MidiKeyboardControls() {
           aria-label="Octave up"
           disabled={octave === MAX_OCTAVE}
           onClick={() => keyboard.shiftOctave(1)}
-          className="size-7 hover:bg-accent hover:text-accent-foreground"
+          className="size-control hover:bg-accent hover:text-accent-foreground"
         >
           <PlusIcon className="size-4" />
         </Button>
@@ -273,7 +276,7 @@ function ControlSlider({
 }) {
   return (
     <div>
-      <div className="mb-2.5 flex justify-between text-xs text-neutral-300">
+      <div className="mb-snug flex justify-between text-xs text-neutral-300">
         <span>{label}</span>
         <span className="tabular-nums">{value}</span>
       </div>

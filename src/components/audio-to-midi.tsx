@@ -117,28 +117,28 @@ export function AudioToMidi({
     <Panel
       closeLabel="Close Audio to MIDI"
       className="pointer-events-auto w-[440px] shrink-0"
-      contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-3 py-2"
+      contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-normal py-snug"
       onClose={onClose}
       title={`Audio to MIDI · ${track.name}`}
       data-testid="audio-to-midi"
     >
-      <div className="space-y-5">
+      <div className="space-y-normal">
         <p className="text-sm text-neutral-400">
           Transcribe a selected audio track into this MIDI track using the
           project tempo and grid.
         </p>
         <fieldset
           disabled={transcribeMutation.isPending}
-          className="space-y-5 disabled:opacity-60"
+          className="space-y-normal disabled:opacity-60"
         >
-          <label className="flex flex-col gap-2 text-sm">
+          <label className="flex flex-col gap-snug text-xs">
             <span>Source audio track</span>
             <select
               autoFocus
               aria-label="Source audio track"
               value={sourceId}
               onChange={(event) => setSourceId(event.target.value)}
-              className="w-full rounded border border-neutral-600 bg-neutral-900 p-2"
+              className="w-full rounded border border-neutral-600 bg-neutral-900 p-snug"
             >
               {sources.length === 0 && (
                 <option value="">No audio available</option>
@@ -150,7 +150,7 @@ export function AudioToMidi({
               ))}
             </select>
           </label>
-          <section className="space-y-5 border-t border-neutral-700 pt-4">
+          <section className="space-y-normal border-t border-neutral-700 pt-normal">
             <ParamSlider
               label="Activity threshold"
               hint="Higher values detect fewer notes"
@@ -188,14 +188,14 @@ export function AudioToMidi({
             </div>
           </section>
         </fieldset>
-        <section className="space-y-2 border-t border-neutral-700 pt-4">
+        <section className="space-y-snug border-t border-neutral-700 pt-normal">
           {sources.length === 0 && (
             <p className="text-sm text-neutral-400">
               Load audio or record a take before converting.
             </p>
           )}
           <Button
-            className={`h-7 w-full cursor-pointer px-3 text-sm ${transcribeMutation.isPending ? "border-neutral-600 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-600" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+            className={`h-control w-full cursor-pointer px-normal text-sm ${transcribeMutation.isPending ? "border-neutral-600 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-600" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
             disabled={
               !transcribeMutation.isPending &&
               !sources.some(({ track }) => track.id === sourceId)
@@ -212,7 +212,7 @@ export function AudioToMidi({
           </Button>
           <p
             role="status"
-            className="flex min-h-4 items-start gap-1.5 text-xs text-neutral-400"
+            className="flex min-h-4 items-start gap-tight text-xs text-neutral-400"
           >
             {transcribeMutation.isSuccess &&
               (transcribeMutation.data ?? 0) > 0 && (
@@ -255,7 +255,7 @@ function ParamSlider({
 } & ComponentProps<typeof Slider>) {
   return (
     <div>
-      <div className="mb-2.5 flex justify-between text-xs text-neutral-300">
+      <div className="mb-snug flex justify-between text-xs text-neutral-300">
         <div>
           <span>{label}</span>
           <p className="mt-0.5 text-neutral-500">{hint}</p>

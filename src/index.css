@@ -29,6 +29,24 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/*
+ * Heights and spacing shared across the app, usable with any size or spacing
+ * utility, such as `h-control`, `size-control-dense` and `px-normal`. Padding
+ * inside small chips such as a kbd stays at Tailwind's numeric steps.
+ */
+@theme {
+  --spacing-control: 1.75rem;
+  --spacing-control-dense: 1.5rem;
+  --spacing-panel-header: 2rem;
+  --spacing-page-header: 2.75rem;
+
+  --spacing-tight: 0.25rem;
+  --spacing-snug: 0.5rem;
+  --spacing-normal: 0.75rem;
+  --spacing-relaxed: 1rem;
+  --spacing-loose: 1.5rem;
+}
+
 /* Dark theme (default for this app) */
 :root {
   --radius: 0.325rem;

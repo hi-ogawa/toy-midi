@@ -26,16 +26,16 @@ const PRESETS: {
 
 export function BrowserStoragePreview() {
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(448px,1fr))] gap-6">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(448px,1fr))] gap-relaxed">
       {PRESETS.map((preset) => (
-        <div key={preset.label} className="space-y-1">
+        <div key={preset.label} className="space-y-tight">
           <p className="text-xs text-neutral-500">{preset.label}</p>
           {/* Static copy of the shared Dialog chrome so every state renders at once. */}
           <div className="w-md rounded-lg bg-neutral-800 shadow-2xl">
-            <div className="border-b border-neutral-700 px-6 py-4 text-lg font-semibold text-neutral-100">
+            <div className="flex h-panel-header items-center border-b border-neutral-700 px-normal text-sm font-semibold text-neutral-100">
               Browser storage
             </div>
-            <div className="p-6">
+            <div className="p-normal">
               <BrowserStorageContent
                 {...preset.props}
                 onRequestProtection={() => {}}

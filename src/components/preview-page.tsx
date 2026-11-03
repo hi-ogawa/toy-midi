@@ -38,8 +38,8 @@ export function PreviewPage() {
   const SelectedPreview = preview.component;
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-8 pt-4 pb-10 text-neutral-100">
-      <header className="mx-auto mb-4 flex max-w-[1600px] items-baseline gap-4 border-b border-neutral-800 pb-2">
+    <main className="min-h-screen bg-neutral-950 px-loose pt-normal pb-loose text-neutral-100">
+      <header className="mx-auto mb-normal flex max-w-[1600px] items-baseline gap-normal border-b border-neutral-800 pb-snug">
         <h1 className="text-lg font-semibold">Preview</h1>
         <a
           href={routes.home.href()}
@@ -49,17 +49,17 @@ export function PreviewPage() {
         </a>
       </header>
 
-      <div className="mx-auto flex max-w-[1600px] items-start gap-6">
+      <div className="mx-auto flex max-w-[1600px] items-start gap-relaxed">
         <nav
           aria-label="Previews"
-          className="flex w-52 shrink-0 flex-col gap-1"
+          className="flex w-52 shrink-0 flex-col gap-tight"
         >
           {PREVIEWS.map((entry) => (
             <a
               key={entry.id}
               href={`${routes.preview.href()}?component=${encodeURIComponent(entry.id)}`}
               aria-current={entry.id === preview.id ? "page" : undefined}
-              className="rounded px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100 aria-[current=page]:bg-neutral-800 aria-[current=page]:text-neutral-100"
+              className="rounded px-normal py-snug text-sm text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100 aria-[current=page]:bg-neutral-800 aria-[current=page]:text-neutral-100"
             >
               {entry.label}
             </a>

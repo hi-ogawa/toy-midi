@@ -48,20 +48,20 @@ export function Dialog({
             }
           }}
         >
-          <div className="border-b border-neutral-700 px-6 py-4 flex justify-between items-center">
-            <DialogPrimitive.Title className="text-lg font-semibold text-neutral-100">
+          <div className="flex h-panel-header items-center justify-between border-b border-neutral-700 pr-tight pl-normal">
+            <DialogPrimitive.Title className="text-sm font-semibold text-neutral-100">
               {title}
             </DialogPrimitive.Title>
             <DialogPrimitive.Close asChild>
               <button
-                className="text-neutral-400 hover:text-neutral-200"
+                className="flex size-control-dense items-center justify-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
                 aria-label="Close"
               >
-                <XIcon className="size-5" />
+                <XIcon className="size-4" />
               </button>
             </DialogPrimitive.Close>
           </div>
-          <div className="p-6">{children}</div>
+          <div className="p-normal">{children}</div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

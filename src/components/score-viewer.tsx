@@ -62,7 +62,7 @@ export function ScoreViewer({
     () =>
       new ScoreViewerRuntime({
         clock,
-        presentation: { scale: 1, scrollerClassName: "p-6" },
+        presentation: { scale: 1, scrollerClassName: "p-relaxed" },
       }),
   );
   // TODO: Isolate the clock subscription if whole-view RAF rerenders become
@@ -152,14 +152,14 @@ export function ScoreViewer({
         settings.layout === "paged" && "score-viewer-root-paged",
       )}
     >
-      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
+      <header className="flex h-page-header shrink-0 items-center gap-snug border-b border-neutral-700 bg-neutral-800 px-normal text-neutral-100 shadow-sm">
         <Button
           data-testid="score-play-pause-button"
           disabled={!runtimeState.isReady}
           onClick={() => runtime.togglePlayback()}
           title={runtimeState.isPlaying ? "Pause" : "Play"}
           className={cn(
-            "size-7",
+            "size-control",
             runtimeState.isPlaying
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
               : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
@@ -176,7 +176,7 @@ export function ScoreViewer({
           onClick={() => runtime.restart()}
           title="Restart"
           aria-label="Restart"
-          className="size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="size-control hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <RotateCcwIcon className="size-4.5" />
         </Button>
@@ -193,15 +193,15 @@ export function ScoreViewer({
 
         <div className="h-5 w-px bg-border" />
 
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-1.5 text-sm">
+        <div className="flex items-center gap-normal">
+          <label className="flex items-center gap-tight text-sm">
             <span className="text-muted-foreground">BPM</span>
             <input
               aria-label="BPM"
               type="text"
               inputMode="numeric"
               {...tempoInput.props}
-              className="h-7 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
+              className="h-control w-14 rounded border border-border bg-input px-tight text-center font-mono text-sm text-foreground"
             />
           </label>
         </div>
@@ -225,7 +225,7 @@ export function ScoreViewer({
           title="Score settings"
           aria-label="Score settings"
           className={cn(
-            "size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+            "size-control hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
             isSettingsOpen &&
               "bg-primary text-primary-foreground hover:bg-primary/90",
           )}
@@ -248,7 +248,7 @@ export function ScoreViewer({
             <Button
               title="Score viewer menu"
               aria-label="Score viewer menu"
-              className="size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+              className="size-control hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
             >
               <MoreVerticalIcon className="size-4.5" />
             </Button>
@@ -283,7 +283,7 @@ export function ScoreViewer({
         </DropdownMenu>
       </header>
       {!score && !loadMutation.error && (
-        <section className="min-h-0 flex-1 p-6">
+        <section className="min-h-0 flex-1 p-relaxed">
           <div className="flex justify-center">
             <FileDropInput
               accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
@@ -295,7 +295,7 @@ export function ScoreViewer({
                   source: file,
                 })
               }
-              className="group h-48 w-full max-w-4xl flex-col gap-3 border border-neutral-400 bg-white text-center text-neutral-700 shadow-xs hover:border-emerald-500 hover:text-neutral-900 data-[drag-over=true]:border-emerald-600 data-[drag-over=true]:bg-emerald-100 data-[drag-over=true]:text-emerald-950"
+              className="group h-48 w-full max-w-4xl flex-col gap-normal border border-neutral-400 bg-white text-center text-neutral-700 shadow-xs hover:border-emerald-500 hover:text-neutral-900 data-[drag-over=true]:border-emerald-600 data-[drag-over=true]:bg-emerald-100 data-[drag-over=true]:text-emerald-950"
             >
               <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-emerald-400">
                 <UploadIcon className="size-4.5" />
@@ -309,7 +309,7 @@ export function ScoreViewer({
         </section>
       )}
       {loadMutation.error && (
-        <p className="mx-auto mt-4 max-w-6xl text-red-800">
+        <p className="mx-auto mt-normal max-w-6xl text-red-800">
           {loadMutation.error.message}
         </p>
       )}
@@ -324,7 +324,7 @@ export function ScoreViewer({
           onClose={() => setIsSettingsOpen(false)}
           title="Score settings"
           data-testid="score-settings-panel"
-          contentClassName="px-3 py-2"
+          contentClassName="px-normal py-snug"
           className="fixed right-4 bottom-4 z-40 max-w-[calc(100vw-2rem)]"
         >
           <ScoreSettings settings={settings} onChange={changeSettings} />
@@ -345,7 +345,7 @@ function ScoreSamplesMenu({
         <Button
           title="Score samples"
           aria-label="Score samples"
-          className="size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="size-control hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <LibraryIcon className="size-4.5" />
         </Button>

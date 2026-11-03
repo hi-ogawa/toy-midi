@@ -67,10 +67,10 @@ export function InputSetup({
     min: 0,
   });
   const inputClass =
-    "mt-1 h-7 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
+    "mt-tight h-control w-full rounded border border-neutral-600 bg-neutral-900 px-snug text-xs text-neutral-100 disabled:text-neutral-500";
   return (
     <div className="max-h-[70vh] overflow-y-auto">
-      <div className="space-y-4">
+      <div className="space-y-normal">
         <label className="block text-xs font-medium text-neutral-400">
           Device
           <select
@@ -126,7 +126,7 @@ export function InputSetup({
           }
           onClick={onInputToggle}
           className={cn(
-            "h-7 w-full justify-start gap-2 px-2 text-xs",
+            "h-control w-full justify-start gap-snug px-snug text-xs",
             inputsInitialized && !hasAccess
               ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
               : "border-neutral-600 bg-neutral-900 text-neutral-200 hover:bg-neutral-700",
@@ -145,7 +145,7 @@ export function InputSetup({
         </Button>
         <div className="text-xs font-medium text-neutral-400">
           Level
-          <div className="mt-2">
+          <div className="mt-snug">
             <LevelMeter
               meters={runtime.levelMeters}
               target={{ kind: "input" }}
@@ -157,17 +157,17 @@ export function InputSetup({
           </div>
         </div>
         <section
-          className="space-y-3 border-t border-neutral-700 pt-4"
+          className="space-y-normal border-t border-neutral-700 pt-normal"
           aria-label="Recording latency compensation"
         >
-          <label className="flex items-center gap-2 text-xs font-medium text-neutral-400">
+          <label className="flex items-center gap-snug text-xs font-medium text-neutral-400">
             <span className="flex-1">Recording latency compensation</span>
             <input
               type="text"
               disabled={disabled || !inputActive}
               inputMode="decimal"
               {...latencyInput.props}
-              className="h-7 w-24 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
+              className="h-control w-24 rounded border border-neutral-600 bg-neutral-900 px-snug font-mono text-xs text-neutral-100"
             />
             <span>ms</span>
           </label>
@@ -187,7 +187,7 @@ export function InputSetup({
       <InputDiagnostics runtime={runtime} />
 
       {error && (
-        <div className="mt-4 border border-orange-700/60 bg-orange-950/40 p-3 text-xs text-orange-200">
+        <div className="mt-normal border border-orange-700/60 bg-orange-950/40 p-normal text-xs text-orange-200">
           {error.message}
         </div>
       )}
@@ -220,7 +220,7 @@ function InputLatencyMeasurement({
   return (
     <details className="text-xs text-neutral-400">
       <summary className="cursor-pointer">How do I set this?</summary>
-      <div className="mt-3 space-y-3">
+      <div className="mt-normal space-y-normal">
         <p className="text-xs leading-5 text-neutral-400">
           Recording latency compensation corrects audio delay so your recordings
           land where you played them on the timeline. To set it automatically,
@@ -239,13 +239,13 @@ function InputLatencyMeasurement({
           for details.
         </p>
         <Button
-          className="h-7 w-full border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
+          className="h-control w-full border-neutral-600 bg-neutral-900 px-snug text-xs text-neutral-200 hover:bg-neutral-700"
           disabled={disabled || !inputActive || isPlaying}
           onClick={onMeasure}
         >
           {isPending ? "Measuring…" : "Measure latency"}
         </Button>
-        <div className="space-y-2 text-xs leading-5">
+        <div className="space-y-snug text-xs leading-5">
           {isPending ? (
             <p role="status" className="text-neutral-400">
               Playing seven clicks with input monitoring muted.
@@ -253,7 +253,7 @@ function InputLatencyMeasurement({
           ) : message ? (
             <p
               role={error ? "alert" : "status"}
-              className="flex items-start gap-1.5 text-orange-200"
+              className="flex items-start gap-tight text-orange-200"
             >
               <TriangleAlertIcon
                 aria-hidden="true"
@@ -264,7 +264,7 @@ function InputLatencyMeasurement({
           ) : result?.status === "measured" ? (
             <p
               role="status"
-              className="flex items-start gap-1.5 text-emerald-400"
+              className="flex items-start gap-tight text-emerald-400"
             >
               <CheckIcon
                 aria-hidden="true"
@@ -274,7 +274,7 @@ function InputLatencyMeasurement({
             </p>
           ) : undefined}
           {!isPending && (!inputActive || isPlaying || isRecording) && (
-            <p className="mt-1 flex items-start gap-1.5 text-neutral-400">
+            <p className="mt-tight flex items-start gap-tight text-neutral-400">
               <TriangleAlertIcon
                 aria-hidden="true"
                 className="mt-0.5 size-4 shrink-0"

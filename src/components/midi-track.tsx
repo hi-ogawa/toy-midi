@@ -838,7 +838,7 @@ function MidiPianoKey({
       type="button"
       aria-label={`Preview ${formatChromaticPitch(pitch)}`}
       className={cn(
-        "absolute right-0 w-[50px] cursor-pointer border-b pr-2 text-right text-xs hover:brightness-110",
+        "absolute right-0 w-[50px] cursor-pointer border-b pr-snug text-right text-xs hover:brightness-110",
         isBlackKey(pitch)
           ? "border-neutral-700 bg-neutral-900"
           : cn(

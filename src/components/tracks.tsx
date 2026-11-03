@@ -368,7 +368,7 @@ export function ClipsDisclosureRow({
   onExpandedChange: (expanded: boolean) => void;
 }) {
   return (
-    <div className="grid h-9 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-900">
+    <div className="grid h-panel-header grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-900">
       <div className="relative border-r-2 border-neutral-600">
         <button
           type="button"
@@ -400,7 +400,7 @@ export function ClipsDisclosureRow({
               : "Oldest first · Click for newest first"
           }
           onClick={() => onNewestFirstChange(!newestFirst)}
-          className="absolute right-3 top-1/2 size-6 -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+          className="absolute right-3 top-1/2 size-control-dense -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
         >
           {newestFirst ? (
             <ArrowDownWideNarrowIcon className="size-3.5" />

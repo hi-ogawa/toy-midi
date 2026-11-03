@@ -32,7 +32,7 @@ export function ProjectScorePage({
     );
   }
   if (scoreQuery.isPending) {
-    return <div className="p-6 text-neutral-400">Loading score…</div>;
+    return <div className="p-relaxed text-neutral-400">Loading score…</div>;
   }
   return <ScoreViewer initialSource={scoreQuery.data} />;
 }

@@ -28,7 +28,7 @@ export function Tuner({
       closeLabel="Close Tuner"
       onClose={onClose}
       data-testid="tuner-panel"
-      contentClassName="px-3 py-2"
+      contentClassName="px-normal py-snug"
       className="pointer-events-auto w-80 shrink-0"
     >
       <TunerContent analysis={analysis} />
@@ -56,12 +56,14 @@ export function TunerContent({ analysis }: { analysis: TunerAnalysis }) {
 
   return (
     <div
-      className="space-y-5"
+      className="space-y-normal"
       data-testid="tuner-content"
       data-status={pitched ? "tracking" : "empty"}
     >
       <div className="flex items-center justify-between text-[10px] font-medium tracking-wide text-neutral-500 uppercase">
-        <span className={`flex items-center gap-1.5 ${tuningState.className}`}>
+        <span
+          className={`flex items-center gap-tight ${tuningState.className}`}
+        >
           <span className="size-1.5 rounded-full bg-current" />
           {tuningState.label}
         </span>
@@ -73,7 +75,7 @@ export function TunerContent({ analysis }: { analysis: TunerAnalysis }) {
           {pitched ? (
             <>
               {pitched.note}
-              <span className="ml-1 text-3xl text-neutral-400">
+              <span className="ml-tight text-3xl text-neutral-400">
                 {pitched.octave}
               </span>
             </>
@@ -82,7 +84,7 @@ export function TunerContent({ analysis }: { analysis: TunerAnalysis }) {
           )}
         </div>
         <div
-          className={`mt-2 h-5 font-mono text-sm tabular-nums ${tuningState.className}`}
+          className={`mt-snug h-5 font-mono text-sm tabular-nums ${tuningState.className}`}
         >
           {pitched &&
             `${pitched.roundedCents > 0 ? "+" : ""}${pitched.roundedCents} cents`}
@@ -105,7 +107,7 @@ export function TunerContent({ analysis }: { analysis: TunerAnalysis }) {
                     : "mx-auto h-3 w-px bg-neutral-500"
                 }
               />
-              <span className="mt-1 block font-mono text-[9px] text-neutral-500">
+              <span className="mt-tight block font-mono text-[9px] text-neutral-500">
                 {tick > 0 ? `+${tick}` : tick}
               </span>
             </div>
@@ -127,7 +129,7 @@ export function TunerContent({ analysis }: { analysis: TunerAnalysis }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-neutral-700 border-t border-neutral-700 pt-3 text-center">
+      <div className="grid grid-cols-3 divide-x divide-neutral-700 border-t border-neutral-700 pt-normal text-center">
         <TunerReading
           label="Frequency"
           value={pitched ? `${pitched.frequencyHz.toFixed(2)} Hz` : "-- Hz"}
@@ -180,11 +182,11 @@ function frequencyToPitch(frequencyHz: number) {
 
 function TunerReading({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-2">
+    <div className="px-snug">
       <div className="text-[9px] tracking-wide text-neutral-500 uppercase">
         {label}
       </div>
-      <div className="mt-1 font-mono text-[11px] tabular-nums text-neutral-300">
+      <div className="mt-tight font-mono text-[11px] tabular-nums text-neutral-300">
         {value}
       </div>
     </div>

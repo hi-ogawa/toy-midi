@@ -81,13 +81,13 @@ export function LocatorRow({
   onSeekBeat: (beat: number) => void;
 }) {
   return (
-    <div className="grid h-7 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
-      <div className="flex items-center justify-between border-r-2 border-neutral-600 px-3 text-xs font-semibold text-neutral-400">
+    <div className="grid h-control grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
+      <div className="flex items-center justify-between border-r-2 border-neutral-600 px-normal text-xs font-semibold text-neutral-400">
         <span>Locators</span>
         <Button
           title="Add locator at playhead (L)"
           aria-label="Add locator at playhead"
-          className="size-5 hover:bg-neutral-700"
+          className="size-control-dense hover:bg-neutral-700"
           onClick={locatorInteraction.add}
         >
           <PlusIcon className="size-3" />
@@ -195,7 +195,7 @@ function LocatorMarker({
           <span className="absolute bottom-1 left-0 size-0 border-x-[6px] border-t-[8px] border-x-transparent border-t-current" />
           <span
             className={cn(
-              "max-w-40 truncate rounded px-1 text-[11px] select-none group-hover:bg-neutral-700",
+              "max-w-40 truncate rounded px-tight text-[11px] select-none group-hover:bg-neutral-700",
               selected && "bg-sky-300/20 text-sky-100",
             )}
           >

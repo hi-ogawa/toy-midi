@@ -17,27 +17,27 @@ export function HomePage() {
       {/* Gradient glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
 
-      <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-8 py-12">
+      <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-loose py-loose">
         <header className="flex shrink-0 items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-100 tracking-tight">
+            <h1 className="text-2xl font-bold text-neutral-100 tracking-tight">
               Toy MIDI
             </h1>
-            <p className="mt-1 text-sm text-neutral-500">
+            <p className="mt-tight text-sm text-neutral-500">
               Edit MIDI and record audio
             </p>
           </div>
-          <nav className="flex items-center gap-4 text-sm text-neutral-500">
+          <nav className="flex items-center gap-normal text-sm text-neutral-500">
             <a
               href={routes.latencyChecker.href()}
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-tight hover:text-emerald-400 transition-colors"
             >
               <AudioLinesIcon className="size-4" />
               Latency Checker
             </a>
             <a
               href={routes.midiKeyboard.href()}
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-tight hover:text-emerald-400 transition-colors"
             >
               <KeyboardMusicIcon className="size-4" />
               MIDI Keyboard
@@ -45,7 +45,7 @@ export function HomePage() {
             <a
               href={routes.scoreViewer.href()}
               data-testid="score-viewer-link"
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-tight hover:text-emerald-400 transition-colors"
             >
               <Music2Icon className="size-4" />
               Score Viewer
@@ -53,7 +53,7 @@ export function HomePage() {
             <a
               href="/llms.txt"
               title="A guide for AI agents working with Toy MIDI"
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-tight hover:text-emerald-400 transition-colors"
             >
               <BotIcon className="size-4" />
               For Agents
@@ -62,7 +62,7 @@ export function HomePage() {
               href="https://github.com/hi-ogawa/toy-midi/"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-tight hover:text-emerald-400 transition-colors"
             >
               <GitForkIcon className="size-4" />
               GitHub
@@ -70,7 +70,7 @@ export function HomePage() {
           </nav>
         </header>
 
-        <main className="mt-10 min-h-0 flex-1">
+        <main className="mt-loose min-h-0 flex-1">
           <ProjectList />
         </main>
       </div>

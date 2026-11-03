@@ -44,7 +44,7 @@ export function EnvelopeEditor({
   ].join(" ");
 
   return (
-    <div role="group" aria-label={label} className="space-y-1">
+    <div role="group" aria-label={label} className="space-y-tight">
       <div className="relative h-16 rounded border border-neutral-700 bg-neutral-900 select-none">
         <div className="absolute inset-x-2 inset-y-1.5">
           <svg

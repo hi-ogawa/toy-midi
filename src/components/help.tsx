@@ -119,7 +119,7 @@ export function Help({
       size="wide"
     >
       <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">
-        <div className="columns-2 gap-10">
+        <div className="columns-2 gap-loose">
           {sections.map((section) => (
             <HelpSection key={section.title} section={section} />
           ))}
@@ -131,18 +131,18 @@ export function Help({
 
 function HelpSection({ section }: { section: HelpSectionData }) {
   return (
-    <section className="mb-7 break-inside-avoid">
-      <h3 className="mb-3 text-sm font-semibold text-emerald-300">
+    <section className="mb-relaxed break-inside-avoid">
+      <h3 className="mb-normal text-sm font-semibold text-emerald-300">
         {section.title}
       </h3>
       <dl>
         {section.items.map((item) => (
           <div
             key={item.action}
-            className="flex min-h-[34px] items-center justify-between gap-3"
+            className="flex min-h-control items-center justify-between gap-normal"
           >
             <dt className="text-[13px] text-neutral-200">{item.action}</dt>
-            <dd className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-neutral-400">
+            <dd className="flex shrink-0 items-center gap-tight whitespace-nowrap text-xs text-neutral-400">
               {item.keys && (
                 <kbd className="whitespace-nowrap rounded border border-b-2 border-neutral-600 bg-neutral-700/60 px-1.5 py-0.5 font-sans text-[11px] text-neutral-300">
                   {item.keys}

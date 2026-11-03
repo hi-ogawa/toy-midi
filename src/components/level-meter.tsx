@@ -84,7 +84,10 @@ export function LevelMeter({
       aria-valuemin={MIN_DB}
       aria-valuemax={MAX_DB}
       aria-valuenow={MIN_DB}
-      className={cn("relative", vertical ? "shrink-0" : "mr-2 min-w-0 flex-1")}
+      className={cn(
+        "relative",
+        vertical ? "shrink-0" : "mr-snug min-w-0 flex-1",
+      )}
       style={vertical ? { width: WIDTH } : { height: WIDTH }}
     >
       {/* Sits past the loud end of the bar, with padding to enlarge the target. */}
@@ -98,8 +101,8 @@ export function LevelMeter({
         className={cn(
           "absolute flex cursor-pointer items-center gap-px",
           vertical
-            ? "-inset-x-1 -top-2 h-2 px-1"
-            : "-inset-y-1 -right-2 w-2 flex-col py-1",
+            ? "-inset-x-1 -top-2 h-2 px-tight"
+            : "-inset-y-1 -right-2 w-2 flex-col py-tight",
         )}
       >
         {Array.from({ length: channelCount }, (_, index) => (
@@ -120,7 +123,7 @@ export function LevelMeter({
     return meter;
   }
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-tight">
       {meter}
       <output
         ref={readoutRef}
