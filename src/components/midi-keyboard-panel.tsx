@@ -97,7 +97,7 @@ export function MidiKeyboardPanel({
       onClose={onClose}
       data-testid="midi-keyboard-panel"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
-      contentClassName="flex min-h-0 flex-1 flex-col gap-3 px-4 py-3"
+      contentClassName="flex min-h-0 flex-1 flex-col gap-3 px-3 py-2"
       style={size}
     >
       <PanelResizeHandle handleRef={handleRef} label="Resize MIDI Keyboard" />
