@@ -32,7 +32,7 @@ export function Panel({
         className,
       )}
     >
-      <div className="flex items-center gap-4 border-b border-neutral-700 px-4 py-3">
+      <div className="flex h-9 shrink-0 items-center gap-3 border-b border-neutral-700 px-3">
         <h2 className="text-sm font-semibold text-neutral-100">{title}</h2>
         <div className="ml-auto flex items-center gap-3">
           {headerActions}
@@ -45,7 +45,7 @@ export function Panel({
           </button>
         </div>
       </div>
-      <div className={contentClassName ?? "overflow-x-auto px-4 py-3"}>
+      <div className={contentClassName ?? "overflow-x-auto px-3 py-2"}>
         {children}
       </div>
     </section>
