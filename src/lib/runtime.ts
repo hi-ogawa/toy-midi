@@ -26,14 +26,11 @@ import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import type { SynthPatch } from "./dsp/subtractive-synth.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
-import {
-  connectMidiInput,
-  type MidiConnection,
-  type MidiDeviceMessage,
-} from "./midi-device.ts";
+import { connectMidiInput, type MidiConnection } from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -805,11 +802,15 @@ export class EditorRuntime {
     pitch: number;
   }): Promise<void> {
     await this.context.resume();
-    this.midiTrackPlaybacks.get(id)?.noteOn(pitch, PREVIEW_VELOCITY);
+    this.midiTrackPlaybacks.get(id)?.playMessage({
+      type: "note-on",
+      pitch,
+      velocity: PREVIEW_VELOCITY,
+    });
   }
 
   stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
-    this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
+    this.midiTrackPlaybacks.get(id)?.playMessage({ type: "note-off", pitch });
   }
 
   async startMidiInput(input: MIDIInput): Promise<void> {
@@ -847,32 +848,10 @@ export class EditorRuntime {
    * Sends without waiting for the audio context, so a note-off can't overtake
    * its note-on.
    */
-  private playMidiDeviceMessage(message: MidiDeviceMessage): void {
+  private playMidiDeviceMessage(message: MidiMessage): void {
     const { midiMonitorTrackId } = this.store.get();
-    const playback =
-      midiMonitorTrackId === undefined
-        ? undefined
-        : this.midiTrackPlaybacks.get(midiMonitorTrackId);
-    if (!playback) {
-      return;
-    }
-    switch (message.type) {
-      case "note-on": {
-        playback.noteOn(message.pitch, message.velocity);
-        break;
-      }
-      case "note-off": {
-        playback.noteOff(message.pitch);
-        break;
-      }
-      case "controller": {
-        playback.setController(message.controller, message.value);
-        break;
-      }
-      case "pitch-bend": {
-        playback.setPitchBend(message.value);
-        break;
-      }
+    if (midiMonitorTrackId !== undefined) {
+      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.playMessage(message);
     }
   }
 

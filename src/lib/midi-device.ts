@@ -1,10 +1,4 @@
-import { LIVE_CONTROLLERS } from "./general-midi.ts";
-
-export type MidiDeviceMessage =
-  | { type: "note-on"; pitch: number; velocity: number }
-  | { type: "note-off"; pitch: number }
-  | { type: "controller"; controller: number; value: number }
-  | { type: "pitch-bend"; value: number };
+import { LIVE_CONTROLLERS, type MidiMessage } from "./general-midi.ts";
 
 export type MidiConnection = {
   deviceId: string;
@@ -47,11 +41,11 @@ export async function connectMidiInput({
   onDisconnect,
 }: {
   input: MIDIInput;
-  onMessage: (message: MidiDeviceMessage) => void;
+  onMessage: (message: MidiMessage) => void;
   onDisconnect: () => void;
 }): Promise<MidiConnection> {
   const handleMessage = (event: MIDIMessageEvent) => {
-    const message = event.data && parseMidiDeviceMessage(event.data);
+    const message = event.data && parseMidiMessage(event.data);
     if (message) {
       onMessage(message);
     }
@@ -81,9 +75,7 @@ const CONTROLLER_STATUS = 0xb0;
 const PITCH_BEND_STATUS = 0xe0;
 
 /** Reads a message on any channel, or nothing for what live input ignores. */
-function parseMidiDeviceMessage(
-  data: Uint8Array,
-): MidiDeviceMessage | undefined {
+function parseMidiMessage(data: Uint8Array): MidiMessage | undefined {
   const [status, first, second] = data;
   switch (status & 0xf0) {
     case NOTE_OFF_STATUS: {
