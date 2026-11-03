@@ -782,8 +782,6 @@ function MidiTrackEditor({
   );
 }
 
-const PREVIEW_VELOCITY = 100;
-
 function useMidiNotePreview({
   runtime,
   trackId,
@@ -803,7 +801,7 @@ function useMidiNotePreview({
     previewPitch.current = pitch;
     runtime.playMidiNotePreview({
       id: trackId,
-      message: { type: "note-on", pitch, velocity: PREVIEW_VELOCITY },
+      message: { type: "note-on", pitch, velocity: 100 },
     });
   }
 
