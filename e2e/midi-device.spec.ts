@@ -1,11 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import {
-  addMidiTrack,
-  createProject,
-  openMidiInstrument,
-  saveProject,
-  selectMidiInstrument,
-} from "./editor-helpers";
+import { addMidiTrack, createProject, saveProject } from "./editor-helpers";
 
 test.use({ permissions: ["midi"] });
 
@@ -32,21 +26,13 @@ async function installFakeMidiDevice(page: Page): Promise<void> {
   });
 }
 
-async function addSynthTrack(page: Page, name: string) {
-  const row = await addMidiTrack(page);
-  const instrument = await openMidiInstrument(page, { name });
-  await selectMidiInstrument(instrument, { option: "Subtractive Synth" });
-  await instrument.getByRole("button", { name: "Close", exact: true }).click();
-  return row;
-}
-
 test("plays the monitored MIDI track from a MIDI device", async ({ page }) => {
   await installFakeMidiDevice(page);
   await createProject(page);
 
-  // Add two synth tracks, which offer no monitoring without a device.
-  const first = await addSynthTrack(page, "MIDI 1");
-  const second = await addSynthTrack(page, "MIDI 2");
+  // Add two MIDI tracks, which offer no monitoring without a device.
+  const first = await addMidiTrack(page);
+  const second = await addMidiTrack(page);
   const firstMonitor = first.getByTestId("input-monitor");
   const secondMonitor = second.getByTestId("input-monitor");
   await expect(firstMonitor).toHaveCount(0);
