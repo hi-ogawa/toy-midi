@@ -6,7 +6,11 @@ import { toast } from "sonner";
 import { resolveAudioFiles } from "../lib/audio-files";
 import { deriveClipRegions } from "../lib/clip-regions";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
-import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import {
+  isShortcutTextInputTarget,
+  isTextEntryTarget,
+  matchKeyboardEvent,
+} from "../lib/keyboard";
 import { exportMidi } from "../lib/midi-export";
 import { snapToGrid } from "../lib/music";
 import { getNextPlaybackRate } from "../lib/playback-rate";
@@ -245,6 +249,15 @@ export function EditorPage({ source }: { source: ProjectSource }) {
       }
       return;
     }
+    if (
+      matchKeyboardEvent(event, "Space") &&
+      !event.repeat &&
+      !isTextEntryTarget(event.target)
+    ) {
+      event.preventDefault();
+      togglePlay();
+      return;
+    }
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
@@ -318,10 +331,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
       runtime.seek(Math.max(0, position + seekDirection * 5));
       return;
     }
-    if (matchKeyboardEvent(event, "Space")) {
-      event.preventDefault();
-      togglePlay();
-    } else if (matchKeyboardEvent(event, "R")) {
+    if (matchKeyboardEvent(event, "R")) {
       event.preventDefault();
       toggleRecord();
     } else if (matchKeyboardEvent(event, "M")) {

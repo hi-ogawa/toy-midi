@@ -11,7 +11,7 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import { isTextEntryTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { formatTimeCompact } from "../lib/time-format";
@@ -91,10 +91,11 @@ export function ScoreViewer({
   });
 
   useWindowEvent("keydown", (event) => {
-    if (isShortcutTextInputTarget(event.target)) {
-      return;
-    }
-    if (matchKeyboardEvent(event, "Space") && !event.repeat) {
+    if (
+      matchKeyboardEvent(event, "Space") &&
+      !event.repeat &&
+      !isTextEntryTarget(event.target)
+    ) {
       event.preventDefault();
       runtime.togglePlayback();
     }

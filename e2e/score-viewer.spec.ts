@@ -49,6 +49,15 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
 
   await page.keyboard.press("Space");
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+
+  // Press Space on a focused select, and see playback pause and resume.
+  await openScoreSettings(page);
+  await page.getByLabel("Layout").focus();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+
   await page.getByLabel("BPM").press("Space");
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await page.getByRole("button", { name: "Pause" }).click();

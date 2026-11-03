@@ -8,7 +8,7 @@ import {
   getPosition,
   seekByPixels,
 } from "./editor-helpers";
-import { createCheckpoint, useFakeAudioInput } from "./helpers";
+import { createCheckpoint, selectMenuItem, useFakeAudioInput } from "./helpers";
 
 useFakeAudioInput();
 
@@ -30,6 +30,40 @@ test("snaps timeline seeking to the selected grid", async ({ page }) => {
   await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
   await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.4);
   await expect.poll(() => getBeat(page)).toBe(0);
+});
+
+test("toggles playback with Space while a select or slider has focus", async ({
+  page,
+}) => {
+  await createProject(page);
+  const playButton = page.getByTestId("play-button");
+
+  // Press Space on a focused select, and see playback start with the select closed.
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  const filterType = page
+    .getByTestId("effects-panel")
+    .getByRole("combobox", { name: "Filter type" });
+  await filterType.focus();
+  await page.keyboard.press("Space");
+  await expect(playButton).toHaveAttribute("aria-pressed", "true");
+  expect(await filterType.evaluate((select) => select.matches(":open"))).toBe(
+    false,
+  );
+
+  // Press Space on a focused slider, and see playback stop.
+  await page.getByTestId("mixer-button").click();
+  const slider = page.getByTestId("mixer-panel").getByRole("slider").first();
+  await slider.focus();
+  await page.keyboard.press("Space");
+  await expect(playButton).toHaveAttribute("aria-pressed", "false");
+
+  // Press an arrow key on the slider, which moves the slider instead of seeking.
+  const position = page.getByTestId("position");
+  const positionText = await position.textContent();
+  const sliderValue = await slider.getAttribute("aria-valuenow");
+  await page.keyboard.press("ArrowRight");
+  await expect(slider).not.toHaveAttribute("aria-valuenow", sliderValue!);
+  await expect(position).toHaveText(positionText!);
 });
 
 test("seeks the playhead by five seconds with arrow keys", async ({ page }) => {
