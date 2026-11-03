@@ -7,6 +7,12 @@ import {
 import { useEffect, useState } from "react";
 import { ABLETON_KEYMAP, getComputerKeyLabels } from "../lib/computer-keyboard";
 import {
+  encodePitchBend,
+  MODULATION_CONTROLLER,
+  PITCH_BEND_RANGE,
+  PITCH_WHEEL_CENTER,
+} from "../lib/general-midi";
+import {
   MAX_OCTAVE,
   MAX_VELOCITY,
   type MidiKeyboard,
@@ -20,7 +26,6 @@ import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { getPianoPitchesAround, MidiKeyboardPiano } from "./midi-keyboard-keys";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
-import { Button } from "./ui/button";
 import { Knob } from "./ui/knob";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useMidiKeyboard } from "./use-midi-keyboard";
@@ -47,7 +52,14 @@ export function MidiKeyboardPanel({
     onResizeEnd: (midiKeyboardSize) =>
       projectUiStore.update({ midiKeyboardSize }),
   });
-  const { keyboard, heldPitches, octave, velocity } = useMidiKeyboard({
+  const {
+    keyboard,
+    heldPitches,
+    octave,
+    velocity,
+    pitchBend,
+    controllerValues,
+  } = useMidiKeyboard({
     send: (message) => runtime.playLiveMidiMessage(message),
     keymap: ABLETON_KEYMAP,
     capturesKeys: isCapturing,
@@ -101,13 +113,43 @@ export function MidiKeyboardPanel({
       style={size}
     >
       <PanelResizeHandle handleRef={handleRef} label="Resize MIDI Keyboard" />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <OctaveStepper
           keyboard={keyboard}
           octave={octave}
           lowestPitch={lowestPitch}
         />
-        <VelocityKnob keyboard={keyboard} velocity={velocity} />
+        {/* Narrower than the synths' range, so a short drag plays a musical bend. */}
+        <ValueKnob
+          label="Pitch bend"
+          shortLabel="Bend"
+          value={pitchBend}
+          displayValue={formatPitchBend(pitchBend)}
+          min={encodePitchBend(-2)}
+          max={encodePitchBend(2)}
+          origin={PITCH_WHEEL_CENTER}
+          step={PITCH_WHEEL_CENTER / PITCH_BEND_RANGE}
+          onChange={(value) => keyboard.setPitchBend(value)}
+          onRelease={() => keyboard.releasePitchBend()}
+        />
+        <ValueKnob
+          label="Mod wheel"
+          shortLabel="Mod"
+          value={controllerValues[MODULATION_CONTROLLER]}
+          min={0}
+          max={127}
+          onChange={(value) =>
+            keyboard.setController({ controller: MODULATION_CONTROLLER, value })
+          }
+        />
+        <ValueKnob
+          label="Velocity"
+          shortLabel="Vel"
+          value={velocity}
+          min={MIN_VELOCITY}
+          max={MAX_VELOCITY}
+          onChange={(value) => keyboard.setVelocity(value)}
+        />
       </div>
       <MidiKeyboardPiano
         keyboard={keyboard}
@@ -135,79 +177,111 @@ function OctaveStepper({
   octave: number;
   lowestPitch: number;
 }) {
+  const buttonClassName =
+    "flex h-full w-5 items-center justify-center text-neutral-400 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40";
   return (
-    <div className="flex items-center gap-1 text-xs text-neutral-300">
-      <Button
+    <div className="flex h-6 items-center rounded border border-neutral-600 bg-neutral-900 text-xs text-neutral-300">
+      <button
+        type="button"
         aria-label="Octave down"
         disabled={octave === MIN_OCTAVE}
         onClick={() => keyboard.shiftOctave(-1)}
-        className="size-6 hover:bg-accent hover:text-accent-foreground"
+        className={buttonClassName}
       >
-        <MinusIcon className="size-3.5" />
-      </Button>
-      <span className="w-6 text-center tabular-nums">
+        <MinusIcon className="size-3" />
+      </button>
+      <span className="w-5 text-center tabular-nums">
         {formatChromaticPitch(lowestPitch)}
       </span>
-      <Button
+      <button
+        type="button"
         aria-label="Octave up"
         disabled={octave === MAX_OCTAVE}
         onClick={() => keyboard.shiftOctave(1)}
-        className="size-6 hover:bg-accent hover:text-accent-foreground"
+        className={buttonClassName}
       >
-        <PlusIcon className="size-3.5" />
-      </Button>
+        <PlusIcon className="size-3" />
+      </button>
     </div>
   );
 }
 
-function VelocityKnob({
-  keyboard,
-  velocity,
+function ValueKnob({
+  label,
+  shortLabel,
+  value,
+  displayValue = value,
+  min,
+  max,
+  origin,
+  step = 1,
+  onChange,
+  onRelease,
 }: {
-  keyboard: MidiKeyboard;
-  velocity: number;
+  label: string;
+  shortLabel: string;
+  value: number;
+  displayValue?: number | string;
+  min: number;
+  max: number;
+  origin?: number;
+  step?: number;
+  onChange: (value: number) => void;
+  onRelease?: () => void;
 }) {
-  const setVelocity = (next: number) =>
-    keyboard.setVelocity(clamp(Math.round(next), MIN_VELOCITY, MAX_VELOCITY));
+  const setValue = (next: number) =>
+    onChange(clamp(Math.round(next), min, max));
   // About 200px of vertical drag covers the full range.
   const ref = usePointerDrag({
     onStart: (event) => {
       (event.currentTarget as HTMLElement).focus();
-      return velocity;
+      return value;
     },
     onMove: (_event, drag) =>
-      setVelocity(
-        drag.data - (drag.deltaY / 200) * (MAX_VELOCITY - MIN_VELOCITY),
-      ),
+      setValue(drag.data - (drag.deltaY / 200) * (max - min)),
+    onEnd: onRelease,
+    onCancel: onRelease,
   });
   return (
     <div className="flex items-center gap-1.5 text-xs text-neutral-300">
       <Knob
         ref={ref}
-        aria-label="Velocity"
+        aria-label={label}
         onKeyDown={(event) => {
-          const step = event.shiftKey ? 10 : 1;
+          const delta = event.shiftKey ? 10 * step : step;
           const next = {
-            ArrowLeft: velocity - step,
-            ArrowDown: velocity - step,
-            ArrowRight: velocity + step,
-            ArrowUp: velocity + step,
-            Home: MIN_VELOCITY,
-            End: MAX_VELOCITY,
+            ArrowLeft: value - delta,
+            ArrowDown: value - delta,
+            ArrowRight: value + delta,
+            ArrowUp: value + delta,
+            Home: min,
+            End: max,
           }[event.key];
           if (next !== undefined) {
             event.preventDefault();
-            setVelocity(next);
+            setValue(next);
           }
         }}
-        value={velocity}
-        min={MIN_VELOCITY}
-        max={MAX_VELOCITY}
+        onKeyUp={onRelease}
+        value={value}
+        min={min}
+        max={max}
+        origin={origin}
         className="cursor-ns-resize"
       />
-      <span className="tabular-nums">Vel {velocity}</span>
+      <div className="grid w-6 gap-1 leading-none">
+        <span>{shortLabel}</span>
+        <span className="tabular-nums">{displayValue}</span>
+      </div>
     </div>
   );
+}
+
+function formatPitchBend(pitchBend: number): string {
+  const semitones =
+    ((pitchBend - PITCH_WHEEL_CENTER) / PITCH_WHEEL_CENTER) * PITCH_BEND_RANGE;
+  const rounded = Math.round(semitones * 10) / 10;
+  return `${rounded > 0 ? "+" : ""}${rounded.toFixed(1)}`;
 }
 
 function MidiKeyboardHelp() {

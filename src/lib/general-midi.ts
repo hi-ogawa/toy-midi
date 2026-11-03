@@ -163,12 +163,14 @@ export const DRUM_KIT_BANK = 128;
 export const PITCH_BEND_RANGE = 12;
 export const PITCH_WHEEL_CENTER = 8192;
 
+export const MODULATION_CONTROLLER = 1;
+
 // Modulation, volume, expression, sustain, resonance, and brightness: what a
 // player moves during a performance, and what a reset can return to its default.
 // A device's other controllers, such as bank select, would change the instrument
 // instead.
 export const LIVE_CONTROLLER_SETTINGS = [
-  { label: "Mod wheel", controller: 1, defaultValue: 0 },
+  { label: "Mod wheel", controller: MODULATION_CONTROLLER, defaultValue: 0 },
   { label: "Volume", controller: 7, defaultValue: 100 },
   { label: "Expression", controller: 11, defaultValue: 127 },
   { label: "Sustain", controller: 64, defaultValue: 0 },
