@@ -43,6 +43,7 @@ const PITCHES = range(HIGHEST_PITCH - LOWEST_PITCH + 1).map(
 const WHITE_KEY_COUNT = PITCHES.filter((pitch) => !isBlackKey(pitch)).length;
 
 const COMPUTER_KEY_STEP = 40;
+const DEMO_TRACK_HREF = `${routes.draft.href()}?src=/midi-keyboard-demo.json`;
 
 export function MidiKeyboardPage() {
   const accessQuery = useQuery({
@@ -87,11 +88,28 @@ export function MidiKeyboardPage() {
         <h1 className="text-4xl font-semibold tracking-[-0.045em]">
           Send MIDI from the browser
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-400">
-          Play notes into a MIDI output. To play the editor without hardware,
-          send to a loopback port, such as Midi Through on Linux, and select the
-          same port as the editor's MIDI device.
-        </p>
+        <div className="mt-4 grid max-w-2xl gap-3 text-base leading-7 text-neutral-400">
+          <p>
+            A virtual MIDI controller in your browser. It sends notes and
+            controller changes to the MIDI output you choose, and makes no sound
+            by itself. To hear it, connect a synth, or send to another app
+            through a loopback port, such as Midi Through on Linux or the IAC
+            Driver on macOS.
+          </p>
+          <p>
+            The Toy MIDI editor can also listen on a loopback port. Open a{" "}
+            <a
+              href={DEMO_TRACK_HREF}
+              target="_blank"
+              rel="noreferrer"
+              className="text-emerald-400 underline hover:text-emerald-300"
+            >
+              demo track
+            </a>{" "}
+            in a new tab, select the same port under MIDI Device, and turn on
+            Monitor.
+          </p>
+        </div>
         <div className="mt-8">
           {accessQuery.data ? (
             <MidiKeyboardControls access={accessQuery.data} />

@@ -25,6 +25,18 @@ async function installFakeMidiOutput(page: Page): Promise<void> {
   });
 }
 
+test("opens a demo track in a new tab", async ({ page, context }) => {
+  await installFakeMidiOutput(page);
+  await page.goto("/midi-keyboard");
+
+  // Follow the demo link, and find one MIDI track to monitor.
+  const [editor] = await Promise.all([
+    context.waitForEvent("page"),
+    page.getByRole("link", { name: "demo track" }).click(),
+  ]);
+  await expect(editor.getByTestId("midi-track-row")).toHaveCount(1);
+});
+
 test("sends notes and controllers to a MIDI output", async ({ page }) => {
   await installFakeMidiOutput(page);
 
