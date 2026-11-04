@@ -42,7 +42,7 @@ export function RangeControl({
   }
 
   return (
-    <div className="flex h-9 w-15 shrink-0 rounded-md border border-neutral-600">
+    <div className="flex h-7 w-12 shrink-0 rounded-md border border-neutral-600">
       <Button
         data-testid={`${kind}-toggle`}
         aria-label={description}
@@ -56,7 +56,7 @@ export function RangeControl({
           }
         }}
         className={cn(
-          "min-w-0 flex-1 rounded-r-none border-0 px-2 text-xs font-medium",
+          "min-w-0 flex-1 rounded-r-none border-0 px-1 text-xs font-medium",
           !state.range
             ? "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300"
             : !state.enabled
@@ -67,16 +67,16 @@ export function RangeControl({
         )}
       >
         {kind === "loop" ? (
-          <Repeat2Icon className="size-5 shrink-0" />
+          <Repeat2Icon className="size-4.5 shrink-0" />
         ) : (
-          <ScanLineIcon className="size-5 shrink-0" />
+          <ScanLineIcon className="size-4.5 shrink-0" />
         )}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             aria-label={`${label} range actions`}
-            className="w-6 shrink-0 rounded-l-none border-0 border-l border-neutral-600 text-neutral-400 hover:bg-neutral-700"
+            className="w-4.5 shrink-0 rounded-l-none border-0 border-l border-neutral-600 text-neutral-400 hover:bg-neutral-700"
           >
             <ChevronDownIcon className="size-3" />
           </Button>
