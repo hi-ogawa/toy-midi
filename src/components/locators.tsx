@@ -82,7 +82,7 @@ export function LocatorRow({
 }) {
   return (
     <div className="grid h-7 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
-      <div className="flex items-center justify-between border-r-2 border-neutral-600 px-3 text-xs font-semibold text-neutral-400">
+      <div className="flex items-center justify-between border-r-2 border-neutral-600 px-2 text-xs font-semibold text-neutral-400">
         <span>Locators</span>
         <Button
           title="Add locator at playhead (L)"

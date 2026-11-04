@@ -115,7 +115,7 @@ export function TimelineHeader({
 }) {
   return (
     <div className="sticky top-0 z-40 grid h-8 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
-      <div className="sticky left-0 z-20 flex items-center border-r-2 border-neutral-600 bg-neutral-800 px-3 text-xs font-semibold">
+      <div className="sticky left-0 z-20 flex items-center border-r-2 border-neutral-600 bg-neutral-800 px-2 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
         <div className="flex gap-1">
@@ -634,7 +634,7 @@ export function ReferenceTimelineRow({
       data-testid="reference-track"
       className="grid h-15 grid-cols-[15rem_1fr] border-b-2 border-neutral-600"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[var(--spacing-control)] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 px-3 py-2">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[var(--spacing-control)] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 p-2">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           Reference
         </div>

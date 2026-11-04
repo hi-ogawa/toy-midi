@@ -215,7 +215,7 @@ export function TrackRow({
       <div className="sticky left-0 col-start-1 row-start-1 border-r-2 border-neutral-600 bg-neutral-800" />
       <div
         className={cn(
-          "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 px-3 py-2",
+          "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 p-2",
           showGain
             ? "grid-rows-[var(--spacing-control)_auto] gap-y-2"
             : "grid-rows-[var(--spacing-control)]",
@@ -377,7 +377,7 @@ export function ClipsDisclosureRow({
           data-testid="clips-toggle"
           aria-expanded={expanded}
           onClick={() => onExpandedChange(!expanded)}
-          className="flex h-full w-full items-center gap-2 pl-3 pr-12 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
+          className="flex h-full w-full items-center gap-2 pl-2 pr-11 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
         >
           {expanded ? (
             <ChevronDownIcon className="size-3.5 text-neutral-400" />
@@ -402,7 +402,7 @@ export function ClipsDisclosureRow({
               : "Oldest first · Click for newest first"
           }
           onClick={() => onNewestFirstChange(!newestFirst)}
-          className="absolute right-3 top-1/2 size-control-xs -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+          className="absolute right-2 top-1/2 size-control-xs -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
         >
           {newestFirst ? (
             <ArrowDownWideNarrowIcon className="size-3.5" />
@@ -442,7 +442,7 @@ export function ClipTrackRow({
       data-testid="clip-row"
       className="grid h-16 grid-cols-[15rem_1fr] border-b-2 border-neutral-600"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r-2 border-neutral-600 bg-neutral-900 px-3 py-2 text-xs font-semibold text-neutral-300">
+      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r-2 border-neutral-600 bg-neutral-900 p-2 text-xs font-semibold text-neutral-300">
         <span className="truncate">{label}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
