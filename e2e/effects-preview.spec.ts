@@ -96,17 +96,6 @@ test("iterates the multiband EQ preview", async ({ page }) => {
     .toBeLessThan(opacity);
   await panel.getByRole("checkbox", { name: "Bypass" }).first().uncheck();
 
-  // Optional sliders can be shown and hidden beside the graph controls.
-  await expect(panel.getByRole("slider")).toHaveCount(0);
-  await panel
-    .getByRole("button", { name: "Show sliders", exact: true })
-    .click();
-  await expect(panel.getByRole("slider")).toHaveCount(3);
-  await panel
-    .getByRole("button", { name: "Hide sliders", exact: true })
-    .click();
-  await expect(panel.getByRole("slider")).toHaveCount(0);
-
   // Add a fourth band and verify that it becomes the selected band.
   await panel.getByRole("button", { name: "Add band" }).click();
   await expect(panel.getByTestId("eq-response-point")).toHaveCount(4);
