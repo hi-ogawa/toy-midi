@@ -134,7 +134,7 @@ export function TrackMenuButton({
       aria-label={`${label} actions`}
       {...props}
       className={cn(
-        "inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+        "inline-flex size-control-compact shrink-0 items-center justify-center rounded-md border border-neutral-600 text-neutral-300 hover:bg-neutral-700",
         className,
       )}
     >
@@ -215,34 +215,36 @@ export function TrackRow({
       <div className="sticky left-0 col-start-1 row-start-1 border-r-2 border-neutral-600 bg-neutral-800" />
       <div
         className={cn(
-          "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 px-3 py-2",
-          showGain ? "grid-rows-[1.75rem_auto] gap-y-2" : "grid-rows-[1.75rem]",
+          "sticky left-0 z-20 col-start-1 row-start-1 self-start grid grid-cols-[minmax(0,1fr)_auto] content-start gap-x-snug border-r-2 border-neutral-600 bg-neutral-800 px-normal py-snug",
+          showGain
+            ? "grid-rows-[var(--spacing-control)_auto] gap-y-snug"
+            : "grid-rows-[var(--spacing-control)]",
           controlsClassName,
         )}
       >
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           {title}
         </div>
-        <div className="flex self-center gap-1">
+        <div className="flex self-center gap-tight">
           {action}
           {recording && <TrackRecordingToggles title={title} {...recording} />}
           <MixToggle
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-6"
+            className="size-control-compact"
             title={muted ? `Unmute ${title}` : `Mute ${title}`}
           />
           <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
-            className="size-6"
+            className="size-control-compact"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
         </div>
         {showGain && (
-          <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
+          <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-snug text-[10px] text-neutral-400">
             <GainSlider
               label={`${title} gain`}
               gain={gain}
@@ -294,7 +296,7 @@ function TrackRecordingToggles({
         disabled={armDisabled}
         onClick={() => onArmedChange(!armed)}
         className={cn(
-          "size-6 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
+          "size-control-compact border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
           armed &&
             "border-red-500/60 bg-red-500/35 hover:!bg-red-500/40 hover:!text-red-300",
         )}
@@ -341,7 +343,7 @@ export function TrackMonitorToggle({
         disabled={disabled}
         onClick={() => onMonitoringChange(!monitoring)}
         className={cn(
-          "size-6 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+          "size-control-compact border-neutral-600 text-neutral-300 hover:bg-neutral-700",
           monitoring &&
             "border-sky-500/60 bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
         )}
@@ -375,7 +377,7 @@ export function ClipsDisclosureRow({
           data-testid="clips-toggle"
           aria-expanded={expanded}
           onClick={() => onExpandedChange(!expanded)}
-          className="flex h-full w-full items-center gap-2 pl-3 pr-12 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
+          className="flex h-full w-full items-center gap-snug pl-normal pr-12 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
         >
           {expanded ? (
             <ChevronDownIcon className="size-3.5 text-neutral-400" />
@@ -400,7 +402,7 @@ export function ClipsDisclosureRow({
               : "Oldest first · Click for newest first"
           }
           onClick={() => onNewestFirstChange(!newestFirst)}
-          className="absolute right-3 top-1/2 size-control-dense -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+          className="absolute right-normal top-1/2 size-control-dense -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
         >
           {newestFirst ? (
             <ArrowDownWideNarrowIcon className="size-3.5" />
@@ -440,7 +442,7 @@ export function ClipTrackRow({
       data-testid="clip-row"
       className="grid h-16 grid-cols-[15rem_1fr] border-b-2 border-neutral-600"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 border-r-2 border-neutral-600 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300">
+      <div className="sticky left-0 z-20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-tight border-r-2 border-neutral-600 bg-neutral-900 px-normal py-snug text-xs font-semibold text-neutral-300">
         <span className="truncate">{label}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -459,7 +461,7 @@ export function ClipTrackRow({
           active={muted}
           kind="mute"
           onClick={() => onMutedChange(!muted)}
-          className="size-6"
+          className="size-control-compact"
           title="Mute clip"
         />
         <MixToggle
@@ -468,10 +470,10 @@ export function ClipTrackRow({
           active={soloed}
           kind="solo"
           onClick={() => onSoloedChange(!soloed)}
-          className="size-6"
+          className="size-control-compact"
           title="Solo clip"
         />
-        <label className="col-span-4 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] font-normal text-neutral-400">
+        <label className="col-span-4 grid grid-cols-[1fr_3.5rem] items-center gap-snug text-[10px] font-normal text-neutral-400">
           <GainSlider
             label={`${label} gain`}
             gain={gain}

@@ -37,6 +37,7 @@
 @theme {
   --spacing-control: 1.75rem;
   --spacing-control-dense: 1.5rem;
+  --spacing-control-compact: 1.25rem;
   --spacing-panel-header: 2rem;
   --spacing-page-header: 2.75rem;
 

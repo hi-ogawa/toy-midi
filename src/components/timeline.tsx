@@ -634,11 +634,11 @@ export function ReferenceTimelineRow({
       data-testid="reference-track"
       className="grid h-15 grid-cols-[15rem_1fr] border-b-2 border-neutral-600"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 px-3 py-2">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[var(--spacing-control)] content-start gap-x-snug border-r-2 border-neutral-600 bg-neutral-800 px-normal py-snug">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           Reference
         </div>
-        <div className="flex self-center gap-1">
+        <div className="flex self-center gap-tight">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <TrackMenuButton label="Reference" />
@@ -655,7 +655,7 @@ export function ReferenceTimelineRow({
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-6"
+            className="size-control-compact"
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
         </div>
