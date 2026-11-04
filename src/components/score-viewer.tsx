@@ -194,14 +194,14 @@ export function ScoreViewer({
         <div className="h-5 w-px bg-border" />
 
         <div className="flex items-center gap-normal">
-          <label className="flex items-center gap-tight text-sm">
+          <label className="flex items-center gap-tight text-xs">
             <span className="text-muted-foreground">BPM</span>
             <input
               aria-label="BPM"
               type="text"
               inputMode="numeric"
               {...tempoInput.props}
-              className="h-control w-14 rounded border border-border bg-input px-tight text-center font-mono text-sm text-foreground"
+              className="h-control w-14 rounded border border-border bg-input px-tight text-center font-mono text-xs text-foreground"
             />
           </label>
         </div>

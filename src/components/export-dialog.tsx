@@ -43,7 +43,7 @@ export function ExportDialog({
         </dl>
       </div>
       <Button
-        className="h-control w-full px-normal text-sm hover:bg-neutral-700"
+        className="h-control w-full px-normal text-xs hover:bg-neutral-700"
         disabled={disabled || exportMutation.isPending}
         onClick={() => exportMutation.mutate()}
       >

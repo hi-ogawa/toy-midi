@@ -75,14 +75,14 @@ export function ProjectList() {
               <BrowserStorageDialog />
               <a
                 href={routes.examples.href()}
-                className="self-center px-snug text-sm text-neutral-300 underline underline-offset-4 transition-colors hover:text-emerald-400"
+                className="self-center px-snug text-xs text-neutral-300 underline underline-offset-4 transition-colors hover:text-emerald-400"
               >
                 Examples
               </a>
               <a
                 data-testid="new-project-button"
                 href={routes.draft.href()}
-                className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 h-control px-normal text-sm text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="inline-flex items-center justify-center rounded-md border border-border bg-emerald-600 h-control px-normal text-xs text-white shadow-lg shadow-emerald-900/30 transition-colors outline-none hover:bg-emerald-500 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 New project
               </a>
@@ -92,7 +92,7 @@ export function ProjectList() {
                 onFile={(file) => importProjectMutation.mutate(file)}
                 data-testid="import-project"
                 disabled={importProjectMutation.isPending}
-                className="h-control bg-neutral-700 px-normal text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+                className="h-control bg-neutral-700 px-normal text-xs text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
               >
                 <span className="grid">
                   <span className="invisible col-start-1 row-start-1">
@@ -339,7 +339,7 @@ function ProjectListSearch({
               clear();
             }
           }}
-          className="h-control min-w-0 flex-1 bg-transparent text-sm text-neutral-200 outline-none"
+          className="h-control min-w-0 flex-1 bg-transparent text-xs text-neutral-200 outline-none"
         />
         {query && (
           <button

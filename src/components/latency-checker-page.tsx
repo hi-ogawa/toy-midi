@@ -133,7 +133,7 @@ export function LatencyCheckerPage() {
                   onChange={(event) =>
                     input.selectDevice(event.currentTarget.value || undefined)
                   }
-                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {!inputsInitialized ? (
                     <option>Loading audio inputs...</option>
@@ -167,7 +167,7 @@ export function LatencyCheckerPage() {
                   onChange={(event) => {
                     input.selectChannel(Number(event.currentTarget.value));
                   }}
-                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {state.inputChannelCount ? (
                     Array.from(
@@ -514,7 +514,7 @@ function ActionButton({
   return (
     <Button
       className={cn(
-        "min-h-control flex-1 px-normal text-sm font-semibold",
+        "min-h-control flex-1 px-normal text-xs font-semibold",
         accent
           ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-500"
           : "border-neutral-700 bg-neutral-800 text-neutral-100 hover:bg-neutral-700",

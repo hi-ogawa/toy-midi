@@ -165,7 +165,7 @@ function MidiKeyboardControls() {
               keyboard.releaseAll();
               setSelectedId(event.currentTarget.value);
             }}
-            className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+            className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
           >
             {outputs.length === 0 && (
               <option>

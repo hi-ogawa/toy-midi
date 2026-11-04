@@ -256,7 +256,7 @@ export function Header({
             data-testid="playback-rate"
             title="Playback speed (< slower / > faster)"
             disabled={flags.isRecording}
-            className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800"
+            className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800"
           >
             {playbackRate}x
             <ChevronDownIcon className="size-3 text-neutral-400" />
@@ -282,7 +282,7 @@ export function Header({
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
-          className="h-control w-10 rounded border border-neutral-600 bg-neutral-900 px-tight text-center font-mono text-sm text-neutral-100"
+          className="h-control w-10 rounded border border-neutral-600 bg-neutral-900 px-tight text-center font-mono text-xs text-neutral-100"
         />
         <Button
           data-testid="tap-tempo-button"
@@ -295,7 +295,7 @@ export function Header({
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800">
+          <Button className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800">
             {timeSignatureValue}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
@@ -320,7 +320,7 @@ export function Header({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800"
+            className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800"
           >
             {gridDivision}
             <ChevronDownIcon className="size-3 text-neutral-400" />

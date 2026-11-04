@@ -921,7 +921,7 @@ function EditorInitError({ error }: { error: Error }) {
         </div>
         <a
           href={routes.home.href()}
-          className="h-control rounded-md border border-neutral-600 px-normal text-sm hover:bg-neutral-700"
+          className="h-control rounded-md border border-neutral-600 px-normal text-xs hover:bg-neutral-700"
         >
           Back to projects
         </a>

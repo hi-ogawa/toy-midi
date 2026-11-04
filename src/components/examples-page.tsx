@@ -105,7 +105,7 @@ function ExampleList({ examples }: { examples: Example[] }) {
               placeholder="Search names, descriptions and tags…"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="h-control min-w-0 flex-1 bg-transparent text-sm text-neutral-200 outline-none"
+              className="h-control min-w-0 flex-1 bg-transparent text-xs text-neutral-200 outline-none"
             />
             {query && (
               <button
