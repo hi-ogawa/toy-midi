@@ -136,7 +136,7 @@ export function SynthPanelContent({
       <button
         type="button"
         onClick={addLayer}
-        className="h-7 w-full rounded border border-dashed border-neutral-600 text-xs text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
+        className="h-control-sm w-full rounded border border-dashed border-neutral-600 text-xs text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
       >
         + Layer
       </button>
@@ -181,12 +181,12 @@ function SynthLayerRow({
       aria-label={name}
       className="overflow-hidden rounded border border-neutral-700"
     >
-      <div className="flex h-8 items-center gap-1 bg-neutral-900 pr-1">
+      <div className="flex h-control items-center gap-1 bg-neutral-900 pr-1">
         <button
           type="button"
           aria-expanded={!collapsed}
           onClick={onToggle}
-          className="flex h-full flex-1 items-center gap-1.5 px-2 text-xs font-semibold text-neutral-300 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset"
+          className="flex h-full flex-1 items-center gap-1 px-2 text-xs font-semibold text-neutral-300 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset"
         >
           {collapsed ? (
             <ChevronRightIcon className="size-3.5 text-neutral-400" />
@@ -210,7 +210,7 @@ function SynthLayerRow({
           aria-label={`Remove ${name}`}
           disabled={removeDisabled}
           onClick={onRemove}
-          className="rounded p-1 text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:pointer-events-none disabled:opacity-40"
+          className="flex size-control-sm items-center justify-center rounded text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:pointer-events-none disabled:opacity-40"
         >
           <XIcon className="size-3.5" />
         </button>
@@ -240,7 +240,7 @@ function SynthLayerRow({
                         oscillator: { ...layer.oscillator, waveform: option },
                       })
                     }
-                    className="flex h-6 items-center justify-center bg-neutral-900 px-1 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                    className="flex h-control-sm items-center justify-center bg-neutral-900 px-1 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
                   >
                     <WaveformIcon waveform={option} />
                   </button>
@@ -248,7 +248,7 @@ function SynthLayerRow({
               </div>
             }
           >
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <OctaveStepper
                 octave={layer.oscillator.octave}
                 onOctaveChange={(octave) =>
@@ -310,7 +310,7 @@ function FoldableSection({
 }) {
   return (
     <section className="space-y-2">
-      <div className="flex h-6 items-center justify-between">
+      <div className="flex h-control-sm items-center justify-between">
         <h3 className="text-xs font-medium">
           <button
             type="button"
@@ -492,7 +492,7 @@ function ParameterKnob({
   });
   const valueText = format(value);
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <Knob
         ref={ref}
         aria-label={label}
@@ -542,7 +542,7 @@ function OctaveStepper({
   const buttonClassName =
     "flex h-full w-5 items-center justify-center text-neutral-400 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40";
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <span className="text-xs text-neutral-400">Octave</span>
       <div
         role="spinbutton"
@@ -566,7 +566,7 @@ function OctaveStepper({
             setOctave(next);
           }
         }}
-        className="flex h-6 items-center rounded border border-neutral-600 bg-neutral-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+        className="flex h-control-sm items-center rounded border border-neutral-600 bg-neutral-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
       >
         <button
           type="button"
@@ -618,7 +618,7 @@ function DetuneKnob({
   });
   const signed = detune > 0 ? `+${detune}` : String(detune);
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <span className="text-xs text-neutral-400">Detune</span>
       <Knob
         ref={ref}

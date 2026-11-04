@@ -41,7 +41,7 @@ export function Mixer({
   );
   const trackEntries = resolveTrackOrder(state);
   return (
-    <div className="flex min-w-max gap-1.5">
+    <div className="flex min-w-max gap-1">
       {trackEntries.map((entry) => {
         const { track } = entry;
         return (
@@ -90,7 +90,7 @@ export function Mixer({
             kind="mute"
             onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
             aria-label="Toggle metronome mute"
-            className="h-6 min-w-6 px-1"
+            className="size-control-xs"
           />
         }
       />
@@ -169,21 +169,21 @@ function TrackChannel({
             kind="mute"
             onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
-            className="h-6 min-w-6 px-1"
+            className="size-control-xs"
           />
           <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
-            className="h-6 min-w-6 px-1"
+            className="size-control-xs"
           />
           <EffectsToggle
             label={label}
             open={effectsOpen}
             activeEffects={activeEffects}
             onClick={onEffectsToggle}
-            className="col-span-2 h-6"
+            className="col-span-2 h-control-xs"
           />
         </div>
       }
@@ -232,7 +232,7 @@ function MixerChannel({
       role="group"
       aria-label={name}
       data-testid={testId}
-      className="flex w-16 flex-col items-center gap-2 rounded bg-neutral-900/50 px-1 py-2"
+      className="flex w-14 flex-col items-center gap-2 rounded bg-neutral-900/50 px-1 py-2"
     >
       <span
         title={label}
@@ -241,9 +241,12 @@ function MixerChannel({
         {label}
       </span>
       {/* Every channel reserves the pan and send rows so faders stay aligned. */}
-      <div className="flex h-6 w-full items-center">{pan}</div>
-      <div className="flex h-6 w-full items-center">{send}</div>
-      <div className="flex h-48 gap-[3px]">
+      <div className="flex h-control-sm w-full items-center">{pan}</div>
+      {/* The send row holds a knob and a 12px label line under it. */}
+      <div className="flex h-[calc(var(--spacing-control-sm)+0.75rem)] w-full items-center">
+        {send}
+      </div>
+      <div className="flex h-40 gap-[3px]">
         <GainSlider
           label={`${name} gain`}
           gain={gain}
@@ -262,7 +265,7 @@ function MixerChannel({
         inputMode="decimal"
         aria-label={`${name} level in dB`}
         title={`${name} level in dB`}
-        className="h-6 w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 tabular-nums focus:border-neutral-500 focus:outline-none"
+        className="h-control-xs w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 tabular-nums focus:border-neutral-500 focus:outline-none"
         {...inputProps}
       />
       {action}
@@ -405,14 +408,7 @@ function ReverbSendKnob({
   });
   const valueText = formatGainDb(reverbSend);
   return (
-    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-1">
-      {/* Positioned out of flow, so the label doesn't widen its column and
-          push the knob off the fader's center. */}
-      <span className="relative self-stretch">
-        <span className="absolute top-1/2 right-0 -translate-y-1/2 font-mono text-[9px] text-neutral-500">
-          Rev
-        </span>
-      </span>
+    <div className="flex w-full flex-col items-center">
       <Knob
         ref={ref}
         aria-label={`${label} reverb send`}
@@ -436,10 +432,10 @@ function ReverbSendKnob({
         value={db}
         min={MIN_DB}
         max={MAX_SEND_DB}
-        className="col-start-2 cursor-ns-resize"
+        className="cursor-ns-resize"
       />
-      <span className="w-0 font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
-        {reverbSend === 0 ? "-∞" : Math.round(db)}
+      <span className="font-mono text-[9px] leading-3 whitespace-nowrap text-neutral-500 tabular-nums">
+        Rev {reverbSend === 0 ? "-∞" : Math.round(db)}
       </span>
     </div>
   );

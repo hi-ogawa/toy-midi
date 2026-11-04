@@ -739,7 +739,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
           />
         </Dialog>
       </div>
-      <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+      <div className="pointer-events-none fixed right-3 bottom-3 z-40 flex max-w-[calc(100vw-1.5rem)] items-end gap-3">
         {midiLiveInput.isKeyboardOpen && (
           <MidiKeyboardPanel
             projectUiStore={projectUiStore}
@@ -769,7 +769,7 @@ export function EditorPage({ source }: { source: ProjectSource }) {
             ),
         )}
         {effects.openEffects.size > 0 && (
-          <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
+          <div className="pointer-events-auto flex min-w-0 items-end gap-3 overflow-x-auto">
             {trackEntries.map((entry) => {
               if (!effects.openEffects.has(entry.id)) {
                 return undefined;
@@ -909,9 +909,9 @@ function EditorInitError({ error }: { error: Error }) {
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="init-error-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4 text-neutral-100"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-3 text-neutral-100"
     >
-      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-neutral-700 bg-neutral-800 p-6 text-center shadow-2xl">
+      <div className="flex w-full max-w-md flex-col items-center gap-3 rounded-lg border border-neutral-700 bg-neutral-800 p-4 text-center shadow-2xl">
         <Mic2Icon className="size-6 text-emerald-400" />
         <div className="flex flex-col gap-1">
           <h1 id="init-error-title" className="text-lg font-medium">
@@ -921,7 +921,7 @@ function EditorInitError({ error }: { error: Error }) {
         </div>
         <a
           href={routes.home.href()}
-          className="rounded-md border border-neutral-600 px-3 py-1.5 text-sm hover:bg-neutral-700"
+          className="h-control rounded-md border border-neutral-600 px-3 text-xs hover:bg-neutral-700"
         >
           Back to projects
         </a>

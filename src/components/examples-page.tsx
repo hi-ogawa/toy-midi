@@ -25,10 +25,10 @@ export function ExamplesPage() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-neutral-900">
-      <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-8 py-12">
+      <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-6 py-6">
         <header className="flex shrink-0 items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-100 tracking-tight">
+            <h1 className="text-2xl font-bold text-neutral-100 tracking-tight">
               Examples
             </h1>
             <p className="mt-1 text-sm text-neutral-500">
@@ -36,10 +36,10 @@ export function ExamplesPage() {
               draft.
             </p>
           </div>
-          <nav className="flex items-center gap-4 text-sm text-neutral-500">
+          <nav className="flex items-center gap-3 text-sm text-neutral-500">
             <a
               href={routes.home.href()}
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-1 hover:text-emerald-400 transition-colors"
             >
               <HouseIcon className="size-4" />
               Home
@@ -49,7 +49,7 @@ export function ExamplesPage() {
               target="_blank"
               rel="noreferrer"
               title="Pieces still being iterated on"
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-1 hover:text-emerald-400 transition-colors"
             >
               <ListTodoIcon className="size-4" />
               Tracker
@@ -57,13 +57,13 @@ export function ExamplesPage() {
           </nav>
         </header>
 
-        <main className="mt-10 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/45 shadow-2xl shadow-black/20">
+        <main className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/45 shadow-2xl shadow-black/20">
           {examplesQuery.isPending ? (
-            <p className="p-8 text-center text-sm text-neutral-500">
+            <p className="p-6 text-center text-sm text-neutral-500">
               Loading examples…
             </p>
           ) : examplesQuery.isError ? (
-            <p className="p-8 text-center text-sm text-orange-300">
+            <p className="p-6 text-center text-sm text-orange-300">
               {examplesQuery.error.message}
             </p>
           ) : (
@@ -92,7 +92,7 @@ function ExampleList({ examples }: { examples: Example[] }) {
 
   return (
     <>
-      <div className="shrink-0 space-y-3 border-b border-neutral-700/70 p-4">
+      <div className="shrink-0 space-y-3 border-b border-neutral-700/70 p-3">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
             <SearchIcon
@@ -105,14 +105,14 @@ function ExampleList({ examples }: { examples: Example[] }) {
               placeholder="Search names, descriptions and tags…"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-200 outline-none"
+              className="h-control min-w-0 flex-1 bg-transparent text-xs text-neutral-200 outline-none"
             />
             {query && (
               <button
                 type="button"
                 aria-label="Clear search"
                 onClick={() => setQuery("")}
-                className="rounded p-1 text-neutral-400 hover:text-neutral-200"
+                className="rounded p-0.5 text-neutral-400 hover:text-neutral-200"
               >
                 <XIcon aria-hidden="true" className="size-4" />
               </button>
@@ -126,7 +126,7 @@ function ExampleList({ examples }: { examples: Example[] }) {
             {pluralCount(examples.length, "example")}
           </p>
         </div>
-        <div role="group" aria-label="Tags" className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label="Tags" className="flex flex-wrap gap-1">
           {countTags(examples).map(([tag, count]) => (
             <TagChip
               key={tag}
@@ -194,7 +194,7 @@ function ExampleListItem({
         </time>
       </div>
       <p className="mt-0.5 text-sm text-neutral-400">{example.description}</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-1">
         {example.tags.map((tag) => (
           <TagChip
             key={tag}

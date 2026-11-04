@@ -183,7 +183,7 @@ function ScorePreview({
 
   if (notes.length === 0) {
     return (
-      <p className="p-6 text-sm text-neutral-400">
+      <p className="p-4 text-sm text-neutral-400">
         Add a note to preview the score.
       </p>
     );
