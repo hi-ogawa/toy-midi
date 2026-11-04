@@ -402,7 +402,7 @@ export function ClipsDisclosureRow({
               : "Oldest first · Click for newest first"
           }
           onClick={() => onNewestFirstChange(!newestFirst)}
-          className="absolute right-normal top-1/2 size-control-dense -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+          className="absolute right-normal top-1/2 size-control-compact -translate-y-1/2 border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
         >
           {newestFirst ? (
             <ArrowDownWideNarrowIcon className="size-3.5" />

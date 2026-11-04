@@ -87,7 +87,7 @@ export function LocatorRow({
         <Button
           title="Add locator at playhead (L)"
           aria-label="Add locator at playhead"
-          className="size-control-dense hover:bg-neutral-700"
+          className="size-control-compact hover:bg-neutral-700"
           onClick={locatorInteraction.add}
         >
           <PlusIcon className="size-3" />

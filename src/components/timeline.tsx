@@ -123,7 +123,7 @@ export function TimelineHeader({
             data-testid="add-midi-track"
             onClick={onAddMidiTrack}
             disabled={isAddingMidi}
-            className="size-control-dense hover:bg-neutral-700"
+            className="size-control-compact hover:bg-neutral-700"
             title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
           >
             <Music2Icon className="size-3.5" />
@@ -131,7 +131,7 @@ export function TimelineHeader({
           <Button
             onClick={onAddAudioTrack}
             disabled={isAddingAudio}
-            className="size-control-dense hover:bg-neutral-700"
+            className="size-control-compact hover:bg-neutral-700"
             title="Add empty audio track"
           >
             <PlusIcon className="size-3.5" />
@@ -148,7 +148,7 @@ export function TimelineHeader({
             title={
               isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
             }
-            className="size-control-dense hover:bg-neutral-700"
+            className="size-control-compact hover:bg-neutral-700"
           >
             {isAddingAudio ? (
               <LoaderCircleIcon className="size-3.5 animate-spin" />
