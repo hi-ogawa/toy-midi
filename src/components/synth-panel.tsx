@@ -67,7 +67,7 @@ export function SynthPanel({
   onClose: () => void;
 }) {
   const { size, handleRef } = usePanelResize({
-    initialSize: { width: 320, height: 320 },
+    initialSize: { width: 320, height: 544 },
     minSize: { width: 320, height: 120 },
   });
 
