@@ -20,8 +20,8 @@ import {
   SaveIcon,
   SlidersVerticalIcon,
   VideoIcon,
+  Volume2Icon,
 } from "lucide-react";
-import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
 import { routes } from "../lib/routes";
 import type { EditorRuntime, LoopState, PunchState } from "../lib/runtime";
@@ -35,7 +35,7 @@ import {
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../types";
 import type { EditorFlags } from "./flags";
 import { MetronomeIcon } from "./icons";
-import { GainSlider } from "./mixer";
+import { GainKnob } from "./mixer";
 import { RangeControl } from "./range-control";
 import { Button } from "./ui/button";
 import {
@@ -342,19 +342,14 @@ export function Header({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="h-5 w-px bg-neutral-600" />
-      <label className="flex items-center gap-2 text-[10px] text-neutral-400">
-        <span className="font-medium uppercase tracking-wide">Master</span>
-        <GainSlider
-          data-testid="master-gain"
+      <div className="flex items-center gap-1 text-neutral-400">
+        <Volume2Icon className="size-4" />
+        <GainKnob
           label="Master gain"
           gain={masterGain}
           onGainChange={onMasterGainChange}
-          className="w-24"
         />
-        <span className="w-12 text-right font-mono">
-          {formatGainDb(masterGain)}
-        </span>
-      </label>
+      </div>
       <div className="flex-1" />
       {draft ? (
         <DraftControls ready={title !== undefined} onSave={onSave} />
