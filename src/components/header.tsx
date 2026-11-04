@@ -542,34 +542,31 @@ function DraftControls({
 }) {
   const label = "Save to your projects (Ctrl/Cmd+S)";
   return (
-    <>
+    <div className="group/save relative">
+      <Button
+        data-testid="save-draft-button"
+        aria-label={label}
+        aria-describedby="save-tooltip"
+        disabled={!ready}
+        onClick={onSave}
+        className="size-8 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+      >
+        <SaveIcon className="size-4" />
+      </Button>
       <span
         data-testid="draft-badge"
-        title="Not in your projects yet. Save to keep it."
-        className="rounded border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-emerald-200 uppercase"
+        role="img"
+        aria-label="Draft: not in your projects yet"
+        className="pointer-events-none absolute top-1 right-1 size-1.5 rounded-full bg-emerald-400"
+      />
+      <span
+        id="save-tooltip"
+        role="tooltip"
+        className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
       >
-        Draft
+        {label}
       </span>
-      <div className="group/save relative">
-        <Button
-          data-testid="save-draft-button"
-          aria-label={label}
-          aria-describedby="save-tooltip"
-          disabled={!ready}
-          onClick={onSave}
-          className="size-8 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          <SaveIcon className="size-4" />
-        </Button>
-        <span
-          id="save-tooltip"
-          role="tooltip"
-          className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
-        >
-          {label}
-        </span>
-      </div>
-    </>
+    </div>
   );
 }
 
