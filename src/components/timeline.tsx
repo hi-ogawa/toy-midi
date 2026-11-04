@@ -919,6 +919,10 @@ function getTimelineSurfaceProps({
       viewportStartBeat,
     }),
     onPointerDown: (event) => {
+      // Touch navigates the timeline, so a pan must not seek where it starts.
+      if (event.pointerType === "touch") {
+        return;
+      }
       const rect = event.currentTarget.getBoundingClientRect();
       const beat = snapToGrid(
         (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
