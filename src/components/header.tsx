@@ -160,14 +160,14 @@ export function Header({
     onTempoChange,
   });
   return (
-    <header className="flex h-11 shrink-0 items-center gap-1 border-b-2 border-neutral-600 bg-neutral-800 px-2 shadow-sm">
+    <header className="flex h-page-header shrink-0 items-center gap-tight border-b-2 border-neutral-600 bg-neutral-800 px-snug shadow-sm">
       <Button
         data-testid="play-button"
         onClick={onPlayToggle}
         disabled={flags.transportDisabled}
         aria-pressed={isPlaying}
         className={cn(
-          "size-7",
+          "size-control",
           isPlaying
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
@@ -188,7 +188,7 @@ export function Header({
         disabled={flags.transportDisabled}
         aria-pressed={flags.isRecording}
         className={cn(
-          "size-7",
+          "size-control",
           flags.isRecording
             ? "border-red-500/60 bg-red-500/20 text-red-200 hover:bg-red-500/30"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
@@ -201,7 +201,7 @@ export function Header({
           <CircleIcon className="size-3.5 fill-current" />
         )}
       </Button>
-      <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <div className="mx-tight h-5 w-px bg-neutral-600" />
       <RangeControl
         kind="loop"
         state={loop}
@@ -223,7 +223,7 @@ export function Header({
         aria-pressed={metronomeEnabled}
         title="Toggle metronome (M)"
         className={cn(
-          "size-7",
+          "size-control",
           metronomeEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
@@ -236,7 +236,7 @@ export function Header({
         aria-pressed={autoScrollEnabled}
         title="Toggle auto-scroll (F)"
         className={cn(
-          "size-7",
+          "size-control",
           autoScrollEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
@@ -249,14 +249,14 @@ export function Header({
         tempo={tempo}
         timeSignature={timeSignature}
       />
-      <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <div className="mx-tight h-5 w-px bg-neutral-600" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="playback-rate"
             title="Playback speed (< slower / > faster)"
             disabled={flags.isRecording}
-            className="h-7 gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800"
+            className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800"
           >
             {playbackRate}x
             <ChevronDownIcon className="size-3 text-neutral-400" />
@@ -275,27 +275,27 @@ export function Header({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="flex items-center gap-1 text-xs text-neutral-400">
+      <div className="flex items-center gap-tight text-xs text-neutral-400">
         <span>BPM</span>
         <input
           data-testid="tempo-input"
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
-          className="h-7 w-10 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100"
+          className="h-control w-10 rounded border border-neutral-600 bg-neutral-900 px-tight text-center font-mono text-sm text-neutral-100"
         />
         <Button
           data-testid="tap-tempo-button"
           onClick={handleTapTempo}
           title="Tap tempo"
-          className="h-7 px-1 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="h-control px-tight text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           TAP
         </Button>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-7 gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800">
+          <Button className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800">
             {timeSignatureValue}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
@@ -320,7 +320,7 @@ export function Header({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            className="h-7 gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800"
+            className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono hover:bg-neutral-800"
           >
             {gridDivision}
             <ChevronDownIcon className="size-3 text-neutral-400" />
@@ -341,8 +341,8 @@ export function Header({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="mx-1 h-5 w-px bg-neutral-600" />
-      <label className="flex items-center gap-2 text-[10px] text-neutral-400">
+      <div className="mx-tight h-5 w-px bg-neutral-600" />
+      <label className="flex items-center gap-snug text-[10px] text-neutral-400">
         <span className="font-medium uppercase tracking-wide">Master</span>
         <GainSlider
           data-testid="master-gain"
@@ -381,14 +381,14 @@ export function Header({
           />
         )}
       </button>
-      <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <div className="mx-tight h-5 w-px bg-neutral-600" />
       <Button
         data-testid="reference-video-button"
         onClick={() => onReferenceVideoOpenChange(!referenceVideoOpen)}
         aria-pressed={referenceVideoOpen}
         title="Reference video"
         className={cn(
-          "size-7",
+          "size-control",
           referenceVideoOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
@@ -402,7 +402,7 @@ export function Header({
         aria-pressed={mixerOpen}
         title="Mixer"
         className={cn(
-          "size-7",
+          "size-control",
           mixerOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
@@ -420,7 +420,7 @@ export function Header({
             : "Audio Input"
         }
         className={cn(
-          "size-7",
+          "size-control",
           inputAccessRequired
             ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
             : inputPanelOpen
@@ -435,7 +435,7 @@ export function Header({
           <Button
             title="Editor menu"
             aria-label="Editor menu"
-            className="size-7 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            className="size-control hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
             <MoreVerticalIcon className="size-4.5" />
           </Button>
@@ -562,14 +562,14 @@ function DraftControls({
           aria-describedby="save-tooltip"
           disabled={!ready}
           onClick={onSave}
-          className="size-7 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="size-control border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <SaveIcon className="size-4" />
         </Button>
         <span
           id="save-tooltip"
           role="tooltip"
-          className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
+          className="pointer-events-none absolute top-full left-1/2 z-50 mt-snug -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
         >
           {label}
         </span>
@@ -608,7 +608,7 @@ function SaveButton({
         aria-disabled={!canSave}
         onClick={canSave ? onSave : undefined}
         className={cn(
-          "size-7 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "size-control border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
           status === "saved" && "text-neutral-500",
           status === "unsaved" && "text-neutral-300",
           status === "saving" && "text-neutral-400",
@@ -620,7 +620,7 @@ function SaveButton({
       <span
         id="save-tooltip"
         role="tooltip"
-        className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
+        className="pointer-events-none absolute top-full left-1/2 z-50 mt-snug -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
       >
         {label}
       </span>

@@ -42,7 +42,7 @@ export function RangeControl({
   }
 
   return (
-    <div className="flex h-7 w-12 shrink-0 rounded-md border border-neutral-600">
+    <div className="flex h-control w-12 shrink-0 rounded-md border border-neutral-600">
       <Button
         data-testid={`${kind}-toggle`}
         aria-label={description}
@@ -56,7 +56,7 @@ export function RangeControl({
           }
         }}
         className={cn(
-          "min-w-0 flex-1 rounded-r-none border-0 px-1 text-xs font-medium",
+          "min-w-0 flex-1 rounded-r-none border-0 px-tight text-xs font-medium",
           !state.range
             ? "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300"
             : !state.enabled
