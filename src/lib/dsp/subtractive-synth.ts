@@ -45,6 +45,7 @@ export interface SynthLayer {
   };
   /** Linear multiplier on the layer's output */
   gain: number;
+  muted: boolean;
   /** From -1, hard left, to 1, hard right */
   pan: number;
   /**
@@ -86,6 +87,7 @@ const DEFAULT_ENVELOPE: Envelope = {
 const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
   oscillator: { waveform: "sine", octave: 0, detune: 0 },
   gain: 1,
+  muted: false,
   pan: 0,
   filter: {
     cutoff: EQ_LIMITS.frequency.max,
@@ -357,26 +359,30 @@ export class SubtractiveSynth implements SynthEngine {
   }
 }
 
+// A muted layer is left out rather than skipped while rendering, so a voice
+// ends once its sounding layers do.
 function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
-  return patch.layers.map((layer) => {
-    const pan = computePanGains(layer.pan);
-    const { envelope, ...filter } = layer.filter;
-    return {
-      id: layer.id,
-      oscillate: OSCILLATORS[layer.oscillator.waveform],
-      frequencyRatio:
-        2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
-      leftGain: layer.gain * pan.left,
-      rightGain: layer.gain * pan.right,
-      filter: {
-        ...filter,
-        amount: envelope.amount,
-        velocity: envelope.velocity,
-      },
-      filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
-      ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
-    };
-  });
+  return patch.layers
+    .filter((layer) => !layer.muted)
+    .map((layer) => {
+      const pan = computePanGains(layer.pan);
+      const { envelope, ...filter } = layer.filter;
+      return {
+        id: layer.id,
+        oscillate: OSCILLATORS[layer.oscillator.waveform],
+        frequencyRatio:
+          2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
+        leftGain: layer.gain * pan.left,
+        rightGain: layer.gain * pan.right,
+        filter: {
+          ...filter,
+          amount: envelope.amount,
+          velocity: envelope.velocity,
+        },
+        filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
+        ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
+      };
+    });
 }
 
 /**
