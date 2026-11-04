@@ -139,7 +139,7 @@ function HelpSection({ section }: { section: HelpSectionData }) {
         {section.items.map((item) => (
           <div
             key={item.action}
-            className="flex min-h-control items-center justify-between gap-3"
+            className="flex min-h-7 items-center justify-between gap-3"
           >
             <dt className="text-[13px] text-neutral-200">{item.action}</dt>
             <dd className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-neutral-400">

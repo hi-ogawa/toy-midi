@@ -512,7 +512,7 @@ function ActionButton({
   return (
     <Button
       className={cn(
-        "min-h-control flex-1 px-3 text-xs font-semibold",
+        "h-control flex-1 px-3 text-xs font-semibold",
         accent
           ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-500"
           : "border-neutral-700 bg-neutral-800 text-neutral-100 hover:bg-neutral-700",
