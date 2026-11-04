@@ -370,7 +370,7 @@ export function ClipsDisclosureRow({
   onExpandedChange: (expanded: boolean) => void;
 }) {
   return (
-    <div className="grid h-panel-header grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-900">
+    <div className="grid h-8 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-900">
       <div className="relative border-r-2 border-neutral-600">
         <button
           type="button"

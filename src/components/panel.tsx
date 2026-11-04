@@ -32,7 +32,7 @@ export function Panel({
         className,
       )}
     >
-      <div className="flex h-panel-header shrink-0 items-center gap-2 border-b border-neutral-700 pr-1 pl-3">
+      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-neutral-700 pr-1 pl-3">
         <h2 className="min-w-0 text-sm font-semibold text-neutral-100">
           {title}
         </h2>

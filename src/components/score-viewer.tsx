@@ -152,7 +152,7 @@ export function ScoreViewer({
         settings.layout === "paged" && "score-viewer-root-paged",
       )}
     >
-      <header className="flex h-page-header shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 text-neutral-100 shadow-sm">
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 text-neutral-100 shadow-sm">
         <Button
           data-testid="score-play-pause-button"
           disabled={!runtimeState.isReady}

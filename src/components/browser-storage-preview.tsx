@@ -32,7 +32,7 @@ export function BrowserStoragePreview() {
           <p className="text-xs text-neutral-500">{preset.label}</p>
           {/* Static copy of the shared Dialog chrome so every state renders at once. */}
           <div className="w-md rounded-lg bg-neutral-800 shadow-2xl">
-            <div className="flex h-panel-header items-center border-b border-neutral-700 px-3 text-sm font-semibold text-neutral-100">
+            <div className="flex h-8 items-center border-b border-neutral-700 px-3 text-sm font-semibold text-neutral-100">
               Browser storage
             </div>
             <div className="p-3">

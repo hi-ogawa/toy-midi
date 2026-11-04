@@ -30,15 +30,13 @@
 }
 
 /*
- * Heights shared across the app, usable with any size utility, such as
+ * Control heights shared across the app, usable with any size utility, such as
  * `h-control` and `size-control-sm`.
  */
 @theme {
   --spacing-control: 1.75rem;
   --spacing-control-sm: 1.5rem;
   --spacing-control-xs: 1.25rem;
-  --spacing-panel-header: 2rem;
-  --spacing-page-header: 2.75rem;
 }
 
 /* Dark theme (default for this app) */

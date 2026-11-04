@@ -160,7 +160,7 @@ export function Header({
     onTempoChange,
   });
   return (
-    <header className="flex h-page-header shrink-0 items-center gap-1 border-b-2 border-neutral-600 bg-neutral-800 px-2 shadow-sm">
+    <header className="flex h-11 shrink-0 items-center gap-1 border-b-2 border-neutral-600 bg-neutral-800 px-2 shadow-sm">
       <Button
         data-testid="play-button"
         onClick={onPlayToggle}

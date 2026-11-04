@@ -74,7 +74,7 @@ export function LatencyCheckerPage() {
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
-      <header className="sticky top-0 z-10 flex h-page-header items-center border-b border-neutral-700 bg-neutral-800 px-3 text-neutral-100 shadow-sm">
+      <header className="sticky top-0 z-10 flex h-11 items-center border-b border-neutral-700 bg-neutral-800 px-3 text-neutral-100 shadow-sm">
         <AudioLinesIcon className="mr-2 size-5 text-emerald-400" />
         <span className="font-medium">Latency Checker</span>
         <div className="flex-1" />

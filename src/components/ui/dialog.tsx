@@ -48,7 +48,7 @@ export function Dialog({
             }
           }}
         >
-          <div className="flex h-panel-header items-center justify-between border-b border-neutral-700 pr-1 pl-3">
+          <div className="flex h-8 items-center justify-between border-b border-neutral-700 pr-1 pl-3">
             <DialogPrimitive.Title className="text-sm font-semibold text-neutral-100">
               {title}
             </DialogPrimitive.Title>

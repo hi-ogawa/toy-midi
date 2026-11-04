@@ -114,7 +114,7 @@ export function TimelineHeader({
   onPunchRangeClear: () => void;
 }) {
   return (
-    <div className="sticky top-0 z-40 grid h-panel-header grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
+    <div className="sticky top-0 z-40 grid h-8 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
       <div className="sticky left-0 z-20 flex items-center border-r-2 border-neutral-600 bg-neutral-800 px-3 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
