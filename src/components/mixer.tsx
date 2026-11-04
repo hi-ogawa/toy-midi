@@ -270,6 +270,58 @@ function MixerChannel({
   );
 }
 
+export function GainKnob({
+  label,
+  gain,
+  onGainChange,
+}: {
+  label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
+}) {
+  const db = gainToDb(gain);
+  const setDb = (value: number) =>
+    onGainChange(dbToGain(clamp(Math.round(value * 2) / 2, MIN_DB, MAX_DB)));
+  // About 200px of vertical drag covers the full range, like pan.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return db;
+    },
+    onMove: (_event, drag) =>
+      setDb(drag.data - (drag.deltaY * (MAX_DB - MIN_DB)) / 200),
+  });
+  const valueText = formatGainDb(gain);
+  return (
+    <Tooltip content={`${label}: ${valueText}`}>
+      <Knob
+        ref={ref}
+        aria-label={label}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const next = {
+            ArrowLeft: db - 0.5,
+            ArrowDown: db - 0.5,
+            ArrowRight: db + 0.5,
+            ArrowUp: db + 0.5,
+            Home: MIN_DB,
+            End: MAX_DB,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setDb(next);
+          }
+        }}
+        value={db}
+        min={MIN_DB}
+        max={MAX_DB}
+        origin={0}
+        className="cursor-ns-resize"
+      />
+    </Tooltip>
+  );
+}
+
 function PanKnob({
   label,
   pan,
