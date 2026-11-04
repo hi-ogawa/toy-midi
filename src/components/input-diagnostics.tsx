@@ -6,7 +6,7 @@ export function InputDiagnostics({ runtime }: { runtime: EditorRuntime }) {
   const [open, setOpen] = useState(false);
   return (
     <details
-      className="mt-4 border-t border-neutral-700 pt-3 text-xs"
+      className="mt-3 border-t border-neutral-700 pt-3 text-xs"
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary className="cursor-pointer text-neutral-400">

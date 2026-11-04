@@ -74,7 +74,7 @@ export function LatencyCheckerPage() {
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
-      <header className="sticky top-0 z-10 flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
+      <header className="sticky top-0 z-10 flex h-11 items-center border-b border-neutral-700 bg-neutral-800 px-3 text-neutral-100 shadow-sm">
         <AudioLinesIcon className="mr-2 size-5 text-emerald-400" />
         <span className="font-medium">Latency Checker</span>
         <div className="flex-1" />
@@ -83,9 +83,9 @@ export function LatencyCheckerPage() {
             <Button
               title="Latency checker menu"
               aria-label="Latency checker menu"
-              className="size-9 hover:bg-accent hover:text-accent-foreground"
+              className="size-control hover:bg-accent hover:text-accent-foreground"
             >
-              <MoreVerticalIcon className="size-5" />
+              <MoreVerticalIcon className="size-4.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -99,13 +99,13 @@ export function LatencyCheckerPage() {
         </DropdownMenu>
       </header>
 
-      <div className="mx-auto w-full max-w-5xl px-8 py-10">
-        <div className="mb-8">
+      <div className="mx-auto w-full max-w-5xl px-6 py-6">
+        <div className="mb-6">
           <div>
-            <h1 className="text-4xl font-semibold tracking-[-0.045em]">
+            <h1 className="text-2xl font-semibold tracking-[-0.045em]">
               Measure audio latency
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-400">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-400">
               Choose an input, start monitoring, connect browser output back to
               that input, then measure and audition the recording offset.
             </p>
@@ -133,7 +133,7 @@ export function LatencyCheckerPage() {
                   onChange={(event) =>
                     input.selectDevice(event.currentTarget.value || undefined)
                   }
-                  className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {!inputsInitialized ? (
                     <option>Loading audio inputs...</option>
@@ -154,7 +154,7 @@ export function LatencyCheckerPage() {
                 </select>
               </label>
             </div>
-            <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
               <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Channel
                 <select
@@ -167,7 +167,7 @@ export function LatencyCheckerPage() {
                   onChange={(event) => {
                     input.selectChannel(Number(event.currentTarget.value));
                   }}
-                  className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {state.inputChannelCount ? (
                     Array.from(
@@ -204,7 +204,7 @@ export function LatencyCheckerPage() {
                       : "Start monitoring"}
               </ActionButton>
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
               <div className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Input meter
                 <LevelMeter
@@ -232,7 +232,7 @@ export function LatencyCheckerPage() {
             description="Set a safe click level and record seven click samples through the monitored input."
             state={!isMonitoring ? "disabled" : result ? "complete" : "active"}
           >
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
               <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Calibration click level
                 <div className="grid grid-cols-[1fr_68px] items-center gap-3">
@@ -340,12 +340,12 @@ function ResultsView({
   return (
     <>
       {weakCount > 0 && (
-        <p className="mb-5 rounded-md border border-orange-700/60 bg-orange-950/40 px-4 py-3 text-sm leading-5 text-orange-200">
+        <p className="mb-3 rounded-md border border-orange-700/60 bg-orange-950/40 px-3 py-3 text-sm leading-5 text-orange-200">
           {pluralCount(weakCount, "click")} had weak correlation. Check routing,
           channel, and levels before trusting the median.
         </p>
       )}
-      <div className="mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-700 bg-neutral-700">
+      <div className="mb-4 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-700 bg-neutral-700">
         <ResultMetric
           label="Median offset"
           value={`${formatSigned(medianMs, 3)} ms`}
@@ -364,9 +364,9 @@ function ResultsView({
         />
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-7">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-4">
         <div>
-          <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
+          <h3 className="mb-3 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
             Detected clicks
           </h3>
           <ol className="grid grid-cols-2 gap-2">
@@ -388,11 +388,11 @@ function ResultsView({
           </ol>
         </div>
 
-        <div className="border-l border-neutral-700 pl-7">
-          <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
+        <div className="border-l border-neutral-700 pl-4">
+          <h3 className="mb-3 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
             Audition
           </h3>
-          <p className="mb-4 text-sm leading-6 text-neutral-400">
+          <p className="mb-3 text-sm leading-6 text-neutral-400">
             Compare the raw capture with the same recording shifted by the
             measured median of {formatSigned(medianMs, 2)} ms.
           </p>
@@ -441,7 +441,7 @@ function ResultPlaceholder() {
 
 function ResultMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-neutral-900/70 p-4">
+    <div className="bg-neutral-900/70 p-3">
       <small className="mb-2 block text-xs text-neutral-400">{label}</small>
       <strong className="block whitespace-nowrap font-mono text-lg font-semibold tabular-nums">
         {value}
@@ -468,14 +468,14 @@ function WorkflowSection({
       data-testid={`step-${title.toLowerCase().replaceAll(" ", "-")}`}
       data-state={state}
       className={cn(
-        "border-t border-neutral-700/70 p-7 first:border-t-0",
+        "border-t border-neutral-700/70 p-4 first:border-t-0",
         state === "disabled" && "bg-neutral-900/30 text-neutral-500",
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <span
           className={cn(
-            "grid size-7 shrink-0 place-items-center rounded-full font-mono text-xs font-semibold",
+            "grid size-6 shrink-0 place-items-center rounded-full font-mono text-xs font-semibold",
             state === "disabled"
               ? "bg-neutral-700 text-neutral-400"
               : state === "complete"
@@ -487,17 +487,17 @@ function WorkflowSection({
         </span>
         <h2
           className={cn(
-            "text-xl font-semibold tracking-[-0.025em]",
+            "text-base font-semibold tracking-[-0.025em]",
             state === "disabled" ? "text-neutral-500" : "text-neutral-100",
           )}
         >
           {title}
         </h2>
       </div>
-      <p className="mt-2 ml-10 text-sm leading-6 text-neutral-400">
+      <p className="mt-1 ml-8 text-sm leading-6 text-neutral-400">
         {description}
       </p>
-      <div className={cn("mt-5 ml-10", state === "disabled" && "opacity-60")}>
+      <div className={cn("mt-3 ml-8", state === "disabled" && "opacity-60")}>
         {children}
       </div>
     </section>
@@ -512,7 +512,7 @@ function ActionButton({
   return (
     <Button
       className={cn(
-        "min-h-10 flex-1 px-3 text-sm font-semibold",
+        "h-control flex-1 px-3 text-xs font-semibold",
         accent
           ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-500"
           : "border-neutral-700 bg-neutral-800 text-neutral-100 hover:bg-neutral-700",
@@ -525,7 +525,7 @@ function ActionButton({
 
 function ErrorMessage({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-5 rounded-md border border-orange-700/60 bg-orange-950/40 px-4 py-3 text-sm leading-5 text-orange-200">
+    <p className="mt-3 rounded-md border border-orange-700/60 bg-orange-950/40 px-3 py-3 text-sm leading-5 text-orange-200">
       {children}
     </p>
   );

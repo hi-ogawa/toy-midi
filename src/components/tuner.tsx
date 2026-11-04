@@ -56,12 +56,12 @@ export function TunerContent({ analysis }: { analysis: TunerAnalysis }) {
 
   return (
     <div
-      className="space-y-5"
+      className="space-y-3"
       data-testid="tuner-content"
       data-status={pitched ? "tracking" : "empty"}
     >
       <div className="flex items-center justify-between text-[10px] font-medium tracking-wide text-neutral-500 uppercase">
-        <span className={`flex items-center gap-1.5 ${tuningState.className}`}>
+        <span className={`flex items-center gap-1 ${tuningState.className}`}>
           <span className="size-1.5 rounded-full bg-current" />
           {tuningState.label}
         </span>

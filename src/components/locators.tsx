@@ -82,12 +82,12 @@ export function LocatorRow({
 }) {
   return (
     <div className="grid h-7 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
-      <div className="flex items-center justify-between border-r-2 border-neutral-600 px-3 text-xs font-semibold text-neutral-400">
+      <div className="flex items-center justify-between border-r-2 border-neutral-600 px-2 text-xs font-semibold text-neutral-400">
         <span>Locators</span>
         <Button
           title="Add locator at playhead (L)"
           aria-label="Add locator at playhead"
-          className="size-5 hover:bg-neutral-700"
+          className="size-control-xs hover:bg-neutral-700"
           onClick={locatorInteraction.add}
         >
           <PlusIcon className="size-3" />
