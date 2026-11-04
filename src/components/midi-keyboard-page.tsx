@@ -42,7 +42,7 @@ export function MidiKeyboardPage() {
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
-      <header className="sticky top-0 z-10 flex h-page-header items-center gap-snug border-b border-neutral-700 bg-neutral-800 px-normal text-neutral-100 shadow-sm">
+      <header className="sticky top-0 z-10 flex h-page-header items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 text-neutral-100 shadow-sm">
         <KeyboardMusicIcon className="size-5 text-emerald-400" />
         <span className="font-medium">MIDI Keyboard</span>
         <div className="flex-1" />
@@ -68,7 +68,7 @@ export function MidiKeyboardPage() {
         </DropdownMenu>
       </header>
 
-      <div className="mx-auto w-full max-w-5xl px-loose py-loose">
+      <div className="mx-auto w-full max-w-5xl px-6 py-6">
         <MidiKeyboardControls />
       </div>
     </main>
@@ -87,10 +87,7 @@ function MidiKeyboardHelp() {
           <CircleHelpIcon className="size-4.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-80 space-y-snug p-normal text-xs"
-      >
+      <PopoverContent align="end" className="w-80 space-y-2 p-3 text-xs">
         <p>A virtual MIDI controller. It makes no sound by itself.</p>
         <p>
           To hear it, send it to anything that takes MIDI input. To reach
@@ -148,8 +145,8 @@ function MidiKeyboardControls() {
   });
 
   return (
-    <div className="grid gap-relaxed">
-      <div className="grid gap-snug">
+    <div className="grid gap-4">
+      <div className="grid gap-2">
         <label
           htmlFor="midi-output"
           className="text-xs font-semibold text-neutral-400"
@@ -165,7 +162,7 @@ function MidiKeyboardControls() {
               keyboard.releaseAll();
               setSelectedId(event.currentTarget.value);
             }}
-            className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+            className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
           >
             {outputs.length === 0 && (
               <option>
@@ -194,7 +191,7 @@ function MidiKeyboardControls() {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-relaxed">
+      <div className="grid grid-cols-4 gap-4">
         <ControlSlider
           label="Velocity"
           value={velocity}
@@ -222,7 +219,7 @@ function MidiKeyboardControls() {
         />
       </div>
 
-      <div className="flex items-center gap-snug text-xs text-neutral-300">
+      <div className="flex items-center gap-2 text-xs text-neutral-300">
         <Button
           aria-label="Octave down"
           disabled={octave === MIN_OCTAVE}
@@ -276,7 +273,7 @@ function ControlSlider({
 }) {
   return (
     <div>
-      <div className="mb-snug flex justify-between text-xs text-neutral-300">
+      <div className="mb-2 flex justify-between text-xs text-neutral-300">
         <span>{label}</span>
         <span className="tabular-nums">{value}</span>
       </div>

@@ -8,7 +8,7 @@ export function HelpPreview() {
   return (
     <>
       <Button
-        className="rounded border border-neutral-700 h-control bg-neutral-800 px-normal text-sm hover:bg-neutral-700"
+        className="rounded border border-neutral-700 h-control bg-neutral-800 px-3 text-sm hover:bg-neutral-700"
         onClick={() => setIsOpen(true)}
       >
         Open help

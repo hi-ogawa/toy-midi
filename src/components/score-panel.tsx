@@ -72,7 +72,7 @@ function ScoreLink({ href }: { href?: string }) {
         tabIndex={0}
         aria-disabled={!href}
         aria-describedby={!href ? tooltipId : undefined}
-        className="flex items-center gap-tight text-xs text-neutral-400 hover:text-neutral-200 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+        className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-200 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
       >
         Open score viewer
         <ExternalLinkIcon className="size-3" />
@@ -81,7 +81,7 @@ function ScoreLink({ href }: { href?: string }) {
         <span
           id={tooltipId}
           role="tooltip"
-          className="pointer-events-none absolute top-full right-0 z-50 mt-snug rounded-md border border-neutral-700 bg-neutral-900 px-snug py-tight text-xs whitespace-nowrap text-neutral-100 opacity-0 group-hover/score-link:opacity-100 group-focus-within/score-link:opacity-100"
+          className="pointer-events-none absolute top-full right-0 z-50 mt-2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs whitespace-nowrap text-neutral-100 opacity-0 group-hover/score-link:opacity-100 group-focus-within/score-link:opacity-100"
         >
           Please save before opening score view
         </span>
@@ -106,7 +106,7 @@ function ScorePreview({
     () =>
       new ScoreViewerRuntime({
         clock: createScoreClock(editorRuntime),
-        presentation: { scale: 1, scrollerClassName: "p-normal" },
+        presentation: { scale: 1, scrollerClassName: "p-3" },
       }),
   );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
@@ -183,7 +183,7 @@ function ScorePreview({
 
   if (notes.length === 0) {
     return (
-      <p className="p-relaxed text-sm text-neutral-400">
+      <p className="p-4 text-sm text-neutral-400">
         Add a note to preview the score.
       </p>
     );

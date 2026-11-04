@@ -6,7 +6,7 @@ export function InputDiagnostics({ runtime }: { runtime: EditorRuntime }) {
   const [open, setOpen] = useState(false);
   return (
     <details
-      className="mt-normal border-t border-neutral-700 pt-normal text-xs"
+      className="mt-3 border-t border-neutral-700 pt-3 text-xs"
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary className="cursor-pointer text-neutral-400">
@@ -58,7 +58,7 @@ function Readings({ runtime }: { runtime: EditorRuntime }) {
   return (
     <section
       aria-label="Audio diagnostic readings"
-      className="mt-normal grid grid-cols-[auto_minmax(0,1fr)] gap-x-normal gap-y-snug"
+      className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2"
     >
       {[
         { title: "Context and latency", rows: contextRows },

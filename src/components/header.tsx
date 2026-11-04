@@ -160,7 +160,7 @@ export function Header({
     onTempoChange,
   });
   return (
-    <header className="flex h-page-header shrink-0 items-center gap-tight border-b-2 border-neutral-600 bg-neutral-800 px-snug shadow-sm">
+    <header className="flex h-page-header shrink-0 items-center gap-1 border-b-2 border-neutral-600 bg-neutral-800 px-2 shadow-sm">
       <Button
         data-testid="play-button"
         onClick={onPlayToggle}
@@ -201,7 +201,7 @@ export function Header({
           <CircleIcon className="size-3.5 fill-current" />
         )}
       </Button>
-      <div className="mx-tight h-5 w-px bg-neutral-600" />
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
       <RangeControl
         kind="loop"
         state={loop}
@@ -249,14 +249,14 @@ export function Header({
         tempo={tempo}
         timeSignature={timeSignature}
       />
-      <div className="mx-tight h-5 w-px bg-neutral-600" />
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="playback-rate"
             title="Playback speed (< slower / > faster)"
             disabled={flags.isRecording}
-            className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800"
+            className="h-control gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800"
           >
             {playbackRate}x
             <ChevronDownIcon className="size-3 text-neutral-400" />
@@ -275,27 +275,27 @@ export function Header({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="flex items-center gap-tight text-xs text-neutral-400">
+      <div className="flex items-center gap-1 text-xs text-neutral-400">
         <span>BPM</span>
         <input
           data-testid="tempo-input"
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
-          className="h-control w-10 rounded border border-neutral-600 bg-neutral-900 px-tight text-center font-mono text-xs text-neutral-100"
+          className="h-control w-10 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100"
         />
         <Button
           data-testid="tap-tempo-button"
           onClick={handleTapTempo}
           title="Tap tempo"
-          className="h-control px-tight text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="h-control px-1 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           TAP
         </Button>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800">
+          <Button className="h-control gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800">
             {timeSignatureValue}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
@@ -320,7 +320,7 @@ export function Header({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            className="h-control gap-tight border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800"
+            className="h-control gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800"
           >
             {gridDivision}
             <ChevronDownIcon className="size-3 text-neutral-400" />
@@ -341,8 +341,8 @@ export function Header({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="mx-tight h-5 w-px bg-neutral-600" />
-      <div className="flex items-center gap-tight text-neutral-400">
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <div className="flex items-center gap-1 text-neutral-400">
         <Volume2Icon className="size-4" />
         <GainKnob
           label="Master gain"
@@ -376,7 +376,7 @@ export function Header({
           />
         )}
       </button>
-      <div className="mx-tight h-5 w-px bg-neutral-600" />
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
       <Button
         data-testid="reference-video-button"
         onClick={() => onReferenceVideoOpenChange(!referenceVideoOpen)}
@@ -557,12 +557,12 @@ function DraftControls({
         data-testid="draft-badge"
         role="img"
         aria-label="Draft: not in your projects yet"
-        className="pointer-events-none absolute top-tight right-tight size-1.5 rounded-full bg-emerald-400"
+        className="pointer-events-none absolute top-1 right-1 size-1.5 rounded-full bg-emerald-400"
       />
       <span
         id="save-tooltip"
         role="tooltip"
-        className="pointer-events-none absolute top-full left-1/2 z-50 mt-snug -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
+        className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
       >
         {label}
       </span>
@@ -612,7 +612,7 @@ function SaveButton({
       <span
         id="save-tooltip"
         role="tooltip"
-        className="pointer-events-none absolute top-full left-1/2 z-50 mt-snug -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
+        className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
       >
         {label}
       </span>

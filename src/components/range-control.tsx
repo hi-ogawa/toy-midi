@@ -56,7 +56,7 @@ export function RangeControl({
           }
         }}
         className={cn(
-          "min-w-0 flex-1 rounded-r-none border-0 px-tight text-xs font-medium",
+          "min-w-0 flex-1 rounded-r-none border-0 px-1 text-xs font-medium",
           !state.range
             ? "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300"
             : !state.enabled

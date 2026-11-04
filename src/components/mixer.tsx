@@ -41,7 +41,7 @@ export function Mixer({
   );
   const trackEntries = resolveTrackOrder(state);
   return (
-    <div className="flex min-w-max gap-tight">
+    <div className="flex min-w-max gap-1">
       {trackEntries.map((entry) => {
         const { track } = entry;
         return (
@@ -90,7 +90,7 @@ export function Mixer({
             kind="mute"
             onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
             aria-label="Toggle metronome mute"
-            className="h-control-compact min-w-control-compact px-tight"
+            className="h-control-xs min-w-control-xs px-1"
           />
         }
       />
@@ -163,27 +163,27 @@ function TrackChannel({
       inputProps={input.props}
       data-testid={`mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
-        <div className="grid grid-cols-2 gap-tight">
+        <div className="grid grid-cols-2 gap-1">
           <MixToggle
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
-            className="h-control-compact min-w-control-compact px-tight"
+            className="h-control-xs min-w-control-xs px-1"
           />
           <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
-            className="h-control-compact min-w-control-compact px-tight"
+            className="h-control-xs min-w-control-xs px-1"
           />
           <EffectsToggle
             label={label}
             open={effectsOpen}
             activeEffects={activeEffects}
             onClick={onEffectsToggle}
-            className="col-span-2 h-control-compact"
+            className="col-span-2 h-control-xs"
           />
         </div>
       }
@@ -232,7 +232,7 @@ function MixerChannel({
       role="group"
       aria-label={name}
       data-testid={testId}
-      className="flex w-14 flex-col items-center gap-snug rounded bg-neutral-900/50 px-tight py-snug"
+      className="flex w-14 flex-col items-center gap-2 rounded bg-neutral-900/50 px-1 py-2"
     >
       <span
         title={label}
@@ -241,9 +241,9 @@ function MixerChannel({
         {label}
       </span>
       {/* Every channel reserves the pan and send rows so faders stay aligned. */}
-      <div className="flex h-control-dense w-full items-center">{pan}</div>
+      <div className="flex h-control-sm w-full items-center">{pan}</div>
       {/* The send row holds a knob and a 12px label line under it. */}
-      <div className="flex h-[calc(var(--spacing-control-dense)+0.75rem)] w-full items-center">
+      <div className="flex h-[calc(var(--spacing-control-sm)+0.75rem)] w-full items-center">
         {send}
       </div>
       <div className="flex h-40 gap-[3px]">
@@ -265,7 +265,7 @@ function MixerChannel({
         inputMode="decimal"
         aria-label={`${name} level in dB`}
         title={`${name} level in dB`}
-        className="h-control-compact w-full rounded border border-neutral-600 bg-neutral-900 px-tight text-center font-mono text-xs text-neutral-100 tabular-nums focus:border-neutral-500 focus:outline-none"
+        className="h-control-xs w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 tabular-nums focus:border-neutral-500 focus:outline-none"
         {...inputProps}
       />
       {action}

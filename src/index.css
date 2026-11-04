@@ -30,22 +30,15 @@
 }
 
 /*
- * Heights and spacing shared across the app, usable with any size or spacing
- * utility, such as `h-control`, `size-control-dense` and `px-normal`. Padding
- * inside small chips such as a kbd stays at Tailwind's numeric steps.
+ * Heights shared across the app, usable with any size utility, such as
+ * `h-control` and `size-control-sm`.
  */
 @theme {
   --spacing-control: 1.75rem;
-  --spacing-control-dense: 1.5rem;
-  --spacing-control-compact: 1.25rem;
+  --spacing-control-sm: 1.5rem;
+  --spacing-control-xs: 1.25rem;
   --spacing-panel-header: 2rem;
   --spacing-page-header: 2.75rem;
-
-  --spacing-tight: 0.25rem;
-  --spacing-snug: 0.5rem;
-  --spacing-normal: 0.75rem;
-  --spacing-relaxed: 1rem;
-  --spacing-loose: 1.5rem;
 }
 
 /* Dark theme (default for this app) */

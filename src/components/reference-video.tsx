@@ -35,7 +35,7 @@ export function ReferenceVideoPanel({
   return (
     <Panel
       title={
-        <span className="flex items-center gap-snug">
+        <span className="flex items-center gap-2">
           Reference video
           <Popover>
             <PopoverTrigger asChild>
@@ -49,7 +49,7 @@ export function ReferenceVideoPanel({
             </PopoverTrigger>
             <PopoverContent
               align="start"
-              className="w-72 space-y-snug p-normal text-xs"
+              className="w-72 space-y-2 p-3 text-xs"
             >
               <p>
                 For tighter recording sync, generate and download backing stems
@@ -118,7 +118,7 @@ function YouTubeReferencePanel({
       <div
         ref={previewRef}
         data-testid="reference-video-preview"
-        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-neutral-950 p-normal"
+        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-neutral-950 p-3"
       >
         <div className="shrink-0 overflow-hidden bg-black" style={previewSize}>
           {candidateVideoId || referenceVideo ? (
@@ -134,7 +134,7 @@ function YouTubeReferencePanel({
         </div>
       </div>
       {!referenceVideo && !candidateVideoId && (
-        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 px-normal py-snug">
+        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 px-3 py-2">
           <YouTubeReferenceSetup onSubmit={setCandidateVideoId} />
         </div>
       )}
@@ -161,7 +161,7 @@ function YouTubeReferenceSetup({
   }
 
   return (
-    <form onSubmit={submit} className="flex items-start gap-snug">
+    <form onSubmit={submit} className="flex items-start gap-2">
       <label className="min-w-0 flex-1 text-[11px] font-medium text-neutral-400">
         YouTube URL or video ID
         <input
@@ -173,17 +173,17 @@ function YouTubeReferenceSetup({
           }}
           placeholder="https://www.youtube.com/watch?v=..."
           autoFocus
-          className="mt-tight h-control w-full rounded border border-neutral-600 bg-neutral-900 px-normal text-xs text-neutral-100 placeholder:text-neutral-600"
+          className="mt-1 h-control w-full rounded border border-neutral-600 bg-neutral-900 px-3 text-xs text-neutral-100 placeholder:text-neutral-600"
         />
         {error && (
-          <span className="mt-tight block text-xs font-normal text-orange-300">
+          <span className="mt-1 block text-xs font-normal text-orange-300">
             {error}
           </span>
         )}
       </label>
       <Button
         type="submit"
-        className="mt-[19px] h-control border-emerald-700 bg-emerald-700 px-normal text-xs text-white hover:bg-emerald-600"
+        className="mt-[19px] h-control border-emerald-700 bg-emerald-700 px-3 text-xs text-white hover:bg-emerald-600"
       >
         Add video
       </Button>
@@ -240,7 +240,7 @@ function YouTubeReference({
         </div>
       )}
       {error && (
-        <div className="absolute inset-x-0 bottom-0 bg-black/80 px-normal py-snug text-xs text-orange-300">
+        <div className="absolute inset-x-0 bottom-0 bg-black/80 px-3 py-2 text-xs text-orange-300">
           {error}
         </div>
       )}

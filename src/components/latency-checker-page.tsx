@@ -74,8 +74,8 @@ export function LatencyCheckerPage() {
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
-      <header className="sticky top-0 z-10 flex h-page-header items-center border-b border-neutral-700 bg-neutral-800 px-normal text-neutral-100 shadow-sm">
-        <AudioLinesIcon className="mr-snug size-5 text-emerald-400" />
+      <header className="sticky top-0 z-10 flex h-page-header items-center border-b border-neutral-700 bg-neutral-800 px-3 text-neutral-100 shadow-sm">
+        <AudioLinesIcon className="mr-2 size-5 text-emerald-400" />
         <span className="font-medium">Latency Checker</span>
         <div className="flex-1" />
         <DropdownMenu>
@@ -99,13 +99,13 @@ export function LatencyCheckerPage() {
         </DropdownMenu>
       </header>
 
-      <div className="mx-auto w-full max-w-5xl px-loose py-loose">
-        <div className="mb-loose">
+      <div className="mx-auto w-full max-w-5xl px-6 py-6">
+        <div className="mb-6">
           <div>
             <h1 className="text-2xl font-semibold tracking-[-0.045em]">
               Measure audio latency
             </h1>
-            <p className="mt-normal max-w-2xl text-sm leading-6 text-neutral-400">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-400">
               Choose an input, start monitoring, connect browser output back to
               that input, then measure and audition the recording offset.
             </p>
@@ -120,7 +120,7 @@ export function LatencyCheckerPage() {
             state={result ? "complete" : "active"}
           >
             <div>
-              <label className="grid gap-snug text-xs font-semibold text-neutral-400">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Browser audio input
                 <select
                   value={selectedDevice?.deviceId ?? ""}
@@ -133,7 +133,7 @@ export function LatencyCheckerPage() {
                   onChange={(event) =>
                     input.selectDevice(event.currentTarget.value || undefined)
                   }
-                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {!inputsInitialized ? (
                     <option>Loading audio inputs...</option>
@@ -154,8 +154,8 @@ export function LatencyCheckerPage() {
                 </select>
               </label>
             </div>
-            <div className="mt-relaxed grid grid-cols-[minmax(0,1fr)_auto] items-end gap-normal">
-              <label className="grid gap-snug text-xs font-semibold text-neutral-400">
+            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Channel
                 <select
                   value={state.selectedChannel}
@@ -167,7 +167,7 @@ export function LatencyCheckerPage() {
                   onChange={(event) => {
                     input.selectChannel(Number(event.currentTarget.value));
                   }}
-                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-normal text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="h-control w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {state.inputChannelCount ? (
                     Array.from(
@@ -204,8 +204,8 @@ export function LatencyCheckerPage() {
                       : "Start monitoring"}
               </ActionButton>
             </div>
-            <div className="mt-normal">
-              <div className="grid gap-snug text-xs font-semibold text-neutral-400">
+            <div className="mt-3">
+              <div className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Input meter
                 <LevelMeter
                   meters={runtime.levelMeters}
@@ -232,10 +232,10 @@ export function LatencyCheckerPage() {
             description="Set a safe click level and record seven click samples through the monitored input."
             state={!isMonitoring ? "disabled" : result ? "complete" : "active"}
           >
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-relaxed">
-              <label className="grid gap-snug text-xs font-semibold text-neutral-400">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Calibration click level
-                <div className="grid grid-cols-[1fr_68px] items-center gap-normal">
+                <div className="grid grid-cols-[1fr_68px] items-center gap-3">
                   <input
                     aria-label="Calibration click level"
                     type="range"
@@ -340,12 +340,12 @@ function ResultsView({
   return (
     <>
       {weakCount > 0 && (
-        <p className="mb-normal rounded-md border border-orange-700/60 bg-orange-950/40 px-normal py-normal text-sm leading-5 text-orange-200">
+        <p className="mb-3 rounded-md border border-orange-700/60 bg-orange-950/40 px-3 py-3 text-sm leading-5 text-orange-200">
           {pluralCount(weakCount, "click")} had weak correlation. Check routing,
           channel, and levels before trusting the median.
         </p>
       )}
-      <div className="mb-relaxed grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-700 bg-neutral-700">
+      <div className="mb-4 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-700 bg-neutral-700">
         <ResultMetric
           label="Median offset"
           value={`${formatSigned(medianMs, 3)} ms`}
@@ -364,16 +364,16 @@ function ResultsView({
         />
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-relaxed">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-4">
         <div>
-          <h3 className="mb-normal text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
+          <h3 className="mb-3 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
             Detected clicks
           </h3>
-          <ol className="grid grid-cols-2 gap-snug">
+          <ol className="grid grid-cols-2 gap-2">
             {measurements.map((measurement, index) => (
               <li
                 key={index}
-                className="flex justify-between gap-snug rounded-md bg-neutral-900/70 px-normal py-snug text-xs text-neutral-400"
+                className="flex justify-between gap-2 rounded-md bg-neutral-900/70 px-3 py-2 text-xs text-neutral-400"
               >
                 <span>Click {index + 1}</span>
                 <strong className="font-mono font-semibold tabular-nums text-neutral-100">
@@ -388,15 +388,15 @@ function ResultsView({
           </ol>
         </div>
 
-        <div className="border-l border-neutral-700 pl-relaxed">
-          <h3 className="mb-normal text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
+        <div className="border-l border-neutral-700 pl-4">
+          <h3 className="mb-3 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
             Audition
           </h3>
-          <p className="mb-normal text-sm leading-6 text-neutral-400">
+          <p className="mb-3 text-sm leading-6 text-neutral-400">
             Compare the raw capture with the same recording shifted by the
             measured median of {formatSigned(medianMs, 2)} ms.
           </p>
-          <div className="grid gap-snug">
+          <div className="grid gap-2">
             <ActionButton
               accent={playingVariant === "raw"}
               onClick={() => togglePreview("raw")}
@@ -432,7 +432,7 @@ function ResultPlaceholder() {
         <ResultMetric label="Measurement spread" value="—" />
         <ResultMetric label="Audio format" value="—" />
       </div>
-      <p className="mt-normal text-xs text-neutral-500">
+      <p className="mt-3 text-xs text-neutral-500">
         Run the 7-click test to fill these fields.
       </p>
     </>
@@ -441,8 +441,8 @@ function ResultPlaceholder() {
 
 function ResultMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-neutral-900/70 p-normal">
-      <small className="mb-snug block text-xs text-neutral-400">{label}</small>
+    <div className="bg-neutral-900/70 p-3">
+      <small className="mb-2 block text-xs text-neutral-400">{label}</small>
       <strong className="block whitespace-nowrap font-mono text-lg font-semibold tabular-nums">
         {value}
       </strong>
@@ -468,14 +468,14 @@ function WorkflowSection({
       data-testid={`step-${title.toLowerCase().replaceAll(" ", "-")}`}
       data-state={state}
       className={cn(
-        "border-t border-neutral-700/70 p-relaxed first:border-t-0",
+        "border-t border-neutral-700/70 p-4 first:border-t-0",
         state === "disabled" && "bg-neutral-900/30 text-neutral-500",
       )}
     >
-      <div className="flex items-center gap-snug">
+      <div className="flex items-center gap-2">
         <span
           className={cn(
-            "grid size-control-dense shrink-0 place-items-center rounded-full font-mono text-xs font-semibold",
+            "grid size-control-sm shrink-0 place-items-center rounded-full font-mono text-xs font-semibold",
             state === "disabled"
               ? "bg-neutral-700 text-neutral-400"
               : state === "complete"
@@ -494,12 +494,10 @@ function WorkflowSection({
           {title}
         </h2>
       </div>
-      <p className="mt-tight ml-8 text-sm leading-6 text-neutral-400">
+      <p className="mt-1 ml-8 text-sm leading-6 text-neutral-400">
         {description}
       </p>
-      <div
-        className={cn("mt-normal ml-8", state === "disabled" && "opacity-60")}
-      >
+      <div className={cn("mt-3 ml-8", state === "disabled" && "opacity-60")}>
         {children}
       </div>
     </section>
@@ -514,7 +512,7 @@ function ActionButton({
   return (
     <Button
       className={cn(
-        "min-h-control flex-1 px-normal text-xs font-semibold",
+        "min-h-control flex-1 px-3 text-xs font-semibold",
         accent
           ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-500"
           : "border-neutral-700 bg-neutral-800 text-neutral-100 hover:bg-neutral-700",
@@ -527,7 +525,7 @@ function ActionButton({
 
 function ErrorMessage({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-normal rounded-md border border-orange-700/60 bg-orange-950/40 px-normal py-normal text-sm leading-5 text-orange-200">
+    <p className="mt-3 rounded-md border border-orange-700/60 bg-orange-950/40 px-3 py-3 text-sm leading-5 text-orange-200">
       {children}
     </p>
   );

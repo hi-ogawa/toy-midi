@@ -16,7 +16,7 @@ export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
   });
 
   return (
-    <div className="grid min-w-72 grid-cols-[1fr_auto] items-center gap-x-relaxed gap-y-normal text-xs text-neutral-300">
+    <div className="grid min-w-72 grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 text-xs text-neutral-300">
       <label htmlFor="score-layout">Layout</label>
       <SettingsSelect
         id="score-layout"
@@ -46,7 +46,7 @@ export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
         type="number"
         disabled={!settings.showTitle}
         {...titleSpacingInput.props}
-        className="h-control w-32 rounded border border-neutral-600 bg-neutral-900 px-snug text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
+        className="h-control w-32 rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
       />
 
       <label htmlFor="score-section-labels">Section labels</label>
@@ -66,7 +66,7 @@ export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
 function SettingsSelect(props: ComponentProps<"select">) {
   return (
     <select
-      className="h-control w-32 rounded border border-neutral-600 bg-neutral-900 px-snug text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
+      className="h-control w-32 rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
       {...props}
     />
   );

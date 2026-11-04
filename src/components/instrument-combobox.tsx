@@ -70,7 +70,7 @@ export function InstrumentCombobox({
         className="text-xs"
       >
         <CheckIcon
-          className={`mr-snug size-4 ${selected ? "opacity-100" : "opacity-0"}`}
+          className={`mr-2 size-4 ${selected ? "opacity-100" : "opacity-0"}`}
         />
         {label}
       </CommandItem>
@@ -87,14 +87,14 @@ export function InstrumentCombobox({
           disabled={disabled}
           aria-expanded={open}
           className={cn(
-            "h-control w-44 justify-between gap-tight border-neutral-600 bg-neutral-900 px-normal text-xs font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900",
+            "h-control w-44 justify-between gap-1 border-neutral-600 bg-neutral-900 px-3 text-xs font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900",
             className,
           )}
         >
           <span className="min-w-0 flex-1 truncate text-left">
             {formatPresetLabel(value)}
           </span>
-          <ChevronsUpDownIcon className="ml-tight size-4 shrink-0 opacity-50" />
+          <ChevronsUpDownIcon className="ml-1 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">

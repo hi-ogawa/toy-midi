@@ -25,21 +25,21 @@ export function ExamplesPage() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-neutral-900">
-      <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-loose py-loose">
+      <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-6 py-6">
         <header className="flex shrink-0 items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-neutral-100 tracking-tight">
               Examples
             </h1>
-            <p className="mt-tight text-sm text-neutral-500">
+            <p className="mt-1 text-sm text-neutral-500">
               Agent-composed pieces, newest first. Each one opens as an unsaved
               draft.
             </p>
           </div>
-          <nav className="flex items-center gap-normal text-sm text-neutral-500">
+          <nav className="flex items-center gap-3 text-sm text-neutral-500">
             <a
               href={routes.home.href()}
-              className="inline-flex items-center gap-tight hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-1 hover:text-emerald-400 transition-colors"
             >
               <HouseIcon className="size-4" />
               Home
@@ -49,7 +49,7 @@ export function ExamplesPage() {
               target="_blank"
               rel="noreferrer"
               title="Pieces still being iterated on"
-              className="inline-flex items-center gap-tight hover:text-emerald-400 transition-colors"
+              className="inline-flex items-center gap-1 hover:text-emerald-400 transition-colors"
             >
               <ListTodoIcon className="size-4" />
               Tracker
@@ -57,13 +57,13 @@ export function ExamplesPage() {
           </nav>
         </header>
 
-        <main className="mt-loose flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/45 shadow-2xl shadow-black/20">
+        <main className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/45 shadow-2xl shadow-black/20">
           {examplesQuery.isPending ? (
-            <p className="p-loose text-center text-sm text-neutral-500">
+            <p className="p-6 text-center text-sm text-neutral-500">
               Loading examples…
             </p>
           ) : examplesQuery.isError ? (
-            <p className="p-loose text-center text-sm text-orange-300">
+            <p className="p-6 text-center text-sm text-orange-300">
               {examplesQuery.error.message}
             </p>
           ) : (
@@ -92,9 +92,9 @@ function ExampleList({ examples }: { examples: Example[] }) {
 
   return (
     <>
-      <div className="shrink-0 space-y-normal border-b border-neutral-700/70 p-normal">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-normal">
-          <div className="flex items-center gap-snug rounded-lg border border-neutral-700 bg-neutral-900 px-normal focus-within:border-emerald-500">
+      <div className="shrink-0 space-y-3 border-b border-neutral-700/70 p-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
             <SearchIcon
               aria-hidden="true"
               className="size-4 shrink-0 text-neutral-500"
@@ -126,11 +126,7 @@ function ExampleList({ examples }: { examples: Example[] }) {
             {pluralCount(examples.length, "example")}
           </p>
         </div>
-        <div
-          role="group"
-          aria-label="Tags"
-          className="flex flex-wrap gap-tight"
-        >
+        <div role="group" aria-label="Tags" className="flex flex-wrap gap-1">
           {countTags(examples).map(([tag, count]) => (
             <TagChip
               key={tag}
@@ -142,9 +138,9 @@ function ExampleList({ examples }: { examples: Example[] }) {
           ))}
         </div>
       </div>
-      <ul className="min-h-0 overflow-y-auto scrollbar-thin p-normal">
+      <ul className="min-h-0 overflow-y-auto scrollbar-thin p-3">
         {filteredExamples.length === 0 ? (
-          <li className="py-normal text-center text-sm text-neutral-500">
+          <li className="py-3 text-center text-sm text-neutral-500">
             No matching examples
           </li>
         ) : (
@@ -172,8 +168,8 @@ function ExampleListItem({
   onTagToggle: (tag: string) => void;
 }) {
   return (
-    <li className="rounded-lg px-normal py-normal hover:bg-neutral-800/70">
-      <div className="flex items-center gap-snug">
+    <li className="rounded-lg px-3 py-3 hover:bg-neutral-800/70">
+      <div className="flex items-center gap-2">
         <a
           href={getExampleHref(example)}
           className="font-medium text-neutral-100 hover:text-emerald-400"
@@ -198,7 +194,7 @@ function ExampleListItem({
         </time>
       </div>
       <p className="mt-0.5 text-sm text-neutral-400">{example.description}</p>
-      <div className="mt-snug flex flex-wrap gap-tight">
+      <div className="mt-2 flex flex-wrap gap-1">
         {example.tags.map((tag) => (
           <TagChip
             key={tag}
@@ -240,7 +236,7 @@ function TagChip({
         <span
           aria-hidden="true"
           className={cn(
-            "ml-tight",
+            "ml-1",
             active ? "text-emerald-100" : "text-neutral-600",
           )}
         >

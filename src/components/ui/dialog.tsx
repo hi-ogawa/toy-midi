@@ -48,20 +48,20 @@ export function Dialog({
             }
           }}
         >
-          <div className="flex h-panel-header items-center justify-between border-b border-neutral-700 pr-tight pl-normal">
+          <div className="flex h-panel-header items-center justify-between border-b border-neutral-700 pr-1 pl-3">
             <DialogPrimitive.Title className="text-sm font-semibold text-neutral-100">
               {title}
             </DialogPrimitive.Title>
             <DialogPrimitive.Close asChild>
               <button
-                className="flex size-control-dense items-center justify-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+                className="flex size-control-sm items-center justify-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
                 aria-label="Close"
               >
                 <XIcon className="size-4" />
               </button>
             </DialogPrimitive.Close>
           </div>
-          <div className="p-normal">{children}</div>
+          <div className="p-3">{children}</div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

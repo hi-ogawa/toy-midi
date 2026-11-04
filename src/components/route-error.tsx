@@ -8,7 +8,7 @@ export function RouteError({
   backLabel: string;
 }) {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center gap-normal bg-neutral-900 text-neutral-400">
+    <div className="fixed inset-0 flex flex-col items-center justify-center gap-3 bg-neutral-900 text-neutral-400">
       {String(error)}
       <a href={backHref} className="text-emerald-400 hover:text-emerald-300">
         {backLabel}

@@ -16,7 +16,7 @@ export function MidiInstrument({
   onSettingsChange: (settings: Partial<MidiTrackState>) => void;
 }) {
   return (
-    <div className="grid w-96 grid-cols-[64px_1fr] items-center gap-x-normal gap-y-normal">
+    <div className="grid w-96 grid-cols-[64px_1fr] items-center gap-x-3 gap-y-3">
       <div className="contents">
         <span className="text-xs text-neutral-300">Sound</span>
         <InstrumentCombobox
@@ -45,7 +45,7 @@ export function MidiInstrument({
               },
             });
           }}
-          className="h-control w-full rounded border border-neutral-600 bg-neutral-900 px-snug text-xs text-neutral-100"
+          className="h-control w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100"
         >
           {KEY_SIGNATURE_OPTION_GROUPS.map((group) => (
             <optgroup key={group.mode} label={group.label}>
@@ -74,7 +74,7 @@ export function MidiInstrument({
               tabOpenStringPitches: [...preset.openStringPitches],
             });
           }}
-          className="h-control w-full rounded border border-neutral-600 bg-neutral-900 px-snug text-xs text-neutral-100"
+          className="h-control w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100"
         >
           {TAB_STRING_PRESETS.map((preset) => (
             <option key={preset.id} value={preset.id}>
@@ -83,8 +83,8 @@ export function MidiInstrument({
           ))}
         </select>
       </label>
-      <div className="col-start-2 space-y-snug">
-        <label className="flex items-center gap-snug text-xs text-neutral-300 cursor-pointer">
+      <div className="col-start-2 space-y-2">
+        <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
           <input
             type="checkbox"
             checked={track.tabAnnotationEnabled}

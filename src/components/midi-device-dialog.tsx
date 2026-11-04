@@ -24,7 +24,7 @@ function MidiDeviceContent({
 }) {
   if (devices) {
     return (
-      <div className="space-y-normal">
+      <div className="space-y-3">
         <label className="block text-xs font-medium text-neutral-400">
           Device
           <select
@@ -32,7 +32,7 @@ function MidiDeviceContent({
             onChange={(event) =>
               selectDevice(event.currentTarget.value || undefined)
             }
-            className="mt-tight h-control w-full rounded border border-neutral-600 bg-neutral-900 px-snug text-xs text-neutral-100"
+            className="mt-1 h-control w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100"
           >
             <option value="">Off</option>
             {devices.map((device) => (

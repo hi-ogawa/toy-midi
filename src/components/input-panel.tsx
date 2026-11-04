@@ -44,25 +44,25 @@ export function InputPanel({
       onClose={onClose}
       data-testid="input-panel"
       className="pointer-events-auto w-64 shrink-0"
-      contentClassName="space-y-snug px-normal py-snug text-xs"
+      contentClassName="space-y-2 px-3 py-2 text-xs"
     >
       {accessRequired ? (
         <button
           type="button"
           onClick={onInputSetup}
-          className="flex w-full items-center gap-snug rounded border border-orange-300/40 bg-orange-300/10 px-snug py-tight text-left text-orange-200 hover:bg-orange-300/20"
+          className="flex w-full items-center gap-2 rounded border border-orange-300/40 bg-orange-300/10 px-2 py-1 text-left text-orange-200 hover:bg-orange-300/20"
         >
           <MicIcon className="size-3.5 shrink-0" />
           <span className="truncate">Allow microphone access</span>
         </button>
       ) : (
-        <div className="flex items-center gap-snug">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             title="Audio input setup"
             onClick={onInputSetup}
             className={cn(
-              "flex h-control min-w-0 flex-1 items-center gap-tight rounded border border-neutral-600 bg-neutral-900 px-snug text-left hover:bg-neutral-800",
+              "flex h-control min-w-0 flex-1 items-center gap-1 rounded border border-neutral-600 bg-neutral-900 px-2 text-left hover:bg-neutral-800",
               routeNeedsSetup ? "text-orange-300" : "text-neutral-300",
             )}
           >
@@ -98,7 +98,7 @@ export function InputPanel({
         aria-pressed={tunerOpen}
         onClick={onTunerToggle}
         className={cn(
-          "h-control w-full gap-tight border-neutral-600 px-snug text-xs",
+          "h-control w-full gap-1 border-neutral-600 px-2 text-xs",
           tunerOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700",

@@ -61,25 +61,21 @@ const PRESETS = [
 export function TunerPreview() {
   const [preset, setPreset] = useState(PRESETS[1]);
   return (
-    <div className="space-y-normal">
-      <div
-        role="group"
-        aria-label="Tuner preview mode"
-        className="flex gap-snug"
-      >
+    <div className="space-y-3">
+      <div role="group" aria-label="Tuner preview mode" className="flex gap-2">
         {PRESETS.map((option) => (
           <button
             key={option.label}
             type="button"
             aria-pressed={preset === option}
             onClick={() => setPreset(option)}
-            className="rounded border border-neutral-700 px-normal py-tight text-sm text-neutral-400 hover:bg-neutral-800 aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+            className="rounded border border-neutral-700 px-3 py-1 text-sm text-neutral-400 hover:bg-neutral-800 aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
           >
             {option.label}
           </button>
         ))}
       </div>
-      <div className="w-80 rounded-lg border border-neutral-700 bg-neutral-800 px-normal py-snug shadow-2xl">
+      <div className="w-80 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 shadow-2xl">
         {preset.content}
       </div>
     </div>

@@ -43,7 +43,7 @@ export function Knob({
       aria-valuemax={max}
       aria-valuenow={value}
       className={cn(
-        "size-control-dense shrink-0 touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+        "size-control-sm shrink-0 touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
         className,
       )}
       {...props}
