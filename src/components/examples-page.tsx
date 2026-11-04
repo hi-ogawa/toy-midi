@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  CheckIcon,
+  ChevronsUpDownIcon,
   FileTextIcon,
   HouseIcon,
   ListTodoIcon,
@@ -10,6 +12,15 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { routes } from "../lib/routes";
 import { pluralCount } from "../utils/plural-count";
+import { Button } from "./ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "./ui/utils";
 
 export function ExamplesPage() {
@@ -92,51 +103,54 @@ function ExampleList({ examples }: { examples: Example[] }) {
 
   return (
     <>
-      <div className="shrink-0 space-y-3 border-b border-neutral-700/70 p-4">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
-            <SearchIcon
-              aria-hidden="true"
-              className="size-4 shrink-0 text-neutral-500"
-            />
-            <input
-              type="text"
-              aria-label="Search examples"
-              placeholder="Search names, descriptions and tags…"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-200 outline-none"
-            />
-            {query && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => setQuery("")}
-                className="rounded p-1 text-neutral-400 hover:text-neutral-200"
-              >
-                <XIcon aria-hidden="true" className="size-4" />
-              </button>
-            )}
-          </div>
-          <p
-            role="status"
-            className="text-right text-xs whitespace-nowrap tabular-nums text-neutral-400"
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-neutral-700/70 p-4">
+        <div className="flex min-w-48 flex-1 items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 focus-within:border-emerald-500">
+          <SearchIcon
+            aria-hidden="true"
+            className="size-4 shrink-0 text-neutral-500"
+          />
+          <input
+            type="text"
+            aria-label="Search examples"
+            placeholder="Search names, descriptions and tags…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-200 outline-none"
+          />
+          {query && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setQuery("")}
+              className="rounded p-1 text-neutral-400 hover:text-neutral-200"
+            >
+              <XIcon aria-hidden="true" className="size-4" />
+            </button>
+          )}
+        </div>
+        <TagFilter
+          tagCounts={countTags(examples)}
+          activeTag={activeTag}
+          onToggle={toggleTag}
+        />
+        {activeTag && (
+          <button
+            type="button"
+            aria-label={`Remove tag filter ${activeTag}`}
+            onClick={() => setActiveTag(undefined)}
+            className="inline-flex min-w-0 items-center gap-1 rounded-full border border-emerald-600 bg-emerald-600 py-0.5 pr-1.5 pl-2.5 text-xs text-white hover:bg-emerald-500"
           >
-            {hasFilter ? `${filteredExamples.length} of ` : ""}
-            {pluralCount(examples.length, "example")}
-          </p>
-        </div>
-        <div role="group" aria-label="Tags" className="flex flex-wrap gap-1.5">
-          {countTags(examples).map(([tag, count]) => (
-            <TagChip
-              key={tag}
-              tag={tag}
-              count={count}
-              active={tag === activeTag}
-              onToggle={toggleTag}
-            />
-          ))}
-        </div>
+            <span className="truncate">{activeTag}</span>
+            <XIcon aria-hidden="true" className="size-3.5 shrink-0" />
+          </button>
+        )}
+        <p
+          role="status"
+          className="ml-auto text-right text-xs whitespace-nowrap tabular-nums text-neutral-400"
+        >
+          {hasFilter ? `${filteredExamples.length} of ` : ""}
+          {pluralCount(examples.length, "example")}
+        </p>
       </div>
       <ul className="min-h-0 overflow-y-auto scrollbar-thin p-3">
         {filteredExamples.length === 0 ? (
@@ -208,14 +222,65 @@ function ExampleListItem({
   );
 }
 
+function TagFilter({
+  tagCounts,
+  activeTag,
+  onToggle,
+}: {
+  tagCounts: [string, number][];
+  activeTag?: string;
+  onToggle: (tag: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button className="h-9 shrink-0 gap-1.5 rounded-lg border-neutral-700 bg-neutral-900 px-3 text-sm font-normal text-neutral-300 hover:border-neutral-500 hover:bg-neutral-900">
+          Tags
+          <ChevronsUpDownIcon
+            aria-hidden="true"
+            className="size-4 opacity-50"
+          />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="end">
+        <Command>
+          <CommandInput placeholder="Filter tags…" />
+          <CommandList>
+            <CommandEmpty>No matching tags</CommandEmpty>
+            {tagCounts.map(([tag, count]) => (
+              <CommandItem
+                key={tag}
+                value={tag}
+                onSelect={() => {
+                  onToggle(tag);
+                  setOpen(false);
+                }}
+              >
+                <CheckIcon
+                  aria-hidden="true"
+                  className={tag === activeTag ? "opacity-100" : "opacity-0"}
+                />
+                <span className="min-w-0 flex-1 truncate">{tag}</span>
+                <span className="text-xs tabular-nums text-neutral-500">
+                  {count}
+                </span>
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function TagChip({
   tag,
-  count,
   active,
   onToggle,
 }: {
   tag: string;
-  count?: number;
   active: boolean;
   onToggle: (tag: string) => void;
 }) {
@@ -232,17 +297,6 @@ function TagChip({
       )}
     >
       {tag}
-      {count !== undefined && (
-        <span
-          aria-hidden="true"
-          className={cn(
-            "ml-1",
-            active ? "text-emerald-100" : "text-neutral-600",
-          )}
-        >
-          {count}
-        </span>
-      )}
     </button>
   );
 }

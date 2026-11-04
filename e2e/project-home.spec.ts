@@ -182,15 +182,23 @@ test("opens an example project as a draft", async ({ page }) => {
   await page.getByRole("link", { name: "Examples" }).click();
   await expect(page.getByRole("status")).toHaveText("2 examples");
 
-  // Filter by a tag, and see only that piece.
-  await page
-    .getByRole("group", { name: "Tags" })
-    .getByRole("button", { name: "ambient", exact: true })
-    .click();
+  // Pick a tag from the Tags dropdown, and see only that piece.
+  await page.getByRole("button", { name: "Tags", exact: true }).click();
+  await page.getByPlaceholder("Filter tags…").fill("amb");
+  await expect(page.getByRole("option")).toHaveCount(1);
+  await page.getByRole("option", { name: "ambient" }).click();
   await expect(page.getByRole("status")).toHaveText("1 of 2 examples");
   await expect(
     page.getByRole("link", { name: "Clichê", exact: true }),
   ).toBeHidden();
+
+  // Remove the active tag chip, and see both pieces again.
+  await page.getByRole("button", { name: "Remove tag filter ambient" }).click();
+  await expect(page.getByRole("status")).toHaveText("2 examples");
+
+  // Click a tag on an example, and see the filter applied again.
+  await page.getByRole("button", { name: "ambient", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("1 of 2 examples");
 
   // Open the piece, and see it as an unsaved draft with its tracks.
   await page.getByRole("link", { name: "Slow Tide", exact: true }).click();
