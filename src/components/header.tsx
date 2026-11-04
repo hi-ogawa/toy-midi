@@ -167,7 +167,7 @@ export function Header({
         disabled={flags.transportDisabled}
         aria-pressed={isPlaying}
         className={cn(
-          "size-control",
+          "size-control shrink-0",
           isPlaying
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
@@ -188,7 +188,7 @@ export function Header({
         disabled={flags.transportDisabled}
         aria-pressed={flags.isRecording}
         className={cn(
-          "size-control",
+          "size-control shrink-0",
           flags.isRecording
             ? "border-red-500/60 bg-red-500/20 text-red-200 hover:bg-red-500/30"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
@@ -223,7 +223,7 @@ export function Header({
         aria-pressed={metronomeEnabled}
         title="Toggle metronome (M)"
         className={cn(
-          "size-control",
+          "size-control shrink-0",
           metronomeEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
@@ -236,7 +236,7 @@ export function Header({
         aria-pressed={autoScrollEnabled}
         title="Toggle auto-scroll (F)"
         className={cn(
-          "size-control",
+          "size-control shrink-0",
           autoScrollEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
@@ -383,7 +383,7 @@ export function Header({
         aria-pressed={referenceVideoOpen}
         title="Reference video"
         className={cn(
-          "size-control",
+          "size-control shrink-0",
           referenceVideoOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
@@ -397,7 +397,7 @@ export function Header({
         aria-pressed={mixerOpen}
         title="Mixer"
         className={cn(
-          "size-control",
+          "size-control shrink-0",
           mixerOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
@@ -415,7 +415,7 @@ export function Header({
             : "Audio Input"
         }
         className={cn(
-          "size-control",
+          "size-control shrink-0",
           inputAccessRequired
             ? "border-orange-300/40 bg-orange-300/10 text-orange-200 hover:bg-orange-300/20"
             : inputPanelOpen
@@ -430,7 +430,7 @@ export function Header({
           <Button
             title="Editor menu"
             aria-label="Editor menu"
-            className="size-control hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            className="size-control shrink-0 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
             <MoreVerticalIcon className="size-4.5" />
           </Button>
@@ -549,7 +549,7 @@ function DraftControls({
         aria-describedby="save-tooltip"
         disabled={!ready}
         onClick={onSave}
-        className="size-control border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        className="size-control shrink-0 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
       >
         <SaveIcon className="size-4" />
       </Button>
@@ -600,7 +600,7 @@ function SaveButton({
         aria-disabled={!canSave}
         onClick={canSave ? onSave : undefined}
         className={cn(
-          "size-control border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "size-control shrink-0 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
           status === "saved" && "text-neutral-500",
           status === "unsaved" && "text-neutral-300",
           status === "saving" && "text-neutral-400",
