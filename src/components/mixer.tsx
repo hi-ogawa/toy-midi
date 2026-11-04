@@ -90,7 +90,7 @@ export function Mixer({
             kind="mute"
             onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
             aria-label="Toggle metronome mute"
-            className="h-control-xs min-w-control-xs px-1"
+            className="size-control-xs"
           />
         }
       />
@@ -169,14 +169,14 @@ function TrackChannel({
             kind="mute"
             onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
-            className="h-control-xs min-w-control-xs px-1"
+            className="size-control-xs"
           />
           <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
-            className="h-control-xs min-w-control-xs px-1"
+            className="size-control-xs"
           />
           <EffectsToggle
             label={label}
