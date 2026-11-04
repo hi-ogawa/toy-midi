@@ -10,11 +10,13 @@ export function DropdownMenu({
 }
 
 export function DropdownMenuTrigger({
+  className,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
   return (
     <DropdownMenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"
+      className={cn("data-[state=open]:bg-accent", className)}
       {...props}
     />
   );
@@ -22,6 +24,7 @@ export function DropdownMenuTrigger({
 
 export function DropdownMenuContent({
   className,
+  children,
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
@@ -35,7 +38,19 @@ export function DropdownMenuContent({
           className,
         )}
         {...props}
-      />
+      >
+        {children}
+        {/* The open path strokes only the two outer edges. Shifting it 1px into
+            the menu lets its fill cover the border across its base. */}
+        <DropdownMenuPrimitive.Arrow asChild width={12} height={6}>
+          <svg
+            viewBox="0 0 12 6"
+            className="fill-popover stroke-border -translate-y-px"
+          >
+            <path d="M0 0 6 5.3 12 0" />
+          </svg>
+        </DropdownMenuPrimitive.Arrow>
+      </DropdownMenuPrimitive.Content>
     </DropdownMenuPrimitive.Portal>
   );
 }
