@@ -1,6 +1,7 @@
 import type { Automation, Note } from "../types.ts";
 import { memo } from "../utils/memo.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import type {
   TimelineAutomation,
   TimelineNote,
@@ -62,12 +63,12 @@ export class MidiSynthWorkletNode {
     }
   }
 
-  noteOn(pitch: number): void {
-    void this.getSynth().noteOn({ pitch, velocity: 100 });
+  playMessage(message: MidiMessage): void {
+    void this.getSynth().playMessage(message);
   }
 
-  noteOff(pitch: number): void {
-    void this.getSynth().noteOff(pitch);
+  reset(): void {
+    void this.getSynth().reset();
   }
 
   setNotes(notes: TimelineNote[]): Promise<void> {

@@ -192,6 +192,12 @@ test("adds, collapses, and removes layers in the Synth panel", async ({
   await expect(layer1.getByRole("group", { name: "Waveform" })).toHaveCount(0);
   await expect(layer2.getByRole("group", { name: "Waveform" })).toBeVisible();
 
+  // Focus the collapsed layer's pan knob, and see its whole value below the header.
+  await layer1.getByRole("slider", { name: "Layer 1 pan" }).focus();
+  await expect(layer1.getByText("C", { exact: true })).toBeInViewport({
+    ratio: 1,
+  });
+
   // Fold the second layer's Oscillator section, and see the waveform stay in
   // its header while the octave goes. Unfold it.
   const oscillator = layer2.getByRole("button", { name: "Oscillator" });

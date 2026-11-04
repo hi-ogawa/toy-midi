@@ -137,11 +137,83 @@ describe(SubtractiveSynth, () => {
       );
       return `${waveform}: ${level} dB, ${frequency} Hz`;
     };
-    expect(WAVEFORMS.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
+    const pitched = WAVEFORMS.filter((waveform) => waveform !== "noise");
+    expect(pitched.map(describeWaveform).join("\n")).toMatchInlineSnapshot(`
       "sine: -21.1 dB, 440 Hz
       triangle: -22.9 dB, 440 Hz
       sawtooth: -23.0 dB, 440 Hz
       square: -18.2 dB, 440 Hz"
+    `);
+  });
+
+  it("plays noise at a sawtooth's level on any note, and sums notes in power", () => {
+    // Play a low, middle, and high note for 100 ms each, then two at once. See
+    // [Noise](../../../docs/concepts/noise.md) for each level, from PEAK's
+    // -21.1 dB as a sine:
+    //   One note: 1.8 dB down, -22.9 dB on any pitch
+    //   Two notes: 3 dB up, -19.9 dB, where the same noise would be 6 dB up
+    // A 50 ms window varies by about 0.1 dB.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch(createPatch(["noise"]));
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(30, FULL_VELOCITY),
+        0.1: () => {
+          synth.noteOff(30);
+          synth.noteOn(A4, FULL_VELOCITY);
+        },
+        0.2: () => {
+          synth.noteOff(A4);
+          synth.noteOn(90, FULL_VELOCITY);
+        },
+        0.3: () => {
+          synth.noteOff(90);
+          synth.noteOn(A4, FULL_VELOCITY);
+          synth.noteOn(72, FULL_VELOCITY);
+        },
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -23.0 dB  █████████████████████████████████████
+       50 ms  -22.9 dB  █████████████████████████████████████
+      100 ms  -23.1 dB  █████████████████████████████████████
+      150 ms  -22.9 dB  █████████████████████████████████████
+      200 ms  -22.8 dB  █████████████████████████████████████
+      250 ms  -23.0 dB  █████████████████████████████████████
+      300 ms  -19.9 dB  ████████████████████████████████████████
+      350 ms  -19.9 dB  ████████████████████████████████████████
+      "
+    `);
+  });
+
+  it("filters noise to the share of the band below the cutoff", () => {
+    // A low-pass keeps the area under |H|² of white noise's 24 kHz band, about
+    // 1.11 × cutoff for a two-pole Butterworth, as
+    // [Noise](../../../docs/concepts/noise.md) derives. A 1200 Hz cutoff keeps
+    // 1333 Hz of the band, 12.6 dB below the open -22.9 dB, at -35.5 dB, and a
+    // 50 ms window varies by about 0.5 dB.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    synth.setPatch({
+      layers: [
+        {
+          ...createGateLayer({
+            filter: { cutoff: 1200, resonance: Math.SQRT1_2 },
+          }),
+          oscillator: { waveform: "noise", octave: 0, detune: 0 },
+        },
+      ],
+    });
+    const samples = renderSynth(synth, {
+      seconds: 0.1,
+      at: { 0: () => synth.noteOn(60, FULL_VELOCITY) },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -36.0 dB  ████████████████████████
+       50 ms  -35.7 dB  ████████████████████████
+      "
     `);
   });
 

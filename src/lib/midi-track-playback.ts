@@ -1,5 +1,6 @@
 import type { Automation, Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import {
   convertToTimelineAutomation,
   convertToTimelineNotes,
@@ -24,11 +25,13 @@ export class MidiTrackPlayback implements TransportParticipant {
   static async create({
     transport,
     output,
+    reverb,
     track,
     tempo,
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
+    reverb: AudioNode;
     track: MidiTrackState;
     tempo: number;
   }): Promise<MidiTrackPlayback> {
@@ -40,7 +43,14 @@ export class MidiTrackPlayback implements TransportParticipant {
         synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
       }
       synth.setPreset(track).catch(ignoreLoadFailure);
-      return new MidiTrackPlayback({ transport, output, track, tempo, synth });
+      return new MidiTrackPlayback({
+        transport,
+        output,
+        reverb,
+        track,
+        tempo,
+        synth,
+      });
     } catch (error) {
       synth.dispose();
       throw error;
@@ -50,12 +60,14 @@ export class MidiTrackPlayback implements TransportParticipant {
   private constructor({
     transport,
     output,
+    reverb,
     track,
     tempo,
     synth,
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
+    reverb: AudioNode;
     track: MidiTrackState;
     tempo: number;
     synth: MidiSynthWorkletNode;
@@ -64,10 +76,12 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.channel = new AudioChannel({
       context: transport.context,
       output,
+      reverb,
       amp: track.amp,
       eq: track.eq,
       gain: 0,
       pan: track.pan,
+      reverbSend: track.reverbSend,
     });
     synth.output.connect(this.channel.input);
     this.tempo = tempo;
@@ -101,12 +115,12 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.synth.setPreset(preset).catch(ignoreLoadFailure);
   }
 
-  noteOn(pitch: number): void {
-    this.synth.noteOn(pitch);
+  playMessage(message: MidiMessage): void {
+    this.synth.playMessage(message);
   }
 
-  noteOff(pitch: number): void {
-    this.synth.noteOff(pitch);
+  reset(): void {
+    this.synth.reset();
   }
 
   start(): void {

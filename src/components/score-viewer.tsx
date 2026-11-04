@@ -17,6 +17,7 @@ import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { formatTimeCompact } from "../lib/time-format";
 import { formatBarBeat } from "../lib/timeline";
 import { FileDropInput, openFilePicker } from "./file-drop-input";
+import { Panel } from "./panel";
 import { ScoreSettings } from "./score-settings";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
@@ -34,7 +35,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { FloatingPanel } from "./ui/floating-panel";
 import { cn } from "./ui/utils";
 import { useDraftInput } from "./use-draft-input";
 import { useWindowEvent } from "./use-window-event";
@@ -319,14 +319,16 @@ export function ScoreViewer({
         className="min-h-0 flex-1"
       />
       {isSettingsOpen && (
-        <FloatingPanel
+        <Panel
           closeLabel="Close Score Settings"
           onClose={() => setIsSettingsOpen(false)}
           title="Score settings"
           data-testid="score-settings-panel"
+          contentClassName="px-3 py-2"
+          className="fixed right-4 bottom-4 z-40 max-w-[calc(100vw-2rem)]"
         >
           <ScoreSettings settings={settings} onChange={changeSettings} />
-        </FloatingPanel>
+        </Panel>
       )}
     </main>
   );

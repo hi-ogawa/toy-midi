@@ -3,6 +3,7 @@ import { EditorPage } from "./components/editor-page";
 import { ExamplesPage } from "./components/examples-page";
 import { HomePage } from "./components/home-page";
 import { LatencyCheckerPage } from "./components/latency-checker-page";
+import { MidiKeyboardPage } from "./components/midi-keyboard-page";
 import { PreviewPage } from "./components/preview-page";
 import { ProjectScorePage } from "./components/project-score-page";
 import { RouteError } from "./components/route-error";
@@ -38,6 +39,9 @@ export function App() {
     }
     case "latencyChecker": {
       return <LatencyCheckerPage />;
+    }
+    case "midiKeyboard": {
+      return <MidiKeyboardPage />;
     }
     case "scoreViewer": {
       return <ScoreViewerPage />;

@@ -5,7 +5,7 @@ import {
   PlusIcon,
   XIcon,
 } from "lucide-react";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { BUTTERWORTH_Q, EQ_LIMITS } from "../lib/dsp/biquad-eq";
 import type { Envelope } from "../lib/dsp/envelope";
 import {
@@ -33,6 +33,7 @@ import { PanelResizeHandle, usePanelResize } from "./panel-resize";
 import { Knob } from "./ui/knob";
 import { Tooltip } from "./ui/tooltip";
 import { usePointerDrag } from "./use-pointer-drag";
+import { useSetState } from "./use-set-state";
 import { WaveformIcon } from "./waveform-icon";
 
 const MIN_OCTAVE = -3;
@@ -57,20 +58,11 @@ const WAVEFORM_LABELS: Record<Waveform, string> = {
   triangle: "Triangle",
   sawtooth: "Saw",
   square: "Square",
+  noise: "Noise",
 };
 
 export function useSynthPanelUi() {
-  const [openTracks, setOpenTracks] = useState<ReadonlySet<string>>(new Set());
-  function open(id: string) {
-    setOpenTracks((current) => new Set([...current, id]));
-  }
-  function close(id: string) {
-    setOpenTracks((current) => {
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
+  const [openTracks, { add: open, remove: close }] = useSetState<string>();
   return { openTracks, open, close };
 }
 
@@ -97,7 +89,7 @@ export function SynthPanel({
       onClose={onClose}
       data-testid="synth-panel"
       className="pointer-events-auto relative flex max-h-[calc(100vh-48px)] shrink-0 flex-col"
-      contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
+      contentClassName="min-h-0 flex-1 overflow-auto px-3 py-2"
       style={size}
     >
       <PanelResizeHandle
@@ -116,7 +108,7 @@ export function SynthPanelContent({
   patch: SynthPatch;
   onChange: (patch: SynthPatch) => void;
 }) {
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const [collapsed, { toggle: toggleLayer }] = useSetState<string>();
 
   function updateLayer(layer: SynthLayer) {
     onChange({
@@ -135,16 +127,6 @@ export function SynthPanelContent({
     onChange({
       ...patch,
       layers: patch.layers.filter((layer) => layer.id !== id),
-    });
-  }
-
-  function toggleLayer(id: string) {
-    setCollapsed((current) => {
-      const next = new Set(current);
-      if (!next.delete(id)) {
-        next.add(id);
-      }
-      return next;
     });
   }
 
@@ -214,19 +196,7 @@ function SynthLayerRow({
   onRemove: () => void;
 }) {
   const { envelope } = layer.amp;
-  const [foldedSections, setFoldedSections] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
-
-  function toggleSection(section: string) {
-    setFoldedSections((current) => {
-      const next = new Set(current);
-      if (!next.delete(section)) {
-        next.add(section);
-      }
-      return next;
-    });
-  }
+  const [foldedSections, { toggle: toggleSection }] = useSetState<string>();
 
   function updateEnvelope(update: Partial<Envelope>) {
     onChange({
@@ -304,7 +274,7 @@ function SynthLayerRow({
                         oscillator: { ...layer.oscillator, waveform: option },
                       })
                     }
-                    className="flex h-6 items-center justify-center bg-neutral-900 px-1.5 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                    className="flex h-6 items-center justify-center bg-neutral-900 px-1 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
                   >
                     <WaveformIcon waveform={option} />
                   </button>
@@ -799,7 +769,7 @@ function GainKnob({
   });
   const valueText = `${db.toFixed(1)} dB`;
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       <Knob
         ref={ref}
         aria-label={label}
@@ -825,7 +795,7 @@ function GainKnob({
         origin={0}
         className="cursor-ns-resize"
       />
-      <span className="w-14 font-mono text-xs text-muted-foreground tabular-nums">
+      <span className="mr-1 w-[8ch] font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
         {valueText}
       </span>
     </div>

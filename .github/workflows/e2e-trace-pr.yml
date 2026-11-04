@@ -3,21 +3,20 @@ run-name: "E2E trace for PR #${{ github.event.pull_request.number }} · changed 
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, labeled]
+    types: [opened, reopened, synchronize]
+    paths:
+      - "e2e/**/*.spec.ts"
 
 permissions:
   contents: read
 
 concurrency:
-  group: e2e-trace-pr-${{ (github.event.action != 'labeled' || github.event.label.name == 'e2e-trace') && github.event.pull_request.number || github.run_id }}
+  group: e2e-trace-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   select:
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(github.event.pull_request.labels.*.name, 'e2e-trace') &&
-      (github.event.action != 'labeled' || github.event.label.name == 'e2e-trace')
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     outputs:
       tests: ${{ steps.selection.outputs.tests }}

@@ -1,4 +1,8 @@
-import { PITCH_BEND_RANGE, PITCH_WHEEL_CENTER } from "../general-midi.ts";
+import {
+  MODULATION_CONTROLLER,
+  PITCH_BEND_RANGE,
+  PITCH_WHEEL_CENTER,
+} from "../general-midi.ts";
 import type { SynthEngine } from "../midi-synth-worklet.ts";
 import { clamp, dbToGain, midiToHz } from "../music.ts";
 import { BiquadEqPerSample, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
@@ -9,7 +13,13 @@ import {
   EnvelopeState,
 } from "./envelope.ts";
 
-export const WAVEFORMS = ["sine", "triangle", "sawtooth", "square"] as const;
+export const WAVEFORMS = [
+  "sine",
+  "triangle",
+  "sawtooth",
+  "square",
+  "noise",
+] as const;
 export type Waveform = (typeof WAVEFORMS)[number];
 
 export const VOICE_MODES = ["poly", "mono"] as const;
@@ -36,6 +46,7 @@ export interface SynthLayer {
    */
   id: string;
   oscillator: {
+    /** Noise has no pitch, so it ignores `octave` and `detune`. */
     waveform: Waveform;
     /** Whole octaves from the note */
     octave: number;
@@ -127,7 +138,6 @@ interface ResolvedLayer {
 type ResolvedFilter = Omit<SynthLayer["filter"], "envelope"> &
   Pick<SynthLayer["filter"]["envelope"], "amount" | "velocity">;
 
-const MODULATION_CONTROLLER = 1;
 const VOLUME_CONTROLLER = 7;
 const EXPRESSION_CONTROLLER = 11;
 const RESONANCE_CONTROLLER = 71;
@@ -208,6 +218,11 @@ export class SubtractiveSynth implements SynthEngine {
   private readonly vibratoPhaseIncrement: number;
   /** Hz, kept below Nyquist */
   private readonly maxCutoff: number;
+  /**
+   * One stream for every noise layer of every note, so notes and layers that
+   * sound together draw different noise and add in power
+   */
+  private readonly noise = new WhiteNoise();
 
   constructor(private readonly sampleRate: number) {
     this.channelGainStep = 1 / (RAMP_SECONDS * sampleRate);
@@ -322,7 +337,11 @@ export class SubtractiveSynth implements SynthEngine {
             const filterLevel = state.filterEnvelope.advance(
               layer.filterEnvelope,
             );
-            let sample = layer.oscillate(state.phase, phaseIncrement);
+            let sample = layer.oscillate(
+              state.phase,
+              phaseIncrement,
+              this.noise,
+            );
             // CC74 can close an open layer's filter, but not open it further.
             if (!shouldSkipFilter(layer.filter) || this.cutoffScale < 1) {
               const cutoff = clamp(
@@ -537,7 +556,11 @@ function computeChannelGain(volume: number, expression: number): number {
 }
 
 /** Takes the phase and the phase increment in cycles, with a peak of 1. */
-type Oscillator = (phase: number, increment: number) => number;
+type Oscillator = (
+  phase: number,
+  increment: number,
+  noise: WhiteNoise,
+) => number;
 
 const OSCILLATORS: Record<Waveform, Oscillator> = {
   sine: (phase) => Math.sin(2 * Math.PI * phase),
@@ -551,7 +574,27 @@ const OSCILLATORS: Record<Waveform, Oscillator> = {
     (phase < 0.5 ? 1 : -1) +
     2 * computePolyBlep(phase, increment) -
     2 * computePolyBlep((phase + 0.5) % 1, increment),
+  // Uniform in [-1, 1), so its RMS is the peak over √3, as a sawtooth's is.
+  noise: (_phase, _increment, noise) => noise.next(),
 };
+
+/**
+ * Xorshift32, a few integer operations per sample. Its period of 2^32 − 1
+ * samples lasts over a day, and the ear can't tell it from true white noise.
+ * A fixed seed makes offline renders of the same project match.
+ */
+class WhiteNoise {
+  private state = 0x9e3779b9;
+
+  next(): number {
+    let x = this.state;
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    this.state = x;
+    return (x >>> 0) / 2 ** 31 - 1;
+  }
+}
 
 /**
  * PolyBLEP residual for a unit step at phase 0, which rounds the jump over

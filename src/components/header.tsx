@@ -6,20 +6,22 @@ import {
   CircleStopIcon,
   DownloadIcon,
   HouseIcon,
+  KeyboardMusicIcon,
   LinkIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
   MicIcon,
   MoreVerticalIcon,
+  NotebookPenIcon,
   PauseIcon,
+  PianoIcon,
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
-  VideoIcon,
   SlidersVerticalIcon,
-  NotebookPenIcon,
+  VideoIcon,
+  Volume2Icon,
 } from "lucide-react";
-import { formatGainDb } from "../lib/music";
 import { PLAYBACK_RATES } from "../lib/playback-rate";
 import { routes } from "../lib/routes";
 import type { EditorRuntime, LoopState, PunchState } from "../lib/runtime";
@@ -33,7 +35,7 @@ import {
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../types";
 import type { EditorFlags } from "./flags";
 import { MetronomeIcon } from "./icons";
-import { GainSlider } from "./mixer";
+import { GainKnob } from "./mixer";
 import { RangeControl } from "./range-control";
 import { Button } from "./ui/button";
 import {
@@ -94,6 +96,9 @@ export function Header({
   inputPanelOpen,
   inputAccessRequired,
   onInputPanelToggle,
+  midiDeviceSupported,
+  onMidiDeviceOpen,
+  onMidiKeyboardToggle,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
   title?: string;
@@ -138,6 +143,9 @@ export function Header({
   inputPanelOpen: boolean;
   inputAccessRequired: boolean;
   onInputPanelToggle: () => void;
+  midiDeviceSupported: boolean;
+  onMidiDeviceOpen: () => void;
+  onMidiKeyboardToggle: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -334,19 +342,14 @@ export function Header({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="h-5 w-px bg-neutral-600" />
-      <label className="flex items-center gap-2 text-[10px] text-neutral-400">
-        <span className="font-medium uppercase tracking-wide">Master</span>
-        <GainSlider
-          data-testid="master-gain"
+      <div className="flex items-center gap-1 text-neutral-400">
+        <Volume2Icon className="size-4" />
+        <GainKnob
           label="Master gain"
           gain={masterGain}
           onGainChange={onMasterGainChange}
-          className="w-24"
         />
-        <span className="w-12 text-right font-mono">
-          {formatGainDb(masterGain)}
-        </span>
-      </label>
+      </div>
       <div className="flex-1" />
       {draft ? (
         <DraftControls ready={title !== undefined} onSave={onSave} />
@@ -439,6 +442,17 @@ export function Header({
             <NotebookPenIcon />
             Project Comment
           </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={!midiDeviceSupported}
+            onSelect={onMidiDeviceOpen}
+          >
+            <KeyboardMusicIcon />
+            MIDI Device
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onMidiKeyboardToggle}>
+            <PianoIcon />
+            MIDI Keyboard
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={flags.isRecording}
@@ -528,34 +542,31 @@ function DraftControls({
 }) {
   const label = "Save to your projects (Ctrl/Cmd+S)";
   return (
-    <>
+    <div className="group/save relative">
+      <Button
+        data-testid="save-draft-button"
+        aria-label={label}
+        aria-describedby="save-tooltip"
+        disabled={!ready}
+        onClick={onSave}
+        className="size-8 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+      >
+        <SaveIcon className="size-4" />
+      </Button>
       <span
         data-testid="draft-badge"
-        title="Not in your projects yet. Save to keep it."
-        className="rounded border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-emerald-200 uppercase"
+        role="img"
+        aria-label="Draft: not in your projects yet"
+        className="pointer-events-none absolute top-1 right-1 size-1.5 rounded-full bg-emerald-400"
+      />
+      <span
+        id="save-tooltip"
+        role="tooltip"
+        className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
       >
-        Draft
+        {label}
       </span>
-      <div className="group/save relative">
-        <Button
-          data-testid="save-draft-button"
-          aria-label={label}
-          aria-describedby="save-tooltip"
-          disabled={!ready}
-          onClick={onSave}
-          className="size-8 border-transparent bg-transparent text-neutral-300 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          <SaveIcon className="size-4" />
-        </Button>
-        <span
-          id="save-tooltip"
-          role="tooltip"
-          className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
-        >
-          {label}
-        </span>
-      </div>
-    </>
+    </div>
   );
 }
 

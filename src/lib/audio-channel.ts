@@ -9,6 +9,7 @@ export class AudioChannel {
   readonly input: GainNode;
   private readonly gain: GainNode;
   private readonly panner: StereoPannerNode;
+  private readonly reverbSend: GainNode;
   private readonly amp: AmpNode;
   private readonly equalizer: BiquadEqWorkletNode;
   private analyser?: StereoAnalyser;
@@ -16,17 +17,22 @@ export class AudioChannel {
   constructor({
     context,
     output,
+    reverb,
     amp,
     eq,
     gain,
     pan,
+    reverbSend,
   }: {
     context: BaseAudioContext;
     output: AudioNode;
+    /** The shared reverb, which the send feeds */
+    reverb: AudioNode;
     amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
+    reverbSend: number;
   }) {
     this.amp = new AmpNode({ context, parameters: amp });
     this.input = this.amp.input;
@@ -44,6 +50,13 @@ export class AudioChannel {
       .connect(this.gain)
       .connect(this.panner)
       .connect(output);
+    // The send taps after the fader, so the track's gain, mute, and solo apply
+    // to its reverb. It taps before the pan, because the reverb takes a mono
+    // input by design, as it models a room's late reverberation, which
+    // arrives from every direction wherever the source is.
+    this.reverbSend = context.createGain();
+    this.reverbSend.gain.value = reverbSend;
+    this.gain.connect(this.reverbSend).connect(reverb);
   }
 
   setAmp(amp: AmpParameters | undefined): void {
@@ -60,6 +73,14 @@ export class AudioChannel {
 
   setPan(pan: number): void {
     this.panner.pan.setTargetAtTime(pan, this.panner.context.currentTime, 0.01);
+  }
+
+  setReverbSend(reverbSend: number): void {
+    this.reverbSend.gain.setTargetAtTime(
+      reverbSend,
+      this.reverbSend.context.currentTime,
+      0.01,
+    );
   }
 
   /**
@@ -80,5 +101,6 @@ export class AudioChannel {
     this.equalizer.dispose();
     this.gain.disconnect();
     this.panner.disconnect();
+    this.reverbSend.disconnect();
   }
 }

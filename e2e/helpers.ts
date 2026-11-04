@@ -1,5 +1,13 @@
 import path from "node:path";
-import { test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import type { MidiMessage } from "../src/lib/general-midi";
+import { encodeMidiMessage } from "../src/lib/midi-device";
+
+declare global {
+  interface Window {
+    __e2eSentMidi: number[][];
+  }
+}
 
 /** Call at file scope to enable a fake microphone for this test file. */
 export function useFakeAudioInput({
@@ -21,6 +29,103 @@ export function useFakeAudioInput({
       ],
     },
   });
+}
+
+/** Playwright has no virtual MIDI device, so this replaces the browser's access. */
+export async function installFakeMidiDevice(page: Page) {
+  await page.addInitScript(() => {
+    const setConnection = async (connection: string) => {
+      input.connection = connection;
+      access.dispatchEvent(new Event("statechange"));
+      return input;
+    };
+    const input = Object.assign(new EventTarget(), {
+      id: "fake-keyboard",
+      name: "Fake Keyboard",
+      state: "connected",
+      connection: "closed",
+      open: () => setConnection("open"),
+      close: () => setConnection("closed"),
+    });
+    const access = Object.assign(new EventTarget(), {
+      inputs: new Map([[input.id, input]]),
+    });
+    navigator.requestMIDIAccess = async () => access as unknown as MIDIAccess;
+  });
+  return {
+    send: (message: MidiMessage) => {
+      return page.evaluate(async (bytes) => {
+        const access = await navigator.requestMIDIAccess();
+        const input = access.inputs.get("fake-keyboard")!;
+        if (input.connection === "open") {
+          input.dispatchEvent(
+            Object.assign(new Event("midimessage"), {
+              data: new Uint8Array(bytes),
+            }),
+          );
+        }
+      }, encodeMidiMessage(message));
+    },
+  };
+}
+
+/** Replaces the browser's access with one output that records what it is sent. */
+export async function installFakeMidiOutput(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    window.__e2eSentMidi = [];
+    const output = {
+      id: "fake-output",
+      name: "Fake Output",
+      state: "connected",
+      send: (bytes: number[]) => window.__e2eSentMidi.push(bytes),
+    };
+    navigator.requestMIDIAccess = async () =>
+      ({
+        outputs: new Map([[output.id, output]]),
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }) as unknown as MIDIAccess;
+  });
+}
+
+/**
+ * Connect an analyser to the master output, which is the mix the speakers play,
+ * and return checks that wait for it to sound or to fall silent.
+ */
+export async function tapMasterOutput(page: Page) {
+  await page.waitForFunction(() => window.toyMidi.runtime);
+  const analyser = await page.evaluateHandle(() => {
+    const { masterOutput } = window.toyMidi.runtime!;
+    const analyser = masterOutput.context.createAnalyser();
+    masterOutput.connect(analyser);
+    return analyser;
+  });
+  const getPeak = () =>
+    analyser.evaluate((analyser) => {
+      const samples = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(samples);
+      return Math.max(...samples.map(Math.abs));
+    });
+  return {
+    async expectSound(): Promise<void> {
+      await test.step(
+        "Expect sound",
+        async () => {
+          await expect.poll(getPeak).toBeGreaterThan(0.001);
+        },
+        { box: true },
+      );
+    },
+    async expectSilence(): Promise<void> {
+      await test.step(
+        "Expect silence",
+        async () => {
+          await expect.poll(getPeak).toBe(0);
+        },
+        { box: true },
+      );
+    },
+  };
 }
 
 /** Log elapsed checkpoints while investigating E2E timing. */
