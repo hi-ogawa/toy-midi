@@ -475,7 +475,7 @@ function WorkflowSection({
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            "grid size-control-sm shrink-0 place-items-center rounded-full font-mono text-xs font-semibold",
+            "grid size-6 shrink-0 place-items-center rounded-full font-mono text-xs font-semibold",
             state === "disabled"
               ? "bg-neutral-700 text-neutral-400"
               : state === "complete"

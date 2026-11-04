@@ -912,7 +912,7 @@ function EditorInitError({ error }: { error: Error }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-3 text-neutral-100"
     >
       <div className="flex w-full max-w-md flex-col items-center gap-3 rounded-lg border border-neutral-700 bg-neutral-800 p-4 text-center shadow-2xl">
-        <Mic2Icon className="size-control-sm text-emerald-400" />
+        <Mic2Icon className="size-6 text-emerald-400" />
         <div className="flex flex-col gap-1">
           <h1 id="init-error-title" className="text-lg font-medium">
             Could not open this project

@@ -107,14 +107,14 @@ function UsageSummary({ usage }: { usage: BrowserStorageUsage }) {
   switch (usage.status) {
     case "checking": {
       return (
-        <p className="flex h-control items-center text-neutral-400">
+        <p className="flex h-7 items-center text-neutral-400">
           Checking storage usage…
         </p>
       );
     }
     case "ready": {
       return (
-        <p className="flex h-control items-baseline gap-2">
+        <p className="flex h-7 items-baseline gap-2">
           <span className="text-2xl font-medium text-neutral-100 tabular-nums">
             {formatStorageBytes(usage.bytes)}
           </span>
@@ -124,7 +124,7 @@ function UsageSummary({ usage }: { usage: BrowserStorageUsage }) {
     }
     case "unavailable": {
       return (
-        <p className="flex h-control items-center text-neutral-400">
+        <p className="flex h-7 items-center text-neutral-400">
           Storage usage unavailable
         </p>
       );
