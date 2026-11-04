@@ -256,7 +256,7 @@ export function Header({
             data-testid="playback-rate"
             title="Playback speed (< slower / > faster)"
             disabled={flags.isRecording}
-            className="h-control gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800"
+            className="h-control gap-1 border-neutral-600 bg-neutral-900 pl-1.5 pr-1 font-mono text-xs hover:bg-neutral-800"
           >
             {playbackRate}x
             <ChevronDownIcon className="size-3 text-neutral-400" />
@@ -295,7 +295,7 @@ export function Header({
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-control gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800">
+          <Button className="h-control gap-1 border-neutral-600 bg-neutral-900 pl-1.5 pr-1 font-mono text-xs hover:bg-neutral-800">
             {timeSignatureValue}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
@@ -320,7 +320,7 @@ export function Header({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            className="h-control gap-1 border-neutral-600 bg-neutral-900 px-1.5 font-mono text-xs hover:bg-neutral-800"
+            className="h-control gap-1 border-neutral-600 bg-neutral-900 pl-1.5 pr-1 font-mono text-xs hover:bg-neutral-800"
           >
             {gridDivision}
             <ChevronDownIcon className="size-3 text-neutral-400" />
