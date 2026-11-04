@@ -30,8 +30,10 @@
 }
 
 /*
- * Control heights shared across the app, usable with any size utility, such as
- * `h-control` and `size-control-sm`.
+ * Control heights shared across the app. Use `h-*` for controls whose width
+ * comes from their text or layout, and for rows and slots sized to the control
+ * they hold. Use `size-*` for icon buttons. Anything else uses numeric steps,
+ * even at the same size.
  */
 @theme {
   --spacing-control: 1.75rem;
