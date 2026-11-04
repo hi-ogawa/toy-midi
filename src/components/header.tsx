@@ -524,10 +524,15 @@ function PlaybackPosition({
       data-testid="position"
       data-position={position}
       data-beat={secondsToBeats(position, tempo)}
-      className="font-mono text-sm whitespace-nowrap tabular-nums text-neutral-300"
+      className="flex h-control items-center gap-2 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-sm whitespace-nowrap tabular-nums text-neutral-300"
     >
-      {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
-      {formatTimeWithMilliseconds(position)}
+      <span>
+        {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })}
+      </span>{" "}
+      <span className="h-3.5 w-px bg-neutral-600" />
+      <span className="text-neutral-400">
+        {formatTimeWithMilliseconds(position)}
+      </span>
     </output>
   );
 }
