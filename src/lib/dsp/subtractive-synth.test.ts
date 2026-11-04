@@ -196,6 +196,7 @@ describe(SubtractiveSynth, () => {
     // 50 ms window varies by about 0.5 dB.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     synth.setPatch({
+      ...DEFAULT_SYNTH_VOICE,
       layers: [
         {
           ...createGateLayer({
