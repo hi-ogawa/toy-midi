@@ -491,35 +491,72 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(samples)).toBeCloseTo((1.5 * PEAK) / Math.SQRT2, 3);
   });
 
-  it("silences a layer that a patch change mutes", () => {
-    // Muting one of two layers drops the held note by 6 dB, and the note
-    // still ends at note-off.
+  it("mutes and unmutes a layer during a held note", () => {
+    // A layer that starts the note muted comes in as soon as it is unmuted,
+    // 6 dB up, and drops out again when it is muted.
     const synth = new SubtractiveSynth(SAMPLE_RATE);
     const kept = createGateLayer();
-    const muted = createGateLayer();
-    synth.setPatch({ ...DEFAULT_SYNTH_VOICE, layers: [kept, muted] });
+    const toggled = createGateLayer();
+    const setMuted = (muted: boolean) =>
+      synth.setPatch({
+        ...DEFAULT_SYNTH_VOICE,
+        layers: [kept, { ...toggled, muted }],
+      });
+    setMuted(true);
     const samples = renderSynth(synth, {
-      seconds: 0.3,
+      seconds: 0.4,
       at: {
         0: () => synth.noteOn(A4, FULL_VELOCITY),
-        0.1: () =>
-          synth.setPatch({
-            ...DEFAULT_SYNTH_VOICE,
-            layers: [kept, { ...muted, muted: true }],
-          }),
-        0.2: () => synth.noteOff(A4),
+        0.1: () => setMuted(false),
+        0.2: () => setMuted(true),
+        0.3: () => synth.noteOff(A4),
       },
     });
     expect(describeLevels(samples)).toMatchInlineSnapshot(`
       "
-        0 ms  -15.1 dB  █████████████████████████████████████████████
-       50 ms  -15.1 dB  █████████████████████████████████████████████
-      100 ms  -21.1 dB  ███████████████████████████████████████
-      150 ms  -21.1 dB  ███████████████████████████████████████
-      200 ms   -inf dB
-      250 ms   -inf dB
+        0 ms  -21.1 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -15.1 dB  █████████████████████████████████████████████
+      150 ms  -15.1 dB  █████████████████████████████████████████████
+      200 ms  -21.1 dB  ███████████████████████████████████████
+      250 ms  -21.1 dB  ███████████████████████████████████████
+      300 ms   -inf dB
+      350 ms   -inf dB
       "
     `);
+  });
+
+  it("unmutes a layer where its envelope is in the note", () => {
+    // Muting a decaying layer and unmuting it later sounds the same from
+    // then on as never muting it.
+    const layer = {
+      ...createSynthLayer(),
+      amp: {
+        envelope: { attack: 0, decay: 0.2, sustain: 0, release: 0 },
+      },
+    };
+    const render = (toggle: boolean) => {
+      const synth = new SubtractiveSynth(SAMPLE_RATE);
+      const setMuted = (muted: boolean) =>
+        synth.setPatch({
+          ...DEFAULT_SYNTH_VOICE,
+          layers: [{ ...layer, muted }],
+        });
+      setMuted(false);
+      const noteOn = () => synth.noteOn(A4, FULL_VELOCITY);
+      return renderSynth(synth, {
+        seconds: 0.2,
+        at: toggle
+          ? {
+              0: noteOn,
+              0.05: () => setMuted(true),
+              0.1: () => setMuted(false),
+            }
+          : { 0: noteOn },
+      });
+    };
+    const start = 0.1 * SAMPLE_RATE;
+    expect(render(true).subarray(start)).toEqual(render(false).subarray(start));
   });
 
   it("pans each layer at constant power", () => {

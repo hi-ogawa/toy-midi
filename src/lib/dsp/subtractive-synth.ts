@@ -483,30 +483,29 @@ class MonoVoiceAllocator {
   }
 }
 
-// A muted layer is left out rather than skipped while rendering, so a voice
-// ends once its sounding layers do.
 function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
-  return patch.layers
-    .filter((layer) => !layer.muted)
-    .map((layer) => {
-      const pan = computePanGains(layer.pan);
-      const { envelope, ...filter } = layer.filter;
-      return {
-        id: layer.id,
-        oscillate: OSCILLATORS[layer.oscillator.waveform],
-        frequencyRatio:
-          2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
-        leftGain: layer.gain * pan.left,
-        rightGain: layer.gain * pan.right,
-        filter: {
-          ...filter,
-          amount: envelope.amount,
-          velocity: envelope.velocity,
-        },
-        filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
-        ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
-      };
-    });
+  return patch.layers.map((layer) => {
+    const pan = computePanGains(layer.pan);
+    // A muted layer keeps rendering at zero gain, so its envelopes follow the
+    // note and it comes back where the note is.
+    const gain = layer.muted ? 0 : layer.gain;
+    const { envelope, ...filter } = layer.filter;
+    return {
+      id: layer.id,
+      oscillate: OSCILLATORS[layer.oscillator.waveform],
+      frequencyRatio:
+        2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
+      leftGain: gain * pan.left,
+      rightGain: gain * pan.right,
+      filter: {
+        ...filter,
+        amount: envelope.amount,
+        velocity: envelope.velocity,
+      },
+      filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
+      ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
+    };
+  });
 }
 
 /**
