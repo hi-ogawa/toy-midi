@@ -285,7 +285,12 @@ export function EffectsContent({
       </div>
 
       {selectedBand && (
-        <div className="shrink-0 space-y-3 border-t border-neutral-700 pt-3">
+        // Keyed so a late blur from the previous band's input can't commit
+        // its draft to the newly selected band.
+        <div
+          key={selectedBand.id}
+          className="shrink-0 space-y-3 border-t border-neutral-700 pt-3"
+        >
           <div className="flex items-center gap-2">
             <span
               className="size-2.5 rounded-full"

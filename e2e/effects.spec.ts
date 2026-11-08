@@ -137,6 +137,28 @@ test("switches a band between peaking, low-pass, and high-pass", async ({
   await expect(gain).toHaveValue("6");
 });
 
+test("keeps each band's values when switching bands on the graph", async ({
+  page,
+}) => {
+  // Add a second band at 3000 Hz to Audio 1's EQ.
+  await createProject(page);
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  const panel = page.getByTestId("effects-panel");
+  const frequency = panel.getByRole("textbox", { name: "Frequency" });
+  await panel.getByRole("button", { name: "Add band" }).click();
+  await frequency.fill("3000");
+  await frequency.press("Enter");
+
+  // Focus band 2's frequency, then press band 1's handle on the graph.
+  await frequency.focus();
+  await panel.getByRole("button", { name: "Select and edit band 1" }).click();
+
+  // Band 1 shows its own frequency, and band 2 keeps its frequency.
+  await expect(frequency).toHaveValue("1000");
+  await panel.getByRole("button", { name: "Select band 2" }).click();
+  await expect(frequency).toHaveValue("3000");
+});
+
 test("keeps the mixer usable with many effects panels open", async ({
   page,
 }) => {
