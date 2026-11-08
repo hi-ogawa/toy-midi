@@ -22,6 +22,9 @@ jobs:
       - run: pnpm build-wasm
       - run: pnpm lint-check
       - run: pnpm test
+      - run: pnpm fetch-soundfonts
+        env:
+          GH_TOKEN: ${{ github.token }}
       - run: pnpm build
       - run: pnpm -C packages/webmcp-bridge build-extension
         env:
@@ -51,6 +54,9 @@ jobs:
       - run: pnpm i
       - run: pnpm build-wasm
       - run: .github/scripts/install-ffmpeg.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: pnpm fetch-soundfonts
         env:
           GH_TOKEN: ${{ github.token }}
       - run: pnpm exec playwright install chromium --with-deps --no-shell
