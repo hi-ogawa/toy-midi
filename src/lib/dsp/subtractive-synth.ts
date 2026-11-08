@@ -248,6 +248,25 @@ export class SubtractiveSynth implements SynthEngine {
     this.releasePolyNote(pitch);
   }
 
+  private startVoice(pitch: number, velocity: number): Voice {
+    const voice = createVoice({
+      pitch,
+      velocity,
+      layers: this.layers,
+      sampleRate: this.sampleRate,
+    });
+    this.voices.push(voice);
+    return voice;
+  }
+
+  private releasePolyNote(pitch: number): void {
+    for (const voice of this.voices) {
+      if (voice.pitch === pitch) {
+        releaseVoice(voice);
+      }
+    }
+  }
+
   controller(controller: number, value: number): void {
     switch (controller) {
       case MODULATION_CONTROLLER: {
@@ -381,25 +400,6 @@ export class SubtractiveSynth implements SynthEngine {
       releaseVoice(voice);
     }
     this.mono.reset();
-  }
-
-  private releasePolyNote(pitch: number): void {
-    for (const voice of this.voices) {
-      if (voice.pitch === pitch) {
-        releaseVoice(voice);
-      }
-    }
-  }
-
-  private startVoice(pitch: number, velocity: number): Voice {
-    const voice = createVoice({
-      pitch,
-      velocity,
-      layers: this.layers,
-      sampleRate: this.sampleRate,
-    });
-    this.voices.push(voice);
-    return voice;
   }
 }
 
