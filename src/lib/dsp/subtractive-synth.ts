@@ -237,7 +237,7 @@ export class SubtractiveSynth implements SynthEngine {
       if (!this.mono.noteOn(pitch)) {
         const voice = this.createVoice(pitch, velocity);
         this.voices.push(voice);
-        this.mono.attach(voice);
+        this.mono.voice = voice;
       }
       return;
     }
@@ -427,8 +427,11 @@ export class SubtractiveSynth implements SynthEngine {
 class MonoVoiceAllocator {
   /** Latest last */
   private heldNotes: number[] = [];
-  /** Sounding while any note is held */
-  private voice?: Voice;
+  /**
+   * Sounding while any note is held. The synth sets it for a note-on that
+   * returns false.
+   */
+  voice?: Voice;
   /**
    * Set when the last held note ends. The release waits for the next render,
    * so a note-on on the same frame continues the phrase instead.
@@ -452,11 +455,6 @@ class MonoVoiceAllocator {
     }
     this.glideVoice(pitch);
     return true;
-  }
-
-  /** Takes the voice started for a note-on that returned false. */
-  attach(voice: Voice): void {
-    this.voice = voice;
   }
 
   /** Glides back to the latest note still held, if any. */
