@@ -233,27 +233,11 @@ export class SubtractiveSynth implements SynthEngine {
 
   noteOn(pitch: number, velocity: number): void {
     if (this.voiceMode === "mono") {
-      this.mono.noteOn(pitch);
-      if (!this.mono.voice) {
-        this.mono.voice = createVoice({
-          pitch,
-          velocity,
-          layers: this.layers,
-          sampleRate: this.sampleRate,
-        });
-        this.voices.push(this.mono.voice);
-      }
+      this.mono.noteOn(pitch, () => this.startVoice(pitch, velocity));
       return;
     }
     this.releasePolyNote(pitch);
-    this.voices.push(
-      createVoice({
-        pitch,
-        velocity,
-        layers: this.layers,
-        sampleRate: this.sampleRate,
-      }),
-    );
+    this.startVoice(pitch, velocity);
   }
 
   noteOff(pitch: number): void {
@@ -406,6 +390,17 @@ export class SubtractiveSynth implements SynthEngine {
       }
     }
   }
+
+  private startVoice(pitch: number, velocity: number): Voice {
+    const voice = createVoice({
+      pitch,
+      velocity,
+      layers: this.layers,
+      sampleRate: this.sampleRate,
+    });
+    this.voices.push(voice);
+    return voice;
+  }
 }
 
 /**
@@ -416,11 +411,8 @@ export class SubtractiveSynth implements SynthEngine {
 class MonoVoiceAllocator {
   /** Latest last */
   private heldNotes: number[] = [];
-  /**
-   * Sounding while any note is held. The synth sets it when a note-on finds
-   * none.
-   */
-  voice?: Voice;
+  /** Sounding while any note is held */
+  private voice?: Voice;
   /**
    * Set when the last held note ends. The release waits for the next render,
    * so a note-on on the same frame continues the phrase instead.
@@ -434,14 +426,16 @@ class MonoVoiceAllocator {
     this.glideSamples = seconds * this.sampleRate;
   }
 
-  /** Glides the sounding voice, if any, to the note. */
-  noteOn(pitch: number): void {
+  /** Glides the sounding voice to the note, or starts one through `startVoice`. */
+  noteOn(pitch: number, startVoice: () => Voice): void {
     this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
     this.heldNotes.push(pitch);
     this.releasePending = false;
     if (this.voice) {
       this.glideVoice(pitch);
+      return;
     }
+    this.voice = startVoice();
   }
 
   /** Glides back to the latest note still held, if any. */
