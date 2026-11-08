@@ -566,7 +566,7 @@ describe(SubtractiveSynth, () => {
     // The first note decays to half level. A note starting on the frame the
     // first ends continues at that level, though its velocity is lower. A note
     // after a one-frame gap starts fresh from the peak at its own velocity.
-    const playPhrase = (gapSeconds: number) => {
+    const createMonoSynth = () => {
       const synth = new SubtractiveSynth(SAMPLE_RATE);
       synth.setPatch({
         ...DEFAULT_SYNTH_VOICE,
@@ -580,27 +580,23 @@ describe(SubtractiveSynth, () => {
           },
         ],
       });
-      const startSecondNote = () => synth.noteOn(A4 + 7, 64);
-      // The worklet sends a note-off and a note-on on the same frame with no
-      // render between them.
-      const at: Record<number, () => void> =
-        gapSeconds === 0
-          ? {
-              0.1: () => {
-                synth.noteOff(A4);
-                startSecondNote();
-              },
-            }
-          : {
-              0.1: () => synth.noteOff(A4),
-              [0.1 + gapSeconds]: startSecondNote,
-            };
-      return renderSynth(synth, {
-        seconds: 0.2,
-        at: { 0: () => synth.noteOn(A4, FULL_VELOCITY), ...at },
-      });
+      return synth;
     };
-    expect(describeLevels(playPhrase(0))).toMatchInlineSnapshot(`
+
+    // The worklet sends a note-off and a note-on on the same frame with no
+    // render between them.
+    const touching = createMonoSynth();
+    const touchingSamples = renderSynth(touching, {
+      seconds: 0.2,
+      at: {
+        0: () => touching.noteOn(A4, FULL_VELOCITY),
+        0.1: () => {
+          touching.noteOff(A4);
+          touching.noteOn(A4 + 7, 64);
+        },
+      },
+    });
+    expect(describeLevels(touchingSamples)).toMatchInlineSnapshot(`
       "
         0 ms  -26.1 dB  ██████████████████████████████████
        50 ms  -27.2 dB  █████████████████████████████████
@@ -608,7 +604,18 @@ describe(SubtractiveSynth, () => {
       150 ms  -27.2 dB  █████████████████████████████████
       "
     `);
-    expect(describeLevels(playPhrase(1 / SAMPLE_RATE))).toMatchInlineSnapshot(`
+
+    // One frame later, a render between them releases the voice first.
+    const gap = createMonoSynth();
+    const gapSamples = renderSynth(gap, {
+      seconds: 0.2,
+      at: {
+        0: () => gap.noteOn(A4, FULL_VELOCITY),
+        0.1: () => gap.noteOff(A4),
+        [0.1 + 1 / SAMPLE_RATE]: () => gap.noteOn(A4 + 7, 64),
+      },
+    });
+    expect(describeLevels(gapSamples)).toMatchInlineSnapshot(`
       "
         0 ms  -26.1 dB  ██████████████████████████████████
        50 ms  -27.2 dB  █████████████████████████████████
