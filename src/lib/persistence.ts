@@ -9,6 +9,7 @@ import {
 import type { EqParameters } from "./dsp/biquad-eq.ts";
 import {
   createSynthLayer,
+  DEFAULT_SYNTH_VOICE,
   type SynthLayer,
   type SynthPatch,
 } from "./dsp/subtractive-synth.ts";
@@ -81,6 +82,8 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
     title?: string;
     duration: number;
   };
+  // 🟢 Optional for projects saved before the armed track was saved.
+  armedTrackId?: string;
 }
 
 export interface SerializedMultibandEq extends Omit<
@@ -119,7 +122,13 @@ export interface SerializedMidiTrackState extends Omit<
   eq: SerializedMultibandEq;
 }
 
-interface SerializedSynthPatch extends Omit<SynthPatch, "layers"> {
+interface SerializedSynthPatch extends Omit<
+  SynthPatch,
+  "voice" | "glide" | "layers"
+> {
+  // 🟢 Optional for patches saved before mono glide.
+  voice?: SynthPatch["voice"];
+  glide?: number;
   layers: SerializedSynthLayer[];
 }
 
@@ -232,6 +241,7 @@ export function serializeEditorRuntimeState(
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     referenceVideo: state.referenceVideo,
+    armedTrackId: state.armedTrackId,
   };
 }
 
@@ -285,6 +295,7 @@ export function deserializeEditorRuntimeState({
       ],
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
       synth: track.synth && {
+        ...DEFAULT_SYNTH_VOICE,
         ...track.synth,
         layers: track.synth.layers.map((layer) => {
           const defaults = createSynthLayer();
@@ -306,6 +317,9 @@ export function deserializeEditorRuntimeState({
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
+    armedTrackId: audioTracks.some((track) => track.id === project.armedTrackId)
+      ? project.armedTrackId
+      : undefined,
   };
 }
 

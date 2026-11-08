@@ -38,8 +38,8 @@ export function PreviewPage() {
   const SelectedPreview = preview.component;
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-8 pt-4 pb-10 text-neutral-100">
-      <header className="mx-auto mb-4 flex max-w-[1600px] items-baseline gap-4 border-b border-neutral-800 pb-2">
+    <main className="min-h-screen bg-neutral-950 px-6 pt-3 pb-6 text-neutral-100">
+      <header className="mx-auto mb-3 flex max-w-[1600px] items-baseline gap-3 border-b border-neutral-800 pb-2">
         <h1 className="text-lg font-semibold">Preview</h1>
         <a
           href={routes.home.href()}
@@ -49,7 +49,7 @@ export function PreviewPage() {
         </a>
       </header>
 
-      <div className="mx-auto flex max-w-[1600px] items-start gap-6">
+      <div className="mx-auto flex max-w-[1600px] items-start gap-4">
         <nav
           aria-label="Previews"
           className="flex w-52 shrink-0 flex-col gap-1"

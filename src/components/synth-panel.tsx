@@ -12,6 +12,8 @@ import {
   createSynthLayer,
   type SynthLayer,
   type SynthPatch,
+  VOICE_MODES,
+  type VoiceMode,
   type Waveform,
   WAVEFORMS,
 } from "../lib/dsp/subtractive-synth";
@@ -44,6 +46,15 @@ const MAX_DETUNE_CENTS = 50;
 // almost to the top, or a high one down.
 const MAX_ENVELOPE_OCTAVES = 8;
 
+const GLIDE_RANGE = { min: 0.001, max: 1 };
+// A tenth of a decade across the three decades of the range
+const GLIDE_STEP = 1 / 30;
+
+const VOICE_MODE_LABELS: Record<VoiceMode, string> = {
+  poly: "Poly",
+  mono: "Mono",
+};
+
 const WAVEFORM_LABELS: Record<Waveform, string> = {
   sine: "Sine",
   triangle: "Triangle",
@@ -69,7 +80,7 @@ export function SynthPanel({
   onClose: () => void;
 }) {
   const { size, handleRef } = usePanelResize({
-    initialSize: { width: 320, height: 320 },
+    initialSize: { width: 320, height: 544 },
     minSize: { width: 320, height: 120 },
   });
 
@@ -123,6 +134,29 @@ export function SynthPanelContent({
 
   return (
     <div className="space-y-2">
+      <div className="flex items-center gap-4 px-1">
+        <div
+          role="group"
+          aria-label="Voice"
+          className="flex overflow-hidden rounded border border-neutral-600"
+        >
+          {VOICE_MODES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={patch.voice === option}
+              onClick={() => onChange({ ...patch, voice: option })}
+              className="h-6 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+            >
+              {VOICE_MODE_LABELS[option]}
+            </button>
+          ))}
+        </div>
+        <GlideKnob
+          glide={patch.glide}
+          onGlideChange={(glide) => onChange({ ...patch, glide })}
+        />
+      </div>
       {patch.layers.map((layer, i) => (
         <SynthLayerRow
           key={layer.id}
@@ -138,7 +172,7 @@ export function SynthPanelContent({
       <button
         type="button"
         onClick={addLayer}
-        className="h-7 w-full rounded border border-dashed border-neutral-600 text-xs text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
+        className="h-control-sm w-full rounded border border-dashed border-neutral-600 text-xs text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
       >
         + Layer
       </button>
@@ -183,13 +217,13 @@ function SynthLayerRow({
       aria-label={name}
       className="overflow-hidden rounded border border-neutral-700"
     >
-      <div className="flex h-8 items-center gap-1 bg-neutral-900 pr-1">
+      <div className="flex h-control items-center gap-1 bg-neutral-900 pr-1">
         <button
           type="button"
           aria-expanded={!collapsed}
           onClick={onToggle}
           className={cn(
-            "flex h-full flex-1 items-center gap-1.5 px-2 text-xs font-semibold text-neutral-300 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset",
+            "flex h-full flex-1 items-center gap-1 px-2 text-xs font-semibold text-neutral-300 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset",
             layer.muted && "opacity-50",
           )}
         >
@@ -205,7 +239,7 @@ function SynthLayerRow({
           kind="mute"
           onClick={() => onChange({ ...layer, muted: !layer.muted })}
           aria-label={`Toggle ${name} mute`}
-          className="h-6 min-w-6 px-1"
+          className="size-control-xs"
         />
         <GainKnob
           label={`${name} gain`}
@@ -222,7 +256,7 @@ function SynthLayerRow({
           aria-label={`Remove ${name}`}
           disabled={removeDisabled}
           onClick={onRemove}
-          className="rounded p-1 text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:pointer-events-none disabled:opacity-40"
+          className="flex size-control-sm items-center justify-center rounded text-neutral-400 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:pointer-events-none disabled:opacity-40"
         >
           <XIcon className="size-3.5" />
         </button>
@@ -257,7 +291,7 @@ function SynthLayerRow({
                         oscillator: { ...layer.oscillator, waveform: option },
                       })
                     }
-                    className="flex h-6 items-center justify-center bg-neutral-900 px-1 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+                    className="flex h-control-sm items-center justify-center bg-neutral-900 px-1 text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
                   >
                     <WaveformIcon waveform={option} />
                   </button>
@@ -265,7 +299,7 @@ function SynthLayerRow({
               </div>
             }
           >
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <OctaveStepper
                 octave={layer.oscillator.octave}
                 onOctaveChange={(octave) =>
@@ -327,7 +361,7 @@ function FoldableSection({
 }) {
   return (
     <section className="space-y-2">
-      <div className="flex h-6 items-center justify-between">
+      <div className="flex h-control-sm items-center justify-between">
         <h3 className="text-xs font-medium">
           <button
             type="button"
@@ -509,7 +543,7 @@ function ParameterKnob({
   });
   const valueText = format(value);
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <Knob
         ref={ref}
         aria-label={label}
@@ -559,7 +593,7 @@ function OctaveStepper({
   const buttonClassName =
     "flex h-full w-5 items-center justify-center text-neutral-400 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40";
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <span className="text-xs text-neutral-400">Octave</span>
       <div
         role="spinbutton"
@@ -583,7 +617,7 @@ function OctaveStepper({
             setOctave(next);
           }
         }}
-        className="flex h-6 items-center rounded border border-neutral-600 bg-neutral-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+        className="flex h-control-sm items-center rounded border border-neutral-600 bg-neutral-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
       >
         <button
           type="button"
@@ -635,7 +669,7 @@ function DetuneKnob({
   });
   const signed = detune > 0 ? `+${detune}` : String(detune);
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <span className="text-xs text-neutral-400">Detune</span>
       <Knob
         ref={ref}
@@ -664,6 +698,66 @@ function DetuneKnob({
       />
       <span className="w-12 font-mono text-xs text-muted-foreground tabular-nums">
         {signed} ct
+      </span>
+    </div>
+  );
+}
+
+function GlideKnob({
+  glide,
+  onGlideChange,
+}: {
+  glide: number;
+  onGlideChange: (glide: number) => void;
+}) {
+  const position = clamp(valueToLogPosition(glide, GLIDE_RANGE), 0, 1);
+  const setPosition = (value: number) =>
+    onGlideChange(
+      Number(
+        logPositionToValue(clamp(value, 0, 1), GLIDE_RANGE).toPrecision(2),
+      ),
+    );
+  // About 200px of vertical drag covers the full range.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return position;
+    },
+    onMove: (_event, drag) => setPosition(drag.data - drag.deltaY / 200),
+  });
+  const valueText =
+    glide < 1
+      ? `${Number((glide * 1000).toPrecision(2))} ms`
+      : `${Number(glide.toPrecision(2))} s`;
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-neutral-400">Glide</span>
+      <Knob
+        ref={ref}
+        aria-label="Glide"
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 10 * GLIDE_STEP : GLIDE_STEP;
+          const next = {
+            ArrowLeft: position - step,
+            ArrowDown: position - step,
+            ArrowRight: position + step,
+            ArrowUp: position + step,
+            Home: 0,
+            End: 1,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setPosition(next);
+          }
+        }}
+        value={position}
+        min={0}
+        max={1}
+        className="cursor-ns-resize"
+      />
+      <span className="w-12 font-mono text-xs text-muted-foreground tabular-nums">
+        {valueText}
       </span>
     </div>
   );

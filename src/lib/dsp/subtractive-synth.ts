@@ -22,8 +22,18 @@ export const WAVEFORMS = [
 ] as const;
 export type Waveform = (typeof WAVEFORMS)[number];
 
+export const VOICE_MODES = ["poly", "mono"] as const;
+export type VoiceMode = (typeof VOICE_MODES)[number];
+
 /** Patch for Toy MIDI's own synth */
 export interface SynthPatch {
+  /**
+   * In mono, a note that starts while another is held glides the sounding
+   * voice to its pitch instead of starting a voice of its own.
+   */
+  voice: VoiceMode;
+  /** Seconds that a mono slide between held notes takes */
+  glide: number;
   /** Voice paths that each note plays at once, summed */
   layers: SynthLayer[];
 }
@@ -98,8 +108,13 @@ const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
   amp: { envelope: DEFAULT_ENVELOPE },
 };
 
+export const DEFAULT_SYNTH_VOICE: Pick<SynthPatch, "voice" | "glide"> = {
+  voice: "poly",
+  glide: 0.05,
+};
+
 export function createSynthPatch(): SynthPatch {
-  return { layers: [createSynthLayer()] };
+  return { ...DEFAULT_SYNTH_VOICE, layers: [createSynthLayer()] };
 }
 
 export function createSynthLayer(): SynthLayer {
@@ -146,7 +161,12 @@ const MAX_VIBRATO_CENTS = 50;
 const VIBRATO_RATE = 5.5;
 
 interface Voice {
+  /** The note the voice plays, which a mono voice moves to as notes change */
   pitch: number;
+  /** Where the glide toward `pitch` has reached */
+  soundingPitch: number;
+  /** Semitones per sample */
+  glideStep: number;
   /** The vibrato LFO's cycles in [0, 1), from 0 at note-on */
   vibratoPhase: number;
   /** From 0 to 1 */
@@ -171,6 +191,8 @@ interface VoiceLayer {
 export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
   private layers: ResolvedLayer[] = [];
+  private voiceMode: VoiceMode = DEFAULT_SYNTH_VOICE.voice;
+  private readonly mono: MonoVoiceAllocator;
   /** Semitones */
   private bend = 0;
   /** Cents */
@@ -199,34 +221,47 @@ export class SubtractiveSynth implements SynthEngine {
     this.channelGainStep = 1 / (RAMP_SECONDS * sampleRate);
     this.vibratoPhaseIncrement = VIBRATO_RATE / sampleRate;
     this.maxCutoff = Math.min(EQ_LIMITS.frequency.max, sampleRate * 0.499);
+    this.mono = new MonoVoiceAllocator(sampleRate);
   }
 
   setPatch(patch: SynthPatch): void {
     this.layers = resolveLayers(patch, this.sampleRate);
+    this.mono.setGlide(patch.glide);
+    if (patch.voice !== this.voiceMode) {
+      this.stopAll();
+      this.voiceMode = patch.voice;
+    }
   }
 
   noteOn(pitch: number, velocity: number): void {
-    this.noteOff(pitch);
-    this.voices.push({
-      pitch,
-      vibratoPhase: 0,
-      velocity: velocity / 127,
-      gain: PEAK_GAIN * (velocity / 127),
-      layers: new Map(
-        this.layers.map((layer) => [
-          layer.id,
-          {
-            phase: 0,
-            filter: new BiquadEqPerSample({ sampleRate: this.sampleRate }),
-            filterEnvelope: new EnvelopeState(),
-            ampEnvelope: new EnvelopeState(),
-          },
-        ]),
-      ),
-    });
+    if (this.voiceMode === "mono") {
+      this.mono.noteOn(pitch, () => this.startVoice(pitch, velocity));
+      return;
+    }
+    this.releaseVoices(pitch);
+    this.startVoice(pitch, velocity);
   }
 
   noteOff(pitch: number): void {
+    if (this.voiceMode === "mono") {
+      this.mono.noteOff(pitch);
+      return;
+    }
+    this.releaseVoices(pitch);
+  }
+
+  private startVoice(pitch: number, velocity: number): Voice {
+    const voice = createVoice({
+      pitch,
+      velocity,
+      layers: this.layers,
+      sampleRate: this.sampleRate,
+    });
+    this.voices.push(voice);
+    return voice;
+  }
+
+  private releaseVoices(pitch: number): void {
     for (const voice of this.voices) {
       if (voice.pitch === pitch) {
         releaseVoice(voice);
@@ -280,14 +315,24 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
+    this.mono.applyPendingRelease();
     for (let i = offset; i < offset + length; i++) {
       let mixLeft = 0;
       let mixRight = 0;
       for (const voice of this.voices) {
+        // Linear in semitones, so the slide passes through every interval at
+        // the same speed.
+        const glideDistance = voice.pitch - voice.soundingPitch;
+        if (glideDistance !== 0) {
+          voice.soundingPitch +=
+            Math.sign(glideDistance) *
+            Math.min(voice.glideStep, Math.abs(glideDistance));
+        }
         const vibrato =
           this.vibratoDepth * Math.sin(2 * Math.PI * voice.vibratoPhase);
         const notePhaseIncrement =
-          midiToHz(voice.pitch + this.bend + vibrato / 100) / this.sampleRate;
+          midiToHz(voice.soundingPitch + this.bend + vibrato / 100) /
+          this.sampleRate;
         let sampleLeft = 0;
         let sampleRight = 0;
         for (const layer of this.layers) {
@@ -356,6 +401,85 @@ export class SubtractiveSynth implements SynthEngine {
     for (const voice of this.voices) {
       releaseVoice(voice);
     }
+    this.mono.reset();
+  }
+}
+
+/**
+ * Mono's held notes and the one voice they play. A note-on while another note
+ * is held, or on the frame the last one ended, glides that voice to its pitch
+ * and keeps its envelopes and level.
+ */
+class MonoVoiceAllocator {
+  /** Latest last */
+  private heldNotes: number[] = [];
+  /** Sounding while any note is held */
+  private voice?: Voice;
+  /**
+   * Set when the last held note ends. The release waits for the next render,
+   * so a note-on on the same frame continues the phrase instead.
+   */
+  private releasePending = false;
+  private glideSamples = 0;
+
+  constructor(private readonly sampleRate: number) {}
+
+  setGlide(seconds: number): void {
+    this.glideSamples = seconds * this.sampleRate;
+  }
+
+  /** Glides the sounding voice to the note, or starts one through `startVoice`. */
+  noteOn(pitch: number, startVoice: () => Voice): void {
+    this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
+    this.heldNotes.push(pitch);
+    this.releasePending = false;
+    if (this.voice) {
+      this.glideVoice(pitch);
+      return;
+    }
+    this.voice = startVoice();
+  }
+
+  /** Glides back to the latest note still held, if any. */
+  noteOff(pitch: number): void {
+    this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
+    if (!this.voice) {
+      return;
+    }
+    const latest = this.heldNotes.at(-1);
+    if (latest === undefined) {
+      this.releasePending = true;
+      return;
+    }
+    this.glideVoice(latest);
+  }
+
+  applyPendingRelease(): void {
+    if (this.releasePending) {
+      this.releasePending = false;
+      releaseVoice(this.voice!);
+      this.voice = undefined;
+    }
+  }
+
+  /** Forgets every note, after the synth has released its voices. */
+  reset(): void {
+    this.heldNotes = [];
+    this.voice = undefined;
+    this.releasePending = false;
+  }
+
+  private glideVoice(pitch: number): void {
+    const voice = this.voice!;
+    if (voice.pitch === pitch) {
+      return;
+    }
+    voice.pitch = pitch;
+    // Takes the glide time for every slide, from wherever the sounding pitch
+    // is, so a slide sounds as long as the patch says whatever the interval.
+    // For a time proportional to the interval, as the glide time per octave,
+    // use `12 / this.glideSamples` instead.
+    voice.glideStep = Math.abs(pitch - voice.soundingPitch) / this.glideSamples;
   }
 }
 
@@ -408,7 +532,7 @@ function computeCutoff(
     filter.cutoff *
     2 **
       (envelope * filter.amount * depth +
-        (filter.keytrack * (voice.pitch - 60)) / 12)
+        (filter.keytrack * (voice.soundingPitch - 60)) / 12)
   );
 }
 
@@ -422,6 +546,38 @@ function computePanGains(pan: number): { left: number; right: number } {
   return {
     left: Math.SQRT2 * Math.cos(angle),
     right: Math.SQRT2 * Math.sin(angle),
+  };
+}
+
+function createVoice({
+  pitch,
+  velocity,
+  layers,
+  sampleRate,
+}: {
+  pitch: number;
+  velocity: number;
+  layers: ResolvedLayer[];
+  sampleRate: number;
+}): Voice {
+  return {
+    pitch,
+    soundingPitch: pitch,
+    glideStep: 0,
+    vibratoPhase: 0,
+    velocity: velocity / 127,
+    gain: PEAK_GAIN * (velocity / 127),
+    layers: new Map(
+      layers.map((layer) => [
+        layer.id,
+        {
+          phase: 0,
+          filter: new BiquadEqPerSample({ sampleRate }),
+          filterEnvelope: new EnvelopeState(),
+          ampEnvelope: new EnvelopeState(),
+        },
+      ]),
+    ),
   };
 }
 

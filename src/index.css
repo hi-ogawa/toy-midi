@@ -29,6 +29,18 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/*
+ * Control heights shared across the app. Use `h-*` for controls whose width
+ * comes from their text or layout, and for rows and slots sized to the control
+ * they hold. Use `size-*` for icon buttons. Anything else uses numeric steps,
+ * even at the same size.
+ */
+@theme {
+  --spacing-control: 1.75rem;
+  --spacing-control-sm: 1.5rem;
+  --spacing-control-xs: 1.25rem;
+}
+
 /* Dark theme (default for this app) */
 :root {
   --radius: 0.325rem;
