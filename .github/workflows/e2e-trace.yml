@@ -73,6 +73,10 @@ jobs:
           node-version: "lts/*"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v6
+        with:
+          path: public/soundfonts
+          key: soundfonts-${{ hashFiles('tools/fetch-soundfonts.ts') }}
       - run: pnpm build-wasm
       - run: pnpm exec playwright install chromium --with-deps --no-shell
       - name: Run selected tests with tracing

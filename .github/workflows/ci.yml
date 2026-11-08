@@ -19,6 +19,10 @@ jobs:
           node-version: "lts/*"
       - run: corepack enable
       - run: pnpm i
+      - uses: actions/cache@v6
+        with:
+          path: public/soundfonts
+          key: soundfonts-${{ hashFiles('tools/fetch-soundfonts.ts') }}
       - run: pnpm build-wasm
       - run: pnpm lint-check
       - run: pnpm test
@@ -49,6 +53,10 @@ jobs:
           node-version: "lts/*"
       - run: corepack enable
       - run: pnpm i
+      - uses: actions/cache@v6
+        with:
+          path: public/soundfonts
+          key: soundfonts-${{ hashFiles('tools/fetch-soundfonts.ts') }}
       - run: pnpm build-wasm
       - run: .github/scripts/install-ffmpeg.sh
       - run: pnpm exec playwright install chromium --with-deps --no-shell
