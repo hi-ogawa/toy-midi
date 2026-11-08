@@ -61,6 +61,8 @@ jobs:
           key: soundfonts-${{ hashFiles('tools/fetch-soundfonts.ts') }}
       - run: pnpm build-wasm
       - run: .github/scripts/install-ffmpeg.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
       - run: pnpm exec playwright install chromium --with-deps --no-shell
       - run: pnpm test-e2e --shard=${{ matrix.shard }}/2
         env:
