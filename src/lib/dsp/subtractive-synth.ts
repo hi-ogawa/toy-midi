@@ -190,11 +190,7 @@ export class SubtractiveSynth implements SynthEngine {
   private voices: Voice[] = [];
   private layers: ResolvedLayer[] = [];
   private voiceMode: VoiceMode = DEFAULT_SYNTH_VOICE.voice;
-  private glideSamples = 0;
-  private readonly mono = new MonoVoiceAllocator({
-    startVoice: (pitch, velocity) => this.startVoice(pitch, velocity),
-    glideVoice: (voice, pitch) => this.glideVoice(voice, pitch),
-  });
+  private readonly mono: MonoVoiceAllocator;
   /** Semitones */
   private bend = 0;
   /** Cents */
@@ -223,11 +219,12 @@ export class SubtractiveSynth implements SynthEngine {
     this.channelGainStep = 1 / (RAMP_SECONDS * sampleRate);
     this.vibratoPhaseIncrement = VIBRATO_RATE / sampleRate;
     this.maxCutoff = Math.min(EQ_LIMITS.frequency.max, sampleRate * 0.499);
+    this.mono = new MonoVoiceAllocator(sampleRate);
   }
 
   setPatch(patch: SynthPatch): void {
     this.layers = resolveLayers(patch, this.sampleRate);
-    this.glideSamples = patch.glide * this.sampleRate;
+    this.mono.setGlide(patch.glide);
     if (patch.voice !== this.voiceMode) {
       // Held notes belong to one allocator, so they end with it.
       this.stopAll();
@@ -237,7 +234,9 @@ export class SubtractiveSynth implements SynthEngine {
 
   noteOn(pitch: number, velocity: number): void {
     if (this.voiceMode === "mono") {
-      this.mono.noteOn(pitch, velocity);
+      if (!this.mono.noteOn(pitch)) {
+        this.mono.attach(this.startVoice(pitch, velocity));
+      }
       return;
     }
     this.releasePolyNote(pitch);
@@ -418,24 +417,6 @@ export class SubtractiveSynth implements SynthEngine {
     this.voices.push(voice);
     return voice;
   }
-
-  private glideVoice(voice: Voice, pitch: number): void {
-    if (voice.pitch === pitch) {
-      return;
-    }
-    voice.pitch = pitch;
-    voice.glideStep = this.computeGlideStep(pitch - voice.soundingPitch);
-  }
-
-  /**
-   * Takes the glide time for every slide, from wherever the sounding pitch
-   * is, so a slide sounds as long as the patch says whatever the interval.
-   * For a time proportional to the interval, as the glide time per octave,
-   * return `12 / this.glideSamples` instead.
-   */
-  private computeGlideStep(interval: number): number {
-    return Math.abs(interval) / this.glideSamples;
-  }
 }
 
 /**
@@ -453,23 +434,29 @@ class MonoVoiceAllocator {
    * so a note-on on the same frame continues the phrase instead.
    */
   private releasePending = false;
+  private glideSamples = 0;
 
-  constructor(
-    private readonly synth: {
-      startVoice: (pitch: number, velocity: number) => Voice;
-      glideVoice: (voice: Voice, pitch: number) => void;
-    },
-  ) {}
+  constructor(private readonly sampleRate: number) {}
 
-  noteOn(pitch: number, velocity: number): void {
+  setGlide(seconds: number): void {
+    this.glideSamples = seconds * this.sampleRate;
+  }
+
+  /** Returns false when no voice is sounding, so the note needs a new one. */
+  noteOn(pitch: number): boolean {
     this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
     this.heldNotes.push(pitch);
     this.releasePending = false;
-    if (this.voice) {
-      this.synth.glideVoice(this.voice, pitch);
-      return;
+    if (!this.voice) {
+      return false;
     }
-    this.voice = this.synth.startVoice(pitch, velocity);
+    this.glideVoice(pitch);
+    return true;
+  }
+
+  /** Takes the voice started for a note-on that returned false. */
+  attach(voice: Voice): void {
+    this.voice = voice;
   }
 
   /** Glides back to the latest note still held, if any. */
@@ -483,7 +470,7 @@ class MonoVoiceAllocator {
       this.releasePending = true;
       return;
     }
-    this.synth.glideVoice(this.voice, latest);
+    this.glideVoice(latest);
   }
 
   applyPendingRelease(): void {
@@ -499,6 +486,25 @@ class MonoVoiceAllocator {
     this.heldNotes = [];
     this.voice = undefined;
     this.releasePending = false;
+  }
+
+  private glideVoice(pitch: number): void {
+    const voice = this.voice!;
+    if (voice.pitch === pitch) {
+      return;
+    }
+    voice.pitch = pitch;
+    voice.glideStep = this.computeGlideStep(pitch - voice.soundingPitch);
+  }
+
+  /**
+   * Takes the glide time for every slide, from wherever the sounding pitch
+   * is, so a slide sounds as long as the patch says whatever the interval.
+   * For a time proportional to the interval, as the glide time per octave,
+   * return `12 / this.glideSamples` instead.
+   */
+  private computeGlideStep(interval: number): number {
+    return Math.abs(interval) / this.glideSamples;
   }
 }
 
