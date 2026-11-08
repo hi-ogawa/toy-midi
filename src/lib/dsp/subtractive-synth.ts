@@ -494,17 +494,11 @@ class MonoVoiceAllocator {
       return;
     }
     voice.pitch = pitch;
-    voice.glideStep = this.computeGlideStep(pitch - voice.soundingPitch);
-  }
-
-  /**
-   * Takes the glide time for every slide, from wherever the sounding pitch
-   * is, so a slide sounds as long as the patch says whatever the interval.
-   * For a time proportional to the interval, as the glide time per octave,
-   * return `12 / this.glideSamples` instead.
-   */
-  private computeGlideStep(interval: number): number {
-    return Math.abs(interval) / this.glideSamples;
+    // Takes the glide time for every slide, from wherever the sounding pitch
+    // is, so a slide sounds as long as the patch says whatever the interval.
+    // For a time proportional to the interval, as the glide time per octave,
+    // use `12 / this.glideSamples` instead.
+    voice.glideStep = Math.abs(pitch - voice.soundingPitch) / this.glideSamples;
   }
 }
 
