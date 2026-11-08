@@ -234,15 +234,15 @@ export class SubtractiveSynth implements SynthEngine {
 
   noteOn(pitch: number, velocity: number): void {
     if (this.voiceMode === "mono") {
-      if (!this.mono.noteOn(pitch)) {
-        const voice = createVoice({
+      this.mono.noteOn(pitch);
+      if (!this.mono.voice) {
+        this.mono.voice = createVoice({
           pitch,
           velocity,
           layers: this.layers,
           sampleRate: this.sampleRate,
         });
-        this.voices.push(voice);
-        this.mono.voice = voice;
+        this.voices.push(this.mono.voice);
       }
       return;
     }
@@ -418,8 +418,8 @@ class MonoVoiceAllocator {
   /** Latest last */
   private heldNotes: number[] = [];
   /**
-   * Sounding while any note is held. The synth sets it for a note-on that
-   * returns false.
+   * Sounding while any note is held. The synth sets it when a note-on finds
+   * none.
    */
   voice?: Voice;
   /**
@@ -435,16 +435,14 @@ class MonoVoiceAllocator {
     this.glideSamples = seconds * this.sampleRate;
   }
 
-  /** Returns false when no voice is sounding, so the note needs a new one. */
-  noteOn(pitch: number): boolean {
+  /** Glides the sounding voice, if any, to the note. */
+  noteOn(pitch: number): void {
     this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
     this.heldNotes.push(pitch);
     this.releasePending = false;
-    if (!this.voice) {
-      return false;
+    if (this.voice) {
+      this.glideVoice(pitch);
     }
-    this.glideVoice(pitch);
-    return true;
   }
 
   /** Glides back to the latest note still held, if any. */
