@@ -226,7 +226,6 @@ export class SubtractiveSynth implements SynthEngine {
     this.layers = resolveLayers(patch, this.sampleRate);
     this.mono.setGlide(patch.glide);
     if (patch.voice !== this.voiceMode) {
-      // Held notes belong to one allocator, so they end with it.
       this.stopAll();
       this.voiceMode = patch.voice;
     }
