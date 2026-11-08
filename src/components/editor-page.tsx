@@ -226,15 +226,11 @@ export function EditorPage({ source }: { source: ProjectSource }) {
       return;
     }
     if (flags.recordBlocker === "input") {
-      promptInputOn();
+      toast.warning("Turn input on to record");
+      setIsInputPanelOpen(true);
       return;
     }
     recordMutation.mutate(flags.isRecording ? "stop" : "start");
-  }
-
-  function promptInputOn() {
-    toast.warning("Turn input on to record");
-    setIsInputPanelOpen(true);
   }
 
   useWindowEvent("keydown", (event) => {
@@ -552,12 +548,8 @@ export function EditorPage({ source }: { source: ProjectSource }) {
                           armDisabled: flags.isRecording,
                           monitoring: state.inputMonitoring && armed,
                           monitorDisabled: !input.active || !armed,
-                          onArmedChange: (armed) => {
-                            runtime.setArmedTrack(armed ? track.id : undefined);
-                            if (armed && !input.active) {
-                              promptInputOn();
-                            }
-                          },
+                          onArmedChange: (armed) =>
+                            runtime.setArmedTrack(armed ? track.id : undefined),
                           onMonitoringChange: (monitoring) =>
                             runtime.setInputMonitoring(monitoring),
                         }}
