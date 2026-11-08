@@ -191,15 +191,10 @@ export class SubtractiveSynth implements SynthEngine {
   private layers: ResolvedLayer[] = [];
   private voiceMode: VoiceMode = DEFAULT_SYNTH_VOICE.voice;
   private glideSamples = 0;
-  /** Mono's held notes, latest last */
-  private heldNotes: number[] = [];
-  /** Mono's voice while any note is held */
-  private monoVoice?: Voice;
-  /**
-   * Set when mono's last held note ends. The release waits for the next
-   * render, so a note-on on the same frame continues the phrase instead.
-   */
-  private monoReleasePending = false;
+  private readonly mono = new MonoVoiceAllocator({
+    startVoice: (pitch, velocity) => this.startVoice(pitch, velocity),
+    glideVoice: (voice, pitch) => this.glideVoice(voice, pitch),
+  });
   /** Semitones */
   private bend = 0;
   /** Cents */
@@ -242,16 +237,16 @@ export class SubtractiveSynth implements SynthEngine {
 
   noteOn(pitch: number, velocity: number): void {
     if (this.voiceMode === "mono") {
-      this.startMonoNote(pitch, velocity);
+      this.mono.noteOn(pitch, velocity);
       return;
     }
     this.releasePolyNote(pitch);
-    this.voices.push(this.createVoice(pitch, velocity));
+    this.startVoice(pitch, velocity);
   }
 
   noteOff(pitch: number): void {
     if (this.voiceMode === "mono") {
-      this.stopMonoNote(pitch);
+      this.mono.noteOff(pitch);
       return;
     }
     this.releasePolyNote(pitch);
@@ -303,11 +298,7 @@ export class SubtractiveSynth implements SynthEngine {
     offset: number,
     length: number,
   ): void {
-    if (this.monoReleasePending) {
-      this.monoReleasePending = false;
-      releaseVoice(this.monoVoice!);
-      this.monoVoice = undefined;
-    }
+    this.mono.applyPendingRelease();
     for (let i = offset; i < offset + length; i++) {
       let mixLeft = 0;
       let mixRight = 0;
@@ -393,39 +384,7 @@ export class SubtractiveSynth implements SynthEngine {
     for (const voice of this.voices) {
       releaseVoice(voice);
     }
-    this.heldNotes = [];
-    this.monoVoice = undefined;
-    this.monoReleasePending = false;
-  }
-
-  /**
-   * A note-on while another note is held, or on the frame the last one ended,
-   * glides the held voice to its pitch and keeps its envelopes and level.
-   */
-  private startMonoNote(pitch: number, velocity: number): void {
-    this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
-    this.heldNotes.push(pitch);
-    this.monoReleasePending = false;
-    if (this.monoVoice) {
-      this.glideVoice(this.monoVoice, pitch);
-      return;
-    }
-    this.monoVoice = this.createVoice(pitch, velocity);
-    this.voices.push(this.monoVoice);
-  }
-
-  /** Glides back to the latest note still held, if any. */
-  private stopMonoNote(pitch: number): void {
-    this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
-    if (!this.monoVoice) {
-      return;
-    }
-    const latest = this.heldNotes.at(-1);
-    if (latest === undefined) {
-      this.monoReleasePending = true;
-      return;
-    }
-    this.glideVoice(this.monoVoice, latest);
+    this.mono.reset();
   }
 
   private releasePolyNote(pitch: number): void {
@@ -436,8 +395,8 @@ export class SubtractiveSynth implements SynthEngine {
     }
   }
 
-  private createVoice(pitch: number, velocity: number): Voice {
-    return {
+  private startVoice(pitch: number, velocity: number): Voice {
+    const voice: Voice = {
       pitch,
       soundingPitch: pitch,
       glideStep: 0,
@@ -456,6 +415,8 @@ export class SubtractiveSynth implements SynthEngine {
         ]),
       ),
     };
+    this.voices.push(voice);
+    return voice;
   }
 
   private glideVoice(voice: Voice, pitch: number): void {
@@ -474,6 +435,70 @@ export class SubtractiveSynth implements SynthEngine {
    */
   private computeGlideStep(interval: number): number {
     return Math.abs(interval) / this.glideSamples;
+  }
+}
+
+/**
+ * Mono's held notes and the one voice they play. A note-on while another note
+ * is held, or on the frame the last one ended, glides that voice to its pitch
+ * and keeps its envelopes and level.
+ */
+class MonoVoiceAllocator {
+  /** Latest last */
+  private heldNotes: number[] = [];
+  /** Sounding while any note is held */
+  private voice?: Voice;
+  /**
+   * Set when the last held note ends. The release waits for the next render,
+   * so a note-on on the same frame continues the phrase instead.
+   */
+  private releasePending = false;
+
+  constructor(
+    private readonly synth: {
+      startVoice: (pitch: number, velocity: number) => Voice;
+      glideVoice: (voice: Voice, pitch: number) => void;
+    },
+  ) {}
+
+  noteOn(pitch: number, velocity: number): void {
+    this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
+    this.heldNotes.push(pitch);
+    this.releasePending = false;
+    if (this.voice) {
+      this.synth.glideVoice(this.voice, pitch);
+      return;
+    }
+    this.voice = this.synth.startVoice(pitch, velocity);
+  }
+
+  /** Glides back to the latest note still held, if any. */
+  noteOff(pitch: number): void {
+    this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
+    if (!this.voice) {
+      return;
+    }
+    const latest = this.heldNotes.at(-1);
+    if (latest === undefined) {
+      this.releasePending = true;
+      return;
+    }
+    this.synth.glideVoice(this.voice, latest);
+  }
+
+  applyPendingRelease(): void {
+    if (this.releasePending) {
+      this.releasePending = false;
+      releaseVoice(this.voice!);
+      this.voice = undefined;
+    }
+  }
+
+  /** Forgets every note, after the synth has released its voices. */
+  reset(): void {
+    this.heldNotes = [];
+    this.voice = undefined;
+    this.releasePending = false;
   }
 }
 
