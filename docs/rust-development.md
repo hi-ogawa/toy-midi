@@ -26,4 +26,10 @@ After the pkg.pr.new workflow publishes the pull request commit:
 
 The final pull request state must consume the preview package. This verifies the same packaged JavaScript, declarations, and WASM artifact used by ordinary local development and Cloudflare builds.
 
-The dedicated pkg.pr.new workflow always builds and publishes the Rust workspace package on pull requests and pushes to `main`, independently of the application dependency override.
+The dedicated pkg.pr.new workflow builds and publishes the Rust workspace package, independently of the application dependency override. It runs on pull requests that change `crates/`, the root Cargo files, `tools/build-wasm.sh`, or the workflow itself. It doesn't run on `main`, because the application pins a preview URL from a pull request commit.
+
+To publish a branch that the workflow skipped, run it by hand from the Actions tab or with:
+
+```sh
+gh workflow run pkg-pr-new.yml --ref <branch>
+```
