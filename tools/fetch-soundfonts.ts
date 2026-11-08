@@ -1,8 +1,8 @@
 // Download the bundled SoundFonts and their licenses from the `soundfonts-*`
 // GitHub release into public/soundfonts/, reusing copies from the main git
 // worktree when it has them. Downloads go through the GitHub CLI when it is
-// installed, so they are authenticated whenever it has a token, and fall back
-// to a plain fetch otherwise.
+// installed, which authenticates them with GH_TOKEN or a `gh auth login`
+// session, and fall back to a plain fetch otherwise.
 //
 // Usage:
 //   tsx tools/fetch-soundfonts.ts
