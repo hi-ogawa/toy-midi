@@ -82,6 +82,7 @@ jobs:
       - name: Run selected tests with tracing
         env:
           E2E_TRACE: "1"
+          GH_TOKEN: ${{ github.token }}
           E2E_SERVER: ${{ inputs.server }}
           TEST_FILTER: ${{ inputs.tests }}
           TEST_GREP: ${{ inputs.grep }}
