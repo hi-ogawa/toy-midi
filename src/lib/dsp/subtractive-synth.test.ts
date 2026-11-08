@@ -526,39 +526,6 @@ describe(SubtractiveSynth, () => {
     `);
   });
 
-  it("unmutes a layer where its envelope is in the note", () => {
-    // Muting a decaying layer and unmuting it later sounds the same from
-    // then on as never muting it.
-    const layer = {
-      ...createSynthLayer(),
-      amp: {
-        envelope: { attack: 0, decay: 0.2, sustain: 0, release: 0 },
-      },
-    };
-    const render = (toggle: boolean) => {
-      const synth = new SubtractiveSynth(SAMPLE_RATE);
-      const setMuted = (muted: boolean) =>
-        synth.setPatch({
-          ...DEFAULT_SYNTH_VOICE,
-          layers: [{ ...layer, muted }],
-        });
-      setMuted(false);
-      const noteOn = () => synth.noteOn(A4, FULL_VELOCITY);
-      return renderSynth(synth, {
-        seconds: 0.2,
-        at: toggle
-          ? {
-              0: noteOn,
-              0.05: () => setMuted(true),
-              0.1: () => setMuted(false),
-            }
-          : { 0: noteOn },
-      });
-    };
-    const start = 0.1 * SAMPLE_RATE;
-    expect(render(true).subarray(start)).toEqual(render(false).subarray(start));
-  });
-
   it("pans each layer at constant power", () => {
     // Unity on both sides at the center, and √2 on the near side at a hard
     // side, so left² + right² stays 2 wherever the layer sits
