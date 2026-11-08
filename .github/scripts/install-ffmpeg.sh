@@ -5,6 +5,8 @@ set -euo pipefail
 
 dir="$RUNNER_TEMP/ffmpeg"
 mkdir -p "$dir"
-curl -fsSL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz |
+# Download through gh so the request is authenticated and avoids GitHub's
+# limits and timeouts for unauthenticated users.
+gh release download latest -R BtbN/FFmpeg-Builds -p 'ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz' -O - |
   tar -xJ -C "$dir" --strip-components=2 --wildcards '*/bin/ffmpeg'
 echo "$dir" >>"$GITHUB_PATH"
