@@ -28,9 +28,9 @@ import {
   valueToLogPosition,
 } from "../lib/music";
 import { EnvelopeEditor } from "./envelope-editor";
-import { MixToggle } from "./mix-toggle";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
+import { PowerToggle } from "./power-toggle";
 import { Knob } from "./ui/knob";
 import { Tooltip } from "./ui/tooltip";
 import { cn } from "./ui/utils";
@@ -217,13 +217,19 @@ function SynthLayerRow({
       aria-label={name}
       className="overflow-hidden rounded border border-neutral-700"
     >
-      <div className="flex h-control items-center gap-1 bg-neutral-900 pr-1">
+      <div className="flex h-control items-center gap-1 bg-neutral-900 px-1">
+        <PowerToggle
+          on={!layer.muted}
+          onClick={() => onChange({ ...layer, muted: !layer.muted })}
+          aria-label={`${name} power`}
+          title={layer.muted ? `Turn on ${name}` : `Turn off ${name}`}
+        />
         <button
           type="button"
           aria-expanded={!collapsed}
           onClick={onToggle}
           className={cn(
-            "flex h-full flex-1 items-center gap-1 px-2 text-xs font-semibold text-neutral-300 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset",
+            "flex h-full flex-1 items-center gap-1 pr-2 pl-1 text-xs font-semibold text-neutral-300 outline-none hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset",
             layer.muted && "opacity-50",
           )}
         >
@@ -234,13 +240,6 @@ function SynthLayerRow({
           )}
           {name}
         </button>
-        <MixToggle
-          active={layer.muted}
-          kind="mute"
-          onClick={() => onChange({ ...layer, muted: !layer.muted })}
-          aria-label={`Toggle ${name} mute`}
-          className="size-control-xs"
-        />
         <GainKnob
           label={`${name} gain`}
           gain={layer.gain}
