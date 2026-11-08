@@ -23,6 +23,8 @@ jobs:
       - run: pnpm lint-check
       - run: pnpm test
       - run: pnpm build
+        env:
+          GH_TOKEN: ${{ github.token }}
       - run: pnpm -C packages/webmcp-bridge build-extension
         env:
           PATCH_MANIFEST: "true"
@@ -55,6 +57,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       - run: pnpm exec playwright install chromium --with-deps --no-shell
       - run: pnpm test-e2e --shard=${{ matrix.shard }}/2
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
