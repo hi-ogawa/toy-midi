@@ -271,6 +271,30 @@ test("arms before input is on and records once input starts", async ({
   await expect(page.getByTestId("clip-audio")).toContainText("Take 1");
 });
 
+test("keeps the armed track with the project", async ({ page }) => {
+  // Add a second audio track, and save the project.
+  await createProject(page);
+  await page.getByTitle("Add empty audio track").click();
+  await expect(page.getByTestId("audio-track-row")).toHaveCount(2);
+  await saveProject(page);
+
+  // Arm Audio 2, which marks the project unsaved.
+  await armTrack(page, { track: "Audio 2" });
+  const saveButton = page.getByTestId("save-button");
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
+
+  // Save and reload, and see Audio 2 still armed.
+  await saveProject(page);
+  await page.reload();
+  await expect(
+    page.getByRole("button", {
+      name: "Disarm Audio 2 for recording",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
+});
+
 test("records into whichever audio track is armed", async ({ page }) => {
   await createProject(page);
   await page.getByTitle("Add empty audio track").click();

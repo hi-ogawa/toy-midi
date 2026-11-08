@@ -81,6 +81,8 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
     title?: string;
     duration: number;
   };
+  // 🟢 Optional for projects saved before the armed track was saved.
+  armedTrackId?: string;
 }
 
 export interface SerializedMultibandEq extends Omit<
@@ -230,6 +232,7 @@ export function serializeEditorRuntimeState(
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     referenceVideo: state.referenceVideo,
+    armedTrackId: state.armedTrackId,
   };
 }
 
@@ -304,6 +307,9 @@ export function deserializeEditorRuntimeState({
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
+    armedTrackId: audioTracks.some((track) => track.id === project.armedTrackId)
+      ? project.armedTrackId
+      : undefined,
   };
 }
 
