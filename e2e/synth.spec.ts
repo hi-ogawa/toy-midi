@@ -187,6 +187,16 @@ test("adds, collapses, and removes layers in the Synth panel", async ({
     "true",
   );
 
+  // Turn the second layer off, and see its gain kept. Turn it back on.
+  const power2 = layer2.getByRole("button", { name: "Layer 2 power" });
+  await power2.click();
+  await expect(power2).toHaveAttribute("aria-pressed", "false");
+  await expect(
+    layer2.getByRole("slider", { name: "Layer 2 gain" }),
+  ).toHaveAttribute("aria-valuetext", "0.0 dB");
+  await power2.click();
+  await expect(power2).toHaveAttribute("aria-pressed", "true");
+
   // Collapse the first layer to its header, and see the second stay open.
   await layer1.getByRole("button", { name: "Layer 1", exact: true }).click();
   await expect(layer1.getByRole("group", { name: "Waveform" })).toHaveCount(0);

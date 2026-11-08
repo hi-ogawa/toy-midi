@@ -491,6 +491,41 @@ describe(SubtractiveSynth, () => {
     expect(measureRms(samples)).toBeCloseTo((1.5 * PEAK) / Math.SQRT2, 3);
   });
 
+  it("mutes and unmutes a layer during a held note", () => {
+    // A layer that starts the note muted comes in as soon as it is unmuted,
+    // 6 dB up, and drops out again when it is muted.
+    const synth = new SubtractiveSynth(SAMPLE_RATE);
+    const kept = createGateLayer();
+    const toggled = createGateLayer();
+    const setMuted = (muted: boolean) =>
+      synth.setPatch({
+        ...DEFAULT_SYNTH_VOICE,
+        layers: [kept, { ...toggled, muted }],
+      });
+    setMuted(true);
+    const samples = renderSynth(synth, {
+      seconds: 0.4,
+      at: {
+        0: () => synth.noteOn(A4, FULL_VELOCITY),
+        0.1: () => setMuted(false),
+        0.2: () => setMuted(true),
+        0.3: () => synth.noteOff(A4),
+      },
+    });
+    expect(describeLevels(samples)).toMatchInlineSnapshot(`
+      "
+        0 ms  -21.1 dB  ███████████████████████████████████████
+       50 ms  -21.1 dB  ███████████████████████████████████████
+      100 ms  -15.1 dB  █████████████████████████████████████████████
+      150 ms  -15.1 dB  █████████████████████████████████████████████
+      200 ms  -21.1 dB  ███████████████████████████████████████
+      250 ms  -21.1 dB  ███████████████████████████████████████
+      300 ms   -inf dB
+      350 ms   -inf dB
+      "
+    `);
+  });
+
   it("pans each layer at constant power", () => {
     // Unity on both sides at the center, and √2 on the near side at a hard
     // side, so left² + right² stays 2 wherever the layer sits

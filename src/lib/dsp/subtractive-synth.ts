@@ -55,6 +55,7 @@ export interface SynthLayer {
   };
   /** Linear multiplier on the layer's output */
   gain: number;
+  muted: boolean;
   /** From -1, hard left, to 1, hard right */
   pan: number;
   /**
@@ -96,6 +97,7 @@ const DEFAULT_ENVELOPE: Envelope = {
 const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
   oscillator: { waveform: "sine", octave: 0, detune: 0 },
   gain: 1,
+  muted: false,
   pan: 0,
   filter: {
     cutoff: EQ_LIMITS.frequency.max,
@@ -484,14 +486,17 @@ class MonoVoiceAllocator {
 function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
   return patch.layers.map((layer) => {
     const pan = computePanGains(layer.pan);
+    // A muted layer keeps rendering at zero gain, so its envelopes follow the
+    // note and it comes back where the note is.
+    const gain = layer.muted ? 0 : layer.gain;
     const { envelope, ...filter } = layer.filter;
     return {
       id: layer.id,
       oscillate: OSCILLATORS[layer.oscillator.waveform],
       frequencyRatio:
         2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
-      leftGain: layer.gain * pan.left,
-      rightGain: layer.gain * pan.right,
+      leftGain: gain * pan.left,
+      rightGain: gain * pan.right,
       filter: {
         ...filter,
         amount: envelope.amount,
