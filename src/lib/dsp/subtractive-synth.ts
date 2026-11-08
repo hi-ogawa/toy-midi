@@ -235,12 +235,14 @@ export class SubtractiveSynth implements SynthEngine {
   noteOn(pitch: number, velocity: number): void {
     if (this.voiceMode === "mono") {
       if (!this.mono.noteOn(pitch)) {
-        this.mono.attach(this.startVoice(pitch, velocity));
+        const voice = this.createVoice(pitch, velocity);
+        this.voices.push(voice);
+        this.mono.attach(voice);
       }
       return;
     }
     this.releasePolyNote(pitch);
-    this.startVoice(pitch, velocity);
+    this.voices.push(this.createVoice(pitch, velocity));
   }
 
   noteOff(pitch: number): void {
@@ -394,8 +396,8 @@ export class SubtractiveSynth implements SynthEngine {
     }
   }
 
-  private startVoice(pitch: number, velocity: number): Voice {
-    const voice: Voice = {
+  private createVoice(pitch: number, velocity: number): Voice {
+    return {
       pitch,
       soundingPitch: pitch,
       glideStep: 0,
@@ -414,8 +416,6 @@ export class SubtractiveSynth implements SynthEngine {
         ]),
       ),
     };
-    this.voices.push(voice);
-    return voice;
   }
 }
 
