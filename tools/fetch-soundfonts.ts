@@ -1,18 +1,21 @@
 // Download the bundled SoundFonts and their licenses from the `soundfonts-*`
 // GitHub release into public/soundfonts/, reusing copies from the main git
-// worktree when it has them.
+// worktree when it has them. Downloads go through the GitHub CLI when it is
+// installed, which authenticates them with GH_TOKEN or a `gh auth login`
+// session, and fall back to a plain fetch otherwise.
 //
 // Usage:
 //   tsx tools/fetch-soundfonts.ts
 
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 
 // https://github.com/hi-ogawa/toy-midi/releases/tag/soundfonts-1
-const RELEASE_URL =
-  "https://github.com/hi-ogawa/toy-midi/releases/download/soundfonts-1";
+const REPO = "hi-ogawa/toy-midi";
+const RELEASE_TAG = "soundfonts-1";
 const OUT_DIR = path.join(import.meta.dirname, "../public/soundfonts");
 
 // File names carry a version because public/_headers caches them as immutable.
@@ -73,14 +76,9 @@ async function fetchFile(
     await writeFile(outPath, copied);
     return;
   }
-  const url = `${RELEASE_URL}/${file.name}`;
-  console.log(`Downloading ${url}`);
+  console.log(`Downloading ${file.name} from ${REPO}@${RELEASE_TAG}`);
   const startedAt = performance.now();
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download ${url}: ${response.status}`);
-  }
-  const data = Buffer.from(await response.arrayBuffer());
+  const data = await downloadFile(file.name);
   const megabytes = (data.length / 1e6).toFixed(1);
   const milliseconds = Math.round(performance.now() - startedAt);
   console.log(`Downloaded in ${milliseconds} ms (${megabytes} MB)`);
@@ -91,6 +89,27 @@ async function fetchFile(
     );
   }
   await writeFile(outPath, data);
+}
+
+async function downloadFile(name: string): Promise<Buffer> {
+  try {
+    const { stdout } = await promisify(execFile)(
+      "gh",
+      ["release", "download", RELEASE_TAG, "-R", REPO, "-p", name, "-O", "-"],
+      { encoding: "buffer", maxBuffer: 1e9 },
+    );
+    return stdout;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+  const url = `https://github.com/${REPO}/releases/download/${RELEASE_TAG}/${name}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download ${url}: ${response.status}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
 }
 
 async function readVerifiedFile(
