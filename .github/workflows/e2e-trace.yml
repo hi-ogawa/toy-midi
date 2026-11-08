@@ -75,10 +75,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build-wasm
       - run: pnpm exec playwright install chromium --with-deps --no-shell
+      - run: pnpm fetch-soundfonts
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Run selected tests with tracing
         env:
           E2E_TRACE: "1"
-          GH_TOKEN: ${{ github.token }}
           E2E_SERVER: ${{ inputs.server }}
           TEST_FILTER: ${{ inputs.tests }}
           TEST_GREP: ${{ inputs.grep }}
