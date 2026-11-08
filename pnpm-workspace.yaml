@@ -6,4 +6,4 @@ allowBuilds:
   core-js: false
   esbuild: true
   gl: false
-  wasm-pack: true
+  wasm-pack: false
