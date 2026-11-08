@@ -235,14 +235,26 @@ export class SubtractiveSynth implements SynthEngine {
   noteOn(pitch: number, velocity: number): void {
     if (this.voiceMode === "mono") {
       if (!this.mono.noteOn(pitch)) {
-        const voice = this.createVoice(pitch, velocity);
+        const voice = createVoice({
+          pitch,
+          velocity,
+          layers: this.layers,
+          sampleRate: this.sampleRate,
+        });
         this.voices.push(voice);
         this.mono.voice = voice;
       }
       return;
     }
     this.releasePolyNote(pitch);
-    this.voices.push(this.createVoice(pitch, velocity));
+    this.voices.push(
+      createVoice({
+        pitch,
+        velocity,
+        layers: this.layers,
+        sampleRate: this.sampleRate,
+      }),
+    );
   }
 
   noteOff(pitch: number): void {
@@ -395,28 +407,6 @@ export class SubtractiveSynth implements SynthEngine {
       }
     }
   }
-
-  private createVoice(pitch: number, velocity: number): Voice {
-    return {
-      pitch,
-      soundingPitch: pitch,
-      glideStep: 0,
-      vibratoPhase: 0,
-      velocity: velocity / 127,
-      gain: PEAK_GAIN * (velocity / 127),
-      layers: new Map(
-        this.layers.map((layer) => [
-          layer.id,
-          {
-            phase: 0,
-            filter: new BiquadEqPerSample({ sampleRate: this.sampleRate }),
-            filterEnvelope: new EnvelopeState(),
-            ampEnvelope: new EnvelopeState(),
-          },
-        ]),
-      ),
-    };
-  }
 }
 
 /**
@@ -559,6 +549,38 @@ function computePanGains(pan: number): { left: number; right: number } {
   return {
     left: Math.SQRT2 * Math.cos(angle),
     right: Math.SQRT2 * Math.sin(angle),
+  };
+}
+
+function createVoice({
+  pitch,
+  velocity,
+  layers,
+  sampleRate,
+}: {
+  pitch: number;
+  velocity: number;
+  layers: ResolvedLayer[];
+  sampleRate: number;
+}): Voice {
+  return {
+    pitch,
+    soundingPitch: pitch,
+    glideStep: 0,
+    vibratoPhase: 0,
+    velocity: velocity / 127,
+    gain: PEAK_GAIN * (velocity / 127),
+    layers: new Map(
+      layers.map((layer) => [
+        layer.id,
+        {
+          phase: 0,
+          filter: new BiquadEqPerSample({ sampleRate }),
+          filterEnvelope: new EnvelopeState(),
+          ampEnvelope: new EnvelopeState(),
+        },
+      ]),
+    ),
   };
 }
 
