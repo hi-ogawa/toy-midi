@@ -16,9 +16,9 @@ export function MidiInstrument({
   onSettingsChange: (settings: Partial<MidiTrackState>) => void;
 }) {
   return (
-    <div className="grid w-96 grid-cols-[64px_1fr] items-center gap-x-4 gap-y-4">
+    <div className="grid w-96 grid-cols-[64px_1fr] items-center gap-x-3 gap-y-3">
       <div className="contents">
-        <span className="text-sm text-neutral-300">Sound</span>
+        <span className="text-xs text-neutral-300">Sound</span>
         <InstrumentCombobox
           className="w-full!"
           aria-label={`${track.name} program`}
@@ -32,7 +32,7 @@ export function MidiInstrument({
         />
       </div>
       <label className="contents">
-        <span className="text-sm text-neutral-300">Key signature</span>
+        <span className="text-xs text-neutral-300">Key signature</span>
         <select
           aria-label="Key signature"
           value={`${track.keySignature.fifths}:${track.keySignature.mode}`}
@@ -45,7 +45,7 @@ export function MidiInstrument({
               },
             });
           }}
-          className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
+          className="h-control w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100"
         >
           {KEY_SIGNATURE_OPTION_GROUPS.map((group) => (
             <optgroup key={group.mode} label={group.label}>
@@ -62,7 +62,7 @@ export function MidiInstrument({
         </select>
       </label>
       <label className="contents">
-        <span className="text-sm text-neutral-300">Tuning</span>
+        <span className="text-xs text-neutral-300">Tuning</span>
         <select
           aria-label="Tuning"
           value={resolveTabStringPreset(track.tabOpenStringPitches)?.id}
@@ -74,7 +74,7 @@ export function MidiInstrument({
               tabOpenStringPitches: [...preset.openStringPitches],
             });
           }}
-          className="h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
+          className="h-control w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100"
         >
           {TAB_STRING_PRESETS.map((preset) => (
             <option key={preset.id} value={preset.id}>
@@ -84,7 +84,7 @@ export function MidiInstrument({
         </select>
       </label>
       <div className="col-start-2 space-y-2">
-        <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer">
+        <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
           <input
             type="checkbox"
             checked={track.tabAnnotationEnabled}

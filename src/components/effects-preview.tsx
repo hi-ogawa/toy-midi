@@ -39,7 +39,7 @@ export function EffectsPreview() {
   return (
     <div
       data-testid="effects-panel"
-      className="h-128 w-96 overflow-auto rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl"
+      className="h-128 w-96 overflow-auto rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 shadow-2xl"
     >
       <EffectsContent eq={eq} onChange={setEq} />
     </div>

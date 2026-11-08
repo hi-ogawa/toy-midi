@@ -32,18 +32,18 @@ export function Panel({
         className,
       )}
     >
-      <div className="flex h-9 shrink-0 items-center gap-3 border-b border-neutral-700 px-3">
+      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-neutral-700 pr-1 pl-3">
         <h2 className="min-w-0 text-sm font-semibold text-neutral-100">
           {title}
         </h2>
-        <div className="ml-auto flex shrink-0 items-center gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           {headerActions}
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-200"
+            className="flex size-control-sm items-center justify-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
             aria-label={closeLabel}
           >
-            <XIcon className="size-5" />
+            <XIcon className="size-4" />
           </button>
         </div>
       </div>

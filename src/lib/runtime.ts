@@ -263,6 +263,7 @@ export type PersistableEditorRuntimeState = Pick<
   | "referenceVideo"
   | "midiTracks"
   | "trackOrder"
+  | "armedTrackId"
 > & {
   audioTracks: Omit<AudioTrackState, "regions">[];
 };
@@ -1359,6 +1360,7 @@ export class EditorRuntime {
           midiTracks: state.midiTracks,
           trackOrder: state.trackOrder,
           referenceVideo: state.referenceVideo,
+          armedTrackId: state.armedTrackId,
         }) satisfies PersistableEditorRuntimeState,
       listener,
       equals: shallowEqual,

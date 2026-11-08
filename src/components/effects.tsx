@@ -1,4 +1,4 @@
-import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { AmpParameters, AmpPreset } from "../lib/dsp/amp";
 import { BUTTERWORTH_Q, isGainFilter } from "../lib/dsp/biquad-eq";
@@ -9,18 +9,12 @@ import {
   type MultibandEqParameters,
 } from "../lib/dsp/biquad-eq-multiband";
 import { createDefaultEqBand } from "../lib/dsp/biquad-eq-multiband";
-import {
-  dbToGain,
-  gainToDb,
-  logPositionToValue,
-  valueToLogPosition,
-} from "../lib/music";
+import { dbToGain, gainToDb } from "../lib/music";
 import type { ProjectUiStore } from "../lib/preferences";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
 import { Panel } from "./panel";
 import { PanelResizeHandle, usePanelResize } from "./panel-resize";
-import { Slider } from "./ui/slider";
 import { useDraftInput } from "./use-draft-input";
 
 const EQ_BAND_TYPE_LABELS: Record<EqBandType, string> = {
@@ -85,7 +79,7 @@ export function Effects({
           <button
             type="button"
             onClick={() => onAmpChange(DEFAULT_AMP)}
-            className="flex h-6 items-center gap-1 rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-300 outline-none hover:bg-neutral-700 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
+            className="flex h-control-sm items-center gap-1 rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-300 outline-none hover:bg-neutral-700 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300"
           >
             <Plus className="size-3.5" aria-hidden="true" />
             Add amp
@@ -103,7 +97,7 @@ export function Effects({
         handleRef={handleRef}
         label={`Resize ${label} Effects`}
       />
-      <div className="flex h-full flex-col gap-4">
+      <div className="flex h-full flex-col gap-3">
         {amp && (
           <AmpSection
             amp={amp}
@@ -129,9 +123,9 @@ function AmpSection({
   onRemove: () => void;
 }) {
   return (
-    <div className="shrink-0 space-y-3 border-b border-neutral-700 pb-4">
+    <div className="shrink-0 space-y-3 border-b border-neutral-700 pb-3">
       <div className="flex items-center gap-2">
-        <h3 className="mr-auto text-sm font-medium">Amp</h3>
+        <h3 className="mr-auto text-xs font-medium">Amp</h3>
         <IconButton label="Remove amp" onClick={onRemove}>
           <Trash2 className="size-3.5" aria-hidden="true" />
         </IconButton>
@@ -147,13 +141,13 @@ function AmpSection({
             type="button"
             aria-pressed={amp.preset === preset}
             onClick={() => onChange({ ...amp, preset: preset as AmpPreset })}
-            className="h-7 flex-1 bg-neutral-900 text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
+            className="h-control-sm flex-1 bg-neutral-900 text-xs text-neutral-400 outline-none not-first:border-l not-first:border-neutral-600 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset aria-pressed:bg-neutral-700 aria-pressed:text-neutral-100"
           >
             {presetLabel}
           </button>
         ))}
       </div>
-      <label className="flex items-center gap-1.5 text-xs">
+      <label className="flex items-center gap-1 text-xs">
         <input
           type="checkbox"
           checked={amp.cabinet}
@@ -175,7 +169,6 @@ export function EffectsContent({
   onChange: (eq: MultibandEqParameters) => void;
 }) {
   const [selectedBandId, setSelectedBandId] = useState(eq.bands[0]?.id);
-  const [slidersOpen, setSlidersOpen] = useState(false);
   const selectedBand =
     eq.bands.find((band) => band.id === selectedBandId) ?? eq.bands[0];
   const selectedIndex = selectedBand ? eq.bands.indexOf(selectedBand) : -1;
@@ -228,10 +221,10 @@ export function EffectsContent({
   };
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-3">
       <div className="flex shrink-0 items-center gap-2">
-        <h3 className="mr-auto text-sm font-medium">Parametric EQ</h3>
-        <label className="flex items-center gap-1.5 text-xs">
+        <h3 className="mr-auto text-xs font-medium">Parametric EQ</h3>
+        <label className="flex items-center gap-1 text-xs">
           <input
             type="checkbox"
             checked={eq.bypass}
@@ -271,7 +264,7 @@ export function EffectsContent({
               aria-label={`Select band ${index + 1}`}
               aria-pressed={selected}
               onClick={() => setSelectedBandId(band.id)}
-              className="flex h-8 shrink-0 items-center gap-1.5 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none hover:border-neutral-500 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 aria-pressed:border-neutral-500 aria-pressed:bg-neutral-800 aria-pressed:text-neutral-100"
+              className="flex h-control-sm shrink-0 items-center gap-1 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none hover:border-neutral-500 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 aria-pressed:border-neutral-500 aria-pressed:bg-neutral-800 aria-pressed:text-neutral-100"
             >
               <span
                 className="size-2 rounded-full"
@@ -280,7 +273,7 @@ export function EffectsContent({
                   opacity: band.bypass ? 0.35 : 1,
                 }}
               />
-              <span className="flex items-baseline gap-1.5">
+              <span className="flex items-baseline gap-1">
                 <span>{index + 1}</span>
                 <span className="font-mono text-[10px] text-neutral-500">
                   {formatFrequency(band.frequency)}
@@ -292,7 +285,12 @@ export function EffectsContent({
       </div>
 
       {selectedBand && (
-        <div className="shrink-0 space-y-4 border-t border-neutral-700 pt-4">
+        // Keyed so a late blur from the previous band's input can't commit
+        // its draft to the newly selected band.
+        <div
+          key={selectedBand.id}
+          className="shrink-0 space-y-3 border-t border-neutral-700 pt-3"
+        >
           <div className="flex items-center gap-2">
             <span
               className="size-2.5 rounded-full"
@@ -301,7 +299,7 @@ export function EffectsContent({
             <h4 className="mr-auto text-xs font-medium">
               Band {selectedIndex + 1}
             </h4>
-            <label className="flex items-center gap-1.5 text-xs text-neutral-400">
+            <label className="flex items-center gap-1 text-xs text-neutral-400">
               <input
                 type="checkbox"
                 checked={selectedBand.bypass}
@@ -322,20 +320,12 @@ export function EffectsContent({
             <IconButton label="Delete band" onClick={deleteSelectedBand}>
               <Trash2 className="size-3.5" aria-hidden="true" />
             </IconButton>
-            <IconButton
-              label={slidersOpen ? "Hide sliders" : "Show sliders"}
-              aria-expanded={slidersOpen}
-              active={slidersOpen}
-              onClick={() => setSlidersOpen((open) => !open)}
-            >
-              <SlidersHorizontal className="size-4" aria-hidden="true" />
-            </IconButton>
           </div>
           <label className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">Type</span>
             <select
               aria-label="Filter type"
-              className="h-7 w-28 rounded border border-neutral-600 bg-neutral-900 px-1 text-xs focus:border-neutral-500 focus:outline-none"
+              className="h-control-sm w-28 rounded border border-neutral-600 bg-neutral-900 px-1 text-xs focus:border-neutral-500 focus:outline-none"
               value={selectedBand.type}
               onChange={(event) =>
                 changeBandType(selectedBand, event.target.value as EqBandType)
@@ -377,38 +367,6 @@ export function EffectsContent({
               onChange={(q) => updateBand(selectedBand.id, { q })}
             />
           </div>
-          {slidersOpen && (
-            <div className="space-y-4 border-t border-neutral-700 pt-4">
-              <EqSlider
-                label="Frequency"
-                unit="Hz"
-                limits={EQ_CONTROL_LIMITS.frequency}
-                scale="logarithmic"
-                value={selectedBand.frequency}
-                onChange={(frequency) =>
-                  updateBand(selectedBand.id, { frequency })
-                }
-              />
-              {hasGain && (
-                <EqSlider
-                  label="Gain"
-                  unit="dB"
-                  limits={EQ_CONTROL_LIMITS.gainDb}
-                  value={gainToDb(selectedBand.gain)}
-                  onChange={(gainDb) =>
-                    updateBand(selectedBand.id, { gain: dbToGain(gainDb) })
-                  }
-                />
-              )}
-              <EqSlider
-                label="Q"
-                unit=""
-                limits={EQ_CONTROL_LIMITS.q}
-                value={selectedBand.q}
-                onChange={(q) => updateBand(selectedBand.id, { q })}
-              />
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -417,12 +375,10 @@ export function EffectsContent({
 
 function IconButton({
   label,
-  active = false,
   children,
   ...props
 }: {
   label: string;
-  active?: boolean;
   children: React.ReactNode;
 } & Omit<React.ComponentProps<"button">, "aria-label">) {
   return (
@@ -430,7 +386,7 @@ function IconButton({
       type="button"
       title={label}
       aria-label={label}
-      className={`flex size-7 shrink-0 items-center justify-center rounded border border-neutral-600 text-neutral-400 outline-none hover:bg-neutral-700 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-30 ${active ? "bg-neutral-600 text-neutral-100" : ""}`}
+      className="flex size-control-sm shrink-0 items-center justify-center rounded border border-neutral-600 text-neutral-400 outline-none hover:bg-neutral-700 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-30"
       {...props}
     >
       {children}
@@ -467,7 +423,7 @@ function EqNumericInput({
     format: formatParameter,
   });
   return (
-    <label className="flex min-w-0 flex-col gap-1.5 text-xs">
+    <label className="flex min-w-0 flex-col gap-1 text-xs">
       <span className="text-muted-foreground">
         {label}
         {unit && ` (${unit})`}
@@ -476,62 +432,9 @@ function EqNumericInput({
         type="text"
         inputMode="decimal"
         aria-label={label}
-        className="h-7 w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-right font-mono text-xs focus:border-neutral-500 focus:outline-none"
+        className="h-control-sm w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-right font-mono text-xs focus:border-neutral-500 focus:outline-none"
         {...input.props}
       />
     </label>
-  );
-}
-
-function EqSlider({
-  label,
-  unit,
-  limits,
-  scale = "linear",
-  value,
-  onChange,
-}: {
-  label: string;
-  unit: string;
-  limits: { min: number; max: number; step: number };
-  scale?: "linear" | "logarithmic";
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  let config = {
-    ...limits,
-    toSliderValue: (value: number) => value,
-    toParameterValue: (value: number) => value,
-  };
-  if (scale === "logarithmic") {
-    config = {
-      min: 0,
-      max: 1,
-      // An octave spans log(2) / log(20000 / 20) ≈ 0.1 of the 20–20,000 Hz
-      // range, so 1,000 steps give about 100 steps per octave.
-      step: 0.001,
-      toSliderValue: (value: number) => valueToLogPosition(value, limits),
-      toParameterValue: (position: number) =>
-        Number(logPositionToValue(position, limits).toFixed(2)),
-    };
-  }
-  const valueText = `${formatParameter(value)} ${unit}`.trim();
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{label}</span>
-        <span className="font-mono">{valueText}</span>
-      </div>
-      <Slider
-        className="h-4"
-        aria-label={label}
-        aria-valuetext={valueText}
-        min={config.min}
-        max={config.max}
-        step={config.step}
-        value={[config.toSliderValue(value)]}
-        onValueChange={([next]) => onChange(config.toParameterValue(next))}
-      />
-    </div>
   );
 }

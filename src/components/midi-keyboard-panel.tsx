@@ -98,7 +98,7 @@ export function MidiKeyboardPanel({
             title="Computer keys"
             aria-pressed={isCapturing}
             onClick={toggleCapture}
-            className="flex size-6 items-center justify-center rounded text-neutral-400 hover:text-neutral-200 aria-pressed:bg-emerald-500 aria-pressed:text-neutral-950"
+            className="flex size-control-sm items-center justify-center rounded text-neutral-400 hover:text-neutral-200 aria-pressed:bg-emerald-500 aria-pressed:text-neutral-950"
           >
             <KeyboardIcon className="size-4" />
           </button>
@@ -180,7 +180,7 @@ function OctaveStepper({
   const buttonClassName =
     "flex h-full w-5 items-center justify-center text-neutral-400 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40";
   return (
-    <div className="flex h-6 items-center rounded border border-neutral-600 bg-neutral-900 text-xs text-neutral-300">
+    <div className="flex h-control-sm items-center rounded border border-neutral-600 bg-neutral-900 text-xs text-neutral-300">
       <button
         type="button"
         aria-label="Octave down"
@@ -243,7 +243,7 @@ function ValueKnob({
     onCancel: onRelease,
   });
   return (
-    <div className="flex items-center gap-1.5 text-xs text-neutral-300">
+    <div className="flex items-center gap-1 text-xs text-neutral-300">
       <Knob
         ref={ref}
         aria-label={label}
@@ -302,7 +302,7 @@ function MidiKeyboardHelp() {
           With computer keys on, the keys marked on the piano play notes instead
           of editor shortcuts such as F and L.
         </p>
-        <dl className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5">
+        <dl className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1">
           <dt>
             <KeyHint>Z</KeyHint> <KeyHint>X</KeyHint>
           </dt>

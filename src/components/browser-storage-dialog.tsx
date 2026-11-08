@@ -20,7 +20,7 @@ export function BrowserStorageDialog() {
         title="Manage storage"
         aria-label="Manage storage"
         onClick={() => setIsOpen(true)}
-        className="size-9 border-transparent text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
+        className="size-control border-transparent text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
       >
         <DatabaseIcon className="size-4" />
       </Button>
@@ -89,7 +89,7 @@ export function BrowserStorageContent({
   onRequestProtection: () => void;
 }) {
   return (
-    <div className="space-y-5 text-sm">
+    <div className="space-y-3 text-sm">
       <UsageSummary usage={usage} />
       <ProtectionCard
         protection={protection}
@@ -107,14 +107,14 @@ function UsageSummary({ usage }: { usage: BrowserStorageUsage }) {
   switch (usage.status) {
     case "checking": {
       return (
-        <p className="flex h-8 items-center text-neutral-400">
+        <p className="flex h-7 items-center text-neutral-400">
           Checking storage usage…
         </p>
       );
     }
     case "ready": {
       return (
-        <p className="flex h-8 items-baseline gap-2">
+        <p className="flex h-7 items-baseline gap-2">
           <span className="text-2xl font-medium text-neutral-100 tabular-nums">
             {formatStorageBytes(usage.bytes)}
           </span>
@@ -124,7 +124,7 @@ function UsageSummary({ usage }: { usage: BrowserStorageUsage }) {
     }
     case "unavailable": {
       return (
-        <p className="flex h-8 items-center text-neutral-400">
+        <p className="flex h-7 items-center text-neutral-400">
           Storage usage unavailable
         </p>
       );
@@ -147,7 +147,7 @@ function ProtectionCard({
     protection === "denied";
 
   return (
-    <section className="rounded-lg border border-neutral-700 bg-neutral-900/40 p-4">
+    <section className="rounded-lg border border-neutral-700 bg-neutral-900/40 p-3">
       <div className="flex gap-3">
         <Icon className={cn("mt-0.5 size-5 shrink-0", iconClassName)} />
         <div className="min-w-0 flex-1">
@@ -168,7 +168,7 @@ function ProtectionCard({
             <Button
               disabled={protection === "requesting"}
               onClick={onRequestProtection}
-              className="mt-3 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-500"
+              className="mt-2 h-control border-emerald-600 bg-emerald-600 px-3 text-xs text-white hover:bg-emerald-500"
             >
               {protection === "requesting"
                 ? "Requesting…"

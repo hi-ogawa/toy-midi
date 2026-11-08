@@ -244,18 +244,20 @@ test("arms before input is on and records once input starts", async ({
 }) => {
   await createProject(page);
 
-  // Arm Audio 1 while input is off, which keeps the arm, asks for input, and
-  // opens the input panel.
+  // Arm Audio 1 while input is off, which keeps the arm without asking for
+  // input.
   const arm = page.getByTestId("arm-toggle");
   await arm.click();
   await expect(arm).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Turn input on to record")).toBeVisible();
   const panel = page.getByTestId("input-panel");
-  await expect(panel).toBeVisible();
+  await expect(panel).toBeHidden();
 
-  // Press Record before input is on, which does not start recording.
+  // Press Record before input is on, which asks for input, opens the input
+  // panel, and does not start recording.
   const recordButton = page.getByTestId("record-button");
   await recordButton.click();
+  await expect(page.getByText("Turn input on to record")).toBeVisible();
+  await expect(panel).toBeVisible();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
 
   // Turn input on from the panel, which leaves the arm in place.
@@ -269,6 +271,30 @@ test("arms before input is on and records once input starts", async ({
   await waitForRecordingSamples(page.getByTestId("clip-recording"));
   await recordButton.click();
   await expect(page.getByTestId("clip-audio")).toContainText("Take 1");
+});
+
+test("keeps the armed track with the project", async ({ page }) => {
+  // Add a second audio track, and save the project.
+  await createProject(page);
+  await page.getByTitle("Add empty audio track").click();
+  await expect(page.getByTestId("audio-track-row")).toHaveCount(2);
+  await saveProject(page);
+
+  // Arm Audio 2, which marks the project unsaved.
+  await armTrack(page, { track: "Audio 2" });
+  const saveButton = page.getByTestId("save-button");
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
+
+  // Save and reload, and see Audio 2 still armed.
+  await saveProject(page);
+  await page.reload();
+  await expect(
+    page.getByRole("button", {
+      name: "Disarm Audio 2 for recording",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
 });
 
 test("records into whichever audio track is armed", async ({ page }) => {

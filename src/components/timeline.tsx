@@ -114,8 +114,8 @@ export function TimelineHeader({
   onPunchRangeClear: () => void;
 }) {
   return (
-    <div className="sticky top-0 z-40 grid h-10 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
-      <div className="sticky left-0 z-20 flex items-center border-r-2 border-neutral-600 bg-neutral-800 px-3 text-xs font-semibold">
+    <div className="sticky top-0 z-40 grid h-8 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
+      <div className="sticky left-0 z-20 flex items-center border-r-2 border-neutral-600 bg-neutral-800 px-2 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
         <div className="flex gap-1">
@@ -123,7 +123,7 @@ export function TimelineHeader({
             data-testid="add-midi-track"
             onClick={onAddMidiTrack}
             disabled={isAddingMidi}
-            className="size-6 hover:bg-neutral-700"
+            className="size-control-xs hover:bg-neutral-700"
             title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
           >
             <Music2Icon className="size-3.5" />
@@ -131,7 +131,7 @@ export function TimelineHeader({
           <Button
             onClick={onAddAudioTrack}
             disabled={isAddingAudio}
-            className="size-6 hover:bg-neutral-700"
+            className="size-control-xs hover:bg-neutral-700"
             title="Add empty audio track"
           >
             <PlusIcon className="size-3.5" />
@@ -148,7 +148,7 @@ export function TimelineHeader({
             title={
               isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
             }
-            className="size-6 hover:bg-neutral-700"
+            className="size-control-xs hover:bg-neutral-700"
           >
             {isAddingAudio ? (
               <LoaderCircleIcon className="size-3.5 animate-spin" />
@@ -634,7 +634,7 @@ export function ReferenceTimelineRow({
       data-testid="reference-track"
       className="grid h-15 grid-cols-[15rem_1fr] border-b-2 border-neutral-600"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 px-3 py-2">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[var(--spacing-control)] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 p-2">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           Reference
         </div>
@@ -655,7 +655,7 @@ export function ReferenceTimelineRow({
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-6"
+            className="size-control-xs"
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
         </div>
@@ -855,7 +855,7 @@ function TimelineClip({
               />
             )}
             <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
-              <span className="mr-1.5">{clip.label}</span>
+              <span className="mr-1">{clip.label}</span>
               {onEditUpdate && clip.offset > 0 && (
                 <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
               )}
