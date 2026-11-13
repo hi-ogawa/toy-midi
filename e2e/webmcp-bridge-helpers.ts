@@ -48,9 +48,11 @@ export const test = base.extend<{
 /**
  * `test` whose browser has the webmcp-bridge extension, connecting to the
  * bridge's port, with an `extension` fixture that turns a page's tab on or off
- * as the extension's button would, and reads the tab's badge.
+ * as the extension's button would, and reads the tab's badge. The bridge
+ * accepts the extension without the app's origin, as it does for users.
  */
 export const extensionTest = test.extend<{ extension: ExtensionFixture }>({
+  allowAppOrigin: false,
   context: async (
     {
       channel,
