@@ -33,7 +33,8 @@ export function listenPointerDrag<T>({
   });
 
   const handlePointerDown = (event: PointerEvent) => {
-    if (event.button !== 0 || state) {
+    // Touch navigates the timeline instead of editing.
+    if (event.button !== 0 || event.pointerType === "touch" || state) {
       return;
     }
     state = {
