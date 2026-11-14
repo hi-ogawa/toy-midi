@@ -158,3 +158,26 @@ $$
 $$
 
 These are the five values computed by [`calculateBiquadEqCoefficients`](../../../src/lib/dsp/biquad-eq.ts). The implementation stores the normalized values under the names `b0`, `b1`, `b2`, `a1`, and `a2`. The formula convention follows the [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/).
+
+### Keep Two States Instead of Four
+
+The recurrence above is called direct form I. It keeps four past values per channel, which are $x[n-1]$, $x[n-2]$, $y[n-1]$, and $y[n-2]$. The same filter needs only two, because the terms that reach back by the same delay can be summed ahead of time.
+
+Collect the two-delay terms into one state, and the one-delay terms plus that state into another:
+
+```math
+\begin{aligned}
+s_2[n]&=\beta_2x[n]-\gamma_2y[n],\\
+s_1[n]&=\beta_1x[n]-\gamma_1y[n]+s_2[n-1].
+\end{aligned}
+```
+
+Expanding $s_1[n-1]$ gives $\beta_1x[n-1]-\gamma_1y[n-1]+\beta_2x[n-2]-\gamma_2y[n-2]$, which is every term of the recurrence except $\beta_0x[n]$. So the output is
+
+$$
+y[n]=\beta_0x[n]+s_1[n-1].
+$$
+
+Each sample computes $y[n]$ from the stored $s_1$, then updates $s_1$ from the stored $s_2$, then updates $s_2$. This arrangement is called transposed direct form II. It has the same transfer function with half the state.
+
+The two forms differ when the coefficients change during playback. Direct form I stores the signal itself, so its history stays valid under new coefficients. Transposed direct form II stores sums weighted by the old coefficients, so a change mixes old and new weights for two samples and can cause a transient. The EQ ramps its parameters, so it uses direct form I. A filter with fixed coefficients, such as the K-weighting in [loudness measurement](../loudness.md), can use the smaller state.
