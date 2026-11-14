@@ -23,6 +23,7 @@ import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
 import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
+import type { LoudnessMeasurement } from "./dsp/loudness.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
 import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import type { SynthPatch } from "./dsp/subtractive-synth.ts";
@@ -49,7 +50,11 @@ import type { KeySignature } from "./pitch-spelling.ts";
 import { ActiveRecording } from "./recording.ts";
 import type { SoundfontId } from "./soundfonts.ts";
 import { beatsToSeconds } from "./timeline.ts";
-import { syncTrackOrder, type TrackListsState } from "./track-order.ts";
+import {
+  resolveTrackOrder,
+  syncTrackOrder,
+  type TrackListsState,
+} from "./track-order.ts";
 import {
   createAudioTrackState,
   createMidiTrackState,
@@ -143,6 +148,16 @@ export interface MidiTrackState extends BaseTrackState {
   /** MIDI note numbers of the open strings, highest string first */
   tabOpenStringPitches: number[];
   keySignature: KeySignature;
+}
+
+/** Loudness of a rendered mix, measured like the mix in Export Audio. */
+export interface LoudnessReport {
+  mix: LoudnessMeasurement;
+  /**
+   * Each track's share of the rendered file, after its EQ, gain, pan, mute and solo, and the
+   * master gain, in display order
+   */
+  tracks: ({ id: string; name: string } & LoudnessMeasurement)[];
 }
 
 export type MidiPreset = Pick<
@@ -1246,7 +1261,19 @@ export class EditorRuntime {
     this.attachedYouTubePlayer = undefined;
   }
 
-  async renderMix(): Promise<AudioBuffer> {
+  /**
+   * Render the project offline the way Export Audio does, and measure its loudness.
+   * Silent tracks and mixes read -Infinity, which JSON turns into null.
+   */
+  async measureLoudness(): Promise<LoudnessReport> {
+    const { loudness } = await this.renderMix();
+    return loudness;
+  }
+
+  async renderMix(): Promise<{
+    buffer: AudioBuffer;
+    loudness: LoudnessReport;
+  }> {
     const state = this.store.get();
     if (
       state.captureStatus === "recording" ||
@@ -1254,10 +1281,21 @@ export class EditorRuntime {
     ) {
       throw new Error("Cannot render a mix while capture is in progress.");
     }
-    return renderMix({
+    const { buffer, loudness } = await renderMix({
       mix: resolveMix(state),
       sampleRate: 48000,
     });
+    return {
+      buffer,
+      loudness: {
+        mix: loudness.mix,
+        tracks: resolveTrackOrder(state).map(({ id, track }) => ({
+          id,
+          name: track.name,
+          ...loudness.tracks.get(id)!,
+        })),
+      },
+    };
   }
 
   serializeProject(): SerializedEditorRuntimeState {

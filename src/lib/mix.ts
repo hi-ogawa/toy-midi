@@ -5,6 +5,11 @@ import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
 import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
+import {
+  ensureLoudnessMeterWorklet,
+  LoudnessMeterWorkletNode,
+} from "./dsp/loudness-meter-worklet-node.ts";
+import type { LoudnessMeasurement } from "./dsp/loudness.ts";
 import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
 import type {
   TimelineAutomation,
@@ -23,6 +28,7 @@ const MIDI_RELEASE_SECONDS = 2;
 
 interface Mix {
   tracks: {
+    id: string;
     amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
@@ -31,6 +37,7 @@ interface Mix {
     regions: AudioPlaybackSource[];
   }[];
   midiTracks: {
+    id: string;
     amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
@@ -48,6 +55,7 @@ interface Mix {
 export function resolveMix(state: EditorRuntimeState): Mix {
   const gains = deriveTrackMix(state);
   const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
+    id: track.id,
     amp: track.amp,
     eq: track.eq,
     gain: gains.get(track.id)!,
@@ -56,6 +64,7 @@ export function resolveMix(state: EditorRuntimeState): Mix {
     regions: getClipSources(track.regions),
   }));
   const midiTracks: Mix["midiTracks"] = state.midiTracks.map((track) => ({
+    id: track.id,
     amp: track.amp,
     eq: track.eq,
     gain: gains.get(track.id)!,
@@ -82,14 +91,31 @@ export function resolveMix(state: EditorRuntimeState): Mix {
   return { tracks, midiTracks, masterGain: state.masterGain, duration };
 }
 
-/** Render floats without normalization or clipping; PCM encoding owns clipping. */
+export interface RenderedMix {
+  buffer: AudioBuffer;
+  loudness: MixLoudness;
+}
+
+export interface MixLoudness {
+  mix: LoudnessMeasurement;
+  /**
+   * Each track's share of the rendered file, after its EQ, gain, pan, and the master gain,
+   * without its reverb send
+   */
+  tracks: Map<string, LoudnessMeasurement>;
+}
+
+/**
+ * Render floats without normalization or clipping; PCM encoding owns clipping.
+ * Meters on the master and on every track measure loudness during the same render.
+ */
 export async function renderMix({
   mix,
   sampleRate,
 }: {
   mix: Mix;
   sampleRate: number;
-}): Promise<AudioBuffer> {
+}): Promise<RenderedMix> {
   if (mix.duration <= 0) {
     throw new Error("No audio to export.");
   }
@@ -112,9 +138,18 @@ export async function renderMix({
       await Promise.all([
         ensureAmpWorklet(context),
         ensureBiquadEqWorklet(context),
+        ensureLoudnessMeterWorklet(context),
         reverb.init(),
       ]);
-      for (const track of mix.tracks) {
+      const createMeter = () => {
+        const meter = new LoudnessMeterWorkletNode(context);
+        cleanup.defer(() => meter.dispose());
+        return meter;
+      };
+      const masterMeter = createMeter();
+      master.connect(masterMeter);
+      const trackMeters = new Map<string, LoudnessMeterWorkletNode>();
+      const createChannel = (track: Mix["tracks" | "midiTracks"][number]) => {
         const channel = new AudioChannel({
           context,
           output: master,
@@ -126,6 +161,13 @@ export async function renderMix({
           reverbSend: track.reverbSend,
         });
         cleanup.defer(() => channel.dispose());
+        const meter = createMeter();
+        channel.connectTap(meter);
+        trackMeters.set(track.id, meter);
+        return channel;
+      };
+      for (const track of mix.tracks) {
+        const channel = createChannel(track);
         for (const region of track.regions) {
           const source = context.createBufferSource();
           source.buffer = region.buffer;
@@ -145,39 +187,50 @@ export async function renderMix({
           cleanup.defer(() => synth.dispose());
           await synth.init();
           await synth.setPreset(track.preset);
-          const channel = new AudioChannel({
-            context,
-            output: master,
-            reverb: reverb.input,
-            amp: track.amp,
-            eq: track.eq,
-            gain: track.gain,
-            pan: track.pan,
-            reverbSend: track.reverbSend,
-          });
-          cleanup.defer(() => channel.dispose());
+          const channel = createChannel(track);
           synth.output.connect(channel.input);
           await synth.setNotes(track.notes);
           await synth.setAutomation(track.automation);
           await synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
         }),
       );
-      // Await so cleanup runs after rendering, not before.
-      return await context.startRendering();
+      // Await so cleanup runs after rendering and measuring, not before.
+      const buffer = await context.startRendering();
+      // Track taps sit before the master gain, which offsets them exactly.
+      const masterGainDb = 20 * Math.log10(mix.masterGain);
+      const tracks = new Map(
+        await Promise.all(
+          [...trackMeters].map(async ([id, meter]) => {
+            const measurement = await meter.measure();
+            return [
+              id,
+              {
+                ...measurement,
+                integrated: measurement.integrated + masterGainDb,
+                truePeak: measurement.truePeak + masterGainDb,
+              },
+            ] as const;
+          }),
+        ),
+      );
+      return {
+        buffer,
+        loudness: { mix: await masterMeter.measure(), tracks },
+      };
     },
   );
 }
 
 /**
- * Renders in a temporary iframe and returns the result copied into this page.
- * Chromium never collects an OfflineAudioContext that has loaded an AudioWorklet
- * module, so its render target would stay in memory for the life of the page.
- * Removing the iframe tears the context down with it.
+ * Renders in a temporary iframe and returns the result with its buffer copied
+ * into this page. Chromium never collects an OfflineAudioContext that has
+ * loaded an AudioWorklet module, so its render target would stay in memory for
+ * the life of the page. Removing the iframe tears the context down with it.
  */
-async function renderOfflineInFrame(
+async function renderOfflineInFrame<T extends { buffer: AudioBuffer }>(
   options: OfflineAudioContextOptions,
-  render: (context: OfflineAudioContext) => Promise<AudioBuffer>,
-): Promise<AudioBuffer> {
+  render: (context: OfflineAudioContext) => Promise<T>,
+): Promise<T> {
   using cleanup = new DisposableStack();
   const frame = document.createElement("iframe");
   cleanup.defer(() => frame.remove());
@@ -185,7 +238,8 @@ async function renderOfflineInFrame(
   document.body.append(frame);
   const frameWindow = frame.contentWindow as Window & typeof globalThis;
   const context = new frameWindow.OfflineAudioContext(options);
-  const rendered = await render(context);
+  const result = await render(context);
+  const rendered = result.buffer;
   const buffer = new AudioBuffer({
     numberOfChannels: rendered.numberOfChannels,
     length: rendered.length,
@@ -194,7 +248,7 @@ async function renderOfflineInFrame(
   for (let channel = 0; channel < rendered.numberOfChannels; channel++) {
     buffer.copyToChannel(rendered.getChannelData(channel), channel);
   }
-  return buffer;
+  return { ...result, buffer };
 }
 
 /** Render raw sources to mono, ignoring clip playback gain, cropping pre-zero audio and returning the timeline offset in seconds. */
