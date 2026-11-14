@@ -6,7 +6,7 @@
  * See [Loudness](../../../docs/concepts/loudness.md) for how weighting and gating work.
  */
 
-import { BiquadEqFixed } from "./biquad-eq.ts";
+import { BiquadDirectForm1, type BiquadEqCoefficients } from "./biquad-eq.ts";
 
 export type LoudnessMeasurement = {
   /**
@@ -150,8 +150,10 @@ function powerToLoudness(power: number): number {
  * bilinear transform. The standard doesn't define other sample rates.
  */
 class KWeightingFilter {
-  private readonly shelf: BiquadEqFixed;
-  private readonly highPass: BiquadEqFixed;
+  private readonly shelf = new BiquadDirectForm1();
+  private readonly highPass = new BiquadDirectForm1();
+  private readonly shelfCoefficients: BiquadEqCoefficients;
+  private readonly highPassCoefficients: BiquadEqCoefficients;
 
   constructor(sampleRate: number) {
     {
@@ -162,30 +164,33 @@ class KWeightingFilter {
       const vh = 10 ** (gainDb / 20);
       const vb = vh ** 0.4996667741545416;
       const a0 = 1 + k / q + k * k;
-      this.shelf = new BiquadEqFixed({
+      this.shelfCoefficients = {
         b0: (vh + (vb * k) / q + k * k) / a0,
         b1: (2 * (k * k - vh)) / a0,
         b2: (vh - (vb * k) / q + k * k) / a0,
         a1: (2 * (k * k - 1)) / a0,
         a2: (1 - k / q + k * k) / a0,
-      });
+      };
     }
     {
       const frequency = 38.13547087602444;
       const q = 0.5003270373238773;
       const k = Math.tan((Math.PI * frequency) / sampleRate);
       const a0 = 1 + k / q + k * k;
-      this.highPass = new BiquadEqFixed({
+      this.highPassCoefficients = {
         b0: 1,
         b1: -2,
         b2: 1,
         a1: (2 * (k * k - 1)) / a0,
         a2: (1 - k / q + k * k) / a0,
-      });
+      };
     }
   }
 
   process(sample: number): number {
-    return this.highPass.process(this.shelf.process(sample));
+    return this.highPass.process(
+      this.shelf.process(sample, this.shelfCoefficients),
+      this.highPassCoefficients,
+    );
   }
 }
