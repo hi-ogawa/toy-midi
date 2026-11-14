@@ -6,7 +6,7 @@
  * See [Loudness](../../../docs/concepts/loudness.md) for how weighting and gating work.
  */
 
-import type { BiquadEqCoefficients } from "./biquad-eq.ts";
+import { BiquadEqFixed } from "./biquad-eq.ts";
 import { TruePeakDetector } from "./true-peak.ts";
 
 export type LoudnessMeasurement = {
@@ -156,8 +156,8 @@ function powerToLoudness(power: number): number {
  * bilinear transform. The standard doesn't define other sample rates.
  */
 class KWeightingFilter {
-  private readonly shelf: Biquad;
-  private readonly highPass: Biquad;
+  private readonly shelf: BiquadEqFixed;
+  private readonly highPass: BiquadEqFixed;
 
   constructor(sampleRate: number) {
     {
@@ -168,7 +168,7 @@ class KWeightingFilter {
       const vh = 10 ** (gainDb / 20);
       const vb = vh ** 0.4996667741545416;
       const a0 = 1 + k / q + k * k;
-      this.shelf = new Biquad({
+      this.shelf = new BiquadEqFixed({
         b0: (vh + (vb * k) / q + k * k) / a0,
         b1: (2 * (k * k - vh)) / a0,
         b2: (vh - (vb * k) / q + k * k) / a0,
@@ -181,7 +181,7 @@ class KWeightingFilter {
       const q = 0.5003270373238773;
       const k = Math.tan((Math.PI * frequency) / sampleRate);
       const a0 = 1 + k / q + k * k;
-      this.highPass = new Biquad({
+      this.highPass = new BiquadEqFixed({
         b0: 1,
         b1: -2,
         b2: 1,
@@ -193,21 +193,5 @@ class KWeightingFilter {
 
   process(sample: number): number {
     return this.highPass.process(this.shelf.process(sample));
-  }
-}
-
-/** Transposed direct form II */
-class Biquad {
-  private z1 = 0;
-  private z2 = 0;
-
-  constructor(private readonly coefficients: BiquadEqCoefficients) {}
-
-  process(x: number): number {
-    const { b0, b1, b2, a1, a2 } = this.coefficients;
-    const y = b0 * x + this.z1;
-    this.z1 = b1 * x - a1 * y + this.z2;
-    this.z2 = b2 * x - a2 * y;
-    return y;
   }
 }
