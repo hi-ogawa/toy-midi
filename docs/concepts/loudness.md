@@ -2,7 +2,7 @@
 
 A peak meter says how close a signal comes to full scale, but not how loud it sounds. A dense pad and a sparse plucked bass can peak at the same level while one sounds far louder than the other. Streaming services normalize playback by loudness, at around −14 LUFS, and they only turn loud tracks down. A quiet export therefore plays quieter than everything around it, however clean its peaks are.
 
-Export Audio reports the loudness of the mix and of each track, measured the way ITU-R BS.1770 defines it, with loudness range from EBU Tech 3342. The numbers match what ffmpeg's `ebur128` filter prints for the same file. This page explains what goes into them and how to read them.
+Export Audio reports the loudness of the mix and of each track, measured the way [ITU-R BS.1770](https://www.itu.int/rec/R-REC-BS.1770) defines it, with loudness range from [EBU Tech 3342](https://tech.ebu.ch/publications/tech3342). The numbers match what ffmpeg's [`ebur128` filter](https://ffmpeg.org/ffmpeg-filters.html#ebur128) prints for the same file. This page explains what goes into them and how to read them.
 
 ## Weight the Signal Like an Ear
 
@@ -13,7 +13,7 @@ Loudness starts as mean power, like an RMS meter, but the signal is filtered fir
 
 ![K-weighting at 48 kHz is flat through the midrange, about +0.7 dB at 1 kHz, rises to +4 dB above 2 kHz, and falls to −6 dB at 38 Hz and further below.](images/loudness-k-weighting.svg)
 
-BS.1770 publishes the coefficients at 48 kHz. They come from analog prototypes through the bilinear transform, so the meter recomputes them for any sample rate the same way the [digital filter articles](digital-filters/bilinear-transform.md) derive the peaking EQ.
+BS.1770 publishes the coefficients only at 48 kHz. Following [libebur128](https://github.com/jiixyj/libebur128), the meter derives the same two filters from analog prototypes through the bilinear transform, so they hold at any sample rate. This is the same method the [digital filter articles](digital-filters/bilinear-transform.md) use to derive the peaking EQ.
 
 The consequence for mixing is that low end counts for less than a flat meter would show. A bass that reads 7 LU under the mix can still sound full, because much of its energy sits where K-weighting discounts it.
 
@@ -27,7 +27,7 @@ $$
 
 The −0.691 offset cancels K-weighting's gain at 1 kHz, so a full-scale 1 kHz sine in both channels reads 0 LUFS. One LU is one dB, so loudness differences read like fader moves.
 
-Because channels add as power, panning changes loudness when the panner moves energy between channels. The app pans stereo sources with Web Audio's `StereoPannerNode`, which folds one channel into the other rather than attenuating it, so a centered stereo voice gets up to 3 LU louder at hard pan. The meter measures after pan, so the numbers include this.
+Because channels add as power, panning changes loudness when the panner moves energy between channels. The app pans stereo sources with Web Audio's [`StereoPannerNode`](https://webaudio.github.io/web-audio-api/#stereopanner-algorithm), which folds one channel into the other rather than attenuating it, so a centered stereo voice gets up to 3 LU louder at hard pan. The meter measures after pan, so the numbers include this.
 
 ## Gate Out the Quiet Parts
 
