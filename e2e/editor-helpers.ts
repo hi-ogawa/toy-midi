@@ -33,6 +33,23 @@ export async function addMidiTrack(page: Page) {
   );
 }
 
+export async function setMidiInstrument(
+  page: Page,
+  { name, option }: { name: string; option: string },
+) {
+  await test.step(
+    `Set ${name} instrument to ${option}`,
+    async () => {
+      const instrument = await openMidiInstrument(page, { name });
+      await selectMidiInstrument(instrument, { option });
+      await instrument
+        .getByRole("button", { name: "Close", exact: true })
+        .click();
+    },
+    { box: true },
+  );
+}
+
 export async function openMidiInstrument(
   page: Page,
   { name }: { name: string },
@@ -62,7 +79,7 @@ export async function selectMidiInstrument(
       await program.click();
       await page
         .getByPlaceholder("Search instruments...")
-        .fill(option.split(": ")[1]);
+        .fill(option.split(": ").at(-1)!);
       await page.getByRole("option", { name: option, exact: true }).click();
       await expect(program).toContainText(option);
       await expect(program).toBeEnabled();

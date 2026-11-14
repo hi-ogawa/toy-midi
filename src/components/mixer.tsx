@@ -1,6 +1,14 @@
 import type { ComponentProps, ReactNode } from "react";
 import { isEqActive } from "../lib/dsp/biquad-eq-multiband";
-import { MAX_DB, MIN_DB, clamp, dbToGain, gainToDb } from "../lib/music";
+import {
+  MAX_DB,
+  MIN_DB,
+  clamp,
+  dbToGain,
+  formatGainDb,
+  formatPan,
+  gainToDb,
+} from "../lib/music";
 import type { EditorRuntime, EditorRuntimeState } from "../lib/runtime";
 import { resolveTrackOrder } from "../lib/track-order";
 import { EffectsToggle } from "./effects-toggle";
@@ -8,6 +16,7 @@ import { LevelMeter, MeterScale } from "./level-meter";
 import { MixToggle } from "./mix-toggle";
 import { Knob } from "./ui/knob";
 import { Slider } from "./ui/slider";
+import { Tooltip } from "./ui/tooltip";
 import { useDraftInput } from "./use-draft-input";
 import { usePointerDrag } from "./use-pointer-drag";
 
@@ -32,7 +41,7 @@ export function Mixer({
   );
   const trackEntries = resolveTrackOrder(state);
   return (
-    <div className="flex min-w-max gap-1.5">
+    <div className="flex min-w-max gap-1">
       {trackEntries.map((entry) => {
         const { track } = entry;
         return (
@@ -40,14 +49,21 @@ export function Mixer({
             key={entry.id}
             pan={track.pan}
             onPanChange={(pan) => runtime.setTrackPan(track.id, pan)}
+            reverbSend={track.reverbSend}
+            onReverbSendChange={(reverbSend) =>
+              runtime.setTrackReverbSend(track.id, reverbSend)
+            }
             effectsOpen={openEffects.has(track.id)}
-            effectsActive={isEqActive(track.eq)}
+            activeEffects={[
+              ...(track.amp ? ["amp"] : []),
+              ...(isEqActive(track.eq) ? ["EQ"] : []),
+            ]}
             onEffectsToggle={() => onEffectsToggle(track.id)}
             label={track.name}
             meter={
               <LevelMeter
                 meters={runtime.levelMeters}
-                trackId={track.id}
+                target={{ kind: "track", id: track.id }}
                 label={track.name}
               />
             }
@@ -74,7 +90,7 @@ export function Mixer({
             kind="mute"
             onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
             aria-label="Toggle metronome mute"
-            className="h-6 min-w-6 px-1"
+            className="size-control-xs"
           />
         }
       />
@@ -84,7 +100,13 @@ export function Mixer({
         onGainChange={(gain) => runtime.setMasterGain(gain)}
         inputProps={masterInput.props}
         data-testid="mixer-master"
-        meter={<LevelMeter meters={runtime.levelMeters} label="Master" />}
+        meter={
+          <LevelMeter
+            meters={runtime.levelMeters}
+            target={{ kind: "master" }}
+            label="Master"
+          />
+        }
       />
     </div>
   );
@@ -94,29 +116,33 @@ function TrackChannel({
   label,
   meter,
   pan,
+  reverbSend,
   gain,
   muted,
   soloed,
   onPanChange,
+  onReverbSendChange,
   onGainChange,
   onMutedChange,
   onSoloedChange,
   effectsOpen,
-  effectsActive,
+  activeEffects,
   onEffectsToggle,
 }: {
   label: string;
   meter: ReactNode;
   pan: number;
+  reverbSend: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
   onPanChange: (pan: number) => void;
+  onReverbSendChange: (reverbSend: number) => void;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
   effectsOpen: boolean;
-  effectsActive: boolean;
+  activeEffects: string[];
   onEffectsToggle: () => void;
 }) {
   const input = useGainInput(gain, onGainChange);
@@ -125,6 +151,13 @@ function TrackChannel({
       label={label}
       meter={meter}
       pan={<PanKnob label={label} pan={pan} onPanChange={onPanChange} />}
+      send={
+        <ReverbSendKnob
+          label={label}
+          reverbSend={reverbSend}
+          onReverbSendChange={onReverbSendChange}
+        />
+      }
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
@@ -136,21 +169,21 @@ function TrackChannel({
             kind="mute"
             onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
-            className="h-6 min-w-6 px-1"
+            className="size-control-xs"
           />
           <MixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
-            className="h-6 min-w-6 px-1"
+            className="size-control-xs"
           />
           <EffectsToggle
             label={label}
             open={effectsOpen}
-            active={effectsActive}
+            activeEffects={activeEffects}
             onClick={onEffectsToggle}
-            className="col-span-2 h-6"
+            className="col-span-2 h-control-xs"
           />
         </div>
       }
@@ -176,6 +209,7 @@ function MixerChannel({
   label,
   meter,
   pan,
+  send,
   gain,
   onGainChange,
   inputProps,
@@ -185,6 +219,7 @@ function MixerChannel({
   label: string;
   meter?: ReactNode;
   pan?: ReactNode;
+  send?: ReactNode;
   gain: number;
   onGainChange: (gain: number) => void;
   inputProps: ComponentProps<"input">;
@@ -197,7 +232,7 @@ function MixerChannel({
       role="group"
       aria-label={name}
       data-testid={testId}
-      className="flex w-16 flex-col items-center gap-2 rounded bg-neutral-900/50 px-1 py-2"
+      className="flex w-14 flex-col items-center gap-2 rounded bg-neutral-900/50 px-1 py-2"
     >
       <span
         title={label}
@@ -205,9 +240,13 @@ function MixerChannel({
       >
         {label}
       </span>
-      {/* Every channel reserves the pan row so faders stay aligned. */}
-      <div className="flex h-6 w-full items-center">{pan}</div>
-      <div className="flex h-48 gap-[3px]">
+      {/* Every channel reserves the pan and send rows so faders stay aligned. */}
+      <div className="flex h-control-sm w-full items-center">{pan}</div>
+      {/* The send row holds a knob and a 12px label line under it. */}
+      <div className="flex h-[calc(var(--spacing-control-sm)+0.75rem)] w-full items-center">
+        {send}
+      </div>
+      <div className="flex h-40 gap-[3px]">
         <GainSlider
           label={`${name} gain`}
           gain={gain}
@@ -226,11 +265,63 @@ function MixerChannel({
         inputMode="decimal"
         aria-label={`${name} level in dB`}
         title={`${name} level in dB`}
-        className="h-6 w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 tabular-nums focus:border-neutral-500 focus:outline-none"
+        className="h-control-xs w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 tabular-nums focus:border-neutral-500 focus:outline-none"
         {...inputProps}
       />
       {action}
     </div>
+  );
+}
+
+export function GainKnob({
+  label,
+  gain,
+  onGainChange,
+}: {
+  label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
+}) {
+  const db = gainToDb(gain);
+  const setDb = (value: number) =>
+    onGainChange(dbToGain(clamp(Math.round(value * 2) / 2, MIN_DB, MAX_DB)));
+  // About 200px of vertical drag covers the full range, like pan.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return db;
+    },
+    onMove: (_event, drag) =>
+      setDb(drag.data - (drag.deltaY * (MAX_DB - MIN_DB)) / 200),
+  });
+  const valueText = formatGainDb(gain);
+  return (
+    <Tooltip content={`${label}: ${valueText}`}>
+      <Knob
+        ref={ref}
+        aria-label={label}
+        aria-valuetext={valueText}
+        onKeyDown={(event) => {
+          const next = {
+            ArrowLeft: db - 0.5,
+            ArrowDown: db - 0.5,
+            ArrowRight: db + 0.5,
+            ArrowUp: db + 0.5,
+            Home: MIN_DB,
+            End: MAX_DB,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setDb(next);
+          }
+        }}
+        value={db}
+        min={MIN_DB}
+        max={MAX_DB}
+        origin={0}
+        className="cursor-ns-resize"
+      />
+    </Tooltip>
   );
 }
 
@@ -254,48 +345,100 @@ function PanKnob({
     onMove: (_event, drag) => setPan(drag.data - drag.deltaY / 100),
   });
   return (
-    // Equal side columns center the knob over the fader.
-    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-1">
-      <Knob
-        ref={ref}
-        aria-label={`${label} pan`}
-        aria-valuetext={formatPan(pan)}
-        onKeyDown={(event) => {
-          const step = event.shiftKey ? 0.1 : 0.01;
-          const next = {
-            ArrowLeft: pan - step,
-            ArrowDown: pan - step,
-            ArrowRight: pan + step,
-            ArrowUp: pan + step,
-            Home: -1,
-            End: 1,
-          }[event.key];
-          if (next !== undefined) {
-            event.preventDefault();
-            setPan(next);
-          }
-        }}
-        value={pan}
-        min={-1}
-        max={1}
-        origin={0}
-        className="col-start-2 cursor-ns-resize"
-      />
-      {/* Zero width, so a wide readout such as R100 spills over instead of
-          widening its column and the channel. */}
-      <span className="w-0 font-mono text-[10px] whitespace-nowrap text-muted-foreground tabular-nums">
-        {formatPan(pan)}
-      </span>
+    <div className="flex w-full justify-center">
+      <Tooltip content={formatPan(pan)}>
+        <Knob
+          ref={ref}
+          aria-label={`${label} pan`}
+          aria-valuetext={formatPan(pan)}
+          onKeyDown={(event) => {
+            const step = event.shiftKey ? 0.1 : 0.01;
+            const next = {
+              ArrowLeft: pan - step,
+              ArrowDown: pan - step,
+              ArrowRight: pan + step,
+              ArrowUp: pan + step,
+              Home: -1,
+              End: 1,
+            }[event.key];
+            if (next !== undefined) {
+              event.preventDefault();
+              setPan(next);
+            }
+          }}
+          value={pan}
+          min={-1}
+          max={1}
+          origin={0}
+          color="pan"
+          className="cursor-ns-resize"
+        />
+      </Tooltip>
     </div>
   );
 }
 
-function formatPan(pan: number): string {
-  const percent = Math.round(Math.abs(pan) * 100);
-  if (percent === 0) {
-    return "C";
-  }
-  return `${pan < 0 ? "L" : "R"}${percent}`;
+// The runtime clamps a send to unity gain.
+const MAX_SEND_DB = 0;
+
+function ReverbSendKnob({
+  label,
+  reverbSend,
+  onReverbSendChange,
+}: {
+  label: string;
+  reverbSend: number;
+  onReverbSendChange: (reverbSend: number) => void;
+}) {
+  const db = reverbSend === 0 ? MIN_DB : gainToDb(reverbSend);
+  const setDb = (value: number) => {
+    const next = clamp(Math.round(value), MIN_DB, MAX_SEND_DB);
+    // The lowest step is off rather than MIN_DB, so a send at the bottom
+    // sends nothing.
+    onReverbSendChange(next === MIN_DB ? 0 : dbToGain(next));
+  };
+  // About 200px of vertical drag covers the full range, like pan.
+  const ref = usePointerDrag({
+    onStart: (event) => {
+      (event.currentTarget as HTMLElement).focus();
+      return db;
+    },
+    onMove: (_event, drag) =>
+      setDb(drag.data - (drag.deltaY * (MAX_SEND_DB - MIN_DB)) / 200),
+  });
+  const valueText = formatGainDb(reverbSend);
+  return (
+    <div className="flex w-full flex-col items-center">
+      <Knob
+        ref={ref}
+        aria-label={`${label} reverb send`}
+        aria-valuetext={valueText}
+        title={`Reverb send ${valueText}, after the fader`}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 6 : 1;
+          const next = {
+            ArrowLeft: db - step,
+            ArrowDown: db - step,
+            ArrowRight: db + step,
+            ArrowUp: db + step,
+            Home: MIN_DB,
+            End: MAX_SEND_DB,
+          }[event.key];
+          if (next !== undefined) {
+            event.preventDefault();
+            setDb(next);
+          }
+        }}
+        value={db}
+        min={MIN_DB}
+        max={MAX_SEND_DB}
+        className="cursor-ns-resize"
+      />
+      <span className="font-mono text-[9px] leading-3 whitespace-nowrap text-neutral-500 tabular-nums">
+        Rev {reverbSend === 0 ? "-∞" : Math.round(db)}
+      </span>
+    </div>
+  );
 }
 
 export function GainSlider({

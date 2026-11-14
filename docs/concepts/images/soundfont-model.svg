@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="292" viewBox="0 0 750 292" font-family="sans-serif" font-size="13">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e34948"/></marker></defs>
+<text x="20" y="26" font-weight="bold" font-size="14">A SoundFont is three tables, and zones point from one to the next</text>
+<rect x="20" y="44" width="250" height="232" rx="6" fill="#f4f4f2" stroke="#52514e"/>
+<text x="32" y="64" font-weight="bold">Preset</text>
+<text x="32" y="81" font-size="11" fill="#52514e">selected by a bank and program number</text>
+<rect x="32" y="92" width="226" height="40" rx="4" fill="#ffffff" stroke="#d9d8d4" stroke-dasharray="4 3"/>
+<text x="42" y="108" font-size="12" >global zone</text>
+<text x="42" y="124" font-size="11" fill="#52514e">settings shared by every zone</text>
+<rect x="44" y="156" width="214" height="108" rx="4" fill="#ffffff" stroke="#d9d8d4"/>
+<rect x="38" y="150" width="214" height="108" rx="4" fill="#ffffff" stroke="#d9d8d4"/>
+<rect x="32" y="144" width="214" height="108" rx="4" fill="#ffffff" stroke="#52514e"/>
+<text x="42" y="162" font-size="12" font-weight="bold">zone</text>
+<text x="236" y="162" font-size="11" fill="#52514e" text-anchor="end">one of many</text>
+<text x="42" y="181" font-size="12" >key range, velocity range</text>
+<text x="42" y="199" font-size="12" >generators</text>
+<text x="236" y="199" font-size="11" fill="#52514e" text-anchor="end">added to the instrument's</text>
+<text x="42" y="217" font-size="12" >modulators</text>
+<rect x="38" y="226" width="202" height="20" rx="3" fill="#e34948" opacity="0.12"/>
+<text x="42" y="240" font-size="12" fill="#e34948">instrument</text>
+<text x="236" y="240" font-size="11" fill="#52514e" text-anchor="end">points to →</text>
+<rect x="300" y="44" width="250" height="232" rx="6" fill="#f4f4f2" stroke="#52514e"/>
+<text x="312" y="64" font-weight="bold">Instrument</text>
+<text x="312" y="81" font-size="11" fill="#52514e">maps keys and velocities to samples</text>
+<rect x="312" y="92" width="226" height="40" rx="4" fill="#ffffff" stroke="#d9d8d4" stroke-dasharray="4 3"/>
+<text x="322" y="108" font-size="12" >global zone</text>
+<text x="322" y="124" font-size="11" fill="#52514e">settings shared by every zone</text>
+<rect x="324" y="156" width="214" height="108" rx="4" fill="#ffffff" stroke="#d9d8d4"/>
+<rect x="318" y="150" width="214" height="108" rx="4" fill="#ffffff" stroke="#d9d8d4"/>
+<rect x="312" y="144" width="214" height="108" rx="4" fill="#ffffff" stroke="#52514e"/>
+<text x="322" y="162" font-size="12" font-weight="bold">zone</text>
+<text x="516" y="162" font-size="11" fill="#52514e" text-anchor="end">one of many</text>
+<text x="322" y="181" font-size="12" >key range, velocity range</text>
+<text x="322" y="199" font-size="12" >generators</text>
+<text x="516" y="199" font-size="11" fill="#52514e" text-anchor="end">absolute values</text>
+<text x="322" y="217" font-size="12" >modulators</text>
+<rect x="318" y="226" width="202" height="20" rx="3" fill="#e34948" opacity="0.12"/>
+<text x="322" y="240" font-size="12" fill="#e34948">sample</text>
+<text x="516" y="240" font-size="11" fill="#52514e" text-anchor="end">points to →</text>
+<rect x="580" y="44" width="150" height="132" rx="6" fill="#ffffff" stroke="#e34948" stroke-width="2"/>
+<text x="592" y="64" font-weight="bold">Sample</text>
+<text x="592" y="90" font-size="12">audio frames</text>
+<text x="592" y="110" font-size="12">sample rate</text>
+<text x="592" y="130" font-size="12">root key</text>
+<text x="592" y="150" font-size="12">loop start and end</text>
+<path d="M246 236 C 276 236, 275 70, 296 70" fill="none" stroke="#e34948" stroke-width="1.5" marker-end="url(#h)"/>
+<path d="M526 236 C 556 236, 555 70, 576 70" fill="none" stroke="#e34948" stroke-width="1.5" marker-end="url(#h)"/>
+</svg>

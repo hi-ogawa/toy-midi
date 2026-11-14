@@ -1,4 +1,5 @@
 import {
+  type Automation,
   DEFAULT_TIME_SIGNATURE,
   type Note,
   type TimeSignature,
@@ -18,16 +19,19 @@ import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput, type CapturedAudio } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
+import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
-import {
-  createDefaultMultibandEq,
-  ensureBiquadEqWorklet,
-} from "./dsp/biquad-eq-worklet-node.ts";
+import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import type { LoudnessMeasurement } from "./dsp/loudness.ts";
 import { ensurePitchShifterWorklet } from "./dsp/pitch-shifter-worklet-node.ts";
+import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
+import type { SynthPatch } from "./dsp/subtractive-synth.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import { History } from "./history.ts";
 import { LevelMeters, type MeterTarget } from "./level-meters.ts";
 import { Metronome } from "./metronome.ts";
+import { connectMidiInput, type MidiConnection } from "./midi-device.ts";
 import { MidiTrackPlayback } from "./midi-track-playback.ts";
 import {
   deriveTrackMix,
@@ -42,46 +46,59 @@ import {
   type SerializedEditorRuntimeState,
   serializeEditorRuntimeState,
 } from "./persistence.ts";
-import { DEFAULT_KEY_SIGNATURE, type KeySignature } from "./pitch-spelling.ts";
+import type { KeySignature } from "./pitch-spelling.ts";
 import { ActiveRecording } from "./recording.ts";
 import type { SoundfontId } from "./soundfonts.ts";
-import { DEFAULT_TAB_OPEN_STRING_PITCHES } from "./tab-annotation.ts";
 import { beatsToSeconds } from "./timeline.ts";
 import {
   resolveTrackOrder,
   syncTrackOrder,
   type TrackListsState,
 } from "./track-order.ts";
+import {
+  createAudioTrackState,
+  createMidiTrackState,
+  MAX_MIDI_TRACK_HEIGHT,
+  MIN_TRACK_HEIGHT,
+  clampTrackHeight,
+} from "./track-state.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 import type { YouTubePlayerApi } from "./youtube.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 export const MIN_CLIP_DURATION = 0.01;
-// Fits the track header with its gain slider row below the title row.
-export const MIN_GAIN_SLIDER_HEIGHT = 72;
-// New tracks open with the gain slider showing.
-const DEFAULT_TRACK_HEIGHT = MIN_GAIN_SLIDER_HEIGHT;
-// Fits the compact track header, which is a single title row.
-export const MIN_TRACK_HEIGHT = 44;
-const MAX_TRACK_HEIGHT = 300;
-// Tall enough for several octaves of piano roll.
-const MAX_MIDI_TRACK_HEIGHT = 800;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-export interface AudioTrackState {
+interface BaseTrackState {
   id: string;
   name: string;
+  /** Guitar amp in front of the EQ, absent when off */
+  amp?: AmpParameters;
   eq: MultibandEqParameters;
-  /** Row height in pixels, from 44 to 300 */
+  /** Row height in pixels, from 44 to 300 for audio tracks and 800 for MIDI tracks */
   height: number;
   /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
   gain: number;
   /** Stereo position from -1 (left) to 1 (right) */
   pan: number;
+  /**
+   * Linear gain from 0 to 1 into the shared reverb, which is set to sound like a
+   * medium hall. The send is taken after the track's gain, mute, and solo, and 0
+   * is off.
+   *
+   * Start from these sends by program, then adjust by ear:
+   * - Synth leads and pads (80–95): 0.4, about −8 dB
+   * - Choir, brass, reeds, and pipes (52–54 and 56–79): 0.16, about −16 dB
+   * - Everything else, including bass and drums: 0.08, about −22 dB
+   */
+  reverbSend: number;
   muted: boolean;
   soloed: boolean;
+}
+
+export interface AudioTrackState extends BaseTrackState {
   /** Every take recorded or imported into the track */
   clips: AudioClip[];
   /** The parts of the takes that are heard, derived from `clips` */
@@ -90,10 +107,9 @@ export interface AudioTrackState {
   showClips: boolean;
 }
 
-export interface MidiTrackState {
-  id: string;
-  name: string;
+export interface MidiTrackState extends BaseTrackState {
   notes: Note[];
+  automation: Automation[];
   /**
    * SoundFont the preset comes from, one of {@link SOUNDFONTS}, or the bundled
    * GeneralUser GS when absent
@@ -108,17 +124,26 @@ export interface MidiTrackState {
    * 48 Orchestra, 56 SFX.
    */
   bank?: number;
-  eq: MultibandEqParameters;
-  /** Row height in pixels, from 44 to 800 */
-  height: number;
-  /** Whether the row shows the note editor or a compact note overview */
+  /**
+   * Toy MIDI's own synth, which plays the track instead of the SoundFont preset
+   * when present
+   */
+  synth?: SynthPatch;
+  /**
+   * Guitar amp in front of the EQ, absent when off. The drive makes each
+   * note's release tail loud enough to smear into the next note, so mute the
+   * tails with CC 11 (expression) at 0 from just after a note-off to the next
+   * note-on.
+   */
+  amp?: AmpParameters;
+  /**
+   * Whether the row shows the note editor or a compact note overview. Keep
+   * tracks in `"overview"` so the whole arrangement fits on screen, and use
+   * `"editor"` for a track someone is about to edit by hand. `addMidiTrack`
+   * opens a track in the editor.
+   */
   viewMode: "editor" | "overview";
-  /** Linear gain, 1 being unity. The mixer spans -60 dB to +6 dB. */
-  gain: number;
-  /** Stereo position from -1 (left) to 1 (right) */
-  pan: number;
-  muted: boolean;
-  soloed: boolean;
+  /** Shows tab annotation in the note editor and enables editing it */
   tabAnnotationEnabled: boolean;
   /** MIDI note numbers of the open strings, highest string first */
   tabOpenStringPitches: number[];
@@ -135,7 +160,10 @@ export interface LoudnessReport {
   tracks: ({ id: string; name: string } & LoudnessMeasurement)[];
 }
 
-export type MidiPreset = Pick<MidiTrackState, "soundfont" | "bank" | "program">;
+export type MidiPreset = Pick<
+  MidiTrackState,
+  "soundfont" | "bank" | "program" | "synth"
+>;
 
 export interface LoopRange {
   /** In beats from the start of the project */
@@ -197,12 +225,13 @@ export type LocatorUpdate = {
 
 export interface EditorRuntimeState {
   title: string;
+  /** Markdown, rendered in the app's Comment panel */
   comment: string;
   locators: Locator[];
   isPlaying: boolean;
   /** Playback speed, 1 being normal */
   playbackRate: number;
-  /** Beats per minute */
+  /** Quarter notes per minute, whatever the time signature */
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
@@ -229,6 +258,10 @@ export interface EditorRuntimeState {
   inputMonitoring: boolean;
   /** The track the next take records into. */
   armedTrackId?: string;
+  /** @internal */
+  midiConnection?: MidiConnection;
+  /** The MIDI track live input plays. */
+  midiMonitorTrackId?: string;
 }
 
 export type PersistableEditorRuntimeState = Pick<
@@ -245,6 +278,7 @@ export type PersistableEditorRuntimeState = Pick<
   | "referenceVideo"
   | "midiTracks"
   | "trackOrder"
+  | "armedTrackId"
 > & {
   audioTracks: Omit<AudioTrackState, "regions">[];
 };
@@ -283,7 +317,7 @@ type EditorRuntimeClipsState = Pick<
 >;
 
 export function createDefaultEditorRuntimeState(): EditorRuntimeState {
-  const audioTrack = createAudioTrackState({ name: "Audio 1" });
+  const audioTrack = { ...createAudioTrackState(), name: "Audio 1" };
   return {
     title: "Untitled",
     comment: "",
@@ -320,13 +354,18 @@ export function createDefaultEditorRuntimeState(): EditorRuntimeState {
  *
  * Undo history covers MIDI note edits, adding and removing MIDI tracks, and
  * clip edits. Other changes, such as tempo and mix, are not undoable.
+ *
+ * Use the project's comment to record and communicate your intent and
+ * decisions.
  */
 export class EditorRuntime {
   readonly store = createStore(createDefaultEditorRuntimeState);
 
   readonly context = new AudioContext();
   readonly transport = new AudioContextTransport(this.context);
-  private readonly masterOutput: GainNode;
+  /** @internal E2E tests tap this to check for real sound. */
+  readonly masterOutput: GainNode;
+  private readonly reverb: ReverbNode;
   private masterAnalyser?: StereoAnalyser;
   readonly levelMeters = new LevelMeters({
     getAnalyser: (target) => this.getMeterAnalyser(target),
@@ -346,6 +385,10 @@ export class EditorRuntime {
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
+    this.reverb = new ReverbNode({
+      context: this.context,
+      output: this.masterOutput,
+    });
     this.metronome = new Metronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
@@ -363,7 +406,9 @@ export class EditorRuntime {
   async init(): Promise<void> {
     await Promise.all([
       ensurePitchShifterWorklet(this.context),
+      ensureAmpWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
+      this.reverb.init(),
     ]);
   }
 
@@ -451,12 +496,13 @@ export class EditorRuntime {
   addAudioTrack(): string {
     const { audioTracks } = this.store.get();
     const audioTrackNames = audioTracks.map((track) => track.name);
-    const track = createAudioTrackState({
+    const track = {
+      ...createAudioTrackState(),
       name: createNumberedName({
         names: audioTrackNames,
         prefix: "Audio",
       }),
-    });
+    };
     this.updateTrackLists({ audioTracks: [...audioTracks, track] });
     return track.id;
   }
@@ -488,13 +534,14 @@ export class EditorRuntime {
 
   async addMidiTrack(preset: MidiPreset): Promise<string> {
     const state = this.store.get();
-    const track = createMidiTrackState({
+    const track = {
+      ...createMidiTrackState(),
       name: createNumberedName({
         names: state.midiTracks.map((track) => track.name),
         prefix: "MIDI",
       }),
-      preset,
-    });
+      ...preset,
+    };
     await this.insertMidiTrack({ track });
     const index = this.store.get().trackOrder.indexOf(track.id);
     this.history.pushMidiTrack({ track, index });
@@ -513,6 +560,7 @@ export class EditorRuntime {
     const playback = await MidiTrackPlayback.create({
       transport: this.transport,
       output: this.masterOutput,
+      reverb: this.reverb.input,
       track,
       tempo: state.tempo,
     });
@@ -545,19 +593,18 @@ export class EditorRuntime {
       midiTracks: this.store
         .get()
         .midiTracks.filter((track) => track.id !== id),
+      ...(id === this.store.get().midiMonitorTrackId && {
+        midiMonitorTrackId: undefined,
+      }),
     });
     this.syncTrackMix();
   }
 
   setTrackMix(
     id: string,
-    update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
+    update: Partial<Pick<BaseTrackState, "gain" | "muted" | "soloed">>,
   ): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, ...update }));
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, ...update }));
-    }
+    this.updateBaseTrack(id, update);
     this.syncTrackMix();
   }
 
@@ -655,11 +702,7 @@ export class EditorRuntime {
   }
 
   setTrackName({ id, name }: { id: string; name: string }): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, name }));
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, name }));
-    }
+    this.updateBaseTrack(id, { name });
   }
 
   setTrackShowClips({
@@ -715,25 +758,30 @@ export class EditorRuntime {
     });
   }
 
+  setTrackAmp({ id, amp }: { id: string; amp?: AmpParameters }): void {
+    this.updateBaseTrack(id, { amp });
+    this.trackPlaybacks.get(id)?.channel.setAmp(amp);
+    this.midiTrackPlaybacks.get(id)?.channel.setAmp(amp);
+  }
+
   setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, eq }));
-      this.midiTrackPlaybacks.get(id)?.channel.setEq(eq);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, eq }));
-      this.trackPlaybacks.get(id)?.channel.setEq(eq);
-    }
+    this.updateBaseTrack(id, { eq });
+    this.trackPlaybacks.get(id)?.channel.setEq(eq);
+    this.midiTrackPlaybacks.get(id)?.channel.setEq(eq);
   }
 
   setTrackPan(id: string, pan: number): void {
     pan = clamp(pan, -1, 1);
-    if (this.store.get().midiTracks.some((track) => track.id === id)) {
-      this.updateMidiTrack(id, (track) => ({ ...track, pan }));
-      this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
-    } else {
-      this.updateTrack(id, (track) => ({ ...track, pan }));
-      this.trackPlaybacks.get(id)?.channel.setPan(pan);
-    }
+    this.updateBaseTrack(id, { pan });
+    this.trackPlaybacks.get(id)?.channel.setPan(pan);
+    this.midiTrackPlaybacks.get(id)?.channel.setPan(pan);
+  }
+
+  setTrackReverbSend(id: string, reverbSend: number): void {
+    reverbSend = clamp(reverbSend, 0, 1);
+    this.updateBaseTrack(id, { reverbSend });
+    this.trackPlaybacks.get(id)?.channel.setReverbSend(reverbSend);
+    this.midiTrackPlaybacks.get(id)?.channel.setReverbSend(reverbSend);
   }
 
   setMidiTrackPreset(id: string, preset: MidiPreset): void {
@@ -743,6 +791,7 @@ export class EditorRuntime {
       soundfont: preset.soundfont,
       bank: preset.bank,
       program: preset.program,
+      synth: preset.synth,
     }));
   }
 
@@ -761,19 +810,52 @@ export class EditorRuntime {
     this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
   }
 
-  async startMidiNotePreview({
+  /** Called from the click that plays the note, which lets audio start. */
+  playMidiNotePreview({
     id,
-    pitch,
+    message,
   }: {
     id: string;
-    pitch: number;
-  }): Promise<void> {
-    await this.context.resume();
-    this.midiTrackPlaybacks.get(id)?.noteOn(pitch);
+    message: MidiMessage;
+  }): void {
+    // A note-off can't wait for audio to start, or it would overtake its note-on.
+    void this.context.resume();
+    this.midiTrackPlaybacks.get(id)?.playMessage(message);
   }
 
-  stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
-    this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
+  async startMidiInput(input: MIDIInput): Promise<void> {
+    await this.stopMidiInput();
+    const midiConnection = await connectMidiInput({
+      input,
+      onMessage: (message) => this.playLiveMidiMessage(message),
+      onDisconnect: () => this.stopMidiInput(),
+    });
+    this.store.update({ midiConnection });
+  }
+
+  async stopMidiInput(): Promise<void> {
+    await this.store.get().midiConnection?.dispose();
+    await this.setMidiMonitorTrack(undefined);
+    this.store.update({ midiConnection: undefined });
+  }
+
+  /** Called from the click that enables monitoring, which lets audio start. */
+  async setMidiMonitorTrack(id?: string): Promise<void> {
+    const { midiMonitorTrackId } = this.store.get();
+    if (midiMonitorTrackId !== undefined) {
+      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.reset();
+    }
+    this.store.update({ midiMonitorTrackId: id });
+    if (id !== undefined) {
+      await this.context.resume();
+    }
+  }
+
+  playLiveMidiMessage(message: MidiMessage): void {
+    const { midiMonitorTrackId } = this.store.get();
+    if (midiMonitorTrackId !== undefined) {
+      this.midiTrackPlaybacks.get(midiMonitorTrackId)?.playMessage(message);
+    }
   }
 
   setMidiTrackNotes(id: string, notes: Note[]): void {
@@ -784,6 +866,11 @@ export class EditorRuntime {
     const before = track.notes;
     this.applyMidiTrackNotes(id, notes);
     this.history.pushMidiNotes(id, before, notes);
+  }
+
+  setMidiTrackAutomation(id: string, automation: Automation[]): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, automation }));
+    this.midiTrackPlaybacks.get(id)?.setAutomation(automation);
   }
 
   /** @internal for undo */
@@ -819,6 +906,9 @@ export class EditorRuntime {
       }
       return this.masterAnalyser;
     }
+    if (target.kind === "input") {
+      return this.captureInput?.analyser;
+    }
     const playback =
       this.trackPlaybacks.get(target.id) ??
       this.midiTrackPlaybacks.get(target.id);
@@ -837,14 +927,29 @@ export class EditorRuntime {
       playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
+        reverb: this.reverb.input,
+        amp: track.amp,
         eq: track.eq,
         gain: 0,
         pan: track.pan,
+        reverbSend: track.reverbSend,
       });
       this.trackPlaybacks.set(id, playback);
       this.syncTrackMix();
     }
     return playback;
+  }
+
+  /** Update a field both track kinds have, without knowing the track's kind */
+  private updateBaseTrack(
+    id: string,
+    update: Partial<Omit<BaseTrackState, "id">>,
+  ): void {
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, ...update }));
+    } else {
+      this.updateTrack(id, (track) => ({ ...track, ...update }));
+    }
   }
 
   private updateMidiTrack(
@@ -1193,12 +1298,10 @@ export class EditorRuntime {
     };
   }
 
-  /** @internal */
   serializeProject(): SerializedEditorRuntimeState {
     return serializeEditorRuntimeState(this.store.get());
   }
 
-  /** @internal */
   async deserializeProject(
     project: SerializedEditorRuntimeState,
   ): Promise<void> {
@@ -1239,9 +1342,12 @@ export class EditorRuntime {
       const playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
+        reverb: this.reverb.input,
+        amp: track.amp,
         eq: track.eq,
         gain: 0,
         pan: track.pan,
+        reverbSend: track.reverbSend,
       });
       playback.setSources(getClipSources(track.regions));
       this.trackPlaybacks.set(track.id, playback);
@@ -1252,6 +1358,7 @@ export class EditorRuntime {
         await MidiTrackPlayback.create({
           transport: this.transport,
           output: this.masterOutput,
+          reverb: this.reverb.input,
           track,
           tempo: project.tempo,
         }),
@@ -1261,6 +1368,7 @@ export class EditorRuntime {
       ...project,
       audioTracks,
       trackOrder: syncTrackOrder({ ...project, audioTracks }),
+      midiMonitorTrackId: undefined,
     });
     this.syncYouTubePlayer();
     this.transport.seek(0);
@@ -1290,6 +1398,7 @@ export class EditorRuntime {
           midiTracks: state.midiTracks,
           trackOrder: state.trackOrder,
           referenceVideo: state.referenceVideo,
+          armedTrackId: state.armedTrackId,
         }) satisfies PersistableEditorRuntimeState,
       listener,
       equals: shallowEqual,
@@ -1658,50 +1767,4 @@ function findAudioTrackById(
     throw new Error("Audio track state is missing.");
   }
   return track;
-}
-
-function createAudioTrackState({ name }: { name: string }): AudioTrackState {
-  return {
-    eq: createDefaultMultibandEq(),
-    id: crypto.randomUUID(),
-    name,
-    nextTakeNumber: 1,
-    showClips: false,
-    height: DEFAULT_TRACK_HEIGHT,
-    gain: 1,
-    pan: 0,
-    muted: false,
-    soloed: false,
-    clips: [],
-    regions: [],
-  };
-}
-
-export function createMidiTrackState({
-  name,
-  preset,
-}: {
-  name: string;
-  preset: MidiPreset;
-}): MidiTrackState {
-  return {
-    id: crypto.randomUUID(),
-    name,
-    notes: [],
-    ...preset,
-    eq: createDefaultMultibandEq(),
-    height: 300,
-    viewMode: "editor",
-    gain: 1,
-    pan: 0,
-    muted: false,
-    soloed: false,
-    tabAnnotationEnabled: false,
-    tabOpenStringPitches: [...DEFAULT_TAB_OPEN_STRING_PITCHES],
-    keySignature: { ...DEFAULT_KEY_SIGNATURE },
-  };
-}
-
-export function clampTrackHeight(height: number): number {
-  return clamp(height, MIN_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
 }

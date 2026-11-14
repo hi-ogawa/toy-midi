@@ -1,6 +1,8 @@
-import type { Note } from "../types.ts";
+import type { Automation, Note } from "../types.ts";
 import { AudioChannel } from "./audio-channel.ts";
+import type { MidiMessage } from "./general-midi.ts";
 import {
+  convertToTimelineAutomation,
   convertToTimelineNotes,
   MidiSynthWorkletNode,
 } from "./midi-synth-worklet-node.ts";
@@ -14,6 +16,7 @@ import type {
 export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
   private notes: Note[] = [];
+  private automation: Automation[] = [];
   private tempo = 120;
   private readonly synth: MidiSynthWorkletNode;
   private readonly unregister: () => void;
@@ -22,11 +25,13 @@ export class MidiTrackPlayback implements TransportParticipant {
   static async create({
     transport,
     output,
+    reverb,
     track,
     tempo,
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
+    reverb: AudioNode;
     track: MidiTrackState;
     tempo: number;
   }): Promise<MidiTrackPlayback> {
@@ -34,9 +39,18 @@ export class MidiTrackPlayback implements TransportParticipant {
     try {
       await synth.init();
       // Play GeneralUser rather than wait for the track's SoundFont.
-      synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
+      if (!track.synth) {
+        synth.addSoundfont(GENERAL_USER_SOUNDFONT).catch(ignoreLoadFailure);
+      }
       synth.setPreset(track).catch(ignoreLoadFailure);
-      return new MidiTrackPlayback({ transport, output, track, tempo, synth });
+      return new MidiTrackPlayback({
+        transport,
+        output,
+        reverb,
+        track,
+        tempo,
+        synth,
+      });
     } catch (error) {
       synth.dispose();
       throw error;
@@ -46,12 +60,14 @@ export class MidiTrackPlayback implements TransportParticipant {
   private constructor({
     transport,
     output,
+    reverb,
     track,
     tempo,
     synth,
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
+    reverb: AudioNode;
     track: MidiTrackState;
     tempo: number;
     synth: MidiSynthWorkletNode;
@@ -60,15 +76,19 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.channel = new AudioChannel({
       context: transport.context,
       output,
+      reverb,
+      amp: track.amp,
       eq: track.eq,
       gain: 0,
       pan: track.pan,
+      reverbSend: track.reverbSend,
     });
     synth.output.connect(this.channel.input);
     this.tempo = tempo;
     this.transport = transport;
     this.unregister = transport.register(this);
     this.setNotes(track.notes);
+    this.setAutomation(track.automation);
     // A track added during playback joins the running playback.
     if (transport.store.get().isPlaying) {
       this.start();
@@ -80,21 +100,27 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.sendNotes();
   }
 
+  setAutomation(automation: Automation[]): void {
+    this.automation = automation;
+    this.sendAutomation();
+  }
+
   setTempo(tempo: number): void {
     this.tempo = tempo;
     this.sendNotes();
+    this.sendAutomation();
   }
 
   setPreset(preset: MidiPreset): void {
     this.synth.setPreset(preset).catch(ignoreLoadFailure);
   }
 
-  noteOn(pitch: number): void {
-    this.synth.noteOn(pitch);
+  playMessage(message: MidiMessage): void {
+    this.synth.playMessage(message);
   }
 
-  noteOff(pitch: number): void {
-    this.synth.noteOff(pitch);
+  reset(): void {
+    this.synth.reset();
   }
 
   start(): void {
@@ -117,6 +143,12 @@ export class MidiTrackPlayback implements TransportParticipant {
    */
   private sendNotes(): void {
     void this.synth.setNotes(convertToTimelineNotes(this.notes, this.tempo));
+  }
+
+  private sendAutomation(): void {
+    void this.synth.setAutomation(
+      convertToTimelineAutomation(this.automation, this.tempo),
+    );
   }
 }
 

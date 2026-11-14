@@ -1,6 +1,11 @@
-import { getVisibleBarInterval } from "./timeline";
+import type { TimeSignature } from "../types";
+import {
+  getBeatsPerBar,
+  getDenominatorNoteLength,
+  getVisibleBarInterval,
+} from "./timeline";
 
-type TimelineGridKind = "bar" | "beat" | "subdivision";
+type TimelineGridKind = "bar" | "denominator-note" | "subdivision";
 
 type TimelineGridLayer = {
   kind: TimelineGridKind;
@@ -8,18 +13,22 @@ type TimelineGridLayer = {
   spacingPixels: number;
 };
 
-// TODO: Migrate the main editor's grid rendering to this shared utility.
+const GRID_COLORS: Record<TimelineGridKind, string> = {
+  bar: "#525252",
+  "denominator-note": "#404040",
+  subdivision: "#333333",
+};
+
+const MINIMUM_PIXEL_SPACING = 8;
+
+/** The timeline's grid, with the same divisions and colors wherever it's drawn. */
 export function getTimelineGridBackground({
-  beatsPerBar,
-  colors,
-  minimumPixelSpacing,
+  timeSignature,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
 }: {
-  beatsPerBar: number;
-  colors: Record<TimelineGridKind, string>;
-  minimumPixelSpacing: number;
+  timeSignature: TimeSignature;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
@@ -29,8 +38,8 @@ export function getTimelineGridBackground({
   backgroundSize: string;
 } {
   const layers = calculateTimelineGridLayers({
-    beatsPerBar,
-    minimumPixelSpacing,
+    timeSignature,
+    minimumPixelSpacing: MINIMUM_PIXEL_SPACING,
     pixelsPerBeat,
     viewportStartBeat,
     subdivisionsPerBeat,
@@ -39,7 +48,7 @@ export function getTimelineGridBackground({
     backgroundImage: layers
       .map(
         ({ kind }) =>
-          `linear-gradient(to right, ${colors[kind]} 1px, transparent 1px)`,
+          `linear-gradient(to right, ${GRID_COLORS[kind]} 1px, transparent 1px)`,
       )
       .join(", "),
     backgroundPosition: layers
@@ -52,19 +61,23 @@ export function getTimelineGridBackground({
 }
 
 function calculateTimelineGridLayers({
-  beatsPerBar,
+  timeSignature,
   minimumPixelSpacing,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   minimumPixelSpacing: number;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
+  const beatsPerBar = getBeatsPerBar(timeSignature);
+  // A time signature counts its bar in denominator notes, such as six eighth
+  // notes in 6/8.
+  const denominatorNoteInterval = getDenominatorNoteLength(timeSignature);
   const barInterval =
     getVisibleBarInterval({
       barWidth: beatsPerBar * pixelsPerBeat,
@@ -79,11 +92,11 @@ function calculateTimelineGridLayers({
     }),
   );
 
-  if (pixelsPerBeat >= minimumPixelSpacing) {
+  if (denominatorNoteInterval * pixelsPerBeat >= minimumPixelSpacing) {
     layers.push(
       createLayer({
-        intervalBeats: 1,
-        kind: "beat",
+        intervalBeats: denominatorNoteInterval,
+        kind: "denominator-note",
         pixelsPerBeat,
         viewportStartBeat,
       }),

@@ -1,6 +1,8 @@
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getClipSources } from "./audio-sources.ts";
+import { ensureAmpWorklet } from "./dsp/amp-worklet-node.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "./dsp/biquad-eq-worklet-node.ts";
 import {
@@ -8,8 +10,13 @@ import {
   LoudnessMeterWorkletNode,
 } from "./dsp/loudness-meter-worklet-node.ts";
 import type { LoudnessMeasurement } from "./dsp/loudness.ts";
-import type { TimelineNote } from "./midi-note-scheduler.ts";
+import { ReverbNode } from "./dsp/reverb-worklet-node.ts";
+import type {
+  TimelineAutomation,
+  TimelineNote,
+} from "./midi-note-scheduler.ts";
 import {
+  convertToTimelineAutomation,
   convertToTimelineNotes,
   MidiSynthWorkletNode,
 } from "./midi-synth-worklet-node.ts";
@@ -22,18 +29,23 @@ const MIDI_RELEASE_SECONDS = 2;
 interface Mix {
   tracks: {
     id: string;
+    amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
+    reverbSend: number;
     regions: AudioPlaybackSource[];
   }[];
   midiTracks: {
     id: string;
+    amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
+    reverbSend: number;
     preset: MidiPreset;
     notes: TimelineNote[];
+    automation: TimelineAutomation[];
   }[];
   masterGain: number;
   duration: number;
@@ -44,18 +56,23 @@ export function resolveMix(state: EditorRuntimeState): Mix {
   const gains = deriveTrackMix(state);
   const tracks: Mix["tracks"] = state.audioTracks.map((track) => ({
     id: track.id,
+    amp: track.amp,
     eq: track.eq,
     gain: gains.get(track.id)!,
     pan: track.pan,
+    reverbSend: track.reverbSend,
     regions: getClipSources(track.regions),
   }));
   const midiTracks: Mix["midiTracks"] = state.midiTracks.map((track) => ({
     id: track.id,
+    amp: track.amp,
     eq: track.eq,
     gain: gains.get(track.id)!,
     pan: track.pan,
+    reverbSend: track.reverbSend,
     preset: track,
     notes: convertToTimelineNotes(track.notes, state.tempo),
+    automation: convertToTimelineAutomation(track.automation, state.tempo),
   }));
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;
@@ -81,7 +98,10 @@ export interface RenderedMix {
 
 export interface MixLoudness {
   mix: LoudnessMeasurement;
-  /** Each track's share of the rendered file, after its EQ, gain, pan, and the master gain */
+  /**
+   * Each track's share of the rendered file, after its EQ, gain, pan, and the master gain,
+   * without its reverb send
+   */
   tracks: Map<string, LoudnessMeasurement>;
 }
 
@@ -106,22 +126,26 @@ export async function renderMix({
       sampleRate,
     },
     async (context) => {
-      using cleanup = new DisposableStack();
-      await Promise.all([
-        ensureBiquadEqWorklet(context),
-        ensureLoudnessMeterWorklet(context),
-      ]);
-      const createMeter = () => {
-        const meter = new LoudnessMeterWorkletNode(context);
-        cleanup.defer(() => meter.dispose());
-        return meter;
-      };
       const master = context.createGain();
       master.gain.value = mix.masterGain;
       master.channelCount = 2;
       master.channelCountMode = "explicit";
       master.channelInterpretation = "speakers";
       master.connect(context.destination);
+      using cleanup = new DisposableStack();
+      const reverb = new ReverbNode({ context, output: master });
+      cleanup.defer(() => reverb.dispose());
+      await Promise.all([
+        ensureAmpWorklet(context),
+        ensureBiquadEqWorklet(context),
+        ensureLoudnessMeterWorklet(context),
+        reverb.init(),
+      ]);
+      const createMeter = () => {
+        const meter = new LoudnessMeterWorkletNode(context);
+        cleanup.defer(() => meter.dispose());
+        return meter;
+      };
       const masterMeter = createMeter();
       master.connect(masterMeter);
       const trackMeters = new Map<string, LoudnessMeterWorkletNode>();
@@ -129,9 +153,12 @@ export async function renderMix({
         const channel = new AudioChannel({
           context,
           output: master,
+          reverb: reverb.input,
+          amp: track.amp,
           eq: track.eq,
           gain: track.gain,
           pan: track.pan,
+          reverbSend: track.reverbSend,
         });
         cleanup.defer(() => channel.dispose());
         const meter = createMeter();
@@ -163,6 +190,7 @@ export async function renderMix({
           const channel = createChannel(track);
           synth.output.connect(channel.input);
           await synth.setNotes(track.notes);
+          await synth.setAutomation(track.automation);
           await synth.start({ contextTime: 0, position: 0, playbackRate: 1 });
         }),
       );

@@ -20,10 +20,12 @@ import type {
 } from "../lib/runtime";
 import {
   beatsToSeconds,
+  getBeatsPerBar,
   getVisibleBarInterval,
   secondsToBeats,
 } from "../lib/timeline";
 import { getTimelineGridBackground } from "../lib/timeline-grid";
+import type { TimeSignature } from "../types";
 import { AudioWaveformView } from "./audio-waveform";
 import { openFilePicker } from "./file-drop-input";
 import { MixToggle } from "./mix-toggle";
@@ -71,7 +73,7 @@ export function TimelinePlayhead({
 }
 
 export function TimelineHeader({
-  beatsPerBar,
+  timeSignature,
   pixelsPerBeat,
   viewportStartBeat,
   tempo,
@@ -91,7 +93,7 @@ export function TimelineHeader({
   onPunchRangeChange,
   onPunchRangeClear,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   tempo: number;
@@ -112,8 +114,8 @@ export function TimelineHeader({
   onPunchRangeClear: () => void;
 }) {
   return (
-    <div className="sticky top-0 z-40 grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
-      <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
+    <div className="sticky top-0 z-40 grid h-8 grid-cols-[15rem_1fr] border-b-2 border-neutral-600 bg-neutral-800">
+      <div className="sticky left-0 z-20 flex items-center border-r-2 border-neutral-600 bg-neutral-800 px-2 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
         <div className="flex gap-1">
@@ -121,7 +123,7 @@ export function TimelineHeader({
             data-testid="add-midi-track"
             onClick={onAddMidiTrack}
             disabled={isAddingMidi}
-            className="size-6 hover:bg-neutral-700"
+            className="size-control-xs hover:bg-neutral-700"
             title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
           >
             <Music2Icon className="size-3.5" />
@@ -129,7 +131,7 @@ export function TimelineHeader({
           <Button
             onClick={onAddAudioTrack}
             disabled={isAddingAudio}
-            className="size-6 hover:bg-neutral-700"
+            className="size-control-xs hover:bg-neutral-700"
             title="Add empty audio track"
           >
             <PlusIcon className="size-3.5" />
@@ -146,7 +148,7 @@ export function TimelineHeader({
             title={
               isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
             }
-            className="size-6 hover:bg-neutral-700"
+            className="size-control-xs hover:bg-neutral-700"
           >
             {isAddingAudio ? (
               <LoaderCircleIcon className="size-3.5 animate-spin" />
@@ -157,7 +159,7 @@ export function TimelineHeader({
         </div>
       </div>
       <TimelineRuler
-        beatsPerBar={beatsPerBar}
+        timeSignature={timeSignature}
         pixelsPerBeat={pixelsPerBeat}
         viewportStartBeat={viewportStartBeat}
         tempo={tempo}
@@ -176,7 +178,7 @@ export function TimelineHeader({
 }
 
 function TimelineRuler({
-  beatsPerBar,
+  timeSignature,
   pixelsPerBeat,
   viewportStartBeat,
   tempo,
@@ -190,7 +192,7 @@ function TimelineRuler({
   onPunchRangeChange,
   onPunchRangeClear,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   tempo: number;
@@ -204,6 +206,7 @@ function TimelineRuler({
   onPunchRangeChange: (range: PunchRange) => void;
   onPunchRangeClear: () => void;
 }) {
+  const beatsPerBar = getBeatsPerBar(timeSignature);
   const labelEveryBars = getVisibleBarInterval({
     barWidth: beatsPerBar * pixelsPerBeat,
     minimumPixelSpacing: 48,
@@ -222,7 +225,7 @@ function TimelineRuler({
       data-viewport-start-beat={viewportStartBeat}
       className="relative cursor-pointer bg-neutral-800 font-mono text-[10px] text-neutral-400"
       {...getTimelineSurfaceProps({
-        beatsPerBar,
+        timeSignature,
         onSeek,
         pixelsPerBeat,
         tempo,
@@ -461,7 +464,7 @@ type TimelineClipEditStart =
   | { type: "trim-start" | "trim-end"; additive: boolean };
 
 export function AudioTimelineLane({
-  beatsPerBar,
+  timeSignature,
   clips,
   regions,
   recordingClipId,
@@ -481,7 +484,7 @@ export function AudioTimelineLane({
   subdivisionsPerBeat,
   onSeek,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   clips: readonly AudioClip[];
   regions: readonly ClipRegion[];
   testId: "audio" | "comp" | "clip-lane";
@@ -510,7 +513,7 @@ export function AudioTimelineLane({
     <div
       className="relative overflow-hidden bg-neutral-900"
       {...getTimelineSurfaceProps({
-        beatsPerBar,
+        timeSignature,
         onSeek,
         pixelsPerBeat,
         tempo,
@@ -591,7 +594,7 @@ export function AudioTimelineLane({
 
 export function ReferenceTimelineRow({
   referenceVideo,
-  beatsPerBar,
+  timeSignature,
   subdivisionsPerBeat,
   pixelsPerBeat,
   tempo,
@@ -609,7 +612,7 @@ export function ReferenceTimelineRow({
   onRemove,
 }: {
   referenceVideo: ReferenceVideoState;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
   tempo: number;
@@ -629,9 +632,9 @@ export function ReferenceTimelineRow({
   return (
     <div
       data-testid="reference-track"
-      className="grid h-15 grid-cols-[15rem_1fr] border-b border-neutral-700"
+      className="grid h-15 grid-cols-[15rem_1fr] border-b-2 border-neutral-600"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[var(--spacing-control)] content-start gap-x-2 border-r-2 border-neutral-600 bg-neutral-800 p-2">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           Reference
         </div>
@@ -652,7 +655,7 @@ export function ReferenceTimelineRow({
             active={muted}
             kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className="size-6"
+            className="size-control-xs"
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
         </div>
@@ -660,7 +663,7 @@ export function ReferenceTimelineRow({
       <div
         className="relative overflow-hidden bg-neutral-900"
         {...getTimelineSurfaceProps({
-          beatsPerBar,
+          timeSignature,
           onSeek,
           pixelsPerBeat,
           tempo,
@@ -852,7 +855,7 @@ function TimelineClip({
               />
             )}
             <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
-              <span className="mr-1.5">{clip.label}</span>
+              <span className="mr-1">{clip.label}</span>
               {onEditUpdate && clip.offset > 0 && (
                 <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
               )}
@@ -893,40 +896,15 @@ function TimelineClip({
   );
 }
 
-function getTimelineGridStyle({
-  beatsPerBar,
-  pixelsPerBeat,
-  viewportStartBeat,
-  subdivisionsPerBeat,
-}: {
-  beatsPerBar: number;
-  pixelsPerBeat: number;
-  viewportStartBeat: number;
-  subdivisionsPerBeat: number;
-}): React.CSSProperties {
-  return getTimelineGridBackground({
-    beatsPerBar,
-    colors: {
-      bar: "rgb(82 82 82)",
-      beat: "rgb(64 64 64)",
-      subdivision: "rgb(51 51 51)",
-    },
-    minimumPixelSpacing: 8,
-    pixelsPerBeat,
-    viewportStartBeat,
-    subdivisionsPerBeat,
-  });
-}
-
 function getTimelineSurfaceProps({
-  beatsPerBar,
+  timeSignature,
   onSeek,
   pixelsPerBeat,
   subdivisionsPerBeat,
   tempo,
   viewportStartBeat,
 }: {
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   onSeek: (position: number) => void;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
@@ -934,8 +912,8 @@ function getTimelineSurfaceProps({
   viewportStartBeat: number;
 }): React.HTMLAttributes<HTMLElement> {
   return {
-    style: getTimelineGridStyle({
-      beatsPerBar,
+    style: getTimelineGridBackground({
+      timeSignature,
       pixelsPerBeat,
       subdivisionsPerBeat,
       viewportStartBeat,

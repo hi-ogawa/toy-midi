@@ -17,32 +17,15 @@ import type {
 import { Panel } from "./panel";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
+import { useSetState } from "./use-set-state";
 
 const CONVERSION_CANCELLED_ERROR = new Error("Conversion cancelled");
 
 export function useAudioToMidiUi() {
-  const [openTranscriptions, setOpenTranscriptions] = useState<
-    ReadonlySet<string>
-  >(new Set());
-
-  function openTranscription(id: string) {
-    setOpenTranscriptions((current) => {
-      const next = new Set(current);
-      next.add(id);
-      return next;
-    });
-  }
-
-  function closeTranscription(id: string) {
-    setOpenTranscriptions((current) => {
-      if (!current.has(id)) {
-        return current;
-      }
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
+  const [
+    openTranscriptions,
+    { add: openTranscription, remove: closeTranscription },
+  ] = useSetState<string>();
 
   return { openTranscriptions, openTranscription, closeTranscription };
 }
@@ -134,21 +117,21 @@ export function AudioToMidi({
     <Panel
       closeLabel="Close Audio to MIDI"
       className="pointer-events-auto w-[440px] shrink-0"
-      contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-4 py-3"
+      contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-3 py-2"
       onClose={onClose}
       title={`Audio to MIDI · ${track.name}`}
       data-testid="audio-to-midi"
     >
-      <div className="space-y-5">
+      <div className="space-y-3">
         <p className="text-sm text-neutral-400">
           Transcribe a selected audio track into this MIDI track using the
           project tempo and grid.
         </p>
         <fieldset
           disabled={transcribeMutation.isPending}
-          className="space-y-5 disabled:opacity-60"
+          className="space-y-3 disabled:opacity-60"
         >
-          <label className="flex flex-col gap-2 text-sm">
+          <label className="flex flex-col gap-2 text-xs">
             <span>Source audio track</span>
             <select
               autoFocus
@@ -167,7 +150,7 @@ export function AudioToMidi({
               ))}
             </select>
           </label>
-          <section className="space-y-5 border-t border-neutral-700 pt-4">
+          <section className="space-y-3 border-t border-neutral-700 pt-3">
             <ParamSlider
               label="Activity threshold"
               hint="Higher values detect fewer notes"
@@ -205,14 +188,14 @@ export function AudioToMidi({
             </div>
           </section>
         </fieldset>
-        <section className="space-y-2 border-t border-neutral-700 pt-4">
+        <section className="space-y-2 border-t border-neutral-700 pt-3">
           {sources.length === 0 && (
             <p className="text-sm text-neutral-400">
               Load audio or record a take before converting.
             </p>
           )}
           <Button
-            className={`h-9 w-full cursor-pointer px-3 text-sm ${transcribeMutation.isPending ? "border-neutral-600 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-600" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+            className={`h-control w-full cursor-pointer px-3 text-xs ${transcribeMutation.isPending ? "border-neutral-600 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-600" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
             disabled={
               !transcribeMutation.isPending &&
               !sources.some(({ track }) => track.id === sourceId)
@@ -229,7 +212,7 @@ export function AudioToMidi({
           </Button>
           <p
             role="status"
-            className="flex min-h-4 items-start gap-1.5 text-xs text-neutral-400"
+            className="flex min-h-4 items-start gap-1 text-xs text-neutral-400"
           >
             {transcribeMutation.isSuccess &&
               (transcribeMutation.data ?? 0) > 0 && (
@@ -272,7 +255,7 @@ function ParamSlider({
 } & ComponentProps<typeof Slider>) {
   return (
     <div>
-      <div className="mb-2.5 flex justify-between text-xs text-neutral-300">
+      <div className="mb-2 flex justify-between text-xs text-neutral-300">
         <div>
           <span>{label}</span>
           <p className="mt-0.5 text-neutral-500">{hint}</p>

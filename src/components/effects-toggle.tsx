@@ -1,25 +1,27 @@
 import { cn } from "./ui/utils";
 
-/** Highlights while the panel is open, and colors while the effects are on. */
+/** Highlights while the panel is open, and colors while any effect is on. */
 export function EffectsToggle({
   label,
   open,
-  active,
+  activeEffects,
   onClick,
   className,
 }: {
   label: string;
   open: boolean;
-  active: boolean;
+  /** Names of the effects that are on, such as "EQ" */
+  activeEffects: string[];
   onClick: () => void;
   className: string;
 }) {
+  const active = activeEffects.length > 0;
   return (
     <button
       type="button"
       aria-label={`${label} effects`}
       aria-pressed={open}
-      title={`${open ? "Close" : "Open"} ${label} effects${active ? " (EQ on)" : ""}`}
+      title={`${open ? "Close" : "Open"} ${label} effects${active ? ` (${activeEffects.join(" and ")} on)` : ""}`}
       data-active={active}
       onClick={onClick}
       className={cn(

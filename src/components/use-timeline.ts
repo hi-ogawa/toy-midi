@@ -3,7 +3,6 @@ import type { ProjectUiStore } from "../lib/preferences";
 import type { EditorRuntime } from "../lib/runtime";
 import {
   DEFAULT_GRID_DIVISION,
-  getBeatsPerBar,
   GRID_DIVISIONS,
   type GridDivision,
   MAX_PIXELS_PER_BEAT,
@@ -36,7 +35,6 @@ export function useTimeline({
   const [viewportStartBeat, setViewportStartBeat] =
     projectUiStore.useValue("timelineStartBeat");
   const [viewportWidth, setViewportWidth] = useState(0);
-  const beatsPerBar = getBeatsPerBar(timeSignature);
   const subdivisionsPerBeat = GRID_DIVISIONS[gridDivision];
 
   // Page the viewport forward when the playhead nears its right edge or leaves
@@ -121,7 +119,6 @@ export function useTimeline({
   );
 
   return {
-    beatsPerBar,
     gridDivision,
     pixelsPerBeat,
     viewportStartBeat,

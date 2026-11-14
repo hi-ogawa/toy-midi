@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  AudioWaveformIcon,
   DownloadIcon,
   UploadIcon,
   Music2Icon,
@@ -28,12 +29,13 @@ import {
   type TabAnnotationDisplay,
 } from "../lib/tab-annotation";
 import { getTimelineGridBackground } from "../lib/timeline-grid";
-import type { Note } from "../types";
+import type { Note, TimeSignature } from "../types";
 import { pluralCount } from "../utils/plural-count";
 import { openFilePicker } from "./file-drop-input";
 import { MidiInstrument } from "./midi-instrument";
 import {
   TrackMenuButton,
+  TrackMonitorToggle,
   type TrackMoveControls,
   TrackMoveItems,
   RenameTrackMenuItem,
@@ -67,26 +69,32 @@ export function MidiTrackRow({
   track,
   runtime,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
   subdivisionsPerBeat,
   viewportStartBeat,
   move,
+  onSynthOpen,
   onEffectsOpen,
   onRemove,
   midiInteraction,
+  midiMonitoring,
+  midiMonitorVisible,
   onTranscribe,
   onScorePreview,
 }: {
   track: MidiTrackState;
   runtime: EditorRuntime;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
   move: TrackMoveControls;
+  onSynthOpen: () => void;
   onEffectsOpen: () => void;
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useMidiInteraction>;
+  midiMonitoring: boolean;
+  midiMonitorVisible: boolean;
   onTranscribe: () => void;
   onScorePreview: () => void;
 }) {
@@ -114,11 +122,11 @@ export function MidiTrackRow({
     mutationFn: async () => {
       const state = runtime.store.get();
       const data = exportMidi({
-        notes: track.notes,
+        title: state.title,
         tempo: state.tempo,
         timeSignature: state.timeSignature,
-        name: state.title,
-        trackName: track.name,
+        locators: state.locators,
+        tracks: [track],
       });
       downloadBlob(
         new Blob([new Uint8Array(data)], { type: "audio/midi" }),
@@ -129,6 +137,9 @@ export function MidiTrackRow({
       );
     },
   });
+  const monitorLabel = midiMonitoring
+    ? `Disable ${track.name} input monitoring`
+    : `Enable ${track.name} input monitoring`;
   const exportMusicXmlMutation = useMutation({
     mutationFn: async () => {
       const state = runtime.store.get();
@@ -175,42 +186,58 @@ export function MidiTrackRow({
         onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
         onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
         action={
-          <MidiTrackActions
-            label={track.name}
-            move={move}
-            onRename={(name) => runtime.setTrackName({ id: track.id, name })}
-            onEffectsOpen={onEffectsOpen}
-            viewMode={track.viewMode}
-            onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
-            onRemove={onRemove}
-            onTranscribe={onTranscribe}
-            onScorePreview={onScorePreview}
-            onInstrumentOpen={() => setIsInstrumentOpen(true)}
-            isImporting={importMidiMutation.isPending}
-            onImportMidi={() =>
-              openFilePicker({
-                accept: ".mid,.midi",
-                onFile: (file) => {
-                  if (
-                    confirm(
-                      `Import MIDI into ${track.name}? This will replace all notes in this track. Project tempo, time signature, and instrument will stay unchanged.`,
-                    )
-                  ) {
-                    importMidiMutation.mutate(file);
-                  }
-                },
-              })
-            }
-            onExportMidi={() => exportMidiMutation.mutate()}
-            onExportMusicXml={() => exportMusicXmlMutation.mutate()}
-          />
+          <>
+            <MidiTrackActions
+              label={track.name}
+              move={move}
+              onRename={(name) => runtime.setTrackName({ id: track.id, name })}
+              onSynthOpen={track.synth && onSynthOpen}
+              onEffectsOpen={onEffectsOpen}
+              viewMode={track.viewMode}
+              onViewModeToggle={() => midiInteraction.toggleViewMode(track.id)}
+              onRemove={onRemove}
+              onTranscribe={onTranscribe}
+              onScorePreview={onScorePreview}
+              onInstrumentOpen={() => setIsInstrumentOpen(true)}
+              isImporting={importMidiMutation.isPending}
+              onImportMidi={() =>
+                openFilePicker({
+                  accept: ".mid,.midi",
+                  onFile: (file) => {
+                    if (
+                      confirm(
+                        `Import MIDI into ${track.name}? This will replace all notes in this track. Project tempo, time signature, and instrument will stay unchanged.`,
+                      )
+                    ) {
+                      importMidiMutation.mutate(file);
+                    }
+                  },
+                })
+              }
+              onExportMidi={() => exportMidiMutation.mutate()}
+              onExportMusicXml={() => exportMusicXmlMutation.mutate()}
+            />
+            {midiMonitorVisible && (
+              <TrackMonitorToggle
+                label={monitorLabel}
+                title={monitorLabel}
+                monitoring={midiMonitoring}
+                onMonitoringChange={(monitoring) =>
+                  void runtime.setMidiMonitorTrack(
+                    monitoring ? track.id : undefined,
+                  )
+                }
+              />
+            )}
+          </>
         }
       >
         {track.viewMode === "overview" ? (
           <MidiTrackOverview
             track={track}
             pixelsPerBeat={pixelsPerBeat}
-            beatsPerBar={beatsPerBar}
+            timeSignature={timeSignature}
+            subdivisionsPerBeat={subdivisionsPerBeat}
             viewportStartBeat={viewportStartBeat}
           />
         ) : (
@@ -219,7 +246,7 @@ export function MidiTrackRow({
             runtime={runtime}
             midiInteraction={midiInteraction}
             pixelsPerBeat={pixelsPerBeat}
-            beatsPerBar={beatsPerBar}
+            timeSignature={timeSignature}
             subdivisionsPerBeat={subdivisionsPerBeat}
             viewportStartBeat={viewportStartBeat}
           />
@@ -254,6 +281,7 @@ export function MidiTrackRow({
 
 function MidiTrackActions({
   onRename,
+  onSynthOpen,
   onEffectsOpen,
   isImporting,
   onImportMidi,
@@ -269,6 +297,8 @@ function MidiTrackActions({
   onScorePreview,
 }: {
   onRename: (name: string) => void;
+  /** Absent when the track plays its SoundFont preset */
+  onSynthOpen?: () => void;
   onEffectsOpen: () => void;
   isImporting: boolean;
   onImportMidi: () => void;
@@ -299,6 +329,12 @@ function MidiTrackActions({
         </DropdownMenuCheckboxItem>
 
         <DropdownMenuSeparator />
+        {onSynthOpen && (
+          <DropdownMenuItem onSelect={onSynthOpen}>
+            <AudioWaveformIcon />
+            Synth…
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onSelect={onEffectsOpen}>
           <SlidersHorizontalIcon />
           Effects…
@@ -343,12 +379,14 @@ function MidiTrackActions({
 function MidiTrackOverview({
   track,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
+  subdivisionsPerBeat,
   viewportStartBeat,
 }: {
   track: MidiTrackState;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
+  subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
   return (
@@ -358,12 +396,10 @@ function MidiTrackOverview({
       aria-label={`${track.name} note overview, ${pluralCount(track.notes.length, "note")}`}
       className="relative col-start-2 row-start-1 overflow-hidden bg-neutral-900"
       style={getTimelineGridBackground({
-        beatsPerBar,
+        timeSignature,
         pixelsPerBeat,
         viewportStartBeat,
-        subdivisionsPerBeat: 1,
-        minimumPixelSpacing: 8,
-        colors: { bar: "#525252", beat: "#333333", subdivision: "#333333" },
+        subdivisionsPerBeat,
       })}
     >
       {track.notes.length > 0 && (
@@ -470,7 +506,7 @@ function MidiTrackEditor({
   runtime,
   midiInteraction,
   pixelsPerBeat,
-  beatsPerBar,
+  timeSignature,
   subdivisionsPerBeat,
   viewportStartBeat,
 }: {
@@ -478,7 +514,7 @@ function MidiTrackEditor({
   runtime: EditorRuntime;
   midiInteraction: ReturnType<typeof useMidiInteraction>;
   pixelsPerBeat: number;
-  beatsPerBar: number;
+  timeSignature: TimeSignature;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
@@ -666,7 +702,7 @@ function MidiTrackEditor({
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: (MAX_PITCH + 1) * KEY_HEIGHT }}
       >
-        <div className="relative border-r border-neutral-700">
+        <div className="relative border-r-2 border-neutral-600">
           {PITCHES.map((pitch) => (
             <MidiPianoKey
               key={pitch}
@@ -694,16 +730,10 @@ function MidiTrackEditor({
           <div
             className="pointer-events-none absolute inset-0"
             style={getTimelineGridBackground({
-              beatsPerBar,
+              timeSignature,
               pixelsPerBeat,
               viewportStartBeat,
               subdivisionsPerBeat,
-              minimumPixelSpacing: 8,
-              colors: {
-                bar: "#525252",
-                beat: "#404040",
-                subdivision: "#333333",
-              },
             })}
           />
           {track.notes
@@ -761,16 +791,6 @@ function useMidiNotePreview({
 }) {
   const previewPitch = useRef<number>(undefined);
 
-  const previewMutation = useMutation({
-    mutationFn: (pitch: number) =>
-      runtime.startMidiNotePreview({ id: trackId, pitch }),
-    onError: (error) => {
-      stop();
-      console.error(error);
-      toast.error(error.message);
-    },
-  });
-
   function start(pitch: number) {
     // Keep the note sounding during horizontal or in-cell dragging.
     // Audition again only when the pitch changes.
@@ -779,14 +799,17 @@ function useMidiNotePreview({
     }
     stop();
     previewPitch.current = pitch;
-    previewMutation.mutate(pitch);
+    runtime.playMidiNotePreview({
+      id: trackId,
+      message: { type: "note-on", pitch, velocity: 100 },
+    });
   }
 
   function stop() {
     if (previewPitch.current !== undefined) {
-      runtime.stopMidiNotePreview({
+      runtime.playMidiNotePreview({
         id: trackId,
-        pitch: previewPitch.current,
+        message: { type: "note-off", pitch: previewPitch.current },
       });
       previewPitch.current = undefined;
     }
@@ -847,7 +870,7 @@ function MidiGridRow({ pitch }: { pitch: number }) {
     <div
       className={cn(
         "pointer-events-none absolute inset-x-0 border-t",
-        pitch % 12 === 11 ? "border-[#666666]" : "border-[#333333]",
+        pitch % 12 === 11 ? "border-neutral-600" : "border-[#333333]",
         isBlackKey(pitch) ? "bg-[#111111]" : "bg-[#1a1a1a]",
       )}
       style={{

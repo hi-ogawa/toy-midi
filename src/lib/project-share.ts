@@ -1,18 +1,12 @@
 import type { Note } from "../types.ts";
 import type {
-  MultibandEqBand,
-  MultibandEqParameters,
-} from "./dsp/biquad-eq-multiband.ts";
-import type {
   SerializedEditorRuntimeState,
   SerializedMidiTrackState,
+  SerializedMultibandEq,
 } from "./persistence.ts";
 import { routes } from "./routes.ts";
-import {
-  createMidiTrackState,
-  type Locator,
-  MIN_TRACK_HEIGHT,
-} from "./runtime.ts";
+import type { Locator } from "./runtime.ts";
+import { createMidiTrackState, MIN_TRACK_HEIGHT } from "./track-state.ts";
 
 // A share link carries the project, deflated and base64url-encoded, in the
 // URL fragment. The browser never sends the fragment in a request, so the
@@ -38,7 +32,9 @@ export async function createShareLink(
  * The project a share link carries: the saved format without audio tracks,
  * track order, or ids. Tracks appear in the order of `midiTracks`, the app
  * generates ids when the link opens, and optional fields fill in defaults when
- * the project loads. Tracks without `viewMode` or `height` open collapsed.
+ * the project loads. Leave `viewMode` and `height` unset, rather than copying
+ * them from runtime state, so tracks open collapsed and the whole arrangement
+ * fits on screen.
  */
 export interface SharedProject extends Omit<
   SerializedEditorRuntimeState,
@@ -55,8 +51,8 @@ interface SharedMidiTrack
       Omit<SerializedMidiTrackState, "id" | "name" | "program" | "notes" | "eq">
     > {
   notes: Omit<Note, "id">[];
-  eq?: Omit<MultibandEqParameters, "bands"> & {
-    bands: Omit<MultibandEqBand, "id">[];
+  eq?: Omit<SerializedMultibandEq, "bands"> & {
+    bands: Omit<SerializedMultibandEq["bands"][number], "id">[];
   };
 }
 
@@ -86,7 +82,7 @@ export async function fetchSharedProject(
     );
   }
   try {
-    return assignIds(await response.json());
+    return convertSharedProject(await response.json());
   } catch {
     throw new Error(`${src} does not hold a readable project.`);
   }
@@ -96,7 +92,7 @@ async function encodeSharedProject(
   project: SerializedEditorRuntimeState,
 ): Promise<string> {
   const bytes = await transformBytes(
-    new TextEncoder().encode(JSON.stringify(omitIds(project))),
+    new TextEncoder().encode(JSON.stringify(createSharedProject(project))),
     new CompressionStream("deflate-raw"),
   );
   return encodeBase64Url(bytes);
@@ -110,21 +106,25 @@ export async function decodeSharedProject(
       decodeBase64Url(payload),
       new DecompressionStream("deflate-raw"),
     );
-    return assignIds(JSON.parse(new TextDecoder().decode(bytes)));
+    return convertSharedProject(JSON.parse(new TextDecoder().decode(bytes)));
   } catch {
     throw new Error("The share link does not hold a readable project.");
   }
 }
 
-function omitIds({
-  audioTracks: _audioTracks,
-  trackOrder: _trackOrder,
-  locators,
-  midiTracks,
-  ...project
-}: SerializedEditorRuntimeState): SharedProject {
+/** Converts `runtime.serializeProject()` to the format of share links and project files. */
+export function createSharedProject(
+  project: SerializedEditorRuntimeState,
+): SharedProject {
+  const {
+    audioTracks: _audioTracks,
+    trackOrder: _trackOrder,
+    locators,
+    midiTracks,
+    ...rest
+  } = project;
   return {
-    ...project,
+    ...rest,
     locators: locators?.map(({ id: _id, ...locator }) => locator),
     midiTracks: midiTracks?.map(({ id: _id, notes, eq, ...track }) => ({
       ...track,
@@ -134,7 +134,9 @@ function omitIds({
   };
 }
 
-function assignIds(project: SharedProject): SerializedEditorRuntimeState {
+export function convertSharedProject(
+  project: SharedProject,
+): SerializedEditorRuntimeState {
   return {
     ...project,
     audioTracks: [],
@@ -143,7 +145,7 @@ function assignIds(project: SharedProject): SerializedEditorRuntimeState {
       id: crypto.randomUUID(),
     })),
     midiTracks: project.midiTracks?.map(({ notes, eq, ...track }) => ({
-      ...createMidiTrackState({ name: track.name, preset: track }),
+      ...createMidiTrackState(),
       // Collapse tracks so a whole arrangement fits on screen when it opens.
       viewMode: "overview",
       height: MIN_TRACK_HEIGHT,

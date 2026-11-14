@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="368" viewBox="0 0 750 368" font-family="sans-serif" font-size="13">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#52514e"/></marker><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#e34948"/></marker></defs>
+<text x="20" y="26" font-weight="bold" font-size="14">How program 38, Synth Bass 1, turns key 40 (E2) into sound</text>
+<rect x="20" y="58" width="130" height="44" rx="6" fill="#f4f4f2" stroke="#52514e"/>
+<text x="85" y="78" text-anchor="middle">MIDI program 38</text>
+<text x="85" y="95" text-anchor="middle" fill="#52514e" font-size="12">on a channel</text>
+<line x1="85" y1="102" x2="85" y2="146" stroke="#52514e" marker-end="url(#a)"/>
+<rect x="20" y="150" width="130" height="84" rx="6" fill="#f4f4f2" stroke="#52514e"/>
+<text x="85" y="172" text-anchor="middle" font-weight="bold">Preset</text>
+<text x="85" y="190" text-anchor="middle">“Synth Bass 1”</text>
+<text x="85" y="210" text-anchor="middle" fill="#52514e" font-size="12">2 preset zones</text>
+<text x="85" y="225" text-anchor="middle" fill="#52514e" font-size="12">+ a global zone</text>
+<path d="M150 192 C 165 192, 160 108, 176 108" fill="none" stroke="#52514e" marker-end="url(#a)"/>
+<rect x="180" y="58" width="150" height="100" rx="6" fill="#ffffff" stroke="#2a78d6" stroke-width="2"/>
+<text x="192" y="78" font-weight="bold">Preset zone 1</text>
+<text x="192" y="97" font-size="12">keys 0–127, vel 0–127</text>
+<text x="192" y="115" font-size="12" fill="#52514e">pan 15% left</text>
+<text x="192" y="131" font-size="12" fill="#52514e">fine tune −3 cents</text>
+<text x="192" y="149" font-size="12" fill="#52514e">→ instrument</text>
+<line x1="330" y1="108" x2="356" y2="108" stroke="#52514e" marker-end="url(#a)"/>
+<rect x="360" y="58" width="200" height="100" rx="6" fill="#ffffff" stroke="#2a78d6" stroke-width="2"/>
+<text x="372" y="78" font-weight="bold">Instrument</text>
+<text x="372" y="96" font-size="12">“0 Pulse 37.5%”</text>
+<text x="372" y="112" font-size="12" fill="#52514e">16 zones, one sample each</text>
+<rect x="373" y="120" width="48.875" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="423.875" y="120" width="6.25" height="16" fill="#e34948" opacity="1"/>
+<rect x="432.125" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="440.375" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="448.625" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="456.875" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="465.125" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="473.375" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="481.625" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="489.875" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="498.125" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="506.375" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="514.625" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="522.875" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="531.125" y="120" width="6.25" height="16" fill="#2a78d6" opacity="0.75"/>
+<rect x="539.375" y="120" width="7.625" height="16" fill="#2a78d6" opacity="0.75"/>
+<text x="372" y="150" font-size="11" fill="#52514e">key 0</text>
+<text x="548" y="150" font-size="11" fill="#52514e" text-anchor="end">127</text>
+<text x="427" y="150" font-size="11" fill="#e34948" text-anchor="middle">37–42</text>
+<path d="M431.125 128 C 511.125 128, 560 108, 586 108" fill="none" stroke="#e34948" marker-end="url(#h)"/>
+<rect x="590" y="58" width="140" height="100" rx="6" fill="#ffffff" stroke="#e34948" stroke-width="2"/>
+<text x="600" y="78" font-weight="bold">Sample</text>
+<text x="600" y="96" font-size="11">Wave_Pulse3750-039</text>
+<text x="600" y="112" font-size="11" fill="#52514e">root key 39 (D♯2)</text>
+<polyline points="600.0,133.0 600.9,125.0 601.9,124.9 602.8,125.4 603.8,125.0 604.7,125.1 605.6,125.8 606.6,126.0 607.5,125.6 608.4,125.9 609.4,126.1 610.3,126.3 611.3,126.4 612.2,126.5 613.1,126.6 614.1,126.7 615.0,126.8 615.9,126.9 616.9,127.0 617.8,127.1 618.8,127.2 619.7,127.4 620.6,127.5 621.6,127.6 622.5,127.7 623.4,127.8 624.4,127.9 625.3,128.0 626.3,128.0 627.2,128.3 628.1,128.4 629.1,128.4 630.0,128.2 630.9,128.4 631.9,128.1 632.8,129.1 633.8,129.0 634.7,128.2 635.6,129.4 636.6,129.5 637.5,138.6 638.4,147.3 639.4,147.3 640.3,147.2 641.3,146.5 642.2,146.7 643.1,146.5 644.1,146.1 645.0,146.2 645.9,145.8 646.9,145.7 647.8,145.5 648.8,145.4 649.7,145.2 650.6,145.0 651.6,144.7 652.5,145.0 653.4,144.2 654.4,144.3 655.3,143.6 656.3,144.4 657.2,143.0 658.1,143.6 659.1,143.8 660.0,133.0 660.9,125.0 661.9,124.9 662.8,125.4 663.8,125.0 664.7,125.1 665.6,125.8 666.6,126.0 667.5,125.6 668.4,125.9 669.4,126.1 670.3,126.3 671.3,126.4 672.2,126.5 673.1,126.6 674.1,126.7 675.0,126.8 675.9,126.9 676.9,127.0 677.8,127.1 678.8,127.2 679.7,127.4 680.6,127.5 681.6,127.6 682.5,127.7 683.4,127.8 684.4,127.9 685.3,128.0 686.3,128.0 687.2,128.3 688.1,128.4 689.1,128.4 690.0,128.2 690.9,128.4 691.9,128.1 692.8,129.1 693.8,129.0 694.7,128.2 695.6,129.4 696.6,129.5 697.5,138.6 698.4,147.3 699.4,147.3 700.3,147.2 701.3,146.5 702.2,146.7 703.1,146.5 704.1,146.1 705.0,146.2 705.9,145.8 706.9,145.7 707.8,145.5 708.8,145.4 709.7,145.2 710.6,145.0 711.6,144.7 712.5,145.0 713.4,144.2 714.4,144.3 715.3,143.6 716.3,144.4 717.2,143.0 718.1,143.6 719.1,143.8 720.0,133.0" fill="none" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="600" y="154" font-size="10" fill="#52514e">2 loops, 640 frames each</text>
+<path d="M150 192 C 165 192, 160 272, 176 272" fill="none" stroke="#52514e" marker-end="url(#a)"/>
+<rect x="180" y="222" width="150" height="100" rx="6" fill="#ffffff" stroke="#eb6834" stroke-width="2"/>
+<text x="192" y="242" font-weight="bold">Preset zone 2</text>
+<text x="192" y="261" font-size="12">keys 0–127, vel 0–127</text>
+<text x="192" y="279" font-size="12" fill="#52514e">pan 15% right</text>
+<text x="192" y="295" font-size="12" fill="#52514e">fine tune +3 cents</text>
+<text x="192" y="313" font-size="12" fill="#52514e">→ instrument</text>
+<line x1="330" y1="272" x2="356" y2="272" stroke="#52514e" marker-end="url(#a)"/>
+<rect x="360" y="222" width="200" height="100" rx="6" fill="#ffffff" stroke="#eb6834" stroke-width="2"/>
+<text x="372" y="242" font-weight="bold">Instrument</text>
+<text x="372" y="260" font-size="12">“0 Ramp”</text>
+<text x="372" y="276" font-size="12" fill="#52514e">16 zones, one sample each</text>
+<rect x="373" y="284" width="48.875" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="423.875" y="284" width="6.25" height="16" fill="#e34948" opacity="1"/>
+<rect x="432.125" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="440.375" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="448.625" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="456.875" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="465.125" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="473.375" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="481.625" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="489.875" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="498.125" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="506.375" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="514.625" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="522.875" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="531.125" y="284" width="6.25" height="16" fill="#eb6834" opacity="0.75"/>
+<rect x="539.375" y="284" width="7.625" height="16" fill="#eb6834" opacity="0.75"/>
+<text x="372" y="314" font-size="11" fill="#52514e">key 0</text>
+<text x="548" y="314" font-size="11" fill="#52514e" text-anchor="end">127</text>
+<text x="427" y="314" font-size="11" fill="#e34948" text-anchor="middle">37–42</text>
+<path d="M431.125 292 C 511.125 292, 560 272, 586 272" fill="none" stroke="#e34948" marker-end="url(#h)"/>
+<rect x="590" y="222" width="140" height="100" rx="6" fill="#ffffff" stroke="#e34948" stroke-width="2"/>
+<text x="600" y="242" font-weight="bold">Sample</text>
+<text x="600" y="260" font-size="11">Wave_Ramp-039</text>
+<text x="600" y="276" font-size="11" fill="#52514e">root key 39 (D♯2)</text>
+<polyline points="600.0,299.3 600.9,308.4 601.9,310.3 602.8,309.1 603.8,308.7 604.7,307.5 605.6,307.0 606.6,307.3 607.5,305.9 608.4,305.6 609.4,305.4 610.3,304.9 611.3,304.2 612.2,304.1 613.1,303.6 614.1,303.4 615.0,302.9 615.9,302.5 616.9,302.2 617.8,301.8 618.8,301.4 619.7,301.0 620.6,300.6 621.6,300.2 622.5,299.8 623.4,299.5 624.4,299.1 625.3,298.8 626.3,298.4 627.2,298.1 628.1,297.7 629.1,297.4 630.0,297.1 630.9,296.8 631.9,296.5 632.8,296.2 633.8,295.9 634.7,295.6 635.6,295.3 636.6,295.0 637.5,294.7 638.4,294.4 639.4,294.1 640.3,293.9 641.3,293.6 642.2,293.3 643.1,293.1 644.1,292.8 645.0,292.6 645.9,292.4 646.9,292.0 647.8,291.9 648.8,291.7 649.7,291.4 650.6,291.1 651.6,290.6 652.5,290.5 653.4,290.4 654.4,290.2 655.3,290.2 656.3,289.8 657.2,290.0 658.1,289.7 659.1,289.6 660.0,299.3 660.9,308.4 661.9,310.3 662.8,309.1 663.8,308.7 664.7,307.5 665.6,307.0 666.6,307.3 667.5,305.9 668.4,305.6 669.4,305.4 670.3,304.9 671.3,304.2 672.2,304.1 673.1,303.6 674.1,303.4 675.0,302.9 675.9,302.5 676.9,302.2 677.8,301.8 678.8,301.4 679.7,301.0 680.6,300.6 681.6,300.2 682.5,299.8 683.4,299.5 684.4,299.1 685.3,298.8 686.3,298.4 687.2,298.1 688.1,297.7 689.1,297.4 690.0,297.1 690.9,296.8 691.9,296.5 692.8,296.2 693.8,295.9 694.7,295.6 695.6,295.3 696.6,295.0 697.5,294.7 698.4,294.4 699.4,294.1 700.3,293.9 701.3,293.6 702.2,293.3 703.1,293.1 704.1,292.8 705.0,292.6 705.9,292.4 706.9,292.0 707.8,291.9 708.8,291.7 709.7,291.4 710.6,291.1 711.6,290.6 712.5,290.5 713.4,290.4 714.4,290.2 715.3,290.2 716.3,289.8 717.2,290.0 718.1,289.7 719.1,289.6 720.0,299.3" fill="none" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="600" y="318" font-size="10" fill="#52514e">2 loops, 640 frames each</text>
+<text x="20" y="352" font-size="12" fill="#52514e">Key 40 at velocity 100 matches both preset zones, then the zone for keys 37–42 in each instrument, so 2 voices sound together.</text>
+</svg>

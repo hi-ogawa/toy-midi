@@ -1,0 +1,13 @@
+{
+  "name": "@hiogawa/toy-midi-cli",
+  "version": "0.0.0",
+  "private": true,
+  "bin": {
+    "toy-midi": "./bin/cli.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "^1.62.1",
+    "tsx": "^4.23.13"
+  }
+}

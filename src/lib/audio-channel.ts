@@ -1,4 +1,6 @@
 import { StereoAnalyser } from "./audio-analyser.ts";
+import { AmpNode } from "./dsp/amp-worklet-node.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
 import { BiquadEqWorkletNode } from "./dsp/biquad-eq-worklet-node.ts";
 
@@ -7,23 +9,33 @@ export class AudioChannel {
   readonly input: GainNode;
   private readonly gain: GainNode;
   private readonly panner: StereoPannerNode;
+  private readonly reverbSend: GainNode;
+  private readonly amp: AmpNode;
   private readonly equalizer: BiquadEqWorkletNode;
   private analyser?: StereoAnalyser;
 
   constructor({
     context,
     output,
+    reverb,
+    amp,
     eq,
     gain,
     pan,
+    reverbSend,
   }: {
     context: BaseAudioContext;
     output: AudioNode;
+    /** The shared reverb, which the send feeds */
+    reverb: AudioNode;
+    amp?: AmpParameters;
     eq: MultibandEqParameters;
     gain: number;
     pan: number;
+    reverbSend: number;
   }) {
-    this.input = context.createGain();
+    this.amp = new AmpNode({ context, parameters: amp });
+    this.input = this.amp.input;
     this.gain = context.createGain();
     this.gain.gain.value = gain;
     this.equalizer = new BiquadEqWorkletNode({
@@ -33,11 +45,22 @@ export class AudioChannel {
     });
     this.panner = context.createStereoPanner();
     this.panner.pan.value = pan;
-    this.input
+    this.amp.output
       .connect(this.equalizer)
       .connect(this.gain)
       .connect(this.panner)
       .connect(output);
+    // The send taps after the fader, so the track's gain, mute, and solo apply
+    // to its reverb. It taps before the pan, because the reverb takes a mono
+    // input by design, as it models a room's late reverberation, which
+    // arrives from every direction wherever the source is.
+    this.reverbSend = context.createGain();
+    this.reverbSend.gain.value = reverbSend;
+    this.gain.connect(this.reverbSend).connect(reverb);
+  }
+
+  setAmp(amp: AmpParameters | undefined): void {
+    this.amp.setParameters(amp);
   }
 
   setEq(eq: MultibandEqParameters): void {
@@ -50,6 +73,14 @@ export class AudioChannel {
 
   setPan(pan: number): void {
     this.panner.pan.setTargetAtTime(pan, this.panner.context.currentTime, 0.01);
+  }
+
+  setReverbSend(reverbSend: number): void {
+    this.reverbSend.gain.setTargetAtTime(
+      reverbSend,
+      this.reverbSend.context.currentTime,
+      0.01,
+    );
   }
 
   /** Sends the signal after gain and pan to a node that measures it. */
@@ -71,9 +102,10 @@ export class AudioChannel {
 
   dispose(): void {
     this.analyser?.dispose();
-    this.input.disconnect();
+    this.amp.dispose();
     this.equalizer.dispose();
     this.gain.disconnect();
     this.panner.disconnect();
+    this.reverbSend.disconnect();
   }
 }

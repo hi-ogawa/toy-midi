@@ -133,13 +133,21 @@ export function matchKeyboardEvent(
     : e.key.toLowerCase() === parsed.key?.toLowerCase();
 }
 
+/** Whether the focused control uses keys itself, so editor shortcuts leave them alone. */
 export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
+  return (
+    isTextEntryTarget(target) ||
+    target instanceof HTMLSelectElement ||
+    // Custom sliders use arrow keys but are not native form controls.
+    (target instanceof HTMLElement && target.getAttribute("role") === "slider")
+  );
+}
+
+/** Whether the user is typing. Selects and sliders don't count, so key capture keeps playing there. */
+export function isTextEntryTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    // Custom sliders use arrow keys but are not native form controls.
-    (target instanceof HTMLElement &&
-      (target.isContentEditable || target.getAttribute("role") === "slider"))
+    (target instanceof HTMLElement && target.isContentEditable)
   );
 }

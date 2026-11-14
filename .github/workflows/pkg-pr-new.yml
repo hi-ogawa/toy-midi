@@ -1,10 +1,14 @@
 name: pkg.pr.new
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
+    paths:
+      - "crates/**"
+      - Cargo.toml
+      - Cargo.lock
+      - tools/build-wasm.sh
+      - .github/workflows/pkg-pr-new.yml
+  workflow_dispatch:
 
 concurrency:
   group: pkg-pr-new-${{ github.event.pull_request.number || github.ref }}

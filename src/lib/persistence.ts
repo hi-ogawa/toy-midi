@@ -1,10 +1,18 @@
 import { type AudioClip, createAudioClip } from "./audio-clip.ts";
-import type { MultibandEqParameters } from "./dsp/biquad-eq-multiband.ts";
+import type { AmpParameters } from "./dsp/amp.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
-} from "./dsp/biquad-eq-worklet-node.ts";
+  type MultibandEqBand,
+  type MultibandEqParameters,
+} from "./dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "./dsp/biquad-eq.ts";
+import {
+  createSynthLayer,
+  DEFAULT_SYNTH_VOICE,
+  type SynthLayer,
+  type SynthPatch,
+} from "./dsp/subtractive-synth.ts";
 import { DEFAULT_KEY_SIGNATURE } from "./pitch-spelling.ts";
 import {
   type PersistableEditorRuntimeState,
@@ -36,7 +44,7 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
   // 🔴 Retained for projects saved with the Capture track outside audioTracks.
   recordingTrack?: {
     // 🟢 Optional for projects saved before track EQ support.
-    eq?: MultibandEqParameters | EqParameters;
+    eq?: SerializedMultibandEq | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -74,15 +82,31 @@ export interface SerializedEditorRuntimeState<ChannelData = Float32Array> {
     title?: string;
     duration: number;
   };
+  // 🟢 Optional for projects saved before the armed track was saved.
+  armedTrackId?: string;
+}
+
+export interface SerializedMultibandEq extends Omit<
+  MultibandEqParameters,
+  "bands"
+> {
+  bands: (Omit<MultibandEqBand, "type"> & {
+    // 🟢 Optional for bands saved before low-pass and high-pass.
+    type?: MultibandEqBand["type"];
+  })[];
 }
 
 export interface SerializedMidiTrackState extends Omit<
   MidiTrackState,
+  | "eq"
   | "tabAnnotationEnabled"
   | "tabOpenStringPitches"
   | "keySignature"
   | "viewMode"
   | "pan"
+  | "reverbSend"
+  | "automation"
+  | "synth"
 > {
   tabAnnotationEnabled?: boolean;
   tabOpenStringPitches?: number[];
@@ -90,13 +114,51 @@ export interface SerializedMidiTrackState extends Omit<
   viewMode?: MidiTrackState["viewMode"];
   // 🟢 Optional for MIDI tracks saved before pan support.
   pan?: number;
+  // 🟢 Optional for MIDI tracks saved before reverb sends.
+  reverbSend?: number;
+  // 🟢 Optional for MIDI tracks saved before automation support.
+  automation?: MidiTrackState["automation"];
+  synth?: SerializedSynthPatch;
+  eq: SerializedMultibandEq;
+}
+
+interface SerializedSynthPatch extends Omit<
+  SynthPatch,
+  "voice" | "glide" | "layers"
+> {
+  // 🟢 Optional for patches saved before mono glide.
+  voice?: SynthPatch["voice"];
+  glide?: number;
+  layers: SerializedSynthLayer[];
+}
+
+interface SerializedSynthLayer extends Omit<
+  SynthLayer,
+  "id" | "oscillator" | "gain" | "muted" | "pan" | "filter" | "amp"
+> {
+  oscillator: Pick<SynthLayer["oscillator"], "waveform"> & {
+    // 🟢 Optional for layers saved before octave and detune.
+    octave?: number;
+    detune?: number;
+  };
+  // 🟢 Optional for layers saved before per-layer gain.
+  gain?: number;
+  // 🟢 Optional for layers saved before layer mute.
+  muted?: boolean;
+  // 🟢 Optional for layers saved before per-layer pan.
+  pan?: number;
+  // 🟢 Optional for layers saved before the filter.
+  filter?: SynthLayer["filter"];
+  // 🟢 Optional for layers saved before the amp envelope.
+  amp?: SynthLayer["amp"];
 }
 
 interface SerializedAudioTrackState<ChannelData> {
   // 🟢 Optional for projects saved before per-track clip visibility.
   showClips?: boolean;
+  amp?: AmpParameters;
   // 🟢 Optional for projects saved before track EQ support.
-  eq?: MultibandEqParameters | EqParameters;
+  eq?: SerializedMultibandEq | EqParameters;
   id: string;
   // 🟢 Optional for projects saved before audio track names.
   name?: string;
@@ -104,6 +166,8 @@ interface SerializedAudioTrackState<ChannelData> {
   gain: number;
   // 🟢 Optional for tracks saved before pan support.
   pan?: number;
+  // 🟢 Optional for tracks saved before reverb sends.
+  reverbSend?: number;
   muted: boolean;
   soloed: boolean;
   // 🟢 Optional for tracks saved before they could record takes.
@@ -151,16 +215,24 @@ export function serializeEditorRuntimeState(
       id: track.id,
       name: track.name,
       height: track.height,
+      amp: track.amp,
       eq: track.eq,
       gain: track.gain,
       pan: track.pan,
+      reverbSend: track.reverbSend,
       muted: track.muted,
       soloed: track.soloed,
       nextTakeNumber: track.nextTakeNumber,
       showClips: track.showClips,
       clips: track.clips.map(serializeAudioClip),
     })),
-    midiTracks: state.midiTracks,
+    midiTracks: state.midiTracks.map((track) => ({
+      ...track,
+      synth: track.synth && {
+        ...track.synth,
+        layers: track.synth.layers.map(({ id: _id, ...layer }) => layer),
+      },
+    })),
     trackOrder: state.trackOrder,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
@@ -169,6 +241,7 @@ export function serializeEditorRuntimeState(
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     referenceVideo: state.referenceVideo,
+    armedTrackId: state.armedTrackId,
   };
 }
 
@@ -202,9 +275,11 @@ export function deserializeEditorRuntimeState({
       clips: getTrackClips(track).map((clip, index) =>
         deserializeAudioClip({ context, clip, index }),
       ),
+      amp: track.amp,
       eq: deserializeEq(track.eq),
       gain: track.gain,
       pan: track.pan ?? 0,
+      reverbSend: track.reverbSend ?? 0,
       muted: track.muted,
       soloed: track.soloed,
     })),
@@ -212,11 +287,25 @@ export function deserializeEditorRuntimeState({
       ...track,
       viewMode: track.viewMode ?? "editor",
       pan: track.pan ?? 0,
+      reverbSend: track.reverbSend ?? 0,
+      automation: track.automation ?? [],
       tabAnnotationEnabled: track.tabAnnotationEnabled ?? false,
       tabOpenStringPitches: track.tabOpenStringPitches ?? [
         ...DEFAULT_TAB_OPEN_STRING_PITCHES,
       ],
       keySignature: track.keySignature ?? { ...DEFAULT_KEY_SIGNATURE },
+      synth: track.synth && {
+        ...DEFAULT_SYNTH_VOICE,
+        ...track.synth,
+        layers: track.synth.layers.map((layer) => {
+          const defaults = createSynthLayer();
+          return {
+            ...defaults,
+            ...layer,
+            oscillator: { ...defaults.oscillator, ...layer.oscillator },
+          };
+        }),
+      },
       eq: deserializeEq(track.eq),
     })),
     // The runtime fills in tracks missing from older or partial orders.
@@ -228,6 +317,9 @@ export function deserializeEditorRuntimeState({
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
+    armedTrackId: audioTracks.some((track) => track.id === project.armedTrackId)
+      ? project.armedTrackId
+      : undefined,
   };
 }
 
@@ -321,13 +413,16 @@ function deserializeAudioClip({
 }
 
 function deserializeEq(
-  eq?: MultibandEqParameters | EqParameters,
+  eq?: SerializedMultibandEq | EqParameters,
 ): MultibandEqParameters {
   if (!eq) {
     return createDefaultMultibandEq();
   }
   if ("bands" in eq) {
-    return eq;
+    return {
+      ...eq,
+      bands: eq.bands.map((band) => ({ type: "peaking", ...band })),
+    };
   }
   return {
     bypass: false,

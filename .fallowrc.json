@@ -4,6 +4,6 @@
     "packages/webmcp-bridge/src/extension/content.ts",
     "packages/webmcp-bridge/src/extension/background.ts",
     "packages/webmcp-bridge/src/extension/relay.ts",
-    "src/lib/api-types.ts"
+    "src/api-types.ts"
   ]
 }

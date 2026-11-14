@@ -1,0 +1,656 @@
+import {
+  MODULATION_CONTROLLER,
+  PITCH_BEND_RANGE,
+  PITCH_WHEEL_CENTER,
+} from "../general-midi.ts";
+import type { SynthEngine } from "../midi-synth-worklet.ts";
+import { clamp, dbToGain, midiToHz } from "../music.ts";
+import { BiquadEqPerSample, BUTTERWORTH_Q, EQ_LIMITS } from "./biquad-eq.ts";
+import {
+  computeEnvelopeCurves,
+  type Envelope,
+  type EnvelopeCurves,
+  EnvelopeState,
+} from "./envelope.ts";
+
+export const WAVEFORMS = [
+  "sine",
+  "triangle",
+  "sawtooth",
+  "square",
+  "noise",
+] as const;
+export type Waveform = (typeof WAVEFORMS)[number];
+
+export const VOICE_MODES = ["poly", "mono"] as const;
+export type VoiceMode = (typeof VOICE_MODES)[number];
+
+/** Patch for Toy MIDI's own synth */
+export interface SynthPatch {
+  /**
+   * In mono, a note that starts while another is held glides the sounding
+   * voice to its pitch instead of starting a voice of its own.
+   */
+  voice: VoiceMode;
+  /** Seconds that a mono slide between held notes takes */
+  glide: number;
+  /** Voice paths that each note plays at once, summed */
+  layers: SynthLayer[];
+}
+
+export interface SynthLayer {
+  /**
+   * Identifies the layer while the project is open, so held notes follow it
+   * through patch changes. Projects don't save it, since nothing saved refers
+   * to a layer.
+   */
+  id: string;
+  oscillator: {
+    /** Noise has no pitch, so it ignores `octave` and `detune`. */
+    waveform: Waveform;
+    /** Whole octaves from the note */
+    octave: number;
+    /** Cents from the note */
+    detune: number;
+  };
+  /** Linear multiplier on the layer's output */
+  gain: number;
+  muted: boolean;
+  /** From -1, hard left, to 1, hard right */
+  pan: number;
+  /**
+   * A resonant low-pass whose cutoff, per sample, is
+   * cutoff × 2^(envelope × amount × velocity depth + keytrack × (note − 60) / 12)
+   */
+  filter: {
+    /** Hz at middle C with the envelope at 0 */
+    cutoff: number;
+    /** The low-pass's Q, as on the track EQ */
+    resonance: number;
+    /** Octaves the cutoff moves per octave of the note from C4, note 60 */
+    keytrack: number;
+    envelope: Envelope & {
+      /** Octaves the cutoff moves at the envelope's peak */
+      amount: number;
+      /**
+       * How much the note's velocity scales `amount`, from 0, not at all, to 1,
+       * in proportion
+       */
+      velocity: number;
+    };
+  };
+  amp: {
+    envelope: Envelope;
+  };
+}
+
+// Short ramp to avoid clicks
+const RAMP_SECONDS = 0.005;
+
+const DEFAULT_ENVELOPE: Envelope = {
+  attack: RAMP_SECONDS,
+  decay: 0.3,
+  sustain: 1,
+  release: RAMP_SECONDS,
+};
+
+const DEFAULT_SYNTH_LAYER: Omit<SynthLayer, "id"> = {
+  oscillator: { waveform: "sine", octave: 0, detune: 0 },
+  gain: 1,
+  muted: false,
+  pan: 0,
+  filter: {
+    cutoff: EQ_LIMITS.frequency.max,
+    resonance: BUTTERWORTH_Q,
+    keytrack: 0,
+    envelope: { ...DEFAULT_ENVELOPE, amount: 0, velocity: 0 },
+  },
+  amp: { envelope: DEFAULT_ENVELOPE },
+};
+
+export const DEFAULT_SYNTH_VOICE: Pick<SynthPatch, "voice" | "glide"> = {
+  voice: "poly",
+  glide: 0.05,
+};
+
+export function createSynthPatch(): SynthPatch {
+  return { ...DEFAULT_SYNTH_VOICE, layers: [createSynthLayer()] };
+}
+
+export function createSynthLayer(): SynthLayer {
+  return { ...DEFAULT_SYNTH_LAYER, id: crypto.randomUUID() };
+}
+
+// Leaves headroom for chords at full velocity.
+export const PEAK_GAIN = 0.2;
+
+interface ResolvedLayer {
+  id: string;
+  oscillate: Oscillator;
+  /** The layer's frequency over the note's */
+  frequencyRatio: number;
+  /** The layer's gain on each channel, with its pan */
+  leftGain: number;
+  rightGain: number;
+  filter: ResolvedFilter;
+  filterEnvelope: EnvelopeCurves;
+  ampEnvelope: EnvelopeCurves;
+}
+
+type ResolvedFilter = Omit<SynthLayer["filter"], "envelope"> &
+  Pick<SynthLayer["filter"]["envelope"], "amount" | "velocity">;
+
+const VOLUME_CONTROLLER = 7;
+const EXPRESSION_CONTROLLER = 11;
+const RESONANCE_CONTROLLER = 71;
+const BRIGHTNESS_CONTROLLER = 74;
+// SpessaSynth's routes for CC74 and CC71 move the cutoff and resonance each
+// way from the controller's center, linearly in cents and dB, so the synth
+// matches a SoundFont track's automation.
+const CONTROLLER_CENTER = 64;
+const MAX_BRIGHTNESS_CENTS = 4800;
+const MAX_RESONANCE_DB = 12.5;
+// MIDI's defaults. A track without automation for a controller never sends
+// it, so the synth starts from these.
+const DEFAULT_VOLUME = 100;
+const DEFAULT_EXPRESSION = 127;
+// SoundFont's default modulator maps CC1 linearly onto the vibrato LFO's pitch
+// depth, up to this many cents each way, half a semitone.
+const MAX_VIBRATO_CENTS = 50;
+// Chosen by ear
+const VIBRATO_RATE = 5.5;
+
+interface Voice {
+  /** The note the voice plays, which a mono voice moves to as notes change */
+  pitch: number;
+  /** Where the glide toward `pitch` has reached */
+  soundingPitch: number;
+  /** Semitones per sample */
+  glideStep: number;
+  /** The vibrato LFO's cycles in [0, 1), from 0 at note-on */
+  vibratoPhase: number;
+  /** From 0 to 1 */
+  velocity: number;
+  /** Peak gain scaled by the note's velocity */
+  gain: number;
+  /** Keyed by layer id */
+  layers: Map<string, VoiceLayer>;
+}
+
+interface VoiceLayer {
+  /**
+   * Cycles in [0, 1). Advancing by the increment instead of tracking time
+   * keeps the waveform continuous when the frequency changes.
+   */
+  phase: number;
+  filter: BiquadEqPerSample;
+  filterEnvelope: EnvelopeState;
+  ampEnvelope: EnvelopeState;
+}
+
+export class SubtractiveSynth implements SynthEngine {
+  private voices: Voice[] = [];
+  private layers: ResolvedLayer[] = [];
+  private voiceMode: VoiceMode = DEFAULT_SYNTH_VOICE.voice;
+  private readonly mono: MonoVoiceAllocator;
+  /** Semitones */
+  private bend = 0;
+  /** Cents */
+  private vibratoDepth = 0;
+  private volume = DEFAULT_VOLUME;
+  private expression = DEFAULT_EXPRESSION;
+  /** CC74's multiplier on every layer's cutoff */
+  private cutoffScale = 1;
+  /** CC71's multiplier on every layer's Q */
+  private resonanceScale = 1;
+  /** CC7 volume times CC11 expression, applied to the summed voices */
+  private channelGain = computeChannelGain(DEFAULT_VOLUME, DEFAULT_EXPRESSION);
+  private targetChannelGain = this.channelGain;
+  private readonly channelGainStep: number;
+  /** Cycles per sample */
+  private readonly vibratoPhaseIncrement: number;
+  /** Hz, kept below Nyquist */
+  private readonly maxCutoff: number;
+  /**
+   * One stream for every noise layer of every note, so notes and layers that
+   * sound together draw different noise and add in power
+   */
+  private readonly noise = new WhiteNoise();
+
+  constructor(private readonly sampleRate: number) {
+    this.channelGainStep = 1 / (RAMP_SECONDS * sampleRate);
+    this.vibratoPhaseIncrement = VIBRATO_RATE / sampleRate;
+    this.maxCutoff = Math.min(EQ_LIMITS.frequency.max, sampleRate * 0.499);
+    this.mono = new MonoVoiceAllocator(sampleRate);
+  }
+
+  setPatch(patch: SynthPatch): void {
+    this.layers = resolveLayers(patch, this.sampleRate);
+    this.mono.setGlide(patch.glide);
+    if (patch.voice !== this.voiceMode) {
+      this.stopAll();
+      this.voiceMode = patch.voice;
+    }
+  }
+
+  noteOn(pitch: number, velocity: number): void {
+    if (this.voiceMode === "mono") {
+      this.mono.noteOn(pitch, () => this.startVoice(pitch, velocity));
+      return;
+    }
+    this.releaseVoices(pitch);
+    this.startVoice(pitch, velocity);
+  }
+
+  noteOff(pitch: number): void {
+    if (this.voiceMode === "mono") {
+      this.mono.noteOff(pitch);
+      return;
+    }
+    this.releaseVoices(pitch);
+  }
+
+  private startVoice(pitch: number, velocity: number): Voice {
+    const voice = createVoice({
+      pitch,
+      velocity,
+      layers: this.layers,
+      sampleRate: this.sampleRate,
+    });
+    this.voices.push(voice);
+    return voice;
+  }
+
+  private releaseVoices(pitch: number): void {
+    for (const voice of this.voices) {
+      if (voice.pitch === pitch) {
+        releaseVoice(voice);
+      }
+    }
+  }
+
+  controller(controller: number, value: number): void {
+    switch (controller) {
+      case MODULATION_CONTROLLER: {
+        this.vibratoDepth = (value / 127) * MAX_VIBRATO_CENTS;
+        return;
+      }
+      case BRIGHTNESS_CONTROLLER: {
+        const cents =
+          ((value - CONTROLLER_CENTER) / CONTROLLER_CENTER) *
+          MAX_BRIGHTNESS_CENTS;
+        this.cutoffScale = 2 ** (cents / 1200);
+        return;
+      }
+      case RESONANCE_CONTROLLER: {
+        const db =
+          ((value - CONTROLLER_CENTER) / CONTROLLER_CENTER) * MAX_RESONANCE_DB;
+        this.resonanceScale = dbToGain(db);
+        return;
+      }
+      case VOLUME_CONTROLLER: {
+        this.volume = value;
+        break;
+      }
+      case EXPRESSION_CONTROLLER: {
+        this.expression = value;
+        break;
+      }
+      default: {
+        return;
+      }
+    }
+    this.targetChannelGain = computeChannelGain(this.volume, this.expression);
+  }
+
+  pitchBend(value: number): void {
+    this.bend =
+      ((value - PITCH_WHEEL_CENTER) / PITCH_WHEEL_CENTER) * PITCH_BEND_RANGE;
+  }
+
+  /** Mixes `length` samples into the buffers from `offset`. */
+  render(
+    left: Float32Array,
+    right: Float32Array,
+    offset: number,
+    length: number,
+  ): void {
+    this.mono.applyPendingRelease();
+    for (let i = offset; i < offset + length; i++) {
+      let mixLeft = 0;
+      let mixRight = 0;
+      for (const voice of this.voices) {
+        // Linear in semitones, so the slide passes through every interval at
+        // the same speed.
+        const glideDistance = voice.pitch - voice.soundingPitch;
+        if (glideDistance !== 0) {
+          voice.soundingPitch +=
+            Math.sign(glideDistance) *
+            Math.min(voice.glideStep, Math.abs(glideDistance));
+        }
+        const vibrato =
+          this.vibratoDepth * Math.sin(2 * Math.PI * voice.vibratoPhase);
+        const notePhaseIncrement =
+          midiToHz(voice.soundingPitch + this.bend + vibrato / 100) /
+          this.sampleRate;
+        let sampleLeft = 0;
+        let sampleRight = 0;
+        for (const layer of this.layers) {
+          // A layer that a patch change adds plays from the next note.
+          const state = voice.layers.get(layer.id);
+          if (state) {
+            const phaseIncrement = notePhaseIncrement * layer.frequencyRatio;
+            // The envelope runs while the filter is skipped, so a patch change
+            // that brings it in finds the envelope where the note is.
+            const filterLevel = state.filterEnvelope.advance(
+              layer.filterEnvelope,
+            );
+            let sample = layer.oscillate(
+              state.phase,
+              phaseIncrement,
+              this.noise,
+            );
+            // CC74 can close an open layer's filter, but not open it further.
+            if (!shouldSkipFilter(layer.filter) || this.cutoffScale < 1) {
+              const cutoff = clamp(
+                computeCutoff(layer.filter, voice, filterLevel) *
+                  this.cutoffScale,
+                EQ_LIMITS.frequency.min,
+                this.maxCutoff,
+              );
+              const q = clamp(
+                layer.filter.resonance * this.resonanceScale,
+                EQ_LIMITS.q.min,
+                EQ_LIMITS.q.max,
+              );
+              sample = state.filter.process(sample, {
+                type: "low-pass",
+                frequency: cutoff,
+                q,
+              });
+            }
+            sample *= state.ampEnvelope.advance(layer.ampEnvelope);
+            sampleLeft += sample * layer.leftGain;
+            sampleRight += sample * layer.rightGain;
+            state.phase = (state.phase + phaseIncrement) % 1;
+          }
+        }
+        mixLeft += voice.gain * sampleLeft;
+        mixRight += voice.gain * sampleRight;
+        voice.vibratoPhase =
+          (voice.vibratoPhase + this.vibratoPhaseIncrement) % 1;
+      }
+      const channelStep = Math.min(
+        this.channelGainStep,
+        Math.abs(this.targetChannelGain - this.channelGain),
+      );
+      this.channelGain +=
+        this.targetChannelGain > this.channelGain ? channelStep : -channelStep;
+      left[i] += mixLeft * this.channelGain;
+      right[i] += mixRight * this.channelGain;
+    }
+    this.voices = this.voices.filter((voice) =>
+      this.layers.some((layer) => {
+        const stage = voice.layers.get(layer.id)?.ampEnvelope.stage;
+        return stage !== undefined && stage !== "idle";
+      }),
+    );
+  }
+
+  stopAll(): void {
+    for (const voice of this.voices) {
+      releaseVoice(voice);
+    }
+    this.mono.reset();
+  }
+}
+
+/**
+ * Mono's held notes and the one voice they play. A note-on while another note
+ * is held, or on the frame the last one ended, glides that voice to its pitch
+ * and keeps its envelopes and level.
+ */
+class MonoVoiceAllocator {
+  /** Latest last */
+  private heldNotes: number[] = [];
+  /** Sounding while any note is held */
+  private voice?: Voice;
+  /**
+   * Set when the last held note ends. The release waits for the next render,
+   * so a note-on on the same frame continues the phrase instead.
+   */
+  private releasePending = false;
+  private glideSamples = 0;
+
+  constructor(private readonly sampleRate: number) {}
+
+  setGlide(seconds: number): void {
+    this.glideSamples = seconds * this.sampleRate;
+  }
+
+  /** Glides the sounding voice to the note, or starts one through `startVoice`. */
+  noteOn(pitch: number, startVoice: () => Voice): void {
+    this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
+    this.heldNotes.push(pitch);
+    this.releasePending = false;
+    if (this.voice) {
+      this.glideVoice(pitch);
+      return;
+    }
+    this.voice = startVoice();
+  }
+
+  /** Glides back to the latest note still held, if any. */
+  noteOff(pitch: number): void {
+    this.heldNotes = this.heldNotes.filter((note) => note !== pitch);
+    if (!this.voice) {
+      return;
+    }
+    const latest = this.heldNotes.at(-1);
+    if (latest === undefined) {
+      this.releasePending = true;
+      return;
+    }
+    this.glideVoice(latest);
+  }
+
+  applyPendingRelease(): void {
+    if (this.releasePending) {
+      this.releasePending = false;
+      releaseVoice(this.voice!);
+      this.voice = undefined;
+    }
+  }
+
+  /** Forgets every note, after the synth has released its voices. */
+  reset(): void {
+    this.heldNotes = [];
+    this.voice = undefined;
+    this.releasePending = false;
+  }
+
+  private glideVoice(pitch: number): void {
+    const voice = this.voice!;
+    if (voice.pitch === pitch) {
+      return;
+    }
+    voice.pitch = pitch;
+    // Takes the glide time for every slide, from wherever the sounding pitch
+    // is, so a slide sounds as long as the patch says whatever the interval.
+    // For a time proportional to the interval, as the glide time per octave,
+    // use `12 / this.glideSamples` instead.
+    voice.glideStep = Math.abs(pitch - voice.soundingPitch) / this.glideSamples;
+  }
+}
+
+function resolveLayers(patch: SynthPatch, sampleRate: number): ResolvedLayer[] {
+  return patch.layers.map((layer) => {
+    const pan = computePanGains(layer.pan);
+    // A muted layer keeps rendering at zero gain, so its envelopes follow the
+    // note and it comes back where the note is.
+    const gain = layer.muted ? 0 : layer.gain;
+    const { envelope, ...filter } = layer.filter;
+    return {
+      id: layer.id,
+      oscillate: OSCILLATORS[layer.oscillator.waveform],
+      frequencyRatio:
+        2 ** (layer.oscillator.octave + layer.oscillator.detune / 1200),
+      leftGain: gain * pan.left,
+      rightGain: gain * pan.right,
+      filter: {
+        ...filter,
+        amount: envelope.amount,
+        velocity: envelope.velocity,
+      },
+      filterEnvelope: computeEnvelopeCurves(envelope, sampleRate),
+      ampEnvelope: computeEnvelopeCurves(layer.amp.envelope, sampleRate),
+    };
+  });
+}
+
+/**
+ * Whether the layer should skip its filter, because the cutoff stays at the top
+ * of the range on every note. Skipping keeps a layer exactly as it sounded
+ * before filters existed, and only drops a resonant peak at 20 kHz.
+ */
+function shouldSkipFilter(filter: ResolvedFilter): boolean {
+  return (
+    filter.cutoff >= EQ_LIMITS.frequency.max &&
+    filter.keytrack === 0 &&
+    filter.amount === 0
+  );
+}
+
+function computeCutoff(
+  filter: ResolvedFilter,
+  voice: Voice,
+  envelope: number,
+): number {
+  const depth = 1 - filter.velocity * (1 - voice.velocity);
+  return (
+    filter.cutoff *
+    2 **
+      (envelope * filter.amount * depth +
+        (filter.keytrack * (voice.soundingPitch - 60)) / 12)
+  );
+}
+
+/**
+ * Pans a layer, a mono source, at constant power, as a DAW pans a mono track,
+ * so moving a layer doesn't change its loudness. The √2 scale keeps both sides
+ * at unity at the center, where layers saved before pan sit.
+ */
+function computePanGains(pan: number): { left: number; right: number } {
+  const angle = ((pan + 1) * Math.PI) / 4;
+  return {
+    left: Math.SQRT2 * Math.cos(angle),
+    right: Math.SQRT2 * Math.sin(angle),
+  };
+}
+
+function createVoice({
+  pitch,
+  velocity,
+  layers,
+  sampleRate,
+}: {
+  pitch: number;
+  velocity: number;
+  layers: ResolvedLayer[];
+  sampleRate: number;
+}): Voice {
+  return {
+    pitch,
+    soundingPitch: pitch,
+    glideStep: 0,
+    vibratoPhase: 0,
+    velocity: velocity / 127,
+    gain: PEAK_GAIN * (velocity / 127),
+    layers: new Map(
+      layers.map((layer) => [
+        layer.id,
+        {
+          phase: 0,
+          filter: new BiquadEqPerSample({ sampleRate }),
+          filterEnvelope: new EnvelopeState(),
+          ampEnvelope: new EnvelopeState(),
+        },
+      ]),
+    ),
+  };
+}
+
+function releaseVoice(voice: Voice): void {
+  for (const state of voice.layers.values()) {
+    state.filterEnvelope.release();
+    state.ampEnvelope.release();
+  }
+}
+
+/**
+ * Follows SoundFont's default concave curve for each controller, which makes
+ * the gain proportional to the square of the value. The two multiply, so
+ * automation moves the synth by the same amount as a SoundFont preset.
+ */
+function computeChannelGain(volume: number, expression: number): number {
+  return ((volume / 127) * (expression / 127)) ** 2;
+}
+
+/** Takes the phase and the phase increment in cycles, with a peak of 1. */
+type Oscillator = (
+  phase: number,
+  increment: number,
+  noise: WhiteNoise,
+) => number;
+
+const OSCILLATORS: Record<Waveform, Oscillator> = {
+  sine: (phase) => Math.sin(2 * Math.PI * phase),
+  // Starts at 0 and rises, in phase with the sine. It has no jumps to correct,
+  // but from about 1 kHz its corners alias more than a corrected sawtooth.
+  // TODO: Round the corners with a BLAMP correction.
+  triangle: (phase) => 4 * Math.abs(((phase + 0.75) % 1) - 0.5) - 1,
+  sawtooth: (phase, increment) =>
+    2 * phase - 1 - 2 * computePolyBlep(phase, increment),
+  square: (phase, increment) =>
+    (phase < 0.5 ? 1 : -1) +
+    2 * computePolyBlep(phase, increment) -
+    2 * computePolyBlep((phase + 0.5) % 1, increment),
+  // Uniform in [-1, 1), so its RMS is the peak over √3, as a sawtooth's is.
+  noise: (_phase, _increment, noise) => noise.next(),
+};
+
+/**
+ * Xorshift32, a few integer operations per sample. Its period of 2^32 − 1
+ * samples lasts over a day, and the ear can't tell it from true white noise.
+ * A fixed seed makes offline renders of the same project match.
+ */
+class WhiteNoise {
+  private state = 0x9e3779b9;
+
+  next(): number {
+    let x = this.state;
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    this.state = x;
+    return (x >>> 0) / 2 ** 31 - 1;
+  }
+}
+
+/**
+ * PolyBLEP residual for a unit step at phase 0, which rounds the jump over
+ * the samples next to it so a sawtooth or square doesn't alias audibly.
+ * Scale it by the size of the jump.
+ * See [Band-limited oscillators](../../../docs/concepts/band-limited-oscillators.md).
+ */
+function computePolyBlep(phase: number, increment: number): number {
+  if (phase < increment) {
+    const t = phase / increment;
+    return -((1 - t) ** 2) / 2;
+  }
+  if (phase > 1 - increment) {
+    const t = (phase - 1) / increment;
+    return (1 + t) ** 2 / 2;
+  }
+  return 0;
+}

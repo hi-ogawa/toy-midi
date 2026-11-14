@@ -1,198 +1,122 @@
-import { Midi } from "@tonejs/midi";
+import { parseMidi } from "midi-file";
 import { describe, expect, it } from "vitest";
-import { Note, TimeSignature } from "../types";
-import { exportMidi } from "./midi-export";
+import { DRUM_KIT_BANK } from "./general-midi";
+import { exportMidi, type MidiExportTrack } from "./midi-export";
 
-describe("MIDI Export", () => {
-  it("should create a valid MIDI file with correct tempo", () => {
-    const notes: Note[] = [
-      {
-        id: "note-1",
-        pitch: 60, // C4
-        start: 0,
-        duration: 1, // 1 beat
-        velocity: 100,
-      },
-      {
-        id: "note-2",
-        pitch: 64, // E4
-        start: 1,
-        duration: 1,
-        velocity: 80,
-      },
-    ];
+function createTrack(track: Partial<MidiExportTrack>): MidiExportTrack {
+  return {
+    name: "Track",
+    program: 0,
+    notes: [],
+    automation: [],
+    ...track,
+  };
+}
 
-    const tempo = 120;
-    const midiData = exportMidi({
-      notes,
-      tempo,
-      timeSignature: { numerator: 4, denominator: 4 },
-      name: "Test Song",
-      trackName: "Piano Roll",
+describe(exportMidi, () => {
+  it("round-trips a project", () => {
+    const bytes = exportMidi({
+      title: "Song",
+      tempo: 90,
+      timeSignature: { numerator: 6, denominator: 8 },
+      locators: [{ beat: 1, label: "Verse" }],
+      tracks: [
+        createTrack({
+          name: "Lead",
+          program: 29,
+          // A repeated pitch and a sustain change on the same tick
+          notes: [
+            { id: "b", pitch: 60, start: 1, duration: 1, velocity: 100 },
+            { id: "a", pitch: 60, start: 0, duration: 1, velocity: 90 },
+          ],
+          automation: [
+            {
+              type: "controller",
+              controller: 64,
+              points: [{ beat: 1, value: 127 }],
+            },
+            {
+              type: "pitch-bend",
+              points: [
+                { beat: 0.5, semitones: -12 },
+                { beat: 1.5, semitones: 12 },
+              ],
+            },
+          ],
+        }),
+        createTrack({ name: "Drums", bank: DRUM_KIT_BANK, program: 25 }),
+        createTrack({ name: "Organ", bank: 8, program: 16 }),
+      ],
     });
-
-    // Check that we got a Uint8Array
-    expect(midiData).toBeInstanceOf(Uint8Array);
-    expect(midiData.byteLength).toBeGreaterThan(0);
-
-    // Check the MIDI header signature (should start with "MThd")
-    const signature = String.fromCharCode(
-      midiData[0],
-      midiData[1],
-      midiData[2],
-      midiData[3],
+    const midi = parseMidi(bytes);
+    // One line per event
+    const tracks = midi.tracks.map((events) =>
+      events.map((event) => JSON.stringify(event)),
     );
-    expect(signature).toBe("MThd");
+    expect({ header: midi.header, tracks }).toMatchInlineSnapshot(`
+      {
+        "header": {
+          "format": 1,
+          "numTracks": 4,
+          "ticksPerBeat": 480,
+        },
+        "tracks": [
+          [
+            "{"deltaTime":0,"meta":true,"type":"trackName","text":"Song"}",
+            "{"deltaTime":0,"meta":true,"type":"setTempo","microsecondsPerBeat":666667}",
+            "{"deltaTime":0,"meta":true,"type":"timeSignature","numerator":6,"denominator":8,"metronome":24,"thirtyseconds":8}",
+            "{"deltaTime":480,"meta":true,"type":"marker","text":"Verse"}",
+            "{"deltaTime":1440,"meta":true,"type":"endOfTrack"}",
+          ],
+          [
+            "{"deltaTime":0,"meta":true,"type":"trackName","text":"Lead"}",
+            "{"deltaTime":0,"channel":0,"type":"programChange","programNumber":29}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":101,"value":0}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":100,"value":0}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":6,"value":12}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":38,"value":0}",
+            "{"deltaTime":0,"channel":0,"type":"noteOn","noteNumber":60,"velocity":90}",
+            "{"deltaTime":240,"channel":0,"type":"pitchBend","value":-8192}",
+            "{"deltaTime":240,"channel":0,"type":"noteOff","noteNumber":60,"velocity":0}",
+            "{"deltaTime":0,"channel":0,"type":"controller","controllerType":64,"value":127}",
+            "{"deltaTime":0,"channel":0,"type":"noteOn","noteNumber":60,"velocity":100}",
+            "{"deltaTime":240,"channel":0,"type":"pitchBend","value":8191}",
+            "{"deltaTime":240,"channel":0,"type":"noteOff","noteNumber":60,"velocity":0}",
+            "{"deltaTime":960,"meta":true,"type":"endOfTrack"}",
+          ],
+          [
+            "{"deltaTime":0,"meta":true,"type":"trackName","text":"Drums"}",
+            "{"deltaTime":0,"channel":9,"type":"programChange","programNumber":25}",
+            "{"deltaTime":1920,"meta":true,"type":"endOfTrack"}",
+          ],
+          [
+            "{"deltaTime":0,"meta":true,"type":"trackName","text":"Organ"}",
+            "{"deltaTime":0,"channel":1,"type":"controller","controllerType":0,"value":8}",
+            "{"deltaTime":0,"channel":1,"type":"programChange","programNumber":16}",
+            "{"deltaTime":1920,"meta":true,"type":"endOfTrack"}",
+          ],
+        ],
+      }
+    `);
   });
 
-  it("should handle empty notes array", () => {
-    const midiData = exportMidi({
-      notes: [],
-      tempo: 120,
-      timeSignature: { numerator: 4, denominator: 4 },
-      name: "Test Song",
-      trackName: "Piano Roll",
-    });
-
-    expect(midiData).toBeInstanceOf(Uint8Array);
-    expect(midiData.byteLength).toBeGreaterThan(0);
-  });
-
-  it("should convert note velocities correctly", () => {
-    const notes: Note[] = [
-      {
-        id: "note-1",
-        pitch: 60,
-        start: 0,
-        duration: 1,
-        velocity: 127, // max velocity
-      },
-      {
-        id: "note-2",
-        pitch: 64,
-        start: 1,
-        duration: 1,
-        velocity: 0, // min velocity
-      },
-    ];
-
-    const midiData = exportMidi({
-      notes,
-      tempo: 120,
-      timeSignature: { numerator: 4, denominator: 4 },
-      name: "Test Song",
-      trackName: "Piano Roll",
-    });
-    expect(midiData).toBeInstanceOf(Uint8Array);
-  });
-
-  it("should handle different tempos", () => {
-    const notes: Note[] = [
-      {
-        id: "note-1",
-        pitch: 60,
-        start: 0,
-        duration: 1,
-        velocity: 100,
-      },
-    ];
-
-    const tempo60 = exportMidi({
-      notes,
-      tempo: 60,
-      timeSignature: { numerator: 4, denominator: 4 },
-      name: "Test Song",
-      trackName: "Piano Roll",
-    });
-    const tempo240 = exportMidi({
-      notes,
-      tempo: 240,
-      timeSignature: { numerator: 4, denominator: 4 },
-      name: "Test Song",
-      trackName: "Piano Roll",
-    });
-
-    // Both should produce valid MIDI files
-    expect(tempo60).toBeInstanceOf(Uint8Array);
-    expect(tempo240).toBeInstanceOf(Uint8Array);
-
-    // Different tempos should produce different output
-    // (though the difference might be small)
-    expect(tempo60.byteLength).toBeGreaterThan(0);
-    expect(tempo240.byteLength).toBeGreaterThan(0);
-  });
-
-  it("should set sequence name and custom track name", () => {
-    const notes: Note[] = [
-      {
-        id: "note-1",
-        pitch: 60,
-        start: 0,
-        duration: 1,
-        velocity: 100,
-      },
-    ];
-
-    const midiData = exportMidi({
-      notes,
-      tempo: 120,
-      timeSignature: { numerator: 4, denominator: 4 },
-      name: "My Song",
-      trackName: "My Custom Track",
-    });
-
-    expect(midiData).toBeInstanceOf(Uint8Array);
-
-    const parsed = new Midi(midiData);
-    expect(parsed.name).toBe("My Song");
-    expect(parsed.tracks[0].name).toBe("My Custom Track");
-  });
-
-  it("should handle different time signatures", () => {
-    const notes: Note[] = [
-      {
-        id: "note-1",
-        pitch: 60,
-        start: 0,
-        duration: 1,
-        velocity: 100,
-      },
-    ];
-
-    // Test 3/4 time signature
-    const timeSignature34: TimeSignature = { numerator: 3, denominator: 4 };
-    const midiData34 = exportMidi({
-      notes,
-      tempo: 120,
-      timeSignature: timeSignature34,
-      name: "Test Song",
-      trackName: "Piano Roll",
-    });
-    expect(midiData34).toBeInstanceOf(Uint8Array);
-    expect(midiData34.byteLength).toBeGreaterThan(0);
-
-    // Test 5/4 time signature
-    const timeSignature54: TimeSignature = { numerator: 5, denominator: 4 };
-    const midiData54 = exportMidi({
-      notes,
-      tempo: 120,
-      timeSignature: timeSignature54,
-      name: "Test Song",
-      trackName: "Piano Roll",
-    });
-    expect(midiData54).toBeInstanceOf(Uint8Array);
-    expect(midiData54.byteLength).toBeGreaterThan(0);
-
-    // Test 6/8 time signature
-    const timeSignature68: TimeSignature = { numerator: 6, denominator: 8 };
-    const midiData68 = exportMidi({
-      notes,
-      tempo: 120,
-      timeSignature: timeSignature68,
-      name: "Test Song",
-      trackName: "Piano Roll",
-    });
-    expect(midiData68).toBeInstanceOf(Uint8Array);
-    expect(midiData68.byteLength).toBeGreaterThan(0);
+  it("rejects tracks that don't fit the channels", () => {
+    const exportTracks = (tracks: MidiExportTrack[]) =>
+      exportMidi({
+        title: "Song",
+        tempo: 120,
+        timeSignature: { numerator: 4, denominator: 4 },
+        locators: [],
+        tracks,
+      });
+    expect(() =>
+      exportTracks(Array.from({ length: 16 }, () => createTrack({}))),
+    ).toThrow("at most 15 non-drum tracks");
+    expect(() =>
+      exportTracks([
+        createTrack({ bank: DRUM_KIT_BANK, program: 0 }),
+        createTrack({ bank: DRUM_KIT_BANK, program: 25 }),
+      ]),
+    ).toThrow("must use the same kit");
   });
 });

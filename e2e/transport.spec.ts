@@ -22,7 +22,7 @@ test("snaps timeline seeking to the selected grid", async ({ page }) => {
   await seekByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.9);
   await expect.poll(() => getBeat(page)).toBe(1);
   // Keep explicit coverage of the combined musical and elapsed-time display.
-  await expect(position).toHaveText("01|02 - 00:00.500");
+  await expect(position).toHaveText("01|02 00:00.500");
 
   // On the 1/4 grid, 0.4 beats rounds back to beat 0 rather than seeking to
   // the raw pointer position.

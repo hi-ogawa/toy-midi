@@ -20,7 +20,7 @@ export function Panel({
   children: ReactNode;
   "data-testid"?: string;
   className?: string;
-  contentClassName?: string;
+  contentClassName: string;
   style?: CSSProperties;
 }) {
   return (
@@ -32,22 +32,22 @@ export function Panel({
         className,
       )}
     >
-      <div className="flex items-center gap-4 border-b border-neutral-700 px-4 py-3">
-        <h2 className="text-sm font-semibold text-neutral-100">{title}</h2>
-        <div className="ml-auto flex items-center gap-3">
+      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-neutral-700 pr-1 pl-3">
+        <h2 className="min-w-0 text-sm font-semibold text-neutral-100">
+          {title}
+        </h2>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           {headerActions}
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-200"
+            className="flex size-control-sm items-center justify-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
             aria-label={closeLabel}
           >
-            <XIcon className="size-5" />
+            <XIcon className="size-4" />
           </button>
         </div>
       </div>
-      <div className={contentClassName ?? "overflow-x-auto px-4 py-3"}>
-        {children}
-      </div>
+      <div className={contentClassName}>{children}</div>
     </section>
   );
 }

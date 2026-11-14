@@ -66,9 +66,9 @@ export function PanelResizeHandle({
       type="button"
       aria-label={label}
       data-testid={testId}
-      className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
+      className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-0.5"
     >
-      <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
+      <span className="pointer-events-none size-2 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
     </button>
   );
 }

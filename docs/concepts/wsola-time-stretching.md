@@ -23,7 +23,7 @@ To make the positions easy to follow, use smaller illustrative counts of 40-samp
 
 The output progresses 60 samples while the patch starts progress only 45 samples through the recording. Reusing source audio this way makes the output longer without slowing down the samples inside a patch.
 
-More generally, patch $k$ starts at output position $kH$. For playback rate $r$, its **nominal source position** is
+More generally, patch $k$ starts at output position $k H$. For playback rate $r$, its **nominal source position** is
 
 $$
 p_k=rkH.

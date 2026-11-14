@@ -21,6 +21,7 @@ const preferencesSchema = z.object({
       latencyCompensation: z.number().nonnegative().optional(),
     })
     .optional(),
+  midiDeviceId: z.string().optional(),
 });
 type Preferences = z.infer<typeof preferencesSchema>;
 
@@ -47,6 +48,11 @@ export const preferences = withUseValue(
 const projectUiStateSchema = z.object({
   autoScrollEnabled: z.boolean(),
   inputPanelOpen: z.boolean(),
+  midiKeyboardOpen: z.boolean(),
+  midiKeyboardSize: z.object({
+    width: z.number().positive(),
+    height: z.number().positive(),
+  }),
   tunerOpen: z.boolean(),
   timelinePixelsPerBeat: z
     .number()
@@ -62,6 +68,7 @@ const projectUiStateSchema = z.object({
   referenceVideoOpen: z.boolean(),
   mixerOpen: z.boolean(),
   projectCommentOpen: z.boolean(),
+  projectCommentPreview: z.boolean(),
   projectCommentSize: z.object({
     width: z.number().positive(),
     height: z.number().positive(),
@@ -75,6 +82,8 @@ type ProjectUiState = z.infer<typeof projectUiStateSchema>;
 const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   autoScrollEnabled: true,
   inputPanelOpen: false,
+  midiKeyboardOpen: false,
+  midiKeyboardSize: { width: 334, height: 224 },
   tunerOpen: false,
   timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
   referenceVideoSize: { width: 640, height: 480 },
@@ -82,6 +91,7 @@ const DEFAULT_PROJECT_UI_STATE: ProjectUiState = {
   referenceVideoOpen: false,
   mixerOpen: false,
   projectCommentOpen: false,
+  projectCommentPreview: false,
   projectCommentSize: { width: 384, height: 320 },
   expandedClipTracks: [],
   openEffects: [],

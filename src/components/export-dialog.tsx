@@ -47,15 +47,15 @@ export function ExportDialog({
       title="Export Audio"
       data-testid="audio-export"
     >
-      <div className="mb-6 space-y-4">
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+      <div className="mb-4 space-y-3">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
           <dt className="text-neutral-400">Format</dt>
           <dd>WAV, stereo, 48 kHz, 16-bit PCM</dd>
         </dl>
         {loudness && <LoudnessSummary loudness={loudness} />}
       </div>
       <Button
-        className="w-full px-4 py-2 text-sm hover:bg-neutral-700"
+        className="h-control w-full px-3 text-xs hover:bg-neutral-700"
         disabled={disabled || exportMutation.isPending}
         onClick={() => exportMutation.mutate()}
       >

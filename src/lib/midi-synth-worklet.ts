@@ -1,25 +1,55 @@
-import { SoundBankLoader, SpessaSynthProcessor } from "spessasynth_core";
+import { DEFAULT_MIDI_CONTROLLERS } from "spessasynth_core";
+import { type SynthPatch, SubtractiveSynth } from "./dsp/subtractive-synth.ts";
 import { watchWorkletDisposal } from "./dsp/worklet-disposal.ts";
-import { DRUM_KIT_BANK } from "./general-midi.ts";
-import { MidiNoteScheduler, type TimelineNote } from "./midi-note-scheduler.ts";
+import {
+  encodePitchBend,
+  LIVE_CONTROLLERS,
+  type MidiMessage,
+  PITCH_WHEEL_CENTER,
+} from "./general-midi.ts";
+import {
+  MidiNoteScheduler,
+  type ScheduledAutomation,
+  type ScheduledEvent,
+  type TimelineAutomation,
+  type TimelineNote,
+} from "./midi-note-scheduler.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
 import { registerRpcHandlers } from "./rpc/endpoint.ts";
+import { type SoundfontPreset, SoundfontSynth } from "./soundfont-synth.ts";
 
 const PROCESSOR_NAME = "midi-synth";
-// Every track plays on the first MIDI channel of its own synth.
-const CHANNEL = 0;
-const BANK_SELECT_CONTROLLER = 0;
+const EVENT_RANKS: Record<ScheduledEvent["type"], number> = {
+  "note-off": 0,
+  controller: 1,
+  "pitch-bend": 1,
+  "note-on": 2,
+};
 
-interface SynthPreset {
-  /** Id of the SoundFont the preset comes from */
-  soundfont: string;
-  bank: number;
-  program: number;
+/** Plays a track's notes and automation as a single MIDI channel. */
+export interface SynthEngine {
+  noteOn(pitch: number, velocity: number): void;
+  noteOff(pitch: number): void;
+  controller(controller: number, value: number): void;
+  /** 14-bit wheel value over `PITCH_BEND_RANGE` */
+  pitchBend(value: number): void;
+  /** Mixes `length` frames into the buffers from `offset`. */
+  render(
+    left: Float32Array,
+    right: Float32Array,
+    offset: number,
+    length: number,
+  ): void;
+  stopAll(): void;
 }
 
-type ScheduledEvent =
-  | { type: "noteOff"; frame: number; pitch: number }
-  | { type: "noteOn"; frame: number; pitch: number; velocity: number };
+/**
+ * When `synth` is set, Toy MIDI's own synth plays the track instead of the
+ * SoundFont preset.
+ */
+type SynthPreset = SoundfontPreset & { synth?: SynthPatch };
+
+type QueuedEvent = ScheduledEvent & { frame: number };
 
 declare const AudioWorkletProcessor: new (
   options?: AudioWorkletNodeOptions,
@@ -56,69 +86,101 @@ class MidiSynthProcessor extends AudioWorkletProcessor {
 
 /** The synth's state, with its async methods called from the main thread. */
 export class MidiSynth {
-  private synth?: SpessaSynthProcessor;
-  private preset?: SynthPreset;
+  private soundfontSynth?: SoundfontSynth;
+  private subtractiveSynth?: SubtractiveSynth;
+  private engine?: SynthEngine;
   // Scheduling here rather than on a main-thread timer keeps a busy page from
   // dropping notes.
   private readonly scheduler = new MidiNoteScheduler();
-  // Sorted by frame, with note-offs before note-ons on the same frame.
-  private events: ScheduledEvent[] = [];
+  private automation: ScheduledAutomation[] = [];
+  // Set by `stop()` so release tails keep the values they stopped at. Playback
+  // chases its own values at start, so only live input needs the reset.
+  private automationResetPending = false;
+  // Sorted by frame, then note-offs, controller changes, and note-ons on the
+  // same frame, so a controller change applies to the note starting with it.
+  private events: QueuedEvent[] = [];
 
   async init(): Promise<void> {
-    const synth = new SpessaSynthProcessor(sampleRate, {
-      eventsEnabled: false,
-      // Soundfont presets send to SpessaSynth's built-in reverb and chorus
-      // on their own, so MIDI tracks are only dry with effects disabled.
-      effectsEnabled: false,
-    });
-    // SF3 samples need the Vorbis decoder, which loads asynchronously.
-    await synth.processorInitialized;
-    this.synth = synth;
+    this.soundfontSynth = await SoundfontSynth.create(sampleRate);
+    this.engine = this.soundfontSynth;
   }
 
-  async addSoundfont({
-    id,
-    soundfont,
-    samples,
-  }: {
+  async addSoundfont(soundfont: {
     id: string;
     soundfont: ArrayBuffer;
     samples?: Float32Array[];
   }): Promise<void> {
-    const bank = SoundBankLoader.fromArrayBuffer(soundfont);
-    if (samples) {
-      bank.samples.forEach((sample, index) => {
-        sample.setAudioData(samples[index]!, sample.sampleRate);
-      });
+    this.soundfontSynth!.addSoundfont(soundfont);
+    if (this.engine === this.soundfontSynth) {
+      this.scheduler.requestChase();
     }
-    this.synth!.soundBankManager.addSoundBank(bank, id);
-    this.applyPreset();
   }
 
-  async setPreset(preset: SynthPreset): Promise<void> {
-    this.preset = preset;
-    this.applyPreset();
+  async setPreset({ synth, ...preset }: SynthPreset): Promise<void> {
+    this.soundfontSynth!.setPreset(preset);
+    let engine: SynthEngine = this.soundfontSynth!;
+    if (synth) {
+      this.subtractiveSynth ??= new SubtractiveSynth(sampleRate);
+      this.subtractiveSynth.setPatch(synth);
+      engine = this.subtractiveSynth;
+    }
+    if (engine !== this.engine) {
+      this.engine!.stopAll();
+      this.engine = engine;
+    }
+    // TODO: Skip the chase when only the synth's patch changes, since the
+    // engine keeps its controller state. It matters once the synth honors
+    // controllers.
+    this.scheduler.requestChase();
   }
 
-  async noteOn({
-    pitch,
-    velocity,
-  }: {
-    pitch: number;
-    velocity: number;
-  }): Promise<void> {
-    this.synth!.noteOn(CHANNEL, pitch, velocity);
+  async playMessage(message: MidiMessage): Promise<void> {
+    if (message.type !== "note-off") {
+      this.applyPendingAutomationReset();
+    }
+    playMidiMessage(this.engine!, message);
   }
 
-  async noteOff(pitch: number): Promise<void> {
-    this.synth!.noteOff(CHANNEL, pitch);
+  /**
+   * Ends every sounding note, including any a MIDI device never released, and
+   * returns live controllers to their defaults and automation to the playhead's
+   * value.
+   */
+  async reset(): Promise<void> {
+    const engine = this.engine!;
+    engine.stopAll();
+    for (const controller of LIVE_CONTROLLERS) {
+      engine.controller(controller, getDefaultControllerValue(controller));
+    }
+    engine.pitchBend(PITCH_WHEEL_CENTER);
+    this.scheduler.requestChase();
   }
 
   async setNotes(notes: TimelineNote[]): Promise<void> {
     this.scheduler.setNotes(notes);
   }
 
+  async setAutomation(automation: TimelineAutomation[]): Promise<void> {
+    const next: ScheduledAutomation[] = automation.map(
+      convertToScheduledAutomation,
+    );
+    const removed = this.automation.filter(
+      (sequence) =>
+        !next.some((other) =>
+          sequence.type === "controller"
+            ? other.type === "controller" &&
+              other.controller === sequence.controller
+            : other.type === sequence.type,
+        ),
+    );
+    this.resetAutomation(removed);
+    this.automation = next;
+    this.scheduler.setAutomation(next);
+  }
+
   async start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
+    await this.reset();
+    this.automationResetPending = false;
     this.scheduler.start(playbackRunOptions);
   }
 
@@ -126,60 +188,53 @@ export class MidiSynth {
     // Drop the queue first so no pending note-on restarts a released note.
     this.scheduler.stop();
     this.events = [];
-    this.synth!.stopAllChannels();
+    this.engine!.stopAll();
+    this.automationResetPending = true;
   }
 
-  /** Selects the track's preset once a SoundFont has loaded. */
-  private applyPreset(): void {
-    const synth = this.synth!;
-    const banks = synth.soundBankManager;
-    const preset = this.preset;
-    if (!preset || banks.soundBankList.length === 0) {
-      return;
+  private applyPendingAutomationReset(): void {
+    if (this.automationResetPending) {
+      this.automationResetPending = false;
+      this.resetAutomation(this.automation);
     }
-    // The first loaded sound bank that has the preset plays it, so GeneralUser
-    // plays the same program until the track's SoundFont arrives.
-    banks.priorityOrder = [
-      preset.soundfont,
-      ...banks.priorityOrder.filter((id) => id !== preset.soundfont),
-    ];
-    const { bank, program } = preset;
-    // A drum kit bank only plays on a drum channel, so the single channel
-    // switches to drums for it. SpessaSynth substitutes a missing preset.
-    const isDrum = bank === DRUM_KIT_BANK;
-    synth.midiChannels[CHANNEL].setDrums(isDrum);
-    if (!isDrum) {
-      synth.controllerChange(CHANNEL, BANK_SELECT_CONTROLLER, bank);
-    }
-    synth.programChange(CHANNEL, program);
-    // SF3 samples decode on first use, which would underrun the render
-    // quantum of the first note that needs them, so decode them up front.
-    synth.midiChannels[CHANNEL].preset?.preload(0, 127);
   }
 
-  /** Queues the notes that start before `endFrame`. */
-  private scheduleNotes(endFrame: number): void {
-    const notes = this.scheduler.getScheduledNotes({
+  /**
+   * A controller or bend keeps its last value until changed, so this returns
+   * each sequence's target to its initial value.
+   */
+  private resetAutomation(automation: ScheduledAutomation[]): void {
+    const engine = this.engine!;
+    for (const sequence of automation) {
+      switch (sequence.type) {
+        case "controller": {
+          engine.controller(sequence.controller, sequence.initialValue);
+          break;
+        }
+        case "pitch-bend": {
+          engine.pitchBend(sequence.initialValue);
+          break;
+        }
+      }
+    }
+  }
+
+  /** Queues the events that start before `endFrame`. */
+  private scheduleEvents(endFrame: number): void {
+    const events = this.scheduler.getScheduledEvents({
       start: currentFrame / sampleRate,
       end: endFrame / sampleRate,
     });
-    for (const { startTime, endTime, pitch, velocity } of notes) {
+    for (const event of events) {
       this.insertEvent({
-        type: "noteOn",
-        frame: Math.round(startTime * sampleRate),
-        pitch,
-        velocity,
-      });
-      this.insertEvent({
-        type: "noteOff",
-        frame: Math.round(endTime * sampleRate),
-        pitch,
+        ...event,
+        frame: Math.round(event.time * sampleRate),
       });
     }
   }
 
-  private insertEvent(event: ScheduledEvent): void {
-    const rank = (e: ScheduledEvent) => (e.type === "noteOff" ? 0 : 1);
+  private insertEvent(event: QueuedEvent): void {
+    const rank = (e: QueuedEvent) => EVENT_RANKS[e.type];
     // Insert after every event that sorts at or before this one, so equal
     // events keep their arrival order.
     const index = this.events.findLastIndex(
@@ -189,12 +244,12 @@ export class MidiSynth {
   }
 
   render(left: Float32Array, right: Float32Array): void {
-    const synth = this.synth;
-    if (!synth) {
+    const engine = this.engine;
+    if (!engine) {
       return;
     }
     const blockEnd = currentFrame + left.length;
-    this.scheduleNotes(blockEnd);
+    this.scheduleEvents(blockEnd);
     // Split the render block at each due event so it starts on its own frame.
     // Events that arrived late apply at the start of the block.
     let offset = 0;
@@ -202,19 +257,67 @@ export class MidiSynth {
       const event = this.events.shift()!;
       const eventOffset = Math.max(event.frame - currentFrame, 0);
       if (eventOffset > offset) {
-        synth.process(left, right, offset, eventOffset - offset);
+        engine.render(left, right, offset, eventOffset - offset);
         offset = eventOffset;
       }
-      if (event.type === "noteOff") {
-        synth.noteOff(CHANNEL, event.pitch);
-      } else {
-        synth.noteOn(CHANNEL, event.pitch, event.velocity);
-      }
+      playMidiMessage(engine, event);
     }
     if (offset < left.length) {
-      synth.process(left, right, offset, left.length - offset);
+      engine.render(left, right, offset, left.length - offset);
     }
   }
+}
+
+function playMidiMessage(engine: SynthEngine, message: MidiMessage): void {
+  switch (message.type) {
+    case "note-on": {
+      engine.noteOn(message.pitch, message.velocity);
+      break;
+    }
+    case "note-off": {
+      engine.noteOff(message.pitch);
+      break;
+    }
+    case "controller": {
+      engine.controller(message.controller, message.value);
+      break;
+    }
+    case "pitch-bend": {
+      engine.pitchBend(message.value);
+      break;
+    }
+  }
+}
+
+/**
+ * Controllers start from SpessaSynth's defaults, and bends become 14-bit wheel
+ * values.
+ */
+function convertToScheduledAutomation(
+  sequence: TimelineAutomation,
+): ScheduledAutomation {
+  switch (sequence.type) {
+    case "controller": {
+      return {
+        ...sequence,
+        initialValue: getDefaultControllerValue(sequence.controller),
+      };
+    }
+    case "pitch-bend": {
+      return {
+        ...sequence,
+        points: sequence.points.map((point) => ({
+          time: point.time,
+          value: encodePitchBend(point.value),
+        })),
+        initialValue: PITCH_WHEEL_CENTER,
+      };
+    }
+  }
+}
+
+function getDefaultControllerValue(controller: number): number {
+  return DEFAULT_MIDI_CONTROLLERS[controller] >> 7;
 }
 
 registerProcessor(PROCESSOR_NAME, MidiSynthProcessor);

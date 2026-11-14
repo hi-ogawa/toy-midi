@@ -1,7 +1,11 @@
-import type { Note } from "../types.ts";
+import type { Automation, Note } from "../types.ts";
 import { memo } from "../utils/memo.ts";
 import { disposeWorklet } from "./dsp/worklet-disposal.ts";
-import type { TimelineNote } from "./midi-note-scheduler.ts";
+import type { MidiMessage } from "./general-midi.ts";
+import type {
+  TimelineAutomation,
+  TimelineNote,
+} from "./midi-note-scheduler.ts";
 import midiSynthWorkletUrl from "./midi-synth-worklet.ts?worker&url";
 import type { MidiSynth } from "./midi-synth-worklet.ts";
 import type { PlaybackRunOptions } from "./playback-run.ts";
@@ -52,20 +56,27 @@ export class MidiSynthWorkletNode {
       soundfont: soundfont.id,
       bank: preset.bank ?? 0,
       program: preset.program,
+      synth: preset.synth,
     });
-    await this.addSoundfont(soundfont);
+    if (!preset.synth) {
+      await this.addSoundfont(soundfont);
+    }
   }
 
-  noteOn(pitch: number): void {
-    void this.getSynth().noteOn({ pitch, velocity: 100 });
+  playMessage(message: MidiMessage): void {
+    void this.getSynth().playMessage(message);
   }
 
-  noteOff(pitch: number): void {
-    void this.getSynth().noteOff(pitch);
+  reset(): void {
+    void this.getSynth().reset();
   }
 
   setNotes(notes: TimelineNote[]): Promise<void> {
     return this.getSynth().setNotes(notes);
+  }
+
+  setAutomation(automation: TimelineAutomation[]): Promise<void> {
+    return this.getSynth().setAutomation(automation);
   }
 
   start(playbackRunOptions: PlaybackRunOptions): Promise<void> {
@@ -112,6 +123,36 @@ export function convertToTimelineNotes(
       velocity: note.velocity,
     }))
     .sort((a, b) => a.start - b.start);
+}
+
+/** Converts automation in beats to the synth's sequences in seconds. */
+export function convertToTimelineAutomation(
+  automation: readonly Automation[],
+  tempo: number,
+): TimelineAutomation[] {
+  return automation.map((sequence) => {
+    switch (sequence.type) {
+      case "controller": {
+        return {
+          type: "controller",
+          controller: sequence.controller,
+          points: sequence.points.map((point) => ({
+            time: beatsToSeconds(point.beat, tempo),
+            value: point.value,
+          })),
+        };
+      }
+      case "pitch-bend": {
+        return {
+          type: "pitch-bend",
+          points: sequence.points.map((point) => ({
+            time: beatsToSeconds(point.beat, tempo),
+            value: point.semitones,
+          })),
+        };
+      }
+    }
+  });
 }
 
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
