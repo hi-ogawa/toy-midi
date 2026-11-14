@@ -13,7 +13,7 @@ Loudness starts as mean power, like an RMS meter, but the signal is filtered fir
 
 ![K-weighting at 48 kHz is flat through the midrange, about +0.7 dB at 1 kHz, rises to +4 dB above 2 kHz, and falls to −6 dB at 38 Hz and further below.](images/loudness-k-weighting.svg)
 
-BS.1770 publishes the coefficients only at 48 kHz. Following [libebur128](https://github.com/jiixyj/libebur128), the meter derives the same two filters from analog prototypes through the bilinear transform, so they hold at any sample rate. This is the same method the [digital filter articles](digital-filters/bilinear-transform.md) use to derive the peaking EQ.
+[BS.1770](https://www.itu.int/rec/R-REC-BS.1770) publishes the coefficients only at 48 kHz. The meter instead uses the analog parameters from [libebur128's filter setup](https://github.com/jiixyj/libebur128/blob/67b33abe1558160ed76ada1322329b0e9e058b02/ebur128/ebur128.c#L251-L283). Through the bilinear transform, they reproduce the published coefficients at 48 kHz and give the same filters at any other sample rate. This is the same method the [digital filter articles](digital-filters/bilinear-transform.md) use to derive the peaking EQ.
 
 The consequence for mixing is that low end counts for less than a flat meter would show. A bass that reads 7 LU under the mix can still sound full, because much of its energy sits where K-weighting discounts it.
 
