@@ -1264,8 +1264,7 @@ export class EditorRuntime {
   /**
    * Render the project offline the way Export Audio does, and measure its loudness.
    * Pass the powers to `toyMidi.utils.measureIntegratedLoudness` and
-   * `toyMidi.utils.measureLoudnessRange` for the summary numbers. A silent true peak
-   * reads -Infinity, which JSON turns into null.
+   * `toyMidi.utils.measureLoudnessRange` for the summary numbers.
    */
   async measureLoudness(): Promise<LoudnessReport> {
     const { loudness } = await this.renderMix();

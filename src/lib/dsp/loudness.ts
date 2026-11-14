@@ -1,13 +1,12 @@
 /**
- * Loudness meter following ITU-R BS.1770 for loudness and true peak, and EBU Tech 3342
- * for loudness range. The meter keeps the power of the K-weighted signal per 100 ms
+ * Loudness meter following ITU-R BS.1770 for loudness and EBU Tech 3342 for loudness
+ * range. The meter keeps the power of the K-weighted signal per 100 ms
  * segment, and integrated loudness and loudness range are statistics of those powers.
  *
  * See [Loudness](../../../docs/concepts/loudness.md) for how weighting and gating work.
  */
 
 import { BiquadEqFixed } from "./biquad-eq.ts";
-import { TruePeakDetector } from "./true-peak.ts";
 
 export type LoudnessMeasurement = {
   /**
@@ -16,8 +15,6 @@ export type LoudnessMeasurement = {
    * -0.691 + 10 log10(power), and silence is 0.
    */
   powers: number[];
-  /** True peak in dBTP, -Infinity for digital silence */
-  truePeak: number;
 };
 
 const SEGMENTS_PER_SECOND = 10;
@@ -32,7 +29,6 @@ const RANGE_HIGH_PERCENTILE = 0.95;
 export class LoudnessMeter {
   private readonly framesPerSegment: number;
   private readonly filters: KWeightingFilter[];
-  private readonly truePeak: TruePeakDetector;
   private readonly powers: number[] = [];
   private segmentSum = 0;
   private segmentFrames = 0;
@@ -49,11 +45,9 @@ export class LoudnessMeter {
       { length: channelCount },
       () => new KWeightingFilter(sampleRate),
     );
-    this.truePeak = new TruePeakDetector(channelCount);
   }
 
   process(channels: readonly Float32Array[]): void {
-    this.truePeak.process(channels);
     const frameCount = channels[0]?.length ?? 0;
     for (let frame = 0; frame < frameCount; frame++) {
       for (let channel = 0; channel < channels.length; channel++) {
@@ -74,7 +68,6 @@ export class LoudnessMeter {
   measure(): LoudnessMeasurement {
     return {
       powers: [...this.powers],
-      truePeak: 20 * Math.log10(this.truePeak.measure()),
     };
   }
 }

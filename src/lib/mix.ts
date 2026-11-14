@@ -198,16 +198,14 @@ export async function renderMix({
       const buffer = await context.startRendering();
       // Track taps sit before the master gain, which scales them exactly.
       const masterPowerGain = mix.masterGain ** 2;
-      const masterGainDb = 20 * Math.log10(mix.masterGain);
       const tracks = new Map(
         await Promise.all(
           [...trackMeters].map(async ([id, meter]) => {
-            const { powers, truePeak } = await meter.measure();
+            const { powers } = await meter.measure();
             return [
               id,
               {
                 powers: powers.map((power) => power * masterPowerGain),
-                truePeak: truePeak + masterGainDb,
               },
             ] as const;
           }),

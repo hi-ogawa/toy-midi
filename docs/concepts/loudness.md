@@ -58,7 +58,7 @@ The same curves also show what an integrated number hides, which is when each pa
 
 Every statistic above is built from mean power over windows that are whole multiples of 100 ms. A 400 ms block is four consecutive 100 ms segments, and a 3 s window is thirty. The meter therefore only keeps one number per 100 ms, the weighted power summed over channels. A whole song costs a few kilobytes, so the render measures every track alongside the mix instead of keeping each track's audio.
 
-That list of powers is what the measurement returns, together with the true peak. Integrated loudness and loudness range are computed from it, and so is anything else over time, such as the short-term curves above or the loudness of one section.
+That list of powers is what the measurement returns. Integrated loudness and loudness range are computed from it, and so is anything else over time, such as the short-term curves above or the loudness of one section.
 
 ## Relate Track Loudness to the Mix
 
@@ -72,23 +72,13 @@ Those shares only sum to 100% for uncorrelated parts, and each track is gated on
 
 Loudness doesn't model masking. A part 18 LU down in its own register can be clear, while one 8 LU down in the melody's register can disappear. Percussion also reads quieter than it sounds, because 400 ms blocks average its transients away. Use track numbers to find parts worth listening to, not as a verdict.
 
-## Find the Peak Between Samples
-
-The samples of a file are not the waveform a converter plays. The analog output passes smoothly through each sample and can crest between two of them, above every sample value. A sine at a quarter of the sample rate, phased so its samples fall halfway between its crests, peaks 3 dB above its largest sample:
-
-![A full-scale sine at a quarter of the sample rate with a 45° phase has every sample at ±0.71, 3 dB below full scale, while the waveform crests at full scale between them.](images/loudness-true-peak.svg)
-
-True peak estimates that crest by upsampling 4x and taking the largest absolute value. The upsampler is a windowed-sinc interpolator, which reconstructs the band-limited waveform the samples describe. An odd-length filter centers a tap on each original sample, so only the three in-between phases need computing, and the original samples count as they are.
-
-The export renders in floating point, so a mix can exceed full scale without distortion until it is written. The WAV file is 16-bit, which clips anything above 0 dBTP, so a mix that peaks there needs less master gain. Lossy encoding also creates overs between samples, which is why delivery targets keep true peak at or below −1 dBTP.
-
 ## Aim for a Delivery Level
 
-A common target for music on streaming services is about −14 LUFS integrated with true peak at or below −1 dBTP. The gap between true peak and integrated loudness decides whether master gain alone gets there. With a 12 dB gap, raising the master to −14 LUFS lands the peak at −2 dBTP, which fits. Once the gap passes about 13 dB, as with punchy drums or a dry plucked bass, reaching −14 LUFS needs a limiter.
+A common target for music on streaming services is about −14 LUFS integrated. Master gain is an exact offset too, so a mix at −20 LUFS needs 6 dB more master gain to reach the target.
 
 ## References
 
-- [ITU-R BS.1770](https://www.itu.int/rec/R-REC-BS.1770), which defines K-weighting, gating, and true peak.
-- [EBU Tech 3341](https://tech.ebu.ch/publications/tech3341), with test signals for integrated loudness and true peak.
+- [ITU-R BS.1770](https://www.itu.int/rec/R-REC-BS.1770), which defines K-weighting and gating.
+- [EBU Tech 3341](https://tech.ebu.ch/publications/tech3341), with test signals for integrated loudness.
 - [EBU Tech 3342](https://tech.ebu.ch/publications/tech3342), which defines loudness range.
 - [libebur128](https://github.com/jiixyj/libebur128), whose K-weighting design at arbitrary sample rates the meter follows.
