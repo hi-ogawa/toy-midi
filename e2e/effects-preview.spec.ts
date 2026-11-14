@@ -51,10 +51,26 @@ test("iterates the multiband EQ preview", async ({ page }) => {
   await expect(frequencyInput).toHaveValue(frequency);
   await expect(gainInput).toHaveValue(gain);
 
-  // Switch Band 2 to low-pass, which hides its gain and redraws its curve.
+  // Switch Band 2 to a high shelf, which keeps its gain, hides its Q, and
+  // redraws its curve.
   const filterType = panel.getByRole("combobox", { name: "Filter type" });
   const curve = panel.getByTestId("eq-band-curve").nth(1);
   const peakingPath = await curve.getAttribute("d");
+  await filterType.selectOption("high-shelf");
+  await expect(gainInput).toHaveValue(gain);
+  await expect(qInput).toHaveCount(0);
+  await expect(curve).not.toHaveAttribute("d", peakingPath!);
+
+  // Wheel over the graph, which leaves the shelf alone, then switch back to
+  // peaking, and the band's Q is where it was.
+  const shelfPath = await curve.getAttribute("d");
+  await page.mouse.wheel(0, 100);
+  await expect(curve).toHaveAttribute("d", shelfPath!);
+  await filterType.selectOption("peaking");
+  await expect(qInput).toHaveValue("2.4");
+  await expect(curve).toHaveAttribute("d", peakingPath!);
+
+  // Switch Band 2 to low-pass, which hides its gain and redraws its curve.
   await filterType.selectOption("low-pass");
   await expect(gainInput).toHaveCount(0);
   await expect(curve).not.toHaveAttribute("d", peakingPath!);

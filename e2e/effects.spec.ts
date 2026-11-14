@@ -137,6 +137,46 @@ test("switches a band between peaking, low-pass, and high-pass", async ({
   await expect(gain).toHaveValue("6");
 });
 
+test("switches a band between peaking, low shelf, and high shelf", async ({
+  page,
+}) => {
+  // Give Audio 1's band a 6 dB boost and a Q of 2.
+  await createProject(page);
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  const panel = page.getByTestId("effects-panel");
+  const filterType = panel.getByRole("combobox", { name: "Filter type" });
+  const gain = panel.getByRole("textbox", { name: "Gain", exact: true });
+  const q = panel.getByRole("textbox", { name: "Q", exact: true });
+  await gain.fill("6");
+  await gain.press("Enter");
+  await q.fill("2");
+  await q.press("Enter");
+
+  // Switch to low shelf, which keeps the gain and hides the Q.
+  await filterType.selectOption("low-shelf");
+  await expect(gain).toHaveValue("6");
+  await expect(q).toHaveCount(0);
+
+  // Switch to high shelf and cut by 3 dB.
+  await filterType.selectOption("high-shelf");
+  await gain.fill("-3");
+  await gain.press("Enter");
+
+  // Save and reload, and the band is still a high shelf.
+  const save = page.getByTestId("save-button");
+  await save.click();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.reload();
+  await selectMenuItem(page, { menu: "Audio 1 actions", item: "Effects…" });
+  await expect(filterType).toHaveValue("high-shelf");
+  await expect(gain).toHaveValue("-3");
+  await expect(q).toHaveCount(0);
+
+  // Switch back to peaking, and the band keeps the Q it had.
+  await filterType.selectOption("peaking");
+  await expect(q).toHaveValue("2");
+});
+
 test("keeps each band's values when switching bands on the graph", async ({
   page,
 }) => {

@@ -39,16 +39,22 @@ export type BiquadEqCoefficients = {
 
 export type BiquadFilterSpec =
   | { type: "peaking"; frequency: number; gain: number; q: number }
+  | { type: "low-shelf" | "high-shelf"; frequency: number; gain: number }
   | { type: "low-pass" | "high-pass"; frequency: number; q: number };
 
 export function isGainFilter(type: BiquadFilterSpec["type"]): boolean {
-  return type === "peaking";
+  return type === "peaking" || isShelfFilter(type);
+}
+
+export function isShelfFilter(type: BiquadFilterSpec["type"]): boolean {
+  return type === "low-shelf" || type === "high-shelf";
 }
 
 /** Standalone biquad EQ. Parameters ramp over 10 ms of processed audio. */
 export class BiquadEq {
   private readonly sampleRate: number;
-  private readonly type: "peaking" | "low-pass" | "high-pass";
+  private readonly type: BiquadFilterSpec["type"];
+  private readonly hasGain: boolean;
   private readonly rampFrames: number;
   // Log-space ramps make equal ratios advance evenly for frequency, gain, and Q.
   // Slots are log frequency, log gain, log Q, and linear wet mix.
@@ -72,6 +78,7 @@ export class BiquadEq {
   ) {
     this.sampleRate = sampleRate;
     this.type = spec.type;
+    this.hasGain = isGainFilter(spec.type);
     this.rampFrames = Math.max(1, Math.round(sampleRate * 0.01));
     this.history = Array.from(
       { length: channelCount },
@@ -79,8 +86,8 @@ export class BiquadEq {
     );
     this.setParameters({
       frequency: spec.frequency,
-      gain: spec.type === "peaking" ? spec.gain : 1,
-      q: spec.q,
+      gain: "gain" in spec ? spec.gain : 1,
+      q: "q" in spec ? spec.q : DEFAULT_PARAMETERS.q,
       bypass: false,
     });
     this.reset();
@@ -170,10 +177,10 @@ export class BiquadEq {
         const x = input[channel][frame];
         const h = this.history[channel];
         // Direct form I retains input/output history across coefficient changes.
-        // At unity gain a peaking EQ is the exact identity, which also removes
-        // any residual filter tail.
+        // At unity gain a peaking EQ or shelf is the exact identity, which also
+        // removes any residual filter tail.
         const y =
-          this.type === "peaking" && this.current[1] === 0
+          this.hasGain && this.current[1] === 0
             ? x
             : this.coefficients.b0 * x +
               this.coefficients.b1 * h[0] +
@@ -193,17 +200,30 @@ export class BiquadEq {
 
   private updateCoefficients(): void {
     const frequency = Math.exp(this.current[0]);
+    const gain = Math.exp(this.current[1]);
     const q = Math.exp(this.current[2]);
-    if (this.type === "peaking") {
-      calculateBiquadEqCoefficients(
-        { sampleRate: this.sampleRate, output: this.coefficients },
-        { type: "peaking", frequency, gain: Math.exp(this.current[1]), q },
-      );
-    } else {
-      calculateBiquadEqCoefficients(
-        { sampleRate: this.sampleRate, output: this.coefficients },
-        { type: this.type, frequency, q },
-      );
+    calculateBiquadEqCoefficients(
+      { sampleRate: this.sampleRate, output: this.coefficients },
+      createFilterSpec(this.type, { frequency, gain, q }),
+    );
+  }
+}
+
+function createFilterSpec(
+  type: BiquadFilterSpec["type"],
+  { frequency, gain, q }: Omit<EqParameters, "bypass">,
+): BiquadFilterSpec {
+  switch (type) {
+    case "peaking": {
+      return { type, frequency, gain, q };
+    }
+    case "low-shelf":
+    case "high-shelf": {
+      return { type, frequency, gain };
+    }
+    case "low-pass":
+    case "high-pass": {
+      return { type, frequency, q };
     }
   }
 }
@@ -253,10 +273,11 @@ export function calculateBiquadEqCoefficients(
 ): BiquadEqCoefficients {
   const omega = (2 * Math.PI * spec.frequency) / sampleRate;
   const cos = Math.cos(omega);
-  const alpha = Math.sin(omega) / (2 * spec.q);
+  const sin = Math.sin(omega);
   const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
   switch (spec.type) {
     case "peaking": {
+      const alpha = sin / (2 * spec.q);
       const amplitude = Math.sqrt(spec.gain);
       const a0 = 1 + alpha / amplitude;
       result.b0 = (1 + alpha * amplitude) / a0;
@@ -266,8 +287,28 @@ export function calculateBiquadEqCoefficients(
       result.a2 = (1 - alpha / amplitude) / a0;
       break;
     }
+    case "low-shelf":
+    case "high-shelf": {
+      const amplitude = Math.sqrt(spec.gain);
+      const sum = amplitude + 1;
+      // Reversing each analog quadratic turns a low shelf into a high shelf,
+      // which flips the sign of every A - 1 term.
+      const difference =
+        spec.type === "low-shelf" ? amplitude - 1 : 1 - amplitude;
+      // The linear term fixes the shelf slope at the steepest transition
+      // without overshoot.
+      const linear = Math.sqrt(2 * amplitude) * sin;
+      const a0 = sum + difference * cos + linear;
+      result.b0 = (amplitude * (sum - difference * cos + linear)) / a0;
+      result.b1 = (2 * amplitude * (difference - sum * cos)) / a0;
+      result.b2 = (amplitude * (sum - difference * cos - linear)) / a0;
+      result.a1 = (-2 * (difference + sum * cos)) / a0;
+      result.a2 = (sum + difference * cos - linear) / a0;
+      break;
+    }
     case "low-pass":
     case "high-pass": {
+      const alpha = sin / (2 * spec.q);
       const a0 = 1 + alpha;
       const highPass = spec.type === "high-pass";
       const edge = highPass ? (1 + cos) / 2 : (1 - cos) / 2;

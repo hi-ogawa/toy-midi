@@ -10,7 +10,10 @@ export const MAX_EQ_BANDS = 8;
 
 export type EqBandType = BiquadFilterSpec["type"];
 
-/** Low-pass and high-pass bands keep their gain but don't apply it. */
+/**
+ * Bands keep the parameters their type doesn't use, such as a low-pass's gain
+ * or a shelf's Q.
+ */
 export type MultibandEqBand = EqParameters & { id: string; type: EqBandType };
 
 export interface MultibandEqParameters {
