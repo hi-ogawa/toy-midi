@@ -151,9 +151,9 @@ function powerToLoudness(power: number): number {
 
 /**
  * K-weighting is a high shelf of about +4 dB above 1.5 kHz followed by a high-pass at
- * 38 Hz. BS.1770 gives the coefficients at 48 kHz, and the analog parameters below
- * reproduce them through the bilinear transform at any sample rate, following
- * libebur128.
+ * 38 Hz. BS.1770 gives the coefficients only at 48 kHz. The analog parameters below
+ * are libebur128's unofficial fit, which reproduces them at 48 kHz through the
+ * bilinear transform. The standard doesn't define other sample rates.
  */
 class KWeightingFilter {
   private readonly shelf: Biquad;
