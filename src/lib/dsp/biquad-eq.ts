@@ -215,6 +215,7 @@ export class BiquadEq {
  */
 export class BiquadEqPerSample {
   private readonly sampleRate: number;
+  private readonly filter = new BiquadDirectForm1();
   private readonly coefficients: BiquadEqCoefficients = {
     b0: 1,
     b1: 0,
@@ -222,21 +223,31 @@ export class BiquadEqPerSample {
     a1: 0,
     a2: 0,
   };
-  // x[n-1], x[n-2], y[n-1], y[n-2]
-  private x1 = 0;
-  private x2 = 0;
-  private y1 = 0;
-  private y2 = 0;
 
   constructor({ sampleRate }: { sampleRate: number }) {
     this.sampleRate = sampleRate;
   }
 
   process(input: number, spec: BiquadFilterSpec): number {
-    const { b0, b1, b2, a1, a2 } = calculateBiquadEqCoefficients(
-      { sampleRate: this.sampleRate, output: this.coefficients },
-      spec,
+    return this.filter.process(
+      input,
+      calculateBiquadEqCoefficients(
+        { sampleRate: this.sampleRate, output: this.coefficients },
+        spec,
+      ),
     );
+  }
+}
+
+/** Single-channel direct-form-I biquad that takes its coefficients on every sample. */
+export class BiquadDirectForm1 {
+  // x[n-1], x[n-2], y[n-1], y[n-2]
+  private x1 = 0;
+  private x2 = 0;
+  private y1 = 0;
+  private y2 = 0;
+
+  process(input: number, { b0, b1, b2, a1, a2 }: BiquadEqCoefficients): number {
     const output =
       b0 * input + b1 * this.x1 + b2 * this.x2 - a1 * this.y1 - a2 * this.y2;
     this.x2 = this.x1;

@@ -14,7 +14,7 @@ export async function renderProject(
     const { runtime, utils } = window.toyMidi;
     await runtime!.init();
     await runtime!.deserializeProject(utils.convertSharedProject(project));
-    const buffer = await runtime!.renderMix();
+    const { buffer } = await runtime!.renderMix();
     return {
       sampleRate: buffer.sampleRate,
       channels: Array.from({ length: buffer.numberOfChannels }, (_, i) =>
