@@ -112,6 +112,21 @@ describe(BiquadEq, () => {
       expect(measureResponse(spec, stopband)).toBeLessThan(-35);
     },
   );
+
+  it.each([
+    { type: "low-shelf", shelved: 20, unchanged: 20000 },
+    { type: "high-shelf", shelved: 20000, unchanged: 20 },
+  ] as const)(
+    "applies a full $type gain at its end and half at the corner",
+    ({ type, shelved, unchanged }) => {
+      for (const gainDb of [-12, 12]) {
+        const spec = { type, frequency: 1000, gain: dbToGain(gainDb) };
+        expect(measureResponse(spec, 1000)).toBeCloseTo(gainDb / 2, 3);
+        expect(measureResponse(spec, shelved)).toBeCloseTo(gainDb, 1);
+        expect(measureResponse(spec, unchanged)).toBeCloseTo(0, 1);
+      }
+    },
+  );
 });
 
 describe(calculateBiquadEqResponse, () => {

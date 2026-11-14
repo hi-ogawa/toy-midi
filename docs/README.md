@@ -7,7 +7,7 @@
 
 ## Concepts
 
-- [Digital filters](concepts/digital-filters/README.md): transfer functions, continuous and sampled dynamics, and analog-to-digital conversion, with peaking EQ, low-pass, and high-pass as worked designs.
+- [Digital filters](concepts/digital-filters/README.md): transfer functions, continuous and sampled dynamics, and analog-to-digital conversion, with peaking EQ, low-pass, high-pass, and shelves as worked designs.
 - [What a MIDI file can encode](concepts/midi-file-model.md): tracks, channels, programs, events over time, and the tempo map in a Standard MIDI File.
 - [What a SoundFont preset is made of](concepts/soundfont-presets.md): presets, instruments, and samples, zones as splits and layers, generators, and modulators, decoded from GeneralUser GS.
 - [Fourier series](concepts/fourier-series.md): waveforms as vectors, harmonics as an orthonormal basis, coefficients as complex amplitudes, and convolution as a gain on each harmonic.

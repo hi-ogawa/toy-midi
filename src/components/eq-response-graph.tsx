@@ -3,6 +3,7 @@ import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
   isGainFilter,
+  isShelfFilter,
 } from "../lib/dsp/biquad-eq";
 import { type MultibandEqBand } from "../lib/dsp/biquad-eq-multiband";
 import {
@@ -63,7 +64,7 @@ export function EqResponseGraph({
       return;
     }
     const band = bands.find((entry) => entry.id === selectedBandId);
-    if (!band) {
+    if (!band || isShelfFilter(band.type)) {
       return;
     }
     event.preventDefault();
