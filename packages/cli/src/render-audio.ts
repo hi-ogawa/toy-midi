@@ -80,7 +80,8 @@ export async function runRenderAudio(args: string[]) {
           : await utils.readProjectArchiveBlob(await response.blob());
         await runtime!.init();
         await runtime!.deserializeProject(project);
-        const wav = utils.encodeWav(await runtime!.renderMix());
+        const { buffer } = await runtime!.renderMix();
+        const wav = utils.encodeWav(buffer);
         const link = document.createElement("a");
         link.href = URL.createObjectURL(wav);
         link.download = "output.wav";
