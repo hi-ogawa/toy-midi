@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="645" viewBox="0 0 1000 645" font-family="system-ui, sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="670" viewBox="0 0 1000 670" font-family="system-ui, sans-serif" font-size="13">
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
     <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#999"/></marker>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#74a"/></marker>
     <marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c60"/></marker>
     <style>
       .c { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; fill: #36a; font-weight: normal; }
@@ -9,7 +10,7 @@
       .wt { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; fill: #860; }
     </style>
   </defs>
-  <rect width="1000" height="645" fill="#fff"/>
+  <rect width="1000" height="670" fill="#fff"/>
 
   <!-- Capture input -->
   <rect x="20" y="56" width="960" height="114" rx="8" fill="#f3f5fc" stroke="#99b"/>
@@ -148,6 +149,18 @@
   <text x="895" y="487" text-anchor="middle" fill="#666" font-size="11">audio output</text>
   <text x="895" y="502" text-anchor="middle" class="c">context.destination</text>
 
+  <!-- Export renders also measure loudness after each pan and after the master gain -->
+  <path d="M950,312 V326 H975 V540" fill="none" stroke="#74a" stroke-dasharray="6 3" marker-end="url(#p)"/>
+  <text x="967" y="532" text-anchor="end" fill="#74a" font-size="11">each track</text>
+  <line x1="705" y1="512" x2="705" y2="540" stroke="#74a" stroke-dasharray="6 3" marker-end="url(#p)"/>
+  <text x="713" y="532" fill="#74a" font-size="11">mix</text>
+  <rect x="640" y="540" width="340" height="58" rx="6" fill="#fff" stroke="#74a" stroke-dasharray="6 3"/>
+  <text x="656" y="558" font-weight="bold">Loudness meters</text>
+  <text x="656" y="573" fill="#666" font-size="11">one per track and one for the mix</text>
+  <text x="656" y="588" class="c">LoudnessMeterWorkletNode</text>
+  <rect x="822" y="579" width="96" height="18" rx="9" class="w"/>
+  <text x="870" y="592" text-anchor="middle" class="wt">loudness-meter</text>
+
   <!-- Legend -->
   <line x1="40" y1="625" x2="80" y2="625" stroke="#333" marker-end="url(#a)"/>
   <text x="88" y="629" font-size="11" fill="#444">audio</text>
@@ -160,4 +173,6 @@
   <rect x="740" y="616" width="46" height="18" rx="9" class="w"/>
   <text x="763" y="629" text-anchor="middle" class="wt">name</text>
   <text x="794" y="629" font-size="11" fill="#444">AudioWorklet processor</text>
+  <line x1="40" y1="652" x2="80" y2="652" stroke="#74a" stroke-dasharray="6 3" marker-end="url(#p)"/>
+  <text x="88" y="656" font-size="11" fill="#444">only while rendering an export</text>
 </svg>

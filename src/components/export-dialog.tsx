@@ -24,7 +24,7 @@ export function ExportDialog({
         baseName: state.title,
         extension: "wav",
       });
-      const buffer = await runtime.renderMix();
+      const { buffer } = await runtime.renderMix();
       downloadBlob(encodeWav(buffer), fileName);
     },
   });
