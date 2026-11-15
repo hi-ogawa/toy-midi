@@ -124,7 +124,7 @@ H_{\text{LS}}(u)
 =A\frac{u^2+\sqrt{2A}u+A}{Au^2+\sqrt{2A}u+1}.
 $$
 
-Every coefficient is now fixed by the gain, so unlike the peaking EQ and the pass filters, the shelf has no $Q$ control. The [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/) keeps $c$ adjustable through a shelf slope $S$, and this boundary is its $S=1$, which it describes as the steepest slope that keeps the gain monotonic.
+Every coefficient is now fixed by the gain, so unlike the peaking EQ and the pass filters, the shelf has no $Q$ control.
 
 ## Mirror It into a High-Shelf Response
 
@@ -174,10 +174,10 @@ b_2&=A\bigl[(A+1)-(A-1)\cos\omega_0-\beta\bigr],
 \end{aligned}
 ```
 
-The high-shelf row swaps $p_2$ and $p_0$, which leaves $p_2+p_0$ alone and negates $p_2-p_0$. Every $A-1$ above changes sign and nothing else does, so the implementation computes both shelves from one formula. The cookbook writes the linear term as $2\sqrt A\alpha$ with $\alpha=\sin\omega_0/\sqrt2$ at $S=1$, which is the same $\beta$.
+The high-shelf row swaps $p_2$ and $p_0$, which leaves $p_2+p_0$ alone and negates $p_2-p_0$. Every $A-1$ above changes sign and nothing else does, so the implementation computes both shelves from one formula.
 
 At $A=1$, every $A-1$ term vanishes and the numerator equals the denominator, so a flat shelf is exactly the identity, as a flat peaking EQ is.
 
 ## References
 
-- R. Bristow-Johnson, [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/), whose shelf formulas with $S=1$ are the coefficients above, in the same convention as the [peaking EQ](peaking-eq.md)
+- R. Bristow-Johnson, [Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/), whose shelf formulas at slope $S=1$ are the coefficients above, in the same convention as the [peaking EQ](peaking-eq.md)
