@@ -174,7 +174,7 @@ b_2&=A\bigl[(A+1)-(A-1)\cos\omega_0-\beta\bigr],
 \end{aligned}
 ```
 
-The high-shelf row swaps $p_2$ and $p_0$, which leaves $p_2+p_0$ alone and negates $p_2-p_0$. Every $A-1$ above changes sign and nothing else does, so the implementation computes both shelves from one formula.
+For the high shelf, swapping $p_2$ and $p_0$ leaves $p_2+p_0$ alone and negates $p_2-p_0$, so its coefficients are the same with every $A-1$ replaced by $1-A$.
 
 At $A=1$, every $A-1$ term vanishes and the numerator equals the denominator, so a flat shelf is exactly the identity, as a flat peaking EQ is.
 
