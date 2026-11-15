@@ -21,9 +21,7 @@
 - Before adding a test, check that the repo tests that kind of code and that a regression would be visible to a user. Don't test internal shapes, such as which fields saved data carries, when a regression would break nothing.
 - E2E tests run against a fresh production build by default. Use `E2E_SERVER=dev` to run against the dev server.
 - `pnpm test-e2e <test-file>` records DOM traces by default locally and generates `test-results/trace-pack.html`. Use `E2E_TRACE=0` to disable tracing. CI leaves tracing off by default. `pnpm test-e2e-trace <test-file>` or `E2E_TRACE=1` explicitly enables tracing. For selected branch traces on GitHub Actions with artifact links, see [E2E traces on GitHub Actions](docs/e2e.md).
-- Add short narrative comments before each logical phase of an E2E test, describing the user action and expected behavior so the comments alone convey the scenario. Use direct, verb-led wording for actions, such as “Load a backing track.”
-- Wrap the body of an E2E helper that performs several page actions in `test.step(name, fn, { box: true })`, so traces and the HTML report show the helper as one named step and a failure points at the spec line that called it.
-- Before adding or increasing an E2E timeout, measure the relevant wait with `createCheckpoint()` from `e2e/helpers.ts`. Prefer Playwright's default timeout when it comfortably covers the measured duration. If a custom timeout is needed, allow reasonable headroom and document the measured duration beside it.
+- Write E2E tests following [docs/e2e.md](docs/e2e.md#write-tests)
 - Order functions by reading flow, with primary entry points and callers before their implementation helpers
 - Comment a `useEffect` only when it carries its own block of logic, and describe the mechanism it maintains across renders. Effects that only set up and clean up need no comment
 - Comment only what the code cannot say, such as a non-obvious reason or a constraint the types do not show. Do not restate a name or type, do not describe other files, and state a rationale once, where it is enforced
