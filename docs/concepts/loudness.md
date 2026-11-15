@@ -62,13 +62,13 @@ That list of powers is what the measurement returns. Integrated loudness and lou
 
 ## Relate Track Loudness to the Mix
 
-Each track is measured after its EQ, gain, pan, mute and solo, and the master gain, so its number describes what it contributes to the exported file. Gain is an exact offset, so 3 dB more on a fader reads 3 LU louder.
+Each track is measured after its EQ, gain, pan, mute and solo, and the master gain, so its number describes what it contributes to the exported file. Its reverb isn't included, because the shared reverb returns to the master rather than to the track, as [Audio signal flow](../audio-signal-flow.md) shows. Gain is an exact offset, so 3 dB more on a fader reads 3 LU louder.
 
 Track numbers don't add up to the mix number. The difference between a track and the mix converts to a power share, $`10^{\Delta/10}`$, where −3 LU is about half of the mix, −10 LU a tenth, and −20 LU one percent:
 
 ![In Clichê, the melody is 69% of the mix's power at 1.6 LU below it, and the bass 19% at 7.2 LU below. The countermelody is 2%, and hat and ride 0.1%. The shares sum to 103%.](images/loudness-track-share.svg)
 
-Those shares only sum to 100% for uncorrelated parts, and each track is gated on its own, so the sum lands near but not at 100%. This is why the mix is measured from the master rather than derived from the tracks.
+Those shares only sum to 100% for uncorrelated parts. Each track is also gated on its own, and the reverb counts toward the mix but toward no track. So the sum lands near but not at 100%. This is why the mix is measured from the master rather than derived from the tracks.
 
 Loudness doesn't model masking. A part 18 LU down in its own register can be clear, while one 8 LU down in the melody's register can disappear. Percussion also reads quieter than it sounds, because 400 ms blocks average its transients away. Use track numbers to find parts worth listening to, not as a verdict.
 
