@@ -1,6 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { addAudio, createProject } from "./editor-helpers";
+import {
+  addAudio,
+  addMidiTrack,
+  createMidiNote,
+  createProject,
+} from "./editor-helpers";
 import { selectMenuItem } from "./helpers";
 import { decodeWav } from "./wav-helpers";
 
@@ -44,4 +49,39 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   expect(wav.duration).toBeCloseTo(3);
   expect(wav.samples.some((sample) => sample !== 0)).toBe(true);
   await expect(exportButton).toBeEnabled();
+});
+
+test("reports the loudness of the mix and each track after export", async ({
+  page,
+}) => {
+  // Write a single note in a new MIDI track, next to the empty audio track.
+  await createProject(page);
+  const track = await addMidiTrack(page);
+  await createMidiNote(page, track, { beat: 0, pitch: "C4" });
+
+  // Export the project.
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
+  const modal = page.getByTestId("audio-export");
+  const downloadPromise = page.waitForEvent("download");
+  await modal.getByRole("button", { name: "Export file" }).click();
+  await downloadPromise;
+
+  // Check the dialog reports the mix's loudness, and each track's, where the
+  // empty audio track reads as silence.
+  const loudness = modal.getByTestId("audio-export-loudness");
+  await expect(loudness).toContainText(
+    /Loudness−\d+\.\d LUFS, −\d+\.\d dBTP, LRA \d+\.\d LU/,
+  );
+  await expect(loudness.getByRole("row", { name: /^MIDI 1/ })).toHaveText(
+    /^MIDI 1−\d+\.\d−\d+\.\d$/,
+  );
+  await expect(loudness.getByRole("row", { name: /^Audio 1/ })).toHaveText(
+    "Audio 1−∞−∞",
+  );
+
+  // Close the dialog, which clears the numbers of the last export.
+  await modal.getByRole("button", { name: "Close", exact: true }).click();
+  await selectMenuItem(page, { menu: "Editor menu", item: "Export Audio" });
+  await expect(modal).toBeVisible();
+  await expect(loudness).toHaveCount(0);
 });
