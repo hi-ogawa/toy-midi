@@ -154,10 +154,10 @@ export interface MidiTrackState extends BaseTrackState {
 export interface LoudnessReport {
   mix: LoudnessMeasurement;
   /**
-   * Each track's share of the rendered file, after its EQ, gain, pan, mute and solo, and the
-   * master gain, in display order
+   * Each track's contribution to the rendered file, in display order. It includes the track's
+   * EQ, gain, pan, mute, and solo, and the master gain.
    */
-  tracks: ({ id: string; name: string } & LoudnessMeasurement)[];
+  tracks: { id: string; name: string; measurement: LoudnessMeasurement }[];
 }
 
 export type MidiPreset = Pick<
@@ -1288,7 +1288,7 @@ export class EditorRuntime {
         tracks: resolveTrackOrder(state).map(({ id, track }) => ({
           id,
           name: track.name,
-          ...loudness.tracks.get(id)!,
+          measurement: loudness.tracks.get(id)!,
         })),
       },
     };
