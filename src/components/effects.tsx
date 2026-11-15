@@ -1,7 +1,11 @@
 import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { AmpParameters, AmpPreset } from "../lib/dsp/amp";
-import { BUTTERWORTH_Q, isGainFilter } from "../lib/dsp/biquad-eq";
+import {
+  BUTTERWORTH_Q,
+  isGainFilter,
+  isShelfFilter,
+} from "../lib/dsp/biquad-eq";
 import {
   type EqBandType,
   MAX_EQ_BANDS,
@@ -19,6 +23,8 @@ import { useDraftInput } from "./use-draft-input";
 
 const EQ_BAND_TYPE_LABELS: Record<EqBandType, string> = {
   peaking: "Peaking",
+  "low-shelf": "Low shelf",
+  "high-shelf": "High shelf",
   "low-pass": "Low-pass",
   "high-pass": "High-pass",
 };
@@ -173,6 +179,7 @@ export function EffectsContent({
     eq.bands.find((band) => band.id === selectedBandId) ?? eq.bands[0];
   const selectedIndex = selectedBand ? eq.bands.indexOf(selectedBand) : -1;
   const hasGain = selectedBand && isGainFilter(selectedBand.type);
+  const hasQ = selectedBand && !isShelfFilter(selectedBand.type);
 
   const updateBand = (
     id: string,
@@ -359,13 +366,15 @@ export function EffectsContent({
                 }
               />
             )}
-            <EqNumericInput
-              label="Q"
-              unit=""
-              limits={EQ_CONTROL_LIMITS.q}
-              value={selectedBand.q}
-              onChange={(q) => updateBand(selectedBand.id, { q })}
-            />
+            {hasQ && (
+              <EqNumericInput
+                label="Q"
+                unit=""
+                limits={EQ_CONTROL_LIMITS.q}
+                value={selectedBand.q}
+                onChange={(q) => updateBand(selectedBand.id, { q })}
+              />
+            )}
           </div>
         </div>
       )}
