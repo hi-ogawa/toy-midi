@@ -291,12 +291,8 @@ export function calculateBiquadEqCoefficients(
     case "high-shelf": {
       const amplitude = Math.sqrt(spec.gain);
       const sum = amplitude + 1;
-      // Reversing each analog quadratic turns a low shelf into a high shelf,
-      // which flips the sign of every A - 1 term.
       const difference =
         spec.type === "low-shelf" ? amplitude - 1 : 1 - amplitude;
-      // The linear term fixes the shelf slope at the steepest transition
-      // without overshoot.
       const linear = Math.sqrt(2 * amplitude) * sin;
       const a0 = sum + difference * cos + linear;
       result.b0 = (amplitude * (sum - difference * cos + linear)) / a0;
