@@ -83,6 +83,11 @@ export class AudioChannel {
     );
   }
 
+  /** Sends the signal after gain and pan to a node that measures it. */
+  connectTap(node: AudioNode): void {
+    this.panner.connect(node);
+  }
+
   /**
    * Analyses the signal after gain and pan, so levels follow the fader, mute,
    * and solo. Created on first use, so offline mixes never analyse.
