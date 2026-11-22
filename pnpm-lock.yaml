@@ -73,8 +73,8 @@ importers:
         version: 4.4.3
     devDependencies:
       '@hiogawa/playwright-trace-pack':
-        specifier: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@df95343
-        version: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@df95343(@playwright/test@1.62.1)
+        specifier: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e73104d
+        version: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e73104d(@playwright/test@1.62.1)
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.62.1
@@ -369,10 +369,10 @@ packages:
     resolution: {integrity: sha512-PojMX2qhENBc3Zh3LlmLaaQtnnEC5Of24pd8xXBBZc+ReE68hYSqAHUEr0b4ccu0lqtMdrTtlTS4W3Aq/9wK1g==, tarball: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656}
     version: 0.0.0
 
-  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@df95343':
-    resolution: {integrity: sha512-FHc0utIEteqqDqDtRXuvot0NwAg3LY2b+FITK8TR+3GuU51QQRhX72rcNS6qqAnSYspX6bqYUZ12uUa8g6izCg==, tarball: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@df95343}
+  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e73104d':
+    resolution: {integrity: sha512-Tw1NiI/zkv1kvaiktXeVoivmiE1LO5bUCdjYxR1+suH8XbfszVSlzGHj/XfF9fZL2C+KW8bWF4KYLkG1eGQMoQ==, tarball: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e73104d}
     version: 0.0.0
-    engines: {node: '>=20'}
+    engines: {node: '>=22.15'}
     hasBin: true
     peerDependencies:
       '@playwright/test': '>=1.40.0'
@@ -1611,6 +1611,9 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  fzstd@0.1.1:
+    resolution: {integrity: sha512-dkuVSOKKwh3eas5VkJy1AW1vFpet8TA/fGmVA5krThl8YcOVE/8ZIoEA1+U1vEn5ckxxhLirSdY837azmbaNHA==}
+
   get-nonce@1.0.1:
     resolution: {integrity: sha512-FJhYRoDaiatfEkUK8HKlicmu/3SGFD51q3itKDGoSTysQJBnfOcxU5GxnhE1E6soB76MbT0MBtnKJuXyAx+96Q==}
     engines: {node: '>=6'}
@@ -2096,6 +2099,7 @@ packages:
 
   spessasynth_core@4.3.22:
     resolution: {integrity: sha512-qP6NkcZLmTLIs9fCUh2IhZRkd3Junwu8ppD4K0l/0R+Lo4P48d4Rbe8YQ8RlEYyRKFz8HcPM75sXYVQLAb7k4A==}
+    deprecated: Only the latest version of spessasynth_core is supported.
 
   srvx@1.0.5:
     resolution: {integrity: sha512-KvSKRpgPG/oaq3cyT614OQ2bAa7DynuGamivCZeoZzIUULOdbQz6wUtnnVuC4+DCx2Zglzo8v5gBYmWIWYhDxA==}
@@ -2105,8 +2109,9 @@ packages:
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
 
-  stb-vorbis@0.0.6:
-    resolution: {integrity: sha512-CyvjJEGROIdnuZknwFvdOfMIO1ssUxO2OawsXCR3IlbJ8z2IMBjDe8FDxFJqBfLgf1ZOdqvoHAYx3Xk8q9rbbg==}
+  stb-vorbis@0.0.7:
+    resolution: {integrity: sha512-OsD8Vm9EcStsiYGUBSqJ88gBPwDYR1Uv57bV/KZhu6Li1kzjm0fO+iiTkm79bZ1L2I/z6IrA1wkWHu3xQYY7Hw==}
+    engines: {node: '>=18'}
 
   std-env@4.2.0:
     resolution: {integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==}
@@ -2476,9 +2481,10 @@ snapshots:
 
   '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@357c656': {}
 
-  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@df95343(@playwright/test@1.62.1)':
+  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@e73104d(@playwright/test@1.62.1)':
     dependencies:
       fflate: 0.8.3
+      fzstd: 0.1.1
     optionalDependencies:
       '@playwright/test': 1.62.1
 
@@ -3436,6 +3442,8 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
+  fzstd@0.1.1: {}
+
   get-nonce@1.0.1: {}
 
   github-from-package@0.0.0:
@@ -3936,13 +3944,13 @@ snapshots:
 
   spessasynth_core@4.3.22:
     dependencies:
-      stb-vorbis: 0.0.6
+      stb-vorbis: 0.0.7
 
   srvx@1.0.5: {}
 
   stackback@0.0.2: {}
 
-  stb-vorbis@0.0.6: {}
+  stb-vorbis@0.0.7: {}
 
   std-env@4.2.0: {}
 
