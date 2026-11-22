@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getFret,
+  getTabAnnotationDisplay,
   moveTabString,
   resolveTabPosition,
   TAB_STRING_PRESETS,
@@ -8,6 +9,7 @@ import {
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
+const SIX_STRING_GUITAR_PITCHES = [64, 59, 55, 50, 45, 40];
 
 describe("tab annotation positions", () => {
   it.each([
@@ -130,5 +132,27 @@ describe("moveTabString", () => {
         direction: testCase.direction,
       }),
     ).toEqual(testCase.expected);
+  });
+});
+
+describe("six-string tunings", () => {
+  it("annotates a note only the sixth string can play", () => {
+    expect(
+      getTabAnnotationDisplay({
+        note: { pitch: 43 },
+        openStringPitches: SIX_STRING_GUITAR_PITCHES,
+      }),
+    ).toEqual({ label: "E3", color: expect.any(Object) });
+  });
+
+  it("moves down to the sixth string", () => {
+    expect(
+      moveTabString({
+        pitch: 45,
+        openStringPitches: SIX_STRING_GUITAR_PITCHES,
+        tabString: 5,
+        direction: "down",
+      }),
+    ).toEqual({ before: 5, after: 6 });
   });
 });

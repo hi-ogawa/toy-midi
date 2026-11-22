@@ -1,4 +1,4 @@
-import type { Note, TabString } from "../types";
+import type { Note } from "../types";
 
 export const TAB_STRING_PRESETS = [
   {
@@ -22,6 +22,7 @@ const TAB_STRING_COLORS = [
   { background: "#eab308", border: "#ca8a04", text: "#422006" },
   { background: "#f97316", border: "#ea580c", text: "#431407" },
   { background: "#a855f7", border: "#9333ea", text: "#2e1065" },
+  { background: "#ec4899", border: "#db2777", text: "#500724" },
 ] as const;
 
 const PITCH_CLASS_NAMES = [
@@ -49,13 +50,13 @@ export type TabAnnotationDisplay = {
 };
 
 export type TabPosition = {
-  tabString: TabString;
+  tabString: number;
   fret: number;
 };
 
 export type TabStringMove = {
-  before: TabString;
-  after: TabString;
+  before: number;
+  after: number;
 };
 
 export function resolveTabStringPreset(openStringPitches: readonly number[]) {
@@ -88,8 +89,8 @@ export function getTabAnnotationDisplay({
   }
 }
 
-function getTabStringColor(tabString: TabString) {
-  return TAB_STRING_COLORS[tabString - 1];
+function getTabStringColor(tabString: number) {
+  return TAB_STRING_COLORS[(tabString - 1) % TAB_STRING_COLORS.length];
 }
 
 function formatTabPosition({
@@ -109,7 +110,7 @@ export function getFret({
   openStringPitches,
 }: {
   pitch: number;
-  tabString: TabString;
+  tabString: number;
   openStringPitches: readonly number[];
 }): number | undefined {
   const openPitch = openStringPitches[tabString - 1];
@@ -126,9 +127,9 @@ function getPlayableStrings({
 }: {
   pitch: number;
   openStringPitches: readonly number[];
-}): TabString[] {
+}): number[] {
   return openStringPitches
-    .map((_openPitch, index) => (index + 1) as TabString)
+    .map((_openPitch, index) => index + 1)
     .filter(
       (tabString) =>
         getFret({ pitch, tabString, openStringPitches }) !== undefined,
@@ -142,7 +143,7 @@ export function resolveTabPosition({
 }: {
   pitch: number;
   openStringPitches: readonly number[];
-  tabString?: TabString;
+  tabString?: number;
 }): TabPosition | undefined {
   const playableStrings = getPlayableStrings({ pitch, openStringPitches });
   const resolvedTabString =
@@ -166,7 +167,7 @@ export function moveTabString({
 }: {
   pitch: number;
   openStringPitches: readonly number[];
-  tabString?: TabString;
+  tabString?: number;
   direction: "up" | "down";
 }): TabStringMove | undefined {
   const current = resolveTabPosition({ pitch, openStringPitches, tabString });

@@ -426,9 +426,9 @@ export function useMidiInteraction({
     ) {
       return false;
     }
-    const tabString = ([1, 2, 3, 4, 5] as const).find((string) =>
-      matchKeyboardEvent(event, String(string)),
-    );
+    const tabString = selectedTrack.tabOpenStringPitches
+      .map((_openPitch, index) => index + 1)
+      .find((string) => matchKeyboardEvent(event, String(string)));
     const reset = matchKeyboardEvent(event, "0");
     const direction = matchKeyboardEvent(event, "ArrowUp")
       ? "up"
