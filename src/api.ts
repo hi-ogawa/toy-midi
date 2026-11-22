@@ -1,4 +1,8 @@
 import type { ScoreViewerRuntime } from "./components/score-viewer-runtime";
+import {
+  measureIntegratedLoudness,
+  measureLoudnessRange,
+} from "./lib/dsp/loudness";
 import { readProjectArchiveBlob } from "./lib/project-archive";
 import { convertSharedProject, createSharedProject } from "./lib/project-share";
 import type { EditorRuntime } from "./lib/runtime";
@@ -22,6 +26,8 @@ const toyMidiUtils = {
   createSharedProject,
   readProjectArchiveBlob,
   encodeWav,
+  measureIntegratedLoudness,
+  measureLoudnessRange,
 };
 
 window.toyMidi = { utils: toyMidiUtils };
