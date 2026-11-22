@@ -3,10 +3,10 @@ import type { AmpParameters } from "../src/lib/dsp/amp";
 import type { SharedProject } from "../src/lib/project-share";
 import { measureRmsDb, renderProject } from "./render-helpers";
 
-test("renders MIDI automation", async ({ page }) => {
+test("renders MIDI automation", async ({ context }) => {
   // Render a held note that swells in from silence on expression (CC11),
   // reaching full level at beat 2, one second at 120 BPM.
-  const mix = await renderProject(page, {
+  const mix = await renderProject(context, {
     title: "Swell",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
@@ -31,13 +31,13 @@ test("renders MIDI automation", async ({ page }) => {
 
   // Check the note is silent before the swell, below what a 16-bit WAV can
   // hold, and sounds after it.
-  expect(measureRmsDb(mix, { start: 0, end: 0.9 })).toBeLessThan(-96);
-  expect(measureRmsDb(mix, { start: 1, end: 2 })).toBeGreaterThan(-60);
+  expect(await measureRmsDb(mix, { start: 0, end: 0.9 })).toBeLessThan(-96);
+  expect(await measureRmsDb(mix, { start: 1, end: 2 })).toBeGreaterThan(-60);
 });
 
-test("renders a track's own synth", async ({ page }) => {
+test("renders a track's own synth", async ({ context }) => {
   // Render a held piano program on the synth.
-  const mix = await renderProject(page, {
+  const mix = await renderProject(context, {
     title: "Synth",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
@@ -54,15 +54,17 @@ test("renders a track's own synth", async ({ page }) => {
   // Check the note holds its level, as a sine does and a SoundFont piano
   // doesn't.
   expect(
-    measureRmsDb(mix, { start: 0.1, end: 0.5 }) -
-      measureRmsDb(mix, { start: 1.5, end: 1.9 }),
+    (await measureRmsDb(mix, { start: 0.1, end: 0.5 })) -
+      (await measureRmsDb(mix, { start: 1.5, end: 1.9 })),
   ).toBeCloseTo(0);
 });
 
-test("renders volume automation on a track's own synth", async ({ page }) => {
+test("renders volume automation on a track's own synth", async ({
+  context,
+}) => {
   // Render a held sine on the synth that drops from the default volume of 100
   // to 50 on CC7 at beat 2, one second at 120 BPM.
-  const mix = await renderProject(page, {
+  const mix = await renderProject(context, {
     title: "Synth volume",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
@@ -86,12 +88,12 @@ test("renders volume automation on a track's own synth", async ({ page }) => {
   // Check that halving the volume drops the level by 12 dB, the square of the
   // ratio, rather than the 6 dB of a linear curve.
   expect(
-    measureRmsDb(mix, { start: 1.1, end: 1.9 }) -
-      measureRmsDb(mix, { start: 0.1, end: 0.9 }),
+    (await measureRmsDb(mix, { start: 1.1, end: 1.9 })) -
+      (await measureRmsDb(mix, { start: 0.1, end: 0.9 })),
   ).toBeCloseTo(-12, 0);
 });
 
-test("renders a track's amp", async ({ page }) => {
+test("renders a track's amp", async ({ context }) => {
   // Render one guitar note with and without the amp.
   const createProject = (amp?: AmpParameters): SharedProject => ({
     title: "Amp",
@@ -106,21 +108,21 @@ test("renders a track's amp", async ({ page }) => {
       },
     ],
   });
-  const dry = await renderProject(page, createProject());
+  const dry = await renderProject(context, createProject());
   const amped = await renderProject(
-    page,
+    context,
     createProject({ preset: "high-gain", cabinet: true }),
   );
 
   // Check the amp's drive makes the note louder, which it can't unless the
   // track's mix runs through it.
   const range = { start: 0, end: 1 };
-  expect(measureRmsDb(amped, range)).toBeGreaterThan(
-    measureRmsDb(dry, range) + 6,
+  expect(await measureRmsDb(amped, range)).toBeGreaterThan(
+    (await measureRmsDb(dry, range)) + 6,
   );
 });
 
-test("renders a track's reverb send", async ({ page }) => {
+test("renders a track's reverb send", async ({ context }) => {
   // Render one short piano note without a send, with one, and with one on a
   // muted track.
   const createProject = ({
@@ -143,16 +145,18 @@ test("renders a track's reverb send", async ({ page }) => {
       },
     ],
   });
-  const dry = await renderProject(page, createProject({}));
-  const wet = await renderProject(page, createProject({ reverbSend: 1 }));
+  const dry = await renderProject(context, createProject({}));
+  const wet = await renderProject(context, createProject({ reverbSend: 1 }));
   const muted = await renderProject(
-    page,
+    context,
     createProject({ reverbSend: 1, muted: true }),
   );
 
   // Check the send leaves a tail after the dry note has died away, and a
   // muted track sends nothing.
   const tail = { start: 1, end: 1.5 };
-  expect(measureRmsDb(wet, tail)).toBeGreaterThan(measureRmsDb(dry, tail) + 20);
-  expect(measureRmsDb(muted, { start: 0, end: 2 })).toBe(-Infinity);
+  expect(await measureRmsDb(wet, tail)).toBeGreaterThan(
+    (await measureRmsDb(dry, tail)) + 20,
+  );
+  expect(await measureRmsDb(muted, { start: 0, end: 2 })).toBe(-Infinity);
 });
