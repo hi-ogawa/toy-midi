@@ -47,7 +47,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@hiogawa/playwright-trace-pack": "https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@df95343",
+    "@hiogawa/playwright-trace-pack": "https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@99588a0",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/markdown-it": "^14.2.0",
