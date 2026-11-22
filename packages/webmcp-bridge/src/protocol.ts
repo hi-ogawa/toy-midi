@@ -18,6 +18,14 @@ export type ToolInfo = Pick<
 
 export const DEFAULT_BRIDGE_PORT = 4747;
 
+/**
+ * The extension's origin, fixed by the manifest key in `vite.ext.config.ts`.
+ * The extension connects tabs on the sites the user allows it, so the bridge
+ * accepts it without listing each site.
+ */
+export const EXTENSION_ORIGIN =
+  "chrome-extension://idbpljgbehdedncfbagajcaogpccneeb";
+
 export const PAGE_PREFIX = "/page/";
 
 /**

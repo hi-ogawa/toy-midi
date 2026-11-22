@@ -7,7 +7,7 @@
 
 import type { BridgeStatus } from "../client.ts";
 import { DEFAULT_BRIDGE_PORT } from "../protocol.ts";
-import { EXPOSE_EVENT, type StatusMessage } from "./shared.ts";
+import type { ExposeMessage, ResumeMessage, StatusMessage } from "./shared.ts";
 
 const CONTENT_SCRIPT_ID = "content";
 const RELAY_SCRIPT_ID = "relay";
@@ -37,21 +37,25 @@ function main() {
       return;
     }
     const state = await getTabState(tabId);
-    if (!state) {
-      return;
-    }
-    if (!tab.url || new URL(tab.url).origin !== state.origin) {
+    if (state && (!tab.url || new URL(tab.url).origin !== state.origin)) {
       await setTabState(tabId, undefined);
-      return;
-    }
-    await setTabState(tabId, { origin: state.origin, status: "connecting" });
-    await dispatchExpose(tabId, true);
-  });
-  chrome.runtime.onMessage.addListener((message: StatusMessage, sender) => {
-    if (message.type === "webmcp-bridge:status" && sender.tab?.id) {
-      void showStatus(sender.tab.id, message.status);
     }
   });
+  chrome.runtime.onMessage.addListener(
+    (message: ResumeMessage | StatusMessage, sender, sendResponse) => {
+      switch (message.type) {
+        case "webmcp-bridge:resume": {
+          void resumeTab(sender).then(sendResponse);
+          // Keeps `sendResponse` valid until it is called.
+          return true;
+        }
+        case "webmcp-bridge:status": {
+          void showStatus(message.tabId, message.status);
+          return;
+        }
+      }
+    },
+  );
   chrome.tabs.onRemoved.addListener((tabId) =>
     chrome.storage.session.remove(tabKey(tabId)),
   );
@@ -65,20 +69,35 @@ function main() {
 async function toggleTab(tabId: number, origin: string) {
   const state = await getTabState(tabId);
   // The bridge does not retry a refused page, so a click on a refused tab
-  // connects it again, for a site allowed since.
+  // connects it again.
   const exposed = !state || state.status === "closed";
   await setTabState(
     tabId,
     exposed ? { origin, status: "connecting" } : undefined,
   );
   // A site allowed by this click has no content script in the tab yet, so
-  // reload it, and `onUpdated` exposes it.
+  // reload it, and the relay script resumes it.
   if (!(await isContentScriptRegistered(origin))) {
     await syncContentScript();
     await chrome.tabs.reload(tabId);
     return;
   }
-  await dispatchExpose(tabId, exposed);
+  await chrome.tabs.sendMessage(tabId, {
+    type: "webmcp-bridge:expose",
+    bridgeUrl: exposed ? await prepareBridgeUrl() : undefined,
+  } satisfies ExposeMessage);
+}
+
+// Answers a loading page's relay script with the bridge URL when its tab is
+// opted in.
+async function resumeTab(sender: chrome.runtime.MessageSender) {
+  const tabId = sender.tab!.id!;
+  const state = await getTabState(tabId);
+  if (!state || new URL(sender.url!).origin !== state.origin) {
+    return undefined;
+  }
+  await setTabState(tabId, { origin: state.origin, status: "connecting" });
+  return await prepareBridgeUrl();
 }
 
 interface TabState {
@@ -134,7 +153,8 @@ function getBadge(state: TabState | undefined): Badge {
       return {
         text: "!",
         color: "#dc2626",
-        title: `The bridge refused this site. Allow it with webmcp-bridge allow ${state.origin}, then click to retry`,
+        title:
+          "The bridge refused the extension. Update webmcp-bridge, then click to retry",
       };
     }
   }
@@ -160,15 +180,33 @@ function tabKey(tabId: number) {
   return `tab:${tabId}`;
 }
 
-async function dispatchExpose(tabId: number, exposed: boolean) {
-  const bridgeUrl = `http://localhost:${await getBridgePort()}`;
-  await chrome.scripting.executeScript({
-    target: { tabId },
-    world: "MAIN",
-    func: (type: string, detail?: string) => {
-      window.dispatchEvent(new CustomEvent(type, { detail }));
-    },
-    args: exposed ? [EXPOSE_EVENT, bridgeUrl] : [EXPOSE_EVENT],
+async function prepareBridgeUrl() {
+  await prepareOffscreenDocument();
+  // Chrome leaves out the Origin, which the bridge requires, on requests to a
+  // host the extension may access. It may access a site on localhost, but
+  // never 127.0.0.1, which the manifest does not list.
+  return `http://127.0.0.1:${await getBridgePort()}`;
+}
+
+// Several tabs can resume at once, and only one offscreen document may exist,
+// so they share one creation.
+let offscreenDocument: Promise<void> | undefined;
+
+function prepareOffscreenDocument() {
+  offscreenDocument ??= createOffscreenDocument();
+  return offscreenDocument;
+}
+
+async function createOffscreenDocument() {
+  // It outlives a suspended worker, which forgets that it exists.
+  if (await chrome.offscreen.hasDocument()) {
+    return;
+  }
+  await chrome.offscreen.createDocument({
+    url: "offscreen.html",
+    reasons: [chrome.offscreen.Reason.WORKERS],
+    justification:
+      "Keeps the connections of the exposed tabs to the local webmcp-bridge open.",
   });
 }
 

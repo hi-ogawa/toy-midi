@@ -31,9 +31,35 @@ export function exposeModelContext({
   modelContext: ModelContext;
   onStatus?: (status: BridgeStatus) => void;
 }): () => void {
+  const handleRequest = createRequestHandler(modelContext);
+  const connection = connectBridge({
+    bridgeUrl,
+    pageUrl: window.location.href,
+    onRequest: async (request) =>
+      connection.postResult(await handleRequest(request)),
+    onStatus,
+  });
+  return connection.close;
+}
+
+/**
+ * Opens a page's connection to the bridge. Requests and results travel as
+ * JSON text, so a connection opened on the page's behalf, as the extension
+ * does, can pass them along without reading them.
+ */
+export function connectBridge({
+  bridgeUrl,
+  pageUrl,
+  onRequest,
+  onStatus,
+}: {
+  bridgeUrl: string;
+  pageUrl: string;
+  onRequest: (request: string) => void;
+  onStatus?: (status: BridgeStatus) => void;
+}) {
   const connectUrl = new URL(PAGE_ENDPOINTS.connect, bridgeUrl);
-  connectUrl.searchParams.set("url", window.location.href);
-  const rpc = createPageRpc(modelContext);
+  connectUrl.searchParams.set("url", pageUrl);
   const source = new EventSource(connectUrl);
   onStatus?.("connecting");
   source.addEventListener("open", () => onStatus?.("connected"));
@@ -42,23 +68,43 @@ export function exposeModelContext({
       source.readyState === EventSource.CLOSED ? "closed" : "connecting",
     ),
   );
-  source.addEventListener(PAGE_EVENTS.request, async (event) => {
+  source.addEventListener(PAGE_EVENTS.request, (event) =>
+    onRequest(event.data),
+  );
+  return {
+    postResult: async (result: string) => {
+      // Posted as text/plain so the request needs no CORS preflight.
+      await fetch(new URL(PAGE_ENDPOINTS.result, bridgeUrl), {
+        method: "POST",
+        body: result,
+      });
+    },
+    close: () => source.close(),
+  };
+}
+
+/**
+ * Answers a request from the bridge by calling `modelContext`, both as JSON
+ * text.
+ */
+export function createRequestHandler(modelContext: ModelContext) {
+  const rpc = createPageRpc(modelContext);
+  return async (request: string): Promise<string> => {
     const { requestId, method, args } = JSON.parse(
-      event.data,
+      request,
     ) as PageEvents[typeof PAGE_EVENTS.request];
-    let body: string;
     try {
       const value = await (
         rpc[method as keyof PageRpc] as (...args: unknown[]) => unknown
       )(...args);
       // Serialize inside try, so a non-JSON value is reported as an error.
-      body = JSON.stringify({
+      return JSON.stringify({
         requestId,
         ok: true,
         value,
       } satisfies RpcResponse);
     } catch (error) {
-      body = JSON.stringify({
+      return JSON.stringify({
         requestId,
         ok: false,
         error:
@@ -67,13 +113,7 @@ export function exposeModelContext({
             : String(error),
       } satisfies RpcResponse);
     }
-    // Posted as text/plain so the request needs no CORS preflight.
-    await fetch(new URL(PAGE_ENDPOINTS.result, bridgeUrl), {
-      method: "POST",
-      body,
-    });
-  });
-  return () => source.close();
+  };
 }
 
 function createPageRpc(modelContext: ModelContext): PageRpc {
