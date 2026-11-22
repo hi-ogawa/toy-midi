@@ -74,6 +74,9 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm build-wasm
+      - run: .github/scripts/install-ffmpeg.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
       - run: pnpm exec playwright install chromium --with-deps --no-shell
       - run: pnpm fetch-soundfonts
         env:
