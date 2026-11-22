@@ -1,49 +1,54 @@
-import type { Page } from "@playwright/test";
+import { type BrowserContext, type JSHandle, test } from "@playwright/test";
 import type { SharedProject } from "../src/lib/project-share";
 
-export type RenderedMix = { sampleRate: number; channels: Float32Array[] };
+/**
+ * A rendered mix kept in its own page, so the samples never pass through
+ * `page.evaluate` results, which Playwright records in the trace.
+ */
+export type RenderedMix = JSHandle<AudioBuffer>;
 
 /** Render a project's mix the way Export Audio does, without the dialog. */
 export async function renderProject(
-  page: Page,
+  context: BrowserContext,
   project: SharedProject,
 ): Promise<RenderedMix> {
-  await page.goto("/editor-cli");
-  await page.waitForFunction(() => window.toyMidi.runtime);
-  const { sampleRate, channels } = await page.evaluate(async (project) => {
-    const { runtime, utils } = window.toyMidi;
-    await runtime!.init();
-    await runtime!.deserializeProject(utils.convertSharedProject(project));
-    const buffer = await runtime!.renderMix();
-    return {
-      sampleRate: buffer.sampleRate,
-      channels: Array.from({ length: buffer.numberOfChannels }, (_, i) =>
-        Array.from(buffer.getChannelData(i)),
-      ),
-    };
-  }, project);
-  return {
-    sampleRate,
-    channels: channels.map((channel) => Float32Array.from(channel)),
-  };
+  return await test.step(
+    "Render project",
+    async () => {
+      const page = await context.newPage();
+      await page.goto("/editor-cli");
+      await page.waitForFunction(() => window.toyMidi.runtime);
+      return await page.evaluateHandle(async (project) => {
+        const { runtime, utils } = window.toyMidi;
+        await runtime!.init();
+        await runtime!.deserializeProject(utils.convertSharedProject(project));
+        return await runtime!.renderMix();
+      }, project);
+    },
+    { box: true },
+  );
 }
 
 /** RMS level over every channel between two times in seconds. */
-export function measureRmsDb(
+export async function measureRmsDb(
   mix: RenderedMix,
-  { start, end }: { start: number; end: number },
-): number {
-  let sum = 0;
-  let count = 0;
-  for (const channel of mix.channels) {
-    const samples = channel.subarray(
-      Math.round(start * mix.sampleRate),
-      Math.round(end * mix.sampleRate),
-    );
-    for (const sample of samples) {
-      sum += sample * sample;
+  range: { start: number; end: number },
+): Promise<number> {
+  return await mix.evaluate((buffer, { start, end }) => {
+    let sum = 0;
+    let count = 0;
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+      const samples = buffer
+        .getChannelData(i)
+        .subarray(
+          Math.round(start * buffer.sampleRate),
+          Math.round(end * buffer.sampleRate),
+        );
+      for (const sample of samples) {
+        sum += sample * sample;
+      }
+      count += samples.length;
     }
-    count += samples.length;
-  }
-  return 10 * Math.log10(sum / count);
+    return 10 * Math.log10(sum / count);
+  }, range);
 }
