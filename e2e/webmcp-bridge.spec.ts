@@ -75,6 +75,21 @@ extensionTest(
   },
 );
 
+extensionTest(
+  "connects a tab opened before its site was allowed",
+  async ({ page, bridge, extension }) => {
+    // Open a project before allowing its site, so the tab has no content script.
+    await extension.openBeforeSiteAllowed(() => createRecorderProject(page));
+
+    // Turn the tab on, and see it connect and the badge say so.
+    await extension.toggleTab(page);
+    await expect
+      .poll(async () => JSON.parse((await bridge.run(["pages"])).stdout))
+      .toHaveLength(1);
+    await expect.poll(() => extension.getBadgeText(page)).toBe("ON");
+  },
+);
+
 test("connects the open project to the bridge from the URL parameter", async ({
   page,
   bridge,
